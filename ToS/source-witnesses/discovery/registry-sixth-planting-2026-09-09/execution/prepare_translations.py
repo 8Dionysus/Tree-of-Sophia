@@ -106,7 +106,7 @@ def prepare():
         'snapshot_ref': snapshot_ref, 'records': leads})
     prior_targets = {}
     prior_plans = {}
-    for batch, plan_name in [('registry-fifth-planting-2026-09-09', 'fifth-wave-20260909.json')]:
+    for batch, plan_name in [('registry-fifth-planting-2026-09-09', 'roman-philosophical-latin-editions-20260909.json')]:
         old = json.loads((BASE.parent / batch / 'manifest.json').read_text())
         plans = json.loads((ROOT / 'ToS/philosophy/source-planting-preparation' / plan_name).read_text())
         prior_plans.update({plan['target_slug']: plan for plan in plans['targets']})
@@ -299,7 +299,7 @@ def prepare():
         raise ValueError('reviewed scope must be 5 distinct existing Works and 5 new English versions')
     payload = b''.join((json.dumps(package, ensure_ascii=False, separators=(',', ':')) + '\n').encode() for package in packages)
     (BASE / 'prepared-source-packages.jsonl').write_bytes(payload)
-    branch_ref = 'ToS/philosophy/source-planting-preparation/sixth-wave-20260909.json'
+    branch_ref = 'ToS/philosophy/source-planting-preparation/roman-philosophical-english-translations-20260909.json'
     write(ROOT / branch_ref, {'schema_version': 'tos_source_planting_preparation_batch_v1',
         'status': 'prepared-not-planted', 'review_scope': '5 English translations attached to existing Works and A29 branches',
         'reviewer_ref': 'model:codex', 'targets': plans})

@@ -92,7 +92,7 @@ def selection_reason(row):
     if work in ('phi005','phi011','phi013','phi035'):
         return 'Speech cycle: A29 source-witness owner must review constituent speech identities and collection relations before full acquisition.'
     if work == 'phi046':
-        return 'Lucullus: preserve fifth-wave deferral; A29 source-witness owner must resolve Academica redaction and part relations before a new Work or Expression.'
+        return 'Lucullus: preserve Roman Latin-edition deferral; A29 source-witness owner must resolve Academica redaction and part relations before a new Work or Expression.'
     if work == 'phi053':
         return 'Alternative De divinatione version: existing Work already retained; source-witness owner must prepare a version extension and legacy TEI.2 adapter review.'
     if work in ('phi056','phi057','phi058','phi059'):
@@ -224,7 +224,7 @@ def prepare():
         targets.append(target);packages.append(package)
     if len(targets)!=31 or len({t['slug'] for t in targets})!=31:raise ValueError('reviewed 31-target scope differs')
     content=b''.join((json.dumps(p,ensure_ascii=False,separators=(',',':'))+'\n').encode() for p in packages);(BASE/'prepared-source-packages.jsonl').write_bytes(content)
-    branch_ref='ToS/philosophy/source-planting-preparation/twelfth-wave-20260909.json'
+    branch_ref='ToS/philosophy/source-planting-preparation/cicero-forensic-speeches-latin-20260909.json'
     write(ROOT/branch_ref,{'schema_version':'tos_source_planting_preparation_batch_v1','status':'prepared-not-planted','review_scope':'31 separately identified Latin speeches at explicit A29 corpus anchors','reviewer_ref':'model:codex','targets':plans})
     observations=[]
     for path in sorted((BASE/'evidence').glob('*.receipt.json')):

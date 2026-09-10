@@ -1,0 +1,69 @@
+{
+  "schema_version": "tos_source_witness_path_migration_legacy_v1",
+  "status": "historical-provenance",
+  "migration_id": "tos.source-witnesses.registry-first.navigation-2026-09-09",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "historical_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/first-wave-20260908.json",
+      "sha256": "fe63957563adaed179b5a1d1764d82d467e7c67f56ffb0d007d44c9bc2b44155",
+      "byte_size": 40379
+    },
+    {
+      "role": "historical-planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/execution/plant_first_wave.py",
+      "sha256": "7eba5ef5299a8507d70e7ee2c27a3c56bf5cc47e2585d247badd10ddba89be4e",
+      "byte_size": 5010
+    },
+    {
+      "role": "historical-report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/execution/report_first_wave.py",
+      "sha256": "eff7475c3c600f9b25e7e7f197417b757f7880f150f9ec91d4dcb0dbc0652f6c",
+      "byte_size": 6080
+    },
+    {
+      "role": "historical-manifest",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/preparation-inputs/da1bdc754c3bb47ee8be84c0789550ca6657cadd62e9019e1a9fe0ad83a32c74.manifest.json",
+      "sha256": "da1bdc754c3bb47ee8be84c0789550ca6657cadd62e9019e1a9fe0ad83a32c74",
+      "byte_size": 198791
+    },
+    {
+      "role": "historical-preparation-receipt",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/preparation-inputs/3800c953e98c5ab26ee939d2684d566cc2b53440e7a401581421dd45663f81a6.preparation-receipt.json",
+      "sha256": "3800c953e98c5ab26ee939d2684d566cc2b53440e7a401581421dd45663f81a6",
+      "byte_size": 1050
+    }
+  ],
+  "current_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/cross-branch-source-anchors-20260908.json",
+      "sha256": "fe63957563adaed179b5a1d1764d82d467e7c67f56ffb0d007d44c9bc2b44155"
+    },
+    {
+      "role": "planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/plant_cross_branch_sources.py",
+      "sha256": "6fb48ae7166075cf194d9a3b37700d8a095567a6ea9d69c9e9c137686c6e7794"
+    },
+    {
+      "role": "report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/report_cross_branch_sources.py",
+      "sha256": "4dc5c6a169a19b06f1ed08bdce1f441a5d02a991b9576a1c95a0e1e08901d211"
+    }
+  ],
+  "retained_inputs": [
+    {
+      "stage": "registry-preparation",
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/preparation-inputs/fe63957563adaed179b5a1d1764d82d467e7c67f56ffb0d007d44c9bc2b44155.source-preparation.json",
+      "preparation_sha256": "fe63957563adaed179b5a1d1764d82d467e7c67f56ffb0d007d44c9bc2b44155",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/preparation-inputs/da1bdc754c3bb47ee8be84c0789550ca6657cadd62e9019e1a9fe0ad83a32c74.manifest.json",
+      "manifest_sha256": "da1bdc754c3bb47ee8be84c0789550ca6657cadd62e9019e1a9fe0ad83a32c74",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/preparation-inputs/3800c953e98c5ab26ee939d2684d566cc2b53440e7a401581421dd45663f81a6.preparation-receipt.json",
+      "receipt_sha256": "3800c953e98c5ab26ee939d2684d566cc2b53440e7a401581421dd45663f81a6",
+      "preparation_commit": "8861fecf8e328a874887e875b255876061c80ac9",
+      "checkpoint_review_ref": "agent-review:8861fecf8:20260908T211104Z"
+    }
+  ],
+  "authority_boundary": "Historical provenance only. This record preserves exact prior bytes, paths, receipts and preparation commits; it does not restamp the current route or establish acquisition, rights, semantic admission, publication or canon."
+}

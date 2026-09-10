@@ -1,0 +1,69 @@
+{
+  "schema_version": "tos_source_witness_path_migration_legacy_v1",
+  "status": "historical-provenance",
+  "migration_id": "tos.source-witnesses.registry-sixth.navigation-2026-09-09",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "historical_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/sixth-wave-20260909.json",
+      "sha256": "b4f7025aaeefc65fa772bca4049fe2eee54c2d9b81e669a26d8c527db9c2051d",
+      "byte_size": 20102
+    },
+    {
+      "role": "historical-planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/legacy/execution/plant_sixth_wave.py",
+      "sha256": "957a77b8f98437885da0aeba0e74f53d5321502b27f7ff18599d0690d1172a86",
+      "byte_size": 6433
+    },
+    {
+      "role": "historical-report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/legacy/execution/report_sixth_wave.py",
+      "sha256": "758f61fb4e1f12a0860d161ef273cd80bfaf16754213d6716ce3d5fbf3f5a225",
+      "byte_size": 13342
+    },
+    {
+      "role": "historical-manifest",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/legacy/preparation-inputs/059cb8f3f289c3f1b65261c2bce826dd28e1fbc16cd8ec6475d8c58a1740b712.manifest.json",
+      "sha256": "059cb8f3f289c3f1b65261c2bce826dd28e1fbc16cd8ec6475d8c58a1740b712",
+      "byte_size": 54016
+    },
+    {
+      "role": "historical-preparation-receipt",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/legacy/preparation-inputs/1937f5e40cc99c1abfe4e12db5ea720a3311e694d30e0c0190c0d0ae041a5229.preparation-receipt.json",
+      "sha256": "1937f5e40cc99c1abfe4e12db5ea720a3311e694d30e0c0190c0d0ae041a5229",
+      "byte_size": 612
+    }
+  ],
+  "current_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-english-translations-20260909.json",
+      "sha256": "b4f7025aaeefc65fa772bca4049fe2eee54c2d9b81e669a26d8c527db9c2051d"
+    },
+    {
+      "role": "planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/execution/plant_roman_philosophical_english.py",
+      "sha256": "cbb6d6d82b40f5975ae39f543364b34b1675e18c44c32a7d44fe507046c6d802"
+    },
+    {
+      "role": "report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/execution/report_roman_philosophical_english.py",
+      "sha256": "a4dbddc3e7e7b88d007d2003d803a3200613abbb7dfb6edeb46b5c3423b90af7"
+    }
+  ],
+  "retained_inputs": [
+    {
+      "stage": "registry-preparation",
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/legacy/preparation-inputs/b4f7025aaeefc65fa772bca4049fe2eee54c2d9b81e669a26d8c527db9c2051d.source-preparation.json",
+      "preparation_sha256": "b4f7025aaeefc65fa772bca4049fe2eee54c2d9b81e669a26d8c527db9c2051d",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/legacy/preparation-inputs/059cb8f3f289c3f1b65261c2bce826dd28e1fbc16cd8ec6475d8c58a1740b712.manifest.json",
+      "manifest_sha256": "059cb8f3f289c3f1b65261c2bce826dd28e1fbc16cd8ec6475d8c58a1740b712",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/legacy/preparation-inputs/1937f5e40cc99c1abfe4e12db5ea720a3311e694d30e0c0190c0d0ae041a5229.preparation-receipt.json",
+      "receipt_sha256": "1937f5e40cc99c1abfe4e12db5ea720a3311e694d30e0c0190c0d0ae041a5229",
+      "preparation_commit": "ec48df224f224e2a5c20c2ca0749d88bb4b6ccd6",
+      "checkpoint_review_ref": "agent-review:ec48df224:20260909T070904Z"
+    }
+  ],
+  "authority_boundary": "Historical provenance only. This record preserves exact prior bytes, paths, receipts and preparation commits; it does not restamp the current route or establish acquisition, rights, semantic admission, publication or canon."
+}

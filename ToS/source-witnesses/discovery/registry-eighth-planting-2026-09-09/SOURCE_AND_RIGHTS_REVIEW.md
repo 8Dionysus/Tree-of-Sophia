@@ -6,7 +6,7 @@ Reviewed by model:codex, session 01a08281-293a-7ff0-927a-0fd73dfacf7d, 2026-09-0
 
 45 separately identified Greek editions from the transmitted Plutarch Moralia corpus. Existing A29 source-backlog table 14 row 10 (Плутарх), registry corpus anchor A29-R113, supplies the bounded corpus relation. The existing normalized registry snapshot is retained; exact Work/edition CTS matches take precedence when present. The broad Plutarch need remains open.
 
-The 73 candidate filenames are the remaining Greek versions with supplied work number at least 067 in the pinned tree, after excluding files already in the seven earlier manifests. This is a bounded filename inventory, not an assertion of all surviving Moralia. Tree source: [retained fourth-wave tree](../registry-fourth-planting-2026-09-09/evidence/perseus-tree.json). No whole-provider absence is inferred.
+The 73 candidate filenames are the remaining Greek versions with supplied work number at least 067 in the pinned tree, after excluding files already in the seven earlier manifests. This is a bounded filename inventory, not an assertion of all surviving Moralia. Tree source: [retained ancient-Mediterranean source-edition tree](../registry-fourth-planting-2026-09-09/evidence/perseus-tree.json). No whole-provider absence is inferred.
 
 ## Identity review
 
@@ -16,7 +16,7 @@ Traditional Plutarch grouping is a provider assertion. Authorship remains open, 
 
 tlg122 is explicitly a compendium / epitome in both CTS and header. It is retained as the distinct transmitted epitome, with no identity or textual-equivalence assertion to the longer lost comparison.
 
-28 candidate variants remain deferred: 22 paired edition/aggregate variants in tlg081–088; tlg137 retains the known A26-R061 title/identifier conflict; tlg112,114,121,131,132 require separate review of aggregate, constituent or numbered-part identity. This deferral is not a conclusion that multiple books must be multiple Works. Source-witnesses owns the identity decision; source-registry owns the conflicting row. Exact paths and next-step conditions are in selection-review.json. Metadata for the latter five are retained; the paired group has filename evidence only in this wave.
+28 candidate variants remain deferred: 22 paired edition/aggregate variants in tlg081–088; tlg137 retains the known A26-R061 title/identifier conflict; tlg112,114,121,131,132 require separate review of aggregate, constituent or numbered-part identity. This deferral is not a conclusion that multiple books must be multiple Works. Source-witnesses owns the identity decision; source-registry owns the conflicting row. Exact paths and next-step conditions are in selection-review.json. Metadata for the latter five are retained; the paired group has filename evidence only in this bounded intake.
 
 tlg091 has an unresolved supplied print-volume discrepancy: CTS description says Moralia Vol II; TEI sourceDesc says volume 3; both name 1891. The exact digital CTS/Git version remains identifiable. Neither print-volume assertion is adjudicated, and the discrepancy travels with its target limits. Independent source-visible review confirmed no other volume/year conflict in the 50 retained header/CTS pairs, and all 103 receipt SHA-256 values match their retained metadata.
 

@@ -99,7 +99,7 @@ def prepare():
   plans.append({'target_slug':slug,'registry_source_record_id':original,'anchor_preparation':anchor,'scope_relationship':'bounded-constituent-work','scope_rationale':f'The {title} Ancient Greek edition is one exact work within the branch Scaife/Perseus source need.','remaining_controls':target['limits']})
  package_bytes=b''.join((json.dumps(p,ensure_ascii=False,separators=(',',':'))+'\n').encode() for p in packages)
  (base/'prepared-source-packages.jsonl').write_bytes(package_bytes)
- branch_ref='ToS/philosophy/source-planting-preparation/second-wave-20260908.json'
+ branch_ref='ToS/philosophy/source-planting-preparation/classical-athenian-plato-works-20260908.json'
  write(root/branch_ref,{'schema_version':'tos_source_planting_preparation_batch_v1','status':'prepared-not-planted','review_scope':'Exact A25 branch fit and version boundary only','reviewer_ref':'model:codex','targets':plans})
  manifest={'schema_version':'tos_registry_first_planting_preparation_v1','status':'prepared-not-acquired','source_registry_snapshot_ref':snapshot.relative_to(root).as_posix(),'source_registry_snapshot_sha256':sha(snapshot.read_bytes()),'branch_preparation_ref':branch_ref,'provider_pins':{'perseus':pin},'metadata_observations':receipts,'targets':targets,'prepared_packages_ref':f'{rel}/prepared-source-packages.jsonl','prepared_packages_sha256':sha(package_bytes),'totals':{'works':12,'expressions':12,'payload_files':12,'payload_bytes':sum(t['byte_size'] for t in targets),'bibliographic_claims':36},'authority_boundary':'Preparation does not establish local custody, textual or semantic acceptance, canon or public release.'}
  write(base/'manifest.json',manifest);print(json.dumps(manifest['totals']))

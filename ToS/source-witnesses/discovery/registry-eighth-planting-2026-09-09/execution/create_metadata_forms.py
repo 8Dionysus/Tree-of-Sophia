@@ -62,7 +62,7 @@ def main():
                 'form_set_ref':described['target_path'],'form_set_sha256':hashlib.sha256(form_path.read_bytes()).hexdigest(),
                 'form_count':len(views),'created':created,'all_ready':True,'admission':None})
             print(kind,source['record_id'],len(views),flush=True)
-    result={'scope':'Only the exact four corpus records per eighth-wave target; source-copy wording via owner describe/prepare/apply, no semantic admission',
+    result={'scope':'Only the exact four corpus records per plutarch-moralia-greek target; source-copy wording via owner describe/prepare/apply, no semantic admission',
         'observed_at':datetime.now(timezone.utc).isoformat(),'sets':len(rows),'forms':sum(r['form_count'] for r in rows),'records':rows}
     (BASE/'human-form-companions.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps({'sets':result['sets'],'forms':result['forms']}))

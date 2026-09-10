@@ -130,8 +130,8 @@ def prepare():
         'snapshot_ref': snapshot_ref, 'records': leads})
     prior_targets = {}
     prior_plans = {}
-    for batch, plan_name in [('registry-second-planting-2026-09-08', 'second-wave-20260908.json'),
-            ('registry-third-planting-2026-09-08', 'third-wave-20260908.json')]:
+    for batch, plan_name in [('registry-second-planting-2026-09-08', 'classical-athenian-plato-works-20260908.json'),
+            ('registry-third-planting-2026-09-08', 'ancient-mediterranean-source-editions-20260908.json')]:
         old = json.loads((BASE.parent / batch / 'manifest.json').read_text())
         plans = json.loads((ROOT / 'ToS/philosophy/source-planting-preparation' / plan_name).read_text())
         prior_plans.update({plan['target_slug']: plan for plan in plans['targets']})
@@ -329,7 +329,7 @@ def prepare():
         raise ValueError('reviewed scope must be 9 distinct existing Works and 9 new English versions')
     payload = b''.join((json.dumps(package, ensure_ascii=False, separators=(',', ':')) + '\n').encode() for package in packages)
     (BASE / 'prepared-source-packages.jsonl').write_bytes(payload)
-    branch_ref = 'ToS/philosophy/source-planting-preparation/seventh-wave-20260909.json'
+    branch_ref = 'ToS/philosophy/source-planting-preparation/plutarch-epictetus-english-1874-20260909.json'
     write(ROOT / branch_ref, {'schema_version': 'tos_source_planting_preparation_batch_v1',
         'status': 'prepared-not-planted', 'review_scope': '9 additional English translations attached to existing Works and A29 branches',
         'reviewer_ref': 'model:codex', 'targets': plans})

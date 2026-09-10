@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 45657,
+    "tracked_surface_count": 45766,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 12277,
     "human_scope": {
-      "bytes": 19076551,
-      "count": 5309,
+      "bytes": 19124781,
+      "count": 5333,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -111,20 +111,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 17863939,
-          "count": 5016,
-          "lines": 198855
+          "bytes": 17912169,
+          "count": 5040,
+          "lines": 199239
         }
       },
-      "lines": 220392
+      "lines": 220776
     },
     "surface_kind_counts": {
-      "executable": 399,
-      "human": 5309,
-      "structured": 39949
+      "executable": 423,
+      "human": 5333,
+      "structured": 40010
     },
-    "tracked_path_count": 57934,
-    "tracked_surface_count": 45657,
+    "tracked_path_count": 58043,
+    "tracked_surface_count": 45766,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -163,12 +163,12 @@
     {
       "family_id": "tos",
       "surface_kind_counts": {
-        "executable": 125,
-        "human": 5016,
-        "structured": 39872
+        "executable": 149,
+        "human": 5040,
+        "structured": 39933
       },
-      "tracked_surface_bytes": 3394115167,
-      "tracked_surface_count": 45013
+      "tracked_surface_bytes": 3400778905,
+      "tracked_surface_count": 45122
     },
     {
       "family_id": "access",
@@ -186,7 +186,7 @@
         "human": 77,
         "structured": 6
       },
-      "tracked_surface_bytes": 904070,
+      "tracked_surface_bytes": 904087,
       "tracked_surface_count": 83
     },
     {
@@ -231,7 +231,7 @@
         "executable": 125,
         "human": 2
       },
-      "tracked_surface_bytes": 4094824,
+      "tracked_surface_bytes": 4094841,
       "tracked_surface_count": 127
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "056611997375134eada976dfa5a7a1120b27d1433071e84ff58ceb3d423f0fe2",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "41faf8ca0e72a7b7a134d8a074dde2491c89d8c90380a71e9424667d8e7e723b",
+  "tracked_surface_digest": "eed6c296d31812137542b38f3300b9377818a789115dbbf31601e2e6a48cf2ab",
   "tracked_surfaces": [
     {
       "bytes": 1736,
@@ -323,7 +323,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "1f6377912d7d0d3aa8c01f1e63112ee93580ad60bdefbfdf01db7821051d7317",
+      "sha256": "696c395629a71dbcd403e68fad7e5c1a849141bf3223cac30875ab311f0afae6",
       "surface_kind": "structured"
     },
     {
@@ -3707,7 +3707,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "cdc5c66c4bc205228a6b8667a65058afe73ee04181eb2e9a4b2f791baffd9e1f",
+      "sha256": "06e3d46544dc5834edc2345530b7870b6da348d250f0cff5024a21fd5e73f99b",
       "surface_kind": "structured"
     },
     {
@@ -3727,14 +3727,6 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5865,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/03/0342b846fc8b90278970493e5a12b5ccf730450e112bce100bc755423d9276a7.index.json",
-      "sha256": "0342b846fc8b90278970493e5a12b5ccf730450e112bce100bc755423d9276a7",
-      "surface_kind": "structured"
-    },
-    {
       "bytes": 5870,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -3748,6 +3740,14 @@
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/07/076bd949421893bbaf60fc90472497f71f87f019c751e551632d9c5977246c74.index.json",
       "sha256": "076bd949421893bbaf60fc90472497f71f87f019c751e551632d9c5977246c74",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5869,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/07/07eeb22891f0d143968d1cd3a0420bd97ec0eff8ed9b7ffc275ea153a20a6d75.index.json",
+      "sha256": "07eeb22891f0d143968d1cd3a0420bd97ec0eff8ed9b7ffc275ea153a20a6d75",
       "surface_kind": "structured"
     },
     {
@@ -3791,11 +3791,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5865,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/1c/1c14409923ae5da74a63475378e9026324343f5249ad489928ac5b6d0bc62dea.index.json",
+      "sha256": "1c14409923ae5da74a63475378e9026324343f5249ad489928ac5b6d0bc62dea",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 3282,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/1d/1dc93e32c8bf08733ade001e9a228e25758275946199344d11db968374442b09.index.json",
       "sha256": "1dc93e32c8bf08733ade001e9a228e25758275946199344d11db968374442b09",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5806,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/1e/1ef41f10c1108acb79cb0a185c497ce74c47e4ac590fea47e691018b6ca41eb3.index.json",
+      "sha256": "1ef41f10c1108acb79cb0a185c497ce74c47e4ac590fea47e691018b6ca41eb3",
       "surface_kind": "structured"
     },
     {
@@ -3807,27 +3823,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5864,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/25/25cca482d010b0df4f35b311d217c91f91d9d1a99a4191e9f81b75cea153edb3.index.json",
-      "sha256": "25cca482d010b0df4f35b311d217c91f91d9d1a99a4191e9f81b75cea153edb3",
-      "surface_kind": "structured"
-    },
-    {
       "bytes": 5824,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/2e/2e07eacbd1cc2db83c8fc4c8d452a80fb23f335485157d01ad18914a927119f2.index.json",
       "sha256": "2e07eacbd1cc2db83c8fc4c8d452a80fb23f335485157d01ad18914a927119f2",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 5863,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/33/331c7bf36c49566688898e5395c071ffd3f950c97a67e8c1d1fcba69bccf9092.index.json",
-      "sha256": "331c7bf36c49566688898e5395c071ffd3f950c97a67e8c1d1fcba69bccf9092",
       "surface_kind": "structured"
     },
     {
@@ -3863,6 +3863,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5865,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/3e/3e857386b2bd4642f144215d0bd89c20b36dbbfddb42b3c870cf1fe0319c4fea.index.json",
+      "sha256": "3e857386b2bd4642f144215d0bd89c20b36dbbfddb42b3c870cf1fe0319c4fea",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 5870,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -3892,14 +3900,6 @@
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/44/44fd4108aba91d8a17477449094a03fe1d76de0434b10b7762fe1a8c6743cd8f.index.json",
       "sha256": "44fd4108aba91d8a17477449094a03fe1d76de0434b10b7762fe1a8c6743cd8f",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 5806,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/45/456d4765bef5ed9d9adfa3828d21d6b11e2b8c5e2053c6a6c29a82389f1e0558.index.json",
-      "sha256": "456d4765bef5ed9d9adfa3828d21d6b11e2b8c5e2053c6a6c29a82389f1e0558",
       "surface_kind": "structured"
     },
     {
@@ -3935,22 +3935,6 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5796,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/4b/4b9a1d497287aa41f1beeb0fa641a774edd1118e1f3da3ee99fd918912602824.index.json",
-      "sha256": "4b9a1d497287aa41f1beeb0fa641a774edd1118e1f3da3ee99fd918912602824",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 5868,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/4d/4d777be0d75442406937946ce55587bd374fb03203c1479fc5525c60caa0151e.index.json",
-      "sha256": "4d777be0d75442406937946ce55587bd374fb03203c1479fc5525c60caa0151e",
-      "surface_kind": "structured"
-    },
-    {
       "bytes": 2571,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -3967,11 +3951,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5865,
+      "bytes": 5867,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/57/5766618f3c7129531b1a9f3c2b91e126ffd3762b7e1a23f55e3fe09f8aec250d.index.json",
-      "sha256": "5766618f3c7129531b1a9f3c2b91e126ffd3762b7e1a23f55e3fe09f8aec250d",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/56/567ed247e8d327efd3bc10d321c9aa1843214950e6e02e7d41793b3848ba7def.index.json",
+      "sha256": "567ed247e8d327efd3bc10d321c9aa1843214950e6e02e7d41793b3848ba7def",
       "surface_kind": "structured"
     },
     {
@@ -3999,14 +3983,6 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5799,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/5b/5bb95919fe689a668b5d59929deee953d6e615e5a66fe76dd68e122a1fce3793.index.json",
-      "sha256": "5bb95919fe689a668b5d59929deee953d6e615e5a66fe76dd68e122a1fce3793",
-      "surface_kind": "structured"
-    },
-    {
       "bytes": 5870,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4020,6 +3996,14 @@
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/5f/5f565aadcd45db36be6a583b302d53384e2c9832f4fc252161de6fbbc3ded395.index.json",
       "sha256": "5f565aadcd45db36be6a583b302d53384e2c9832f4fc252161de6fbbc3ded395",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5802,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/63/630480a4e84c6d90f3c8cd142abbe44ae5d0752400bf8567c84fa5fa51b2dad2.index.json",
+      "sha256": "630480a4e84c6d90f3c8cd142abbe44ae5d0752400bf8567c84fa5fa51b2dad2",
       "surface_kind": "structured"
     },
     {
@@ -4039,6 +4023,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5853,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/6b/6bc08c8dd3cd6c4f943b0c585b1b6fd07f0738fbbaaa3851db4ff8955530e391.index.json",
+      "sha256": "6bc08c8dd3cd6c4f943b0c585b1b6fd07f0738fbbaaa3851db4ff8955530e391",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 5805,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4047,27 +4039,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5866,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/6d/6de8cfef232b96ef1a3d25126c7febde0200985e140b0d25e2683c88ee98d039.index.json",
-      "sha256": "6de8cfef232b96ef1a3d25126c7febde0200985e140b0d25e2683c88ee98d039",
-      "surface_kind": "structured"
-    },
-    {
       "bytes": 4342,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/6e/6eb12fa7aeab61f2220c1f744feb614ed2b9c910082ca5e33d0d9d20ba919aa7.index.json",
       "sha256": "6eb12fa7aeab61f2220c1f744feb614ed2b9c910082ca5e33d0d9d20ba919aa7",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 5799,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/70/703aee99c1204467489f96530b95c937390ea41b8b958961535bfa4c66f2303a.index.json",
-      "sha256": "703aee99c1204467489f96530b95c937390ea41b8b958961535bfa4c66f2303a",
       "surface_kind": "structured"
     },
     {
@@ -4103,27 +4079,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5866,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/7a/7a78ba98d021c49d2c28f2849fa95a146ecbc7a60c134e1ebd1320e5f32521d2.index.json",
-      "sha256": "7a78ba98d021c49d2c28f2849fa95a146ecbc7a60c134e1ebd1320e5f32521d2",
-      "surface_kind": "structured"
-    },
-    {
       "bytes": 1511,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/80/804f2fa87b63a141c277fd1147495fabb68b14e9b45f61962b87f4a3ebd865fb.index.json",
       "sha256": "804f2fa87b63a141c277fd1147495fabb68b14e9b45f61962b87f4a3ebd865fb",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 5861,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/80/807503b8fceace2905e46d813f53ac700ca257bbde9dfd356a5a11ca52733ba7.index.json",
-      "sha256": "807503b8fceace2905e46d813f53ac700ca257bbde9dfd356a5a11ca52733ba7",
       "surface_kind": "structured"
     },
     {
@@ -4143,6 +4103,22 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5865,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/8a/8a4884ba03781948e864a1dff941d036faab7921f2b47a30e2e435945a7f0961.index.json",
+      "sha256": "8a4884ba03781948e864a1dff941d036faab7921f2b47a30e2e435945a7f0961",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5797,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/8a/8a69b3a24bf32555ee3d811db5c1c7fb2a69f1156f910dd4695afba84fb68a00.index.json",
+      "sha256": "8a69b3a24bf32555ee3d811db5c1c7fb2a69f1156f910dd4695afba84fb68a00",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2935,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4156,6 +4132,14 @@
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/8c/8c218fce13604ce7e89c43303116695db0f15fdb309ee7cfc5200eae3cb31a27.index.json",
       "sha256": "8c218fce13604ce7e89c43303116695db0f15fdb309ee7cfc5200eae3cb31a27",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5868,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/8d/8d0ddb9f66a13d4c70d810d0551e8f260ec0b4d61a4e1fe917cb5bca05eb4e49.index.json",
+      "sha256": "8d0ddb9f66a13d4c70d810d0551e8f260ec0b4d61a4e1fe917cb5bca05eb4e49",
       "surface_kind": "structured"
     },
     {
@@ -4183,11 +4167,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5798,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/94/94dd04ad90016483888e53a2b7fe613d07ff0acea58f63c05f343b26e36d25e4.index.json",
+      "sha256": "94dd04ad90016483888e53a2b7fe613d07ff0acea58f63c05f343b26e36d25e4",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 5870,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/94/94f7e694f26f3671fcb89e02606a29d5cb440e6364072c54a5fd5e7f4da18496.index.json",
       "sha256": "94f7e694f26f3671fcb89e02606a29d5cb440e6364072c54a5fd5e7f4da18496",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5865,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/96/96ed65f2865ac17362d12cb3d6739c2efb987e328ead705c81a84eb464d08d3a.index.json",
+      "sha256": "96ed65f2865ac17362d12cb3d6739c2efb987e328ead705c81a84eb464d08d3a",
       "surface_kind": "structured"
     },
     {
@@ -4215,14 +4215,6 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5865,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/9b/9b26bd3c98fcfd8e2324565f67e2fdc35348d6b1f88fe37e1364b62ba52d4c27.index.json",
-      "sha256": "9b26bd3c98fcfd8e2324565f67e2fdc35348d6b1f88fe37e1364b62ba52d4c27",
-      "surface_kind": "structured"
-    },
-    {
       "bytes": 5870,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4247,11 +4239,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5869,
+      "bytes": 5865,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/9d/9d309f3cde8826b8bff0412900c3231f5e5d754f1a81daac502a1ae76f1b3408.index.json",
-      "sha256": "9d309f3cde8826b8bff0412900c3231f5e5d754f1a81daac502a1ae76f1b3408",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/9d/9d36edd1df8f3794129090ac47bfd7f4e161b2791708e1efb3cdf7f6524464de.index.json",
+      "sha256": "9d36edd1df8f3794129090ac47bfd7f4e161b2791708e1efb3cdf7f6524464de",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5866,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/9e/9ee02f510d34ad2f2d529844d70126f8b03e1308c6ef892564ef6459cfd4cc09.index.json",
+      "sha256": "9ee02f510d34ad2f2d529844d70126f8b03e1308c6ef892564ef6459cfd4cc09",
       "surface_kind": "structured"
     },
     {
@@ -4279,22 +4279,6 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5797,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/a4/a41b4d0afed0a45d7dc47b4bb383937d8a01ac3c71675adb5ed445addb8ad5a6.index.json",
-      "sha256": "a41b4d0afed0a45d7dc47b4bb383937d8a01ac3c71675adb5ed445addb8ad5a6",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 5865,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/a4/a45ae17416de006982f4236fe3dbab42a4ecb04e810b58636bd81aa2f26e75dc.index.json",
-      "sha256": "a45ae17416de006982f4236fe3dbab42a4ecb04e810b58636bd81aa2f26e75dc",
-      "surface_kind": "structured"
-    },
-    {
       "bytes": 3634,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4303,19 +4287,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5868,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/a6/a6b337871efa2a201d80bf2e4acb170986267de171327eae7b4de832158b2a37.index.json",
-      "sha256": "a6b337871efa2a201d80bf2e4acb170986267de171327eae7b4de832158b2a37",
-      "surface_kind": "structured"
-    },
-    {
       "bytes": 1508,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/a8/a853a794e25f1857cd4fb857c3914908588d7d481fcc0787b676d4bd553dbcb6.index.json",
       "sha256": "a853a794e25f1857cd4fb857c3914908588d7d481fcc0787b676d4bd553dbcb6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/a9/a9f2dfa1b078814d0265261b21bb48e13772f4b5d0078e59558e3fce66699651.index.json",
+      "sha256": "a9f2dfa1b078814d0265261b21bb48e13772f4b5d0078e59558e3fce66699651",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5863,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/aa/aadb10d8f7400ee1d6f8bb176420b9ff13c5b483756db7825fec639e6141cf98.index.json",
+      "sha256": "aadb10d8f7400ee1d6f8bb176420b9ff13c5b483756db7825fec639e6141cf98",
       "surface_kind": "structured"
     },
     {
@@ -4367,19 +4359,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5802,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/b4/b4ea6a405b295c944d3c7bfe7a1d3c6027d5c4ce8ee24c21ba196d85ddeb4971.index.json",
-      "sha256": "b4ea6a405b295c944d3c7bfe7a1d3c6027d5c4ce8ee24c21ba196d85ddeb4971",
-      "surface_kind": "structured"
-    },
-    {
       "bytes": 5870,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/b6/b687e39587d87bcef8ee6a3dddbe4bb21cbfd565301c9acf45d8951d0708dcc0.index.json",
       "sha256": "b687e39587d87bcef8ee6a3dddbe4bb21cbfd565301c9acf45d8951d0708dcc0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5801,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/b9/b9a7ab483936ca46b8d65d3bd030f051a762955de0a6b34babc2e3f7bd0763ee.index.json",
+      "sha256": "b9a7ab483936ca46b8d65d3bd030f051a762955de0a6b34babc2e3f7bd0763ee",
       "surface_kind": "structured"
     },
     {
@@ -4407,14 +4399,6 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5853,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/bf/bfc33c5d40c469286693b5cb1d1cc0dbb9facf7080c5f560a9a3875770a3e4ae.index.json",
-      "sha256": "bfc33c5d40c469286693b5cb1d1cc0dbb9facf7080c5f560a9a3875770a3e4ae",
-      "surface_kind": "structured"
-    },
-    {
       "bytes": 5870,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4439,27 +4423,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5794,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/ca/ca601dbad2e5310a2d09647f7e7140864d5e6daf13c9ac8fdcb1254cc7d6ea51.index.json",
-      "sha256": "ca601dbad2e5310a2d09647f7e7140864d5e6daf13c9ac8fdcb1254cc7d6ea51",
-      "surface_kind": "structured"
-    },
-    {
       "bytes": 1864,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/cc/cc834b58648aa56081a96012495bce3c4a66dcd0e8cd345f3161b790a980a0ad.index.json",
       "sha256": "cc834b58648aa56081a96012495bce3c4a66dcd0e8cd345f3161b790a980a0ad",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 5865,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/cf/cf6e961e8b1fd594457150f56526782b72f5fb5e57c8ba83346dacbd617eaf21.index.json",
-      "sha256": "cf6e961e8b1fd594457150f56526782b72f5fb5e57c8ba83346dacbd617eaf21",
       "surface_kind": "structured"
     },
     {
@@ -4487,6 +4455,22 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5794,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/d9/d917f0144d7eccf79505756bb44065a33c117b0f4d706d49943d09a77a4324ea.index.json",
+      "sha256": "d917f0144d7eccf79505756bb44065a33c117b0f4d706d49943d09a77a4324ea",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5797,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/d9/d9b64540f5ec83de2369d901f9e4bd3aed34f8469c2dc876a5a2aaeedbcf7d40.index.json",
+      "sha256": "d9b64540f5ec83de2369d901f9e4bd3aed34f8469c2dc876a5a2aaeedbcf7d40",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 5797,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4495,11 +4479,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5870,
+      "bytes": 5866,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/db/db2bda310eaed86da8b1fcf744832e9625555ec8929d6cd5176bac78a7eb48c1.index.json",
-      "sha256": "db2bda310eaed86da8b1fcf744832e9625555ec8929d6cd5176bac78a7eb48c1",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/dc/dc460be344eb046a3d989241527a7be1012351208de6553292ff93a4fbe0a53c.index.json",
+      "sha256": "dc460be344eb046a3d989241527a7be1012351208de6553292ff93a4fbe0a53c",
       "surface_kind": "structured"
     },
     {
@@ -4511,19 +4495,35 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5867,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/e3/e32ffbf60f29d71988b9d0e05542fc54ed62e19e0ae529823b138f1a943b9977.index.json",
+      "sha256": "e32ffbf60f29d71988b9d0e05542fc54ed62e19e0ae529823b138f1a943b9977",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5864,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/e3/e3310fcfced580fb8c7eb7e0ddf55cea0b52d4dbb22397dc64d31b6c4e25cc20.index.json",
+      "sha256": "e3310fcfced580fb8c7eb7e0ddf55cea0b52d4dbb22397dc64d31b6c4e25cc20",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5868,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/e3/e36b09c9dd032e8ca50fb3480432db51c6e844344df895eb5afee78bab7b564e.index.json",
+      "sha256": "e36b09c9dd032e8ca50fb3480432db51c6e844344df895eb5afee78bab7b564e",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 5870,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/e5/e50a78d80c8bb6fb2e204766ba438f7aabd4193766c6edd27a6440d5dac81002.index.json",
       "sha256": "e50a78d80c8bb6fb2e204766ba438f7aabd4193766c6edd27a6440d5dac81002",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 5867,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/e5/e511ff974e51186f539783344ba01617a78a969e1dfb80e41e174a4e74c22bde.index.json",
-      "sha256": "e511ff974e51186f539783344ba01617a78a969e1dfb80e41e174a4e74c22bde",
       "surface_kind": "structured"
     },
     {
@@ -4543,6 +4543,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5870,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/eb/eb35f439223491ec40ce4fc5b823d865922c80fe2225df58db26ee2b241dd70d.index.json",
+      "sha256": "eb35f439223491ec40ce4fc5b823d865922c80fe2225df58db26ee2b241dd70d",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2572,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4556,14 +4564,6 @@
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/ec/ec89e626e6560da888f6623ad2612b93978b2bb55bf1af3e556170b2ac526d46.index.json",
       "sha256": "ec89e626e6560da888f6623ad2612b93978b2bb55bf1af3e556170b2ac526d46",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 5864,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/ed/ed2fc16f36fcecd9c362585f1996bd2121bf74d9d2f3ffe043fbe924deb65d41.index.json",
-      "sha256": "ed2fc16f36fcecd9c362585f1996bd2121bf74d9d2f3ffe043fbe924deb65d41",
       "surface_kind": "structured"
     },
     {
@@ -4583,14 +4583,6 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5865,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/f0/f0795bf80cf91df216d111f770a5ce6443123ae5c494101d637a55976e4aa374.index.json",
-      "sha256": "f0795bf80cf91df216d111f770a5ce6443123ae5c494101d637a55976e4aa374",
-      "surface_kind": "structured"
-    },
-    {
       "bytes": 5811,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4607,19 +4599,19 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5799,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/f4/f4a2f2a901c6ee9d7c5f99b7fbbc63aa0a0fb27b71ae8a1fd9bcc83e1f7c8eff.index.json",
+      "sha256": "f4a2f2a901c6ee9d7c5f99b7fbbc63aa0a0fb27b71ae8a1fd9bcc83e1f7c8eff",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 5870,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/f7/f71047ae957455aed829cd387d8c4852e929eeb23916e3b4050ceb49a6a7e7de.index.json",
       "sha256": "f71047ae957455aed829cd387d8c4852e929eeb23916e3b4050ceb49a6a7e7de",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 5797,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/derived-exports/tos_corpus_index.min.parts/f7/f71919e446e228d0a13e648bde7cdb4590d11e35c06f03d55e4d8e89c6b6a204.index.json",
-      "sha256": "f71919e446e228d0a13e648bde7cdb4590d11e35c06f03d55e4d8e89c6b6a204",
       "surface_kind": "structured"
     },
     {
@@ -4652,6 +4644,14 @@
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.parts/fd/fdb872b409b05c205e5351194f7d73deb520b62f8e9c401f425cbbb6e56faea4.index.json",
       "sha256": "fdb872b409b05c205e5351194f7d73deb520b62f8e9c401f425cbbb6e56faea4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5864,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/derived-exports/tos_corpus_index.min.parts/ff/ffb4d6a0ca1120a6713a61aa7fd67784b91ab98aba87ab45291c7645f3e92ea1.index.json",
+      "sha256": "ffb4d6a0ca1120a6713a61aa7fd67784b91ab98aba87ab45291c7645f3e92ea1",
       "surface_kind": "structured"
     },
     {
@@ -4895,11 +4895,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5528,
+      "bytes": 5562,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/README.md",
-      "sha256": "080409bf7b65b5d298f665db555cdc09aaed61d88e7b05f6085a987196a136c7",
+      "sha256": "d4d49d9a470ba2e8cf06fe1702384688be34b30f1288f0b70c62c2ec7003ccec",
       "surface_kind": "human"
     },
     {
@@ -49583,6 +49583,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 257269,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/source-planting-preparation/ancient-mediterranean-english-translations-20260909.json",
+      "sha256": "270a689202f79c621abbe51760413766e7da43a22bde19f04580af780e95203d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 185643,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/source-planting-preparation/ancient-mediterranean-source-editions-20260908.json",
+      "sha256": "f97d477b234e9f9dffeddd7309713d48173ecac9557b3c55b548e01582905c92",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 121380,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/source-planting-preparation/cicero-forensic-speeches-latin-20260909.json",
+      "sha256": "16e8692b7f3c5a4a43d18690e0981e7da718330ce803f562f785bbfaa2b4e550",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 40843,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/source-planting-preparation/classical-athenian-plato-works-20260908.json",
+      "sha256": "507314ee8996c014d71b1c1be40c2d6405970f5b11b8403730a1b334414e3fa4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 40379,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/source-planting-preparation/cross-branch-source-anchors-20260908.json",
+      "sha256": "fe63957563adaed179b5a1d1764d82d467e7c67f56ffb0d007d44c9bc2b44155",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 775927,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -49631,99 +49671,59 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 177266,
+      "bytes": 43223,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/philosophy/source-planting-preparation/eighth-wave-20260909.json",
-      "sha256": "1e0059f9e5841c522f569e6b66c73850b376d9ae431f720033c97389c81f4cd5",
+      "path": "ToS/philosophy/source-planting-preparation/plutarch-epictetus-english-1874-20260909.json",
+      "sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6",
       "surface_kind": "structured"
     },
     {
       "bytes": 333645,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/philosophy/source-planting-preparation/eleventh-wave-20260909.json",
+      "path": "ToS/philosophy/source-planting-preparation/plutarch-lives-english-20260909.json",
       "sha256": "8ebea5d499e4914b472b9effe162918451fc154a2dfeec0ede857c09fb817651",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 78466,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/philosophy/source-planting-preparation/fifth-wave-20260909.json",
-      "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 40379,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/philosophy/source-planting-preparation/first-wave-20260908.json",
-      "sha256": "fe63957563adaed179b5a1d1764d82d467e7c67f56ffb0d007d44c9bc2b44155",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 257269,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/philosophy/source-planting-preparation/fourth-wave-20260909.json",
-      "sha256": "270a689202f79c621abbe51760413766e7da43a22bde19f04580af780e95203d",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 215227,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/philosophy/source-planting-preparation/ninth-wave-20260909.json",
-      "sha256": "ab13199220d190b6396360a72b0ecc49a7e6e9ebbc61a63c78b27e91c0c67ea5",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 40843,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/philosophy/source-planting-preparation/second-wave-20260908.json",
-      "sha256": "507314ee8996c014d71b1c1be40c2d6405970f5b11b8403730a1b334414e3fa4",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 43223,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/philosophy/source-planting-preparation/seventh-wave-20260909.json",
-      "sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 20102,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/philosophy/source-planting-preparation/sixth-wave-20260909.json",
-      "sha256": "b4f7025aaeefc65fa772bca4049fe2eee54c2d9b81e669a26d8c527db9c2051d",
       "surface_kind": "structured"
     },
     {
       "bytes": 255994,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/philosophy/source-planting-preparation/tenth-wave-20260909.json",
+      "path": "ToS/philosophy/source-planting-preparation/plutarch-lives-greek-20260909.json",
       "sha256": "4674256ee9f9587fd3180d1e7d72a5296ef31fc9ffad2d23829b959e3d748f93",
       "surface_kind": "structured"
     },
     {
-      "bytes": 185643,
+      "bytes": 215227,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/philosophy/source-planting-preparation/third-wave-20260908.json",
-      "sha256": "f97d477b234e9f9dffeddd7309713d48173ecac9557b3c55b548e01582905c92",
+      "path": "ToS/philosophy/source-planting-preparation/plutarch-moralia-english-20260909.json",
+      "sha256": "ab13199220d190b6396360a72b0ecc49a7e6e9ebbc61a63c78b27e91c0c67ea5",
       "surface_kind": "structured"
     },
     {
-      "bytes": 121380,
+      "bytes": 177266,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/philosophy/source-planting-preparation/twelfth-wave-20260909.json",
-      "sha256": "16e8692b7f3c5a4a43d18690e0981e7da718330ce803f562f785bbfaa2b4e550",
+      "path": "ToS/philosophy/source-planting-preparation/plutarch-moralia-greek-20260909.json",
+      "sha256": "1e0059f9e5841c522f569e6b66c73850b376d9ae431f720033c97389c81f4cd5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 20102,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-english-translations-20260909.json",
+      "sha256": "b4f7025aaeefc65fa772bca4049fe2eee54c2d9b81e669a26d8c527db9c2051d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 78466,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+      "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e",
       "surface_kind": "structured"
     },
     {
@@ -53807,6 +53807,38 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 3314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-registry-eighth-path-migration.md",
+      "sha256": "44848b36bc1d98c573eecdfb25af82a2ab94465b676668b2d6e9d8367680ddd9",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3326,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-registry-eleventh-path-migration.md",
+      "sha256": "a492ab13961cdae30c8bb3465dd6c5f3292122ca605255032bde259f4a97c8f1",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3337,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-registry-fifth-path-migration.md",
+      "sha256": "67c0ebb9216772c4fefe4aa5f626cbd4cd0955a1ff61b5e1ee11e92d62e8d4e3",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-registry-first-path-migration.md",
+      "sha256": "9c2e1e1c3b4f290bf72bbf80fa04a0d33d68f8f1e984473de27986bb79bfb13f",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 2384,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -53815,11 +53847,75 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 3377,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-registry-fourth-path-migration.md",
+      "sha256": "1ebcc6e7929d1fa51078e70ac2b7fc5a1954cdf7fb31ce540e7d1e1e81ee7df3",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3316,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-registry-ninth-path-migration.md",
+      "sha256": "3bd3eac5188116bd1a75f8b618bc22ccfc00674b1daec4b518493ed37427c017",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3334,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-registry-second-path-migration.md",
+      "sha256": "be292fe1e2c7f67070c818afd169e537fb552ca7bf108ae74b76cb60c8265d97",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3356,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-registry-seventh-path-migration.md",
+      "sha256": "846dcde1e23cba9be218f94c180cccd08f72a819e5882d2442913e5654f76fbc",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3353,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-registry-sixth-path-migration.md",
+      "sha256": "43b420d566af6d0b27b77063018f78c7dc3e21fe8fab5027c896c945e2aa50cd",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3300,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-registry-tenth-path-migration.md",
+      "sha256": "ac8cd769c13bc13ab068fb37289c89335b7fd5a6d8f694e83b43ffb5ddea939d",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3351,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-registry-third-path-migration.md",
+      "sha256": "a694b7e77d9084cdacfda23f212e82bef9de66b562e3d72a7b3164d0aaa9572f",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 2327,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/review-ledger/2026-09-10-registry-thirteenth-path-migration.md",
       "sha256": "ae78303bf7192b5bc01f5b7caca9189e09a26bec3adc1ff2314690ec92661cf6",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3352,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-registry-twelfth-path-migration.md",
+      "sha256": "3d190c5b1a4c611e38a2ea2b9228e79cc77999edcf8008349eb6be8be367e97c",
       "surface_kind": "human"
     },
     {
@@ -56279,11 +56375,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 8754,
+      "bytes": 8771,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/candidates/README.md",
-      "sha256": "baac9de80bbc309604331fe3e27feaa7ee2ee5be7a5b767d0ec49ad30a8d908d",
+      "sha256": "b7fcfa7b22345a2cb211e3f12c618bed059709ecba678c7b73f59d642b1c8b81",
       "surface_kind": "human"
     },
     {
@@ -56455,11 +56551,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 246,
+      "bytes": 491,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/README.md",
-      "sha256": "c706a8646f6c3f79302521c1c37cb87eadef7468d69a7121db52054859fe8dd9",
+      "sha256": "2eaa1c0bcd109d9ceb5d44e20357139c1ee540fb1518c0cafae2cd87c0be1165",
       "surface_kind": "human"
     },
     {
@@ -56471,11 +56567,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 8637,
+      "bytes": 8672,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
-      "sha256": "fde43259ebb40b7d3eb13a3e5a49f6ae13f0eb177c5c78be6039974f4a60c9dd",
+      "sha256": "60329e595099c3b58a019a43f0250aa67a1b1a58bab9716ae16e9a1e755029ee",
       "surface_kind": "human"
     },
     {
@@ -57343,11 +57439,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 4669,
+      "bytes": 4680,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/execution/create_metadata_forms.py",
-      "sha256": "4fd97ded97428eddedfa4df11530918a1a38b736493dcd484feb77811ba8e98c",
+      "sha256": "14d099ba10ec3e04437da38c43d216cd387ee4ec8255052e158dde5b078a9d01",
       "surface_kind": "executable"
     },
     {
@@ -57367,35 +57463,35 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 5090,
+      "bytes": 5101,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/execution/plant_eighth_wave.py",
-      "sha256": "13dc1cecd2f03ad9c75759cdc0bb679e2e5a28afdff2fc6623ef70eb5411f1fd",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/execution/plant_plutarch_moralia_greek.py",
+      "sha256": "4bcc216ce22fcbbbeb5dd547ff6898f812cd1622a31a171b40b4991d4c4a9030",
       "surface_kind": "executable"
     },
     {
-      "bytes": 17627,
+      "bytes": 17638,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/execution/prepare_greek_batch.py",
-      "sha256": "a139e35ddd464271c67429dc60f9391408c52f971a104e265c13223043d5e651",
+      "sha256": "14366ac35d98246901116ab2e478613f330d28106fc37bfc45fd994c6175e0f4",
       "surface_kind": "executable"
     },
     {
-      "bytes": 12796,
+      "bytes": 12807,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/execution/report_eighth_wave.py",
-      "sha256": "6933ef7acd618b3111326da1bb39e04f3bd9e6c1c39021a3df3bc05f444ae864",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/execution/report_plutarch_moralia_greek.py",
+      "sha256": "f49cf9617963108cfe2f6bae686b45b2473a42488ecccc96b8d397da8e0442b5",
       "surface_kind": "executable"
     },
     {
-      "bytes": 126891,
+      "bytes": 126902,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/human-form-companions.json",
-      "sha256": "0e3dc0fb608facbeea6eb0e4456dc1afee09559b605e014bacab8197f04e6015",
+      "sha256": "92ad4b2608f8d7dae940c5f5f54fda41c504d45b83000b10dc0a753816bf998f",
       "surface_kind": "structured"
     },
     {
@@ -57431,6 +57527,70 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 427,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/README.md",
+      "sha256": "6a53c1ccb9cc5249e50df718060c63daad942bc7ef90f6ef81510142a56268a0",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 5090,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/execution/plant_eighth_wave.py",
+      "sha256": "13dc1cecd2f03ad9c75759cdc0bb679e2e5a28afdff2fc6623ef70eb5411f1fd",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 12796,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/execution/report_eighth_wave.py",
+      "sha256": "6933ef7acd618b3111326da1bb39e04f3bd9e6c1c39021a3df3bc05f444ae864",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 4314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/path-migration.json",
+      "sha256": "1e4a3b385e6a174f3289a52a6829364001e70f7f6e93f6274be99136d20ce58e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 685,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/preparation-inputs/15a6dbce315f0407cd9ed708459247edc17ce4757fd7f84b58d1c0b89b97fc24.preparation-receipt.json",
+      "sha256": "15a6dbce315f0407cd9ed708459247edc17ce4757fd7f84b58d1c0b89b97fc24",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 177266,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/preparation-inputs/1e0059f9e5841c522f569e6b66c73850b376d9ae431f720033c97389c81f4cd5.source-preparation.json",
+      "sha256": "1e0059f9e5841c522f569e6b66c73850b376d9ae431f720033c97389c81f4cd5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 354774,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/preparation-inputs/35c191291710a5667bfa8084a29e0397c7eb6f2de3c1e510b474cdd43f26d54e.manifest-corrected.json",
+      "sha256": "35c191291710a5667bfa8084a29e0397c7eb6f2de3c1e510b474cdd43f26d54e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 354486,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/preparation-inputs/779603a6295102f6bef2106843db72999d490c0786a89ca6d93adad27b58d481.manifest.json",
+      "sha256": "779603a6295102f6bef2106843db72999d490c0786a89ca6d93adad27b58d481",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 15355,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -57439,19 +57599,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 354774,
+      "bytes": 354785,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/manifest.corrected.json",
-      "sha256": "35c191291710a5667bfa8084a29e0397c7eb6f2de3c1e510b474cdd43f26d54e",
+      "sha256": "ae6f7a540b1231df2f0412e272c3c0b933db26a52b3dafc52a2e8a26483b389a",
       "surface_kind": "structured"
     },
     {
-      "bytes": 354486,
+      "bytes": 354497,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/manifest.json",
-      "sha256": "779603a6295102f6bef2106843db72999d490c0786a89ca6d93adad27b58d481",
+      "sha256": "c176bc16a9677c4cef16ab3a012ac30f8e46fb0119904a682bb647c1269c93c7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3708,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/path-migration.current.json",
+      "sha256": "62c2fe980baa0dde9696f75d89f50b68bc1ea70a849f15606b0b3f5ad776a0a5",
       "surface_kind": "structured"
     },
     {
@@ -57463,11 +57631,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 685,
+      "bytes": 2091,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/preparation-checkpoint-receipt.json",
-      "sha256": "15a6dbce315f0407cd9ed708459247edc17ce4757fd7f84b58d1c0b89b97fc24",
+      "sha256": "ebacd7c98846fc114fff71b57ea80b0877e3e3a58c21fd7973843347446e3de3",
       "surface_kind": "structured"
     },
     {
@@ -57479,11 +57647,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 555536,
+      "bytes": 556031,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/queue.preparation.v1.json",
-      "sha256": "acead51104a30eb6daf95ff0fda4f6816bb278d629e9c57bd058c71c5220b3bd",
+      "sha256": "6feb732fbaac8a7cd70dec98f71c4c02ab869541a16f95584e51bbc8e9cf745e",
       "surface_kind": "structured"
     },
     {
@@ -57495,11 +57663,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 337487,
+      "bytes": 337982,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/readiness.preparation.v1.json",
-      "sha256": "b6603d6b3ab71964d96ed8c607fc46f533c27bbe70c4c1982121e0f66f363ccb",
+      "sha256": "ccb49597af31f1a1cf4451f7245b322ad91780a729f79c1c557b9f53e9d684d4",
       "surface_kind": "structured"
     },
     {
@@ -57887,11 +58055,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 250,
+      "bytes": 495,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/README.md",
-      "sha256": "2fd4faf04f6b20b7c270c690a5ee539161ff8dbc8ad6dc42a5ae9247598a06a1",
+      "sha256": "b88ccb7ce1879b29fa64dfb3fc39f41c238da56acf313fdc314292048057639b",
       "surface_kind": "human"
     },
     {
@@ -57911,11 +58079,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 335926,
+      "bytes": 335930,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/batch-result.json",
-      "sha256": "54bde8e9277b3573c41432e220001fba14813c3d01c8ab43475b2fb73e159535",
+      "sha256": "3a4148f7a25f8a64b94d7b2bfb756d31792fb3ce3a4b8ec6bea3f416b91cc72c",
       "surface_kind": "structured"
     },
     {
@@ -59503,11 +59671,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 6437,
+      "bytes": 6446,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/execution/create_metadata_forms.py",
-      "sha256": "71abaf8005c7277dfe4adef7897d46b13afcf15a2f91a157550dfbee276703c8",
+      "sha256": "ed2f042d34e2da0d9bc19e125d9458f90e47568f6692ae97e048afb8369c7691",
       "surface_kind": "executable"
     },
     {
@@ -59519,10 +59687,50 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 5539,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/execution/plant_plutarch_lives_english.py",
+      "sha256": "4e673f20ca65ab883ef2263f223bc667084042a13bb624e2b6e0de2ffce9f4f8",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 24433,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/execution/prepare_translations.py",
+      "sha256": "3191dd0a39329865cd5e66278f53a0ea7e61bea7e428d7ea1071291f3dc1d0cd",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 12728,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/execution/report_plutarch_lives_english.py",
+      "sha256": "0f99524ed5923f6fe2f58d6ebd4608d3b647b45c818e43f9f33e9dbe1d09b561",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 204515,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/human-form-companions.json",
+      "sha256": "393c219912bcb89ce81675279e5043ac6a3c6b7ebe846942e5359d908806bf48",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 427,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/README.md",
+      "sha256": "6a53c1ccb9cc5249e50df718060c63daad942bc7ef90f6ef81510142a56268a0",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 32628,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/execution/engine-history/prepare_registry_sources.py",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/engine-history/prepare_registry_sources.py",
       "sha256": "9eb8a6716795b3cf2af58183d287ca1582c0a01a382592133199bb5aa9d61c60",
       "surface_kind": "executable"
     },
@@ -59530,32 +59738,48 @@
       "bytes": 5530,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/execution/plant_eleventh_wave.py",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/execution/plant_eleventh_wave.py",
       "sha256": "aecc483e8a1b5927cd8a972133f06435ee644a4fdaa65c9131534be31b32c20e",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 24420,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/execution/prepare_translations.py",
-      "sha256": "893312268704562c0075653106a6a66dfd0693d4a978c49729102b3ad31fcab1",
       "surface_kind": "executable"
     },
     {
       "bytes": 12715,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/execution/report_eleventh_wave.py",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/execution/report_eleventh_wave.py",
       "sha256": "8daaa2611425571c6cd37187a4cff764a685e2f71b07ff84c48352730bebda1a",
       "surface_kind": "executable"
     },
     {
-      "bytes": 204506,
+      "bytes": 4276,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/human-form-companions.json",
-      "sha256": "513487de1840e4a3fe4d7e27d81aeee202fd6883961c5454af70062d7d3efdcb",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/path-migration.json",
+      "sha256": "554d22b67727c28d081fbd29aceea3ecb719cfe2ec6e798386db030a8ffde373",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 333645,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/preparation-inputs/8ebea5d499e4914b472b9effe162918451fc154a2dfeec0ede857c09fb817651.source-preparation.json",
+      "sha256": "8ebea5d499e4914b472b9effe162918451fc154a2dfeec0ede857c09fb817651",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 740017,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/preparation-inputs/96f07e1fd54e9d69d595b79d5e47b71c84d1dc3b4cdecf26317559717d6d6758.manifest.json",
+      "sha256": "96f07e1fd54e9d69d595b79d5e47b71c84d1dc3b4cdecf26317559717d6d6758",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 635,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/preparation-inputs/fefcca22fd94470252101e09cc20209cadd59686a319d35de4bd63408a4b970a.preparation-receipt.json",
+      "sha256": "fefcca22fd94470252101e09cc20209cadd59686a319d35de4bd63408a4b970a",
       "surface_kind": "structured"
     },
     {
@@ -59567,11 +59791,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 740017,
+      "bytes": 740026,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/manifest.json",
-      "sha256": "96f07e1fd54e9d69d595b79d5e47b71c84d1dc3b4cdecf26317559717d6d6758",
+      "sha256": "e0633d8c150fdad904fc6e52e8b36d183fb595ba323b0d8e0d448fde6e960214",
       "surface_kind": "structured"
     },
     {
@@ -59583,11 +59807,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 635,
+      "bytes": 3728,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/path-migration.current.json",
+      "sha256": "3794a28fd8d9c120f0cd58c7f9c5ac9bcc477ed05474d0a6cc1968d4a09aadaf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2101,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/preparation-checkpoint-receipt.json",
-      "sha256": "fefcca22fd94470252101e09cc20209cadd59686a319d35de4bd63408a4b970a",
+      "sha256": "597e53a562840ae63534aa808fd2693a1bfb92f57f0bf6ee788a7bededbd9346",
       "surface_kind": "structured"
     },
     {
@@ -59599,11 +59831,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 904072,
+      "bytes": 904648,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/queue.preparation.v1.json",
-      "sha256": "db712f905c68baa47d97d6b865a3ffaf703ea010cee0f82d9c4bb8782a944d20",
+      "sha256": "1db949eb00bf956cd5fad5a17ec8e87ca2cb6c30c34c6aefdb305678fb2b62f6",
       "surface_kind": "structured"
     },
     {
@@ -59615,11 +59847,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 605714,
+      "bytes": 606290,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/readiness.preparation.v1.json",
-      "sha256": "af182fd5697fece281d8ebab23f1bc3cf03b46a01f332bac132dcd25a5ab4c96",
+      "sha256": "26d5b12fb2966869ac3692cb07870858478fa5e32e79c9ae7edb1142c39f8eef",
       "surface_kind": "structured"
     },
     {
@@ -59631,19 +59863,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 404,
+      "bytes": 408,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/selection-inputs.json",
-      "sha256": "190c9499ec90cce82726de5777086b9c2a1c4ccdfdd62af9e73673f1d3e4525f",
+      "sha256": "934c95044db6d7316fc6908da3c14f4d53f6011022c71fa7dea3de88531103f3",
       "surface_kind": "structured"
     },
     {
-      "bytes": 62962,
+      "bytes": 62966,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/selection-review.json",
-      "sha256": "edf809fe0430721ebd8bf86c6c823a3997755874e8e70cabda6ff7bec4ebc2b3",
+      "sha256": "835dd3fc48f7285e28503531b113a9664a9bc43937ba1c105aa3da3457b4c490",
       "surface_kind": "structured"
     },
     {
@@ -77543,11 +77775,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 332,
+      "bytes": 577,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/README.md",
-      "sha256": "295464c1b2154f43375bd324a19861a77d501a179b5a81e365f7c07220ddea92",
+      "sha256": "8f54a39faebd23a4a60ee1f596b4e026c9b5e79faea55a703a2470b2be9a4b2f",
       "surface_kind": "human"
     },
     {
@@ -78263,19 +78495,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5010,
+      "bytes": 5034,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/execution/plant_fifth_wave.py",
-      "sha256": "a1e8e678c63c0cd94a2ba2a345ea975c9d1e32a776b8e57a1c08d36ba2e8cd61",
+      "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/execution/plant_roman_philosophical_latin.py",
+      "sha256": "5756e3cb36510b26f60c0a25e610cb679d82fba5f932a20c9ed8b8a8f60e773e",
       "surface_kind": "executable"
     },
     {
-      "bytes": 21250,
+      "bytes": 21274,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/execution/prepare_latin_batch.py",
-      "sha256": "362e77e14ccc70f322823e17c26fe0a676bf8b96235fb7aa8a27f4e23303170a",
+      "sha256": "d7dcad41533eff29c17df40d61ab145ecf8a627e188ba5637198009594e145e1",
       "surface_kind": "executable"
     },
     {
@@ -78287,12 +78519,68 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 9003,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/execution/report_roman_philosophical_latin.py",
+      "sha256": "5c8c5148aaaf3ca68a77c2c089fbecfdc17da8c77a728707ec8d99978a0314cc",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 427,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/legacy/README.md",
+      "sha256": "6a53c1ccb9cc5249e50df718060c63daad942bc7ef90f6ef81510142a56268a0",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 5010,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/legacy/execution/plant_fifth_wave.py",
+      "sha256": "a1e8e678c63c0cd94a2ba2a345ea975c9d1e32a776b8e57a1c08d36ba2e8cd61",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 8980,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/execution/report_fifth_wave.py",
+      "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/legacy/execution/report_fifth_wave.py",
       "sha256": "2e71d0fadc924ff1a7ef89753f788caeb7c8d1914a3360b30a6c70203a506cb1",
       "surface_kind": "executable"
+    },
+    {
+      "bytes": 3948,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/legacy/path-migration.json",
+      "sha256": "fc61f984e7f4affdbc403b7f7021cf5cfdd9bb6053696d46ab4d38bf9a6cb782",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 583,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/legacy/preparation-inputs/441765b00f0ec00ec32894d3a39b4d111a4e73ae17435ea8be61f7185866b769.preparation-receipt.json",
+      "sha256": "441765b00f0ec00ec32894d3a39b4d111a4e73ae17435ea8be61f7185866b769",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 197899,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/legacy/preparation-inputs/a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b.manifest.json",
+      "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 78466,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/legacy/preparation-inputs/a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e.source-preparation.json",
+      "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e",
+      "surface_kind": "structured"
     },
     {
       "bytes": 7221,
@@ -78303,19 +78591,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 197899,
+      "bytes": 197923,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
-      "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b",
+      "sha256": "ec05400aff73c54b1fe0f8aa3e46311112a71321e82c02a6326c4995a2f6a7b4",
       "surface_kind": "structured"
     },
     {
-      "bytes": 583,
+      "bytes": 3727,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/path-migration.current.json",
+      "sha256": "d9e90f04fc95116c8c19da37aeb291e0bf06520aa968fe87119bb37087b04dca",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2086,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/preparation-checkpoint-receipt.json",
-      "sha256": "441765b00f0ec00ec32894d3a39b4d111a4e73ae17435ea8be61f7185866b769",
+      "sha256": "35b76c2df3c0cbfad1525d18c6527a4ef723073ce68a74a68e2acd3af898c88a",
       "surface_kind": "structured"
     },
     {
@@ -78327,11 +78623,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 349384,
+      "bytes": 349888,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/queue.preparation.v1.json",
-      "sha256": "be444a37999d9a324510cadedac703d5f9457ded5a798fbd6b164b0c5b3d2e04",
+      "sha256": "a84205fcf4f43fce962ebb94aca954b62460c9c9f4155f82377610841541b029",
       "surface_kind": "structured"
     },
     {
@@ -78343,11 +78639,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 151804,
+      "bytes": 152308,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/readiness.preparation.v1.json",
-      "sha256": "5bf9096ad16b21373260b76e8cfce717a8a38a3f5a5ac1c0fa786148def811a9",
+      "sha256": "5b460798499af18040e7593f6893cffb574428fd3474a059c654033831ea0f1c",
       "surface_kind": "structured"
     },
     {
@@ -78543,11 +78839,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 2665,
+      "bytes": 2927,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/README.md",
-      "sha256": "4017196188cc7d6b9ead8e2c4260223712763462cebd317e14885c2c695b4d1a",
+      "sha256": "5728db84fe093a11099299bf79ab0840dff75352da3bcdab82f96e29516d9287",
       "surface_kind": "human"
     },
     {
@@ -78807,11 +79103,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1129,
+      "bytes": 1163,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/README.md",
-      "sha256": "1a9de3c9665845ae265b6e60d1b9b2d0e0c946d255301be1fae87dbb0d7569e7",
+      "sha256": "33ca0b03754555ff4bc04c1a8fc353c7c23e9744820d76e3974224f208aa912c",
       "surface_kind": "human"
     },
     {
@@ -78847,10 +79143,34 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5027,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/plant_cross_branch_sources.py",
+      "sha256": "6fb48ae7166075cf194d9a3b37700d8a095567a6ea9d69c9e9c137686c6e7794",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 6097,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/report_cross_branch_sources.py",
+      "sha256": "4dc5c6a169a19b06f1ed08bdce1f441a5d02a991b9576a1c95a0e1e08901d211",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 427,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/README.md",
+      "sha256": "6a53c1ccb9cc5249e50df718060c63daad942bc7ef90f6ef81510142a56268a0",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 5010,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/plant_first_wave.py",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/execution/plant_first_wave.py",
       "sha256": "7eba5ef5299a8507d70e7ee2c27a3c56bf5cc47e2585d247badd10ddba89be4e",
       "surface_kind": "executable"
     },
@@ -78858,16 +79178,48 @@
       "bytes": 6080,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/report_first_wave.py",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/execution/report_first_wave.py",
       "sha256": "eff7475c3c600f9b25e7e7f197417b757f7880f150f9ec91d4dcb0dbc0652f6c",
       "surface_kind": "executable"
+    },
+    {
+      "bytes": 3932,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/path-migration.json",
+      "sha256": "bbc5a7d5316642b3cdd4595ed48b5ddbe81749e118dc5870f76ba1286dd63baa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1050,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/preparation-inputs/3800c953e98c5ab26ee939d2684d566cc2b53440e7a401581421dd45663f81a6.preparation-receipt.json",
+      "sha256": "3800c953e98c5ab26ee939d2684d566cc2b53440e7a401581421dd45663f81a6",
+      "surface_kind": "structured"
     },
     {
       "bytes": 198791,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/preparation-inputs/da1bdc754c3bb47ee8be84c0789550ca6657cadd62e9019e1a9fe0ad83a32c74.manifest.json",
       "sha256": "da1bdc754c3bb47ee8be84c0789550ca6657cadd62e9019e1a9fe0ad83a32c74",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 40379,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/preparation-inputs/fe63957563adaed179b5a1d1764d82d467e7c67f56ffb0d007d44c9bc2b44155.source-preparation.json",
+      "sha256": "fe63957563adaed179b5a1d1764d82d467e7c67f56ffb0d007d44c9bc2b44155",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 198808,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "sha256": "c472fae47ceabe45c28cc80915ac69359beb4e801ae0f492ca87755588a273dc",
       "surface_kind": "structured"
     },
     {
@@ -79007,11 +79359,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1050,
+      "bytes": 3703,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/path-migration.current.json",
+      "sha256": "33e6fa34f61b24532436baa64008aeba0737ae7561eeda348574976b879c489b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2086,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/preparation-checkpoint-receipt.json",
-      "sha256": "3800c953e98c5ab26ee939d2684d566cc2b53440e7a401581421dd45663f81a6",
+      "sha256": "6c5d4dee223008353c85648f445147b2e68aaebaefdfd8213c4ee9acdc5dc4f4",
       "surface_kind": "structured"
     },
     {
@@ -79023,11 +79383,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 331801,
+      "bytes": 332022,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/queue.pre-acquisition.v1.json",
-      "sha256": "659e3b26f248525390c818f437189765db139e6d2c943e39d2307230ac839964",
+      "sha256": "819d12b26a7e3122ee99ac45ba25a4ebfd96ed015f4a00792f74ed43f47093ef",
       "surface_kind": "structured"
     },
     {
@@ -79039,11 +79399,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 200321,
+      "bytes": 200542,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/readiness.pre-acquisition.v1.json",
-      "sha256": "8ef9eb17a5fcf93fb8ea61477c1a52d562908b1b856cbc5f79e12f58f1829b96",
+      "sha256": "a69625bde3cf93d6da515b395eadfd7f28140500284b5cd9383f07cfb81b959e",
       "surface_kind": "structured"
     },
     {
@@ -90855,11 +91215,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 556,
+      "bytes": 801,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/README.md",
-      "sha256": "7537f9a4632025d2f4220342cf08519722173df6f191613faca6efafab1d00a8",
+      "sha256": "83bc540b96330807799bcd36374bfd824bfa539302a780045604df3b85c4fe14",
       "surface_kind": "human"
     },
     {
@@ -92023,28 +92383,84 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5838,
+      "bytes": 5869,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/execution/plant_fourth_wave.py",
-      "sha256": "9d66d67d28492c2822ab4adb56a00be3c82657654b82cb2e83470cf7d0f40516",
+      "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/execution/plant_ancient_mediterranean_translations.py",
+      "sha256": "8311a285a19d2aeb596809b27c33a56397c25b27aea573f8544cb285c71be8fd",
       "surface_kind": "executable"
     },
     {
-      "bytes": 23184,
+      "bytes": 23261,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/execution/prepare_translations.py",
-      "sha256": "5915aa3ebcadb38e57add18df4ddc4e793c9c199614c85bc62ec895081dc29d3",
+      "sha256": "7aa32181987eb17186920070ebf5037b5f60d4d668c95f9c573d7bc904c55cbc",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 12855,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/execution/report_ancient_mediterranean_translations.py",
+      "sha256": "af41b5fe21c0c2d7c49d64714e79c8a9f25859ffc6b8191f49dec54db1dd9c01",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 427,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/legacy/README.md",
+      "sha256": "6a53c1ccb9cc5249e50df718060c63daad942bc7ef90f6ef81510142a56268a0",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 5838,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/legacy/execution/plant_fourth_wave.py",
+      "sha256": "9d66d67d28492c2822ab4adb56a00be3c82657654b82cb2e83470cf7d0f40516",
       "surface_kind": "executable"
     },
     {
       "bytes": 12825,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/execution/report_fourth_wave.py",
+      "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/legacy/execution/report_fourth_wave.py",
       "sha256": "70499c4b611b3633f1c9b61628dc05e71c3c44e522a06c7db955378ff04c2592",
       "surface_kind": "executable"
+    },
+    {
+      "bytes": 3989,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/legacy/path-migration.json",
+      "sha256": "7f3834db60b0ab9d34f4660870f33468a0f7511074a0399806a196bc2f6789ed",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 257269,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/legacy/preparation-inputs/270a689202f79c621abbe51760413766e7da43a22bde19f04580af780e95203d.source-preparation.json",
+      "sha256": "270a689202f79c621abbe51760413766e7da43a22bde19f04580af780e95203d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 552061,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/legacy/preparation-inputs/3784d04765816700e1c3c0da8e8c3c0bce5a935aec71ef7b402930fd1f351c23.manifest.json",
+      "sha256": "3784d04765816700e1c3c0da8e8c3c0bce5a935aec71ef7b402930fd1f351c23",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 634,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/legacy/preparation-inputs/ce9ab9d7a39a2d0725b575038d7a1ab6fb5953365e0b6ab48caa5a79a2ba1504.preparation-receipt.json",
+      "sha256": "ce9ab9d7a39a2d0725b575038d7a1ab6fb5953365e0b6ab48caa5a79a2ba1504",
+      "surface_kind": "structured"
     },
     {
       "bytes": 34132,
@@ -92055,11 +92471,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 552061,
+      "bytes": 552092,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/manifest.json",
-      "sha256": "3784d04765816700e1c3c0da8e8c3c0bce5a935aec71ef7b402930fd1f351c23",
+      "sha256": "4ab10dedf97a1ecfcb4505c70bf0e557383736288cf53137b8a2c8fb3dde2d52",
       "surface_kind": "structured"
     },
     {
@@ -92079,11 +92495,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 634,
+      "bytes": 3771,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/path-migration.current.json",
+      "sha256": "50ced3ededa617b78b5b863dd4ffb74740733f40e6c1599a4593221c11ec9de3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2091,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/preparation-checkpoint-receipt.json",
-      "sha256": "ce9ab9d7a39a2d0725b575038d7a1ab6fb5953365e0b6ab48caa5a79a2ba1504",
+      "sha256": "d48e0d1c913b3a29563a64d2098875cfad9cb727d2be33f983b8d4bceabeda1e",
       "surface_kind": "structured"
     },
     {
@@ -92095,11 +92519,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 658615,
+      "bytes": 660444,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/queue.preparation.v1.json",
-      "sha256": "01f6b497e411cff216544a616adc3b747fb00e83fbb4e07fd7ab41a1bad8fe58",
+      "sha256": "8804981c0df2975372d4a850e11a9818d29c4dd52bc1401babb401c81383a79e",
       "surface_kind": "structured"
     },
     {
@@ -92111,11 +92535,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 484462,
+      "bytes": 486291,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/readiness.preparation.v1.json",
-      "sha256": "cdd35c4f83be1272968c5f089f1410793e07ffa1b3ab759aa27f397ec5cf6f79",
+      "sha256": "f143a66d332649edaf5939ba30083bd77175fd46302cabe5a4f67192f025f062",
       "surface_kind": "structured"
     },
     {
@@ -93087,11 +93511,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 247,
+      "bytes": 492,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/README.md",
-      "sha256": "357093bbf8ecf7c7f884c634417712370540ec781234a9094d247a725b0abb8a",
+      "sha256": "32883576de4c6ab48458199214677b37a1c57fa03b96d3edab79b80ed0b1cc47",
       "surface_kind": "human"
     },
     {
@@ -93111,11 +93535,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 236027,
+      "bytes": 236032,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/batch-result.json",
-      "sha256": "6c15cfabf848e4dcb8f38e4edb9388c1fa00673f22d29b4a0618095a081248ad",
+      "sha256": "a0953b2a0b3ab6c5d004cf3db19082dddfbbb19c6953dc09c85f976a857f19a7",
       "surface_kind": "structured"
     },
     {
@@ -94775,11 +95199,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 6509,
+      "bytes": 6523,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/create_metadata_forms.py",
-      "sha256": "857262c6fb1c85c2b69e11e91886f2a8c0f064a277b47566753e2920461aac1b",
+      "sha256": "8e28940a80e6bdfe4f9ac82161874a92f927a71bb8311efd77f98972b35495de",
       "surface_kind": "executable"
     },
     {
@@ -94791,35 +95215,91 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 5788,
+      "bytes": 5802,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/plant_ninth_wave.py",
-      "sha256": "d7ec3d21be4af68a7f9f303f96ac3166135af81e9b305804a5e7c174e766bdb1",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/plant_plutarch_moralia_english.py",
+      "sha256": "e791633091893a95a16eaa4cd5fb29ec46b9bfbc92086d8459a637504b8f058e",
       "surface_kind": "executable"
     },
     {
-      "bytes": 26497,
+      "bytes": 26516,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/prepare_translations.py",
-      "sha256": "0442a3c476d35dcd9b13feebde6a0e8102397fa02db6072e17d6a568b5f8a2c6",
+      "sha256": "3955323847acaa6fffee4dff652f446134eb5e6640c663ca2778d28b11307733",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 12603,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/report_plutarch_moralia_english.py",
+      "sha256": "f9fd3475a8c2e888b077d3e6a9f1557f471d2bf1085da076c0d4b1080cd94b65",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 145945,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/human-form-companions.json",
+      "sha256": "bde343c5607a9ab69d3956ade9fa9357282c0f7ac2342fdd17fab34be5c735e7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 427,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/README.md",
+      "sha256": "6a53c1ccb9cc5249e50df718060c63daad942bc7ef90f6ef81510142a56268a0",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 5788,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/execution/plant_ninth_wave.py",
+      "sha256": "d7ec3d21be4af68a7f9f303f96ac3166135af81e9b305804a5e7c174e766bdb1",
       "surface_kind": "executable"
     },
     {
       "bytes": 12584,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/report_ninth_wave.py",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/execution/report_ninth_wave.py",
       "sha256": "6e785e5ad6c6ca3bf29b0e92a17eab2373c031e693123322114fc51610462fc6",
       "surface_kind": "executable"
     },
     {
-      "bytes": 145931,
+      "bytes": 3938,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/human-form-companions.json",
-      "sha256": "bc867a38fa08c9eafc2fe1428ca853c309646e5132a74890bd66eac72698a7a6",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/path-migration.json",
+      "sha256": "42ff06cde5a597e9e2313982064bfaded54e751566fe62a7ea46f1b4f1c5bc49",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 579230,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/preparation-inputs/264ad6901ebed243b10d949b3f8d7c0c7b9e783df12e371d6ebca9344f4234e3.manifest.json",
+      "sha256": "264ad6901ebed243b10d949b3f8d7c0c7b9e783df12e371d6ebca9344f4234e3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 600,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/preparation-inputs/55e52a245791f7428b81ac6481a03d6c8e4d6d1d8abddc8b4529c24dc5be2bb7.preparation-receipt.json",
+      "sha256": "55e52a245791f7428b81ac6481a03d6c8e4d6d1d8abddc8b4529c24dc5be2bb7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 215227,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/preparation-inputs/ab13199220d190b6396360a72b0ecc49a7e6e9ebbc61a63c78b27e91c0c67ea5.source-preparation.json",
+      "sha256": "ab13199220d190b6396360a72b0ecc49a7e6e9ebbc61a63c78b27e91c0c67ea5",
       "surface_kind": "structured"
     },
     {
@@ -94831,19 +95311,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 579230,
+      "bytes": 579244,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/manifest.json",
-      "sha256": "264ad6901ebed243b10d949b3f8d7c0c7b9e783df12e371d6ebca9344f4234e3",
+      "sha256": "825636d96ea5dc51017d7e789e07879675912ea34d95b67cc3bde78bc86510df",
       "surface_kind": "structured"
     },
     {
-      "bytes": 600,
+      "bytes": 3706,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/path-migration.current.json",
+      "sha256": "9f1e587d96ef50a810bef0b873b621b2d7215cdaeb2052bbb97d9019845fb3d6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2086,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/preparation-checkpoint-receipt.json",
-      "sha256": "55e52a245791f7428b81ac6481a03d6c8e4d6d1d8abddc8b4529c24dc5be2bb7",
+      "sha256": "7d20353cd7226e7f4bed817a737efd855dcbeaae0a32c04091d9626e9fa84676",
       "surface_kind": "structured"
     },
     {
@@ -94855,11 +95343,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 647775,
+      "bytes": 648391,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/queue.preparation.v1.json",
-      "sha256": "30702aa333339164126a4235f1de2040611338322faa189e5c27c3bfbaa4a681",
+      "sha256": "0e013ac96a90124c0c7357565f3214145f08bd7edf68be4cc9a5a97ce74e6fe1",
       "surface_kind": "structured"
     },
     {
@@ -94871,11 +95359,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 407332,
+      "bytes": 407948,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/readiness.preparation.v1.json",
-      "sha256": "efb71b498818ab511da49e4fa3f0d7010416bbd5a8f765f40537eb94cbec4a4b",
+      "sha256": "f53bec6bae9f22a09f7606974eaf1c8f476dfd1629c564892a071a3d1221470a",
       "surface_kind": "structured"
     },
     {
@@ -94895,11 +95383,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 60077,
+      "bytes": 60082,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/selection-review.json",
-      "sha256": "2a628bc3064889954b741d07a740e356827268096a5f9cdd2a4d734fe60d96b4",
+      "sha256": "b1371627d7e0a2de485c99692145e15244ff0740f160ccbc7034a5a0c75b1727",
       "surface_kind": "structured"
     },
     {
@@ -95615,11 +96103,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 450,
+      "bytes": 695,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/README.md",
-      "sha256": "ad1eccb5adf184ae8de276ba64fc989d502baa0b0ea5d057f07b2e252ebb4c5a",
+      "sha256": "74ce868136c275e2942f1d33ad06153c61ca6d7ddc909ab92a2151c6aaed45ed",
       "surface_kind": "human"
     },
     {
@@ -95903,28 +96391,84 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 5012,
+      "bytes": 5031,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/execution/plant_second_wave.py",
-      "sha256": "19e80b87b0178dca42bbe1b90a5257d9f8879a5a4ed1d1c3b7bd2781a2f1352a",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/execution/plant_classical_athenian_plato.py",
+      "sha256": "eafcadd23aa8e2c2d48ae301d9e9f4cfd6b5841231dc0df8893a84f2ca770a91",
       "surface_kind": "executable"
     },
     {
-      "bytes": 12434,
+      "bytes": 12453,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/execution/prepare_plato.py",
-      "sha256": "d770609129db2479ac0ef640e3c249fb99cb3a0e9f314ccbfc95fdbf152bf96d",
+      "sha256": "2a65e0a6015e6522da0a4a9a641230f2ef247d18a7d7c87287d51118d624b64b",
       "surface_kind": "executable"
     },
     {
       "bytes": 7608,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/execution/report_second_wave.py",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/execution/report_classical_athenian_plato.py",
       "sha256": "19b27657d3b9808948b227eb1dc31eef3ad06677e0eda23feec56c7aba5af9a7",
       "surface_kind": "executable"
+    },
+    {
+      "bytes": 427,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/README.md",
+      "sha256": "6a53c1ccb9cc5249e50df718060c63daad942bc7ef90f6ef81510142a56268a0",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 5012,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/execution/plant_second_wave.py",
+      "sha256": "19e80b87b0178dca42bbe1b90a5257d9f8879a5a4ed1d1c3b7bd2781a2f1352a",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 7608,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/execution/report_second_wave.py",
+      "sha256": "19b27657d3b9808948b227eb1dc31eef3ad06677e0eda23feec56c7aba5af9a7",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 3954,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/path-migration.json",
+      "sha256": "92a3c3e277ba52379c0ce18c930ef2b0024fdb28d5c39cf734f0700a30a90216",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 668,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/preparation-inputs/0b1e33748bafccb27f37780601a9fb0b834031488a243a7eff44401775ab282d.preparation-receipt.json",
+      "sha256": "0b1e33748bafccb27f37780601a9fb0b834031488a243a7eff44401775ab282d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 40843,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/preparation-inputs/507314ee8996c014d71b1c1be40c2d6405970f5b11b8403730a1b334414e3fa4.source-preparation.json",
+      "sha256": "507314ee8996c014d71b1c1be40c2d6405970f5b11b8403730a1b334414e3fa4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 73923,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/preparation-inputs/dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be.manifest.json",
+      "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be",
+      "surface_kind": "structured"
     },
     {
       "bytes": 115226,
@@ -95935,19 +96479,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 73923,
+      "bytes": 73942,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
-      "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be",
+      "sha256": "614eac954e725643c1fde35b15a10f4c18242bf802b64594780ee2527507ac09",
       "surface_kind": "structured"
     },
     {
-      "bytes": 668,
+      "bytes": 3728,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/path-migration.current.json",
+      "sha256": "a64700a72afc212aaf767fdf79d2341650ed1425ac82cc66129fbffface1189b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2091,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/preparation-checkpoint-receipt.json",
-      "sha256": "0b1e33748bafccb27f37780601a9fb0b834031488a243a7eff44401775ab282d",
+      "sha256": "ef251808fe5c6a0471cef5168a479cd6dc5676a45c0950026f2cbf8844a6355d",
       "surface_kind": "structured"
     },
     {
@@ -96063,11 +96615,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 262,
+      "bytes": 507,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/README.md",
-      "sha256": "0687e226bf68433b3193cd312ca55739fd39fb29984ea7b3169c2150ccde90ec",
+      "sha256": "dabf97ac436caa5e13f10a0743584c50214db634981912ab86ddff63227e0255",
       "surface_kind": "human"
     },
     {
@@ -96375,43 +96927,99 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 6449,
+      "bytes": 6468,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/execution/plant_seventh_wave.py",
-      "sha256": "ae1671220605924e59c49fbeb5f4a9c6f10946e004ea26a133629350b27444a0",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/execution/plant_plutarch_epictetus_english_1874.py",
+      "sha256": "7d2bd6cdd7fe49716075ac994b6fc4d3a24d209c4af28937bad7306d4589a1b2",
       "surface_kind": "executable"
     },
     {
-      "bytes": 26981,
+      "bytes": 27046,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/execution/prepare_translations.py",
-      "sha256": "427c5c790108ea9a38f083977e0308b757f9efaa39eb5c6ba72fea7dd786714c",
+      "sha256": "8921804ec196e91a40f96ec26a378758ac279caeda407f036e3f61c417dd9ced",
       "surface_kind": "executable"
     },
     {
-      "bytes": 8460,
+      "bytes": 8479,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/execution/repair_metadata_forms.py",
-      "sha256": "0edc904fe52cacbdaa21c34b2652f143b3d42f66fccb2e6fdf22fc4225de8b22",
+      "sha256": "fae57c2b534cb40f96b26a2941a6edcb3b4f8838dd498b6c1cc77c6cda3f80d3",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 13412,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/execution/report_plutarch_epictetus_english_1874.py",
+      "sha256": "2b08990af2dcf205ec76394f10256c877d4126259a2b90f0f21fe0084b25e9c6",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 29164,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/human-form-companions.json",
+      "sha256": "eb4ba6d1f323cfc34cba6cb1ad6ef043e8674a176cf7744aa93280f964ae37ce",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 427,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/README.md",
+      "sha256": "6a53c1ccb9cc5249e50df718060c63daad942bc7ef90f6ef81510142a56268a0",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 6449,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/execution/plant_seventh_wave.py",
+      "sha256": "ae1671220605924e59c49fbeb5f4a9c6f10946e004ea26a133629350b27444a0",
       "surface_kind": "executable"
     },
     {
       "bytes": 13393,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/execution/report_seventh_wave.py",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/execution/report_seventh_wave.py",
       "sha256": "f895ad6d3a39056eb499df0e828077b083db82fce1dabaee06bd95003ecab5a8",
       "surface_kind": "executable"
     },
     {
-      "bytes": 29145,
+      "bytes": 3984,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/human-form-companions.json",
-      "sha256": "09253f6d528efac7296d2f13e2a2276da1e7dc4d099cd256b2f9108ccd3f6e41",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/path-migration.json",
+      "sha256": "c6c58fb701d6337221c44590041c0ae2139be4c9b1177fa84ae3daf2648e3cc3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 621,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/preparation-inputs/0cd7512e3b3f1a1de52c24f0c7ff5804c4e9d404fa13497dddae0f41966cd48f.preparation-receipt.json",
+      "sha256": "0cd7512e3b3f1a1de52c24f0c7ff5804c4e9d404fa13497dddae0f41966cd48f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 43223,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/preparation-inputs/156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6.source-preparation.json",
+      "sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 115407,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/preparation-inputs/5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1.manifest.json",
+      "sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1",
       "surface_kind": "structured"
     },
     {
@@ -96423,19 +97031,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 115407,
+      "bytes": 115426,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/manifest.json",
-      "sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1",
+      "sha256": "a552ff93dcb80482cde1b278ae73e7de12ac27a4961912c4d361249b80d1d8a5",
       "surface_kind": "structured"
     },
     {
-      "bytes": 621,
+      "bytes": 3754,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/path-migration.current.json",
+      "sha256": "2a3ca01fc6c2b37c76807e7d0a4cbc9ffcb06f16db3901680e82bc494c317dca",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2096,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/preparation-checkpoint-receipt.json",
-      "sha256": "0cd7512e3b3f1a1de52c24f0c7ff5804c4e9d404fa13497dddae0f41966cd48f",
+      "sha256": "e254f14ba595e27e0582b1d64694d30ad1a24de1d78c464b746e3843ab72adcb",
       "surface_kind": "structured"
     },
     {
@@ -96447,11 +97063,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 290200,
+      "bytes": 290371,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/queue.preparation.v1.json",
-      "sha256": "9a32f9ce37871b887f7d8dbe18d41b5f3b22430f6830bfc3dec5424d00265908",
+      "sha256": "c65ffbb3f921922b0e3e095475950a194ae60a95bfe4b19e84b24d17f6c813b6",
       "surface_kind": "structured"
     },
     {
@@ -96463,11 +97079,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 81971,
+      "bytes": 82142,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/readiness.preparation.v1.json",
-      "sha256": "edda1348bf9d6162c9238f15bdf24b8ea8690c24cae96dfb7bf1bbb194a0c2d3",
+      "sha256": "4fceefd2c19b2f8fe3ff868a7c3e3358e7e24b567c3fc9ffe56adfa631d29d41",
       "surface_kind": "structured"
     },
     {
@@ -96639,11 +97255,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 260,
+      "bytes": 505,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/README.md",
-      "sha256": "e7d96db4e3335b6a8ae6138646a87153d7edbfd4f8910021481516c10a4a7b65",
+      "sha256": "aac1dc83d79b6def2ddaf457869ae8f37918d79b74b08a0b1a39eb24391c7c38",
       "surface_kind": "human"
     },
     {
@@ -96911,19 +97527,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 6433,
+      "bytes": 6463,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/execution/plant_sixth_wave.py",
-      "sha256": "957a77b8f98437885da0aeba0e74f53d5321502b27f7ff18599d0690d1172a86",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/execution/plant_roman_philosophical_english.py",
+      "sha256": "cbb6d6d82b40f5975ae39f543364b34b1675e18c44c32a7d44fe507046c6d802",
       "surface_kind": "executable"
     },
     {
-      "bytes": 24051,
+      "bytes": 24105,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/execution/prepare_translations.py",
-      "sha256": "ac6e2610d72a5ef6280f7e69456eb90172b0d693deba1708a8cb585da615c6f5",
+      "sha256": "a4f9512e81e77db8a37da9b0db8db4275cf8dbd1ac96cc3760e97f429ce74478",
       "surface_kind": "executable"
     },
     {
@@ -96935,12 +97551,68 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 13371,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/execution/report_roman_philosophical_english.py",
+      "sha256": "a4dbddc3e7e7b88d007d2003d803a3200613abbb7dfb6edeb46b5c3423b90af7",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 427,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/legacy/README.md",
+      "sha256": "6a53c1ccb9cc5249e50df718060c63daad942bc7ef90f6ef81510142a56268a0",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 6433,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/legacy/execution/plant_sixth_wave.py",
+      "sha256": "957a77b8f98437885da0aeba0e74f53d5321502b27f7ff18599d0690d1172a86",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 13342,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/execution/report_sixth_wave.py",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/legacy/execution/report_sixth_wave.py",
       "sha256": "758f61fb4e1f12a0860d161ef273cd80bfaf16754213d6716ce3d5fbf3f5a225",
       "surface_kind": "executable"
+    },
+    {
+      "bytes": 3958,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/legacy/path-migration.json",
+      "sha256": "7a35f5bd304c4e031deb9af9a233b63f856970add15d4f5e5bf321a378e69012",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 54016,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/legacy/preparation-inputs/059cb8f3f289c3f1b65261c2bce826dd28e1fbc16cd8ec6475d8c58a1740b712.manifest.json",
+      "sha256": "059cb8f3f289c3f1b65261c2bce826dd28e1fbc16cd8ec6475d8c58a1740b712",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 612,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/legacy/preparation-inputs/1937f5e40cc99c1abfe4e12db5ea720a3311e694d30e0c0190c0d0ae041a5229.preparation-receipt.json",
+      "sha256": "1937f5e40cc99c1abfe4e12db5ea720a3311e694d30e0c0190c0d0ae041a5229",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 20102,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/legacy/preparation-inputs/b4f7025aaeefc65fa772bca4049fe2eee54c2d9b81e669a26d8c527db9c2051d.source-preparation.json",
+      "sha256": "b4f7025aaeefc65fa772bca4049fe2eee54c2d9b81e669a26d8c527db9c2051d",
+      "surface_kind": "structured"
     },
     {
       "bytes": 3013,
@@ -96951,11 +97623,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 54016,
+      "bytes": 54046,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/manifest.json",
-      "sha256": "059cb8f3f289c3f1b65261c2bce826dd28e1fbc16cd8ec6475d8c58a1740b712",
+      "sha256": "a746bfde18ddf91dfaab373d761d44132fdf63538646f4658920659929de382a",
       "surface_kind": "structured"
     },
     {
@@ -96983,11 +97655,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 612,
+      "bytes": 3743,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/path-migration.current.json",
+      "sha256": "1a077f94357b0611fb4617c5c0829fd829f21a822597a8f12e935d2edd314078",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2086,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/preparation-checkpoint-receipt.json",
-      "sha256": "1937f5e40cc99c1abfe4e12db5ea720a3311e694d30e0c0190c0d0ae041a5229",
+      "sha256": "fbf286c44e7da306ca9bfa5c080f6f3b10df70975fb2d409b40ff72e412210f2",
       "surface_kind": "structured"
     },
     {
@@ -96999,11 +97679,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 245812,
+      "bytes": 245962,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/queue.preparation.v1.json",
-      "sha256": "7f2496de4ac46e057b0139c17083920e7a58b69012387e5ce3e25606df90daa7",
+      "sha256": "02e2cbf474bc155c8c51b9e63ac7e272cdb0f70e4fd9834ca9ad45dfac29231f",
       "surface_kind": "structured"
     },
     {
@@ -97015,11 +97695,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 40633,
+      "bytes": 40783,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/readiness.preparation.v1.json",
-      "sha256": "5500636a059db65b691b591c3b030b4b5edfd4c3c0812f3a6304e52a002ddee9",
+      "sha256": "b1751fa5a2fd4a032a7584b952a75e3bc4bcc68a36690b38a525a3c3956f45d8",
       "surface_kind": "structured"
     },
     {
@@ -97127,11 +97807,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 245,
+      "bytes": 490,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/README.md",
-      "sha256": "7bbab44f9f3051fb75291379fd9cb6c70b39874200084dc84719ea68ae3aa3a0",
+      "sha256": "eb66d39eae5e294b9c984fac54c7a42e225cb91d81ad7f1cc92c580f865457fd",
       "surface_kind": "human"
     },
     {
@@ -98799,11 +99479,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 4589,
+      "bytes": 4599,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/execution/create_metadata_forms.py",
-      "sha256": "5c2a8b992620e315af96c34a289279e2630ea703b0e9b08dbcbc51a254c7729a",
+      "sha256": "d7b7132d0ccc19049478b682e6c400d92ad5d98bb02ee14ad9dd27fa01e4211d",
       "surface_kind": "executable"
     },
     {
@@ -98815,10 +99495,50 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 4756,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/execution/plant_plutarch_lives_greek.py",
+      "sha256": "78cf819ba389e28600dea34ee09877ad7f34a02678f25da855cd003a21b4fa6f",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 18276,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/execution/prepare_greek_batch.py",
+      "sha256": "680a5170680b0b30e87ca39a9d62bfdc0b415eb09a02d915af9f46c0cbf2be4b",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 12340,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/execution/report_plutarch_lives_greek.py",
+      "sha256": "f1dc1a48917b7a64128a1c240632d90c491173de4df5c41837101ecc66ec502d",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 172660,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/human-form-companions.json",
+      "sha256": "030aa7ad854fe325b28771894ac4381ddc57e145973f9211da01e163fec931d4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 427,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/README.md",
+      "sha256": "6a53c1ccb9cc5249e50df718060c63daad942bc7ef90f6ef81510142a56268a0",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 32628,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/execution/engine-history/prepare_registry_sources.py",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/engine-history/prepare_registry_sources.py",
       "sha256": "9eb8a6716795b3cf2af58183d287ca1582c0a01a382592133199bb5aa9d61c60",
       "surface_kind": "executable"
     },
@@ -98826,32 +99546,48 @@
       "bytes": 4746,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/execution/plant_tenth_wave.py",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/execution/plant_tenth_wave.py",
       "sha256": "a08e414e58852329a02b17a455a186198ffcdb30d6d3bcadffc415afb5b2f31b",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 18266,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/execution/prepare_greek_batch.py",
-      "sha256": "9b166aaa446e013fe8f3629fc199eb5918c385e3457fd42bcd2521f29e012953",
       "surface_kind": "executable"
     },
     {
       "bytes": 12330,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/execution/report_tenth_wave.py",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/execution/report_tenth_wave.py",
       "sha256": "48aab4d0a81f5e3b8aea001b778de3a9ae6a404479ad5e3ac16581c8d52192ef",
       "surface_kind": "executable"
     },
     {
-      "bytes": 172650,
+      "bytes": 4228,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/human-form-companions.json",
-      "sha256": "643df388c9c2b03a8646f2cc30cc5767bb0a810f790300d58781d329ba0f8111",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/path-migration.json",
+      "sha256": "adbb4a444717c2ccdfd246185536cab1d28d0b5e42c2518db617b53a1b058d38",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 255994,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/preparation-inputs/4674256ee9f9587fd3180d1e7d72a5296ef31fc9ffad2d23829b959e3d748f93.source-preparation.json",
+      "sha256": "4674256ee9f9587fd3180d1e7d72a5296ef31fc9ffad2d23829b959e3d748f93",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 640,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/preparation-inputs/50c34d318c86eea79f76352823b966f6bcfa668188f2e796ad76efd3ac9df2fa.preparation-receipt.json",
+      "sha256": "50c34d318c86eea79f76352823b966f6bcfa668188f2e796ad76efd3ac9df2fa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 563290,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/preparation-inputs/9be466b5d0f44d9b1a3d2525b3486b7f7f70a9a7cb03ce0b0c91f7e14631e419.manifest.json",
+      "sha256": "9be466b5d0f44d9b1a3d2525b3486b7f7f70a9a7cb03ce0b0c91f7e14631e419",
       "surface_kind": "structured"
     },
     {
@@ -98863,11 +99599,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 563290,
+      "bytes": 563300,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/manifest.json",
-      "sha256": "9be466b5d0f44d9b1a3d2525b3486b7f7f70a9a7cb03ce0b0c91f7e14631e419",
+      "sha256": "28e3a3acd6b938f2b5953fd05b85e71cd33a7933196c2217c2cc7d627cebf1b4",
       "surface_kind": "structured"
     },
     {
@@ -98879,11 +99615,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 640,
+      "bytes": 3690,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/path-migration.current.json",
+      "sha256": "addda0e92e8863c769bc272e96e65a54cac60303346a8dc529b3a93567e9163c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2086,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/preparation-checkpoint-receipt.json",
-      "sha256": "50c34d318c86eea79f76352823b966f6bcfa668188f2e796ad76efd3ac9df2fa",
+      "sha256": "ad2e500eda4ad80e0a9a4451434964e3ceb1888dbad8d3a308aae7df04bccc48",
       "surface_kind": "structured"
     },
     {
@@ -98895,11 +99639,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 748136,
+      "bytes": 748776,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/queue.preparation.v1.json",
-      "sha256": "4539257cef4d6d3945ce02aa36fb323b91cda064279441e54eb29fc15c618291",
+      "sha256": "6effaa40e8f61e5a9750bbc45f5d18525ca208b48057ca8ab5a8d0ef504c0d76",
       "surface_kind": "structured"
     },
     {
@@ -98911,11 +99655,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 481484,
+      "bytes": 482124,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/readiness.preparation.v1.json",
-      "sha256": "3638adfe6456063246b71aa8ab07a9f6d428ba1d47fe178cbd26db666e3ed809",
+      "sha256": "f82bc1dfe0e821eb536d127650514064d12ad6d711bc6fab62874d7fd1f28bea",
       "surface_kind": "structured"
     },
     {
@@ -99455,11 +100199,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 332,
+      "bytes": 577,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/README.md",
-      "sha256": "6684051755b642fbc744d8eeeaba6d4ae7e1a60e33edee163f71695d7bc0da08",
+      "sha256": "22ea19ceeb299eb47a0fef8d7eda7e8fbb20a2f3db18f3addc21e0852edf8e44",
       "surface_kind": "human"
     },
     {
@@ -100751,34 +101495,66 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5010,
+      "bytes": 5037,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/execution/plant_third_wave.py",
-      "sha256": "55335ffd4c92bc69621737b1fd2c1124820a340d54aa559a6b8f9b93c90bcf67",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/execution/plant_ancient_mediterranean_sources.py",
+      "sha256": "690d430ea218ea6366acba0259efd24b7b2b9107ae2093a767c1834bec70c2fd",
       "surface_kind": "executable"
     },
     {
-      "bytes": 17411,
+      "bytes": 17438,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/execution/prepare_greek_batch.py",
-      "sha256": "e92ec64d13de7db91efec82e79f752daf08bdd57a7a24e01ff970e2152f327f8",
+      "sha256": "0b8cb53b104b327fe61665b6ea6ca20697d6caac7432da4babbb6d286f06d5e0",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 8935,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/execution/report_ancient_mediterranean_sources.py",
+      "sha256": "5512081b989fbd7a0dbe32bbae1fed2161e053a3ca8ccac5523896666e04944c",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 427,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/legacy/README.md",
+      "sha256": "6a53c1ccb9cc5249e50df718060c63daad942bc7ef90f6ef81510142a56268a0",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 5010,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/legacy/execution/plant_third_wave.py",
+      "sha256": "55335ffd4c92bc69621737b1fd2c1124820a340d54aa559a6b8f9b93c90bcf67",
       "surface_kind": "executable"
     },
     {
       "bytes": 8909,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/execution/report_third_wave.py",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/legacy/execution/report_third_wave.py",
       "sha256": "a9b89690981446df88b1949a096ffaac8bb37e09258c68e81df135813d5739fe",
       "surface_kind": "executable"
+    },
+    {
+      "bytes": 3960,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/legacy/path-migration.json",
+      "sha256": "6e86fddad0b949f7094cf042ba090300d0725fe1c2e954ea85fd6a995faac1d9",
+      "surface_kind": "structured"
     },
     {
       "bytes": 407249,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/manifest.json",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/legacy/preparation-inputs/108555bc5f6bfb1c11062def9fef4b8702d7779c7c294377d0001e637e9b35f8.manifest.json",
       "sha256": "108555bc5f6bfb1c11062def9fef4b8702d7779c7c294377d0001e637e9b35f8",
       "surface_kind": "structured"
     },
@@ -100786,8 +101562,40 @@
       "bytes": 665,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/preparation-checkpoint-receipt.json",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/legacy/preparation-inputs/2b01e420a95388da5a4096efac9c3449ded2b38387093acf691da1fddb752959.preparation-receipt.json",
       "sha256": "2b01e420a95388da5a4096efac9c3449ded2b38387093acf691da1fddb752959",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 185643,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/legacy/preparation-inputs/f97d477b234e9f9dffeddd7309713d48173ecac9557b3c55b548e01582905c92.source-preparation.json",
+      "sha256": "f97d477b234e9f9dffeddd7309713d48173ecac9557b3c55b548e01582905c92",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 407276,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/manifest.json",
+      "sha256": "5a7211ab7646d32ad64aec83eebcd19c0234af22a340ff12b2900dc8e990b173",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3741,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/path-migration.current.json",
+      "sha256": "f4f5a9047bf85582816185926d9456b59e2ab0802f62416fef5770b097a457eb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2086,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/preparation-checkpoint-receipt.json",
+      "sha256": "23e372906f2fea7bfbafe501da171b8e30ce2d06dc4099b0464cefcfd136a651",
       "surface_kind": "structured"
     },
     {
@@ -109375,11 +110183,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 247,
+      "bytes": 492,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/README.md",
-      "sha256": "817000d954564d236c95e3057aef8b1871a3d0d2c408d69eec6ac95c7db59a98",
+      "sha256": "4031f63e4aaa9845ca628d621df684332c8eeabc62754bef35a31d968a3874b2",
       "surface_kind": "human"
     },
     {
@@ -109399,11 +110207,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 86327,
+      "bytes": 86336,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/batch-result.json",
-      "sha256": "01e58913a1a9472229bd3a88fe9cd110bcb65566f3671bee018a63f099ad4e59",
+      "sha256": "fcfe8c608d7c26b7a00b129a4ac576f3d165609ccd2146128d89835139ef2f18",
       "surface_kind": "structured"
     },
     {
@@ -110471,11 +111279,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 4593,
+      "bytes": 4611,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/execution/create_metadata_forms.py",
-      "sha256": "aed0961135f00d1014c238157c5275f3fceed12558c509a6de44f716712aeacd",
+      "sha256": "bcd9fdb83486a198567d6f47d940779ce6fb70a1a61f28597ac06d0d0372f515",
       "surface_kind": "executable"
     },
     {
@@ -110487,27 +111295,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 32628,
+      "bytes": 5162,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/execution/engine-history/prepare_registry_sources.py",
-      "sha256": "9eb8a6716795b3cf2af58183d287ca1582c0a01a382592133199bb5aa9d61c60",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/execution/plant_cicero_forensic_speeches_latin.py",
+      "sha256": "09012d177bde75b008ea8d2e530f7e81de6b612d71c0aebf1e660ed29b75bf75",
       "surface_kind": "executable"
     },
     {
-      "bytes": 5144,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/execution/plant_twelfth_wave.py",
-      "sha256": "0522336cc338d8ab26b68ec478a4066a7828a3ebf3747eaae18858d5ea8f0c8a",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 20153,
+      "bytes": 20180,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/execution/prepare_latin_batch.py",
-      "sha256": "0a249a9582bc295722c71372694f973cb138be8e325eff8bbeb76d36f206e3b2",
+      "sha256": "8a9ac46a5414a11d1d9b201cfd166f01f52c8e0c3d2186b93d2904f037c512e9",
       "surface_kind": "executable"
     },
     {
@@ -110519,11 +111319,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 12557,
+      "bytes": 12575,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/execution/report_twelfth_wave.py",
-      "sha256": "d6eb3c030c6da609e38f9351eea5d7a45fbbdd142c05fad8c8e2084517bcddfc",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/execution/report_cicero_forensic_speeches_latin.py",
+      "sha256": "ae9169d594ea7991e4df458bce23293d9e44eb5320dd4c014b3cc6eccd637fba",
       "surface_kind": "executable"
     },
     {
@@ -110535,11 +111335,75 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 83681,
+      "bytes": 83699,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/human-form-companions.json",
-      "sha256": "99dacec04d153af26a896cfee56b0f0fbc5093278f0e83a1bcc0d48e74a08932",
+      "sha256": "9d2b4ce7460b2ec2d6767aae4a8f07f6de0cf03baf3ca7596224961e81523e90",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 427,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/README.md",
+      "sha256": "6a53c1ccb9cc5249e50df718060c63daad942bc7ef90f6ef81510142a56268a0",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 32628,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/engine-history/prepare_registry_sources.py",
+      "sha256": "9eb8a6716795b3cf2af58183d287ca1582c0a01a382592133199bb5aa9d61c60",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 5144,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/execution/plant_twelfth_wave.py",
+      "sha256": "0522336cc338d8ab26b68ec478a4066a7828a3ebf3747eaae18858d5ea8f0c8a",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 12557,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/execution/report_twelfth_wave.py",
+      "sha256": "d6eb3c030c6da609e38f9351eea5d7a45fbbdd142c05fad8c8e2084517bcddfc",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 4286,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/path-migration.json",
+      "sha256": "50545d744c4c717e79b629f30aa2c38696f6fb17649733fe0edc34b396618f3f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 121380,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/preparation-inputs/16e8692b7f3c5a4a43d18690e0981e7da718330ce803f562f785bbfaa2b4e550.source-preparation.json",
+      "sha256": "16e8692b7f3c5a4a43d18690e0981e7da718330ce803f562f785bbfaa2b4e550",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 324393,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/preparation-inputs/1ba1976957c5055cae383eaa5e7de2f867e4c77fa378eba261d2d10e0ea644f8.manifest.json",
+      "sha256": "1ba1976957c5055cae383eaa5e7de2f867e4c77fa378eba261d2d10e0ea644f8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 542,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/preparation-inputs/aa8f58eb0be58686a10a2f13fac6c819a9e456b29dd50fc3ec8b5abe5acf3946.preparation-receipt.json",
+      "sha256": "aa8f58eb0be58686a10a2f13fac6c819a9e456b29dd50fc3ec8b5abe5acf3946",
       "surface_kind": "structured"
     },
     {
@@ -110551,19 +111415,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 324393,
+      "bytes": 324411,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/manifest.json",
-      "sha256": "1ba1976957c5055cae383eaa5e7de2f867e4c77fa378eba261d2d10e0ea644f8",
+      "sha256": "2f530281a86e2ecd8f3e3f53cc6f9543dc799b77e031e3020b2d7e64f3b9565a",
       "surface_kind": "structured"
     },
     {
-      "bytes": 542,
+      "bytes": 3750,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/path-migration.current.json",
+      "sha256": "b00f495ee48dd58a29e12206b2e2bb7451e67b29b9019ed83a76499a65d0d542",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2096,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/preparation-checkpoint-receipt.json",
-      "sha256": "aa8f58eb0be58686a10a2f13fac6c819a9e456b29dd50fc3ec8b5abe5acf3946",
+      "sha256": "5441a4311b448f61bd661cf7b1adaf4f754751f0f39a00279e69a7876f803b9e",
       "surface_kind": "structured"
     },
     {
@@ -110575,11 +111447,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 562922,
+      "bytes": 563480,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/queue.preparation.v1.json",
-      "sha256": "b06ecbc6866c62fc1fa71fe353caeadecfc0f571a12c4c02f09f28b630ccd61a",
+      "sha256": "1cd0963f89acb31e772feeda9594ff18da7d6fd6d68999b6b47dfd990cd3520f",
       "surface_kind": "structured"
     },
     {
@@ -110591,11 +111463,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 236787,
+      "bytes": 237345,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/readiness.preparation.v1.json",
-      "sha256": "aa7440184b63efcc9e272fdce2312e5263d02c0dc4938aaba713c11ed0766f9e",
+      "sha256": "79506646dd494af7cca66b1fe7c1b966c953a226d48b108670c1824f81dfdeee",
       "surface_kind": "structured"
     },
     {
@@ -110615,11 +111487,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 13917,
+      "bytes": 13926,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/selection-review.json",
-      "sha256": "3e9856348220d38ee048ae961352f8f9f9ad84e45f49a05111dad49df171e246",
+      "sha256": "85563ff63f87ca6d60978b44f7fab81cc6256bad21249e7b53bde1d7d9879e9f",
       "surface_kind": "structured"
     },
     {
@@ -361799,11 +362671,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 221955,
+      "bytes": 221972,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "fad7cb3dc2eafb4a57669685f3391850fb5473ce6bac3da020b07ceb4c0c61c5",
+      "sha256": "ac1f7ee1e66c6508cf59a6e9efb232fbc993f8a6b929c3675d2fffcb072222aa",
       "surface_kind": "structured"
     },
     {
@@ -364495,11 +365367,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 32628,
+      "bytes": 32645,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/prepare_registry_sources.py",
-      "sha256": "9eb8a6716795b3cf2af58183d287ca1582c0a01a382592133199bb5aa9d61c60",
+      "sha256": "2f646444696f5d2c72c80da7813c87f5990ea3e6fdfe327f3ee08e4417e0aed4",
       "surface_kind": "executable"
     },
     {

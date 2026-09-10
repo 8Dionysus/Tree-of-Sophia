@@ -1,0 +1,56 @@
+{
+  "schema_version": "tos_source_witness_path_migration_v1",
+  "status": "current",
+  "migration_id": "tos.source-witnesses.registry-ninth.navigation-2026-09-10",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "migration_review_ref": "ToS/review-ledger/2026-09-10-registry-ninth-path-migration.md",
+  "applied_to_commit": "d5c034871722b041f9966d5857f12703994ed23e",
+  "migration_reason": "Current Plutarch Moralia English preparation and execution routes name the source branch/corpus and language or version role; ordinal sequence labels remain historical provenance.",
+  "identity_boundary": {
+    "stable_record_ids_unchanged": true,
+    "payload_bytes_unchanged": true,
+    "preparation_input_bytes_retained": true,
+    "historical_receipts_retained": true,
+    "semantic_or_rights_admission": false
+  },
+  "current_routes": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/plutarch-moralia-english-20260909.json",
+      "sha256": "ab13199220d190b6396360a72b0ecc49a7e6e9ebbc61a63c78b27e91c0c67ea5"
+    },
+    {
+      "role": "planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/plant_plutarch_moralia_english.py",
+      "sha256": "e791633091893a95a16eaa4cd5fb29ec46b9bfbc92086d8459a637504b8f058e"
+    },
+    {
+      "role": "report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/report_plutarch_moralia_english.py",
+      "sha256": "f9fd3475a8c2e888b077d3e6a9f1557f471d2bf1085da076c0d4b1080cd94b65"
+    }
+  ],
+  "current_manifests": [
+    {
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/manifest.json",
+      "sha256": "825636d96ea5dc51017d7e789e07879675912ea34d95b67cc3bde78bc86510df",
+      "historical_manifest_sha256": "264ad6901ebed243b10d949b3f8d7c0c7b9e783df12e371d6ebca9344f4234e3",
+      "historical_receipt_ref": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/preparation-inputs/55e52a245791f7428b81ac6481a03d6c8e4d6d1d8abddc8b4529c24dc5be2bb7.preparation-receipt.json"
+    }
+  ],
+  "retained_inputs": [
+    {
+      "stage": "registry-preparation",
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/preparation-inputs/ab13199220d190b6396360a72b0ecc49a7e6e9ebbc61a63c78b27e91c0c67ea5.source-preparation.json",
+      "preparation_sha256": "ab13199220d190b6396360a72b0ecc49a7e6e9ebbc61a63c78b27e91c0c67ea5",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/preparation-inputs/264ad6901ebed243b10d949b3f8d7c0c7b9e783df12e371d6ebca9344f4234e3.manifest.json",
+      "manifest_sha256": "264ad6901ebed243b10d949b3f8d7c0c7b9e783df12e371d6ebca9344f4234e3",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/preparation-inputs/55e52a245791f7428b81ac6481a03d6c8e4d6d1d8abddc8b4529c24dc5be2bb7.preparation-receipt.json",
+      "receipt_sha256": "55e52a245791f7428b81ac6481a03d6c8e4d6d1d8abddc8b4529c24dc5be2bb7",
+      "preparation_commit": "8d74dda190a6bc69844a61377dd6f4f287503833",
+      "checkpoint_review_ref": "agent-review:8d74dda19:20260909T183346Z"
+    }
+  ],
+  "historical_record_ref": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/path-migration.json",
+  "authority_boundary": "Navigation migration only. Historical preparation and execution bytes remain bound to their original manifest, checkpoint, commit and review references; the current migration receipt records route parity and does not authorize a new acquisition or alter source, rights, semantic, publication or canon state."
+}

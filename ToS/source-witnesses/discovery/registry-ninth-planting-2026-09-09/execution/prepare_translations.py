@@ -323,14 +323,14 @@ def prepare():
         raise ValueError('reviewed scope must be 44 distinct existing Works and 44 new English versions')
     payload = b''.join((json.dumps(package, ensure_ascii=False, separators=(',', ':')) + '\n').encode() for package in packages)
     (BASE / 'prepared-source-packages.jsonl').write_bytes(payload)
-    branch_ref = 'ToS/philosophy/source-planting-preparation/ninth-wave-20260909.json'
+    branch_ref = 'ToS/philosophy/source-planting-preparation/plutarch-moralia-english-20260909.json'
     write(ROOT / branch_ref, {'schema_version': 'tos_source_planting_preparation_batch_v1',
         'status': 'prepared-not-planted', 'review_scope': '44 English translations attached to existing Works and A29 branches',
         'reviewer_ref': 'model:codex', 'targets': plans})
     observations = [json.loads(path.read_text()) for path in sorted((BASE / 'evidence').glob('*.receipt.json'))]
     write(BASE / 'selection-review.json', {'reviewer_ref': 'model:codex', 'observed_at': observed,
         'candidates': reviews + alternatives, 'selected': len(targets), 'deferred': len(alternatives),
-        'no-English-file-in-pinned-view': missing, 'selection_scope': 'English versions corresponding to the 45 eighth-wave Greek Works; 44 selected, both tlg078 wrappers and 32 additional versions deferred', 'complete_source_files_acquired': False})
+        'no-English-file-in-pinned-view': missing, 'selection_scope': 'English versions corresponding to the 45 Plutarch Moralia Greek Works; 44 selected, both tlg078 wrappers and 32 additional versions deferred', 'complete_source_files_acquired': False})
     write(BASE / 'manifest.json', {'schema_version': 'tos_registry_first_planting_preparation_v1',
         'status': 'prepared-not-acquired', 'source_registry_snapshot_ref': snapshot_ref,
         'source_registry_snapshot_sha256': digest(snapshot.read_bytes()), 'branch_preparation_ref': branch_ref,

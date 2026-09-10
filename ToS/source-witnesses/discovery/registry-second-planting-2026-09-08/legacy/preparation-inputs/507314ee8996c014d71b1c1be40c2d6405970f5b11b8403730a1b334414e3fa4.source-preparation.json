@@ -1,0 +1,656 @@
+{
+  "schema_version": "tos_source_planting_preparation_batch_v1",
+  "status": "prepared-not-planted",
+  "review_scope": "Exact A25 branch fit and version boundary only",
+  "reviewer_ref": "model:codex",
+  "targets": [
+    {
+      "target_slug": "euthyphro",
+      "registry_source_record_id": "A25-R010",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "8a3bd3f045e98a6081d1f646165eb3c487af0ad337c72709cbf1daf82b5189a5"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "The Euthyphro Ancient Greek edition is one exact work within the branch Scaife/Perseus source need.",
+      "remaining_controls": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ]
+    },
+    {
+      "target_slug": "apology",
+      "registry_source_record_id": "A25-R011",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "8a3bd3f045e98a6081d1f646165eb3c487af0ad337c72709cbf1daf82b5189a5"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "The Apology Ancient Greek edition is one exact work within the branch Scaife/Perseus source need.",
+      "remaining_controls": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ]
+    },
+    {
+      "target_slug": "crito",
+      "registry_source_record_id": "A25-R012",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "8a3bd3f045e98a6081d1f646165eb3c487af0ad337c72709cbf1daf82b5189a5"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "The Crito Ancient Greek edition is one exact work within the branch Scaife/Perseus source need.",
+      "remaining_controls": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ]
+    },
+    {
+      "target_slug": "phaedo",
+      "registry_source_record_id": "A25-R013",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "8a3bd3f045e98a6081d1f646165eb3c487af0ad337c72709cbf1daf82b5189a5"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "The Phaedo Ancient Greek edition is one exact work within the branch Scaife/Perseus source need.",
+      "remaining_controls": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ]
+    },
+    {
+      "target_slug": "cratylus",
+      "registry_source_record_id": "A25-R014",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "8a3bd3f045e98a6081d1f646165eb3c487af0ad337c72709cbf1daf82b5189a5"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "The Cratylus Ancient Greek edition is one exact work within the branch Scaife/Perseus source need.",
+      "remaining_controls": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ]
+    },
+    {
+      "target_slug": "theaetetus",
+      "registry_source_record_id": "A25-R015",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "8a3bd3f045e98a6081d1f646165eb3c487af0ad337c72709cbf1daf82b5189a5"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "The Theaetetus Ancient Greek edition is one exact work within the branch Scaife/Perseus source need.",
+      "remaining_controls": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ]
+    },
+    {
+      "target_slug": "sophist",
+      "registry_source_record_id": "A25-R016",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "8a3bd3f045e98a6081d1f646165eb3c487af0ad337c72709cbf1daf82b5189a5"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "The Sophist Ancient Greek edition is one exact work within the branch Scaife/Perseus source need.",
+      "remaining_controls": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ]
+    },
+    {
+      "target_slug": "statesman",
+      "registry_source_record_id": "A25-R017",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "8a3bd3f045e98a6081d1f646165eb3c487af0ad337c72709cbf1daf82b5189a5"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "The Statesman Ancient Greek edition is one exact work within the branch Scaife/Perseus source need.",
+      "remaining_controls": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ]
+    },
+    {
+      "target_slug": "parmenides",
+      "registry_source_record_id": "A25-R018",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "8a3bd3f045e98a6081d1f646165eb3c487af0ad337c72709cbf1daf82b5189a5"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "The Parmenides Ancient Greek edition is one exact work within the branch Scaife/Perseus source need.",
+      "remaining_controls": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ]
+    },
+    {
+      "target_slug": "philebus",
+      "registry_source_record_id": "A25-R019",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "8a3bd3f045e98a6081d1f646165eb3c487af0ad337c72709cbf1daf82b5189a5"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "The Philebus Ancient Greek edition is one exact work within the branch Scaife/Perseus source need.",
+      "remaining_controls": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ]
+    },
+    {
+      "target_slug": "symposium",
+      "registry_source_record_id": "A25-R020",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "8a3bd3f045e98a6081d1f646165eb3c487af0ad337c72709cbf1daf82b5189a5"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "The Symposium Ancient Greek edition is one exact work within the branch Scaife/Perseus source need.",
+      "remaining_controls": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ]
+    },
+    {
+      "target_slug": "phaedrus",
+      "registry_source_record_id": "A25-R021",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "8a3bd3f045e98a6081d1f646165eb3c487af0ad337c72709cbf1daf82b5189a5"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "The Phaedrus Ancient Greek edition is one exact work within the branch Scaife/Perseus source need.",
+      "remaining_controls": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ]
+    }
+  ]
+}

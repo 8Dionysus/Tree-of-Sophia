@@ -1,0 +1,75 @@
+{
+  "schema_version": "tos_source_witness_path_migration_legacy_v1",
+  "status": "historical-provenance",
+  "migration_id": "tos.source-witnesses.registry-twelfth.navigation-2026-09-09",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "historical_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/twelfth-wave-20260909.json",
+      "sha256": "16e8692b7f3c5a4a43d18690e0981e7da718330ce803f562f785bbfaa2b4e550",
+      "byte_size": 121380
+    },
+    {
+      "role": "historical-planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/execution/plant_twelfth_wave.py",
+      "sha256": "0522336cc338d8ab26b68ec478a4066a7828a3ebf3747eaae18858d5ea8f0c8a",
+      "byte_size": 5144
+    },
+    {
+      "role": "historical-report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/execution/report_twelfth_wave.py",
+      "sha256": "d6eb3c030c6da609e38f9351eea5d7a45fbbdd142c05fad8c8e2084517bcddfc",
+      "byte_size": 12557
+    },
+    {
+      "role": "historical-manifest",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/preparation-inputs/1ba1976957c5055cae383eaa5e7de2f867e4c77fa378eba261d2d10e0ea644f8.manifest.json",
+      "sha256": "1ba1976957c5055cae383eaa5e7de2f867e4c77fa378eba261d2d10e0ea644f8",
+      "byte_size": 324393
+    },
+    {
+      "role": "historical-preparation-receipt",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/preparation-inputs/aa8f58eb0be58686a10a2f13fac6c819a9e456b29dd50fc3ec8b5abe5acf3946.preparation-receipt.json",
+      "sha256": "aa8f58eb0be58686a10a2f13fac6c819a9e456b29dd50fc3ec8b5abe5acf3946",
+      "byte_size": 542
+    },
+    {
+      "role": "historical-preparation-engine",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/engine-history/prepare_registry_sources.py",
+      "sha256": "9eb8a6716795b3cf2af58183d287ca1582c0a01a382592133199bb5aa9d61c60",
+      "byte_size": 32628
+    }
+  ],
+  "current_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/cicero-forensic-speeches-latin-20260909.json",
+      "sha256": "16e8692b7f3c5a4a43d18690e0981e7da718330ce803f562f785bbfaa2b4e550"
+    },
+    {
+      "role": "planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/execution/plant_cicero_forensic_speeches_latin.py",
+      "sha256": "09012d177bde75b008ea8d2e530f7e81de6b612d71c0aebf1e660ed29b75bf75"
+    },
+    {
+      "role": "report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/execution/report_cicero_forensic_speeches_latin.py",
+      "sha256": "ae9169d594ea7991e4df458bce23293d9e44eb5320dd4c014b3cc6eccd637fba"
+    }
+  ],
+  "retained_inputs": [
+    {
+      "stage": "registry-preparation",
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/preparation-inputs/16e8692b7f3c5a4a43d18690e0981e7da718330ce803f562f785bbfaa2b4e550.source-preparation.json",
+      "preparation_sha256": "16e8692b7f3c5a4a43d18690e0981e7da718330ce803f562f785bbfaa2b4e550",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/preparation-inputs/1ba1976957c5055cae383eaa5e7de2f867e4c77fa378eba261d2d10e0ea644f8.manifest.json",
+      "manifest_sha256": "1ba1976957c5055cae383eaa5e7de2f867e4c77fa378eba261d2d10e0ea644f8",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/preparation-inputs/aa8f58eb0be58686a10a2f13fac6c819a9e456b29dd50fc3ec8b5abe5acf3946.preparation-receipt.json",
+      "receipt_sha256": "aa8f58eb0be58686a10a2f13fac6c819a9e456b29dd50fc3ec8b5abe5acf3946",
+      "preparation_commit": "545d54d6115da9f1c517cd3929dab73d7f0b6420",
+      "checkpoint_review_ref": "agent-review:545d54d61:20260909T212947Z"
+    }
+  ],
+  "authority_boundary": "Historical provenance only. This record preserves exact prior bytes, paths, receipts and preparation commits; it does not restamp the current route or establish acquisition, rights, semantic admission, publication or canon."
+}

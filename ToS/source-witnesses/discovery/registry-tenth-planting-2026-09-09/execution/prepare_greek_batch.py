@@ -223,7 +223,7 @@ def prepare():
         raise ValueError('selected count/identity differs from reviewed 64-edition scope')
     content = b''.join((json.dumps(p, ensure_ascii=False, separators=(',', ':'))+'\n').encode() for p in packages)
     (BASE/'prepared-source-packages.jsonl').write_bytes(content)
-    branch_ref = 'ToS/philosophy/source-planting-preparation/tenth-wave-20260909.json'
+    branch_ref = 'ToS/philosophy/source-planting-preparation/plutarch-lives-greek-20260909.json'
     write(ROOT/branch_ref, {'schema_version': 'tos_source_planting_preparation_batch_v1', 'status': 'prepared-not-planted',
         'review_scope': 'Exact supplied edition, attribution limits and existing A25/A26/A29 corpus anchors', 'reviewer_ref': 'model:codex', 'targets': plans})
     observations = []

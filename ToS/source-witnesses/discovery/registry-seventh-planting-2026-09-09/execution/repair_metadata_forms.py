@@ -177,7 +177,7 @@ def main():
 
     result = {
         "scope": (
-            "Only the exact four corpus records per seventh-wave target; "
+            "Only the exact four corpus records per plutarch-epictetus-english-1874 target; "
             "source-copy wording via owner describe/prepare/apply, no semantic admission"
         ),
         "observed_at": datetime.now(timezone.utc).isoformat(),

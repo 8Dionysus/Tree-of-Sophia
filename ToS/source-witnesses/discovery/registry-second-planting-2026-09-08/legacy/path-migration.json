@@ -1,0 +1,69 @@
+{
+  "schema_version": "tos_source_witness_path_migration_legacy_v1",
+  "status": "historical-provenance",
+  "migration_id": "tos.source-witnesses.registry-second.navigation-2026-09-09",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "historical_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/second-wave-20260908.json",
+      "sha256": "507314ee8996c014d71b1c1be40c2d6405970f5b11b8403730a1b334414e3fa4",
+      "byte_size": 40843
+    },
+    {
+      "role": "historical-planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/execution/plant_second_wave.py",
+      "sha256": "19e80b87b0178dca42bbe1b90a5257d9f8879a5a4ed1d1c3b7bd2781a2f1352a",
+      "byte_size": 5012
+    },
+    {
+      "role": "historical-report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/execution/report_second_wave.py",
+      "sha256": "19b27657d3b9808948b227eb1dc31eef3ad06677e0eda23feec56c7aba5af9a7",
+      "byte_size": 7608
+    },
+    {
+      "role": "historical-manifest",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/preparation-inputs/dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be.manifest.json",
+      "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be",
+      "byte_size": 73923
+    },
+    {
+      "role": "historical-preparation-receipt",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/preparation-inputs/0b1e33748bafccb27f37780601a9fb0b834031488a243a7eff44401775ab282d.preparation-receipt.json",
+      "sha256": "0b1e33748bafccb27f37780601a9fb0b834031488a243a7eff44401775ab282d",
+      "byte_size": 668
+    }
+  ],
+  "current_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/classical-athenian-plato-works-20260908.json",
+      "sha256": "507314ee8996c014d71b1c1be40c2d6405970f5b11b8403730a1b334414e3fa4"
+    },
+    {
+      "role": "planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/execution/plant_classical_athenian_plato.py",
+      "sha256": "eafcadd23aa8e2c2d48ae301d9e9f4cfd6b5841231dc0df8893a84f2ca770a91"
+    },
+    {
+      "role": "report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/execution/report_classical_athenian_plato.py",
+      "sha256": "19b27657d3b9808948b227eb1dc31eef3ad06677e0eda23feec56c7aba5af9a7"
+    }
+  ],
+  "retained_inputs": [
+    {
+      "stage": "registry-preparation",
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/preparation-inputs/507314ee8996c014d71b1c1be40c2d6405970f5b11b8403730a1b334414e3fa4.source-preparation.json",
+      "preparation_sha256": "507314ee8996c014d71b1c1be40c2d6405970f5b11b8403730a1b334414e3fa4",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/preparation-inputs/dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be.manifest.json",
+      "manifest_sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/preparation-inputs/0b1e33748bafccb27f37780601a9fb0b834031488a243a7eff44401775ab282d.preparation-receipt.json",
+      "receipt_sha256": "0b1e33748bafccb27f37780601a9fb0b834031488a243a7eff44401775ab282d",
+      "preparation_commit": "e2077017ef5671777005b12d5112e9ffb040a5b0",
+      "checkpoint_review_ref": "agent-review:e2077017e:20260908T225030Z"
+    }
+  ],
+  "authority_boundary": "Historical provenance only. This record preserves exact prior bytes, paths, receipts and preparation commits; it does not restamp the current route or establish acquisition, rights, semantic admission, publication or canon."
+}

@@ -1,15 +1,25 @@
 {
+  "schema_version": "tos_registry_preparation_migration_receipt_v1",
   "status": "passed",
-  "manifest_sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be",
-  "commit": "e2077017ef5671777005b12d5112e9ffb040a5b0",
-  "runtime_session_id": "01a08281-293a-7ff0-927a-0fd73dfacf7d",
+  "receipt_role": "current-navigation-migration",
+  "stage": "registry-preparation",
+  "manifest_sha256": "614eac954e725643c1fde35b15a10f4c18242bf802b64594780ee2527507ac09",
+  "commit": "d5c034871722b041f9966d5857f12703994ed23e",
+  "runtime_session_id": "tos-path-migration:registry-second:2026-09-10",
   "checkpoint_review_ref": "agent-review:e2077017e:20260908T225030Z",
+  "migration_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/path-migration.current.json",
+  "migration_review_ref": "ToS/review-ledger/2026-09-10-registry-second-path-migration.md",
+  "historical_receipt_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/preparation-inputs/0b1e33748bafccb27f37780601a9fb0b834031488a243a7eff44401775ab282d.preparation-receipt.json",
+  "historical_receipt_sha256": "0b1e33748bafccb27f37780601a9fb0b834031488a243a7eff44401775ab282d",
+  "historical_manifest_sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be",
+  "historical_preparation_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/legacy/preparation-inputs/507314ee8996c014d71b1c1be40c2d6405970f5b11b8403730a1b334414e3fa4.source-preparation.json",
+  "historical_preparation_sha256": "507314ee8996c014d71b1c1be40c2d6405970f5b11b8403730a1b334414e3fa4",
+  "historical_preparation_commit": "e2077017ef5671777005b12d5112e9ffb040a5b0",
   "passed_checks": [
-    "Exact pinned manifest and schema closure",
-    "All twelve TEI headers and CTS metadata plus provider license reviewed",
-    "40 focused source acquisition/resource inventory/philosophy tests",
-    "16 script/test topology tests",
-    "source-home and source-witness foundation",
-    "generated corpus and documentation currentness"
-  ]
+    "current manifest digest is recorded in this migration receipt",
+    "historical preparation, manifest and receipt bytes remain at the migration record references",
+    "current route names resolve to the same stable source records and payload identity",
+    "migration changes navigation and generated references only; no source, rights, semantic, publication or canon admission is made"
+  ],
+  "authority_boundary": "This receipt closes the reviewed navigation migration. It is not an acquisition-preparation receipt and must not be used to authorize a new source transfer."
 }

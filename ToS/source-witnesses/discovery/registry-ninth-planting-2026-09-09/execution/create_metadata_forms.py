@@ -83,7 +83,7 @@ def main():
                 'form_set_ref':described['target_path'],'form_set_sha256':hashlib.sha256(form_path.read_bytes()).hexdigest(),
                 'form_count':len(views),'created':created,'revised':stale,'prior_form_set_ref':retained_ref,'all_ready':True,'admission':None})
             print(kind,source['record_id'],len(views),flush=True)
-    result={'scope':'Only the exact four corpus records per ninth-wave target; source-copy wording via owner describe/prepare/apply, no semantic admission',
+    result={'scope':'Only the exact four corpus records per plutarch-moralia-english target; source-copy wording via owner describe/prepare/apply, no semantic admission',
         'observed_at':datetime.now(timezone.utc).isoformat(),'sets':len(rows),'forms':sum(r['form_count'] for r in rows),'created_sets':sum(r['created'] for r in rows),'revised_sets':sum(r['revised'] for r in rows),'records':rows}
     (BASE/'human-form-companions.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps({k:result[k] for k in ('sets','forms','created_sets','revised_sets')}))

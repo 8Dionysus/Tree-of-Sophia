@@ -1,0 +1,1489 @@
+{
+  "schema_version": "tos_registry_first_planting_preparation_v1",
+  "status": "prepared-not-acquired",
+  "source_registry_snapshot_ref": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json",
+  "source_registry_snapshot_sha256": "9468e2d27ac55066c87eb20a2e6c79be22ea5ee2a036d044ee7d252f4911cd5a",
+  "branch_preparation_ref": "ToS/philosophy/source-planting-preparation/seventh-wave-20260909.json",
+  "provider_pins": {
+    "perseus": "341e309c821d5eca8c976bebca77c28b10bad58f"
+  },
+  "metadata_observations": [
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:19.351847+00:00",
+      "ended_at": "2026-09-09T15:44:19.668023+00:00",
+      "elapsed_seconds": 0.3161816250067204,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-README.md",
+      "retained_sha256": "9733e53be0cb9adf77c1e3359fffc81911bbf0dc17b9095b3912768b1a663275",
+      "retained_byte_size": 2356,
+      "received_bytes": 2356,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:19.352272+00:00",
+      "ended_at": "2026-09-09T15:44:19.681148+00:00",
+      "elapsed_seconds": 0.32888112899672706,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-license.md",
+      "retained_sha256": "ccf0e8ce183761bf82700126cc45a4e907b2cede024e65e3fef5c2338b9b7063",
+      "retained_byte_size": 18625,
+      "received_bytes": 18625,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:19.668312+00:00",
+      "ended_at": "2026-09-09T15:44:19.936099+00:00",
+      "elapsed_seconds": 0.26779955900565255,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007-cts.xml",
+      "retained_sha256": "d4740b26c8dab6833844c75e14e7b74564b5cf9df9e9235a8fd8c73003f7b65b",
+      "retained_byte_size": 231,
+      "received_bytes": 231,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg074/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg074/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:19.352840+00:00",
+      "ended_at": "2026-09-09T15:44:19.670350+00:00",
+      "elapsed_seconds": 0.31751542900747154,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg074-cts.xml",
+      "retained_sha256": "0649b37367afcc061cbab6cd4a1b91e63dcdf9ece497c6adfe9dd6fd84cc38b6",
+      "retained_byte_size": 1509,
+      "received_bytes": 1509,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg074/tlg0007.tlg074.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg074/tlg0007.tlg074.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:19.352548+00:00",
+      "ended_at": "2026-09-09T15:44:19.704980+00:00",
+      "elapsed_seconds": 0.3524362070020288,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg074.perseus-eng4-header.xml",
+      "retained_sha256": "356026d3e85d311ecf1dc7d5cb179d680861ac94d7bd5e278b51b3d17b0b7631",
+      "retained_byte_size": 4073,
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded metadata prefix; complete source file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg074/tlg0007.tlg074.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg074/tlg0007.tlg074.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:45:35.001174+00:00",
+      "ended_at": "2026-09-09T15:45:35.182942+00:00",
+      "elapsed_seconds": 0.18177248499705456,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg074.perseus-eng4-opening.xml",
+      "retained_sha256": "866c2af74d23d1da901083c7e17eeacb82d924e538e4e2df205c647a06ac2dd2",
+      "retained_byte_size": 8169,
+      "received_bytes": 8169,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded incomplete opening only; complete file not retained",
+      "response_digest_scope": "retained incomplete prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg089/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg089/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:19.681376+00:00",
+      "ended_at": "2026-09-09T15:44:20.045505+00:00",
+      "elapsed_seconds": 0.3641402399953222,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg089-cts.xml",
+      "retained_sha256": "005df7fbe85d4ef71c12e66716d07493b779d919d58e8cf98d3656e4decbba3b",
+      "retained_byte_size": 1616,
+      "received_bytes": 1616,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg089/tlg0007.tlg089.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg089/tlg0007.tlg089.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:19.670539+00:00",
+      "ended_at": "2026-09-09T15:44:20.054343+00:00",
+      "elapsed_seconds": 0.38381415999901947,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg089.perseus-eng4-header.xml",
+      "retained_sha256": "745f88aeb5555df8b511bfd3db540fe28f1dfeb93f006988718c62fd54412109",
+      "retained_byte_size": 3826,
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded metadata prefix; complete source file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg089/tlg0007.tlg089.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg089/tlg0007.tlg089.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:45:35.184597+00:00",
+      "ended_at": "2026-09-09T15:45:35.347077+00:00",
+      "elapsed_seconds": 0.16249002900440246,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg089.perseus-eng4-opening.xml",
+      "retained_sha256": "f7117d06cf202cbff50c3c72313da95929605e79def98e7c62acdf11d1d05280",
+      "retained_byte_size": 7922,
+      "received_bytes": 7922,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded incomplete opening only; complete file not retained",
+      "response_digest_scope": "retained incomplete prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg090/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg090/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:19.936375+00:00",
+      "ended_at": "2026-09-09T15:44:20.208809+00:00",
+      "elapsed_seconds": 0.2724460769968573,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg090-cts.xml",
+      "retained_sha256": "c83ee6028fd2704422bba3ea6928c638578b9151c4d960a80ca6e7e4321a5704",
+      "retained_byte_size": 1621,
+      "received_bytes": 1621,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg090/tlg0007.tlg090.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg090/tlg0007.tlg090.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:19.705213+00:00",
+      "ended_at": "2026-09-09T15:44:20.014200+00:00",
+      "elapsed_seconds": 0.3089978320058435,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg090.perseus-eng4-header.xml",
+      "retained_sha256": "e7faf63b95fc03dd2874786c97496e7dd7794c0231e7e23e854a3d0eac5bd74c",
+      "retained_byte_size": 3595,
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded metadata prefix; complete source file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg090/tlg0007.tlg090.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg090/tlg0007.tlg090.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:45:35.350656+00:00",
+      "ended_at": "2026-09-09T15:45:35.635082+00:00",
+      "elapsed_seconds": 0.28443421999691054,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg090.perseus-eng4-opening.xml",
+      "retained_sha256": "962535cf5b334e883c7e603f829dc0abb38670ccfb8e35ab23cb62e54ee98374",
+      "retained_byte_size": 7691,
+      "received_bytes": 7691,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded incomplete opening only; complete file not retained",
+      "response_digest_scope": "retained incomplete prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg092/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg092/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:20.045734+00:00",
+      "ended_at": "2026-09-09T15:44:20.320339+00:00",
+      "elapsed_seconds": 0.27461647799646016,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg092-cts.xml",
+      "retained_sha256": "02b45fd7a8fb9bd99790c7414f030d097715fd7cf5fca101d96afc67405863b4",
+      "retained_byte_size": 1605,
+      "received_bytes": 1605,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg092/tlg0007.tlg092.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg092/tlg0007.tlg092.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:20.014444+00:00",
+      "ended_at": "2026-09-09T15:44:20.394805+00:00",
+      "elapsed_seconds": 0.3803750700026285,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg092.perseus-eng4-header.xml",
+      "retained_sha256": "448de75897060d0858649e92844bb3940dd87ed2dd68ea1cadfd2ced12155187",
+      "retained_byte_size": 3566,
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded metadata prefix; complete source file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg092/tlg0007.tlg092.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg092/tlg0007.tlg092.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:45:35.636726+00:00",
+      "ended_at": "2026-09-09T15:45:35.951604+00:00",
+      "elapsed_seconds": 0.31489094300195575,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg092.perseus-eng4-opening.xml",
+      "retained_sha256": "8d3768735de91613cd56816c618f8ee28b0a25af8dccb3034080d993ff089fba",
+      "retained_byte_size": 7662,
+      "received_bytes": 7662,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded incomplete opening only; complete file not retained",
+      "response_digest_scope": "retained incomplete prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:20.209053+00:00",
+      "ended_at": "2026-09-09T15:44:20.505954+00:00",
+      "elapsed_seconds": 0.29691095899033826,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg094-cts.xml",
+      "retained_sha256": "004d39a40e56185688ff6547c40cea33d01d09382f0582ad36ac51cf42185a07",
+      "retained_byte_size": 1578,
+      "received_bytes": 1578,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:20.054637+00:00",
+      "ended_at": "2026-09-09T15:44:20.330879+00:00",
+      "elapsed_seconds": 0.27624716999707744,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg094.perseus-eng4-header.xml",
+      "retained_sha256": "ce50246b35af94a0884065ee8fe099ac4a811872ecabe390bae66dd3431b9962",
+      "retained_byte_size": 3986,
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded metadata prefix; complete source file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:45:35.953340+00:00",
+      "ended_at": "2026-09-09T15:45:36.099679+00:00",
+      "elapsed_seconds": 0.1463457700010622,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg094.perseus-eng4-opening.xml",
+      "retained_sha256": "329e099338d32bcdb1f469e6a9874da58f6fc8ce158f66d9bf8eb854768cfd05",
+      "retained_byte_size": 8082,
+      "received_bytes": 8082,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded incomplete opening only; complete file not retained",
+      "response_digest_scope": "retained incomplete prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg102/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg102/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:20.331117+00:00",
+      "ended_at": "2026-09-09T15:44:20.685527+00:00",
+      "elapsed_seconds": 0.3544207610102603,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg102-cts.xml",
+      "retained_sha256": "b5acd8f08349f60c1c06bd2f0e9af799efdeb586533ab12fca2dccbd5afe5696",
+      "retained_byte_size": 1606,
+      "received_bytes": 1606,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg102/tlg0007.tlg102.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg102/tlg0007.tlg102.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:20.320586+00:00",
+      "ended_at": "2026-09-09T15:44:20.661499+00:00",
+      "elapsed_seconds": 0.3409241599874804,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg102.perseus-eng4-header.xml",
+      "retained_sha256": "544e6ae3f06f9d9ce975ba1577918ad5871ec7c2e22389ee40c5b41a85096cca",
+      "retained_byte_size": 3721,
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded metadata prefix; complete source file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg102/tlg0007.tlg102.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg102/tlg0007.tlg102.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:45:36.101323+00:00",
+      "ended_at": "2026-09-09T15:45:36.257678+00:00",
+      "elapsed_seconds": 0.15636223599722143,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg102.perseus-eng4-opening.xml",
+      "retained_sha256": "952ca4ed2a4ad4406598c416b9aedcb3fbed35877b40e96431dd68472067b744",
+      "retained_byte_size": 7817,
+      "received_bytes": 7817,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded incomplete opening only; complete file not retained",
+      "response_digest_scope": "retained incomplete prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg126/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg126/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:20.506191+00:00",
+      "ended_at": "2026-09-09T15:44:20.772712+00:00",
+      "elapsed_seconds": 0.26652867200027686,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg126-cts.xml",
+      "retained_sha256": "94a5f80365715ada3c3f8d35f53b167a50623d18bee787010ffe76d8cfd4d0f6",
+      "retained_byte_size": 1722,
+      "received_bytes": 1722,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg126/tlg0007.tlg126.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg126/tlg0007.tlg126.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:20.397124+00:00",
+      "ended_at": "2026-09-09T15:44:20.883316+00:00",
+      "elapsed_seconds": 0.48618481200537644,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg126.perseus-eng4-header.xml",
+      "retained_sha256": "a6f804fdedf043f0599e7703dadf4cb6fc75f1207cdba2070f91396e4029a79a",
+      "retained_byte_size": 3880,
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded metadata prefix; complete source file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg126/tlg0007.tlg126.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg126/tlg0007.tlg126.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:45:36.259333+00:00",
+      "ended_at": "2026-09-09T15:45:36.416678+00:00",
+      "elapsed_seconds": 0.15736016600567382,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg126.perseus-eng4-opening.xml",
+      "retained_sha256": "a714cab7eb16e3c451626f6b9c386293b6e9d9c1a316dfbedf0fd29517d6d4c3",
+      "retained_byte_size": 7976,
+      "received_bytes": 7976,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded incomplete opening only; complete file not retained",
+      "response_digest_scope": "retained incomplete prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:20.772932+00:00",
+      "ended_at": "2026-09-09T15:44:21.146803+00:00",
+      "elapsed_seconds": 0.3738772369979415,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557-cts.xml",
+      "retained_sha256": "9c39ff35dee09c07b16cb7772f2a2582869fe81b00aab259a87dd5375ec57ff7",
+      "retained_byte_size": 230,
+      "received_bytes": 230,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg001/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg001/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:20.685764+00:00",
+      "ended_at": "2026-09-09T15:44:20.951276+00:00",
+      "elapsed_seconds": 0.26552505099971313,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557.tlg001-cts.xml",
+      "retained_sha256": "3e72b1aa4ba09d6bb2ef4dbf09574c753279a100353f47034c427b39edc49fd6",
+      "retained_byte_size": 1580,
+      "received_bytes": 1580,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg001/tlg0557.tlg001.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg001/tlg0557.tlg001.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:20.661754+00:00",
+      "ended_at": "2026-09-09T15:44:22.080727+00:00",
+      "elapsed_seconds": 1.4189796809951076,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557.tlg001.perseus-eng4-header.xml",
+      "retained_sha256": "eab4bc1608a27fee1e44ed9c534ee3ef7a96c6f20112fbc3dbad2c02f5b65622",
+      "retained_byte_size": 4238,
+      "received_bytes": 6144,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded metadata prefix; complete source file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg001/tlg0557.tlg001.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg001/tlg0557.tlg001.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:45:36.417814+00:00",
+      "ended_at": "2026-09-09T15:45:36.598010+00:00",
+      "elapsed_seconds": 0.1802028920064913,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557.tlg001.perseus-eng4-opening.xml",
+      "retained_sha256": "6aedb14dab576ef6f7a1de463780629fc842e2d3d4ddf14e084bf8f9cfa1c49a",
+      "retained_byte_size": 8334,
+      "received_bytes": 8334,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded incomplete opening only; complete file not retained",
+      "response_digest_scope": "retained incomplete prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg002/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg002/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:20.951543+00:00",
+      "ended_at": "2026-09-09T15:44:21.223262+00:00",
+      "elapsed_seconds": 0.27172600400808733,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557.tlg002-cts.xml",
+      "retained_sha256": "6a084b2acf91bbfdcd0d11c1ec43ac138ae8e96b7c1ba2d2705e309f31617976",
+      "retained_byte_size": 1637,
+      "received_bytes": 1637,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg002/tlg0557.tlg002.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg002/tlg0557.tlg002.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:44:20.883604+00:00",
+      "ended_at": "2026-09-09T15:44:21.412715+00:00",
+      "elapsed_seconds": 0.529119170998456,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557.tlg002.perseus-eng4-header.xml",
+      "retained_sha256": "92ea057844dfd610bfef03549c336e5b66aae0cc6e1f7d960b5dfc3068b25613",
+      "retained_byte_size": 3688,
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded metadata prefix; complete source file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg002/tlg0557.tlg002.perseus-eng4.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg002/tlg0557.tlg002.perseus-eng4.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T15:45:36.599722+00:00",
+      "ended_at": "2026-09-09T15:45:36.764004+00:00",
+      "elapsed_seconds": 0.16428842800087295,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557.tlg002.perseus-eng4-opening.xml",
+      "retained_sha256": "dbdec643ecfdefdff2fb88547c06ebf7c69611ea31ee2e63769262b1256f6b42",
+      "retained_byte_size": 7784,
+      "received_bytes": 7784,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded incomplete opening only; complete file not retained",
+      "response_digest_scope": "retained incomplete prefix"
+    }
+  ],
+  "targets": [
+    {
+      "slug": "de-fortuna-english-1874",
+      "work_slug": "de-fortuna",
+      "title": "Of Fortune",
+      "work_title": "De fortuna",
+      "family": "plutarch",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "en",
+      "script": "Latn",
+      "expression_role": "translation",
+      "operation_date": "2026-09-09",
+      "expression": "en-perseus-tlg0007-tlg074-perseus-eng4",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A29",
+          "original_source_id": "A29-R113",
+          "entry_id": "tos-registry:table-i/A29/registry/source-54246bb94e348832782f3a3d",
+          "source_locator": {
+            "original_sha256": "7dc56342fcf292588afa54c0423669027453826fe27723ed980cf9abb1be0f1d",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 114,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "de-fortuna-english-1874",
+      "ids": {
+        "work": "tos.work.plutarch.de-fortuna",
+        "expression": "tos.expression.plutarch.de-fortuna.en-perseus-tlg0007-tlg074-perseus-eng4",
+        "edition": "tos.edition.plutarch.de-fortuna.en-perseus-tlg0007-tlg074-perseus-eng4.perseus-341e309c821d",
+        "item": "tos.item.plutarch.de-fortuna.en-perseus-tlg0007-tlg074-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plutarch/de-fortuna/work.json",
+        "expression": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/expression.json",
+        "edition": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/plutarch/de-fortuna/work.json",
+        "expression_ref": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/grc-perseus-tlg0007-tlg074/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/grc-perseus-tlg0007-tlg074/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/grc-perseus-tlg0007-tlg074/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/grc-perseus-tlg0007-tlg074/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg074.perseus-grc2.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "coverage": {
+        "kind": "perseus-tei-translation",
+        "citation_scope": "hierarchical_divisions",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg074.perseus-eng4",
+        "identity_anchor": "edition_n",
+        "header_prefix_sha256": "356026d3e85d311ecf1dc7d5cb179d680861ac94d7bd5e278b51b3d17b0b7631",
+        "reviewed_body_prefix_sha256": "866c2af74d23d1da901083c7e17eeacb82d924e538e4e2df205c647a06ac2dd2",
+        "reviewed_body_prefix_bytes": 8169
+      },
+      "version_description": "English translation urn:cts:greekLit:tlg0007.tlg074.perseus-eng4. Plutarch. Plutarch's Morals, Vol. II. Goodwin, William W., editor; Baxter, William, translator.  Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Plutarch's Morals. William W. Goodwin Boston Little, Brown, and Company Cambridge Press of John Wilson and Son 1874 2 Internet Archive",
+      "responsibility": "Supplied title/contributor statement: Of Fortune Plutarch William W. Goodwin William Baxter Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Bridget Almas Lisa Cerrato Rashmi Singhal Angelia Hanhardt The National Endowment for the Humanities Charlotte Houghton Center for Hellenic Studies CTS conversion. CTS translation description: Plutarch. Plutarch's Morals, Vol. II. Goodwin, William W., editor; Baxter, William, translator.  Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874.",
+      "limits": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ],
+      "metadata_evidence_refs": [
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg074-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg074.perseus-eng4-header.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg074.perseus-eng4-opening.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-license.md"
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0007/tlg074/tlg0007.tlg074.perseus-eng4.xml",
+          "basename": "tlg0007.tlg074.perseus-eng4.xml",
+          "git_blob_sha1": "d1053db0d6d57bc38757f05fa47f63cfcfbe40a5",
+          "byte_size": 16784,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg074/tlg0007.tlg074.perseus-eng4.xml"
+        }
+      ],
+      "byte_size": 16784,
+      "parallel_translation": {
+        "work_ref": "ToS/source-witnesses/works/plutarch/de-fortuna/work.json",
+        "expression_ref": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng3/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng3/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-fortuna-english/README.md",
+        "files": [
+          "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg074.perseus-eng3.xml"
+        ],
+        "relationship_limit": "Distinct supplied English versions of the same Work; no accuracy ranking, alignment or translation dependence."
+      }
+    },
+    {
+      "slug": "de-iside-et-osiride-english-1874",
+      "work_slug": "de-iside-et-osiride",
+      "title": "Of Isis and Osiris, or of the Ancient Religion and Philosophy of Egypt.",
+      "work_title": "De Iside et Osiride",
+      "family": "plutarch",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "en",
+      "script": "Latn",
+      "expression_role": "translation",
+      "operation_date": "2026-09-09",
+      "expression": "en-perseus-tlg0007-tlg089-perseus-eng4",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A29",
+          "original_source_id": "A29-R113",
+          "entry_id": "tos-registry:table-i/A29/registry/source-54246bb94e348832782f3a3d",
+          "source_locator": {
+            "original_sha256": "7dc56342fcf292588afa54c0423669027453826fe27723ed980cf9abb1be0f1d",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 114,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "de-iside-et-osiride-english-1874",
+      "ids": {
+        "work": "tos.work.plutarch.de-iside-et-osiride",
+        "expression": "tos.expression.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4",
+        "edition": "tos.edition.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4.perseus-341e309c821d",
+        "item": "tos.item.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/work.json",
+        "expression": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/expression.json",
+        "edition": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/work.json",
+        "expression_ref": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/grc-perseus-tlg0007-tlg089/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/grc-perseus-tlg0007-tlg089/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/grc-perseus-tlg0007-tlg089/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/grc-perseus-tlg0007-tlg089/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg089.perseus-grc2.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "coverage": {
+        "kind": "perseus-tei-translation",
+        "citation_scope": "hierarchical_divisions",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg089.perseus-eng4",
+        "identity_anchor": "edition_n",
+        "header_prefix_sha256": "745f88aeb5555df8b511bfd3db540fe28f1dfeb93f006988718c62fd54412109",
+        "reviewed_body_prefix_sha256": "f7117d06cf202cbff50c3c72313da95929605e79def98e7c62acdf11d1d05280",
+        "reviewed_body_prefix_bytes": 7922
+      },
+      "version_description": "English translation urn:cts:greekLit:tlg0007.tlg089.perseus-eng4. Plutarch. Plutarch's Morals, Vol. IV. Goodwin, William W., editor; Baxter, William, translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Plutarch’s Morals. William W. Goodwin Boston Little, Brown, and Company Cambridge Press of John Wilson and Son 1874 4 The Internet Archive",
+      "responsibility": "Supplied title/contributor statement: Of Isis and Osiris, or of the Ancient Religion and Philosophy of Egypt Plutarch William W. Goodwin William Baxter Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Lisa Cerrato Rashmi Singhal Bridget Almas Angelia Hanhardt The National Endowment for the Humanities Karina Cooper Center for Hellenic Studies CTS conversion. CTS translation description: Plutarch. Plutarch's Morals, Vol. IV. Goodwin, William W., editor; Baxter, William, translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874.",
+      "limits": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ],
+      "metadata_evidence_refs": [
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg089-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg089.perseus-eng4-header.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg089.perseus-eng4-opening.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-license.md"
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0007/tlg089/tlg0007.tlg089.perseus-eng4.xml",
+          "basename": "tlg0007.tlg089.perseus-eng4.xml",
+          "git_blob_sha1": "dfa3074a56f78245b81c4c11eee97eba6bd16281",
+          "byte_size": 166176,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg089/tlg0007.tlg089.perseus-eng4.xml"
+        }
+      ],
+      "byte_size": 166176,
+      "parallel_translation": {
+        "work_ref": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/work.json",
+        "expression_ref": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng3/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng3/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-iside-et-osiride-english/README.md",
+        "files": [
+          "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg089.perseus-eng3.xml"
+        ],
+        "relationship_limit": "Distinct supplied English versions of the same Work; no accuracy ranking, alignment or translation dependence."
+      }
+    },
+    {
+      "slug": "de-e-apud-delphos-english-1874",
+      "work_slug": "de-e-apud-delphos",
+      "title": "Of the word ΕΙ engraven over the gate of Apollo's temple at Delphi",
+      "work_title": "De E apud Delphos",
+      "family": "plutarch",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "en",
+      "script": "Latn",
+      "expression_role": "translation",
+      "operation_date": "2026-09-09",
+      "expression": "en-perseus-tlg0007-tlg090-perseus-eng4",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A29",
+          "original_source_id": "A29-R113",
+          "entry_id": "tos-registry:table-i/A29/registry/source-54246bb94e348832782f3a3d",
+          "source_locator": {
+            "original_sha256": "7dc56342fcf292588afa54c0423669027453826fe27723ed980cf9abb1be0f1d",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 114,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "de-e-apud-delphos-english-1874",
+      "ids": {
+        "work": "tos.work.plutarch.de-e-apud-delphos",
+        "expression": "tos.expression.plutarch.de-e-apud-delphos.en-perseus-tlg0007-tlg090-perseus-eng4",
+        "edition": "tos.edition.plutarch.de-e-apud-delphos.en-perseus-tlg0007-tlg090-perseus-eng4.perseus-341e309c821d",
+        "item": "tos.item.plutarch.de-e-apud-delphos.en-perseus-tlg0007-tlg090-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/work.json",
+        "expression": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/expression.json",
+        "edition": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/work.json",
+        "expression_ref": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/grc-perseus-tlg0007-tlg090/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/grc-perseus-tlg0007-tlg090/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/grc-perseus-tlg0007-tlg090/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/grc-perseus-tlg0007-tlg090/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg090.perseus-grc2.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "coverage": {
+        "kind": "perseus-tei-translation",
+        "citation_scope": "hierarchical_divisions",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg090.perseus-eng4",
+        "identity_anchor": "edition_n",
+        "header_prefix_sha256": "e7faf63b95fc03dd2874786c97496e7dd7794c0231e7e23e854a3d0eac5bd74c",
+        "reviewed_body_prefix_sha256": "962535cf5b334e883c7e603f829dc0abb38670ccfb8e35ab23cb62e54ee98374",
+        "reviewed_body_prefix_bytes": 7691
+      },
+      "version_description": "English translation urn:cts:greekLit:tlg0007.tlg090.perseus-eng4. Plutarch. Plutarch's Morals, Vol. 4. Goodwin, William W., editor; Kippax, R, translator. Boston: Little, Brown, and Company; Cambridge: Press of John Wilson and Son, 1874. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Plutarch's Morals. William W. Goodwin Boston Little, Brown, and Company Cambridge Press of John Wilson and Son 1874 4 The Internet Archive",
+      "responsibility": "Supplied title/contributor statement: Of the word ΕΙ engraven over the gate of Apollo's temple at Delphi. Plutarch William W. Goodwin R. Kippax Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Lisa Cerrato Rashmi Singhal Bridget Almas Angelia Hanhardt The National Endowment for the Humanities Lucy Parr Center for Hellenic Studies CTS conversion. CTS translation description: Plutarch. Plutarch's Morals, Vol. 4. Goodwin, William W., editor; Kippax, R, translator. Boston: Little, Brown, and Company; Cambridge: Press of John Wilson and Son, 1874.",
+      "limits": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ],
+      "metadata_evidence_refs": [
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg090-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg090.perseus-eng4-header.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg090.perseus-eng4-opening.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-license.md"
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0007/tlg090/tlg0007.tlg090.perseus-eng4.xml",
+          "basename": "tlg0007.tlg090.perseus-eng4.xml",
+          "git_blob_sha1": "2b9ff3774d3776c912cf8b53d193ed9ceec5314c",
+          "byte_size": 48748,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg090/tlg0007.tlg090.perseus-eng4.xml"
+        }
+      ],
+      "byte_size": 48748,
+      "parallel_translation": {
+        "work_ref": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/work.json",
+        "expression_ref": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng3/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng3/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-e-apud-delphos-english/README.md",
+        "files": [
+          "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg090.perseus-eng3.xml"
+        ],
+        "relationship_limit": "Distinct supplied English versions of the same Work; no accuracy ranking, alignment or translation dependence."
+      }
+    },
+    {
+      "slug": "de-defectu-oraculorum-english-1874",
+      "work_slug": "de-defectu-oraculorum",
+      "title": "Why the Oracles Cease to Give Answers",
+      "work_title": "De Defectu Oraculorum",
+      "family": "plutarch",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "en",
+      "script": "Latn",
+      "expression_role": "translation",
+      "operation_date": "2026-09-09",
+      "expression": "en-perseus-tlg0007-tlg092-perseus-eng4",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A29",
+          "original_source_id": "A29-R113",
+          "entry_id": "tos-registry:table-i/A29/registry/source-54246bb94e348832782f3a3d",
+          "source_locator": {
+            "original_sha256": "7dc56342fcf292588afa54c0423669027453826fe27723ed980cf9abb1be0f1d",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 114,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "de-defectu-oraculorum-english-1874",
+      "ids": {
+        "work": "tos.work.plutarch.de-defectu-oraculorum",
+        "expression": "tos.expression.plutarch.de-defectu-oraculorum.en-perseus-tlg0007-tlg092-perseus-eng4",
+        "edition": "tos.edition.plutarch.de-defectu-oraculorum.en-perseus-tlg0007-tlg092-perseus-eng4.perseus-341e309c821d",
+        "item": "tos.item.plutarch.de-defectu-oraculorum.en-perseus-tlg0007-tlg092-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/work.json",
+        "expression": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/expression.json",
+        "edition": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/work.json",
+        "expression_ref": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/grc-perseus-tlg0007-tlg092/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/grc-perseus-tlg0007-tlg092/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/grc-perseus-tlg0007-tlg092/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/grc-perseus-tlg0007-tlg092/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg092.perseus-grc2.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "coverage": {
+        "kind": "perseus-tei-translation",
+        "citation_scope": "hierarchical_divisions",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg092.perseus-eng4",
+        "identity_anchor": "edition_n",
+        "header_prefix_sha256": "448de75897060d0858649e92844bb3940dd87ed2dd68ea1cadfd2ced12155187",
+        "reviewed_body_prefix_sha256": "8d3768735de91613cd56816c618f8ee28b0a25af8dccb3034080d993ff089fba",
+        "reviewed_body_prefix_bytes": 7662
+      },
+      "version_description": "English translation urn:cts:greekLit:tlg0007.tlg092.perseus-eng4. Plutarch. Plutarch's Morals, Vol. IV. Goodwin, William W., editor; Midgley, Robert translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Plutarch's Morals. William W. Goodwin Boston Little, Brown, and Company Cambridge Press of John Wilson and Son 1874 4 The Internet Archive",
+      "responsibility": "Supplied title/contributor statement: Why the Oracles Cease to Give Answers Plutarch William W. Goodwin Robert Midgley Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Lisa Cerrato Rashmi Singhal Bridget Almas Angelia Hanhardt The National Endowment for the Humanities Sophia Elzie Center for Hellenic Studies CTS conversion. CTS translation description: Plutarch. Plutarch's Morals, Vol. IV. Goodwin, William W., editor; Midgley, Robert translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874.",
+      "limits": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ],
+      "metadata_evidence_refs": [
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg092-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg092.perseus-eng4-header.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg092.perseus-eng4-opening.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-license.md"
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0007/tlg092/tlg0007.tlg092.perseus-eng4.xml",
+          "basename": "tlg0007.tlg092.perseus-eng4.xml",
+          "git_blob_sha1": "9ca837bde2f37ec1ed3d8cf0e232b41410f90f1c",
+          "byte_size": 133030,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg092/tlg0007.tlg092.perseus-eng4.xml"
+        }
+      ],
+      "byte_size": 133030,
+      "parallel_translation": {
+        "work_ref": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/work.json",
+        "expression_ref": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng3/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng3/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-defectu-oraculorum-english/README.md",
+        "files": [
+          "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg092.perseus-eng3.xml"
+        ],
+        "relationship_limit": "Distinct supplied English versions of the same Work; no accuracy ranking, alignment or translation dependence."
+      }
+    },
+    {
+      "slug": "de-virtute-morali-english-1874",
+      "work_slug": "de-virtute-morali",
+      "title": "Of Moral Virtue",
+      "work_title": "De Virtute Morali",
+      "family": "plutarch",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "en",
+      "script": "Latn",
+      "expression_role": "translation",
+      "operation_date": "2026-09-09",
+      "expression": "en-perseus-tlg0007-tlg094-perseus-eng4",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A29",
+          "original_source_id": "A29-R113",
+          "entry_id": "tos-registry:table-i/A29/registry/source-54246bb94e348832782f3a3d",
+          "source_locator": {
+            "original_sha256": "7dc56342fcf292588afa54c0423669027453826fe27723ed980cf9abb1be0f1d",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 114,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "de-virtute-morali-english-1874",
+      "ids": {
+        "work": "tos.work.plutarch.de-virtute-morali",
+        "expression": "tos.expression.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng4",
+        "edition": "tos.edition.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng4.perseus-341e309c821d",
+        "item": "tos.item.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plutarch/de-virtute-morali/work.json",
+        "expression": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/expression.json",
+        "edition": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/work.json",
+        "expression_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/grc-perseus-tlg0007-tlg094/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/grc-perseus-tlg0007-tlg094/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/grc-perseus-tlg0007-tlg094/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/grc-perseus-tlg0007-tlg094/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg094.perseus-grc2.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "coverage": {
+        "kind": "perseus-tei-translation",
+        "citation_scope": "hierarchical_divisions",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg094.perseus-eng4",
+        "identity_anchor": "edition_n",
+        "header_prefix_sha256": "ce50246b35af94a0884065ee8fe099ac4a811872ecabe390bae66dd3431b9962",
+        "reviewed_body_prefix_sha256": "329e099338d32bcdb1f469e6a9874da58f6fc8ce158f66d9bf8eb854768cfd05",
+        "reviewed_body_prefix_bytes": 8082
+      },
+      "version_description": "English translation urn:cts:greekLit:tlg0007.tlg094.perseus-eng4. Plutarch. Plutarch's Morals, Vol. III. Goodwin, William W., editor; Matthew, Morgan translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Plutarch's Morals. William W. Goodwin Boston Little, Brown, and Company Cambridge Press of John Wilson and Son 1874 3 The Internet Archive",
+      "responsibility": "Supplied title/contributor statement: Of Moral Virtue Plutarch William W. Goodwin Matthew Morgan Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Lisa Cerrato Rashmi Singhal Bridget Almas Angelia Hanhardt The National Endowment for the Humanities Sophia Elzie Center for Hellenic Studies CTS conversion. CTS translation description: Plutarch. Plutarch's Morals, Vol. III. Goodwin, William W., editor; Matthew, Morgan translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874.",
+      "limits": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ],
+      "metadata_evidence_refs": [
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg094-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg094.perseus-eng4-header.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg094.perseus-eng4-opening.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-license.md"
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0007/tlg094/tlg0007.tlg094.perseus-eng4.xml",
+          "basename": "tlg0007.tlg094.perseus-eng4.xml",
+          "git_blob_sha1": "43bd4a1c56f83fb3690d225e0de90e862cacd1c3",
+          "byte_size": 73698,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-eng4.xml"
+        }
+      ],
+      "byte_size": 73698,
+      "parallel_translation": {
+        "work_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/work.json",
+        "expression_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng3/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng3/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-virtute-morali-english/README.md",
+        "files": [
+          "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg094.perseus-eng3.xml"
+        ],
+        "relationship_limit": "Distinct supplied English versions of the same Work; no accuracy ranking, alignment or translation dependence."
+      }
+    },
+    {
+      "slug": "de-curiositate-english-1874",
+      "work_slug": "de-curiositate",
+      "title": "Of Curiosity, or an Over-Busy Inquisitiveness into Things Impertinent.",
+      "work_title": "De curiositate",
+      "family": "plutarch",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "en",
+      "script": "Latn",
+      "expression_role": "translation",
+      "operation_date": "2026-09-09",
+      "expression": "en-perseus-tlg0007-tlg102-perseus-eng4",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A29",
+          "original_source_id": "A29-R113",
+          "entry_id": "tos-registry:table-i/A29/registry/source-54246bb94e348832782f3a3d",
+          "source_locator": {
+            "original_sha256": "7dc56342fcf292588afa54c0423669027453826fe27723ed980cf9abb1be0f1d",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 114,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "de-curiositate-english-1874",
+      "ids": {
+        "work": "tos.work.plutarch.de-curiositate",
+        "expression": "tos.expression.plutarch.de-curiositate.en-perseus-tlg0007-tlg102-perseus-eng4",
+        "edition": "tos.edition.plutarch.de-curiositate.en-perseus-tlg0007-tlg102-perseus-eng4.perseus-341e309c821d",
+        "item": "tos.item.plutarch.de-curiositate.en-perseus-tlg0007-tlg102-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plutarch/de-curiositate/work.json",
+        "expression": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/expression.json",
+        "edition": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/plutarch/de-curiositate/work.json",
+        "expression_ref": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/grc-perseus-tlg0007-tlg102/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/grc-perseus-tlg0007-tlg102/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/grc-perseus-tlg0007-tlg102/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/grc-perseus-tlg0007-tlg102/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg102.perseus-grc2.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "coverage": {
+        "kind": "perseus-tei-translation",
+        "citation_scope": "hierarchical_divisions",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg102.perseus-eng4",
+        "identity_anchor": "edition_n",
+        "header_prefix_sha256": "544e6ae3f06f9d9ce975ba1577918ad5871ec7c2e22389ee40c5b41a85096cca",
+        "reviewed_body_prefix_sha256": "952ca4ed2a4ad4406598c416b9aedcb3fbed35877b40e96431dd68472067b744",
+        "reviewed_body_prefix_bytes": 7817
+      },
+      "version_description": "English translation urn:cts:greekLit:tlg0007.tlg102.perseus-eng4. Plutarch. Plutarch's Morals, Vol. II. Goodwin, William W., editor; Wheeler, Maurice, translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Plutarch's Morals. Translated from the Greek by several hands. Corrected and revised by William W. Goodwin, PH. D. Boston Little, Brown, and Company Cambridge Press of John Wilson and Son 1874 2 The Internet Archive",
+      "responsibility": "Supplied title/contributor statement: Of Curiosity, or an Over-Busy Inquisitiveness into Things Impertinent. Plutarch William W. Goodwin Maurice Wheeler Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Lisa Cerrato Rashmi Singhal Bridget Almas Angelia Hanhardt Michael Konieczny The National Endowment for the Humanities Lucy Parr Center for Hellenic Studies CTS conversion. CTS translation description: Plutarch. Plutarch's Morals, Vol. II. Goodwin, William W., editor; Wheeler, Maurice, translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874.",
+      "limits": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ],
+      "metadata_evidence_refs": [
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg102-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg102.perseus-eng4-header.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg102.perseus-eng4-opening.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-license.md"
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0007/tlg102/tlg0007.tlg102.perseus-eng4.xml",
+          "basename": "tlg0007.tlg102.perseus-eng4.xml",
+          "git_blob_sha1": "698b6df6aa92bb0562af0caae829b586f9aeb877",
+          "byte_size": 48368,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg102/tlg0007.tlg102.perseus-eng4.xml"
+        }
+      ],
+      "byte_size": 48368,
+      "parallel_translation": {
+        "work_ref": "ToS/source-witnesses/works/plutarch/de-curiositate/work.json",
+        "expression_ref": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng3/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng3/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-curiositate-english/README.md",
+        "files": [
+          "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg102.perseus-eng3.xml"
+        ],
+        "relationship_limit": "Distinct supplied English versions of the same Work; no accuracy ranking, alignment or translation dependence."
+      }
+    },
+    {
+      "slug": "de-facie-quae-in-orbe-lunae-apparet-english-1874",
+      "work_slug": "de-facie-quae-in-orbe-lunae-apparet",
+      "title": "Of the Face Appearing Within the Orb Of the Moon",
+      "work_title": "De Facie Quae in orbe Lunae Apparet",
+      "family": "plutarch",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "en",
+      "script": "Latn",
+      "expression_role": "translation",
+      "operation_date": "2026-09-09",
+      "expression": "en-perseus-tlg0007-tlg126-perseus-eng4",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A29",
+          "original_source_id": "A29-R113",
+          "entry_id": "tos-registry:table-i/A29/registry/source-54246bb94e348832782f3a3d",
+          "source_locator": {
+            "original_sha256": "7dc56342fcf292588afa54c0423669027453826fe27723ed980cf9abb1be0f1d",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 114,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "de-facie-quae-in-orbe-lunae-apparet-english-1874",
+      "ids": {
+        "work": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+        "expression": "tos.expression.plutarch.de-facie-quae-in-orbe-lunae-apparet.en-perseus-tlg0007-tlg126-perseus-eng4",
+        "edition": "tos.edition.plutarch.de-facie-quae-in-orbe-lunae-apparet.en-perseus-tlg0007-tlg126-perseus-eng4.perseus-341e309c821d",
+        "item": "tos.item.plutarch.de-facie-quae-in-orbe-lunae-apparet.en-perseus-tlg0007-tlg126-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/work.json",
+        "expression": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/expression.json",
+        "edition": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/work.json",
+        "expression_ref": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/grc-perseus-tlg0007-tlg126/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/grc-perseus-tlg0007-tlg126/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/grc-perseus-tlg0007-tlg126/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/grc-perseus-tlg0007-tlg126/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg126.perseus-grc2.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "coverage": {
+        "kind": "perseus-tei-translation",
+        "citation_scope": "hierarchical_divisions",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg126.perseus-eng4",
+        "identity_anchor": "edition_n",
+        "header_prefix_sha256": "a6f804fdedf043f0599e7703dadf4cb6fc75f1207cdba2070f91396e4029a79a",
+        "reviewed_body_prefix_sha256": "a714cab7eb16e3c451626f6b9c386293b6e9d9c1a316dfbedf0fd29517d6d4c3",
+        "reviewed_body_prefix_bytes": 7976
+      },
+      "version_description": "English translation urn:cts:greekLit:tlg0007.tlg126.perseus-eng4. Plutarch. Plutarch's Morals, Vol. V. Goodwin, William W., editor; G., A., translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Plutarch's Morals. William W. Goodwin Boston Little, Brown, and Company Cambridge Press of John Wilson and Son 1874 5 The Internet Archive",
+      "responsibility": "Supplied title/contributor statement: Of the Face Appearing Within the Orb Of the Moon Plutarch William W. Goodwin A.G. Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Lisa Cerrato Rashmi Singhal Bridget Almas Angelia Hanhardt Michael Konieczny The National Endowment for the Humanities Sophia Elzie Center for Hellenic Studies CTS conversion. CTS translation description: Plutarch. Plutarch's Morals, Vol. V. Goodwin, William W., editor; G., A., translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874.",
+      "limits": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ],
+      "metadata_evidence_refs": [
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg126-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg126.perseus-eng4-header.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg126.perseus-eng4-opening.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-license.md"
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0007/tlg126/tlg0007.tlg126.perseus-eng4.xml",
+          "basename": "tlg0007.tlg126.perseus-eng4.xml",
+          "git_blob_sha1": "4a9669ed09946eb1d0a77a8e1a0f65dc8e32b560",
+          "byte_size": 126282,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg126/tlg0007.tlg126.perseus-eng4.xml"
+        }
+      ],
+      "byte_size": 126282,
+      "parallel_translation": {
+        "work_ref": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/work.json",
+        "expression_ref": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng3/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng3/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-facie-quae-in-orbe-lunae-apparet-english/README.md",
+        "files": [
+          "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg126.perseus-eng3.xml"
+        ],
+        "relationship_limit": "Distinct supplied English versions of the same Work; no accuracy ranking, alignment or translation dependence."
+      }
+    },
+    {
+      "slug": "discourses-english-1890",
+      "work_slug": "discourses",
+      "title": "The Discourses of Epictetus",
+      "work_title": "Discourses",
+      "family": "epictetus",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "en",
+      "script": "Latn",
+      "expression_role": "translation",
+      "operation_date": "2026-09-09",
+      "expression": "en-perseus-tlg0557-tlg001-perseus-eng4",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A29",
+          "original_source_id": "A29-R097",
+          "entry_id": "tos-registry:table-i/A29/registry/source-dfca59d6d0d1240e64f3aa8d",
+          "source_locator": {
+            "original_sha256": "7dc56342fcf292588afa54c0423669027453826fe27723ed980cf9abb1be0f1d",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 98,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "discourses-english-1890",
+      "ids": {
+        "work": "tos.work.epictetus.discourses",
+        "expression": "tos.expression.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4",
+        "edition": "tos.edition.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d",
+        "item": "tos.item.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/epictetus/discourses/work.json",
+        "expression": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/expression.json",
+        "edition": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/epictetus/discourses/work.json",
+        "expression_ref": "ToS/source-witnesses/works/epictetus/discourses/expressions/grc-perseus-tlg0557-tlg001/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/epictetus/discourses/expressions/grc-perseus-tlg0557-tlg001/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/epictetus/discourses/expressions/grc-perseus-tlg0557-tlg001/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/epictetus/discourses/expressions/grc-perseus-tlg0557-tlg001/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0557.tlg001.perseus-grc2.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "coverage": {
+        "kind": "perseus-tei-translation",
+        "citation_scope": "hierarchical_divisions",
+        "cts_urn": "urn:cts:greekLit:tlg0557.tlg001.perseus-eng4",
+        "identity_anchor": "edition_n",
+        "header_prefix_sha256": "eab4bc1608a27fee1e44ed9c534ee3ef7a96c6f20112fbc3dbad2c02f5b65622",
+        "reviewed_body_prefix_sha256": "6aedb14dab576ef6f7a1de463780629fc842e2d3d4ddf14e084bf8f9cfa1c49a",
+        "reviewed_body_prefix_bytes": 8334
+      },
+      "version_description": "English translation urn:cts:greekLit:tlg0557.tlg001.perseus-eng4. Epictetus. The Works of Epictetus, His Discourses, in Four Books, the Enchiridion, and Fragments. Higginson, Thomas Wentworth, translator. New York: Thomas Nelson and Sons. 1890. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Epictetus The Works of Epictetus, His Discourses, in Four Books, the Enchiridion, and Fragments. Thomas Wentworth Higginson New York Thomas Nelson and Sons 1890 The Internet Archive",
+      "responsibility": "Supplied title/contributor statement: The Discourses of Epictetus Epictetus Thomas Wentworth Higginson Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Gregory Crane Lisa Cerrato Anne Mahoney David Mimno Tufts University. CTS translation description: Epictetus. The Works of Epictetus, His Discourses, in Four Books, the Enchiridion, and Fragments. Higginson, Thomas Wentworth, translator. New York: Thomas Nelson and Sons. 1890.",
+      "limits": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Arrian recording/editing/epitomizing and the earlier oral teaching remain distinct transmission layers.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ],
+      "metadata_evidence_refs": [
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557.tlg001-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557.tlg001.perseus-eng4-header.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557.tlg001.perseus-eng4-opening.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-license.md"
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0557/tlg001/tlg0557.tlg001.perseus-eng4.xml",
+          "basename": "tlg0557.tlg001.perseus-eng4.xml",
+          "git_blob_sha1": "857344471f0fb437d0cc0d0af2ae986f5a4f9ba6",
+          "byte_size": 621056,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg001/tlg0557.tlg001.perseus-eng4.xml"
+        }
+      ],
+      "byte_size": 621056,
+      "parallel_translation": {
+        "work_ref": "ToS/source-witnesses/works/epictetus/discourses/work.json",
+        "expression_ref": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng3/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng3/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-discourses-english/README.md",
+        "files": [
+          "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0557.tlg001.perseus-eng3.xml"
+        ],
+        "relationship_limit": "Distinct supplied English versions of the same Work; no accuracy ranking, alignment or translation dependence."
+      }
+    },
+    {
+      "slug": "the-handbook-english-1890",
+      "work_slug": "the-handbook",
+      "title": "The Enchiridion",
+      "work_title": "The Handbook",
+      "family": "epictetus",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "en",
+      "script": "Latn",
+      "expression_role": "translation",
+      "operation_date": "2026-09-09",
+      "expression": "en-perseus-tlg0557-tlg002-perseus-eng4",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A29",
+          "original_source_id": "A29-R100",
+          "entry_id": "tos-registry:table-i/A29/registry/source-db83f0f1b4794bfbdb2091e2",
+          "source_locator": {
+            "original_sha256": "7dc56342fcf292588afa54c0423669027453826fe27723ed980cf9abb1be0f1d",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 101,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "the-handbook-english-1890",
+      "ids": {
+        "work": "tos.work.epictetus.the-handbook",
+        "expression": "tos.expression.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng4",
+        "edition": "tos.edition.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng4.perseus-341e309c821d",
+        "item": "tos.item.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/epictetus/the-handbook/work.json",
+        "expression": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/expression.json",
+        "edition": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/epictetus/the-handbook/work.json",
+        "expression_ref": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/grc-perseus-tlg0557-tlg002/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/grc-perseus-tlg0557-tlg002/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/grc-perseus-tlg0557-tlg002/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/epictetus/the-handbook/expressions/grc-perseus-tlg0557-tlg002/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0557.tlg002.perseus-grc2.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "coverage": {
+        "kind": "perseus-tei-translation",
+        "citation_scope": "hierarchical_divisions",
+        "cts_urn": "urn:cts:greekLit:tlg0557.tlg002.perseus-eng4",
+        "identity_anchor": "edition_n",
+        "header_prefix_sha256": "92ea057844dfd610bfef03549c336e5b66aae0cc6e1f7d960b5dfc3068b25613",
+        "reviewed_body_prefix_sha256": "dbdec643ecfdefdff2fb88547c06ebf7c69611ea31ee2e63769262b1256f6b42",
+        "reviewed_body_prefix_bytes": 7784
+      },
+      "version_description": "English translation urn:cts:greekLit:tlg0557.tlg002.perseus-eng4. Epictetus. The Works of Epictetus, His Discourses, in Four Books, the Enchiridion, and Fragments. Higginson, Thomas Wentworth, translator. New York: Thomas Nelson and Sons. 1890. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Epictetus The Works of Epictetus, His Discourses, in Four Books, the Enchiridion, and Fragments. Thomas Wentworth Higginson New York Thomas Nelson and Sons 1890 The Internet Archive",
+      "responsibility": "Supplied title/contributor statement: The Enchiridion Epictetus Thomas Wentworth Higginson Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Gregory Crane Lisa Cerrato Anne Mahoney David Mimno Tufts University. CTS translation description: Epictetus. The Works of Epictetus, His Discourses, in Four Books, the Enchiridion, and Fragments. Higginson, Thomas Wentworth, translator. New York: Thomas Nelson and Sons. 1890.",
+      "limits": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Arrian recording/editing/epitomizing and the earlier oral teaching remain distinct transmission layers.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ],
+      "metadata_evidence_refs": [
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557.tlg002-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557.tlg002.perseus-eng4-header.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557.tlg002.perseus-eng4-opening.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557-cts.xml",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-license.md"
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0557/tlg002/tlg0557.tlg002.perseus-eng4.xml",
+          "basename": "tlg0557.tlg002.perseus-eng4.xml",
+          "git_blob_sha1": "12529527223e96ec648b09a3f809cd50235530ea",
+          "byte_size": 45544,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg002/tlg0557.tlg002.perseus-eng4.xml"
+        }
+      ],
+      "byte_size": 45544,
+      "parallel_translation": {
+        "work_ref": "ToS/source-witnesses/works/epictetus/the-handbook/work.json",
+        "expression_ref": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng3/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng3/editions/perseus-341e309c821d/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+        "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-the-handbook-english/README.md",
+        "files": [
+          "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0557.tlg002.perseus-eng3.xml"
+        ],
+        "relationship_limit": "Distinct supplied English versions of the same Work; no accuracy ranking, alignment or translation dependence."
+      }
+    }
+  ],
+  "prepared_packages_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/prepared-source-packages.jsonl",
+  "prepared_packages_sha256": "358eb583433c242d98c7e2432f64770fcaff756f4141b5064954e10bc71e79ca",
+  "totals": {
+    "works": 0,
+    "existing_works_extended": 9,
+    "expressions": 9,
+    "payload_files": 9,
+    "payload_bytes": 1279686,
+    "bibliographic_claims": 27
+  },
+  "authority_boundary": "Preparation is not custody, translation acceptance, source-file publication or canon. Existing Work fields and prior source versions are preserved."
+}

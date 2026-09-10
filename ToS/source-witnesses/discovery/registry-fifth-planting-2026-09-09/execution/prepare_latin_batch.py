@@ -227,7 +227,7 @@ def prepare():
         ('data/phi1017/phi012','Seneca Dialogi has no matching directory or payload in this pinned tree. Find an exact accessible edition elsewhere; no global absence claim.'),
         ('data/phi1017/phi016','Seneca Naturales quaestiones has no matching directory or payload in this pinned tree. Find an exact accessible edition elsewhere; no global absence claim.')]])
     content=b''.join((json.dumps(p,ensure_ascii=False,separators=(',',':'))+'\n').encode() for p in packages);(BASE/'prepared-source-packages.jsonl').write_bytes(content)
-    branch_ref='ToS/philosophy/source-planting-preparation/fifth-wave-20260909.json'
+    branch_ref='ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json'
     write(ROOT/branch_ref,{'schema_version':'tos_source_planting_preparation_batch_v1','status':'prepared-not-planted','review_scope':'21 Latin source editions at explicit A29 corpus anchors','reviewer_ref':'model:codex','targets':plans})
     observations=[]
     for path in sorted((BASE/'evidence').glob('*.receipt.json')):

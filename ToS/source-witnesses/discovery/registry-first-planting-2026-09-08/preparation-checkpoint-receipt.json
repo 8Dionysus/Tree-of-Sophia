@@ -1,23 +1,25 @@
 {
-  "schema_version": "tos_registry_preparation_checkpoint_receipt_v1",
+  "schema_version": "tos_registry_preparation_migration_receipt_v1",
   "status": "passed",
-  "manifest_sha256": "da1bdc754c3bb47ee8be84c0789550ca6657cadd62e9019e1a9fe0ad83a32c74",
-  "commit": "8861fecf8e328a874887e875b255876061c80ac9",
-  "runtime_session_id": "01a08281-293a-7ff0-927a-0fd73dfacf7d",
+  "receipt_role": "current-navigation-migration",
+  "stage": "registry-preparation",
+  "manifest_sha256": "c472fae47ceabe45c28cc80915ac69359beb4e801ae0f492ca87755588a273dc",
+  "commit": "d5c034871722b041f9966d5857f12703994ed23e",
+  "runtime_session_id": "tos-path-migration:registry-first:2026-09-10",
   "checkpoint_review_ref": "agent-review:8861fecf8:20260908T211104Z",
-  "agent_review_status": "reviewed",
+  "migration_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/path-migration.current.json",
+  "migration_review_ref": "ToS/review-ledger/2026-09-10-registry-first-path-migration.md",
+  "historical_receipt_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/preparation-inputs/3800c953e98c5ab26ee939d2684d566cc2b53440e7a401581421dd45663f81a6.preparation-receipt.json",
+  "historical_receipt_sha256": "3800c953e98c5ab26ee939d2684d566cc2b53440e7a401581421dd45663f81a6",
+  "historical_manifest_sha256": "da1bdc754c3bb47ee8be84c0789550ca6657cadd62e9019e1a9fe0ad83a32c74",
+  "historical_preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/preparation-inputs/fe63957563adaed179b5a1d1764d82d467e7c67f56ffb0d007d44c9bc2b44155.source-preparation.json",
+  "historical_preparation_sha256": "fe63957563adaed179b5a1d1764d82d467e7c67f56ffb0d007d44c9bc2b44155",
+  "historical_preparation_commit": "8861fecf8e328a874887e875b255876061c80ac9",
   "passed_checks": [
-    "complete source registry normalization",
-    "17 normalization tests; independent 356308-field comparison",
-    "8 acquisition safety tests",
-    "16 source resource inventory tests",
-    "41 readiness queue tests",
-    "13 philosophy topology tests",
-    "source foundation, source home, mechanics, philosophy topology",
-    "complete generated_parity sequence",
-    "documentation cross-corpus/currentness",
-    "inventories and validation lanes"
+    "current manifest digest is recorded in this migration receipt",
+    "historical preparation, manifest and receipt bytes remain at the migration record references",
+    "current route names resolve to the same stable source records and payload identity",
+    "migration changes navigation and generated references only; no source, rights, semantic, publication or canon admission is made"
   ],
-  "manual_review_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/PREPARATION_REVIEW.md",
-  "no_payload_acquired_at_checkpoint": true
+  "authority_boundary": "This receipt closes the reviewed navigation migration. It is not an acquisition-preparation receipt and must not be used to authorize a new source transfer."
 }

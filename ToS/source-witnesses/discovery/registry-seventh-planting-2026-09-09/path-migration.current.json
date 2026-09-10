@@ -1,0 +1,56 @@
+{
+  "schema_version": "tos_source_witness_path_migration_v1",
+  "status": "current",
+  "migration_id": "tos.source-witnesses.registry-seventh.navigation-2026-09-10",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "migration_review_ref": "ToS/review-ledger/2026-09-10-registry-seventh-path-migration.md",
+  "applied_to_commit": "d5c034871722b041f9966d5857f12703994ed23e",
+  "migration_reason": "Current Plutarch/Epictetus English-1874 preparation and execution routes name the source branch/corpus and language or version role; ordinal sequence labels remain historical provenance.",
+  "identity_boundary": {
+    "stable_record_ids_unchanged": true,
+    "payload_bytes_unchanged": true,
+    "preparation_input_bytes_retained": true,
+    "historical_receipts_retained": true,
+    "semantic_or_rights_admission": false
+  },
+  "current_routes": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/plutarch-epictetus-english-1874-20260909.json",
+      "sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6"
+    },
+    {
+      "role": "planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/execution/plant_plutarch_epictetus_english_1874.py",
+      "sha256": "7d2bd6cdd7fe49716075ac994b6fc4d3a24d209c4af28937bad7306d4589a1b2"
+    },
+    {
+      "role": "report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/execution/report_plutarch_epictetus_english_1874.py",
+      "sha256": "2b08990af2dcf205ec76394f10256c877d4126259a2b90f0f21fe0084b25e9c6"
+    }
+  ],
+  "current_manifests": [
+    {
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/manifest.json",
+      "sha256": "a552ff93dcb80482cde1b278ae73e7de12ac27a4961912c4d361249b80d1d8a5",
+      "historical_manifest_sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1",
+      "historical_receipt_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/preparation-inputs/0cd7512e3b3f1a1de52c24f0c7ff5804c4e9d404fa13497dddae0f41966cd48f.preparation-receipt.json"
+    }
+  ],
+  "retained_inputs": [
+    {
+      "stage": "registry-preparation",
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/preparation-inputs/156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6.source-preparation.json",
+      "preparation_sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/preparation-inputs/5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1.manifest.json",
+      "manifest_sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/preparation-inputs/0cd7512e3b3f1a1de52c24f0c7ff5804c4e9d404fa13497dddae0f41966cd48f.preparation-receipt.json",
+      "receipt_sha256": "0cd7512e3b3f1a1de52c24f0c7ff5804c4e9d404fa13497dddae0f41966cd48f",
+      "preparation_commit": "f9de90042a22dc40ce3e4605ade4f756a7492c15",
+      "checkpoint_review_ref": "agent-review:f9de90042:20260909T155153Z"
+    }
+  ],
+  "historical_record_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/path-migration.json",
+  "authority_boundary": "Navigation migration only. Historical preparation and execution bytes remain bound to their original manifest, checkpoint, commit and review references; the current migration receipt records route parity and does not authorize a new acquisition or alter source, rights, semantic, publication or canon state."
+}
