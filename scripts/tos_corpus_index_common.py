@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -397,22 +398,35 @@ def build_nodes(
     return nodes
 
 
-def read_edge_rows(path: Path) -> tuple[list[str], list[dict[str, str]]]:
-    with path.open("r", encoding="utf-8", newline="") as handle:
-        reader = csv.DictReader(handle)
-        return list(reader.fieldnames or []), list(reader)
+def read_edge_rows(path: Path) -> tuple[list[str], list[dict[str, str | None]], str]:
+    """Retain every CSV field and bind rows to the exact bytes parsed.
+
+    Row ordinals are data records, not physical lines: quoted fields may span
+    lines. Missing cells remain null; empty cells remain empty strings. A
+    duplicate/empty header or unnamed surplus cell cannot be represented by a
+    lossless keyed record and must not silently disappear.
+    """
+    raw = path.read_bytes()
+    reader = csv.DictReader(io.StringIO(raw.decode("utf-8"), newline=""), strict=True)
+    columns = list(reader.fieldnames or [])
+    if not columns or any(not column for column in columns) or len(set(columns)) != len(columns):
+        raise csv.Error("relation CSV requires nonempty unique column names")
+    rows = list(reader)
+    if any(None in row for row in rows):
+        raise csv.Error("relation CSV row has unnamed cells outside its declared columns")
+    return columns, rows, hashlib.sha256(raw).hexdigest()
 
 
 def build_relations(
     diagnostics: list[dict[str, str]],
     tracked_paths: tuple[Path, ...],
-) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     relation_packs: list[dict[str, Any]] = []
-    relation_edges: list[dict[str, str]] = []
+    relation_edges: list[dict[str, Any]] = []
     for path in (candidate for candidate in tracked_paths if candidate.name == "edges.csv"):
         path_ref = repo_ref(path)
         try:
-            columns, rows = read_edge_rows(path)
+            columns, rows, source_digest = read_edge_rows(path)
         except csv.Error as exc:
             diagnostics.append({"level": "error", "path": path_ref, "message": f"invalid CSV: {exc}"})
             continue
@@ -426,10 +440,10 @@ def build_relations(
                 "authority_layer": authority_layer(path_ref),
                 "edge_count": len(rows),
                 "columns": columns,
-                "sha256": sha256(path),
+                "sha256": source_digest,
             }
         )
-        for row in rows:
+        for ordinal, row in enumerate(rows, 1):
             edge_id = str(row.get("edge_id") or f"{pack_id}:{len(relation_edges) + 1}")
             relation_edges.append(
                 {
@@ -442,8 +456,15 @@ def build_relations(
                     "authority_layer": authority_layer(path_ref),
                     "layer": str(row.get("layer") or ""),
                     "status": str(row.get("status") or ("canon" if path_ref.startswith("ToS/canon/") else "unmarked")),
+                    "properties": {
+                        "source_record": dict(row),
+                        "source_row": ordinal,
+                        "source_file_sha256": source_digest,
+                    },
                 }
             )
+        if sha256(path) != source_digest:
+            raise ValueError(f"relation source changed during projection: {path_ref}")
     return relation_packs, relation_edges
 
 

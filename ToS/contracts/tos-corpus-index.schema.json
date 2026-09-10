@@ -361,6 +361,20 @@
         },
         "status": {
           "type": "string"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_record", "source_row", "source_file_sha256"],
+          "description": "Exact parsed source CSV row, including unknown columns; data-record ordinal is not a physical line number. This binding preserves source fields without accepting their meaning or changing the edge identity or status. Absent on older derived snapshots.",
+          "properties": {
+            "source_record": {
+              "type": "object",
+              "additionalProperties": {"type": ["string", "null"]}
+            },
+            "source_row": {"type": "integer", "minimum": 1},
+            "source_file_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+          }
         }
       }
     },

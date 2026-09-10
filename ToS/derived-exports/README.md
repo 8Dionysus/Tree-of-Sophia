@@ -43,6 +43,19 @@ The root entry map is the machine-facing entry capsule for consumers that need
 schema-checked root-route orientation before touching downstream exports.
 The corpus index covers the whole `ToS/` home as a derived resource map so
 `abyss-stack` can project and visualize the corpus without owning ToS meaning.
+Its canonical and candidate CSV relation carriers retain the complete parsed
+row in `properties.source_record`, including unknown columns, with
+`source_file_sha256` and the one-based `source_row` data-record ordinal.
+The ordinal excludes the header and is not a physical line number; a quoted
+cell can span lines. Null missing cells differ from empty strings, and the
+file hash binds the original bytes rather than a reserialized CSV. The shared
+reader returns this metadata in relation `attributes` and returns the source
+path through the relation pack. It does not interpret unknown fields, turn
+an intake `promoted` marker into current canon admission, reinterpret source
+confidence, or replace a Claim's evidence/assessment model. Older snapshots
+may lack this optional binding; new snapshots must travel with their matching
+corpus schema and pass source-backed parity. Ambiguous duplicate/empty headers
+and unnamed surplus cells are rejected rather than silently dropped.
 The philosophy atlas projection turns `ToS/philosophy/atlas/` into a first
 reviewable tree/graph read model for visualization and graph switching.
 The philosophy graph view catalog turns source-owned view cards and

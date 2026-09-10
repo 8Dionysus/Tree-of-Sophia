@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import copy
+import csv
+import hashlib
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -23,6 +27,113 @@ from tos_corpus_index_common import (  # noqa: E402
 
 
 class ToSCorpusIndexTest(unittest.TestCase):
+    def test_relation_csv_projection_preserves_every_cell_and_source_binding(self):
+        import tos_corpus_index_common as corpus
+        from jsonschema import Draft202012Validator
+        access_src = str(REPO_ROOT / 'access/src')
+        if access_src not in sys.path:
+            sys.path.insert(0, access_src)
+        from tos_access.knowledge import _normalize_relation
+        schema = json.loads((REPO_ROOT / corpus.SCHEMA_REF).read_text())['$defs']['relationEdge']
+        validator = Draft202012Validator(schema)
+        raw = ('edge_id,from_id,predicate_id,to_id,confidence,note,x-unknown\r\n'
+               'edge.one,left,related_to,right,0.70,"first\r\nsecond",λόγος\r\n'
+               'edge.two,left,related_to,right,0,,\r\n'
+               'edge.three,left,related_to,right,0.20\r\n').encode('utf-8')
+        digest = hashlib.sha256(raw).hexdigest()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for branch in ('canon', 'candidate-intake'):
+                path = root / f'ToS/{branch}/synthetic/edges.csv'
+                path.parent.mkdir(parents=True)
+                path.write_bytes(raw)
+                with patch.object(corpus, 'REPO_ROOT', root):
+                    errors = []
+                    packs, edges = corpus.build_relations(errors, (path,))
+                self.assertEqual(errors, [])
+                self.assertEqual(packs[0]['sha256'], digest)
+                self.assertEqual([edge['properties']['source_row'] for edge in edges], [1, 2, 3])
+                first = edges[0]['properties']['source_record']
+                self.assertEqual(first['confidence'], '0.70')
+                self.assertEqual(first['note'], 'first\r\nsecond')
+                self.assertEqual(first['x-unknown'], 'λόγος')
+                self.assertEqual(edges[1]['properties']['source_record']['note'], '')
+                self.assertIsNone(edges[2]['properties']['source_record']['note'])
+                for edge in edges:
+                    with self.subTest(branch=branch, edge=edge['edge_id']):
+                        validator.validate(edge)
+                        self.assertEqual(edge['properties']['source_file_sha256'], digest)
+                        self.assertEqual(edge['status'], 'canon' if branch == 'canon' else 'unmarked')
+                        material = {**edge, 'source_ref': packs[0]['path']}
+                        normalized = _normalize_relation(material, branch, {})
+                        self.assertEqual(normalized['attributes']['source_record'], edge['properties']['source_record'])
+                        self.assertEqual(normalized['attributes']['source_row'], edge['properties']['source_row'])
+                        self.assertEqual(normalized['attributes']['source_file_sha256'], digest)
+                        self.assertEqual(normalized['source_refs'], [packs[0]['path']])
+                        self.assertEqual(normalized['epistemic']['canon_status'], edge['status'])
+                self.assertEqual(path.read_bytes(), raw)
+                legacy = {key: value for key, value in edges[0].items() if key != 'properties'}
+                validator.validate(legacy)
+                for field, value in (('source_row', True), ('source_file_sha256', 'invented'),
+                                     ('source_record', {'confidence': 0.7})):
+                    changed = copy.deepcopy(edges[0])
+                    changed['properties'][field] = value
+                    with self.subTest(invalid_field=field):
+                        self.assertFalse(validator.is_valid(changed))
+
+    def test_relation_csv_refuses_ambiguous_headers_or_unnamed_cells_without_partial_pack(self):
+        import tos_corpus_index_common as corpus
+        for raw in ('edge_id,note,note\none,left,right\n', 'edge_id,\none,value\n',
+                    'edge_id,note\none,known,unnamed\n', 'edge_id,note\none,"unterminated\n'):
+            with self.subTest(raw=raw), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                path = root / 'ToS/candidate-intake/synthetic/edges.csv'
+                path.parent.mkdir(parents=True)
+                path.write_text(raw, encoding='utf-8')
+                with patch.object(corpus, 'REPO_ROOT', root):
+                    errors = []
+                    self.assertEqual(corpus.build_relations(errors, (path,)), ([], []))
+                self.assertEqual(len(errors), 1)
+                self.assertEqual(errors[0]['level'], 'error')
+
+    def test_relation_csv_changed_after_parse_cannot_publish_a_mixed_binding(self):
+        import tos_corpus_index_common as corpus
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = root / 'ToS/canon/synthetic/edges.csv'
+            path.parent.mkdir(parents=True)
+            path.write_text('edge_id,note\none,original\n', encoding='utf-8')
+            original_reader = corpus.read_edge_rows
+            def changed_reader(selected):
+                result = original_reader(selected)
+                selected.write_text('edge_id,note\none,changed\n', encoding='utf-8')
+                return result
+            with patch.object(corpus, 'REPO_ROOT', root), \
+                    patch.object(corpus, 'read_edge_rows', side_effect=changed_reader):
+                with self.assertRaisesRegex(ValueError, 'relation source changed'):
+                    corpus.build_relations([], (path,))
+
+    def test_all_authored_relation_rows_are_retained_without_accepting_intake(self):
+        import tos_corpus_index_common as corpus
+        paths = tuple(path for path in tracked_tos_paths() if path.name == 'edges.csv')
+        self.assertTrue(paths)
+        errors = []
+        packs, edges = corpus.build_relations(errors, paths)
+        self.assertEqual(errors, [])
+        for path in paths:
+            ref = path.relative_to(REPO_ROOT).as_posix()
+            pack = next(pack for pack in packs if pack['path'] == ref)
+            with path.open(encoding='utf-8', newline='') as stream:
+                source_rows = list(csv.DictReader(stream))
+            actual = [edge for edge in edges if edge['pack_id'] == pack['pack_id']]
+            self.assertEqual([edge['properties']['source_record'] for edge in actual], source_rows)
+            self.assertEqual([edge['properties']['source_row'] for edge in actual], list(range(1, len(source_rows) + 1)))
+            self.assertEqual(pack['sha256'], hashlib.sha256(path.read_bytes()).hexdigest())
+            for row, edge in zip(source_rows, actual):
+                self.assertEqual(edge['edge_id'], row['edge_id'])
+                self.assertEqual(edge['properties']['source_file_sha256'], pack['sha256'])
+                self.assertEqual(edge['status'], row.get('status') or ('canon' if ref.startswith('ToS/canon/') else 'unmarked'))
+
     def test_text_packet_projection_is_versioned_and_visibility_bounded(self):
         path = REPO_ROOT / "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-a-source-layout-observation.json"
         packet = json.loads(path.read_text())
@@ -104,6 +215,23 @@ class ToSCorpusIndexTest(unittest.TestCase):
         source_nodes = {
             node["node_id"]: node for node in payload["source_navigation"]["nodes"]
         }
+        access_src = str(REPO_ROOT / 'access/src')
+        if access_src not in sys.path:
+            sys.path.insert(0, access_src)
+        from tos_access.knowledge import _normalize_node
+        authored_ids = set()
+        for path in tracked_tos_paths():
+            if path.name != 'node.json':
+                continue
+            source = json.loads(path.read_text(encoding='utf-8'))
+            authored_ids.add(source['node_id'])
+            projected = indexed_nodes[source['node_id']]
+            self.assertEqual(projected['properties'], source)
+            self.assertEqual(projected['source_sha256'], hashlib.sha256(path.read_bytes()).hexdigest())
+            normalized = _normalize_node(projected, 'canon')
+            self.assertEqual(normalized['source_record']['payload']['properties'], source)
+            self.assertIn(path.relative_to(REPO_ROOT).as_posix(), normalized['source_refs'])
+        self.assertEqual(set(indexed_nodes), authored_ids)
 
         authored_path = REPO_ROOT / (
             "ToS/canon/synthesis/friedrich-nietzsche/thus-spoke-zarathustra/"

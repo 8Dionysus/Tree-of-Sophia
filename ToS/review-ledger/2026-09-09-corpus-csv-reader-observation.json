@@ -1,0 +1,23 @@
+{
+  "schema_version": "tos_corpus_csv_reader_observation_v1",
+  "source_revision": "8a6a1395761bf093a0496eab4c7d872ab523c6cbe3bf26da243fe785eeb2af14",
+  "relation_packs": [
+    {
+      "source_ref": "ToS/candidate-intake/thus-spoke-zarathustra/prologue-1/mode-b/edges.csv",
+      "source_file_sha256": "81e3b365e70c86896d7e6e47ece3f08fc5ac18546f8eef593ae3e6804fdd392a",
+      "rows": 128
+    },
+    {
+      "source_ref": "ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv",
+      "source_file_sha256": "08039b49130f36a2ed4869421d5123885ee69e06f514807e14b656e8cff53d0f",
+      "rows": 125
+    }
+  ],
+  "relation_rows": 253,
+  "authored_nodes": 92,
+  "node_source_bindings_sha256": "6fdbaf8a6597889b9f4c99967d521a0c6d3c3a450be305858e8d696879de23a1",
+  "ordinary_reader": "ToSAccessCore.knowledge_graph",
+  "performs_assessment": false,
+  "grants_admission": false,
+  "elapsed_seconds": 22.245
+}
