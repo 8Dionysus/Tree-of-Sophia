@@ -18,6 +18,7 @@ import os
 import sqlite3
 import tempfile
 import time
+import weakref
 from dataclasses import dataclass
 from pathlib import Path
 from threading import RLock
@@ -167,6 +168,11 @@ class SQLiteKnowledgeSearchReadModel:
             for kind in ("nodes", "relations")
         }
         self._lock = RLock()
+        # The core may evict a snapshot while another query still holds this
+        # model. Close only after the last model owner releases it, or through
+        # explicit close(), not when the cache drops its reference. The
+        # callback must capture the connection, never the model itself.
+        self._close_connection = weakref.finalize(self, connection.close)
 
     @classmethod
     def build(
@@ -523,7 +529,7 @@ class SQLiteKnowledgeSearchReadModel:
 
     def close(self) -> None:
         with self._lock:
-            self.connection.close()
+            self._close_connection()
 
     def __enter__(self) -> "SQLiteKnowledgeSearchReadModel":
         return self

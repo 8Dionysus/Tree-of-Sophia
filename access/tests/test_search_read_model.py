@@ -4,6 +4,9 @@ import tempfile
 import unittest
 import base64
 import json
+import gc
+import sqlite3
+import weakref
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 from pathlib import Path
@@ -24,6 +27,30 @@ from tos_access.search_read_model import (  # noqa: E402
 
 
 class SearchReadModelTests(unittest.TestCase):
+    def test_connection_lifetime_follows_last_reader_and_explicit_close(self):
+        with tempfile.TemporaryDirectory() as raw:
+            for explicit in (False, True):
+                with self.subTest(explicit=explicit):
+                    model = SQLiteKnowledgeSearchReadModel.build(
+                        self.graph(), Path(raw) / 'search.sqlite', max_bytes=4 * 1024 * 1024)
+                    connection = model.connection
+                    reference = weakref.ref(model)
+                    reader = model
+                    del model
+                    gc.collect()
+                    self.assertIs(reference(), reader)
+                    self.assertEqual(len(reader.ranked_page('nodes', 'common').rows), 3)
+                    if explicit:
+                        reader.close()
+                        reader.close()
+                        with self.assertRaises(sqlite3.ProgrammingError):
+                            connection.execute('SELECT 1')
+                    del reader
+                    gc.collect()
+                    self.assertIsNone(reference())
+                    with self.assertRaises(sqlite3.ProgrammingError):
+                        connection.execute('SELECT 1')
+
     @staticmethod
     def graph() -> dict:
         def node(identifier: str, title: str) -> dict:
