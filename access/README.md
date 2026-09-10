@@ -363,6 +363,13 @@ the prepared core keeps process-local checkpoints. No environment variable,
 request field or default server configuration activates persistence. This wiring
 does not establish real-corpus performance or a deployed service.
 
+The HTTP factory accepts that same configured core. The native MCP factory can
+also bind it with `build_server(core=selected_core)`; this is mutually exclusive
+with discovery-path arguments and keeps the core's exploration/checkpoint policy.
+The default MCP factory retains its existing discovery behavior. HTTP capability
+responses expose the selected mode; stale snapshots return 409, expired cursors
+410, exceeded read budgets 413, and unavailable read/checkpoint stores 503.
+
 ## Constructor boundaries
 
 Construction coverage is deliberately bounded: selectors, type ancestry,

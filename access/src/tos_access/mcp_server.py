@@ -34,7 +34,12 @@ def build_server(
     index_path: str | Path | None = None,
     philosophy_graph_projection_path: str | Path | None = None,
     philosophy_post_planting_audit_path: str | Path | None = None,
+    *,
+    core: ToSAccessCore | None = None,
 ) -> Any:
+    if core is not None and any(value is not None for value in (
+            tos_root, index_path, philosophy_graph_projection_path, philosophy_post_planting_audit_path)):
+        raise ValueError("select either an existing core or MCP source discovery paths")
     try:
         from mcp.server.fastmcp import FastMCP  # type: ignore[import-not-found]
     except ImportError as exc:
@@ -46,6 +51,8 @@ def build_server(
 
     def current_state() -> ToSAccessCore:
         nonlocal cached_state
+        if core is not None:
+            return core
         resolved = ToSAccessCore.discover(
             tos_root=tos_root,
             index_path=index_path,
@@ -60,10 +67,10 @@ def build_server(
                 cached_state = resolved
             return cached_state
 
-    # Tools rediscover source paths on each call. Exploration keeps
-    # its disposable checkpoints for the lifetime of this MCP server only.
+    # Default discovery retains its existing server-local dynamic graph route.
+    # An explicitly supplied core owns its query engine and checkpoint policy.
     from .exploration import ExplorationService
-    exploration = ExplorationService(lambda: current_state().knowledge_graph())
+    exploration = ExplorationService(lambda: current_state().knowledge_graph()) if core is None else None
 
     @mcp.tool()
     def tos_knowledge_explore(request: dict[str, Any]) -> dict[str, Any]:
@@ -74,7 +81,7 @@ def build_server(
         writes. Upsert context nodes and the repeated origin relation by ID.
         Snapshot conflict or expired checkpoint requires restarting from focus.
         """
-        return exploration.explore(request)
+        return current_state().knowledge_explore(request) if core is not None else exploration.explore(request)
 
     @mcp.tool()
     def tos_knowledge_exploration_contracts() -> dict[str, Any]:

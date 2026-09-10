@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import copy
+import asyncio
 import concurrent.futures
 import hashlib
+import http.client
+import importlib.util
 import json
 import random
 import shutil
@@ -11,8 +14,10 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from contextlib import closing
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
@@ -20,6 +25,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "deploy/cloudflare-
 import build_runtime as builder
 from test_access_contract import write_fixture
 from tos_access.core import ToSAccessCore
+from tos_access.http_server import build_handler
+from tos_access.mcp_server import build_server
 from tos_access.exploration import ExplorationExpired, ExplorationService
 from tos_access.knowledge import OVERVIEW_EXCLUDED_PREDICATES, OVERVIEW_EXCLUDED_RELATION_TYPES
 from tos_access.lens_pagination import KnowledgeRevisionConflict
@@ -250,6 +257,74 @@ class PublishedExplorationTests(unittest.TestCase):
         self.assertEqual(hashlib.sha256(self.path.read_bytes()).hexdigest(), before)
         with self.assertRaises(ValueError):
             ToSAccessCore.discover(self.root, published_exploration_checkpoint_path=checkpoint)
+
+    def test_http_prepared_capabilities_and_errors_use_the_selected_reader(self):
+        core = ToSAccessCore.discover(self.root, published_read_model_path=self.path,
+                                     published_read_model_expected=self.binding,
+                                     published_exploration_checkpoint_path=self.path.parent / 'http-state.sqlite')
+        server = ThreadingHTTPServer(('127.0.0.1', 0), build_handler(core, self.root))
+        thread = threading.Thread(target=server.serve_forever, kwargs={'poll_interval': 0.01}, daemon=True)
+        thread.start()
+        def request(path, payload=None):
+            with closing(http.client.HTTPConnection('127.0.0.1', server.server_port, timeout=5)) as connection:
+                connection.request('GET' if payload is None else 'POST', path,
+                                   body=None if payload is None else json.dumps(payload),
+                                   headers={} if payload is None else {'Content-Type': 'application/json'})
+                response = connection.getresponse()
+                return response.status, json.loads(response.read())
+        query = {'focus_node_id': 'node:00', 'max_depth': 0}
+        try:
+            with patch('tos_access.core.build_knowledge_graph', side_effect=AssertionError('hidden fallback')):
+                status, capabilities = request('/api/knowledge/explore/capabilities')
+                self.assertEqual(status, 200)
+                self.assertEqual(capabilities, core.knowledge_exploration_capabilities())
+                self.assertTrue(capabilities['restart_survival'])
+                self.assertEqual(request('/api/knowledge/explore', query), (200, core.knowledge_explore(query)))
+                self.assertEqual(request('/api/knowledge/explore', {'cursor': '0' * 64})[0], 410)
+                limits = core._prepared_reader.limits
+                core._prepared_reader.limits = PublishedReadLimits(max_rows=1)
+                self.assertEqual(request('/api/knowledge/catalog')[0], 413)
+                self.assertEqual(request('/api/knowledge/explore', query)[0], 413)
+                core._prepared_reader.limits = limits
+                with closing(sqlite3.connect(self.path)) as db:
+                    db.execute("UPDATE knowledge_nodes SET json=json || ' ' WHERE id='node:00'")
+                    db.commit()
+                self.assertEqual(request('/api/knowledge/nodes/node%3A00')[0], 503)
+                self.assertEqual(request('/api/knowledge/explore', query)[0], 503)
+                with closing(sqlite3.connect(self.path)) as db:
+                    db.execute("UPDATE edge_meta SET json_chunk=json_chunk WHERE key='data_revision'")
+                    db.commit()
+                self.assertEqual(request('/api/knowledge/catalog')[0], 409)
+                self.assertEqual(request('/api/knowledge/explore', query)[0], 409)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
+
+    @unittest.skipUnless(importlib.util.find_spec('mcp'), 'mcp dependency is not installed')
+    def test_native_mcp_uses_explicit_core_and_shared_persistent_continuation(self):
+        checkpoint = self.path.parent / 'mcp-state.sqlite'
+        def core():
+            return ToSAccessCore.discover(self.root, published_read_model_path=self.path,
+                                         published_read_model_expected=self.binding,
+                                         published_exploration_checkpoint_path=checkpoint)
+        selected = core()
+        first = selected.knowledge_explore({'focus_node_id': 'node:00', 'max_depth': 3,
+                                            'profile': 'all', 'page_nodes': 1, 'page_relations': 1})
+        request = {'cursor': first['page']['next_cursor']}
+        expected = selected.knowledge_explore(request)
+        with patch('tos_access.core.build_knowledge_graph', side_effect=AssertionError('hidden graph')), patch.object(
+                ToSAccessCore, 'discover', side_effect=AssertionError('implicit reselection')):
+            server = build_server(core=selected)
+            result = asyncio.run(server.call_tool('tos_knowledge_explore', {'request': request}))
+            # FastMCP's public tool dispatcher validates and returns structured
+            # output alongside its backwards-compatible text carrier.
+            self.assertEqual(result[1], expected)
+            self.assertEqual(json.loads(result[0][0].text), expected)
+        restarted = build_server(core=core())
+        self.assertEqual(asyncio.run(restarted.call_tool('tos_knowledge_explore', {'request': request}))[1], expected)
+        with self.assertRaises(ValueError):
+            build_server(core=selected, tos_root=self.root)
 
     def test_persistent_restart_concurrent_replay_and_successor_are_atomic(self):
         first = self.persistent().explore({"focus_node_id": "node:00", "max_depth": 3})

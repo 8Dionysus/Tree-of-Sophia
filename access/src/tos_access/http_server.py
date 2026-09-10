@@ -15,8 +15,10 @@ from urllib.parse import parse_qs, unquote, urlparse
 from .core import ToSAccessCore
 from .lens_pagination import KnowledgeRevisionConflict
 from .temporal_comparison import TemporalReadModelInvalid
-from .exploration import ExplorationExpired, exploration_capabilities
+from .exploration import ExplorationExpired
 from .exploration_origin import ExplorationReadModelInvalid
+from .published_read_model import PublishedReadModelError, PublishedReadBudgetExceeded, PublishedSnapshotConflict
+from .published_checkpoints import PublishedCheckpointError
 from .doctor import web_root_for
 
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
@@ -217,7 +219,7 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                     return
                 if path == "/api/corpus/status": self._json(core.status()); return
                 if path == "/api/knowledge/catalog": self._json(core.knowledge_catalog()); return
-                if path == "/api/knowledge/explore/capabilities": self._json(exploration_capabilities()); return
+                if path == "/api/knowledge/explore/capabilities": self._json(core.knowledge_exploration_capabilities()); return
                 if path == "/api/knowledge/explore/contracts": self._json(core.knowledge_exploration_contracts()); return
                 if path == "/api/knowledge/contracts": self._json(core.knowledge_contracts()); return
                 if path == "/api/knowledge/search":
@@ -357,6 +359,12 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 if path.startswith("/api/philosophy/views/"):
                     view_id = unquote(path.removeprefix("/api/philosophy/views/").split("/", 1)[0]); self._json(core.philosophy_view(view_id, _integer(query, "limit", 1000, 1, 1000))); return
                 self._json({"error": "not found", "path": path}, HTTPStatus.NOT_FOUND)
+            except (KnowledgeRevisionConflict, PublishedSnapshotConflict) as exc:
+                self._json({"error": str(exc)}, HTTPStatus.CONFLICT)
+            except PublishedReadBudgetExceeded as exc:
+                self._json({"error": str(exc)}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+            except (PublishedReadModelError, PublishedCheckpointError) as exc:
+                self._json({"error": str(exc)}, HTTPStatus.SERVICE_UNAVAILABLE)
             except KeyError as exc:
                 self._json({"error": str(exc)}, HTTPStatus.NOT_FOUND)
             except (RuntimeError, ValueError) as exc:
@@ -403,9 +411,11 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 self._json(operation(spec))
             except ExplorationExpired as exc:
                 self._json({"error": str(exc), "code": "exploration_expired"}, HTTPStatus.GONE)
-            except KnowledgeRevisionConflict as exc:
+            except (KnowledgeRevisionConflict, PublishedSnapshotConflict) as exc:
                 self._json({"error": str(exc)}, HTTPStatus.CONFLICT)
-            except (TemporalReadModelInvalid, ExplorationReadModelInvalid) as exc:
+            except PublishedReadBudgetExceeded as exc:
+                self._json({"error": str(exc)}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+            except (TemporalReadModelInvalid, ExplorationReadModelInvalid, PublishedReadModelError, PublishedCheckpointError) as exc:
                 self._json({"error": str(exc)}, HTTPStatus.SERVICE_UNAVAILABLE)
             except KeyError as exc:
                 self._json({"error": str(exc)}, HTTPStatus.NOT_FOUND)

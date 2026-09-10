@@ -551,11 +551,13 @@ class ToSAccessCore:
     def knowledge_explore(self, request: dict[str, Any]) -> dict[str, Any]:
         return self._exploration.explore(request)
 
+    def knowledge_exploration_capabilities(self) -> dict[str, Any]:
+        return (self._exploration.capability() if self._prepared_reader is not None
+                else exploration_capabilities())
+
     def knowledge_exploration_contracts(self) -> dict[str, Any]:
-        capabilities = (self._exploration.capability() if self._prepared_reader is not None
-                        else exploration_capabilities())
         return {
-            "capabilities": capabilities,
+            "capabilities": self.knowledge_exploration_capabilities(),
             "request": _read_json(self.tos_root / "access/contracts/exploration-request.v1.schema.json"),
             "result": _read_json(self.tos_root / "access/contracts/exploration-result.v1.schema.json"),
             "request_v2": _read_json(self.tos_root / "access/contracts/exploration-request.v2.schema.json"),
