@@ -992,6 +992,15 @@ def data_revision(core: ToSAccessCore) -> str:
             digest.update(b"\0")
             digest.update(str(item.get("content_revision") or "").encode("utf-8"))
             digest.update(b"\0")
+    # The cold-reader envelope also binds normalization and authority posture.
+    # Keep this compact graph header in the revision so metadata-only changes
+    # cannot leave an older reader header deployed when row bytes are stable.
+    reader_graph = {
+        key: knowledge.get(key)
+        for key in ("schema", "source_revision", "normalization_binding", "authority_boundary")
+    }
+    digest.update(compact_json(normalize_paths(reader_graph, REPO_ROOT)).encode("utf-8"))
+    digest.update(b"\0")
     # The published catalog is a persisted read surface. Bind its normalized
     # emitted bytes so catalog-only changes cannot be skipped by deployment.
     digest.update(compact_json(normalize_paths(knowledge_catalog, REPO_ROOT)).encode("utf-8"))

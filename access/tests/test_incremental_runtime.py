@@ -32,6 +32,8 @@ class IncrementalRuntimeTests(unittest.TestCase):
             catalog = core.knowledge_catalog()
             changed_catalog = copy.deepcopy(catalog)
             changed_catalog["capabilities"]["catalog_revision_probe"] = "changed"
+            changed_graph = copy.deepcopy(graph)
+            changed_graph["normalization_binding"]["processor_digest"] = "f" * 64
             with patch.object(builder, "REPO_ROOT", root), patch.object(
                 ToSAccessCore,
                 "knowledge_snapshot",
@@ -44,8 +46,15 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 return_value={"graph": graph, "catalog": changed_catalog},
             ):
                 changed = builder.data_revision(core)
+            with patch.object(builder, "REPO_ROOT", root), patch.object(
+                ToSAccessCore,
+                "knowledge_snapshot",
+                return_value={"graph": changed_graph, "catalog": catalog},
+            ):
+                metadata_changed = builder.data_revision(core)
             self.assertEqual(graph, core.knowledge_graph())
             self.assertNotEqual(baseline, changed)
+            self.assertNotEqual(baseline, metadata_changed)
 
     def test_cache_budget_cli_and_real_builder_admission(self):
         import build_runtime as builder
