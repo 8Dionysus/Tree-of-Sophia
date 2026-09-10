@@ -628,6 +628,130 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertEqual(identity['epistemic']['authority_layer'], 'source-witness')
         self.assertIsNone(identity['epistemic']['canon_status'])
 
+    def test_claim_counterevidence_has_its_own_optional_role_and_exact_mapping_scope(self):
+        sys.path.insert(0, str(self.repo_root / 'scripts'))
+        from source_witness_bibliographic_graph_common import _claim_node, _edge
+        from source_record_profiles import SourceClaimProfiles
+        from tos_access.knowledge import _normalize_relation, _relation_registry_indexes
+
+        # Synthetic source records exercise the durable mapping contract without
+        # rebuilding the corpus or fixing any historical Claim's interpretation.
+        ref = 'test:synthetic-counterevidence/source-claims.jsonl'
+        evidence_ref = 'test:synthetic-counterevidence/qualified-reading'
+        source_claim = {'schema_version': 'tos_source_relation_claim_v1',
+            'claim_id': 'tos.claim.synthetic-counterevidence', 'claim_version': 1,
+            'claim_type': 'relation', 'assertion_layer': 'bibliographic_assertion',
+            'subject_ref': 'tos.work.synthetic-counterevidence', 'predicate': 'authored_by',
+            'object': 'tos.agent.synthetic-counterevidence', 'evidence_refs': [evidence_ref],
+            'counterevidence_refs': [evidence_ref], 'review_status': 'unreviewed',
+            'epistemic_status': 'uncertain', 'visibility': 'public',
+            'maker': {'maker_type': 'software', 'agent_ref': 'tos.agent.synthetic-maker'},
+            'provenance_event_ref': 'tos.event.synthetic-counterevidence',
+            'qualifiers': {'statement': 'Synthetic attribution is limited to this witness.',
+                'scope': 'The same reading supports the qualified attribution and limits generalization.'}}
+        raw = {'nodes': [
+            {'node_id': 'identity:' + source_claim['subject_ref'], 'node_kind': 'identity',
+             'properties': {'identity_ref': source_claim['subject_ref'], 'identity_kind': 'work'}},
+            {'node_id': 'identity:' + source_claim['object'], 'node_kind': 'identity',
+             'properties': {'identity_ref': source_claim['object'], 'identity_kind': 'agent'}},
+            {'node_id': 'evidence:synthetic', 'node_kind': 'evidence', 'source_ref': evidence_ref,
+             'properties': {'evidence_ref': evidence_ref}}], 'edges': [], 'claim_traces': []}
+        for number, counter_refs in enumerate(([evidence_ref], []), start=1):
+            record = {**source_claim, 'claim_id': source_claim['claim_id'] + f'-{number}',
+                      'counterevidence_refs': counter_refs}
+            entry = {**record, 'source_claim_file_ref': ref, 'source_claim_line': number,
+                'claim_sha256': hashlib.sha256(json.dumps(record, ensure_ascii=False, sort_keys=True,
+                    separators=(',', ':')).encode()).hexdigest()}
+            claim_node = _claim_node(entry, record)
+            raw['nodes'].append(claim_node)
+            trace = {**entry, 'claim_ref': record['claim_id'], 'claim_node_id': claim_node['node_id'],
+                'subject_node_id': raw['nodes'][0]['node_id'], 'object_node_id': raw['nodes'][1]['node_id'],
+                'evidence_node_ids': ['evidence:synthetic'],
+                'counterevidence_node_ids': ['evidence:synthetic'] if counter_refs else []}
+            raw['claim_traces'].append(trace)
+            roles = [('has_subject', trace['subject_node_id']), ('has_object', trace['object_node_id']),
+                     ('supported_by', 'evidence:synthetic')]
+            if counter_refs:
+                roles.append(('counterevidenced_by', 'evidence:synthetic'))
+            for ordinal, (role, target) in enumerate(roles, start=1):
+                raw['edges'].append(_edge(claim_entry=entry, edge_kind=role, ordinal=ordinal,
+                    from_id=claim_node['node_id'], to_id=target, evidence_node_ids=['evidence:synthetic'],
+                    maker_node_id='maker:synthetic', provenance_event_node_id='provenance_event:synthetic'))
+        source_claim = raw['nodes'][3]['properties']['source_claim']
+        before = copy.deepcopy(raw)
+        graph = build_knowledge_graph({}, {}, raw, self.entity_type_registry, self.relation_type_registry)
+        nodes = {node['id']: node for node in graph['nodes']}
+        claim = next(node for node in graph['nodes'] if node['entity_id'] == source_claim['claim_id'])
+        self.assertEqual(claim['attributes']['source_claim'], source_claim)
+        self.assertEqual(claim['epistemic']['review_posture'], source_claim['review_status'])
+        incident = [edge for edge in graph['relations'] if edge['from_id'] == claim['id']]
+        counter = next(edge for edge in incident if edge['predicate_id'] == 'counterevidenced_by')
+        support = next(edge for edge in incident if edge['predicate_id'] == 'supported_by')
+        kind = 'tos.relation.claim-counterevidenced-by'
+        self.assertEqual(counter['relation_type_id'], kind)
+        self.assertEqual(counter['predicate_mapping']['status'], 'mapped')
+        self.assertEqual(support['relation_type_id'], 'tos.relation.claim-supported-by')
+        self.assertNotEqual(counter['id'], support['id'])
+        self.assertEqual(counter['to_id'], support['to_id'])
+        self.assertEqual(nodes[counter['to_id']]['type_id'], 'tos.entity.evidence')
+        self.assertIn(ref, counter['source_refs'])
+        self.assertEqual(counter['epistemic']['review_posture'], source_claim['review_status'])
+        self.assertIsNone(counter['epistemic']['canon_status'])
+        self.assertTrue(counter['display']['inverse_label']['ru'])
+        self.assertTrue(counter['display']['inverse_label']['en'])
+        contexts = counter['semantics']['assertion_contexts']
+        context = next(row for row in contexts if row['fields'].get('claim_id', {}).get('value') == source_claim['claim_id'])
+        self.assertEqual(context['fields']['qualifiers']['value'], source_claim['qualifiers'])
+        self.assertEqual(context['fields']['counterevidence_refs']['value'], source_claim['counterevidence_refs'])
+        self.assertEqual(context['fields']['evidence_refs']['value'], source_claim['evidence_refs'])
+        raw_edge = next(edge for edge in raw['edges'] if edge['edge_id'] == counter['native_id'])
+        for field in ('claim_sha256', 'source_claim_line', 'source_claim_file_ref'):
+            self.assertEqual(counter['attributes'][field], raw_edge[field])
+        self.assertEqual(counter['source_record']['payload']['edge_id'], raw_edge['edge_id'])
+
+        for language in ('ru', 'en'):
+            for detail in ('compact', 'full'):
+                spec = {'schema_version': 'tos_lens_spec_v1', 'lens_id': 'counterevidence-source-return',
+                    'sources': ['source-claims'], 'seed': {'focus_node_id': counter['to_id']},
+                    'node_query': {'enabled': False}, 'traversal': {'depth': 1, 'direction': 'incoming'},
+                    'language': language, 'detail': detail}
+                result = execute_knowledge_lens(graph, spec)
+                returned = {edge['id']: edge for edge in result['relations']}
+                with self.subTest(language=language, detail=detail):
+                    self.assertTrue({counter['id'], support['id']} <= returned.keys())
+                    self.assertEqual(returned[counter['id']]['semantics'], counter['semantics'])
+                    self.assertEqual(returned[counter['id']]['epistemic'], counter['epistemic'])
+
+        report = validate_knowledge_semantics(graph, self.entity_type_registry, self.relation_type_registry)
+        self.assertTrue(report['valid'], report['violations'])
+        entry = next(row for row in self.relation_type_registry['relations'] if row['relation_type_id'] == kind)
+        self.assertEqual(entry['cardinality']['per_subject_min'], 0)
+        self.assertTrue(any(node['attributes'].get('source_claim') and
+            not node['attributes']['source_claim'].get('counterevidence_refs') for node in graph['nodes']))
+        optional = next(node for node in graph['nodes'] if node['entity_id'] == 'tos.claim.synthetic-counterevidence-2')
+        self.assertFalse(any(edge['from_id'] == optional['id'] and edge['relation_type_id'] == kind
+                             for edge in graph['relations']))
+        self.assertNotIn('source_claim_profile', entry)
+        self.assertNotIn('counterevidenced_by', SourceClaimProfiles(self.repo_root).profiles)
+        entries, mappings, fallback = _relation_registry_indexes(self.relation_type_registry)
+        self.assertNotIn(('source-claims', 'counterevidenced_by', 'claim-predicate'), mappings)
+        foreign = _normalize_relation({**raw_edge, 'predicate_id': raw_edge['edge_kind']}, 'source-navigation', nodes,
+            relation_type_entries=entries, relation_type_mappings=mappings, fallback_relation_type_id=fallback)
+        self.assertEqual(foreign['relation_type_id'], fallback)
+        self.assertEqual(foreign['predicate_mapping']['status'], 'unmapped')
+
+        for field, value, marker in (('from_id', counter['to_id'], 'domain'),
+                                     ('to_id', counter['from_id'], 'range'),
+                                     ('source_graph', 'source-navigation', 'registered source mapping')):
+            invalid = copy.deepcopy(graph)
+            selected = next(edge for edge in invalid['relations'] if edge['id'] == counter['id'])
+            selected[field] = value
+            failed = validate_knowledge_semantics(invalid, self.entity_type_registry, self.relation_type_registry)
+            with self.subTest(field=field):
+                self.assertFalse(failed['valid'])
+                self.assertTrue(any(marker in message and counter['id'] in message for message in failed['violations']))
+        self.assertEqual(raw, before)
+
     def test_source_dossier_ref_reuses_only_declared_bibliographic_identity(self):
         corpus, philosophy = self.fixture()
         corpus['source_navigation'] = {'nodes': [

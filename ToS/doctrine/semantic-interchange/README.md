@@ -104,6 +104,20 @@ explicit `supersedes_*` link rather than reusing an old ID.
   topology: subject, predicate family, object, evidence, maker, provenance,
   review, version, and supersession stay inspectable.
 
+`tos.relation.claim-counterevidenced-by` preserves the existing source-claims
+`counterevidenced_by` edge as a separate Claim → Evidence role: the Claim cites
+that Evidence as counterevidence. Its inverse reads “cited as counterevidence
+by claim”. This is not `supported_by`, an Objection → Thesis relation, a proof
+of falsity, or a new writable Claim predicate. The
+[bibliographic producer](../../../scripts/source_witness_bibliographic_graph_common.py)
+derives this edge only from the Claim's explicit `counterevidence_refs` and
+retains its exact source, version, qualified context and recorded review state.
+Counterevidence is optional; absence does not establish that a search was done.
+The same Evidence may support the qualified Claim while limiting an overreading,
+as in `tos.claim.jgb21-conception-inversion`; the two roles remain distinct and
+neither edge adjudicates the Claim or grants admission. Unknown source
+vocabulary outside this exact edge mapping retains its existing fallback.
+
 Cross-layer predicates are intentionally narrow. `projects` connects carrier
 representations that already declare the same persistent ToS ID. `grounded-in`
 requires an exact declared source reference. `about` requires a source-owned

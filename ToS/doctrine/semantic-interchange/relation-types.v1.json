@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_relation_type_registry_v1",
   "registry_id": "tos.semantic.relation-types",
-  "registry_version": 40,
+  "registry_version": 41,
   "entity_registry_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
   "source_refs": [
     "ToS/doctrine/semantic-interchange/README.md",
@@ -2226,6 +2226,27 @@
       "evidence_required": false,
       "review_requirement": "recorded",
       "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "supported_by", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.claim-counterevidenced-by",
+      "parent_relation_type_ids": ["tos.relation.claim-structure"],
+      "abstract": false,
+      "labels": {"default": "claim cites counterevidence", "ru": "утверждение приводит контрсвидетельство", "en": "claim cites counterevidence"},
+      "inverse_labels": {"default": "cited as counterevidence by claim", "ru": "приводится утверждением как контрсвидетельство", "en": "cited as counterevidence by claim"},
+      "definition": "Connects a reified Claim to one source-returnable Evidence reference explicitly listed in its counterevidence_refs. This records the source-declared counterevidence role and retains the qualified Claim context; it does not decide contradiction, refutation, falsity, assessment outcome or admission. The same Evidence may also support the qualified Claim while limiting an overreading.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "domain_type_ids": ["tos.entity.claim"],
+      "range_type_ids": ["tos.entity.evidence"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": 0, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": false,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "counterevidenced_by", "scope": "edge"}],
       "supersedes_relation_type_id": null
     },
     {
