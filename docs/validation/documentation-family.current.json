@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 1181,
     "human_scope": {
-      "bytes": 5933194,
+      "bytes": 5936659,
       "count": 964,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -111,12 +111,12 @@
           "lines": 60
         },
         "tos": {
-          "bytes": 4581482,
+          "bytes": 4584947,
           "count": 674,
-          "lines": 76289
+          "lines": 76345
         }
       },
-      "lines": 100000
+      "lines": 100056
     },
     "surface_kind_counts": {
       "executable": 306,
@@ -167,7 +167,7 @@
         "human": 674,
         "structured": 3261
       },
-      "tracked_surface_bytes": 320956024,
+      "tracked_surface_bytes": 320959489,
       "tracked_surface_count": 3939
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "1a22f8633518004f1654635a4f99718e0bd539ee1a26320f4b395a85cfcaf161",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "b5d514fd46ee87654305c504247858d2682eec57d1280dcf514704a437afbc23",
+  "tracked_surface_digest": "99825fbef0b9999b1b11fae562e41f2161f8e8d03cb96d37ca71a73581035a09",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -307,7 +307,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agent-surface.current.json",
-      "sha256": "6b7a823e3d350e255538e30ab7161f767c5470d6ad1000f046ede111aea32f26",
+      "sha256": "fd1c710fc4857913fed7858c6814bd6003b94b1fcfc5b044bc814b55955fae0c",
       "surface_kind": "structured"
     },
     {
@@ -323,7 +323,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "9293b828d655fc9ed2cdd2510770bdf19b731a6a5fd70b16731b01345d66b722",
+      "sha256": "31d0d521061c7e4a7f2155015a1cdbac3e403c161b48a2214f50494e069dd883",
       "surface_kind": "structured"
     },
     {
@@ -18095,11 +18095,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5133,
+      "bytes": 8598,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/review-ledger/2026-09-09-native-derived-layer-assessment-review.md",
-      "sha256": "22a412e2b3564e0fbd28c05747484525214e56ab44ece3f894ef9671bcf665d9",
+      "sha256": "30868a5bd826cb12adcdc3c86572b558cc363a4786ed97edfae115d1f7d23a53",
       "surface_kind": "human"
     },
     {
