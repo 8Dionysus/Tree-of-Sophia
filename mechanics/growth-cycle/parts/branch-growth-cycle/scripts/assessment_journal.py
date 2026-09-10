@@ -605,8 +605,8 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
                 claim_profiles.validate(item['payload'], objects)
                 declared_dependencies[item['id']] = [selected_records[identifier].ref
                     for identifier in sorted(claim_profiles.identity_refs(item['payload']))]
-                from source_identity_proposals import PREDICATE, participants, related_claims
-                if item['payload']['predicate'] == PREDICATE:
+                from source_identity_proposals import PREDICATES, participants, related_claims, predecessor_allowed
+                if item['payload']['predicate'] in PREDICATES:
                     exact = (*participants(item['payload']), *related_claims(item['payload']))
                     for ref in exact:
                         if ref['id'] not in selected_records or selected_records[ref['id']].ref != ref:
@@ -614,7 +614,7 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
                     previous = item['payload']['object']['supersedes_proposal']
                     if previous is not None:
                         predecessor = selected_records[previous['id']].payload
-                        if predecessor.get('predicate') != PREDICATE:
+                        if not predecessor_allowed(item['payload'], predecessor):
                             raise JournalConflict('identity proposal predecessor is not an identity proposal')
                         claim_profiles.validate(predecessor, objects)
                     declared_dependencies[item['id']] = list(exact)

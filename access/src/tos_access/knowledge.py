@@ -1146,7 +1146,7 @@ def _source_claim_kind(item: dict[str, Any], claim_predicate: str | None = None,
         return node_kind
     if source_profile and source_profile.get('reader') == 'historical-temporal-v1':
         return 'temporal-assertion'
-    if source_profile and source_profile.get('reader') in {'structured-value-v1', 'structured-reference-value-v1', 'identity-transition-v1'}:
+    if source_profile and source_profile.get('reader') in {'structured-value-v1', 'structured-reference-value-v1', 'identity-transition-v1', 'identity-transition-v2'}:
         return source_profile['value_kind']
     value = properties.get("value")
     if claim_predicate == "provision_activity" or (
@@ -2079,7 +2079,7 @@ def _validate_reference_claim_carriers(bibliographic, raw_nodes, nodes_by_id,
         selected = traces.get(_string(raw.get('node_id')), [])
         predicates = [source.get('predicate'), properties.get('predicate'), *[row.get('predicate') for row in selected]]
         profiles = [profile(predicate) for predicate in predicates]
-        reference_readers = {'structured-reference-value-v1', 'identity-transition-v1'}
+        reference_readers = {'structured-reference-value-v1', 'identity-transition-v1', 'identity-transition-v2'}
         if not any(row.get('reader') in reference_readers for row in profiles):
             continue
         error = 'incomplete or inconsistent reference-value Claim carriers'
@@ -2088,9 +2088,11 @@ def _validate_reference_claim_carriers(bibliographic, raw_nodes, nodes_by_id,
                 or any(predicate != source.get('predicate') for predicate in predicates)
                 or profiles[0].get('reader') not in reference_readers):
             raise ValueError(error)
-        identity_plan = profiles[0].get('reader') == 'identity-transition-v1'
+        identity_plan = profiles[0].get('reader') in {'identity-transition-v1', 'identity-transition-v2'}
+        semantic_subjects = profiles[0].get('reader') == 'identity-transition-v2'
         trace, source_id = selected[0], source['claim_id']
-        rules = ({'min_items': 3, 'max_items': 9, 'subject_is_member': True, 'member_type_ids': ['tos.entity.identity']}
+        rules = ({'min_items': 3, 'max_items': 9, 'subject_is_member': True,
+                  'member_type_ids': ['tos.entity.identity', 'tos.entity.semantic-object'] if semantic_subjects else ['tos.entity.identity']}
                  if identity_plan else profiles[0]['object_reference_set'])
         value = source.get('object')
         members = value.get('members') if isinstance(value, dict) else None
@@ -2103,6 +2105,10 @@ def _validate_reference_claim_carriers(bibliographic, raw_nodes, nodes_by_id,
         if identity_plan:
             # Portable structural validation only. Full exact source/history
             # reading remains with the stronger source owner; never redirect IDs.
+            if (source.get('predicate'), source.get('schema_version')) != (
+                    ('subject_identity_transition_proposal', 'tos_subject_identity_transition_claim_v1') if semantic_subjects
+                    else ('identity_transition_proposal', 'tos_source_identity_transition_claim_v1')):
+                raise ValueError(error)
             predecessor_refs, successor_refs = value.get('predecessors'), value.get('successors')
             if (value.get('kind') != 'identity-transition-proposal' or source.get('assertion_layer') != 'identity_assertion'
                     or any(not isinstance(refs, list) or not 1 <= len(refs) <= 8
@@ -2153,7 +2159,36 @@ def _validate_reference_claim_carriers(bibliographic, raw_nodes, nodes_by_id,
                 raise ValueError(error)
             if identity_plan:
                 entry = entity_entries.get(normalized.get('type_id'), {})
-                if entry.get('abstract') is not False or entry.get('object_role') != 'identity':
+                if entry.get('abstract') is not False:
+                    raise ValueError(error)
+                if entry.get('object_role') == 'identity':
+                    continue
+                subject_profile = entry.get('source_record_profile') or {}
+                record = attributes.get('source_record') or {}
+                if not isinstance(subject_profile, dict) or not isinstance(record, dict):
+                    raise ValueError(error)
+                kind, source_ref = record.get('record_type'), carrier.get('source_ref')
+                if (not semantic_subjects or entry.get('object_role') != 'semantic'
+                        or subject_profile.get('reader') != 'semantic-metadata-v1'
+                        or subject_profile.get('identity_proposal_adapter') != 'exact-semantic-metadata-v1'
+                        or subject_profile.get('graph_layer') != 'source-profile'
+                        or not isinstance(kind, str) or kind in {'claim', 'literal', 'temporal-assertion'}
+                        or subject_profile.get('record_type') != kind
+                        or subject_profile.get('id_prefix') != 'tos.' + kind + '.'
+                        or subject_profile.get('source_basename') != kind + '.json'
+                        or record.get('record_id') != member
+                        or not member.startswith(subject_profile['id_prefix'])
+                        or record.get('visibility') not in {'public', 'public_metadata_only'}
+                        or sum(route.get('schema_version') == record.get('schema_version')
+                               for route in subject_profile.get('schemas', [])) != 1
+                        or not isinstance(source_ref, str) or '\\' in source_ref or '\x00' in source_ref
+                        or not source_ref.startswith('ToS/source-witnesses/')
+                        or source_ref.split('/')[-1] != subject_profile['source_basename']
+                        or any(part in {'catalog', 'payload', 'private', 'local-content', 'owner-local'}
+                               or not part or part.startswith('.') for part in source_ref.split('/'))
+                        or any(sum(mapping.get('source_graph') == graph and mapping.get('source_kind_id') == kind
+                                   for mapping in entry.get('source_mappings', [])) != 1
+                               for graph in ('source-claims', 'source-navigation'))):
                     raise ValueError(error)
 
 

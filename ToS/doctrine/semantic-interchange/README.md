@@ -1721,6 +1721,29 @@ ancestor, an ID prefix, a submitted type or an unavailable adapter does not
 qualify. Ordinary structured-value and reference-value grants do not authorize
 this reader. The subject creation route remains separate from proposal creation.
 
+The separate [subject identity-transition Claim](../../contracts/subject-identity-transition-claim.schema.json),
+predicate `subject_identity_transition_proposal` and `identity-transition-v2`
+reader add declared semantic subjects without changing v1. In addition to the
+v1 source identities, v2 accepts only concrete public subject metadata profiles
+that explicitly declare `identity_proposal_adapter: exact-semantic-metadata-v1`.
+The selected profile must retain `semantic-metadata-v1`, its exact kind/ID/file
+and schema routes, and source-claims and source-navigation mappings. Each frozen
+endpoint must resolve with the matching owner-derived typed descriptor, exact
+record version/digest and canonical public metadata path. Semantic ancestry,
+shared spelling, a submitted descriptor, an opaque annotation packet, an abstract
+type, Claim, literal, private/payload-only record or unsupported profile is not
+an endpoint capability. Future types must opt in through their source contract.
+
+The declared semantic description families include concepts and conceptions,
+lexical subjects, language/script descriptions, inquiry and reasoning subjects,
+Occurrences and already-issued Signs. This is proposal eligibility only:
+Occurrence native bindings and Sign issuance/promotion bases stay immutable,
+and neither binding nor Sign status transfers to another participant. A proposed
+successor must already exist through its own creation or promotion route.
+No new semantic subjects, equivalences or transition acceptance are introduced
+by enabling this adapter. V1 owner grants cannot dispatch v2 proposals, and v2
+grants do not silently replace v1 or authorize ordinary Claims.
+
 Corrections retain the proposal Claim ID, but freeze operation, membership,
 exact endpoint versions, mapping and predecessor proposal. Changed participants
 or topology require a new Claim and an exact `supersedes_proposal`. Its legacy
@@ -1728,6 +1751,9 @@ or topology require a new Claim and an exact `supersedes_proposal`. Its legacy
 exact reference. This is **proposal succession**, distinct from the proposed
 predecessor/successor subjects. An unresolved link is an exact referenced Claim
 and an authored question, never permission to migrate that Claim's endpoints.
+A v2 successor proposal may cite an exact v1 or v2 predecessor proposal; a v1
+proposal may cite only v1. Both historical schemas and reader routes remain
+available, with no retrospective broadening of old proposals or grants.
 
 The existing high-risk `identity` assessment profile remains unchanged: research
 use requires two reviewers, two independence groups, two supporting origins,

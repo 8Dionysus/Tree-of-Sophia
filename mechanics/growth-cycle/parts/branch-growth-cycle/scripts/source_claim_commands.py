@@ -24,14 +24,14 @@ PACKAGE_FILES = {SOURCE_CLAIM_BASENAME, 'source-create-request.json', 'source-cr
 
 def configuration(config):
     values_allowed = config['schema_version'] in {
-        source.CLAIM_VALUE_CONFIG, source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG, identity_proposals.CREATE_CONFIG}
+        source.CLAIM_VALUE_CONFIG, source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG, *identity_proposals.CREATE_CONFIGS}
     source._keys(config, {'schema_version', 'uid', 'principal_id', 'maker_type', 'source_root',
         'source_path', 'authority_ref', 'expires_at', 'provenance_event_id', 'allowed_operations',
         'allowed_claim_ids', 'allowed_subject_refs', 'allowed_object_refs', 'allowed_predicates',
         'allowed_evidence_refs'} | ({'allowed_object_values'} if values_allowed else set())
-        | ({'allowed_related_claim_refs'} if config['schema_version'] == identity_proposals.CREATE_CONFIG else set()))
+        | ({'allowed_related_claim_refs'} if config['schema_version'] in identity_proposals.CREATE_CONFIGS else set()))
     if (config['schema_version'] not in {source.CLAIM_CONFIG, source.CLAIM_VALUE_CONFIG,
-            source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG, identity_proposals.CREATE_CONFIG} or type(config['uid']) is not int
+            source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG, *identity_proposals.CREATE_CONFIGS} or type(config['uid']) is not int
             or config['uid'] != os.getuid() or config['maker_type'] not in {'human', 'software', 'model'}
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
@@ -47,7 +47,7 @@ def configuration(config):
             raise ValueError('claim delegation scope must be a bounded list of unique identifiers')
     if values_allowed:
         validate_value_scope(config)
-    if config['schema_version'] == identity_proposals.CREATE_CONFIG:
+    if config['schema_version'] in identity_proposals.CREATE_CONFIGS:
         validate_identity_scope(config)
     if (set(config['allowed_operations']) - {OPERATION}
             or any(not re.fullmatch(r'tos\.claim\.[a-z0-9]+(?:[.-][a-z0-9]+)*', value)
@@ -67,7 +67,8 @@ def configuration(config):
     profiles = SourceClaimProfiles(root)
     if set(config['allowed_predicates']) - profiles.profiles.keys():
         raise PermissionError('claim creation can delegate only declared source predicates')
-    if config['schema_version'] == identity_proposals.CREATE_CONFIG and config['allowed_predicates'] != [identity_proposals.PREDICATE]:
+    if (config['schema_version'] in identity_proposals.CREATE_CONFIGS and config['allowed_predicates'] != [
+            identity_proposals.READER_PREDICATES[identity_proposals.CONFIG_READERS[config['schema_version']]]]):
         raise PermissionError('identity proposal delegation cannot create other predicates')
     return config, source._digest(source._canonical(config)), root / relative
 
@@ -92,13 +93,13 @@ def value_is_delegated(config, value):
     if (config['schema_version'] not in {source.CLAIM_VALUE_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG,
                                        source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG,
                                        source.CLAIM_REFERENCE_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG,
-                                       source.OWNER_CLAIM_REFERENCE_CONFIG, identity_proposals.CREATE_CONFIG, identity_proposals.REVISION_CONFIG}
+                                       source.OWNER_CLAIM_REFERENCE_CONFIG, *identity_proposals.CONFIGS}
             or not isinstance(value, dict)
             or source._canonical(value) not in {source._canonical(v) for v in config['allowed_object_values']}):
         return False
     if config['schema_version'] in {source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG,
                                    source.CLAIM_REFERENCE_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG,
-                                   source.OWNER_CLAIM_REFERENCE_CONFIG, identity_proposals.CREATE_CONFIG, identity_proposals.REVISION_CONFIG}:
+                                   source.OWNER_CLAIM_REFERENCE_CONFIG, *identity_proposals.CONFIGS}:
         return True  # Exact bytes only; _value_scope checks declared identity dependencies.
     relative = value.get('relative')
     return (relative is None or isinstance(relative, dict)
@@ -145,8 +146,8 @@ def _scope(config, claims, *, profiles=None):
 def _value_scope(config, claim, profiles):
     """Check declared value scope before new writes and exact replays alike."""
     reader = profiles.profiles[claim['predicate']]['reader']
-    if reader == identity_proposals.READER:
-        if config['schema_version'] not in {identity_proposals.CREATE_CONFIG, identity_proposals.REVISION_CONFIG}:
+    if reader in identity_proposals.READERS:
+        if identity_proposals.CONFIG_READERS.get(config['schema_version']) != reader:
             raise PermissionError('identity proposals require a separate exact plan delegation')
         if (not value_is_delegated(config, claim['object'])
                 or any(identity not in config['allowed_object_refs'] for identity in profiles.reference_members(claim))):
@@ -185,7 +186,7 @@ def reference_replay_snapshot(config, records):
     """
     profiles = SourceClaimProfiles(Path(config['source_root']))
     selected = [record for record in records
-                if profiles.profiles[record['predicate']]['reader'] in {'structured-reference-value-v1', identity_proposals.READER}]
+                if profiles.profiles[record['predicate']]['reader'] in {'structured-reference-value-v1', *identity_proposals.READERS}]
     if not selected:
         return None
     return source._digest(source._canonical([
@@ -218,7 +219,7 @@ def _ground_claims(config, claims, *, initial):
         _value_scope(config, claim, profiles)
         if initial and (claim['claim_version'] != 1 or claim.get('assessment_refs')
                 or claim.get('supersedes_claim_ref') is not None and
-                   profiles.profiles[claim['predicate']]['reader'] != identity_proposals.READER):
+                   profiles.profiles[claim['predicate']]['reader'] not in identity_proposals.READERS):
             raise PermissionError('initial claim creation does not revise or assess claims')
         if initial and claim['claim_id'] in identifiers:
             raise source.JournalConflict('claim identity already exists')
@@ -250,7 +251,7 @@ def _ground_claims(config, claims, *, initial):
     if len(raw) > source.MAX_COMMAND_BYTES:
         raise ValueError('initial claim stream exceeds its bounded byte budget')
     source_bindings = {'objects': {}, 'evidence': {}}
-    proposals = [claim for claim in claims if profiles.profiles[claim['predicate']]['reader'] == identity_proposals.READER]
+    proposals = [claim for claim in claims if profiles.profiles[claim['predicate']]['reader'] in identity_proposals.READERS]
     orders = [claim for claim in claims if profiles.profiles[claim['predicate']].get(
         'object_reference_set', {}).get('basis_adapter') == 'collection-membership-versions-v1']
     if proposals or orders:
@@ -449,7 +450,8 @@ def command_handlers():
     return tuple(contract.Handler('public-claim-create-' + version, (schema,), operations, run_command,
         'Create declared public Claims; ' + values + '.', configure=lambda config, owner_config: configuration(config),
         typed_handles=(*contract.CLAIM_HANDLES, 'ToS/contracts/source-structured-value.schema.json', 'ToS/contracts/historical-claim.schema.json',
-                       *([identity_proposals.SCHEMA_REF] if schema == identity_proposals.CREATE_CONFIG else [])),
+                       *([identity_proposals.READER_SCHEMAS[identity_proposals.CONFIG_READERS[schema]][1]]
+                         if schema in identity_proposals.CREATE_CONFIGS else [])),
         profile_selection='Exact predicate selects source_claim_profile in relation-types.v1.json; ' + values + '.',
         preconditions=('Requires an absent relation home, explicit Claim/endpoints/evidence and maker allowlists.',
                        'Native topology, responsibility, membership and object-Link creation require their separately delegated compound handlers.'))
@@ -458,4 +460,5 @@ def command_handlers():
             ('v2', source.CLAIM_VALUE_CONFIG, 'separately allowlisted temporal values'),
             ('v3', source.CLAIM_STRUCTURED_CONFIG, 'separately allowlisted structured values, not reference-bearing values'),
             ('v4', source.CLAIM_REFERENCE_CONFIG, 'separately allowlisted structured reference values and exact identity dependencies'),
-            ('identity-v1', identity_proposals.CREATE_CONFIG, 'identity-transition-v1 proposals only; no subject ID changes or inherited admission')))
+            ('identity-v1', identity_proposals.CREATE_CONFIG, 'identity-transition-v1 proposals only; no subject ID changes or inherited admission'),
+            ('identity-v2', identity_proposals.CREATE_CONFIG_V2, 'identity-transition-v2 exact source or opted-in semantic subject proposals only; no identity mutation or admission')))

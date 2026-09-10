@@ -888,6 +888,65 @@ test('Claim navigation and exact Claim/metadata versions survive RU/EN compact/f
   }
 });
 
+test('V2 semantic identity proposals retain the whole frozen plan through Python Worker and D1', async () => {
+  // Use the real owner transaction and portable normalizer in a disposable
+  // synthetic source fixture. No canonical subjects or deployed DB are touched.
+  const fixture: {graph: KnowledgeGraph; claimId: string; plan: unknown; members: string[];
+    cases: {spec: unknown; expected: unknown}[]} = JSON.parse(execFileSync('python3', ['-c', `
+import json, sys
+sys.path[:0] = ['mechanics/growth-cycle/tests', 'access/src']
+from test_identity_proposals import SemanticIdentityProposalCommandTests
+from tos_access.knowledge import execute_knowledge_lens
+test = SemanticIdentityProposalCommandTests()
+with test.identity_creation() as (root, owner, config, claim, request, rebuild, helper, paths):
+    test.create(owner, request)
+    graph, _, _ = helper.historical_knowledge(root, rebuild())
+    specs = [{'schema_version': 'tos_lens_spec_v1', 'lens_id': 'semantic-proposal-transport',
+        'sources': ['source-claims'], 'language': language, 'detail': detail}
+        for language in ('ru', 'en') for detail in ('compact', 'full')]
+    result = {'graph': graph, 'claimId': 'source-claims:claim:' + claim['claim_id'],
+        'plan': claim['object'], 'members': ['source-claims:identity:' + key for key in claim['object']['members']],
+        'cases': [{'spec': spec, 'expected': execute_knowledge_lens(graph, spec)} for spec in specs]}
+print(json.dumps(result))
+`], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding: 'utf8', maxBuffer: 8 * 1024 * 1024}));
+  const source = fixture.graph, original = structuredClone(source);
+  const mf = new Miniflare(convertV4MiniflareOptions({modules: true,
+    script: 'export default {fetch(){return new Response()}}', d1Databases: ['DB']}));
+  try {
+    const db = await mf.getD1Database('DB');
+    await db.batch([
+      db.prepare('CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)'),
+      db.prepare('CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, search_text TEXT, json TEXT)'),
+      db.prepare('CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)'),
+      db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({sha256: source.source_revision})),
+      db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({source_revision: source.source_revision, authority_boundary: source.authority_boundary})),
+      ...source.nodes.map(n => db.prepare('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)').bind(
+        n.id, n.entity_id, n.native_id, n.source_graph, n.kind_id, n.type_id,
+        n.display.title.default.toLowerCase(), JSON.stringify(n).toLowerCase(), JSON.stringify(n))),
+      ...source.relations.map(r => db.prepare('INSERT INTO knowledge_relations VALUES (?,?,?,?,?,?,?,?,?,?)').bind(
+        r.id, r.native_id, r.source_graph, r.from_id, r.to_id, r.predicate_id, r.relation_type_id,
+        r.display.label.default.toLowerCase(), JSON.stringify(r).toLowerCase(), JSON.stringify(r))),
+    ]);
+    for (const {spec, expected} of fixture.cases) {
+      const pure = await executeKnowledgeLens(source, spec), result = await executeKnowledgeLensD1(db, spec);
+      assert.deepEqual(pure, expected, 'Python/Worker parity');
+      assert.deepEqual(result, pure, 'D1 preserves the normalized proposal and members');
+      const proposal = result.nodes.find(n => n.id === fixture.claimId)!;
+      assert.ok(proposal);
+      const contexts = proposal.semantics.assertion_contexts as {fields: Record<string, {value: unknown}>}[];
+      assert.deepEqual(contexts[0]!.fields.object!.value, fixture.plan);
+      assert.deepEqual(proposal.semantics, source.nodes.find(n => n.id === fixture.claimId)!.semantics);
+      assert.equal(proposal.epistemic.review_posture, 'unreviewed');
+      assert.deepEqual(result.relations.filter(r => r.relation_type_id === 'tos.relation.claim-value-member')
+        .map(r => r.to_id).sort(), fixture.members.toSorted());
+      for (const id of fixture.members) assert.ok(result.nodes.some(n => n.id === id), 'each old subject stays independent');
+    }
+    assert.deepEqual(source, original, 'transport performs no subject transition');
+  } finally {
+    await mf.dispose();
+  }
+});
+
 test('display selection keeps fallback, original language and ambiguity observable', () => {
   const forms = {default: 'Unspecified language', original: 'λόγος', fr: 'mot',
     'zh-Hant': '詞', de: 'Wort', 'x-research': 'Unassessed wording'};

@@ -39,6 +39,7 @@
         "creation_gate": {"enum": ["sign-promotion-v1"], "description": "The exact authored Sign profile requires the separate competent-assessment promotion command. This descriptor selects a fail-closed creation boundary; it grants no promotion or current-use authority."},
         "native_binding_adapter": {"enum": ["source-text-unit-v1"], "description": "Explicit return from a semantic description to an immutable native_text_binding. The current public metadata reader requires a separately public native packet and text layer; declaring this adapter grants neither publication nor linguistic acceptance."},
         "retained_native_adapter": {"enum": ["scholarly-composite-v1"], "description": "Explicit coexistence with the unchanged native composite-witness adapter. Only the composite type may declare this route; it does not convert or duplicate native identity."},
+        "identity_proposal_adapter": {"const": "exact-semantic-metadata-v1", "description": "Explicit V2 proposal eligibility for this concrete declared semantic subject and its exact metadata version. It is not a grant, payload reader, native-identity adapter, identity transition or assessment admission."},
         "profile_version": {"type": "integer", "minimum": 1},
         "reader": {"enum": ["corpus-metadata-v1", "semantic-metadata-v1"]},
         "record_type": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"},
@@ -55,7 +56,9 @@
                 "items": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"}}
             }}},
         "graph_layer": {"enum": ["historical", "source-profile"]}
-      }
+      },
+      "allOf": [{"if": {"required": ["identity_proposal_adapter"]},
+        "then": {"properties": {"reader": {"const": "semantic-metadata-v1"}, "graph_layer": {"const": "source-profile"}}}}]
     },
     "propertyDefinition": {
       "type": "object", "additionalProperties": false,
@@ -114,6 +117,9 @@
         "source_mappings",
         "supersedes_type_id"
       ],
+      "allOf": [{"if": {"required": ["source_record_profile"], "properties": {
+        "source_record_profile": {"required": ["identity_proposal_adapter"]}}},
+        "then": {"properties": {"abstract": {"const": false}, "object_role": {"const": "semantic"}}}}],
       "properties": {
         "type_id": {"$ref": "#/$defs/typeId"},
         "source_record_profile": {"$ref": "#/$defs/sourceRecordProfile"},

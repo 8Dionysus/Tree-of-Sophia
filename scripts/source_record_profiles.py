@@ -37,7 +37,7 @@ TEMPORAL_VALUE_REF = 'ToS/contracts/historical-claim.schema.json'
 STRUCTURED_VALUE_REF = 'ToS/contracts/source-structured-value.schema.json'
 MEMBER_STRUCTURE_REF = 'ToS/contracts/scoped-member-structure.schema.json'
 REFERENCE_VALUE_READER = 'structured-reference-value-v1'
-STRUCTURED_VALUE_READERS = {'structured-value-v1', REFERENCE_VALUE_READER, identity_proposals.READER}
+STRUCTURED_VALUE_READERS = {'structured-value-v1', REFERENCE_VALUE_READER, *identity_proposals.READERS}
 CLAIM_SHARED_REFS = ('ToS/contracts/claim-packet.schema.json',
                      'ToS/contracts/knowledge-assessment.schema.json', CLAIM_BASE_REF)
 MAX_CLAIM_FILE_BYTES = 16_777_216
@@ -260,6 +260,8 @@ class SourceRecordProfiles:
             if not validator.is_valid(profile):
                 raise SourceProfileError('source-record profile violates its declared contract')
             kind = profile['record_type']
+            if 'identity_proposal_adapter' in profile and not identity_proposals.semantic_profile_eligible(entry):
+                raise SourceProfileError(f'{kind}: identity proposal adapter requires an exact declared semantic subject')
             authored_sign = (kind == 'sign' and entry['type_id'] == 'tos.entity.sign'
                              and profile['reader'] == 'semantic-metadata-v1')
             if (('creation_gate' in profile and not authored_sign)
@@ -532,6 +534,9 @@ class SourceClaimProfiles:
         self.entities = {entry['type_id']: entry for entry in entity_registry['types']}
         if len(self.entities) != len(entity_registry['types']):
             raise SourceProfileError('duplicate entity type identity')
+        if any('identity_proposal_adapter' in entry.get('source_record_profile', {})
+               and not identity_proposals.semantic_profile_eligible(entry) for entry in self.entities.values()):
+            raise SourceProfileError('identity proposal adapter requires an exact declared semantic subject')
         self.mappings, self.profiles, self.relations = {}, {}, {}
         self.schema_routes, self.schemas, self.validators, self.base_validators = {}, {}, {}, {}
         self.temporal_validators = {}
@@ -564,9 +569,14 @@ class SourceClaimProfiles:
             semantic_endpoint = False
             for endpoint, type_id in ((endpoint, type_id) for endpoint in ('domain_type_ids', 'range_type_ids')
                                       for type_id in entry[endpoint]):
-                if profile['reader'] == identity_proposals.READER and endpoint == 'domain_type_ids':
-                    if (entry[endpoint] != ['tos.entity.identity'] or predicate != identity_proposals.PREDICATE
-                            or profile['assertion_layers'] != ['identity_assertion']):
+                if profile['reader'] in identity_proposals.READERS and endpoint == 'domain_type_ids':
+                    reader = profile['reader']
+                    expected_domain = (['tos.entity.identity'] if reader == identity_proposals.READER
+                                       else ['tos.entity.identity', 'tos.entity.semantic-object'])
+                    if (entry[endpoint] != expected_domain or predicate != identity_proposals.READER_PREDICATES[reader]
+                            or profile['assertion_layers'] != ['identity_assertion']
+                            or [(route['schema_version'], route['schema_ref']) for route in profile['schemas']]
+                               != [identity_proposals.READER_SCHEMAS[reader]]):
                         raise SourceProfileError('identity proposal requires its exact capability-bound domain')
                     continue  # Mandatory concrete source-role validation below; never ancestry fallback.
                 if type_id in {'tos.entity.thing', 'tos.entity.identity', 'tos.entity.semantic-object',
@@ -632,7 +642,7 @@ class SourceClaimProfiles:
     def reference_members(self, claim):
         """Only the declared fixed slot is interpreted; arbitrary JSON stays inert."""
         profile = self.profiles[claim['predicate']]
-        if profile['reader'] == identity_proposals.READER:
+        if profile['reader'] in identity_proposals.READERS:
             return tuple(ref['id'] for ref in identity_proposals.participants(claim))
         if profile['reader'] != REFERENCE_VALUE_READER:
             return ()
@@ -715,11 +725,12 @@ class SourceClaimProfiles:
             validate_member_structure(claim)
         if objects is not None:
             relation = self.relations[predicate]
-            if self.profiles[predicate]['reader'] == identity_proposals.READER:
+            if self.profiles[predicate]['reader'] in identity_proposals.READERS:
                 for identity in self.reference_members(claim):
                     record = objects.get(identity)
                     kind = self.mappings.get(record['record_type']) if record else None
-                    if not identity_proposals.eligible_type(self.entities, kind):
+                    if not identity_proposals.eligible_type(self.entities, kind,
+                                                           reader=self.profiles[predicate]['reader']):
                         raise SourceProfileError('identity proposal participant lacks a concrete source identity role')
                 return
             endpoints = [('subject_ref', claim['subject_ref'], relation['domain_type_ids'])]

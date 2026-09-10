@@ -2205,6 +2205,15 @@ participant role, including the focal subject. No other predicate is writable
 under this configuration. Command discovery exposes this handler and its exact
 source schema without granting its operations.
 
+The separately selected `tos_local_identity_proposal_create_owner_v2` has the
+same transaction grammar and exact allowlists, but writes exclusively
+`subject_identity_transition_proposal` under the
+[v2 subject proposal contract](../../../../ToS/contracts/subject-identity-transition-claim.schema.json).
+It supports the prior concrete source identities plus explicitly opted-in
+declared semantic subject metadata. Eligibility requires the exact source
+profile capability and typed public metadata return, not an ID prefix or a
+generic semantic role. The v1 and v2 configurations are not interchangeable.
+
 `tos_local_identity_proposal_revision_owner_v1` similarly reuses `describe`,
 `prepare-revise`, `claim.revise` and `inspect-version`. It has the v4 correction
 fields plus the same related-Claim allowlist. The current and proposed whole
@@ -2214,6 +2223,9 @@ scope, unresolved-link questions, evidence and qualified statement. It cannot
 change operation, participant IDs or exact versions, mapping, predecessor
 proposal, focal subject, layer, maker or admission. A changed plan gets a new
 Claim with an exact predecessor proposal, not a rewritten subject identity.
+`tos_local_identity_proposal_revision_owner_v2` applies that same correction,
+form and history engine only to v2 proposals. A new v2 proposal can supersede
+an exact v1 or v2 proposal; old v1 revision and succession stay v1-only.
 
 Preparation and publication resolve each participant through
 `MetadataVersionReader.resolve_typed(exact_ref)` and related Claims through
