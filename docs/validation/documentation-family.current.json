@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 549,
     "human_scope": {
-      "bytes": 4395231,
+      "bytes": 4394515,
       "count": 804,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -91,9 +91,9 @@
           "lines": 202
         },
         "root": {
-          "bytes": 175991,
+          "bytes": 175275,
           "count": 14,
-          "lines": 3037
+          "lines": 3024
         },
         "scripts": {
           "bytes": 10577,
@@ -116,7 +116,7 @@
           "lines": 60739
         }
       },
-      "lines": 76822
+      "lines": 76809
     },
     "surface_kind_counts": {
       "executable": 200,
@@ -134,7 +134,7 @@
       "surface_kind_counts": {
         "human": 14
       },
-      "tracked_surface_bytes": 175991,
+      "tracked_surface_bytes": 175275,
       "tracked_surface_count": 14
     },
     {
@@ -149,7 +149,7 @@
         "human": 3,
         "structured": 3
       },
-      "tracked_surface_bytes": 137956,
+      "tracked_surface_bytes": 137955,
       "tracked_surface_count": 6
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "51043284ed763f0ed2b9dba8297b0cb627d5ff3c4a518b512a9ce8882b4d8c41",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "c645aaf0f5d89137ddba8d2f193085bb5ebc6c55f4a6c48f443faae9aac0f9ad",
+  "tracked_surface_digest": "ffeb5e2a3a77e7d42e43d12e1f3b5f4ab4da28b31e7b672b3c91c19b9152ffc7",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -319,11 +319,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 86469,
+      "bytes": 86468,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "1b9bf12709cd73278b8e61a4a9479ae4c04b0102a10d3bbf5cc1dffceee8303a",
+      "sha256": "3decc0f82ee9b7c7e91a2be4a0b19a0acf600a43ee740e259595cfdfe2805899",
       "surface_kind": "structured"
     },
     {
@@ -439,11 +439,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5992,
+      "bytes": 5276,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "README.md",
-      "sha256": "e750df59b600d92ef5173259c1a9633a7474170bb1e390c3211cf78204273fc8",
+      "sha256": "8ddf2fbdc5aa6e541f770247368d33e6064e8e0986613674633d68664d4035e0",
       "surface_kind": "human"
     },
     {
