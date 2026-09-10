@@ -1,6 +1,6 @@
 # Private native TextLayer and first TextUnit construction
 
-This source-owner route implements two separately delegated steps:
+The initial source-owner route implements two separately delegated steps:
 `text-layer.create` extracts a bounded representation from an already acquired
 exact EPUB member; `text-unit.create` with its v2 owner configuration constructs
 the first explicit interval partition of one real TextLayer. Neither step needs
@@ -12,6 +12,11 @@ provenance-event v2 contracts own the output grammar. The new
 [`native-text-layer-binding` contract](../../../../../ToS/contracts/native-text-layer-binding.schema.json)
 is a selection handle, not a replacement source record or assessment subject.
 Existing v1 unit-construction and public Occurrence gates keep their contracts.
+
+The separate additive derivation grant below now implements correction,
+Unicode normalization and recording of supplied source-bound OCR/transcription
+results. Schema enum support alone is not an execution route: the original
+extraction grant cannot authorize any of these operations.
 
 ## Separately selected extraction grant
 
@@ -156,6 +161,144 @@ runtime bytes. V1 replay remains historical-request/current-validation; V2 and
 layer creation require their exact pinned construction inputs still to match.
 An unrelated new identity elsewhere is not historical source-byte drift, but
 collision discovery still runs and source/right/context changes are refused.
+
+## Additive correction, normalization and supplied-result recording
+
+`owner-local-text-layer-derive` is a separate discoverable handler in the same
+`source_text_layer_commands.py` module. Its protected mode-0600 grant is
+`tos_local_text_layer_derive_owner_v1`. It selects exactly one operation:
+
+- `text-layer.correct`: apply explicitly supplied ordered code-point edit
+  proposals to one exact predecessor, preserving everything outside them;
+- `text-layer.normalize`: actually execute one declared NFC, NFD, NFKC or NFKD
+  transformation under the named Python Unicode database version;
+- `text-layer.record-transcription`: record supplied manual or model
+  transcription bytes, without executing the reported upstream transcription;
+- `text-layer.record-ocr`: record supplied OCR bytes, without launching an OCR
+  engine or producing an OCR execution receipt.
+
+All four create a new private `source-text-layer.v1.json`, never an update to
+the input. Correction/normalization has one exact predecessor, a new opaque
+layer identity, version `previous.layer_version + 1`, and `supersedes_layer_ref`
+equal to the predecessor identity. The raw predecessor record/content and
+original acquired File remain unchanged. Supplied OCR/transcription instead
+starts a new version-1 layer from an already acquired File and existing exact
+source anchor; it does not fabricate a predecessor transcription.
+
+### Derivation grant and fixed policy
+
+The common top-level fields retain the extraction grant's exact account,
+principal/authority/expiry, source context/path, source scope, four metadata
+refs/digests, manifest digest, language, maker and limits. The differences are:
+
+- `allowed_operations` is exactly one of the operations above; `identities`
+  contains only independently selected `layer_id` and `provenance_event_id`.
+  Existing source anchors keep their identities and exact bytes.
+- `derivation_access` keeps separate current authority, expiry, visibility and
+  exact rights bindings, with `operation` equal to `correction`,
+  `unicode_normalization`, `manual_transcription`, `model_transcription` or
+  `ocr` as selected by the fixed policy. Both Item/File and the **new layer**
+  need their own applicable existing derivation-rights basis.
+- `policy` must equal `source_text_layer_proposal.derivation_policy(operation,
+  unicode_form=...)`. Normalization requires an explicit supported form; other
+  operations use `none`. For `record-transcription`, the optional
+  `transcription_method` selects `manual_transcription` (default) or
+  `model_transcription`. This helper returns inert versioned rules, not code
+  selected by the caller. Normalization maker must be software, with method
+  `tos.unicode.normalize.v1` and version equal to the policy's actual Unicode
+  database version.
+- `member` and `selector` do not occur in this grant. `input` and `material`
+  have the exact operation-specific shapes below.
+
+For correction/normalization, `input` is `{kind: "text_layer", binding: ...}`,
+where the binding uses existing `tos_native_text_layer_binding_v1` and agrees
+with the independently pinned metadata refs. `source_access` contains
+`read_scope: "exact_text_layer"`, `access_allowed: true`, exact positive
+`byte_size`, `authority_ref` and `expires_at`, with no payload root. The input
+must be the whole exact UTF-8 representation with scope `[0, length)` and the
+same source/language as the new layer. Its own recorded rights are checked
+before its content is opened. No original payload is opened by these methods.
+
+Correction `material` is `{edits: [...]}`. Each edit has exactly `start`, `end`,
+`input_exact`, `input_sha256`, `output_exact`, `reason`, and `confidence` in
+`[0, 1]`. Spans are ordered, nonoverlapping, half-open Unicode code points;
+the input bytes/digest must match the predecessor. Insert/delete/replace are
+derived from the supplied spans and strings, never from an implicit diff.
+Every emitted edit retains input/output coordinates, exact text and hashes,
+the configured responsible maker and original anchor refs, with `proposed`
+status. A correction does not create human review merely because its supplier
+is human. Source-near correction of an already normalized layer is unsupported;
+it cannot silently erase that predecessor's normalization posture.
+
+Normalization `material` is `{}`. The executor records one explicit whole-text
+Unicode operation, including when the result bytes happen to be unchanged.
+That means a declared normalization was applied, not that a textual error was
+found. The new layer is `normalized_text`; it receives no source-fidelity or
+diplomatic authority. No trimming, whitespace collapse or unrelated editorial
+rewrite is performed.
+
+For supplied OCR/transcription, `input` is `{kind: "acquired_file", anchor:
+{anchor_id, record_ref, record_sha256}}`. The existing v2 anchor must bind the
+same Item/File/digest and manifest media type. Supported exact Files are EPUB,
+PDF, PNG, JPEG, TIFF and WebP; the command verifies original File fixity but
+does not execute the anchor selector, render a page or inspect glyphs. Its
+`source_access` has the extraction grant's exact acquired-File fields,
+including the explicit disjoint payload root and byte size.
+
+Here `material` contains exactly `content_ref`, `content_sha256`, `byte_size`,
+`access_allowed: true`, its independent `authority_ref`/`expires_at`,
+`provider_execution: "not_observed"`, and `reported_maker:
+{maker_type, agent_ref, method, version}`. The content ref selects an existing
+private file outside the new package. Its exact strict UTF-8 bytes are copied
+without newline or Unicode rewriting. Manual transcription requires a reported
+human maker; model transcription a reported model; OCR a reported software,
+model or mixed producer. These are **supplied declarations**, distinct from
+the command principal that records them. This route does not authenticate their
+identity, method execution, competence, completeness or fidelity to the anchor.
+It cannot substitute a declared provider name for observed execution evidence.
+
+### Bounds, retained evidence and downstream route
+
+Input and output text are each at most 128 KiB, further narrowed by the grant;
+correction has at most 128 edits, with per-reason length bounded at 2,048
+characters. This also bounds explicit input/output strings in the layer record.
+No quadratic edit search runs. Original acquired Files retain the 512 MiB
+streamed-fixity ceiling; no image/PDF decompression or provider process is run.
+Existing metadata-count, lineage-depth and cumulative resolver budgets remain;
+the derivation writer allows two bounded text representations for independent
+immediate-predecessor delta verification. The 60-second cooperative deadline,
+12-file/12-MiB package and 18-MiB retained-plan ceilings still apply.
+
+The package contains the new layer, `content.txt`, `derivation-policy.json`,
+and the existing retained configuration/inputs/request/environment/provenance/
+receipt files. It references existing source anchors instead of manufacturing
+new ones. Request grammar, expected configuration/dependencies, absent initial
+target, protected locks, exact idempotent retry and interruption recovery are
+the same construction route described below. An expired or changed grant,
+predecessor, supplied result, rights, implementation or third-state file blocks
+retry; evidence is retained for explicit owner action, not erased or reissued.
+
+Provenance distinguishes actual correction/normalization from supplied-result
+capture. The latter uses `annotation`, has no model invocation, and explicitly
+says that upstream OCR/transcription was not executed or authenticated. Its
+layer method describes the reported representation origin, not an execution
+receipt. All outputs remain unreviewed, with no accepted use, competence,
+promotion or publication authority; predecessor uncertainty stays unresolved.
+
+`NativeTextBindingResolver` verifies exact predecessor record/content/version,
+source scope and retained policy/configuration. Exact reads independently replay
+the explicit edits; they do not replay a historical OCR provider or use the
+current Unicode implementation as evidence of historical execution. Existing
+first segmentation can consume the real new layer without inheriting quality.
+
+The current `NativeLayerAssessmentSources._metadata` comparison adapter remains
+explicitly extraction-only and refuses these new methods. A prior extraction
+assessment is not a quality basis for its successor. The next owner route is
+`native_text_layer_assessment.py` and `NATIVE_TEXT_LAYER_ASSESSMENT.md`: introduce
+source-visible method-specific comparison with exact new layer and predecessor
+or anchored original, then issue a separate current purpose-scoped quality
+basis through the existing assessment journal. This construction commit does
+not claim Foundation-wide assessment completion or real-source acceptance.
 
 ## No-replace commit, replay and retained recovery
 

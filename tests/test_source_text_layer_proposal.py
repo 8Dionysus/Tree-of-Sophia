@@ -296,5 +296,107 @@ class TextLayerProposalTests(unittest.TestCase):
             self.assertEqual(self.build(exact_text=text)["content"], text.encode("utf-8"))
 
 
+class DerivedLayerProposalTests(unittest.TestCase):
+    def setUp(self):
+        seed = TextLayerProposalTests()
+        seed.setUp()
+        self.previous = seed.build()['layer']
+        self.text = seed.inputs['exact_text']
+        self.refs = {key: value.replace('/synthetic/layer/', '/synthetic/successor/')
+                     for key, value in seed.inputs['refs'].items()
+                     if key in {'content_ref', 'policy_ref', 'configuration_ref', 'configuration_sha256'}}
+        self.config = {'allowed_operations': ['text-layer.normalize'],
+            'policy': proposal.derivation_policy('text-layer.normalize', unicode_form='NFC'),
+            'identities': {'layer_id': opaque('text-layer', 2), 'provenance_event_id': opaque('event', 2)},
+            'maker': copy.deepcopy(seed.inputs['maker']), 'material': {}, 'language': 'en',
+            'derivation_access': {'rights_record_refs': copy.deepcopy(seed.inputs['rights_record_refs'])}}
+        self.bind(self.text)
+
+    def bind(self, text):
+        self.text = text
+        self.previous['representation'].update(content_sha256=sha(text.encode()), content_file_id='tos.file.sha256.' + sha(text.encode()))
+        self.previous['representation']['text_scope']['end'] = len(text)
+        self.config['input'] = {'binding': {'text_layer': {'layer_id': self.previous['layer_id'],
+            'layer_version': self.previous['layer_version'], 'record_ref': 'ToS/source-witnesses/synthetic/input.json',
+            'record_sha256': sha(record_bytes(self.previous))}}}
+
+    def build(self):
+        return proposal.build_derived_text_layer(config=self.config, refs=self.refs,
+            source_binding=self.previous['source_binding'], predecessor=self.previous, input_text=self.text)
+
+    def test_all_declared_unicode_forms_are_exact_and_schema_valid(self):
+        schema = json.loads((REPO_ROOT / 'ToS/contracts/source-text-layer.schema.json').read_bytes())
+        for form, original, expected in [('NFC', 'e\u0301', '\u00e9'), ('NFD', '\u00e9', 'e\u0301'),
+                ('NFKC', '\ufb01 \u2460', 'fi 1'), ('NFKD', '\u00e9 \u2460', 'e\u0301 1'),
+                ('NFC', 'already normalized', 'already normalized')]:
+            with self.subTest(form=form, original=original):
+                self.bind(original)
+                before = record_bytes(self.previous)
+                self.config['policy'] = proposal.derivation_policy('text-layer.normalize', unicode_form=form)
+                output = self.build()
+                self.assertEqual(output['content'], expected.encode())
+                Draft202012Validator(schema).validate(output['layer'])
+                self.assertEqual(_source_text_layer_semantic_issues(output['layer']), [])
+                self.assertEqual(record_bytes(self.previous), before)
+                edit = output['layer']['derivation']['change_payload']['operations'][0]
+                self.assertEqual(edit['input_exact'], original)
+                self.assertEqual(edit['output_exact'], expected)
+                self.assertEqual(edit['status'], 'proposed')
+
+    def test_no_predecessor_quality_or_admission_is_transferred(self):
+        self.previous['admission'].update(review_status='accepted', accepted_uses=['citation'],
+            human_review_performed=True, human_language_competence='competent', promotion_authorized=True)
+        self.bind(self.text)
+        output = self.build()['layer']
+        self.assertEqual(output['admission']['accepted_uses'], [])
+        self.assertEqual(output['admission']['review_status'], 'unreviewed')
+        self.assertFalse(output['admission']['human_review_performed'])
+        self.assertFalse(output['admission']['promotion_authorized'])
+        self.assertEqual(output['admission']['human_language_competence'], 'not_assessed')
+
+    def test_partial_scope_wrong_version_identity_and_policy_are_refused(self):
+        config, previous = copy.deepcopy((self.config, self.previous))
+        for mutation in ('scope', 'version', 'identity', 'policy', 'digest'):
+            self.config, self.previous = copy.deepcopy((config, previous))
+            if mutation == 'scope':
+                self.previous['representation']['text_scope']['start'] = 1
+            elif mutation == 'version':
+                self.config['input']['binding']['text_layer']['layer_version'] += 1
+            elif mutation == 'identity':
+                self.config['identities']['layer_id'] = self.previous['layer_id']
+            elif mutation == 'policy':
+                self.config['policy']['unicode_database_version'] = 'unsupported'
+            else:
+                self.previous['representation']['content_sha256'] = '0' * 64
+            with self.subTest(case=mutation), self.assertRaises(TextLayerProposalError):
+                self.build()
+
+    def test_normalized_text_cannot_be_silently_relabelled_as_source_near_correction(self):
+        self.previous['layer_role'] = 'normalized_text'
+        self.previous['representation']['character_normalization'] = 'NFC'
+        self.config['allowed_operations'] = ['text-layer.correct']
+        self.config['policy'] = proposal.derivation_policy('text-layer.correct')
+        self.config['material'] = {'edits': []}
+        with self.assertRaisesRegex(TextLayerProposalError, 'cannot erase predecessor normalization'):
+            self.build()
+
+    def test_bounded_text_and_edit_sequence_reject_excess_before_expansion(self):
+        self.bind('x' * (proposal.MAX_DERIVED_TEXT_BYTES + 1))
+        with self.assertRaises(TextLayerProposalError):
+            self.build()
+        self.bind('A')
+        self.config['allowed_operations'] = ['text-layer.correct']
+        self.config['policy'] = proposal.derivation_policy('text-layer.correct')
+        self.config['material'] = {'edits': [{}] * (proposal.MAX_EDITS + 1)}
+        with self.assertRaises(TextLayerProposalError):
+            self.build()
+
+    def test_native_transform_is_pure_and_does_not_execute_supplied_source(self):
+        with (patch('builtins.open', side_effect=AssertionError('file I/O')),
+              patch('subprocess.Popen', side_effect=AssertionError('process I/O')),
+              patch('socket.socket', side_effect=AssertionError('network I/O'))):
+            self.assertEqual(self.build()['layer']['derivation']['method'], 'unicode_normalization')
+
+
 if __name__ == "__main__":
     unittest.main()

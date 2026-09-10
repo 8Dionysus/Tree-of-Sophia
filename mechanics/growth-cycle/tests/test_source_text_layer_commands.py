@@ -432,5 +432,410 @@ def contract_request():
     return 'tos_local_source_command_v1'
 
 
+class NativeLayerDerivationTests(unittest.TestCase):
+    def setUp(self):
+        from source_text_layer_proposal import derivation_policy
+        self.seed = NativeLayerCommandTests()
+        self.seed.setUp()
+        self.addCleanup(self.seed.doCleanups)
+        self.seed.created()
+        self.base, self.store, self.public = self.seed.base, self.seed.store, self.seed.public
+        self.prior_files = self.seed.files()
+        self.prior = json.loads(self.seed.path.read_bytes())
+        self.config = copy.deepcopy(self.seed.config)
+        self.config.update(schema_version=layers.DERIVE_CONFIG,
+            source_path=self.seed.prefix + 'layers/normalized/source-text-layer.v1.json',
+            allowed_operations=['text-layer.normalize'],
+            input={'kind': 'text_layer', 'binding': self.binding(self.seed.source_ref)}, material={},
+            policy=derivation_policy('text-layer.normalize', unicode_form='NFC'))
+        self.config.pop('member')
+        self.config.pop('selector')
+        self.config['identities'] = {'layer_id': 'tos.text-layer.sid-' + '5' * 32,
+                                     'provenance_event_id': 'tos.event.sid-' + '6' * 32}
+        self.config['source_access'] = {'read_scope': 'exact_text_layer', 'access_allowed': True,
+            'byte_size': len(self.seed.content), 'authority_ref': 'operator:synthetic-layer-reading',
+            'expires_at': '2099-01-01T00:00:00Z'}
+        self.config['maker'].update(method='tos.unicode.normalize.v1', version=self.config['policy']['unicode_database_version'])
+        self.rights_ref = self.seed.prefix + 'rights/derived-result.json'
+        rights = copy.deepcopy(self.seed.fixture.rights)
+        rights.update(rights_id='tos.rights.synthetic.new-derived-layer', scope_refs=[self.config['identities']['layer_id']])
+        self.write_private(self.rights_ref, encode(rights))
+        self.config['derivation_access'].update(operation='unicode_normalization', rights_record_refs=[
+            copy.deepcopy(self.seed.config['derivation_access']['rights_record_refs'][0]),
+            {'ref': self.rights_ref, 'sha256': source._digest((self.store / self.rights_ref).read_bytes())[7:]}])
+        self.owner = self.base / 'derived-owner.json'
+        self.path = self.store / self.config['source_path']
+        self.write_owner()
+
+    def write_private(self, ref, raw):
+        path = self.store / ref
+        path.write_bytes(raw)
+        path.chmod(0o600)
+
+    def write_owner(self):
+        self.owner.write_bytes(encode(self.config))
+        self.owner.chmod(0o600)
+
+    def binding(self, ref):
+        raw = (self.store / ref).read_bytes()
+        row = json.loads(raw)
+        return {'schema_version': 'tos_native_text_layer_binding_v1',
+            'text_layer': {'record_ref': ref, 'record_sha256': source._digest(raw)[7:],
+                'layer_id': row['layer_id'], 'layer_version': row['layer_version']},
+            'source_record_refs': dict(self.seed.fixture.refs)}
+
+    def invoke(self, request):
+        return source.run_local_command(self.owner, request)
+
+    def prepare(self):
+        response = self.invoke({'schema_version': contract_request(), 'operation': 'prepare-create'})
+        self.request = {'schema_version': contract_request(), 'operation': self.config['allowed_operations'][0],
+            'command_id': 'synthetic-native-derivation', 'expected_configuration': response['owner_configuration'],
+            'expected_dependencies': response['expected_dependencies'], 'expected_source': None, 'expected_revision': None}
+        return response
+
+    def created(self):
+        self.prepare()
+        return self.invoke(self.request)
+
+    def output(self):
+        return {path.name: path.read_bytes() for path in self.path.parent.iterdir()}
+
+    def correction(self):
+        from source_text_layer_proposal import derivation_policy
+        self.config['allowed_operations'] = ['text-layer.correct']
+        self.config['derivation_access']['operation'] = 'correction'
+        self.config['policy'] = derivation_policy('text-layer.correct')
+        self.config['maker'].update(maker_type='human', method='supplied synthetic correction', version='1')
+        start = self.seed.content.decode().index('test')
+        self.config['material'] = {'edits': [{'start': start, 'end': start + 4,
+            'input_exact': 'test', 'input_sha256': source._digest(b'test')[7:], 'output_exact': 'trial',
+            'reason': 'Synthetic source-visible correction proposal, not accepted reading.', 'confidence': 0.7}]}
+        self.write_owner()
+
+    def supplied(self, operation):
+        from source_text_layer_proposal import derivation_policy
+        self.config['allowed_operations'] = [operation]
+        self.config['derivation_access']['operation'] = layers.DERIVE_OPERATIONS[operation]
+        self.config['policy'] = derivation_policy(operation)
+        self.config['maker'].update(method='record explicitly supplied text', version='1')
+        self.config['source_access'] = copy.deepcopy(self.seed.config['source_access'])
+        anchor = self.prior['source_binding']['anchors'][0]
+        self.config['input'] = {'kind': 'acquired_file', 'anchor': {'anchor_id': anchor['anchor_id'],
+            'record_ref': anchor['anchor_record_ref'], 'record_sha256': anchor['anchor_record_sha256']}}
+        self.supplied_text = 'Supplied OCR & transcript\r\n\u212b fi\ufb01.'
+        ref = self.seed.prefix + 'supplied-result.txt'
+        self.write_private(ref, self.supplied_text.encode())
+        self.config['material'] = {'content_ref': ref, 'content_sha256': source._digest(self.supplied_text.encode())[7:],
+            'byte_size': len(self.supplied_text.encode()), 'access_allowed': True,
+            'authority_ref': 'operator:synthetic-supplied-result-read', 'expires_at': '2099-01-01T00:00:00Z',
+            'provider_execution': 'not_observed', 'reported_maker': {
+                'maker_type': 'human' if operation == 'text-layer.record-transcription' else 'software',
+                'agent_ref': 'synthetic:unverified-reported-producer', 'method': 'supplied method declaration', 'version': '1'}}
+        self.write_owner()
+
+    def test_normalization_is_new_exact_version_with_no_inherited_quality(self):
+        import unicodedata
+        result = self.created()
+        files = self.output()
+        row = json.loads(files[self.path.name])
+        self.assertEqual(files['content.txt'], unicodedata.normalize('NFC', self.seed.content.decode()).encode())
+        self.assertEqual(row['layer_version'], 2)
+        self.assertEqual(row['supersedes_layer_ref'], self.prior['layer_id'])
+        self.assertEqual(row['derivation']['input_layers'][0]['record_sha256'], self.binding(self.seed.source_ref)['text_layer']['record_sha256'])
+        self.assertEqual(row['derivation']['change_payload']['operations'][0]['status'], 'proposed')
+        self.assertEqual(row['admission']['accepted_uses'], [])
+        self.assertFalse(row['admission']['human_review_performed'])
+        self.assertEqual(row['layer_role'], 'normalized_text')
+        self.assertEqual(json.loads(files['source-create-provenance.jsonl'])['activity']['event_type'], 'normalization')
+        self.assertEqual(self.invoke(self.request)['receipt_sha256'], result['receipt_sha256'])
+        self.assertEqual(self.output(), files)
+        self.assertEqual(self.seed.files(), self.prior_files)
+        self.assertEqual(self.seed.payload.read_bytes(), self.seed.original)
+        resolver = NativeTextBindingResolver(self.public, owner_context=OwnerLocalSourceContext.load(self.seed.context_path))
+        self.assertTrue(resolver.resolve_layer(self.binding(self.config['source_path']), verify_content=True, allow_private_content=True)['content_verified'])
+
+    def test_supplied_correction_replays_exact_edits_without_admission(self):
+        self.correction()
+        self.created()
+        row = json.loads(self.path.read_bytes())
+        self.assertEqual(self.output()['content.txt'], self.seed.content.replace(b'test', b'trial'))
+        self.assertEqual(row['derivation']['method'], 'correction')
+        edit = row['derivation']['change_payload']['operations'][0]
+        self.assertEqual(edit['input_exact'], 'test')
+        self.assertEqual(edit['output_exact'], 'trial')
+        self.assertEqual(edit['responsibility']['maker_type'], 'human')
+        self.assertEqual(row['admission']['review_status'], 'unreviewed')
+        self.assertFalse(row['admission']['human_review_performed'])
+        self.assertEqual(self.seed.files(), self.prior_files)
+
+    def test_supplied_ocr_is_annotation_not_provider_execution(self):
+        self.supplied('text-layer.record-ocr')
+        self.created()
+        files = self.output()
+        row, event = json.loads(files[self.path.name]), json.loads(files['source-create-provenance.jsonl'])
+        self.assertEqual(files['content.txt'], self.supplied_text.encode())
+        self.assertEqual(row['layer_role'], 'raw_ocr')
+        self.assertEqual(row['derivation']['method'], 'ocr')
+        self.assertEqual(row['derivation']['input_layers'], [])
+        self.assertEqual(row['layer_version'], 1)
+        self.assertEqual(event['activity']['event_type'], 'annotation')
+        self.assertEqual(event['method']['model_invocations'], [])
+        self.assertIn('without executing', event['activity']['warnings'][0])
+        self.assertFalse(json.loads(files['derivation-policy.json'])['provider_execution_verified'])
+        self.assertEqual(self.invoke(self.request)['replayed'], True)
+        self.assertEqual(self.seed.payload.read_bytes(), self.seed.original)
+
+    def test_supplied_manual_transcription_preserves_bytes_and_reported_origin(self):
+        self.supplied('text-layer.record-transcription')
+        self.created()
+        row = json.loads(self.path.read_bytes())
+        self.assertEqual(self.output()['content.txt'], self.supplied_text.encode())
+        self.assertEqual(row['derivation']['method'], 'manual_transcription')
+        self.assertEqual(row['representation']['character_normalization'], 'none')
+        self.assertEqual(row['admission']['accepted_uses'], [])
+        retained = json.loads(self.output()[layers.CONFIG_FILE])
+        self.assertEqual(retained['material']['reported_maker']['maker_type'], 'human')
+        self.assertEqual(retained['material']['provider_execution'], 'not_observed')
+
+    def test_supplied_model_transcription_does_not_create_a_model_invocation(self):
+        from source_text_layer_proposal import derivation_policy
+        self.supplied('text-layer.record-transcription')
+        self.config['policy'] = derivation_policy('text-layer.record-transcription', transcription_method='model_transcription')
+        self.config['material']['reported_maker']['maker_type'] = 'model'
+        self.config['derivation_access']['operation'] = 'model_transcription'
+        self.write_owner()
+        self.created()
+        row = json.loads(self.path.read_bytes())
+        event = json.loads(self.output()['source-create-provenance.jsonl'])
+        self.assertEqual(row['derivation']['method'], 'model_transcription')
+        self.assertEqual(row['layer_role'], 'machine_transcription')
+        self.assertEqual(event['method']['model_invocations'], [])
+        self.assertEqual(event['activity']['event_type'], 'annotation')
+
+    def test_grants_input_versions_and_injection_fail_without_output(self):
+        original = copy.deepcopy(self.config)
+        cases = []
+        for section, key, value in [('source_access', 'access_allowed', False),
+                ('derivation_access', 'derivation_allowed', False), ('source_access', 'expires_at', '2000-01-01T00:00:00Z'),
+                ('derivation_access', 'operation', 'correction')]:
+            changed = copy.deepcopy(original)
+            changed[section][key] = value
+            cases.append(changed)
+        changed = copy.deepcopy(original)
+        changed['input']['binding']['text_layer']['layer_version'] += 1
+        cases.append(changed)
+        changed = copy.deepcopy(original)
+        changed['derivation_access']['rights_record_refs'] = changed['derivation_access']['rights_record_refs'][:1]
+        cases.append(changed)
+        changed = copy.deepcopy(original)
+        changed['policy']['unicode_database_version'] = 'invented'
+        cases.append(changed)
+        for index, changed in enumerate(cases):
+            with self.subTest(case=index):
+                self.config = changed
+                self.write_owner()
+                with self.assertRaises((ValueError, PermissionError)):
+                    self.prepare()
+                self.assertFalse(self.path.parent.exists())
+        self.config = original
+        self.write_owner()
+        self.prepare()
+        for request in ({**self.request, 'operation': 'text-layer.correct'}, {**self.request, 'content': 'injected'},
+                        {**self.request, 'expected_source': self.prior['layer_id']}):
+            with self.assertRaises((ValueError, PermissionError)):
+                self.invoke(request)
+        self.assertEqual(self.seed.files(), self.prior_files)
+
+    def test_correction_refuses_wrong_text_overlap_and_missing_edit_evidence(self):
+        self.correction()
+        original = copy.deepcopy(self.config)
+        for mutation in ('text', 'overlap', 'digest', 'empty', 'reason'):
+            self.config = copy.deepcopy(original)
+            edit = self.config['material']['edits'][0]
+            if mutation == 'text':
+                edit['input_exact'] = 'else'
+            elif mutation == 'overlap':
+                self.config['material']['edits'].append(copy.deepcopy(edit))
+            elif mutation == 'digest':
+                edit['input_sha256'] = '0' * 64
+            elif mutation == 'empty':
+                self.config['material']['edits'] = []
+            else:
+                edit['reason'] = ''
+            self.write_owner()
+            with self.subTest(case=mutation), self.assertRaises(ValueError):
+                self.prepare()
+            self.assertFalse(self.path.parent.exists())
+
+    def test_supplied_source_and_new_layer_rights_precede_payload_io(self):
+        self.supplied('text-layer.record-ocr')
+        self.config['derivation_access']['rights_record_refs'] = self.config['derivation_access']['rights_record_refs'][:1]
+        self.write_owner()
+        with patch.object(layers, '_payload', side_effect=AssertionError('rights failure opened raw file')):
+            with self.assertRaises(PermissionError):
+                self.prepare()
+        self.assertFalse(self.path.parent.exists())
+
+    def test_supplied_claim_cannot_assert_provider_execution_or_change_bound_bytes(self):
+        self.supplied('text-layer.record-ocr')
+        self.config['material']['provider_execution'] = 'completed'
+        self.write_owner()
+        with self.assertRaises(PermissionError):
+            self.prepare()
+        self.config['material']['provider_execution'] = 'not_observed'
+        self.write_owner()
+        self.prepare()
+        self.write_private(self.config['material']['content_ref'], b'changed supplied bytes')
+        with self.assertRaises(ValueError):
+            self.invoke(self.request)
+        self.assertFalse(self.path.parent.exists())
+
+    def test_supplied_missing_anchor_fixity_and_wrong_source_refuse_before_payload_io(self):
+        self.supplied('text-layer.record-ocr')
+        original = copy.deepcopy(self.config)
+        for key, value in [('record_sha256', None), ('record_sha256', '0' * 64),
+                           ('anchor_id', 'tos.anchor.synthetic.other')]:
+            self.config = copy.deepcopy(original)
+            self.config['input']['anchor'][key] = value
+            self.write_owner()
+            with (self.subTest(field=key, value=value),
+                  patch.object(layers, '_payload', side_effect=AssertionError('unbound anchor opened raw file')),
+                  self.assertRaises(ValueError)):
+                self.prepare()
+
+    def test_native_reader_rejects_forged_lineage_and_independently_replays_edits(self):
+        self.created()
+        original = self.path.read_bytes()
+        row = json.loads(original)
+        row['layer_version'] += 1
+        self.write_private(self.config['source_path'], encode(row))
+        context = OwnerLocalSourceContext.load(self.seed.context_path)
+        with self.assertRaises(ValueError):
+            NativeTextBindingResolver(self.public, owner_context=context).resolve_layer(self.binding(self.config['source_path']))
+        row = json.loads(original)
+        edit = row['derivation']['change_payload']['operations'][0]
+        edit['input_exact'] = 'X' * len(edit['input_exact'])
+        edit['input_sha256'] = source._digest(edit['input_exact'].encode())[7:]
+        self.write_private(self.config['source_path'], encode(row))
+        selected = self.binding(self.config['source_path'])
+        self.assertTrue(NativeTextBindingResolver(self.public, owner_context=context).resolve_layer(selected)['metadata_verified'])
+        with self.assertRaisesRegex(ValueError, 'does not replay'):
+            NativeTextBindingResolver(self.public, owner_context=context).resolve_layer(selected,
+                verify_content=True, allow_private_content=True)
+        # Writer recovery independently rejects tampered committed bytes too.
+        with self.assertRaises(ValueError):
+            self.invoke(self.request)
+
+    def test_original_extraction_grant_does_not_authorize_derivation(self):
+        with self.assertRaises(ValueError):
+            source.run_local_command(self.seed.owner, {'schema_version': contract_request(),
+                'operation': 'text-layer.normalize', 'command_id': 'not-delegated',
+                'expected_configuration': None, 'expected_source': None,
+                'expected_revision': None, 'expected_dependencies': None})
+
+    def test_correction_normalization_then_first_segmentation_keeps_each_layer(self):
+        from source_text_layer_proposal import derivation_policy
+        self.correction()
+        self.created()
+        corrected_ref, corrected_files = self.config['source_path'], self.output()
+        self.config['source_path'] = self.seed.prefix + 'layers/final-normalized/source-text-layer.v1.json'
+        self.path = self.store / self.config['source_path']
+        self.config['input']['binding'] = self.binding(corrected_ref)
+        self.config['identities'] = {'layer_id': 'tos.text-layer.sid-' + '7' * 32,
+                                    'provenance_event_id': 'tos.event.sid-' + '8' * 32}
+        rights = copy.deepcopy(self.seed.fixture.rights)
+        rights.update(rights_id='tos.rights.synthetic.normalized-successor', scope_refs=[self.config['identities']['layer_id']])
+        rights_ref = self.seed.prefix + 'rights/normalized-successor.json'
+        self.write_private(rights_ref, encode(rights))
+        self.config['derivation_access']['rights_record_refs'][1] = {'ref': rights_ref, 'sha256': source._digest(encode(rights))[7:]}
+        self.config['source_access']['byte_size'] = len(corrected_files['content.txt'])
+        self.config['allowed_operations'] = ['text-layer.normalize']
+        self.config['derivation_access']['operation'] = 'unicode_normalization'
+        self.config['policy'] = derivation_policy('text-layer.normalize', unicode_form='NFC')
+        self.config['material'] = {}
+        self.config['maker'].update(maker_type='software', method='tos.unicode.normalize.v1', version=self.config['policy']['unicode_database_version'])
+        self.write_owner()
+        self.created()
+        layer = json.loads(self.path.read_bytes())
+        self.assertEqual(layer['layer_version'], 3)
+        self.assertEqual(layer['supersedes_layer_ref'], json.loads(corrected_files[self.path.name])['layer_id'])
+        self.assertTrue(self.invoke(self.request)['replayed'])
+        unit_config = copy.deepcopy(self.seed.seed.config)
+        unit_config.update(schema_version=units.LAYER_CONFIG, source_binding=self.binding(self.config['source_path']),
+            allowed_text_scope={'start': 0, 'end': layer['representation']['text_scope']['end']})
+        unit_config['unit_slots'] = [unit_config['unit_slots'][0]]
+        unit_config['unit_slots'][0]['unit_kind'] = 'document'
+        unit_config['scheme'].update(analysis_role='source_structure', boundary_basis='source_markup')
+        unit_config['scheme']['policies'].update(whitespace='included_in_neighbor', line_break='included_in_neighbor')
+        unit_owner = self.base / 'derived-first-segmentation.json'
+        unit_owner.write_bytes(encode(unit_config))
+        unit_owner.chmod(0o600)
+        request = copy.deepcopy(self.seed.seed.proposal)
+        request['spans'] = [{**request['spans'][0], 'start': 0, 'end': unit_config['allowed_text_scope']['end']}]
+        request['excluded_gaps'] = []
+        prepared = source.run_local_command(unit_owner, request)
+        request.update(operation=units.OPERATION, command_id='synthetic-derived-first-segmentation',
+            expected_configuration=prepared['owner_configuration'], expected_dependencies=prepared['expected_dependencies'],
+            expected_source=None, expected_revision=None)
+        result = source.run_local_command(unit_owner, request)
+        self.assertFalse(result['grants_admission'])
+        packet = json.loads((self.store / unit_config['source_path']).read_bytes())
+        self.assertEqual(packet['source_layer']['unicode_form'], 'NFC')
+        self.assertEqual(packet['source_layer']['text_layer_ref'], self.config['source_path'])
+        self.assertEqual((self.store / corrected_ref).read_bytes(), corrected_files[self.path.name])
+        self.assertEqual(self.seed.files(), self.prior_files)
+
+    def test_derived_recovery_reuses_exact_plan_and_preserves_predecessor(self):
+        self.prepare()
+        write = layers._write_new
+        def interrupted(path, raw):
+            write(path, raw)
+            if path.name == 'content.txt':
+                raise OSError('synthetic interruption after complete derived content')
+        with patch.object(layers, '_write_new', side_effect=interrupted), self.assertRaises(OSError):
+            self.invoke(self.request)
+        self.assertFalse(self.path.parent.exists())
+        before = set(self.store.glob('.native-construction-*.pending'))
+        self.invoke(self.request)
+        self.assertEqual(set(self.store.glob('.native-construction-*.pending')), before)
+        self.assertEqual(self.seed.files(), self.prior_files)
+        self.assertTrue(self.invoke(self.request)['replayed'])
+
+    def test_changed_predecessor_blocks_recovery_without_erasing_evidence(self):
+        self.prepare()
+        with patch.object(source, '_publish_new_directory', side_effect=OSError('synthetic prepublication interruption')):
+            with self.assertRaises(OSError):
+                self.invoke(self.request)
+        before = set(self.store.glob('.native-construction-*.pending'))
+        content = self.seed.path.parent / 'content.txt'
+        content.write_bytes(content.read_bytes() + b'foreign')
+        for _ in range(2):
+            with self.assertRaises(ValueError):
+                self.invoke(self.request)
+        self.assertEqual(set(self.store.glob('.native-construction-*.pending')), before)
+        self.assertFalse(self.path.parent.exists())
+        self.assertTrue(content.read_bytes().endswith(b'foreign'))
+
+    def test_extraction_assessment_explicitly_refuses_new_method_and_old_basis(self):
+        import native_text_layer_assessment as assessment
+        self.created()
+        reader = object.__new__(assessment.NativeLayerAssessmentSources)
+        reader.context = OwnerLocalSourceContext.load(self.seed.context_path)
+        reader._read = source._read
+        with self.assertRaisesRegex(ValueError, 'only the bounded private EPUB extraction profile'):
+            reader._metadata({'binding': self.binding(self.config['source_path'])})
+
+    def test_describe_discovery_and_result_do_not_disclose_native_content(self):
+        with patch.object(layers, '_prepare_derivation', side_effect=AssertionError('describe opened source')):
+            described = self.invoke({'schema_version': contract_request(), 'operation': 'describe'})
+        prepared, created = self.prepare(), self.invoke(self.request)
+        for result in (described, prepared, created, self.invoke(self.request), source.discover_commands()):
+            value = json.dumps(result)
+            for secret in (self.seed.content.decode(), self.config['source_path'], self.prior['layer_id'], str(self.owner)):
+                self.assertNotIn(secret, value)
+            self.assertFalse(result['grants_admission'])
+
+
 if __name__ == '__main__':
     unittest.main()

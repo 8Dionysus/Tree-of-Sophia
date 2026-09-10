@@ -27,6 +27,7 @@ import source_text_unit_commands as units
 from source_owner_context import OwnerLocalSourceContext, _absolute, _open, _read as private_read
 from native_text_binding import NativeTextBindingResolver
 from source_revisions import _file_refs
+from source_text_layer_proposal import DERIVE_CONFIG, DERIVE_OPERATIONS, MAX_DERIVED_TEXT_BYTES
 
 
 CONFIG = 'tos_local_text_layer_create_owner_v1'
@@ -140,7 +141,7 @@ def _member_path(value):
             and not value.startswith('/') and all(part not in {'', '.', '..'} for part in value.rstrip('/').split('/')))
 
 
-def _metadata(config, resolver):
+def _metadata(config, resolver, *, payload_media_types=('application/epub+zip',)):
     scope = config['source_scope']
     for kind, ref in config['source_record_refs'].items():
         row = resolver._record(ref, expected=config['source_record_sha256'][kind])
@@ -153,7 +154,7 @@ def _metadata(config, resolver):
     item = resolver._record(config['source_record_refs']['item'])
     resolver._read(item['item_manifest_ref'], expected=config['manifest_sha256'])
     entry = next(row for row in manifest['payload_files'] if row['file_id'] == scope['file_ref'])
-    if (manifest['visibility'] != 'local_only' or entry['media_type'] != 'application/epub+zip'
+    if payload_media_types is not None and (manifest['visibility'] != 'local_only' or entry['media_type'] not in payload_media_types
             or entry['byte_size'] != config['source_access']['byte_size']
             or len(Path(entry['relative_path']).parts) != 2 or Path(entry['relative_path']).parts[0] != 'payload'
             or not _member_path(entry['relative_path'])):
@@ -291,7 +292,7 @@ def _read_member(stream, size, selected, deadline):
         return raw
 
 
-def _payload(config, entry, *, deadline):
+def _payload(config, entry, *, deadline, include_member=True):
     """One explicit third-root input; not an OwnerLocalSourceContext fallback."""
     _deadline(deadline)
     item = Path(config['source_record_refs']['item']).parent.relative_to('ToS/source-witnesses')
@@ -315,7 +316,7 @@ def _payload(config, entry, *, deadline):
                 digest.update(chunk)
             if count != before.st_size or digest.hexdigest() != config['source_scope']['file_sha256']:
                 raise source.JournalConflict('native extraction File fixity differs from its grant')
-            raw = _read_member(stream, before.st_size, config['member'], deadline)
+            raw = _read_member(stream, before.st_size, config['member'], deadline) if include_member else None
         after = os.fstat(descriptor)
         current, current_info = deposit._file(path)
         os.close(current)
@@ -385,6 +386,212 @@ def _prepare(config, *, deadline, exclude=None):
          'fixity_verified_at': datetime.now(timezone.utc).isoformat()}]
     return files, dependencies, {'rights': config['derivation_access']['rights_record_refs'],
         'entities': entities, 'event_type': 'native_extraction'}
+
+
+def derive_configuration(config, *, owner_config):
+    """Separate protected v1 grant; extraction grants cannot authorize this path."""
+    source._keys(config, {'schema_version', 'uid', 'principal_id', 'authority_ref', 'expires_at',
+        'source_context_ref', 'source_path', 'allowed_operations', 'source_scope', 'source_record_refs',
+        'source_record_sha256', 'manifest_sha256', 'source_access', 'derivation_access',
+        'input', 'material', 'policy', 'identities', 'maker', 'language', 'limits'})
+    raw = private_read(Path(owner_config), source.MAX_COMMAND_BYTES, confidential_file=True)
+    if source._json_object(raw) != config:
+        raise source.JournalConflict('native derivation grant changed while selecting it')
+    operations = config['allowed_operations']
+    if (config['schema_version'] != DERIVE_CONFIG or type(config['uid']) is not int or config['uid'] != os.getuid()
+            or type(operations) is not list or len(operations) != 1 or not isinstance(operations[0], str) or operations[0] not in DERIVE_OPERATIONS
+            or source._instant(config['expires_at']) <= datetime.now(timezone.utc)
+            or any(not isinstance(config[k], str) or not config[k].strip() for k in ('principal_id', 'authority_ref'))):
+        raise PermissionError('native layer derivation is not currently delegated')
+    operation = operations[0]
+    from source_text_layer_proposal import derivation_policy
+    policy = config['policy']
+    if type(policy) is not dict or policy != derivation_policy(operation, unicode_form=policy.get('unicode_normalization'),
+            transcription_method=policy.get('method') if operation == 'text-layer.record-transcription' else 'manual_transcription'):
+        raise ValueError('native derivation needs its exact supported policy version')
+    supplied = operation in {'text-layer.record-transcription', 'text-layer.record-ocr'}
+    context = OwnerLocalSourceContext.load(config['source_context_ref'])
+    path = context.path(config['source_path'])
+    if (context.role(config['source_path']) != 'owner-local-root' or path.name != 'source-text-layer.v1.json'
+            or len(Path(config['source_path']).parts) < 7
+            or any(part in {'payload', 'local-content', 'catalog'} or part.startswith('.') for part in Path(config['source_path']).parts)):
+        raise PermissionError('native derivation needs one new exact private layer package')
+    units._private_directory(context, path.parent.parent)
+    source._keys(config['source_scope'], {'work_ref', 'expression_ref', 'edition_ref', 'item_ref', 'file_ref', 'file_sha256'})
+    source._keys(config['source_record_refs'], {'work', 'expression', 'edition', 'item'})
+    source._keys(config['source_record_sha256'], {'work', 'expression', 'edition', 'item'})
+    for kind, ref in config['source_record_refs'].items():
+        if (context.role(ref) != 'source-contract-root' or Path(ref).name != kind + '.json'
+                or not isinstance(config['source_scope'][kind + '_ref'], str)
+                or not re.fullmatch(r'tos\.' + kind + r'\.[a-z0-9]+(?:[.-][a-z0-9]+)*', config['source_scope'][kind + '_ref'])):
+            raise PermissionError('native derivation requires exact authored source identity locators')
+    for value in [config['manifest_sha256'], config['source_scope']['file_sha256'], *config['source_record_sha256'].values()]:
+        if not isinstance(value, str) or not re.fullmatch('[a-f0-9]{64}', value):
+            raise ValueError('native derivation requires exact raw input digests')
+    if config['source_scope']['file_ref'] != 'tos.file.sha256.' + config['source_scope']['file_sha256']:
+        raise ValueError('native derivation File identity differs from its digest')
+    source._keys(config['identities'], {'layer_id', 'provenance_event_id'})
+    for key, kind in (('layer_id', 'text-layer'), ('provenance_event_id', 'event')):
+        if not isinstance(config['identities'][key], str) or not re.fullmatch(r'tos\.' + kind + r'\.sid-[a-f0-9]{32}', config['identities'][key]):
+            raise ValueError('native derivation needs independently selected opaque identities')
+    source._keys(config['maker'], {'maker_type', 'agent_ref', 'method', 'version'})
+    if (config['maker']['maker_type'] not in {'human', 'model', 'software', 'mixed'}
+            or config['maker']['agent_ref'] != config['principal_id']
+            or any(not isinstance(config['maker'][key], str) or not 1 <= len(config['maker'][key]) <= 2048 for key in ('method', 'version'))
+            or not isinstance(config['language'], str) or not re.fullmatch('[a-z]{2,3}(?:-[A-Za-z0-9]+)*', config['language'])):
+        raise ValueError('native derivation maker and representation language must be explicit')
+    source._keys(config['limits'], {'max_output_bytes', 'max_seconds'})
+    if (type(config['limits']['max_output_bytes']) is not int or not 1 <= config['limits']['max_output_bytes'] <= MAX_DERIVED_TEXT_BYTES
+            or type(config['limits']['max_seconds']) is not int or not 1 <= config['limits']['max_seconds'] <= MAX_SECONDS):
+        raise ValueError('native derivation exceeds its bounded profile')
+    access, derivation = config['source_access'], config['derivation_access']
+    _grant(access, {'read_scope', 'access_allowed', 'byte_size'} | ({'payload_root'} if supplied else set()))
+    _grant(derivation, {'derivation_allowed', 'operation', 'rights_record_refs', 'content_visibility'})
+    if (access['access_allowed'] is not True or access['read_scope'] != ('exact_acquired_file' if supplied else 'exact_text_layer')
+            or type(access['byte_size']) is not int or not 1 <= access['byte_size'] <= (deposit.MAX_BYTES if supplied else MAX_DERIVED_TEXT_BYTES)
+            or derivation['derivation_allowed'] is not True or derivation['operation'] != policy['method']
+            or derivation['content_visibility'] != 'local_only'):
+        raise PermissionError('native derivation requires separate exact current read and derivation grants')
+    source._keys(config['input'], {'kind', 'anchor'} if supplied else {'kind', 'binding'})
+    resolver = NativeTextBindingResolver(context.public_root, owner_context=context, read_bytes=source._read)
+    if supplied:
+        if config['input']['kind'] != 'acquired_file':
+            raise ValueError('supplied transcription requires its exact original File')
+        source._keys(config['input']['anchor'], {'anchor_id', 'record_ref', 'record_sha256'})
+        anchor = config['input']['anchor']
+        if (not isinstance(anchor['anchor_id'], str) or not re.fullmatch(r'tos\.anchor\.[a-z0-9]+(?:[.-][a-z0-9]+)*', anchor['anchor_id'])
+                or not isinstance(anchor['record_sha256'], str) or not re.fullmatch('[a-f0-9]{64}', anchor['record_sha256'])
+                or context.role(anchor['record_ref']) not in {'source-contract-root', 'owner-local-root'}
+                or Path(anchor['record_ref']).suffix != '.json' or context.path(anchor['record_ref']).is_relative_to(path.parent)):
+            raise ValueError('supplied transcription needs an exact existing digest-bound source anchor')
+        payload_root = _absolute(access['payload_root'])
+        os.close(_open(payload_root, directory=True))
+        if payload_root.is_relative_to(context.private_root) or context.private_root.is_relative_to(payload_root):
+            raise PermissionError('native source and output roots must be disjoint')
+        material = config['material']
+        _grant(material, {'content_ref', 'content_sha256', 'byte_size', 'access_allowed', 'reported_maker', 'provider_execution'})
+        if (material['access_allowed'] is not True or material['provider_execution'] != 'not_observed'
+                or type(material['byte_size']) is not int or not 1 <= material['byte_size'] <= MAX_DERIVED_TEXT_BYTES
+                or context.role(material['content_ref']) != 'owner-local-root'
+                or context.path(material['content_ref']).is_relative_to(path.parent)
+                or not isinstance(material['content_sha256'], str) or not re.fullmatch('[a-f0-9]{64}', material['content_sha256'])):
+            raise PermissionError('supplied text requires separately granted exact private immutable bytes')
+        source._keys(material['reported_maker'], {'maker_type', 'agent_ref', 'method', 'version'})
+        reported = material['reported_maker']
+        if (reported['maker_type'] not in ({'human'} if policy['method'] == 'manual_transcription' else {'model'} if policy['method'] == 'model_transcription' else {'software', 'model', 'mixed'})
+                or any(not isinstance(reported[key], str) or not 1 <= len(reported[key]) <= 2048 for key in ('agent_ref', 'method', 'version'))):
+            raise ValueError('supplied text needs an explicit unverified reported producer and method')
+    else:
+        if config['input']['kind'] != 'text_layer':
+            raise ValueError('native correction/normalization requires one exact existing layer')
+        resolver._validate(config['input']['binding'], 'native-text-layer-binding.schema.json')
+        binding = config['input']['binding']
+        if binding['source_record_refs'] != config['source_record_refs'] or context.path(binding['text_layer']['record_ref']).is_relative_to(path.parent):
+            raise PermissionError('native predecessor must be distinct and in the exact selected corpus scope')
+        source._keys(config['material'], set() if operation == 'text-layer.normalize' else {'edits'})
+    if operation == 'text-layer.normalize' and (config['maker']['maker_type'] != 'software'
+            or config['maker']['method'] != 'tos.unicode.normalize.v1'
+            or config['maker']['version'] != policy['unicode_database_version']):
+        raise ValueError('native normalization must name its actual Unicode implementation version')
+    for name in (LAYER_SCHEMA, ANCHOR_SCHEMA, units.PROVENANCE_SCHEMA):
+        resolver._read(name, schema=True)
+    digest = source._digest(source._canonical({'owner_configuration_bytes': source._digest(raw),
+        'context': context.snapshot(), 'contracts': resolver.schema_digests,
+        'payload_root_pins': deposit._pins(payload_root / 'root-pin') if supplied else None}))
+    return config, digest, path
+
+
+def _prepare_derivation(config, *, deadline, exclude=None):
+    from source_text_layer_proposal import build_derived_text_layer
+    from validate_source_witness_foundation import _source_text_layer_semantic_issues, _anchor_v2_semantic_issues
+    operation = config['allowed_operations'][0]
+    supplied = operation in {'text-layer.record-transcription', 'text-layer.record-ocr'}
+    context = OwnerLocalSourceContext.load(config['source_context_ref'])
+    resolver = NativeTextBindingResolver(context.public_root, owner_context=context, read_bytes=source._read,
+                                         max_content_bytes=2 * MAX_DERIVED_TEXT_BYTES)
+    entry = _metadata(config, resolver, payload_media_types=(
+        'application/epub+zip', 'application/pdf', 'image/png', 'image/jpeg', 'image/tiff', 'image/webp') if supplied else None)
+    inventory = units._identity_snapshot(context, config, exclude=exclude, identities=list(config['identities'].values()))
+    scope = config['source_scope']
+    predecessor = input_text = supplied_text = payload_identity = None
+    entities = []
+    def entity(ref, raw, role, media_type='text/plain; charset=utf-8'):
+        return {'entity_ref': ref, 'role': role, 'sha256': source._digest(raw)[7:], 'size_bytes': len(raw),
+            'media_type': media_type, 'availability': 'owner_local', 'content_disclosure': 'private_content',
+            'fixity_verified': True, 'fixity_verified_at': datetime.now(timezone.utc).isoformat()}
+    if supplied:
+        target = config['input']['anchor']
+        anchor = resolver._record(target['record_ref'], expected=target['record_sha256'])
+        resolver._validate(anchor, 'source-anchor-v2.schema.json')
+        if (anchor['anchor_id'] != target['anchor_id'] or anchor['target']['item_id'] != scope['item_ref']
+                or anchor['target']['file_id'] != scope['file_ref'] or anchor['target']['file_sha256'] != scope['file_sha256']
+                or anchor['target']['media_type'] != entry['media_type'] or _anchor_v2_semantic_issues(anchor)):
+            raise ValueError('supplied text anchor does not address its exact source File')
+        source_binding = {key: scope[key] for key in ('work_ref', 'expression_ref', 'edition_ref', 'item_ref')}
+        source_binding.update(source_file_ref=scope['file_ref'], source_file_sha256=scope['file_sha256'],
+            anchor_contract='tos_source_anchor_v2', anchors=[{'anchor_id': target['anchor_id'],
+                'anchor_record_ref': target['record_ref'], 'anchor_record_sha256': target['record_sha256']}])
+        _, payload_identity = _payload(config, entry, deadline=deadline, include_member=False)
+        payload_ref = (Path(config['source_record_refs']['item']).parent / entry['relative_path']).as_posix()
+        entities.append({'entity_ref': payload_ref, 'role': 'exact-source-file-not-provider-input-execution',
+            'sha256': scope['file_sha256'], 'size_bytes': entry['byte_size'], 'media_type': entry['media_type'],
+            'availability': 'owner_local', 'content_disclosure': 'private_content', 'fixity_verified': True,
+            'fixity_verified_at': datetime.now(timezone.utc).isoformat()})
+        material = config['material']
+        raw = resolver._read(material['content_ref'], expected=material['content_sha256'], content=True)
+        if len(raw) != material['byte_size']:
+            raise source.JournalConflict('supplied transcription byte size differs from its independent grant')
+        try:
+            supplied_text = raw.decode('utf-8')
+        except UnicodeError:
+            raise ValueError('supplied transcription is not exact strict UTF-8') from None
+        entities.append(entity(material['content_ref'], raw, 'supplied-unverified-' + config['policy']['method'] + '-result'))
+    else:
+        binding = config['input']['binding']
+        # Source/new-layer rights were checked above; predecessor rights are
+        # independently checked by the resolver BEFORE representation reads.
+        resolver.resolve_layer(binding, verify_content=True, allow_private_content=True)
+        target = binding['text_layer']
+        predecessor = resolver._record(target['record_ref'], expected=target['record_sha256'])
+        source_binding = predecessor['source_binding']
+        actual = {key: source_binding[key] for key in ('work_ref', 'expression_ref', 'edition_ref', 'item_ref')}
+        actual.update(file_ref=source_binding['source_file_ref'], file_sha256=source_binding['source_file_sha256'])
+        if actual != scope or predecessor['representation']['language'] != config['language']:
+            raise ValueError('native predecessor source scope or language differs from the grant')
+        raw = resolver._read(predecessor['representation']['content_ref'], expected=predecessor['representation']['content_sha256'], content=True)
+        if len(raw) != config['source_access']['byte_size']:
+            raise source.JournalConflict('native predecessor byte size differs from its separate reading grant')
+        input_text = raw.decode('utf-8')
+        entities.extend((entity(target['record_ref'], resolver._cache[(target['record_ref'], 'metadata')], 'exact-predecessor-record', 'application/json'),
+            entity(predecessor['representation']['content_ref'], raw, 'exact-predecessor-representation')))
+    _deadline(deadline)
+    base = Path(config['source_path']).parent
+    refs = {'content_ref': (base / 'content.txt').as_posix(), 'policy_ref': (base / 'derivation-policy.json').as_posix(),
+        'configuration_ref': (base / CONFIG_FILE).as_posix(), 'configuration_sha256': source._digest(_encoded(config))[7:]}
+    output = build_derived_text_layer(config=config, refs=refs, source_binding=source_binding,
+        predecessor=predecessor, input_text=input_text, supplied_text=supplied_text)
+    _deadline(deadline)
+    resolver._validate(output['layer'], 'source-text-layer.schema.json')
+    if _source_text_layer_semantic_issues(output['layer']) or len(output['content']) > config['limits']['max_output_bytes']:
+        raise ValueError('native derived layer violates its source contract or delegated output limit')
+    inputs = {'schema_version': 'tos_native_construction_inputs_v1', 'context': context.snapshot(),
+        'inputs': [[ref, category, digest] for (ref, category), digest in sorted(resolver._inputs.items())],
+        'payload': payload_identity,
+        'implementation': {ref: source._digest(source._read(source.ROOT / ref, source.MAX_SET_BYTES)) for ref in IMPLEMENTATIONS},
+        'runtime': _runtime()}
+    files = {'source-text-layer.v1.json': _encoded(output['layer']), 'derivation-policy.json': _encoded(output['policy']),
+        'content.txt': output['content'], CONFIG_FILE: _encoded(config), INPUT_FILE: _encoded(inputs)}
+    dependencies = source._digest(source._canonical({'source_snapshot': resolver.snapshot(),
+        'inputs': source._digest(files[INPUT_FILE]), 'identity_inventory': inventory}))
+    if sum(map(len, files.values())) > MAX_PACKAGE_BYTES:
+        raise ValueError('native derived package exceeds its bounded byte budget')
+    return files, dependencies, {'rights': config['derivation_access']['rights_record_refs'], 'entities': entities,
+        'event_type': 'annotation' if supplied else 'normalization' if operation == 'text-layer.normalize' else 'correction',
+        'native_derivation': operation}
+
+
+def _prepare_selected(config, **kwargs):
+    return (_prepare_derivation if config['schema_version'] == DERIVE_CONFIG else _prepare)(config, **kwargs)
 
 
 def _private_package(context, directory):
@@ -539,32 +746,35 @@ def install_private_package(context, target, files, *, request, guard, verify_re
 
 
 def _verify_layer(files, *, config, configuration_digest, request, deadline, exclude=None):
-    expected, dependencies, _ = _prepare(config, deadline=deadline, exclude=exclude)
+    expected, dependencies, _ = _prepare_selected(config, deadline=deadline, exclude=exclude)
     required = set(expected) | {RECEIPT_FILE, 'source-create-request.json', 'source-create-environment.json', 'source-create-provenance.jsonl'}
     if set(files) != required or any(files.get(name) != raw for name, raw in expected.items()):
         raise source.JournalConflict('native layer retry changed retained outputs or exact input dependencies')
     receipt = _verify_receipt(files, config=config, configuration_digest=configuration_digest, request=request,
-        source_id=config['identities']['layer_id'])
+        source_id=config['identities']['layer_id'], source_version=source._json_object(expected['source-text-layer.v1.json'])['layer_version'])
     return receipt, dependencies
 
 
 def run_command(owner_config, config, configuration_digest, path, request):
     source.command_handler(config['schema_version']).validate_request(request)
     operation = request['operation']
+    delegated_operation = config['allowed_operations'][0]
+    if operation not in {'describe', 'prepare-create', delegated_operation}:
+        raise PermissionError('the native operation is outside this independent grant')
     context = OwnerLocalSourceContext.load(config['source_context_ref'])
     deadline = time.monotonic() + config['limits']['max_seconds']
     target = path.parent
     def result(receipt=None, *, replayed=False):
-        return {'schema_version': 'tos_local_text_layer_create_result_v1',
+        return {'schema_version': 'tos_local_text_layer_derive_result_v1' if config['schema_version'] == DERIVE_CONFIG else 'tos_local_text_layer_create_result_v1',
             'authentication': 'local-unix-account', 'owner_configuration': configuration_digest,
             'target_exists': os.path.lexists(target), 'expected_source': None, 'expected_revision': None,
-            'supported_operations': [OPERATION], 'command_operations': ['describe', 'prepare-create', OPERATION],
+            'supported_operations': [delegated_operation], 'command_operations': ['describe', 'prepare-create', delegated_operation],
             'receipt_sha256': source._digest(source._canonical(receipt)) if receipt is not None else None,
             'replayed': replayed, 'grants_admission': False, 'content_disclosure': 'withheld'}
     if operation == 'describe':
         return result()
     if operation == 'prepare-create':
-        _, dependencies, _ = _prepare(config, deadline=deadline)
+        _, dependencies, _ = _prepare_selected(config, deadline=deadline)
         return {**result(), 'expected_dependencies': dependencies}
     if not isinstance(request['command_id'], str) or not 1 <= len(request['command_id']) <= 256:
         raise ValueError('native construction command identity must be finite')
@@ -576,7 +786,7 @@ def run_command(owner_config, config, configuration_digest, path, request):
             files = _private_package(context, target)
             receipt, dependencies = _verify_layer(files, config=config, configuration_digest=configuration_digest,
                 request=request, deadline=deadline, exclude=target)
-            if (_prepare(config, deadline=deadline, exclude=target)[1] != dependencies
+            if (_prepare_selected(config, deadline=deadline, exclude=target)[1] != dependencies
                     or _private_package(context, target) != files or source._configuration(owner_config)[1:] != (configuration_digest, path)):
                 raise source.JournalConflict('native layer dependencies or package changed during retry')
             return result(receipt, replayed=True)
@@ -584,12 +794,12 @@ def run_command(owner_config, config, configuration_digest, path, request):
                 or request['expected_revision'] is not None):
             raise source.JournalConflict('native layer requires an exact grant and an absent initial source')
         started_at, started_ns = datetime.now(timezone.utc).isoformat(), time.perf_counter_ns()
-        files, dependencies, inputs = _prepare(config, deadline=deadline)
+        files, dependencies, inputs = _prepare_selected(config, deadline=deadline)
         if dependencies != request['expected_dependencies']:
             raise source.JournalConflict('prepared native extraction dependencies changed')
         source._capture_creation_provenance({**config, 'source_root': str(context.public_root),
                 'provenance_event_id': config['identities']['provenance_event_id']}, request, files, started_at, started_ns,
-            procedure_name='exact-native-text-layer-structural-extraction',
+            procedure_name='exact-native-text-layer-' + delegated_operation.removeprefix('text-layer.') if config['schema_version'] == DERIVE_CONFIG else 'exact-native-text-layer-structural-extraction',
             additional_software_refs=IMPLEMENTATIONS[-1:] + IMPLEMENTATIONS[-4:-3], native_inputs=inputs)
         layer = source._json_object(files[path.name])
         subject = source.Record.from_payload(layer['layer_id'], layer['layer_version'], layer)
@@ -601,7 +811,7 @@ def run_command(owner_config, config, configuration_digest, path, request):
         files[RECEIPT_FILE] = _encoded(receipt)
         def guard():
             _deadline(deadline)
-            if (_prepare(config, deadline=deadline)[1] != dependencies
+            if (_prepare_selected(config, deadline=deadline)[1] != dependencies
                     or source._configuration(owner_config)[1:] != (configuration_digest, path)
                     or context.snapshot() != OwnerLocalSourceContext.load(config['source_context_ref']).snapshot()):
                 raise source.JournalConflict('native layer exact inputs, context or grant changed before commit')
@@ -622,4 +832,15 @@ def command_handlers():
         configure=configuration, typed_handles=(LAYER_SCHEMA, ANCHOR_SCHEMA, units.PROVENANCE_SCHEMA),
         profile_selection='An independently protected grant selects exact File/member/selector, separate reading/derivation rights and one private destination.',
         preconditions=('Grant-free discovery does not read source contexts, private paths, grants, selectors, rights or payload bytes.',
-            'Runtime requires a bounded supported source, exact local derivative rights and unchanged source/implementation dependencies.')),)
+            'Runtime requires a bounded supported source, exact local derivative rights and unchanged source/implementation dependencies.')),
+        contract.Handler('owner-local-text-layer-derive', (DERIVE_CONFIG,), (contract.describe(),
+            contract.operation('prepare-create', definition='Prepare an independently delegated additive native text operation.', grants=tuple(DERIVE_OPERATIONS)),
+            *(contract.operation(name, contract.COMMIT_KEYS,
+                definition='Create a new unreviewed exact private layer from explicit correction, deterministic normalization or supplied source-bound text.',
+                mutation='private_text_layer_package', grants=(name,)) for name in DERIVE_OPERATIONS)), run_command,
+            'Separate native correction, Unicode normalization, supplied transcription and supplied OCR recording; never provider execution or inherited quality.',
+            configure=derive_configuration, typed_handles=(LAYER_SCHEMA, ANCHOR_SCHEMA, 'ToS/contracts/native-text-layer-binding.schema.json', units.PROVENANCE_SCHEMA),
+            profile_selection='One protected grant selects one operation, exact inputs, method, output identity and separate reading/derivation rights.',
+            preconditions=('Grant-free discovery and describe never open source or supplied text.',
+                'Supplied OCR/transcription has no observed provider execution or automatic source-fidelity assessment.',
+                'New layers never inherit predecessor accepted uses; exact-source assessment is a separate downstream route.')))

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tree-of-sophia.local/ToS/contracts/native-text-layer-binding.schema.json",
   "title": "Exact native text-layer construction input",
-  "description": "A layer-only return for explicit first segmentation. It names no predecessor packet, grants no reading, assessment, publication or segmentation permission, and preserves the existing v1 layer as an immutable dependency.",
+  "description": "A layer-only return for explicit first segmentation or separately delegated additive text derivation. It names no predecessor packet, grants no reading, transformation, assessment, publication or segmentation permission, and preserves the exact existing layer identity, version and bytes as an immutable dependency.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "text_layer", "source_record_refs"],

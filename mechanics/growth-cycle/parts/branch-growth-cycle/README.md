@@ -734,6 +734,15 @@ plans and never overwrite a source or erase interrupted evidence. See
 [the full extraction, grant, limits, first-segmentation and recovery contract](docs/NATIVE_TEXT_LAYER_CONSTRUCTION.md).
 The existing public Occurrence gate is unchanged.
 
+The separate `tos_local_text_layer_derive_owner_v1` grant now exposes native
+`text-layer.correct`, `text-layer.normalize`, `text-layer.record-transcription`
+and `text-layer.record-ocr`. Explicit correction and deterministic Unicode
+normalization create exact predecessor-bound successors; supplied human/model
+transcription and OCR recording preserve a reported, unverified origin without
+claiming provider execution. All use the same bounded private recovery route
+and remain unreviewed. The construction contract above names the exact grant
+shapes and the still-separate method-specific source-visible assessment owner.
+
 ### Confidential native TextUnit creation
 
 `source_commands.py` dispatches the separately selected

@@ -16,6 +16,7 @@ import copy
 import hashlib
 import json
 import re
+import unicodedata
 import xml.etree.ElementTree as ET
 
 
@@ -402,3 +403,193 @@ def build_text_layer_proposal(*, exact_text, source_scope, identities, refs,
     }
     record_bytes(layer)
     return {"layer": layer, "anchor": anchor, "policy": owned_policy, "content": content}
+
+
+# A separate additive construction profile. These ceilings bound both content
+# and the explicit in-record edit evidence; no quadratic diff is computed.
+DERIVE_CONFIG = "tos_local_text_layer_derive_owner_v1"
+MAX_DERIVED_TEXT_BYTES = 131_072
+MAX_EDITS = 128
+DERIVE_OPERATIONS = {
+    "text-layer.correct": "correction",
+    "text-layer.normalize": "unicode_normalization",
+    "text-layer.record-transcription": "manual_transcription",
+    "text-layer.record-ocr": "ocr",
+}
+
+
+def derivation_policy(operation, *, unicode_form="none", transcription_method="manual_transcription"):
+    """Exact, versioned rules, not a caller-selected program or quality claim."""
+    if operation not in DERIVE_OPERATIONS:
+        _fail("unsupported native TextLayer operation")
+    normalize = operation == "text-layer.normalize"
+    if unicode_form not in ({"NFC", "NFD", "NFKC", "NFKD"} if normalize else {"none"}):
+        _fail("unsupported native TextLayer Unicode policy")
+    if transcription_method not in ({"manual_transcription", "model_transcription"}
+                                    if operation == "text-layer.record-transcription" else {"manual_transcription"}):
+        _fail("unsupported supplied transcription method")
+    supplied = operation in {"text-layer.record-transcription", "text-layer.record-ocr"}
+    return {
+        "schema_version": "tos_native_text_layer_derivation_policy_v1",
+        "operation": operation, "method": transcription_method if operation == "text-layer.record-transcription" else DERIVE_OPERATIONS[operation],
+        "encoding": "UTF-8-strict", "text_max_bytes": MAX_DERIVED_TEXT_BYTES,
+        "edits_max_count": MAX_EDITS,
+        "input_scope": "whole-exact-representation" if not supplied else "exact-source-anchor",
+        "unicode_normalization": unicode_form,
+        "unicode_database_version": unicodedata.unidata_version if normalize else None,
+        "edits": "ordered-explicit-half-open-code-point-proposals-no-diff" if not supplied else "not-applicable",
+        "whitespace": "unchanged-except-explicit-edits-or-selected-Unicode-form",
+        "result_origin": "supplied-result-not-provider-execution" if supplied else
+                         "executed-Unicode-transform" if normalize else "applied-supplied-edit-proposals",
+        "provider_execution_verified": False,
+        "source_layout_fidelity": "not-assessed",
+        "quality_assessment": "not-performed", "inherited_quality": "not-transferred",
+        "uncertainty": "source-annotations-retained-without-resolution" if not supplied else
+                       "supplied-none-recorded-is-not-reviewed-absence",
+    }
+
+
+def _bounded_text(text):
+    if type(text) is not str or not 0 < len(text) <= MAX_DERIVED_TEXT_BYTES:
+        _fail("native text exceeds its bounded character profile")
+    try:
+        raw = text.encode("utf-8")
+    except UnicodeError:
+        _fail("native text is not strict UTF-8")
+    if not raw or len(raw) > MAX_DERIVED_TEXT_BYTES or "\x00" in text:
+        _fail("native text exceeds its bounded nonempty UTF-8 profile")
+    return raw
+
+
+def _span(start, end):
+    return {"start": start, "end": end, "position_unit": "unicode_code_point", "interval": "half_open"}
+
+
+def _explicit_edits(text, edits, *, maker, anchor_ids, normalize=False):
+    if type(edits) is not list or not 1 <= len(edits) <= MAX_EDITS:
+        _fail("native correction needs a bounded explicit edit sequence")
+    pieces, operations, cursor, output_cursor, size = [], [], 0, 0, 0
+    for index, edit in enumerate(edits):
+        _keys(edit, {"start", "end", "input_exact", "input_sha256", "output_exact", "reason", "confidence"}, "native edit")
+        start, end = edit["start"], edit["end"]
+        if (type(start) is not int or type(end) is not int or not cursor <= start <= end <= len(text)
+                or type(edit["input_exact"]) is not str or text[start:end] != edit["input_exact"]
+                or hashlib.sha256(edit["input_exact"].encode("utf-8")).hexdigest() != edit["input_sha256"]
+                or type(edit["output_exact"]) is not str or not normalize and edit["output_exact"] == edit["input_exact"]
+                or type(edit["reason"]) is not str or not 1 <= len(edit["reason"]) <= 2048
+                or type(edit["confidence"]) not in {int, float} or not 0 <= edit["confidence"] <= 1):
+            _fail("native correction differs from its exact ordered input or evidence")
+        try:
+            replacement = edit["output_exact"].encode("utf-8")
+        except UnicodeError:
+            _fail("native edit output is not strict UTF-8")
+        unchanged = text[cursor:start]
+        size += len(unchanged.encode("utf-8")) + len(replacement)
+        if size > MAX_DERIVED_TEXT_BYTES or "\x00" in edit["output_exact"]:
+            _fail("native edited text exceeds its output budget")
+        pieces.extend((unchanged, edit["output_exact"]))
+        output_cursor += len(unchanged)
+        operation = "unicode_normalization" if normalize else "insert" if start == end else "delete" if not replacement else "replace"
+        operations.append({"edit_id": "edit-" + str(index + 1), "operation": operation,
+            "input_span": _span(start, end), "output_span": _span(output_cursor, output_cursor + len(edit["output_exact"])),
+            "input_exact": edit["input_exact"], "input_sha256": edit["input_sha256"],
+            "output_exact": edit["output_exact"], "output_sha256": hashlib.sha256(replacement).hexdigest(),
+            "reason": edit["reason"], "responsibility": copy.deepcopy(maker),
+            "confidence": edit["confidence"], "evidence_anchor_refs": list(anchor_ids), "status": "proposed"})
+        output_cursor += len(edit["output_exact"])
+        cursor = end
+    pieces.append(text[cursor:])
+    result = "".join(pieces)
+    _bounded_text(result)
+    return result, {"kind": "explicit_operations", "operations": operations}
+
+
+def build_derived_text_layer(*, config, refs, source_binding, predecessor=None,
+                            input_text=None, supplied_text=None):
+    """Pure additive construction; authentication and source reads are external.
+
+    A supplied OCR/manual-transcription result is recorded, not produced here.
+    The protected configuration retains the reported producer separately from
+    the record maker. No inherited review, competence or accepted use survives.
+    """
+    operation = config["allowed_operations"][0]
+    normalize = operation == "text-layer.normalize"
+    supplied = operation in {"text-layer.record-transcription", "text-layer.record-ocr"}
+    expected_policy = derivation_policy(operation, unicode_form=config["policy"]["unicode_normalization"],
+        transcription_method=config['policy']['method'] if operation == 'text-layer.record-transcription' else 'manual_transcription')
+    if config["policy"] != expected_policy:
+        _fail("native derivation policy differs from the supported exact version")
+    maker = copy.deepcopy(config["maker"])
+    maker.update(configuration_ref=refs["configuration_ref"], configuration_digest=refs["configuration_sha256"])
+    source_binding = copy.deepcopy(source_binding)
+    anchor_ids = [row["anchor_id"] for row in source_binding["anchors"]]
+    if not 1 <= len(anchor_ids) <= 16 or len(set(anchor_ids)) != len(anchor_ids):
+        _fail("native derivation requires bounded unique source anchors")
+    inputs, changes, supersedes, version = [], {"kind": "none"}, None, 1
+    if supplied:
+        if predecessor is not None or input_text is not None:
+            _fail("supplied source transcription cannot pretend to be a layer correction")
+        text = supplied_text
+        uncertainty = {"status": "none", "annotations": []}
+    else:
+        if predecessor is None or supplied_text is not None:
+            _fail("native transformation needs one real exact predecessor")
+        raw_input = _bounded_text(input_text)
+        rep = predecessor["representation"]
+        target = config["input"]["binding"]["text_layer"]
+        if (predecessor["layer_id"] != target["layer_id"] or predecessor["layer_version"] != target["layer_version"]
+                or predecessor["source_binding"] != source_binding
+                or rep["content_sha256"] != hashlib.sha256(raw_input).hexdigest()
+                or rep["text_scope"] != _span(0, len(input_text))
+                or predecessor["layer_id"] == config["identities"]["layer_id"]):
+            _fail("native derivation needs a distinct identity and the whole exact predecessor")
+        # A normalization cannot be silently relabelled as source-near text.
+        if not normalize and (predecessor["layer_role"] == "normalized_text" or rep["character_normalization"] != "none"):
+            _fail("source-near correction cannot erase predecessor normalization")
+        inputs = [{key: target[key] for key in ("layer_id", "record_ref", "record_sha256")}]
+        inputs[0]["content_sha256"] = rep["content_sha256"]
+        supersedes, version = predecessor["layer_id"], predecessor["layer_version"] + 1
+        uncertainty = copy.deepcopy(predecessor["uncertainty"])
+        if normalize:
+            text = unicodedata.normalize(expected_policy["unicode_normalization"], input_text)
+            edits = [{"start": 0, "end": len(input_text), "input_exact": input_text,
+                "input_sha256": hashlib.sha256(raw_input).hexdigest(), "output_exact": text,
+                "reason": "Explicit " + expected_policy["unicode_normalization"] + " under Unicode " + unicodedata.unidata_version,
+                "confidence": 1}]
+        else:
+            edits = config["material"]["edits"]
+        text, changes = _explicit_edits(input_text, edits, maker=maker, anchor_ids=anchor_ids, normalize=normalize)
+    content = _bounded_text(text)
+    digest = hashlib.sha256(content).hexdigest()
+    layer = {
+        "$schema": LAYER_SCHEMA, "schema_version": "tos_source_text_layer_v1",
+        "layer_id": config["identities"]["layer_id"], "layer_version": version, "supersedes_layer_ref": supersedes,
+        "layer_role": "normalized_text" if normalize else "raw_ocr" if operation == "text-layer.record-ocr" else
+                      "machine_transcription" if expected_policy['method'] == 'model_transcription' else "diplomatic_transcription",
+        "source_binding": source_binding,
+        "representation": {"content_file_id": "tos.file.sha256." + digest, "content_ref": refs["content_ref"],
+            "content_sha256": digest, "media_type": "text/plain", "charset": "UTF-8", "language": config["language"],
+            "text_scope": _span(0, len(text)), "character_normalization": expected_policy["unicode_normalization"],
+            "line_break_posture": "logical_reflow" if supplied else predecessor["representation"]["line_break_posture"],
+            "storage": "ignored_local", "content_visibility": "local_only", "tracked_content": False,
+            "publication_authorized": False, "rights_record_refs": copy.deepcopy(config["derivation_access"]["rights_record_refs"]),
+            "publication_authority_refs": []},
+        "derivation": {"method": expected_policy['method'], "input_layers": inputs, "maker": maker,
+            "preservation_goal": "normalized_for_search" if normalize else "source_near",
+            "loss_posture": "normalization_intended" if normalize else "unknown" if supplied else "preservation_intended",
+            "silent_changes_allowed": False, "change_payload": changes},
+        "editorial_policy": {"policy_ref": refs["policy_ref"], "policy_sha256": hashlib.sha256(record_bytes(expected_policy)).hexdigest(),
+            "transcription_goal": "normalized_access" if normalize else "machine_candidate" if expected_policy['method'] in {'ocr', 'model_transcription'} else "diplomatic",
+            "historical_language_preserved": False, "printing_errors_silently_corrected": False,
+            "typography_posture": "normalize_declared" if normalize else "encode_explicitly",
+            "layout_posture": "encode_explicitly", "unicode_normalization": expected_policy["unicode_normalization"],
+            "uncertainty_representation": "explicit-never-silent", "method_declared": True},
+        "uncertainty": uncertainty,
+        "admission": {"mechanical_status": "materialized", "review_status": "unreviewed", "review_ref": None,
+            "human_review_performed": False, "human_language_competence": "not_assessed", "language_competence_evidence_refs": [],
+            "accepted_uses": [], "automatic_validation_complete": False, "model_output_is_ground_truth": False,
+            "validator_proves_content_truth": False, "routine_human_task_created": False, "promotion_authorized": False},
+        "provenance_event_ref": config["identities"]["provenance_event_id"], "authority_boundary": AUTHORITY_BOUNDARY,
+    }
+    record_bytes(layer)
+    return {"layer": layer, "policy": expected_policy, "content": content}

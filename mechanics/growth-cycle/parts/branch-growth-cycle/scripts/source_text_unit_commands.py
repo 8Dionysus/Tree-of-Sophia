@@ -45,7 +45,7 @@ IMPLEMENTATIONS = (
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py',
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py',
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
-    'scripts/source_text_unit_proposal.py', 'scripts/native_text_binding.py',
+    'scripts/source_text_unit_proposal.py', 'scripts/source_text_layer_proposal.py', 'scripts/native_text_binding.py',
     'scripts/source_owner_context.py', 'scripts/validate_source_witness_foundation.py',
 )
 

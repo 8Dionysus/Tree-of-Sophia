@@ -75,6 +75,10 @@ route](NATIVE_TEXT_LAYER_CONSTRUCTION.md) exposes `owner-local-text-layer-create
 and adds the v2 layer-only input to `owner-local-text-unit-create`. Discovery
 lists implemented grammar only, never an existing source, usable payload,
 private selector/slot, current grant, rights decision or accepted TextLayer.
+The same route's separate `owner-local-text-layer-derive` handler exposes
+correction, Unicode normalization and recording supplied OCR/transcription.
+One independent grant chooses one operation; reported upstream methods are not
+provider execution receipts and new layers do not inherit prior quality.
 
 Assessment-journal and semantic-registry evolution remain explicit owner
 handoffs, not operations dispatched by this front door. Access CLI, HTTP,

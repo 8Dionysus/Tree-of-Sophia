@@ -353,7 +353,7 @@ class NativeTextBindingResolver:
         self._validate(layer, 'source-text-layer.schema.json')
         if layer['layer_id'] != target['layer_id'] or layer['layer_version'] != target['layer_version']:
             raise NativeTextBindingError('native text-layer identity/version differs')
-        self._layer_dependencies(layer)
+        self._layer_dependencies(layer, record_ref=target['record_ref'])
         source = layer['source_binding']
         scope = {key: source[key] for key in ('work_ref', 'expression_ref', 'edition_ref', 'item_ref')}
         scope.update(file_ref=source['source_file_ref'], file_sha256=source['source_file_sha256'])
@@ -401,12 +401,13 @@ class NativeTextBindingResolver:
             form = rep['character_normalization']
             if form != 'none' and unicodedata.normalize(form, text[span['start']:span['end']]) != text[span['start']:span['end']]:
                 raise NativeTextBindingError('native layer contradicts its declared Unicode form')
+            self._derived_content(layer, text)
         self.snapshot()
         return {'metadata_verified': True, 'content_verified': verify_content,
                 'public_content_declared': False, 'assessment_applied': False,
                 'input_mode': 'exact_layer_first_segmentation'}
 
-    def _layer_dependencies(self, layer, *, visiting=frozenset()):
+    def _layer_dependencies(self, layer, *, visiting=frozenset(), record_ref=None):
         """Retain fixed predecessor and policy bytes, without replaying OCR.
 
         Returning to immutable input records is not proof that the recorded
@@ -420,15 +421,131 @@ class NativeTextBindingResolver:
         policy = layer['editorial_policy']
         self._read(policy['policy_ref'], expected=policy['policy_sha256'], support=True)
         maker = layer['derivation']['maker']
+        configuration = None
         if maker.get('configuration_ref') is not None:
-            self._read(maker['configuration_ref'], expected=maker['configuration_digest'], support=True)
+            raw = self._read(maker['configuration_ref'], expected=maker['configuration_digest'], support=True)
+            # Configuration bytes may be non-JSON for older source methods.
+            # Only the explicitly versioned native command has this adapter.
+            if raw.lstrip().startswith(b'{'):
+                try:
+                    configuration = _json(raw)
+                except NativeTextBindingError:
+                    pass  # Older methods may bind opaque, non-JSON bytes.
+        previous_layers = []
         for target in layer['derivation']['input_layers']:
             previous = self._record(target['record_ref'], expected=target['record_sha256'])
             self._validate(previous, 'source-text-layer.schema.json')
             if (previous['layer_id'] != target['layer_id']
                     or previous['representation']['content_sha256'] != target['content_sha256']):
                 raise NativeTextBindingError('native predecessor identity or content binding differs')
-            self._layer_dependencies(previous, visiting=visiting | {layer['layer_id']})
+            previous_layers.append(previous)
+            self._layer_dependencies(previous, visiting=visiting | {layer['layer_id']}, record_ref=target['record_ref'])
+        if configuration is not None and configuration.get('schema_version') == 'tos_local_text_layer_derive_owner_v1':
+            self._derived_metadata(layer, configuration, previous_layers, record_ref=record_ref)
+
+    def _derived_metadata(self, layer, config, previous_layers, *, record_ref=None):
+        """Native exact lineage, without requiring a still-active write grant.
+
+        Historical policy/configuration remains readable across implementation
+        upgrades. This does not replay a reported OCR provider or adopt quality.
+        """
+        from source_text_layer_proposal import DERIVE_OPERATIONS
+        try:
+            operation = config['allowed_operations'][0]
+            rep, derivation, maker = layer['representation'], layer['derivation'], layer['derivation']['maker']
+            base = Path(config['source_path']).parent
+            policy = self._record(layer['editorial_policy']['policy_ref'], expected=layer['editorial_policy']['policy_sha256'])
+            scope = layer['source_binding']
+            exact_scope = {key: scope[key] for key in ('work_ref', 'expression_ref', 'edition_ref', 'item_ref')}
+            exact_scope.update(file_ref=scope['source_file_ref'], file_sha256=scope['source_file_sha256'])
+            role = ('normalized_text' if operation == 'text-layer.normalize' else 'raw_ocr' if operation == 'text-layer.record-ocr'
+                    else 'machine_transcription' if derivation['method'] == 'model_transcription' else 'diplomatic_transcription')
+            if (config['allowed_operations'] != [operation] or operation not in DERIVE_OPERATIONS
+                    or record_ref is not None and config['source_path'] != record_ref
+                    or config['source_scope'] != exact_scope or config['identities']['layer_id'] != layer['layer_id']
+                    or config['identities']['provenance_event_id'] != layer['provenance_event_ref']
+                    or derivation['method'] not in ({'manual_transcription', 'model_transcription'} if operation == 'text-layer.record-transcription' else {DERIVE_OPERATIONS[operation]})
+                    or config['policy'] != policy
+                    or policy['schema_version'] != 'tos_native_text_layer_derivation_policy_v1'
+                    or policy['operation'] != operation or policy['method'] != derivation['method']
+                    or policy['provider_execution_verified'] is not False or policy['inherited_quality'] != 'not-transferred'
+                    or layer['layer_role'] != role
+                    or config['language'] != rep['language'] or rep['content_ref'] != (base / 'content.txt').as_posix()
+                    or rep['character_normalization'] != policy['unicode_normalization']
+                    or maker['configuration_ref'] != (base / 'source-create-owner-configuration.json').as_posix()
+                    or {key: maker[key] for key in ('maker_type', 'agent_ref', 'method', 'version')} != config['maker']
+                    or rep['rights_record_refs'] != config['derivation_access']['rights_record_refs']):
+                raise NativeTextBindingError('native derived layer differs from its retained exact configuration')
+            if operation in {'text-layer.correct', 'text-layer.normalize'}:
+                target = config['input']['binding']['text_layer']
+                if len(previous_layers) != 1:
+                    raise NativeTextBindingError('native derived layer requires one exact predecessor')
+                previous = previous_layers[0]
+                expected = {key: target[key] for key in ('layer_id', 'record_ref', 'record_sha256')}
+                expected['content_sha256'] = previous['representation']['content_sha256']
+                if (derivation['input_layers'] != [expected] or previous['layer_version'] != target['layer_version']
+                        or previous['source_binding'] != scope or previous['representation']['language'] != rep['language']
+                        or layer['supersedes_layer_ref'] != previous['layer_id']
+                        or layer['layer_version'] != previous['layer_version'] + 1
+                        or config['input']['binding']['source_record_refs'] != config['source_record_refs']):
+                    raise NativeTextBindingError('native derived predecessor version, lineage or source scope differs')
+                if operation == 'text-layer.correct' and (previous['layer_role'] == 'normalized_text'
+                        or previous['representation']['character_normalization'] != 'none'):
+                    raise NativeTextBindingError('native source-near correction cannot erase predecessor normalization')
+            else:
+                target = config['input']['anchor']
+                if (previous_layers or layer['layer_version'] != 1 or layer['supersedes_layer_ref'] is not None
+                        or scope['anchors'] != [{'anchor_id': target['anchor_id'], 'anchor_record_ref': target['record_ref'],
+                                                 'anchor_record_sha256': target['record_sha256']}]
+                        or config['material']['provider_execution'] != 'not_observed'
+                        or rep['content_sha256'] != config['material']['content_sha256']):
+                    raise NativeTextBindingError('native supplied result differs from its exact source/byte declaration')
+        except (KeyError, TypeError, IndexError) as error:
+            raise NativeTextBindingError('native derived layer has malformed retained configuration') from error
+
+    def _derived_content(self, layer, text):
+        """Independently replay explicit deltas, not a historical provider/runtime."""
+        maker = layer['derivation']['maker']
+        if maker.get('configuration_ref') is None:
+            return
+        raw = self._read(maker['configuration_ref'], expected=maker['configuration_digest'], support=True)
+        if not raw.lstrip().startswith(b'{'):
+            return
+        try:
+            config = _json(raw)
+        except NativeTextBindingError:
+            return  # Opaque legacy method configuration, not this adapter.
+        if config.get('schema_version') != 'tos_local_text_layer_derive_owner_v1':
+            return
+        from source_text_layer_proposal import MAX_DERIVED_TEXT_BYTES, MAX_EDITS
+        rep = layer['representation']
+        if len(text.encode('utf-8')) > MAX_DERIVED_TEXT_BYTES or rep['text_scope']['start'] != 0 or rep['text_scope']['end'] != len(text):
+            raise NativeTextBindingError('native derived content exceeds its whole-representation profile')
+        operation = config['allowed_operations'][0]
+        if operation not in {'text-layer.correct', 'text-layer.normalize'}:
+            if len(text.encode('utf-8')) != config['material']['byte_size']:
+                raise NativeTextBindingError('native supplied result size differs from its retained input')
+            return
+        binding = config['input']['binding']
+        # This verifies independent predecessor rights before its bytes, while
+        # never inheriting a verdict or granting access to the original File.
+        self.resolve_layer(binding, verify_content=False)
+        previous = self._record(binding['text_layer']['record_ref'], expected=binding['text_layer']['record_sha256'])
+        prior = previous['representation']
+        if config['source_access']['byte_size'] > MAX_DERIVED_TEXT_BYTES:
+            raise NativeTextBindingError('native predecessor exceeds the bounded transformation profile')
+        previous_raw = self._read(prior['content_ref'], expected=prior['content_sha256'], content=True)
+        if len(previous_raw) != config['source_access']['byte_size']:
+            raise NativeTextBindingError('native predecessor size differs from its retained input')
+        try:
+            previous_text = previous_raw.decode('utf-8')
+            changes = layer['derivation']['change_payload']
+            if changes['kind'] != 'explicit_operations' or not 1 <= len(changes['operations']) <= MAX_EDITS:
+                raise NativeTextBindingError('native derived changes leave the exact explicit operation profile')
+            from validate_source_witness_foundation import _replay_source_text_layer_edits
+            _replay_source_text_layer_edits(previous_text, text, changes['operations'])
+        except (ValueError, KeyError, TypeError) as error:
+            raise NativeTextBindingError('native derived edit evidence does not replay against exact predecessor bytes') from error
 
     def resolve(self, binding: dict, *, verify_content=False, allow_private_content=False) -> dict:
         if type(verify_content) is not bool or type(allow_private_content) is not bool:
@@ -457,7 +574,7 @@ class NativeTextBindingResolver:
         if (_source_text_unit_v1_issues(packet)
                 or _source_text_layer_semantic_issues(layer)):
             raise NativeTextBindingError('native packet or layer violates its internal evidence contract')
-        self._layer_dependencies(layer)
+        self._layer_dependencies(layer, record_ref=layer_binding['record_ref'])
         manifestation = self._source_scope(binding, packet['source_scope'], layer)
         rep = layer['representation']
         packet_layer = packet['source_layer']
@@ -560,6 +677,7 @@ class NativeTextBindingResolver:
                 raise NativeTextBindingError('native text contradicts its declared Unicode form')
             if _source_text_unit_v1_issues(packet, text=text):
                 raise NativeTextBindingError('native unit anchors or coverage do not resolve exact bytes')
+            self._derived_content(layer, text)
         # A cached resolver must not return a stale successful validation. A
         # command still rechecks this opaque snapshot at its publication edge.
         self.snapshot()
