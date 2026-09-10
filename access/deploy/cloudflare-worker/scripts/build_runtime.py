@@ -912,12 +912,10 @@ def build(core: ToSAccessCore, output: Path, runtime: Path, *, cache_options=Non
     def prepare_graph():
         nonlocal processing, normalization
         if processing is None:
-            # The command normally starts a fresh process. Embedded builders
-            # must also reread bytes after a content-based invalidation, even
-            # when an editor preserved file size and mtime.
-            access_core._read_json_version.cache_clear()
-            access_core._knowledge_graph_version.cache_clear()
-            access_core._knowledge_catalog_version.cache_clear()
+            # The process-local input cache is keyed by the complete source
+            # state, so embedded builders reread bytes after a content-based
+            # invalidation even when an editor preserved file size and mtime;
+            # no manual cache clear is needed.
             processor_digest = normalization_processor_digest(ACCESS_SRC / 'tos_access/knowledge.py')
             with NormalizationCache(runtime / 'normalization.sqlite', processor_digest, **(cache_options or {})) as cache:
                 core.knowledge_graph()

@@ -525,6 +525,41 @@ class CoreContractTests(unittest.TestCase):
             node = next(item for item in restored["nodes"] if item["id"] == "philosophy:a")
             self.assertEqual(node["display"]["title"]["default"], "Alpha")
 
+    def test_snapshot_supersession_replaces_latest_carriers_and_keeps_old_reader(self) -> None:
+        from tos_access import core as core_module
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            baseline = core.knowledge_graph()
+            old_projection = core.philosophy_projection()
+            path = core.philosophy_graph_projection_path
+            replacement = path.read_bytes().replace(b'"Alpha"', b'"Omega"', 1)
+            self.assertEqual(len(replacement), path.stat().st_size)
+            path.write_bytes(replacement)
+
+            successor = core.knowledge_graph()
+
+            # A request that still holds the previous source snapshot remains
+            # readable while the core atomically exposes the successor.
+            self.assertIsNot(successor, baseline)
+            self.assertEqual(old_projection["nodes"][0]["label"], "Alpha")
+            successor_node = next(item for item in successor["nodes"] if item["id"] == "philosophy:a")
+            self.assertEqual(successor_node["display"]["title"]["default"], "Omega")
+            self.assertIs(core._published_graph, successor)
+
+            # The parsed carrier cache keeps only the current version for this
+            # path; the old dictionary is retained solely by this in-flight
+            # reader reference.  The graph builder is likewise not a process-
+            # global multi-version LRU.
+            stat = path.stat()
+            with core_module._json_version_cache_lock:
+                cached_state, cached_payload = core_module._json_version_cache[path.resolve().as_posix()]
+            self.assertEqual(cached_state, (stat.st_mtime_ns, stat.st_size, stat.st_ino, stat.st_ctime_ns))
+            self.assertEqual(cached_payload["nodes"][0]["label"], "Omega")
+            self.assertFalse(hasattr(core_module._knowledge_graph_version, "cache_info"))
+
     def test_concurrent_addressed_writers_share_one_cas_parent(self) -> None:
         from concurrent.futures import ThreadPoolExecutor
         from copy import deepcopy

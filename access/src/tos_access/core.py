@@ -5,9 +5,8 @@ import importlib.util
 import json
 import os
 import sys
-from collections import deque
+from collections import OrderedDict, deque
 from dataclasses import dataclass, field
-from functools import lru_cache
 from threading import Lock, RLock
 from pathlib import Path
 from typing import Any
@@ -74,6 +73,11 @@ PHILOSOPHY_CHALLENGE_PREDICATES = {
     "uncertain_relation",
     "polemicizes_with",
 }
+JSON_VERSION_CACHE_MAX_PATHS = 32
+_json_version_cache_lock = Lock()
+_json_version_cache: OrderedDict[
+    str, tuple[tuple[int, int, int, int], dict[str, Any]]
+] = OrderedDict()
 
 
 def _unavailable_word_analysis_capability(reason: str) -> dict[str, Any]:
@@ -95,18 +99,33 @@ def _unavailable_word_analysis_capability(reason: str) -> dict[str, Any]:
     }
 
 
-@lru_cache(maxsize=8)
 def _read_json_version(
     path_text: str, mtime_ns: int, size: int, inode: int, ctime_ns: int
 ) -> dict[str, Any]:
-    # Atomic same-size replacements can preserve both mtime and size while
-    # changing the source bytes. Include inode and ctime in the cache key so a
-    # replacement or same-inode rewrite never reuses the old parsed carrier.
-    del mtime_ns, size, inode, ctime_ns
+    """Read one latest version of a JSON carrier without retaining history.
+
+    The graph itself is retained by ``ToSAccessCore`` only as the currently
+    published snapshot.  A process-wide multi-version LRU here would keep old
+    raw carriers alive after supersession and multiply the graph's memory
+    footprint across source edits.  Keep at most one parsed payload per path;
+    a source-state change replaces that entry atomically.  The state key keeps
+    same-size/same-mtime rewrites honest through inode and ctime changes.
+    """
+    state = (mtime_ns, size, inode, ctime_ns)
+    with _json_version_cache_lock:
+        cached = _json_version_cache.get(path_text)
+        if cached is not None and cached[0] == state:
+            _json_version_cache.move_to_end(path_text)
+            return cached[1]
     path = Path(path_text)
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise RuntimeError(f"ToS corpus index is not a JSON object: {path}")
+    with _json_version_cache_lock:
+        _json_version_cache[path_text] = (state, payload)
+        _json_version_cache.move_to_end(path_text)
+        while len(_json_version_cache) > JSON_VERSION_CACHE_MAX_PATHS:
+            _json_version_cache.popitem(last=False)
     return payload
 
 
@@ -117,7 +136,6 @@ def _read_json(path: Path) -> dict[str, Any]:
     )
 
 
-@lru_cache(maxsize=8)
 def _knowledge_graph_version(
     index_path_text: str,
     index_mtime_ns: int,
@@ -180,94 +198,6 @@ def _knowledge_graph_version(
         corpus,
         philosophy,
         bibliographic,
-        entity_registry,
-        relation_registry,
-    )
-
-
-@lru_cache(maxsize=8)
-def _knowledge_catalog_version(
-    index_path_text: str,
-    index_mtime_ns: int,
-    index_size: int,
-    index_inode: int,
-    index_ctime_ns: int,
-    philosophy_path_text: str,
-    philosophy_mtime_ns: int,
-    philosophy_size: int,
-    philosophy_inode: int,
-    philosophy_ctime_ns: int,
-    bibliographic_path_text: str,
-    bibliographic_mtime_ns: int,
-    bibliographic_size: int,
-    bibliographic_inode: int,
-    bibliographic_ctime_ns: int,
-    entity_registry_path_text: str,
-    entity_registry_mtime_ns: int,
-    entity_registry_size: int,
-    entity_registry_inode: int,
-    entity_registry_ctime_ns: int,
-    relation_registry_path_text: str,
-    relation_registry_mtime_ns: int,
-    relation_registry_size: int,
-    relation_registry_inode: int,
-    relation_registry_ctime_ns: int,
-) -> dict[str, Any]:
-    corpus = _read_json_version(
-        index_path_text, index_mtime_ns, index_size, index_inode, index_ctime_ns
-    )
-    philosophy = _read_json_version(
-        philosophy_path_text,
-        philosophy_mtime_ns,
-        philosophy_size,
-        philosophy_inode,
-        philosophy_ctime_ns,
-    )
-    entity_registry = _read_json_version(
-        entity_registry_path_text,
-        entity_registry_mtime_ns,
-        entity_registry_size,
-        entity_registry_inode,
-        entity_registry_ctime_ns,
-    )
-    relation_registry = _read_json_version(
-        relation_registry_path_text,
-        relation_registry_mtime_ns,
-        relation_registry_size,
-        relation_registry_inode,
-        relation_registry_ctime_ns,
-    )
-    graph = _knowledge_graph_version(
-        index_path_text,
-        index_mtime_ns,
-        index_size,
-        index_inode,
-        index_ctime_ns,
-        philosophy_path_text,
-        philosophy_mtime_ns,
-        philosophy_size,
-        philosophy_inode,
-        philosophy_ctime_ns,
-        bibliographic_path_text,
-        bibliographic_mtime_ns,
-        bibliographic_size,
-        bibliographic_inode,
-        bibliographic_ctime_ns,
-        entity_registry_path_text,
-        entity_registry_mtime_ns,
-        entity_registry_size,
-        entity_registry_inode,
-        entity_registry_ctime_ns,
-        relation_registry_path_text,
-        relation_registry_mtime_ns,
-        relation_registry_size,
-        relation_registry_inode,
-        relation_registry_ctime_ns,
-    )
-    return build_knowledge_catalog(
-        graph,
-        corpus,
-        philosophy,
         entity_registry,
         relation_registry,
     )
