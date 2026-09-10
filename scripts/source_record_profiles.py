@@ -97,13 +97,17 @@ def _read_json(root: Path, ref: str, digests: dict | None = None, *, byte_budget
     return value
 
 
-def _schema_route(root, route, digests, cache, shared_refs=()):
-    """Exact local resources only; neither metadata nor a claim selects code."""
+def _schema_route(root, route, digests, cache, shared_refs=(), *, read_json=None):
+    """Exact local resources only; neither metadata nor a claim selects code.
+
+    An optional owner-supplied JSON reader owns its budget and raw digests;
+    schema identity, validation and local-only reference resolution stay here.
+    """
     refs = list(dict.fromkeys([*shared_refs, *route['schema_dependencies'], route['schema_ref']]))
     resources = {}
     for ref in refs:
         if ref not in cache:
-            schema = _read_json(root, ref, digests)
+            schema = _read_json(root, ref, digests) if read_json is None else read_json(ref, digests)
             if schema.get('$id') not in {'https://tree-of-sophia.local/' + ref,
                                           'https://treeofsophia.local/' + ref}:
                 raise SourceProfileError(f'{ref}: schema identity differs from its declared owner path')

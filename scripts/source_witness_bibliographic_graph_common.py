@@ -70,10 +70,11 @@ HISTORICAL_REGISTRY_REFS = (
 )
 
 
-def historical_schema_validator(repo_root: Path, *, claim: bool = False) -> Draft202012Validator:
+def historical_schema_validator(repo_root: Path, *, claim: bool = False, read_json=None) -> Draft202012Validator:
     names = (('claim-packet.schema.json', 'knowledge-assessment.schema.json', 'historical-claim.schema.json')
              if claim else ('corpus-record.schema.json', 'historical-record.schema.json'))
-    schemas = [load_json(repo_root / 'ToS/contracts' / name) for name in names]
+    read = read_json if read_json is not None else lambda ref: load_json(repo_root / ref)
+    schemas = [read('ToS/contracts/' + name) for name in names]
     registry = Registry().with_resources((schema['$id'], Resource.from_contents(schema)) for schema in schemas)
     return Draft202012Validator(schemas[-1], registry=registry)
 
@@ -542,9 +543,10 @@ def _load_claim_catalog(repo_root: Path, profiles=None, legacy_links=None) -> li
     return claims
 
 
-def _historical_claim_contract(repo_root: Path) -> tuple:
-    """Compile once per build; do not cache across source/configuration changes."""
-    entities, relations = [load_json(repo_root / ref) for ref in HISTORICAL_REGISTRY_REFS]
+def _historical_claim_contract(repo_root: Path, *, read_json=None) -> tuple:
+    """Compile once per read; an optional owner reader budgets exact JSON inputs."""
+    read = read_json if read_json is not None else lambda ref: load_json(repo_root / ref)
+    entities, relations = [read(ref) for ref in HISTORICAL_REGISTRY_REFS]
     entries = {item['type_id']: item for item in entities['types']}
     mappings = {mapping['source_kind_id']: item['type_id'] for item in entities['types']
                 for mapping in item['source_mappings'] if mapping['source_graph'] == 'source-claims'}
@@ -558,10 +560,10 @@ def _historical_claim_contract(repo_root: Path) -> tuple:
         if len(candidates) != 1:
             raise BibliographicGraphBuildError('historical predicate must have exactly one registry mapping')
         predicates[predicate] = candidates[0]
-    return historical_schema_validator(repo_root, claim=True), entries, mappings, predicates, repo_root
+    return historical_schema_validator(repo_root, claim=True, read_json=read_json), entries, mappings, predicates, repo_root
 
 
-def _historical_display_inputs(repo_root, claim):
+def _historical_display_inputs(repo_root, claim, *, read_json=None):
     """The opt-in display contract belongs to this source root, not a template."""
     display = claim.get('qualifiers', {}).get('display_fields')
     inputs = {}
@@ -569,19 +571,19 @@ def _historical_display_inputs(repo_root, claim):
         from source_record_profiles import _schema_route
         validator, _ = _schema_route(repo_root, {
             'schema_ref': 'ToS/contracts/claim-display-fields.schema.json',
-            'schema_dependencies': ['ToS/contracts/corpus-record.schema.json']}, inputs, {})
+            'schema_dependencies': ['ToS/contracts/corpus-record.schema.json']}, inputs, {}, read_json=read_json)
         if not validator.is_valid(claim['qualifiers']):
             raise BibliographicGraphBuildError('historical Claim display fields violate their explicit contract')
     return inputs
 
 
 def _validate_historical_claim(claim: dict[str, Any], objects: dict[str, dict[str, Any]],
-                               contract: tuple) -> dict[str, str]:
+                               contract: tuple, *, read_json=None) -> dict[str, str]:
     """Apply the owner schema and registry domains, never evaluate historical truth."""
     validator, entries, mappings, predicates, repo_root = contract
     if not validator.is_valid(claim):
         raise BibliographicGraphBuildError(f"{claim['claim_id']}: historical claim schema violation")
-    display_inputs = _historical_display_inputs(repo_root, claim)
+    display_inputs = _historical_display_inputs(repo_root, claim, read_json=read_json)
     relation = predicates[claim['predicate']]
     for field, allowed in (('subject_ref', relation['domain_type_ids']), ('object', relation['range_type_ids'])):
         if field == 'object' and claim['predicate'] == 'historical_dating':

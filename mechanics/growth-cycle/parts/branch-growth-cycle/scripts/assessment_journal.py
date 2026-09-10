@@ -464,11 +464,59 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
     native_dependencies = {}
     native_types = {}
     declared_claims = set()
+    historical_claims = set()
+    historical_contract = None
+    historical_inputs = {}
+    from source_historical_claims import is_path as historical_claim_path
+
+    def read_historical_json(ref, digests=None):
+        """Charge unique contract inputs before decoding, then retain fixity."""
+        nonlocal total
+        if ref not in historical_inputs:
+            with os.fdopen(_owned_path(root / ref), 'rb') as stream:
+                before = os.fstat(stream.fileno())
+                raw = stream.read(min(MAX_RECORD_BYTES, 8 * MAX_RECORD_BYTES - total) + 1)
+                after = os.fstat(stream.fileno())
+            total += len(raw)
+            if total > 8 * MAX_RECORD_BYTES or len(raw) > MAX_RECORD_BYTES:
+                raise ValueError('source and historical contract files exceed the shared 8 MiB read budget')
+            if (before.st_size, before.st_mtime_ns, before.st_ctime_ns) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+                raise JournalConflict('historical contract file changed during read')
+            value = _json_object(raw)
+            if ref.startswith('ToS/contracts/'):
+                if value.get('$id') not in {'https://tree-of-sophia.local/' + ref,
+                                            'https://treeofsophia.local/' + ref}:
+                    raise ValueError('historical contract identity differs from its exact source path')
+                Draft202012Validator.check_schema(value)
+            historical_inputs[ref] = value
+            native_dependencies[ref] = hashlib.sha256(raw).hexdigest()
+        if digests is not None:
+            digests[ref] = native_dependencies[ref]
+        return historical_inputs[ref]
+
+    def historical_endpoints(body):
+        refs = {body['subject_ref']}
+        if body['predicate'] == 'historical_dating':
+            anchor = body['object'].get('relative', {}).get('anchor_ref')
+            if anchor is not None:
+                refs.add(anchor)
+        else:
+            refs.add(body['object'])
+        return refs
 
     def declared_family(row, path):
-        nonlocal metadata_profiles, claim_profiles
+        nonlocal metadata_profiles, claim_profiles, historical_contract
         # Owner-declared readers only. Unknown neighbors remain opaque, and
         # the selected record still fails if no exact schema route exists.
+        if historical_claim_path(path):
+            if row.get('schema_version') != 'tos_historical_claim_v1':
+                return None
+            if historical_contract is None:
+                from source_witness_bibliographic_graph_common import _historical_claim_contract
+                historical_contract = _historical_claim_contract(root, read_json=read_historical_json)
+            historical_contract[0].validate(row)
+            historical_claims.add(row['claim_id'])
+            return 'claim_id', 'claim_version'
         if path.name in {'artifact-witness.json', 'composite-witness.json'}:
             from build_source_witness_catalog import native_witness_contract
             schema_ref, identity, kind = native_witness_contract(row, path.as_posix())
@@ -544,7 +592,8 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
                 if not isinstance(row, dict):
                     raise ValueError('source records must be JSON objects')
                 family = families.get(row.get('schema_version'))
-                if (family is None or path.name in {SOURCE_CLAIM_BASENAME, 'composite.json', 'composite-witness.json', 'artifact-witness.json'}
+                if (family is None or path.name in {SOURCE_CLAIM_BASENAME, 'historical-claims.jsonl',
+                                                   'composite.json', 'composite-witness.json', 'artifact-witness.json'}
                         or (isinstance(row.get('record_type'), str) and path.suffix == '.json'
                             and path.name not in RESERVED_BASENAMES)):
                     family = declared_family(row, path)
@@ -569,7 +618,7 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
         resolved.append({'id': record.id, 'version': record.version, 'payload': payload, 'origin_id': origin})
     selected_records = {item['id']: Record.from_payload(**item) for item in resolved}
     declared_dependencies = {}
-    if claim_profiles is not None:
+    if claim_profiles is not None or historical_contract is not None:
         # Endpoints must be in this independently selected source snapshot,
         # not inline shadows or discovered by crawling the surrounding corpus.
         objects = {item['id']: item['payload'] for item in resolved if 'record_type' in item['payload']}
@@ -579,6 +628,8 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
         paths = {binding['record_id']: Path(binding['path']) for binding in bindings}
         endpoint_ids = {identity for item in resolved if item['id'] in declared_claims
                         for identity in claim_profiles.identity_refs(item['payload'])}
+        endpoint_ids.update(identity for item in resolved if item['id'] in historical_claims
+                            for identity in historical_endpoints(item['payload']))
         native_validator = None
         for identifier in endpoint_ids & objects.keys():
             if identifier in native_types:
@@ -601,6 +652,12 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
                     raise ValueError('claim endpoint has no declared source metadata profile')
                 metadata_profiles.validate(kind, body)
         for item in resolved:
+            if item['id'] in historical_claims:
+                from source_witness_bibliographic_graph_common import _validate_historical_claim
+                _validate_historical_claim(item['payload'], objects, historical_contract,
+                                           read_json=read_historical_json)
+                declared_dependencies[item['id']] = [selected_records[identifier].ref
+                    for identifier in sorted(historical_endpoints(item['payload']))]
             if item['id'] in declared_claims:
                 claim_profiles.validate(item['payload'], objects)
                 declared_dependencies[item['id']] = [selected_records[identifier].ref
@@ -644,8 +701,11 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
                 dependencies[ref] = digest
     for ref, digest in sorted(dependencies.items()):
         with os.fdopen(_owned_path(root / ref), 'rb') as stream:
-            raw = stream.read(8 * MAX_RECORD_BYTES - total + 1)
-        total += len(raw)
+            # Historical callbacks already charged this unique input before
+            # parsing. Rehash still detects drift without charging it twice.
+            raw = stream.read((MAX_RECORD_BYTES if ref in historical_inputs else 8 * MAX_RECORD_BYTES - total) + 1)
+        if ref not in historical_inputs:
+            total += len(raw)
         if total > 8 * MAX_RECORD_BYTES:
             raise ValueError('source and profile files exceed the shared 8 MiB read budget')
         if hashlib.sha256(raw).hexdigest() != digest:

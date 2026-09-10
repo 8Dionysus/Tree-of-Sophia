@@ -580,8 +580,8 @@ separate from source modification and from public export or runtime admission.
 distinct `{path, record_id, origin_id}` bindings). Only explicit JSON/JSONL
 metadata files under `ToS/source-witnesses/` are read; payload/local-content
 paths, escapes and symlinks are refused. No directory discovery, network,
-OCR, global graph build or source write runs. The total source-file read
-budget is 8 MiB, each file selects at most 1,024 records, and inline plus
+OCR, global graph build or source write runs. The unique source-file and
+consumed-contract input budget is 8 MiB, each file selects at most 1,024 records, and inline plus
 source-selected records share the existing 1,024-record snapshot bound.
 
 The adapter understands the identity/version envelopes of corpus-record v1,
@@ -590,6 +590,24 @@ profiles (including historical records, Document and Letter) and the shared
 `source-claims.jsonl` stream use the existing source-profile readers and their
 exact registry/schema versions. A legacy schema name cannot bypass the
 declared stream or metadata file's contract.
+
+Finite public `history/**/historical-claims.jsonl` inputs retain their original
+`tos_historical_claim_v1` schema and historical registry domains. They are not
+coerced into native source-Claim profiles. Their historical subject and typed
+object, or relative-date anchor, must be explicitly source-selected; these
+exact dependencies also ground each selected adjacent HumanForm. The existing
+orphan-form and exact current subject guards remain mandatory. Uncaptured
+legacy records are readable: creation capture or a correction grant is not a
+condition of source assessment. Evidence and counterevidence declarations keep
+their actual schema and source qualification; this reader does not follow
+their links or turn them into independently inspected evidence. Unknown
+display extensions remain opaque; malformed known display v1 fields fail.
+Historical contracts are charged before decoding through an invocation-local
+bounded reader. Final raw rehash retains drift detection without charging an
+already consumed input twice; other profile dependencies and native identity
+reads still count against their existing budget. No source instances are
+discovered to fill a missing historical dependency.
+
 A JSONL record is selected by stable ID,
 not line number; a human-form set selects only its current `forms`, never
 `prior_forms`. Duplicate current IDs or selected bindings are errors. Source
