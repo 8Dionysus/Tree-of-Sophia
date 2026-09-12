@@ -4349,14 +4349,26 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             event_path, event = history[0]
             event_binding = {'path': event_path.relative_to(root).as_posix(),
                              'record_id': event['record_id'], 'origin_id': 'synthetic:fixture'}
-            records, fixity = _source_records(root, [event_binding, claim_binding])
-            self.assertEqual([record['payload'] for record in records], [event, claims[0]])
+            participant_binding = {'path': 'ToS/source-witnesses/agents/friedrich-nietzsche/agent.json',
+                                   'record_id': real[0]['record_id'], 'origin_id': 'synthetic:fixture'}
+            # Assessment validates the independently selected endpoint cohort;
+            # the catalog is not permission to discover an omitted participant.
+            with self.assertRaisesRegex(ValueError, 'domain/range'):
+                _source_records(root, [event_binding, claim_binding])
+            records, fixity = _source_records(root, [event_binding, participant_binding, claim_binding])
+            self.assertEqual([record['payload'] for record in records], [event, real[0], claims[0]])
             # Declared historical metadata now binds its owning schema and
             # registry as well as the two selected source files.
             from source_record_profiles import SourceRecordProfiles
             profile = SourceRecordProfiles(root)
             profile.validate(event['record_type'], event)
-            expected_paths = {event_binding['path'], claim_binding['path'], *profile.input_digests}
+            expected_paths = {event_binding['path'], participant_binding['path'], claim_binding['path'],
+                              'ToS/contracts/corpus-record.schema.json',
+                              'ToS/contracts/claim-packet.schema.json',
+                              'ToS/contracts/knowledge-assessment.schema.json',
+                              'ToS/contracts/historical-claim.schema.json',
+                              'ToS/doctrine/semantic-interchange/relation-types.v1.json',
+                              *profile.input_digests}
             self.assertEqual({entry['path'] for entry in fixity}, expected_paths)
             for entry in fixity:
                 self.assertEqual(entry['digest'], 'sha256:' + hashlib.sha256((root / entry['path']).read_bytes()).hexdigest())
