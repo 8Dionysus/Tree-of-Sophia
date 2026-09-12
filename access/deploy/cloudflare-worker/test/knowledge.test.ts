@@ -6,10 +6,10 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
-import { knowledgeSearchD1, knowledgeSearchD1Indexed, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
+import { knowledgeSearchD1 as nativeSearchD1, knowledgeSearchD1Indexed as nativeSearchD1Indexed, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
 import {nativePacketJson} from '../src/native-lens.ts';
 
-import {executePublishedFixtureLens, publishNativeLensFixture} from './native-lens-fixture.ts';
+import {executePublishedFixtureLens, publishNativeLensFixture, publishNativeSearchFixture} from './native-lens-fixture.ts';
 import { executeKnowledgeLens, focusKnowledgeNode, knowledgeScene, normalizeLensSpec, selectDisplayForm, type KnowledgeGraph } from "../src/knowledge.ts";
 import { selectHumanForms, formDeliveryCost, HUMAN_FORM_SELECTION_BUDGET } from '../src/human-forms.ts';
 import { decodeHumanFormSelection } from '../../../shared/human-form-selection-codec.ts';
@@ -18,6 +18,11 @@ const knowledgeExplorationMigration = readFileSync(
   new URL('../migrations/0001-exploration.sql', import.meta.url),
   'utf8',
 ).replace(/^--.*$/gm, '').trim();
+
+// These retained ordinary-number fixtures inspect the public packet shape;
+// native-search.test.mjs compares raw numeric kinds and ordered source keys.
+const knowledgeSearchD1=async(...args:Parameters<typeof nativeSearchD1>)=>JSON.parse(nativePacketJson(await nativeSearchD1(...args)));
+const knowledgeSearchD1Indexed=async(...args:Parameters<typeof nativeSearchD1Indexed>)=>JSON.parse(nativePacketJson(await nativeSearchD1Indexed(...args)));
 
 async function applyKnowledgeExplorationMigration(db: D1Database): Promise<void> {
   await db.batch(knowledgeExplorationMigration.split(/\n(?=CREATE |INSERT )/).map((statement) => db.prepare(statement)));
@@ -246,6 +251,8 @@ test("knowledge reads require the publication clock and reject invalid or ABA sn
     await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503),
       'a database without the additive publication-clock migration is not ready');
     await applyKnowledgeExplorationMigration(db);
+
+    await publishNativeSearchFixture(db);
 
     await db.prepare('UPDATE knowledge_exploration_clock SET epoch=? WHERE singleton=1').bind(-1).run();
     await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503));
@@ -491,7 +498,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     assert.equal((await requestPage(httpSpec)).status, 409);
     await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_top'")
       .bind(JSON.stringify({source_revision:graph.source_revision,authority_boundary:graph.authority_boundary})).run();
-    await publishNativeLensFixture(db);
+    await publishNativeSearchFixture(db);
     for (const packet of [JSON.parse(nativePacketJson(await knowledgeNodeD1(db,'philosophy:a',0))), JSON.parse(nativePacketJson(await knowledgeRelationD1(db,'philosophy:e'))),
       await knowledgeSearchD1(db,{query:'',sources:null,kindIds:[],predicateIds:[],offset:0,limit:2})]) {
       assert.equal(packet.source_revision, graph.source_revision);
@@ -521,6 +528,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
         "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import search_knowledge_graph;p=json.load(sys.stdin);print(json.dumps(search_knowledge_graph(p['graph'],p['query'],limit=p['limit'])))"],
         {cwd: fileURLToPath(new URL('../../../../', import.meta.url)),
           input: JSON.stringify({graph: rankingGraph, query: '4363', limit: 3}), encoding: 'utf8'}));
+      await publishNativeSearchFixture(db);
       const actualSearch = await knowledgeSearchD1(db,{query:'4363',sources:null,kindIds:[],predicateIds:[],offset:0,limit:3});
       assert.deepEqual(actualSearch, expectedSearch);
       assert.deepEqual((actualSearch.nodes as {id:string}[]).map(n => n.id), ['philosophy:a','philosophy:b','philosophy:c']);
@@ -717,6 +725,7 @@ test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Pyth
     ]);
     await applyKnowledgeExplorationMigration(db);
 
+    await publishNativeSearchFixture(db);
     const first = await knowledgeSearchD1Indexed(db, {query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1});
     assert.deepEqual((first.nodes as {id:string}[]).map(item => item.id), ["philosophy:a"]);
     assert.deepEqual((first.relations as {id:string}[]).map(item => item.id), ["philosophy:e"]);

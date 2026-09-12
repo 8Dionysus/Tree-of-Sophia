@@ -32,6 +32,7 @@ import { exploreD1, explorationCapabilitiesD1 } from "./exploration";
 import {parseNativeRequest, parseNativeJson, nativeField, arrayRefs, type NativeRef} from './native-lens.ts';
 import {nativeLensResponse, nativePacketResponse} from './native-lens-response.ts';
 import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
+import {nativeStrip,nativeIntegerString} from '../../../shared/native-unicode.ts';
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
 const STATIC_PHILOSOPHY_LIMITS = new Set([1, 1000]);
@@ -262,26 +263,38 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   if (fixedAsset) return staticApi(env, request, fixedAsset);
 
   if (path === "/api/knowledge/search") {
-    const mode = search.get("mode") ?? "legacy";
+    // Match the Python HTTP adapter's list and integer parsing here; other
+    // routes retain their independently owned input compatibility behavior.
+    // parse_qs drops empty values before _single chooses the first value.
+    const searchValue=(key:string)=>search.getAll(key).find(value=>value!=='')??null;
+    const searchList=(key:string)=>(searchValue(key)??'').split(',').filter(Boolean);
+    const searchInteger=(key:string,fallback:number,minimum:number,maximum:number)=>{
+      const raw=searchValue(key);if(raw===null)return fallback;
+      const parsed=nativeIntegerString(raw);
+      // Python's default decimal-int conversion limit counts digits, not signs
+      // or separators. A failed parse uses the transport's default then clamp.
+      return Math.max(minimum,Math.min(maximum,Number.isNaN(parsed)||[...nativeStrip(raw).replace(/[_+-]/g,'')].length>4300?fallback:parsed));
+    };
+    const mode = searchValue("mode") ?? "legacy";
     if (mode === "indexed") {
-      if (boundedInt(search.get("offset"), 0, 0, 100_000) !== 0) throw new HttpError(400, "indexed knowledge search uses cursor continuation, not offset");
-      return jsonResponse(await knowledgeSearchD1Indexed(env.DB, {
-        query: search.get("query") ?? "",
-        sources: listParam(search, "sources").length ? listParam(search, "sources") : null,
-        kindIds: listParam(search, "kind_ids"),
-        predicateIds: listParam(search, "predicate_ids"),
-        cursor: search.get("cursor"),
-        limit: boundedInt(search.get("limit"), 40, 1, 100),
+      if (searchInteger('offset',0,0,100_000) !== 0) throw new HttpError(400, "indexed knowledge search uses cursor continuation, not offset");
+      return nativePacketResponse(await knowledgeSearchD1Indexed(env.DB, {
+        query: searchValue("query") ?? "",
+        sources: searchList('sources').length ? searchList('sources') : null,
+        kindIds: searchList('kind_ids'),
+        predicateIds: searchList('predicate_ids'),
+        cursor: searchValue("cursor"),
+        limit: searchInteger('limit',40,1,100),
       }), 200, method);
     }
     if (mode !== "legacy") throw new HttpError(400, "knowledge search mode must be legacy or indexed");
-    return jsonResponse(await knowledgeSearchD1(env.DB, {
-      query: search.get("query") ?? "",
-      sources: listParam(search, "sources").length ? listParam(search, "sources") : null,
-      kindIds: listParam(search, "kind_ids"),
-      predicateIds: listParam(search, "predicate_ids"),
-      offset: boundedInt(search.get("offset"), 0, 0, 100_000),
-      limit: boundedInt(search.get("limit"), 40, 1, 100),
+    return nativePacketResponse(await knowledgeSearchD1(env.DB, {
+      query: searchValue("query") ?? "",
+      sources: searchList('sources').length ? searchList('sources') : null,
+      kindIds: searchList('kind_ids'),
+      predicateIds: searchList('predicate_ids'),
+      offset: searchInteger('offset',0,0,100_000),
+      limit: searchInteger('limit',40,1,100),
     }), 200, method);
   }
   const knowledgeNodePrefix = "/api/knowledge/nodes/";
@@ -497,7 +510,7 @@ export default {
       try {
         return await apiResponse(request, env, url);
       } catch (error) {
-        if (error instanceof NativeBudgetExceeded && ['/api/knowledge/focus/','/api/knowledge/lenses/','/api/knowledge/nodes/','/api/knowledge/relations/'].some(prefix => url.pathname.startsWith(prefix))) {
+        if (error instanceof NativeBudgetExceeded && (url.pathname==='/api/knowledge/search'||['/api/knowledge/focus/','/api/knowledge/lenses/','/api/knowledge/nodes/','/api/knowledge/relations/'].some(prefix => url.pathname.startsWith(prefix)))) {
           return jsonResponse({error: error.message}, 413, request.method);
         }
         if (error instanceof HttpError || error instanceof SourceNavigationError) {

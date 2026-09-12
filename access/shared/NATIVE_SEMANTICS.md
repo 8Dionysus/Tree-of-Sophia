@@ -5,8 +5,9 @@ Worker's lens/focus route uses them from raw request and D1 row text through
 bounded selection, grouping, pagination and the first wire serialization.
 Node/relation inspection and temporal comparison separately retain full raw
 rows through their first wire serialization. Resumable exploration preserves
-native compact packets through checkpoint persistence and replay. Search remains
-outside this conversion.
+native compact packets through checkpoint persistence and replay. Legacy v1 and
+indexed v2 search retain native full rows and authority metadata through the
+first wire serialization as well.
 
 ## Entry and reference API
 
@@ -44,6 +45,66 @@ reference context throws `NativeContextLost`; it is not a fallback to JS
 semantics. Self-bound non-enumerable reference markers reject spread/clone
 copies, including primitive references. These are correctness boundaries inside
 trusted application code, not a sandbox against hostile JavaScript reflection.
+
+## Legacy and indexed search boundary
+
+`native-search-store.ts` joins ID-only search selection to bounded native row
+delivery. Both public v1/v2 schemas remain unchanged. The common v8/v9 published
+reader header owns source revision and authority metadata; the route does not
+read a full catalog, lens histogram or graph. Selected row bytes must match
+their emitted SHA-256 and structural index fields. Selected search documents
+must also match Python's sorted/default-spacing JSON/lower document digest,
+character count and emitted identity/display ranking fields. Those verification
+strings are not substituted for the source-valued response.
+
+Legacy exact counts, offsets, empty/short queries and source-position tie order
+remain available. Ranking now uses the producer's Python-lower carrier instead
+of SQLite's ASCII `lower()`, including scalar and multilingual display forms.
+Its plan scans the existing kind-local search carrier and looks up source IDs
+through their primary keys; it does not introduce a new index or DDL. This is
+still a legacy global scan, not a bounded indexed-query guarantee.
+
+Indexed search retains the rarest trigram route, 50000 candidate and 16000000
+verification-character caps, global rank and exhausted-kind continuation. A
+bounded selected posting-window check rejects missing document/stat closure,
+including a false zero-stat result, before rank/source matching. Only this
+window and selected source carriers are checked, not every hidden index entry.
+Opaque private D1 cursors now use `tos_knowledge_search_indexed_cursor_v3`;
+recognized v2 tokens return 409 and require restarting the query. Public indexed
+search is still v2, not the separate local prepared compressed-search v3 ABI.
+Cursor counters require JSON integer kinds and stay bound to query, filters,
+source revision and publication epoch. Repeating a valid continuation does not
+restart a kind already exhausted.
+Generated inner and outer tokens must fit the existing 8 KiB private decode
+limit before a page is emitted; otherwise 413 replaces an unusable continuation.
+
+Python Unicode strip/lower and code-point lengths/order replace JavaScript
+locale/UTF-16 approximations. Legacy checks the stripped query's 256-character
+limit; indexed also checks the original and lowercased query. No NFC or casefold
+normalization is introduced. HTTP filter lists preserve their literal values
+(Python `_list` does not strip them); empty/repeated fields follow Python's
+`parse_qs` then first-value selection. Numeric URL parameters use Python's
+whole-integer/default/clamp behavior, including Unicode decimal digits.
+
+Rows are capped at 1 MiB, digests at 1 KiB, emitted headers at 64 KiB, native
+aggregate delivery/response at 16 MiB. ID selection and source/header delivery
+are masked in SQL before oversized strings cross the boundary; node/relation
+delivery is serialized against one remaining-byte budget. Selected search
+document verification has a separate 16000000-character cap. Size/work refusals
+are 413, damaged/missing publication carriers 503, invalid requests 400, and
+crossed publication/stale tokens 409. No silent legacy/static fallback occurs.
+Retained lone-surrogate strings or keys fail 503 at the Python UTF-8 boundary;
+escaping them into otherwise valid JSON does not make a returned source valid.
+Legacy count/selection is not charged against the native selected-payload
+200000 rows-read quota, and neither path claims SQLite VM-step preemption.
+
+Tests compare complete native legacy packets and every indexed page against
+`search_knowledge_graph` and actual `ToSAccessCore.knowledge_search_indexed` with
+`SQLiteKnowledgeSearchReadModel`, preserving ordered source members, integer/
+float kinds and float repr. Runtime-specific opaque tokens and work counters
+are excluded from that indexed comparison. Real D1 HTTP restart/replay, query
+plans, budgets and negative admission are separate checks. Lens header/status
+differences and compressed local-prepared search are outside this correction.
 
 ## Resumable exploration boundary
 
@@ -129,7 +190,7 @@ same selected SQLite rows. The D1 plan's post-statement rows-read guard, native
 aggregate writer depth/visit limits and SQL pre-delivery byte checks remain
 explicit bounds, not a universal equivalence claim for Python VM exhaustion or
 arbitrarily large/corrupt publications. Local prepared runtime, corpus readiness,
-production deployment and search/exploration parity are separate claims.
+production deployment and other query-family parity are separate claims.
 
 ## Explicit packet composition
 

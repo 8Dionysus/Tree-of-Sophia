@@ -91,6 +91,44 @@ D1 rows-read accounting is post-statement, not SQLite VM-step interruption.
 The local synthetic differential tests cover native packets; they do not claim
 full-corpus deployment or Cloudflare runtime acceptance.
 
+### Lossless search compatibility
+
+Legacy v1 and indexed v2 search use the v8/v9 emitted reader header, native
+selected-row digests and source references through the first HTTP serialization.
+Unknown fields, large integers, float kinds, negative zero and source member
+order are retained in full node/relation packets and authority metadata.
+Selected search-carrier rank fields, document length and digest are verified
+against Python semantics; no full graph/catalog or lens histogram is loaded.
+
+Both modes use the existing producer's Python-lower ID/display ranking carrier,
+including scalar and multilingual forms and source-position ties. Legacy keeps
+exact counts/offsets and empty/short-query behavior; its explicit carrier-first
+scan plus primary-key source lookups is still a global scan. Indexed keeps the
+rarest 3-gram, 50000 candidate and 16000000 verification-character limits, and
+now checks the bounded posting/document/stat closure before rank evaluation.
+No request introduces DDL, rebuilds a carrier or falls back to a static graph.
+
+Query stripping/lowercase and lengths use Python Unicode semantics. Legacy
+checks 256 characters after strip; indexed checks raw and lowercased lengths
+too. HTTP comma-separated filters retain literal whitespace, and numeric URL
+parameters use whole Python-integer parsing with default/clamp behavior instead
+of accepting JavaScript numeric prefixes. Indexed continuation retains exhausted
+kinds. Its private D1 cursor v3
+invalidates old v2 tokens with 409/restart; the public search schema remains v2,
+not the separate local compressed-search v3 product.
+Generated continuation tokens must fit the private 8 KiB decode limit or the
+request returns 413 before emitting an unusable page.
+
+The admission envelope is 1 MiB per row, 1 KiB per digest, 64 KiB per emitted
+reader header, 16 MiB aggregate native delivery/response, and 16000000 selected
+search-document verification characters. Selected IDs and source bodies are
+masked in SQL before oversized text delivery and share one aggregate byte
+allowance. Explicit size/work refusals return 413, damaged/missing carriers 503,
+bad request inputs 400, and stale/crossed publication 409. Legacy global
+count/selection work does not acquire the native payload rows-read quota.
+This does not prove hidden global-index completeness, hard VM interruption,
+full-corpus runtime parity, or unify the earlier lens header/status policy.
+
 ### Lossless inspection compatibility
 
 Node/relation inspection independently supports published v8/v9 rows. It uses
@@ -443,9 +481,10 @@ after its work that validates the singleton clock and the complete contiguous
 an epoch or digest change returns 409, including an A->B->A publication whose
 final digest is unchanged. Apply `migrations/0001-exploration.sql` before
 serving these routes; no request performs DDL. Indexed search cursors use
-`tos_knowledge_search_indexed_cursor_v2`, which carries the publication epoch.
-Older cursor envelopes are invalid (400), and a cursor from another epoch must
-restart the search (409).
+`tos_knowledge_search_indexed_cursor_v3`, which carries the publication epoch and
+requires native-search normalization. Recognized v2 cursors require a fresh
+search (409); unrecognized/malformed cursor schemas are invalid input (400).
+A cursor from another publication epoch must restart the search (409).
 
 At most 24 adjacency queries and 512 graph work units run per page; bounded
 metadata/admission queries are additional. D1 may pause earlier than Python.
