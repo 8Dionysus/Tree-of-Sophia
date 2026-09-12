@@ -1263,6 +1263,126 @@ class BibliographicClaimProjection:
         return False
 
 
+def enumerate_bibliographic_claim_dependencies(inputs: BibliographicClaimInput) -> tuple[dict[str, Any], ...]:
+    """Enumerate consumed source dependencies, not a complete reverse index.
+
+    Rows are sorted distinct (kind, ref) pairs with aggregated JSON-pointer
+    field paths and reasons. Only explicit owner fields are visited; graph IDs
+    and arbitrary strings/JSON are never parsed for identity. Unknown evidence,
+    external maker/citation and anchor identifiers remain ``unresolved`` rows
+    alongside their bound source paths. Consumers must handle those explicitly,
+    never use them as permission to omit a dependent Claim.
+
+    Fixed registry/schema publication bindings stay with the caller. Copied
+    review/provenance agent names and arbitrary extensions are not metadata
+    lookups. Exact-version basis IDs are dependencies, not current-version
+    rebinding authority. Caller budgets and complete Claim selection remain
+    necessary; this function performs no I/O or source verification.
+    """
+    rows: dict[tuple[str, str | None], dict[str, Any]] = {}
+
+    def add(kind, ref, field, reason):
+        if not isinstance(ref, str) or not ref:
+            kind, ref, reason = 'unresolved', None, reason + ':missing-or-nonidentifiable-ref'
+        row = rows.setdefault((kind, ref), {'kind': kind, 'ref': ref, 'field_paths': set(), 'reasons': set()})
+        row['field_paths'].add(field)
+        row['reasons'].add(reason)
+
+    def node_sources(node, field):
+        add('path', node.get('source_ref'), field + '/source_ref', 'resolved-node-source')
+        properties = node.get('properties', {})
+        if properties.get('human_forms') is not None or properties.get('human_forms_source_ref') is not None:
+            add('path', properties.get('human_forms_source_ref'), field + '/properties/human_forms_source_ref',
+                'resolved-identity-human-forms')
+
+    def identity(node, field):
+        add('identity', node.get('properties', {}).get('identity_ref'),
+            field + '/properties/identity_ref', 'resolved-identity')
+        node_sources(node, field)
+
+    claim = inputs.source_claim
+    add('claim', claim.get('claim_id'), '/source_claim/claim_id', 'projected-claim')
+    add('path', inputs.entry.get('source_claim_file_ref'), '/entry/source_claim_file_ref', 'source-claim-slot')
+    add('identity', claim.get('subject_ref'), '/source_claim/subject_ref', 'declared-subject')
+    identity(inputs.subject_node, '/subject_node')
+    if inputs.object_node.get('node_kind') == 'identity':
+        add('identity', claim.get('object'), '/source_claim/object', 'declared-identity-object')
+        identity(inputs.object_node, '/object_node')
+    elif inputs.object_node.get('node_kind') == 'literal':
+        node_sources(inputs.object_node, '/object_node')
+    else:
+        add('unresolved', claim.get('object'), '/source_claim/object', 'unknown-object-node-kind')
+        node_sources(inputs.object_node, '/object_node')
+    add('provenance_event', claim.get('provenance_event_ref'), '/source_claim/provenance_event_ref',
+        'declared-provenance-event')
+    add('provenance_event', inputs.event_node.get('properties', {}).get('event_ref'),
+        '/event_node/properties/event_ref', 'resolved-provenance-event')
+    node_sources(inputs.event_node, '/event_node')
+    maker_ref = claim.get('maker', {}).get('agent_ref')
+    # Presence of the owner-resolved association is used, never its graph ID.
+    maker_kind = ('identity' if inputs.maker_identity_node is not None
+                  or inputs.maker_node.get('properties', {}).get('identity_node_id') is not None else 'unresolved')
+    add(maker_kind, maker_ref, '/source_claim/maker/agent_ref', 'maker-identity' if maker_kind == 'identity'
+        else 'maker-without-resolved-metadata-identity')
+    resolved_maker_ref = inputs.maker_node.get('properties', {}).get('agent_ref')
+    add(maker_kind, resolved_maker_ref, '/maker_node/properties/agent_ref', 'resolved-maker-reference')
+    if maker_ref != resolved_maker_ref:
+        add('unresolved', maker_ref, '/source_claim/maker/agent_ref', 'mismatched-maker-resolution')
+    node_sources(inputs.maker_node, '/maker_node')
+    if inputs.maker_identity_node is not None:
+        identity(inputs.maker_identity_node, '/maker_identity_node')
+
+    evidence_kinds = {'identity': 'identity', 'provenance_event': 'provenance_event', 'repo_path': 'path'}
+    for source_field, nodes_field, nodes in (
+        ('evidence_refs', 'evidence_nodes', inputs.evidence_nodes),
+        ('counterevidence_refs', 'counterevidence_nodes', inputs.counterevidence_nodes),
+    ):
+        refs = claim.get(source_field, [])
+        for index in range(max(len(refs), len(nodes))):
+            node = nodes[index] if index < len(nodes) else {}
+            properties = node.get('properties', {})
+            kind = evidence_kinds.get(properties.get('evidence_kind'), 'unresolved')
+            reason = 'evidence-kind:' + str(properties.get('evidence_kind', 'missing'))
+            if index < len(refs):
+                add(kind, refs[index], f'/source_claim/{source_field}/{index}', reason)
+            if index < len(nodes):
+                field = f'/{nodes_field}/{index}'
+                add(kind, properties.get('evidence_ref'), field + '/properties/evidence_ref', reason)
+                node_sources(node, field)
+            if index >= len(refs) or index >= len(nodes) or refs[index] != properties.get('evidence_ref'):
+                add('unresolved', refs[index] if index < len(refs) else properties.get('evidence_ref'),
+                    f'/source_claim/{source_field}/{index}', 'incomplete-or-mismatched-evidence-resolution')
+
+    for index, node in enumerate(inputs.member_nodes):
+        identity(node, f'/member_nodes/{index}')
+    for index, (_edge_kind, node) in enumerate(inputs.normalized_identity_edges):
+        identity(node, f'/normalized_identity_edges/{index}/1')
+    for index, ref in enumerate(claim.get('alternative_claim_refs', [])):
+        add('claim', ref, f'/source_claim/alternative_claim_refs/{index}', 'alternative-claim')
+    if claim.get('supersedes_claim_ref') is not None:
+        add('claim', claim['supersedes_claim_ref'], '/source_claim/supersedes_claim_ref', 'superseded-claim')
+    if inputs.forms is not None:
+        add('path', inputs.forms[0], '/forms/0', 'claim-human-forms')
+    if inputs.legacy_object_link_context is not None:
+        context = inputs.legacy_object_link_context
+        if 'source_claim_file_ref' in context:
+            add('path', context['source_claim_file_ref'], '/legacy_object_link_context/source_claim_file_ref',
+                'legacy-object-link-source')
+    if inputs.collection_order_basis is not None:
+        basis = inputs.collection_order_basis
+        add('identity', basis.get('collection', {}).get('ref', {}).get('id'),
+            '/collection_order_basis/collection/ref/id', 'exact-collection-version-basis')
+        for index, membership in enumerate(basis.get('memberships', [])):
+            add('claim', membership.get('ref', {}).get('id'),
+                f'/collection_order_basis/memberships/{index}/ref/id', 'exact-membership-version-basis')
+        for ref in basis.get('input_digests', {}):
+            pointer = ref.replace('~', '~0').replace('/', '~1')
+            add('path', ref, '/collection_order_basis/input_digests/' + pointer, 'exact-version-basis-input')
+    return tuple({**rows[key], 'field_paths': sorted(rows[key]['field_paths']),
+                  'reasons': sorted(rows[key]['reasons'])}
+                 for key in sorted(rows, key=lambda item: (item[0], item[1] or '')))
+
+
 def project_bibliographic_claim(inputs: BibliographicClaimInput) -> BibliographicClaimProjection:
     """Render one complete raw Claim cohort with the full builder's ordering.
 

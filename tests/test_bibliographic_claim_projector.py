@@ -173,6 +173,87 @@ class BibliographicClaimProjectorTest(unittest.TestCase):
             self.assertEqual(properties['collection_order_basis'], value.collection_order_basis)
             self.assertIs(properties['test_legacy'], False)
 
+    def test_dependency_enumeration_aggregates_explicit_hidden_and_profile_refs(self):
+        with self.fixture.historical_fixture() as (_root, _history, real, claims, rebuild):
+            agent_ref = real[0]['record_id']
+            claims[0]['maker'] = {'maker_type': 'human', 'agent_ref': agent_ref}
+            claims[0]['evidence_refs'] = [agent_ref]
+            claims[0]['counterevidence_refs'] = [agent_ref]
+            claims[0]['alternative_claim_refs'] = [claims[1]['claim_id']]
+            claims[0]['supersedes_claim_ref'] = claims[2]['claim_id']
+            _, inputs = self.capture(rebuild)
+            value = replace(inputs[0], member_nodes=(inputs[0].object_node,),
+                normalized_identity_edges=(('has_normalized_agent', inputs[0].object_node),),
+                forms=('ToS/test/claim.forms.json', b'{}', []),
+                collection_order_basis={'collection': {'ref': {'id': 'tos.collection.test', 'version': 2}},
+                    'memberships': [{'ref': {'id': 'tos.claim.membership', 'version': 1}}],
+                    'input_digests': {'ToS/test/basis~old.json': '0' * 64}},
+                legacy_object_link_context={'source_claim_file_ref': 'ToS/test/legacy.jsonl'})
+            value.source_claim['extensions'] = {'arbitrary_ref': 'tos.agent.not-a-dependency'}
+            before = copy.deepcopy(value)
+            with patch.object(Path, 'open', side_effect=AssertionError('dependency enumeration performed I/O')), \
+                    patch('builtins.open', side_effect=AssertionError('dependency enumeration performed I/O')):
+                rows = owner.enumerate_bibliographic_claim_dependencies(value)
+            self.assertEqual(value, before)
+            keys = [(row['kind'], row['ref']) for row in rows]
+            self.assertEqual(keys, sorted(set(keys)))
+            self.assertNotIn('tos.agent.not-a-dependency', [row['ref'] for row in rows])
+            self.assertNotIn('unresolved', [row['kind'] for row in rows])
+            agent = next(row for row in rows if (row['kind'], row['ref']) == ('identity', agent_ref))
+            self.assertTrue({'/source_claim/object', '/source_claim/maker/agent_ref',
+                             '/source_claim/evidence_refs/0', '/source_claim/counterevidence_refs/0',
+                             '/member_nodes/0/properties/identity_ref',
+                             '/normalized_identity_edges/0/1/properties/identity_ref'}
+                            .issubset(agent['field_paths']))
+            self.assertIn(('identity', 'tos.collection.test'), keys)
+            self.assertIn(('claim', 'tos.claim.membership'), keys)
+            for ref in ('ToS/test/claim.forms.json', 'ToS/test/basis~old.json', 'ToS/test/legacy.jsonl'):
+                self.assertIn(('path', ref), keys)
+            basis = next(row for row in rows if row['ref'] == 'ToS/test/basis~old.json')
+            self.assertEqual(basis['field_paths'], ['/collection_order_basis/input_digests/ToS~1test~1basis~0old.json'])
+            for row in rows:
+                self.assertEqual(row['field_paths'], sorted(set(row['field_paths'])))
+                self.assertEqual(row['reasons'], sorted(set(row['reasons'])))
+
+    def test_dependency_enumeration_preserves_unknown_refs_and_never_parses_graph_ids(self):
+        with self.fixture.historical_fixture() as (_root, _history, _real, _claims, rebuild):
+            _, inputs = self.capture(rebuild)
+            value = inputs[0]
+            refs = ['tos.anchor.fixture', 'https://example.invalid/citation', 'opaque:future',
+                    'tos.event.fixture-evidence', 'ToS/test/evidence.md']
+            kinds = ['anchor', 'external_citation', 'future-evidence', 'provenance_event', 'repo_path']
+            nodes = tuple({'node_id': 'identity:tos.agent.graph-id-is-not-authority',
+                           'node_kind': 'evidence', 'source_ref': 'ToS/test/evidence-source.jsonl',
+                           'properties': {'evidence_ref': ref, 'evidence_kind': kind}}
+                          for ref, kind in zip(refs, kinds))
+            claim = copy.deepcopy(value.source_claim)
+            claim['evidence_refs'] = refs
+            rows = owner.enumerate_bibliographic_claim_dependencies(
+                replace(value, source_claim=claim, evidence_nodes=nodes))
+            keys = {(row['kind'], row['ref']) for row in rows}
+            for ref in refs[:3]:
+                self.assertIn(('unresolved', ref), keys)
+            self.assertIn(('unresolved', 'software:test-fixture'), keys)
+            self.assertIn(('provenance_event', refs[3]), keys)
+            self.assertIn(('path', refs[4]), keys)
+            self.assertIn(('path', 'ToS/test/evidence-source.jsonl'), keys)
+            self.assertNotIn(('identity', 'tos.agent.graph-id-is-not-authority'), keys)
+            self.assertFalse(any(ref is None for _kind, ref in keys))
+
+    def test_dependency_enumeration_exposes_missing_and_mismatched_resolutions(self):
+        with self.fixture.historical_fixture() as (_root, _history, _real, _claims, rebuild):
+            _, inputs = self.capture(rebuild)
+            value = inputs[0]
+            rows = owner.enumerate_bibliographic_claim_dependencies(replace(value, evidence_nodes=()))
+            unknown = next(row for row in rows if row['kind'] == 'unresolved'
+                           and row['ref'] == value.source_claim['evidence_refs'][0])
+            self.assertIn('incomplete-or-mismatched-evidence-resolution', unknown['reasons'])
+            node = copy.deepcopy(value.subject_node)
+            node['properties'].pop('identity_ref')
+            rows = owner.enumerate_bibliographic_claim_dependencies(replace(value, subject_node=node))
+            missing = next(row for row in rows if row['kind'] == 'unresolved' and row['ref'] is None)
+            self.assertEqual(missing['field_paths'], ['/subject_node/properties/identity_ref'])
+
 
 if __name__ == '__main__':
     unittest.main()
