@@ -966,3 +966,11 @@ The implementation follows the WebMCP Community Group draft shape current at
 `document.modelContext.registerTool()`, registration lifecycle by
 `AbortSignal`, and execution cancellation through callback options. This is an
 experimental browser surface, not a ToS authority or availability guarantee.
+
+## Independent projection utilities
+
+The portable [partitioned projection store](contracts/projection-store.v1.md)
+and [bounded Merkle diff](contracts/projection-diff.v1.md) are explicit library
+utilities. Their adoption does not switch source exports, compile a query
+store, change adapters, or activate source-to-prepared updates. The diff requires
+a caller-admitted exact baseline and never certifies skipped target parts.
