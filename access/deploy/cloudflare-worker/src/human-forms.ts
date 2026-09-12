@@ -4,6 +4,15 @@ type Item = Record<string, unknown>;
 type ExactRef = {id: string; version: number; digest: string};
 type RoleSelection = {state: string; reason: string; form: ExactRef | null; packet: Item | null};
 type Candidate = {form: ExactRef; role: unknown; language: unknown; state: string; source_pointer: string};
+/** Lens-only exact transport hooks; role/admission decisions remain here. */
+export type HumanFormNativeAdapter = {
+  exactRef(value: unknown): boolean;
+  integer(item: Item, key: string): boolean;
+  identity(value: unknown): string;
+  cost(value: Item): number;
+  boundedCost(value: unknown, budget: number): number;
+  deliver(value: Item): Item;
+};
 
 export const HUMAN_FORM_ROLES = ['name', 'caption', 'hover', 'statement', 'grounds', 'history', 'technical'];
 export const HUMAN_FORM_SELECTION_BUDGET = 16_384;
@@ -14,20 +23,22 @@ function record(value: unknown): Item {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Item : {};
 }
 
-function exactRef(value: unknown): value is ExactRef {
+function exactRef(value: unknown, adapter?: HumanFormNativeAdapter): value is ExactRef {
   const ref = record(value);
   return Object.keys(ref).sort().join(',') === 'digest,id,version'
     && typeof ref.id === 'string' && ref.id.length > 0
     && typeof ref.version === 'number' && Number.isSafeInteger(ref.version) && ref.version >= 1
-    && typeof ref.digest === 'string' && /^sha256:[a-f0-9]{64}$(?![\s\S])/.test(ref.digest);
+    && typeof ref.digest === 'string' && /^sha256:[a-f0-9]{64}$(?![\s\S])/.test(ref.digest)
+    && (!adapter || adapter.exactRef(value));
 }
 
-function sameRef(value: unknown, expected: ExactRef): boolean {
-  return exactRef(value) && value.id === expected.id && value.version === expected.version && value.digest === expected.digest;
+function sameRef(value: unknown, expected: ExactRef, adapter?: HumanFormNativeAdapter): boolean {
+  return exactRef(value, adapter) && value.id === expected.id && value.version === expected.version && value.digest === expected.digest;
 }
 
-function jsonIdentity(value: unknown): string {
-  if (Array.isArray(value)) return '[' + value.map(jsonIdentity).join(',') + ']';
+function jsonIdentity(value: unknown, adapter?: HumanFormNativeAdapter): string {
+  if (adapter) return adapter.identity(value);
+  if (Array.isArray(value)) return '[' + value.map(member => jsonIdentity(member)).join(',') + ']';
   if (value !== null && typeof value === 'object') {
     return '{' + Object.entries(value).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
       .map(([key, member]) => JSON.stringify(key) + ':' + jsonIdentity(member)).join(',') + '}';
@@ -35,34 +46,35 @@ function jsonIdentity(value: unknown): string {
   return JSON.stringify(value);
 }
 
-function languageContextValid(packet: Item): boolean {
+function languageContextValid(packet: Item, adapter?: HumanFormNativeAdapter): boolean {
   if (!Object.hasOwn(packet, 'language_context')) return true;
   const context = record(packet.language_context), binding = record(context.binding), value = record(context.value);
   const validBinding = (raw: unknown) => {
     const item = record(raw);
-    return Object.keys(item).sort().join(',') === 'pointer,record' && exactRef(item.record)
+    return Object.keys(item).sort().join(',') === 'pointer,record' && exactRef(item.record, adapter)
       && typeof item.pointer === 'string' && /^(?:\/(?:[^~/]|~[01])*)*$(?![\s\S])/.test(item.pointer);
   };
   const entries = packet.context as Item[];
   const dependency = (ref: unknown) => Array.isArray(packet.dependencies)
-    && packet.dependencies.some(item => exactRef(item) && jsonIdentity(item) === jsonIdentity(ref));
+    && packet.dependencies.some(item => exactRef(item, adapter) && jsonIdentity(item, adapter) === jsonIdentity(ref, adapter));
   if (Object.keys(context).sort().join(',') !== 'binding,value' || !validBinding(binding)
     || !dependency(binding.record)
     || !['language', 'script', 'relation', 'source'].every(key => Object.hasOwn(value, key))
     || value.language !== packet.language || value.script !== packet.script
     || (value.script !== null && (typeof value.script !== 'string' || !/^[A-Za-z]{4}$(?![\s\S])/.test(value.script)))
     || typeof value.relation !== 'string' || !['unknown', 'original', 'translation', 'transliteration', 'adaptation'].includes(value.relation)
-    || !entries.some(entry => jsonIdentity(entry.binding) === jsonIdentity(binding) && jsonIdentity(entry.value) === jsonIdentity(value))) return false;
+    || !entries.some(entry => jsonIdentity(entry.binding, adapter) === jsonIdentity(binding, adapter) && jsonIdentity(entry.value, adapter) === jsonIdentity(value, adapter))) return false;
   if (value.relation === 'original' || value.relation === 'unknown') return value.source === null;
-  return validBinding(value.source) && dependency(record(value.source).record) && entries.some(entry => jsonIdentity(entry.binding) === jsonIdentity(value.source)
+  return validBinding(value.source) && dependency(record(value.source).record) && entries.some(entry => jsonIdentity(entry.binding, adapter) === jsonIdentity(value.source, adapter)
     && typeof entry.value === 'string' && entry.value.trim().length > 0);
 }
 
-function assessmentSnapshotValid(packet: Item): boolean {
+function assessmentSnapshotValid(packet: Item, adapter?: HumanFormNativeAdapter): boolean {
   if (!Object.hasOwn(packet, 'assessment_snapshot')) return true;
   const snapshot = record(packet.assessment_snapshot);
   if (typeof snapshot.owner_snapshot !== 'string' || !/^sha256:[a-f0-9]{64}$(?![\s\S])/.test(snapshot.owner_snapshot)
     || typeof snapshot.journal_batches !== 'number' || !Number.isSafeInteger(snapshot.journal_batches) || snapshot.journal_batches < 0
+    || (adapter && !adapter.integer(snapshot, 'journal_batches'))
     || snapshot.publication_authorized !== false || snapshot.current_runtime_grant !== false
     || !Object.hasOwn(snapshot, 'journal_revision')) return false;
   const revision = snapshot.journal_revision;
@@ -75,33 +87,34 @@ function assessmentSnapshotValid(packet: Item): boolean {
   const admission = record(packet.admission);
   return snapshot.journal_batches > 0 && typeof packet.derivation === 'string'
     && ['freeform', 'source-copy'].includes(packet.derivation) && admission.schema_version === 'tos_knowledge_admission_v1'
-    && exactRef(packet.form) && sameRef(admission.subject, packet.form) && exactRef(admission.policy)
+    && exactRef(packet.form, adapter) && sameRef(admission.subject, packet.form, adapter) && exactRef(admission.policy, adapter)
     && typeof admission.status === 'string' && ['admitted', 'admitted-with-limits'].includes(admission.status)
     && admission.can_use === true && admission.is_semantic_evaluation === false
     && typeof admission.use === 'string' && admission.use.length > 0;
 }
 
-function subjectAssessmentValid(packet: Item): boolean {
+function subjectAssessmentValid(packet: Item, adapter?: HumanFormNativeAdapter): boolean {
   if (!Object.hasOwn(packet, 'subject_assessment')) return true;
   const observed = record(packet.subject_assessment);
   if (Object.keys(observed).sort().join(',') !== 'admission,form_admission_is_parent_endorsement,historical_withdrawals,journal_batches,journal_revision,schema_version,subject'
     || observed.schema_version !== 'tos_human_form_subject_assessment_v1'
-    || !exactRef(packet.subject) || !sameRef(observed.subject, packet.subject)
+    || !exactRef(packet.subject, adapter) || !sameRef(observed.subject, packet.subject, adapter)
     || observed.form_admission_is_parent_endorsement !== false
-    || typeof observed.journal_batches !== 'number' || !Number.isSafeInteger(observed.journal_batches) || observed.journal_batches < 0) return false;
+    || typeof observed.journal_batches !== 'number' || !Number.isSafeInteger(observed.journal_batches) || observed.journal_batches < 0
+    || (adapter && !adapter.integer(observed, 'journal_batches'))) return false;
   const revision = observed.journal_revision, count = observed.journal_batches, withdrawals = observed.historical_withdrawals;
   if ((revision === null) !== (count === 0)
     || (revision !== null && (typeof revision !== 'string' || !/^[a-f0-9]{64}$(?![\s\S])/.test(revision)))
-    || !Array.isArray(withdrawals) || withdrawals.length > 256 || withdrawals.some(ref => !exactRef(ref))
+    || !Array.isArray(withdrawals) || withdrawals.length > 256 || withdrawals.some(ref => !exactRef(ref, adapter))
     || (count === 0 && withdrawals.length > 0)) return false;
   const admission = record(observed.admission);
-  if (admission.schema_version !== 'tos_knowledge_admission_v1' || !sameRef(admission.subject, packet.subject)
-    || !exactRef(admission.policy) || typeof admission.use !== 'string' || !admission.use
+  if (admission.schema_version !== 'tos_knowledge_admission_v1' || !sameRef(admission.subject, packet.subject, adapter)
+    || !exactRef(admission.policy, adapter) || typeof admission.use !== 'string' || !admission.use
     || typeof admission.status !== 'string' || !['admitted', 'admitted-with-limits', 'disputed', 'rejected', 'deferred', 'unreviewed'].includes(admission.status)
     || typeof admission.can_use !== 'boolean' || admission.is_semantic_evaluation !== false
     || !Array.isArray(admission.limits) || admission.limits.some(limit => typeof limit !== 'string')) return false;
   const formAdmission = record(packet.admission);
-  if (packet.admission != null && (formAdmission.use !== admission.use || !sameRef(formAdmission.policy, admission.policy))) return false;
+  if (packet.admission != null && (formAdmission.use !== admission.use || !sameRef(formAdmission.policy, admission.policy, adapter))) return false;
   return packet.state !== 'ready' || (packet.standalone_reading === false && typeof packet.derivation === 'string'
     && ['source-copy', 'freeform'].includes(packet.derivation) && packet.admission != null);
 }
@@ -117,11 +130,12 @@ export function formDeliveryCost(value: unknown): number {
   throw new Error('human form contains a non-JSON value');
 }
 
-export function selectHumanForms(item: Item, language = 'auto', representation = 'inline-v1') {
+export function selectHumanForms(item: Item, language = 'auto', representation = 'inline-v1', adapter?: HumanFormNativeAdapter) {
   if (!['inline-v1', 'shared-v2'].includes(representation)) throw new Error('invalid human form representation');
   const shared = representation === 'shared-v2';
-  const delivered = (value: Item) => shared ? encodeHumanFormSelection(value) : structuredClone(value);
+  const delivered = (value: Item) => adapter ? adapter.deliver(value) : shared ? encodeHumanFormSelection(value) : structuredClone(value);
   const deliveryCost = (value: Item) => {
+    if (adapter) {try {return adapter.cost(value);} catch {return Infinity;}}
     if (!shared) return formDeliveryCost(value);
     try { return formDeliveryCost(encodeHumanFormSelection(value, {enforceBudget: false})); }
     catch { return Infinity; }
@@ -148,7 +162,8 @@ export function selectHumanForms(item: Item, language = 'auto', representation =
   if (!Array.isArray(forms) || forms.length > 32) return stop('invalid', 'forms.invalid-or-excessive-collection');
   if (shared) {
     try {
-      boundedFormCost(forms, 32 * 65_536);
+      if (adapter) adapter.boundedCost(forms, 32 * 65_536);
+      else boundedFormCost(forms, 32 * 65_536);
       if (forms.some(packet => Object.hasOwn(record(record(packet).admission), 'limit_refs'))) throw new Error('reserved admission.limit_refs');
     } catch { return stop('invalid', 'forms.invalid-shared-codec-input'); }
   }
@@ -176,20 +191,21 @@ export function selectHumanForms(item: Item, language = 'auto', representation =
   }
   const subject = {id: source[isClaim ? 'claim_id' : nativeIdentity ?? 'record_id'], version: source[isClaim ? 'claim_version' : 'record_version'],
     digest: 'sha256:' + String(attributes.source_sha256 ?? '')};
-  if (!exactRef(subject) || ((isClaim || nativeIdentity) && item.entity_id !== subject.id)) return stop('invalid', 'forms.invalid-source-record-binding');
+  if (!exactRef(subject, adapter) || (adapter && !adapter.integer(source, isClaim ? 'claim_version' : 'record_version'))
+    || ((isClaim || nativeIdentity) && item.entity_id !== subject.id)) return stop('invalid', 'forms.invalid-source-record-binding');
   const ready: Item[] = [], seen = new Set<string>();
   for (const [index, raw] of forms.entries()) {
     const packet = record(raw);
-    if (packet.schema_version !== 'tos_human_form_materialization_v1' || !exactRef(packet.form)
-      || !sameRef(packet.subject, subject) || packet.performs_semantic_assessment !== false) {
+    if (packet.schema_version !== 'tos_human_form_materialization_v1' || !exactRef(packet.form, adapter)
+      || !sameRef(packet.subject, subject, adapter) || packet.performs_semantic_assessment !== false) {
       return stop('invalid', 'forms.invalid-packet-or-source-binding');
     }
     if (seen.has(packet.form.id)) return stop('invalid', 'forms.duplicate-current-identity');
     seen.add(packet.form.id);
     const state = packet.state, role = packet.role ?? null, actualLanguage = packet.language ?? null;
     if (typeof state !== 'string' || !STATES.includes(state)) return stop('invalid', 'forms.unknown-materialization-state');
-    if (!assessmentSnapshotValid(packet)) return stop('invalid', 'forms.invalid-assessment-snapshot');
-    if (!subjectAssessmentValid(packet)) return stop('invalid', 'forms.invalid-subject-assessment');
+    if (!assessmentSnapshotValid(packet, adapter)) return stop('invalid', 'forms.invalid-assessment-snapshot');
+    if (!subjectAssessmentValid(packet, adapter)) return stop('invalid', 'forms.invalid-subject-assessment');
     if ((role !== null && (typeof role !== 'string' || !HUMAN_FORM_ROLES.includes(role)))
       || (actualLanguage !== null && (typeof actualLanguage !== 'string' || !LANGUAGE.test(actualLanguage)))) {
       return stop('invalid', 'forms.invalid-role-or-language');
@@ -210,10 +226,10 @@ export function selectHumanForms(item: Item, language = 'auto', representation =
       || context.some((raw: unknown) => {
         const entry = record(raw), binding = record(entry.binding);
         return !['slot', 'binding', 'value'].every(key => Object.hasOwn(entry, key))
-          || !exactRef(binding.record) || typeof binding.pointer !== 'string';
+          || !exactRef(binding.record, adapter) || typeof binding.pointer !== 'string';
       })) return stop('invalid', 'forms.incomplete-ready-packet');
     ready.push(packet);
-    if (!languageContextValid(packet)) return stop('invalid', 'forms.invalid-language-context');
+    if (!languageContextValid(packet, adapter)) return stop('invalid', 'forms.invalid-language-context');
   }
   if (deliveryCost(result) > HUMAN_FORM_SELECTION_BUDGET) return stop('over-budget', 'forms.inspect-collection-separately');
   const choices: {role: string; reason: string; packet: Item; form: ExactRef}[] = [];
@@ -240,7 +256,7 @@ export function selectHumanForms(item: Item, language = 'auto', representation =
     else if (selected.length) {
       const packet = selected[0]!;
       // The input loop already checked every selected form reference.
-      if (!exactRef(packet.form)) throw new Error('invalid selected form reference');
+      if (!exactRef(packet.form, adapter)) throw new Error('invalid selected form reference');
       result.roles[role] = {state: 'over-budget', reason: 'inspect-exact-form', form: packet.form, packet: null};
       choices.push({role, reason, packet, form: packet.form});
     } else if (forms.some(packet => record(packet).state !== 'ready')) result.roles[role]!.state = 'unavailable';

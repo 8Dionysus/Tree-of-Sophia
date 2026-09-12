@@ -29,6 +29,8 @@ import { SourceNavigationError, sourceDescend, sourceDossier } from "./source-na
 import { metaItem } from "./store";
 import { KnowledgeRevisionConflict } from "./lens-pagination";
 import { exploreD1, explorationCapabilitiesD1 } from "./exploration";
+import {parseNativeRequest, parseNativeJson, nativeField, arrayRefs, type NativeRef} from './native-lens.ts';
+import {nativeLensResponse} from './native-lens-response.ts';
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
 const STATIC_PHILOSOPHY_LIMITS = new Set([1, 1000]);
@@ -121,15 +123,18 @@ async function lensCompileResponse(request: Request, env: Env, operation: 'lens'
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  let spec: unknown;
+  let spec: unknown, nativeSpec: NativeRef | null = null;
   try {
-    spec = JSON.parse(new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(bytes));
+    const raw = new TextDecoder("utf-8", { fatal: true, ignoreBOM: operation === 'lens' }).decode(bytes);
+    if (operation === 'lens') {nativeSpec = parseNativeRequest(raw, {maxBytes: MAX_LENS_REQUEST_BYTES}); spec = nativeSpec.value;}
+    else spec = JSON.parse(raw);
   } catch (error) {
     throw new HttpError(400, `invalid LensSpec JSON: ${error instanceof Error ? error.message : "decode failed"}`);
   }
   if (!spec || typeof spec !== "object" || Array.isArray(spec)) throw new HttpError(400, "lens spec must be an object");
   try {
-    const execute = operation === 'exploration' ? exploreD1 : operation === 'temporal' ? knowledgeTemporalCompareD1 : executeKnowledgeLensD1;
+    if (nativeSpec) return nativeLensResponse(await executeKnowledgeLensD1(env.DB, nativeSpec), 200, request.method);
+    const execute = operation === 'exploration' ? exploreD1 : knowledgeTemporalCompareD1;
     return jsonResponse(await execute(env.DB, spec), 200, request.method);
   } catch (error) {
     if (error instanceof KnowledgeRevisionConflict) throw error;
@@ -267,7 +272,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
       throw new HttpError(400, "direction must be outgoing, incoming, or either");
     }
     const sources = listParam(search, "sources");
-    return jsonResponse(await focusKnowledgeNodeD1(env.DB, segment(path, knowledgeFocusPrefix), {
+    return nativeLensResponse(await focusKnowledgeNodeD1(env.DB, segment(path, knowledgeFocusPrefix), {
       ...(sources.length ? { sources } : {}),
       depth: boundedInt(search.get("depth"), 1, 0, 5),
       direction,
@@ -280,11 +285,13 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   const knowledgeLensPrefix = "/api/knowledge/lenses/";
   if (path.startsWith(knowledgeLensPrefix)) {
     const lensId = segment(path, knowledgeLensPrefix);
-    const catalog = await staticItem(env, request, "knowledge/catalog.json");
-    const lenses = Array.isArray(catalog.lenses) ? catalog.lenses : [];
-    const spec = lenses.find((item) => item && typeof item === "object" && !Array.isArray(item) && (item as Item).lens_id === lensId);
+    const asset = await env.ASSETS.fetch(new Request(new URL('/__edge/knowledge/catalog.json', request.url)));
+    if (!asset.ok) throw new Error('generated lens catalog is missing');
+    const catalog = parseNativeJson(await asset.text(), {maxBytes: 8 * 1024 * 1024});
+    const lenses = nativeField(catalog, 'lenses');
+    const spec = (Array.isArray(lenses.value) ? arrayRefs(lenses) : []).find(ref => nativeField(ref, 'lens_id').value === lensId);
     if (!spec) throw new HttpError(404, `unknown ToS knowledge lens: ${lensId}`);
-    return jsonResponse(await executeKnowledgeLensD1(env.DB, spec), 200, method);
+    return nativeLensResponse(await executeKnowledgeLensD1(env.DB, spec), 200, method);
   }
 
   if (path === "/api/philosophy/review-packet") {

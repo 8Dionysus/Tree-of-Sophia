@@ -1,5 +1,6 @@
 import { normalizePagination, paginateLens, type Pagination } from './lens-pagination.ts';
 import { selectHumanForms } from './human-forms.ts';
+import {nativeStrip, nativeIntegerString} from '../../../shared/native-unicode.ts';
 
 export type Item = Record<string, unknown>;
 
@@ -336,7 +337,7 @@ function strictStrings(value: unknown, name: string, maximum: number, unique = f
 }
 
 function text(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && nativeStrip(value).length > 0 ? nativeStrip(value) : null;
 }
 
 function humanize(value: string): string {
@@ -388,7 +389,7 @@ export function selectDisplayForm(value: unknown, requestedLanguage = 'auto', or
     text: selected === null ? null : forms[selected], reason, available_keys: available};
 }
 
-function displaySelection(item: KnowledgeNode | KnowledgeRelation, language: string): Item {
+export function displaySelection(item: KnowledgeNode | KnowledgeRelation, language: string): Item {
   const display = record(item.display), semantics = record(item.semantics);
   const declaredLanguage = text(record(record(semantics.language_context).language).original_language);
   const originalLanguage = declaredLanguage && LANGUAGE_KEY.test(declaredLanguage) ? declaredLanguage : null;
@@ -463,7 +464,7 @@ function filterValue(value: unknown, name: string): unknown {
   for (const item of values) {
     if (item !== null && typeof item === "object") throw new Error(`${name} must contain only scalar values`);
     if (typeof item === "number" && !Number.isFinite(item)) throw new Error(`${name} numbers must be finite`);
-    if (typeof item === "string" && item.length > 1024) throw new Error(`${name} strings must contain at most 1024 characters`);
+    if (typeof item === "string" && Array.from(item).length > 1024) throw new Error(`${name} strings must contain at most 1024 characters`);
   }
   return value;
 }
@@ -471,7 +472,10 @@ function filterValue(value: unknown, name: string): unknown {
 function boundedInteger(value: unknown, name: string, fallback: number, minimum: number, maximum: number): number {
   if (value === undefined || value === null) return fallback;
   if (typeof value === "boolean") throw new Error(`${name} must be between ${minimum} and ${maximum}`);
-  const parsed = Number(value);
+  if (typeof value !== 'number' && typeof value !== 'string') {
+    throw new Error(`${name} must be between ${minimum} and ${maximum}`);
+  }
+  const parsed = typeof value === 'number' ? Math.trunc(value) : nativeIntegerString(value);
   if (!Number.isInteger(parsed) || parsed < minimum || parsed > maximum) {
     throw new Error(`${name} must be between ${minimum} and ${maximum}`);
   }
@@ -596,11 +600,11 @@ export function normalizeLensSpec(value: unknown): LensSpec {
   if (seed.focus_node_id !== undefined && seed.focus_node_id !== null) {
     focusNodeId = text(seed.focus_node_id);
     if (!focusNodeId) throw new Error("seed.focus_node_id must be a non-empty string or null");
-    if (focusNodeId.length > 1024) throw new Error("seed.focus_node_id exceeds 1024 characters");
+    if (Array.from(focusNodeId).length > 1024) throw new Error("seed.focus_node_id exceeds 1024 characters");
   }
   const nodeIds = strictStrings(seed.node_ids, "seed.node_ids", 100);
   const textQuery = text(seed.text_query) ?? "";
-  if (textQuery.length > 256) throw new Error("seed.text_query exceeds 256 characters");
+  if (Array.from(textQuery).length > 256) throw new Error("seed.text_query exceeds 256 characters");
 
   const traversal = strictRecord(source.traversal, "traversal", ["depth", "direction", "predicate_ids", "profile"]);
   const profile = traversal.profile ?? "all";

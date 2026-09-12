@@ -48,20 +48,34 @@ relation rows. `/api/knowledge/catalog`, unified search and inspect routes,
 the public `/api/knowledge/contracts` schema bundle, focused neighborhoods,
 stored lenses, and arbitrary `tos_lens_spec_v1`
 compilation use the same
-display/provenance envelopes as local Python. D1 applies validated declarative
-filters and bounded traversal; a Worker request never materializes the full
+display/provenance envelopes as local Python. D1 narrows identities, dimensions
+and incidence; the bounded native-v7 lens plan evaluates general predicates,
+sort/count and traversal before limiting results. A Worker request never materializes the full
 knowledge graph in memory. The lens `POST` is a structured read query and does
 not create server state.
 
-Execution v6 resolves node `property_id` selectors through the snapshot's
-`knowledge_top.query_properties`, including path steps. SQL enforces the
-property's declared type scope and missing-value semantics; pure TypeScript
-and Python use the same contract. The read-model revision includes these
+Execution v7 resolves node `property_id` selectors through the v9 snapshot's
+`knowledge_lens_top.query_properties`, including path steps. Native references
+retain raw JSON number kinds, unsafe integers and source member order through
+matching, grouping, v7 fingerprints, pagination and the first wire serialization.
+The read-model revision includes these
 bindings so a code-only introduction of serving metadata cannot be skipped as
 an API-only rebuild. Existing row data is not reinterpreted; the staged metadata
 update remains revision-guarded. An older snapshot without a binding rejects
 the selector until the matching read model is supplied. This is not automatic
 deployment authorization.
+
+The lens/focus route requires matching v9 publication metadata, row digests,
+Unicode 16.0.0 and ordered indexes; older or damaged publication carriers fail
+closed. A publication clock/revision guard rejects changes during the read.
+Request/cursor JSON retains Python last-member-wins behavior while published
+source rows reject duplicates. The public result remains plain LensResult JSON,
+with a 16 MiB response ceiling. Generic scans, decoded bytes, callbacks, sorting,
+cache and path work have explicit bounds, documented in
+[`NATIVE_SEMANTICS.md`](../../shared/NATIVE_SEMANTICS.md).
+D1 rows-read accounting is post-statement, not SQLite VM-step interruption.
+The local synthetic differential tests cover native packets; they do not claim
+full-corpus deployment or Cloudflare runtime acceptance.
 
 Large lossless JSON fields are inserted in deterministic UTF-8 chunks only
 when one statement would exceed the D1 statement ceiling, then reconstructed

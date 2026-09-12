@@ -6,8 +6,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
-import { executeKnowledgeLensD1, knowledgeSearchD1, knowledgeSearchD1Indexed, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
+import { knowledgeSearchD1, knowledgeSearchD1Indexed, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
 
+import {executePublishedFixtureLens, publishNativeLensFixture} from './native-lens-fixture.ts';
 import { executeKnowledgeLens, focusKnowledgeNode, knowledgeScene, normalizeLensSpec, selectDisplayForm, type KnowledgeGraph } from "../src/knowledge.ts";
 import { selectHumanForms, formDeliveryCost, HUMAN_FORM_SELECTION_BUDGET } from '../src/human-forms.ts';
 import { decodeHumanFormSelection } from '../../../shared/human-form-selection-codec.ts';
@@ -165,7 +166,7 @@ full_edges = [_normalize_relation({**edge, 'predicate_id': edge['edge_kind'],
 full_graph = {'schema': 'tos_knowledge_graph_v1', 'source_revision': _stable_digest([selected, relations, entities, derived_versions]),
     'nodes': list(by_id.values()), 'relations': full_edges,
     'counts': {'nodes': len(by_id), 'relations': len(full_edges)},
-    'authority_boundary': {'is_source': False, 'is_canon': False, 'writes_to_tree': False}}
+    'authority_boundary': {'source_owner': 'Tree-of-Sophia', 'is_source': False, 'is_canon': False, 'writes_to_tree': False}}
 graph = {**full_graph, 'nodes': [node for node in by_id.values()
     if node['native_id'] in selected_ids or node['type_id'] == 'tos.entity.record-version'],
     'relations': [edge for edge in full_edges if edge['predicate_id'] in {'has_subject', 'has_object'}]}
@@ -219,7 +220,7 @@ const graph: KnowledgeGraph = {
     },
   ],
   counts: { nodes: 3, relations: 2 },
-  authority_boundary: { is_source: false, is_canon: false },
+  authority_boundary: { source_owner: 'Tree-of-Sophia', is_source: false, is_canon: false, writes_to_tree: false },
 };
 
 test("knowledge reads require the publication clock and reject invalid or ABA snapshots", async () => {
@@ -344,7 +345,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       for (const quantifier of ['exists', 'not_exists']) {
         for (const length of [1, 2, 3, 4]) {
           const spec = {...base, path_query: [{path_id: 'p', quantifier, steps: Array.from({length}, () => ({direction}))}]};
-          assert.deepEqual(await executeKnowledgeLensD1(db, spec), await executeKnowledgeLens(graph, spec));
+          assert.deepEqual(await executePublishedFixtureLens(db, spec), await executeKnowledgeLens(graph, spec));
         }
       }
     }
@@ -352,11 +353,11 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       {path_id: 'agent', steps: [{}, {node_query: {filters: [{field: 'type_id', op: 'eq', value: 'tos.entity.agent'}]}}]},
       {path_id: 'work', steps: [{node_query: {filters: [{field: 'type_id', op: 'eq', value: 'tos.entity.work'}]}}]}
     ]};
-    const joinedResult = await executeKnowledgeLensD1(db, joined);
+    const joinedResult = await executePublishedFixtureLens(db, joined);
     assert.deepEqual(joinedResult, await executeKnowledgeLens(graph, joined));
     assert.deepEqual((joinedResult.nodes as {id:string}[]).map(n=>n.id), ['philosophy:a']);
     const focused = {...base, seed: {focus_node_id: 'philosophy:a'}, node_query: {enabled: false}, traversal: {depth: 2}};
-    assert.deepEqual(await executeKnowledgeLensD1(db, focused), await executeKnowledgeLens(graph, focused));
+    assert.deepEqual(await executePublishedFixtureLens(db, focused), await executeKnowledgeLens(graph, focused));
     // A shared record maker/provenance event is not semantic proximity.
     // Exact inspection and the full technical profile still expose the edge.
     for (const relationType of ['tos.relation.made-by', 'tos.relation.generated-by']) {
@@ -368,7 +369,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
         const spec = {...focused, traversal: {depth: 2, profile}};
         const pure = await executeKnowledgeLens(technical, spec);
         assert.deepEqual(pure.nodes.map(n => n.id), profile === 'overview' ? ['philosophy:a'] : graph.nodes.map(n => n.id));
-        assert.deepEqual(await executeKnowledgeLensD1(db, spec), pure);
+        assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
       }
     }
     await db.prepare('UPDATE knowledge_relations SET relation_type_id=?, json=? WHERE id=?')
@@ -401,7 +402,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
         const spec = {...base, detail, ...(path ? {path_query: [{path_id: 'property-target', steps: [{node_query}]}]} : {node_query})};
         const pure = await executeKnowledgeLens(propertyGraph, spec);
         assert.deepEqual(pure, python(spec, propertyGraph));
-        assert.deepEqual(await executeKnowledgeLensD1(db, spec), pure);
+        assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
         assert.equal(JSON.stringify(pure.lens).includes('_property_binding'), false);
       }
     }
@@ -410,7 +411,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
                          {property_id: 'tos.property.bad\n'}, {property_id: null}]) {
       const spec = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-score', op: 'eq', value: 3, ...change}]}};
       await assert.rejects(executeKnowledgeLens(propertyGraph, spec));
-      await assert.rejects(executeKnowledgeLensD1(db, spec));
+      await assert.rejects(executePublishedFixtureLens(db, spec));
     }
     for (const [name, op, value] of [['word', 'eq', 'Свобода Ω 🦉\u0000fin'], ['word', 'contains', 'Ω 🦉'],
         ['word', 'prefix', 'Свобода Ω 🦉\u0000fi'], ['word', 'prefix', ''],
@@ -420,7 +421,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       const spec = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-' + name, op, value}]}};
       const pure = await executeKnowledgeLens(propertyGraph, spec);
       assert.deepEqual(pure, python(spec, propertyGraph));
-      assert.deepEqual(await executeKnowledgeLensD1(db, spec), pure);
+      assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
     }
     // Returning to the old snapshot removes the binding as well as the synthetic values.
     await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_top'").bind(JSON.stringify({
@@ -428,7 +429,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     for (const n of graph.nodes) await db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(n), n.id).run();
     const absentProperty = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-score', op: 'eq', value: 3}]}};
     await assert.rejects(executeKnowledgeLens(graph, absentProperty));
-    await assert.rejects(executeKnowledgeLensD1(db, absentProperty));
+    await assert.rejects(executePublishedFixtureLens(db, absentProperty));
     const carriers = structuredClone(graph);
     carriers.nodes[1]!.entity_id = carriers.nodes[0]!.entity_id;
     await db.prepare('UPDATE knowledge_nodes SET entity_id=?, json=? WHERE id=?')
@@ -436,7 +437,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     for (const paging of [null, {nodes: 1, relations: 1}]) {
       const spec = {...focused, pagination: paging};
       const pure = await executeKnowledgeLens(carriers, spec);
-      assert.deepEqual(await executeKnowledgeLensD1(db, spec), pure);
+      assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
       assert.deepEqual(pure, python(spec, carriers));
       const scene = pure.scene as {vertices: {node_ids: string[]}[]};
       assert.equal(scene.vertices.filter(v => v.node_ids.includes('philosophy:a'))[0]!.node_ids.length, 2);
@@ -444,7 +445,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     for (const profile of ['overview', 'all']) for (const size of [1, 3]) {
       const spec = {...focused, traversal: {depth: 1, profile}, limits: {nodes: size}};
       const pure = await executeKnowledgeLens(carriers, spec);
-      assert.deepEqual(await executeKnowledgeLensD1(db, spec), pure);
+      assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
       assert.deepEqual(pure, python(spec, carriers));
       assert.equal(pure.nodes.some(n => n.id === 'philosophy:c'), profile === 'overview' && size > 1);
       assert.equal((pure.counts as {identity_expansion_limited:boolean}).identity_expansion_limited, profile === 'overview' && size === 1);
@@ -456,7 +457,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     let cursor: string | null = null;
     for (let iteration = 0; iteration < 5; iteration++) {
       const spec = {...focused, pagination: {nodes: 1, relations: 1, cursor}};
-      const page = await executeKnowledgeLensD1(db, spec);
+      const page = await executePublishedFixtureLens(db, spec);
       assert.deepEqual(page, await executeKnowledgeLens(graph, spec));
       assert.deepEqual(page, python(spec));
       assert.equal(page.fingerprint, whole.fingerprint);
@@ -465,14 +466,17 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       relationIds.push(...(page.relations as {id:string}[]).map(r=>r.id));
       cursor = info.next_cursor;
       if (!cursor) break;
-      await assert.rejects(executeKnowledgeLensD1(db,{...spec,lens_id:'different',pagination:{...spec.pagination,cursor}}), /query or snapshot changed/);
+      await assert.rejects(executePublishedFixtureLens(db,{...spec,lens_id:'different',pagination:{...spec.pagination,cursor}}), /query or snapshot changed/);
     }
     assert.deepEqual(nodeIds, whole.nodes.map(n=>n.id));
     assert.deepEqual(relationIds, whole.relations.map(r=>r.id));
-    assert.deepEqual(await executeKnowledgeLensD1(db, joined), python(joined));
+    assert.deepEqual(await executePublishedFixtureLens(db, joined), python(joined));
     const httpSpec = {...focused, pagination: {nodes: 1, relations: 1, cursor: null as string|null}};
-    const requestPage = (spec: unknown) => mf.dispatchFetch('http://tos.test/api/knowledge/lenses/compile',
-      {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(spec)});
+    const requestPage = async (spec: unknown) => {
+      await publishNativeLensFixture(db);
+      return mf.dispatchFetch('http://tos.test/api/knowledge/lenses/compile',
+        {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(spec)});
+    };
     const firstResponse = await requestPage(httpSpec);
     assert.equal(firstResponse.status, 200);
     const firstPage = await firstResponse.json() as {page:{next_cursor:string}};
@@ -537,7 +541,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       node_query: {filters: [{field: 'display.title.grc-Grek', op: 'eq', value: 'λόγος'}]},
       relation_query: {filters: [{field: 'display.statement.fr', op: 'contains', value: 'non'}]},
       composition: {endpoint_policy: 'either'}};
-    const languageResult = await executeKnowledgeLensD1(db, languageSpec);
+    const languageResult = await executePublishedFixtureLens(db, languageSpec);
     assert.deepEqual(languageResult, await executeKnowledgeLens(scoped, languageSpec));
     const pythonLanguage = JSON.parse(execFileSync('python3', ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
@@ -559,7 +563,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       sourceFormNode.display.title.default.toLowerCase(), JSON.stringify(sourceFormNode).toLowerCase(), JSON.stringify(sourceFormNode)).run();
     const formSpec = {...base, sources: ['source-claims'], language: 'ru', detail: 'compact',
       seed: {focus_node_id: sourceFormNode.id}, node_query: {enabled: false}, relation_query: {enabled: false}};
-    const formResult = await executeKnowledgeLensD1(db, formSpec);
+    const formResult = await executePublishedFixtureLens(db, formSpec);
     assert.deepEqual(formResult, await executeKnowledgeLens(scoped, formSpec));
     const pythonForms = JSON.parse(execFileSync('python3', ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
@@ -581,7 +585,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       if (state === 'invalid') (packet.assessment_snapshot as Record<string, unknown>).publication_authorized = true;
       scoped.nodes[sourceFormIndex] = candidate;
       await db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(candidate), candidate.id).run();
-      const edge = await executeKnowledgeLensD1(db, formSpec);
+      const edge = await executePublishedFixtureLens(db, formSpec);
       assert.deepEqual(edge, await executeKnowledgeLens(scoped, formSpec));
       const pythonAssessed = JSON.parse(execFileSync('python3', ['-c',
         "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
@@ -600,7 +604,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       claimNode.native_id, claimNode.source_graph, claimNode.kind_id, claimNode.type_id,
       claimNode.display.title.default.toLowerCase(), JSON.stringify(claimNode).toLowerCase(), JSON.stringify(claimNode)).run();
     const claimSpec = {...formSpec, seed: {focus_node_id: claimNode.id}};
-    const claimResult = await executeKnowledgeLensD1(db, claimSpec);
+    const claimResult = await executePublishedFixtureLens(db, claimSpec);
     assert.deepEqual(claimResult, await executeKnowledgeLens(scoped, claimSpec));
     const pythonClaim = JSON.parse(execFileSync('python3', ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
@@ -612,7 +616,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     assert.deepEqual((claimPacket.context as {value: unknown}[])[0]!.value, claimNode.attributes.source_claim);
     scoped.nodes[1]!.source_graph = 'repository';
     await db.prepare("UPDATE knowledge_nodes SET source_graph='repository', json=? WHERE id=?").bind(JSON.stringify(scoped.nodes[1]), 'philosophy:b').run();
-    assert.deepEqual(await executeKnowledgeLensD1(db,joined), await executeKnowledgeLens(scoped,joined));
+    assert.deepEqual(await executePublishedFixtureLens(db,joined), await executeKnowledgeLens(scoped,joined));
     // Synthetic topology with an explicit disputed Claim; no historical fact
     // follows from the test's normalized endpoint declarations.
     const pathGraph = structuredClone(graph);
@@ -635,7 +639,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     for (const focus of ['philosophy:a', 'philosophy:c']) for (const paging of [null, {nodes: 1, relations: 1}]) {
       const spec = {...base, detail: 'compact', language: 'en', seed: {focus_node_id: focus}, pagination: paging};
       const result = await executeKnowledgeLens(pathGraph,spec);
-      assert.deepEqual(await executeKnowledgeLensD1(db,spec),result);
+      assert.deepEqual(await executePublishedFixtureLens(db,spec),result);
       assert.deepEqual(result,python(spec,pathGraph));
       const view = (result.scene as {compact:{claim_paths:{claim_node_id:string;reading:{standalone:boolean}}[]}}).compact;
       assert.equal(view.claim_paths.length,
@@ -1170,10 +1174,10 @@ test('Claim navigation and exact Claim/metadata versions survive RU/EN compact/f
     for (const {spec, expected} of fixture.cases) {
       const {language, detail} = spec as {language: 'ru' | 'en'; detail: 'compact' | 'full'};
       const pure = await executeKnowledgeLens(source, spec);
-      const result = await executeKnowledgeLensD1(db, spec);
+      const result = await executePublishedFixtureLens(db, spec);
       assert.deepEqual(pure, expected, language + '/' + detail + ': Python/Worker parity');
       assert.deepEqual(result, pure, language + '/' + detail + ': D1 transport');
-      assert.deepEqual(await executeKnowledgeLensD1(db, spec), result, 'repeated reads preserve the same snapshot');
+      assert.deepEqual(await executePublishedFixtureLens(db, spec), result, 'repeated reads preserve the same snapshot');
       for (const id of fixture.claims) {
         const original = source.nodes.find(n => n.id === id)!;
         const node = result.nodes.find(n => n.id === id)!;
@@ -1297,7 +1301,7 @@ print(json.dumps(result))
     ]);
     await applyKnowledgeExplorationMigration(db);
     for (const {spec, expected} of fixture.cases) {
-      const pure = await executeKnowledgeLens(source, spec), result = await executeKnowledgeLensD1(db, spec);
+      const pure = await executeKnowledgeLens(source, spec), result = await executePublishedFixtureLens(db, spec);
       assert.deepEqual(pure, expected, 'Python/Worker parity');
       assert.deepEqual(result, pure, 'D1 preserves the normalized proposal and members');
       const proposal = result.nodes.find(n => n.id === fixture.claimId)!;
