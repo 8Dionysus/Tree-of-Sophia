@@ -194,8 +194,8 @@ class KnowledgeContractTests(unittest.TestCase):
         # partitioned projection.  It needs one translated_by claim and only
         # its endpoint/evidence edge carriers; the fixture assertions below
         # continue to exercise the pure normalizer.
-        seed = getattr(type(self), '_claim_navigation_seed', None)
-        if seed is None:
+        fixture_cache = getattr(type(self), '_claim_navigation_fixture_cache', None)
+        if fixture_cache is None:
             if is_partitioned(graph_path):
                 reader = ProjectionReader(graph_path)
                 trace = next(
@@ -228,9 +228,9 @@ class KnowledgeContractTests(unittest.TestCase):
                     *(edge[key] for edge in edges for key in ('from_id', 'to_id')),
                 }
                 nodes = [node for node in complete['nodes'] if node['node_id'] in identities]
-            seed = {'nodes': nodes, 'edges': edges, 'claim_traces': [trace]}
-            type(self)._claim_navigation_seed = seed
-        payload = copy.deepcopy(seed)
+            fixture_cache = {'nodes': nodes, 'edges': edges, 'claim_traces': [trace]}
+            type(self)._claim_navigation_fixture_cache = fixture_cache
+        payload = copy.deepcopy(fixture_cache)
         trace = next(value for value in payload['claim_traces'] if value['predicate'] == 'translated_by')
         edges = [edge for edge in payload['edges'] if edge.get('claim_ref') == trace['claim_ref']]
         identities = {trace['claim_node_id'], *(edge[key] for edge in edges for key in ('from_id', 'to_id'))}
@@ -1933,7 +1933,7 @@ class KnowledgeContractTests(unittest.TestCase):
                 / "ToS/doctrine/semantic-interchange/relation-types.v1.json"
             ).read_text(encoding="utf-8")
         )
-        cls._claim_navigation_seed = None
+        cls._claim_navigation_fixture_cache = None
         cls._compiled_store = None
 
     @classmethod
