@@ -4,7 +4,9 @@
 copy-on-write candidate over one explicitly selected
 [`tos_partitioned_projection_v1`](projection-store.v1.md) baseline. It writes
 immutable parts in that baseline's existing namespace and returns root bytes.
-It never replaces the selected root, publishes source or prepared storage,
+The separate `stage_projection_snapshot_changes` entry accepts an explicit
+`ProjectionSnapshotView` with exact immutable bytes in the same namespace.
+Neither entry replaces the selected root, publishes source or prepared storage,
 scans/prunes a namespace, stages all input rows, or starts a bootstrap.
 
 ```python
@@ -25,7 +27,7 @@ state = view.lookup("records", "stable-key")
 
 ## Exact changes and result
 
-Both digests must bind the exact selected root bytes. Baseline trust is an
+Both digests must bind the exact baseline root bytes. Baseline trust is an
 explicit **caller assertion**, not established by this function. The caller
 independently establishes its applicability/integrity and retains reused parts.
 Unchanged subtrees are not opened; success does not certify their availability.
@@ -69,6 +71,18 @@ whole-document `materialize`. Returned JSON is detached. The view is not a
 `require_current()` always refuses. Its parts still require owner retention;
 immutable root bytes do not promise immutable external availability.
 
+`stage_projection_snapshot_changes(view, ...)` is the explicit immutable-byte
+staging route, with the same change/header/limit arguments and COW core. Its
+budgeted checked reader validates the bound manifest and touched parts using
+the same strict descriptor, directory, row and read limits. It never reads or
+stats the root pathname, calls `require_current`, or asserts filesystem
+currentness. That pathname supplies only the original part namespace; its root
+file may be absent or contain unrelated selected bytes. A candidate snapshot
+can feed another explicit snapshot stage without temporary root publication.
+The selected-file API still rejects snapshot views and preserves its drift
+checks. Snapshot selection, publication CAS and part retention remain entirely
+with the caller; chaining does not establish baseline trust or publication.
+
 The mutation profile requires a total declared array order. Default key or
 composite-key ordering qualifies. Nonempty `order_fields` must include every
 key field; otherwise `ProjectionMutationRequiresBootstrap` refuses even an
@@ -102,7 +116,7 @@ All limits are explicit nonnegative integers; boolean limits are refused.
 | input bytes | 16 MiB | Complete canonical change frames and optional new header. |
 | opened parts | 256 | Every touched input part and existing immutable destination comparison. |
 | stored read bytes | 16 MiB | Declared stored input sizes and existing-destination bytes, each with sentinel. |
-| decoded bytes | 16 MiB | Touched decoded input sizes plus sentinel; fixed root cap plus sentinel for the initial and two final root reads. |
+| decoded bytes | 16 MiB | Touched decoded input sizes plus sentinel; selected-file entry reserves the fixed root cap plus sentinel for the initial and two final root reads. Snapshot entry charges exact immutable root byte length once, before decoding; it performs no root-file reads. |
 | keys | 4096 | All declared rows of touched leaves, including unchanged rows. |
 | written parts | 256 | Prospective unique content-addressed outputs, including existing identical parts. |
 | written decoded bytes | 16 MiB | Decoded bytes of those unique outputs. |
@@ -124,9 +138,10 @@ directories are fsynced. Only the function's own temporary basename is removed.
 No root replacement or old-part deletion occurs.
 
 The caller owns the root parent and cooperative writer stability. This is not
-an adversarial same-UID filesystem service. Detected baseline root drift before
-or after installation fails; those byte checks are not an atomic CAS or ABA
-fence. Interrupted/failed staging can leave unselected immutable parts. Their
+an adversarial same-UID filesystem service. The selected-file entry refuses
+detected baseline root drift before or after installation; those byte checks
+are not an atomic CAS or ABA fence. Interrupted/failed staging can leave
+unselected immutable parts. Their
 existence is not publication, recovery authority or permission to clean them.
 Power-loss durability relies on ordinary filesystem hard-link/fsync guarantees.
 

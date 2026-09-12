@@ -15,6 +15,7 @@ from tos_access.projection_mutation import (
     MISSING, MutationLimits, ProjectionChange, ProjectionHeaderChange,
     ProjectionSnapshotView, ProjectionMutationError, ProjectionMutationBudgetExceeded,
     ProjectionMutationRequiresBootstrap, stage_projection_changes,
+    stage_projection_snapshot_changes,
 )
 import tos_access.projection_mutation as mutation
 import tos_access.projection_diff as projection_diff
@@ -51,6 +52,119 @@ class ProjectionMutationTests(unittest.TestCase):
             expected_before_sha256=self.reader.snapshot_digest,
             trusted_baseline_sha256=self.reader.snapshot_digest,
             changes=[self.change()] if changes is None else changes, **kwargs)
+
+    def stage_snapshot(self, view=None, changes=None, **kwargs):
+        view = view or ProjectionSnapshotView(self.original, self.path)
+        return stage_projection_snapshot_changes(view,
+            expected_before_sha256=view.snapshot_digest,
+            trusted_baseline_sha256=view.snapshot_digest,
+            changes=[self.change()] if changes is None else changes, **kwargs)
+
+    def test_snapshot_chained_stages_never_read_or_select_root(self):
+        view = ProjectionSnapshotView(self.original, self.path)
+        self.path.unlink()
+        with patch.object(projection_diff, "_root_size", side_effect=AssertionError("root stat")), \
+                patch.object(ProjectionReader, "__init__", side_effect=AssertionError("root open")), \
+                patch.object(ProjectionReader, "require_current", side_effect=AssertionError("currentness")), \
+                patch.object(ProjectionReader, "materialize", side_effect=AssertionError("full export")), \
+                patch.object(ProjectionReader, "iter_items", side_effect=AssertionError("full scan")):
+            first = self.stage_snapshot(view)
+            next_change = ProjectionChange("records", "key-2", True,
+                sha(self.change().after_value), True, {"x": 300})
+            second = self.stage_snapshot(first.snapshot(), [next_change],
+                header_change=ProjectionHeaderChange(sha(self.header),
+                    {"schema_version": "fixture_v1", "revision": 2}))
+        self.assertFalse(self.path.exists())
+        self.assertEqual(second.before_sha256, first.after_sha256)
+        self.assertEqual(first.snapshot().lookup("records", "key-2")["value"], self.change().after_value)
+        self.assertEqual(second.snapshot().lookup("records", "key-2")["value"], {"x": 300})
+        self.assertEqual(second.snapshot().metadata()["revision"], 2)
+        for candidate in (first, second):
+            self.assertEqual(candidate.namespace_path, self.path)
+            self.assertFalse(candidate.published)
+            self.assertFalse(candidate.establishes_epoch)
+            self.assertFalse(candidate.target_closure_verified)
+            self.assertFalse(candidate.delta()["target_closure_verified"])
+
+    def test_snapshot_ignores_other_selected_bytes_and_refuses_foreign_bindings(self):
+        view = ProjectionSnapshotView(self.original, self.path)
+        self.path.write_bytes(b"unrelated selected bytes")
+        self.stage_snapshot(view)
+        self.assertEqual(self.path.read_bytes(), b"unrelated selected bytes")
+        for binding, trust in [(view.snapshot_digest, "0" * 64), ("0" * 64, "0" * 64),
+                               ("bad", "bad")]:
+            with self.subTest(binding=binding, trust=trust), patch.object(mutation, "_install") as install:
+                with self.assertRaises(ProjectionMutationError):
+                    stage_projection_snapshot_changes(view, expected_before_sha256=binding,
+                        trusted_baseline_sha256=trust, changes=[])
+                install.assert_not_called()
+        with self.assertRaises(TypeError):
+            self.stage_snapshot(self.reader)
+
+    def test_snapshot_read_budgets_precede_decode_and_part_open(self):
+        view = ProjectionSnapshotView(self.original, self.path)
+        with patch.object(ProjectionReader, "_initialize_manifest", side_effect=AssertionError("decoded")):
+            with self.assertRaises(ProjectionMutationBudgetExceeded):
+                self.stage_snapshot(view, [], limits=replace(MutationLimits(),
+                    max_decoded_bytes=len(self.original) - 1))
+        no_op = self.stage_snapshot(view, [])
+        self.assertEqual(dict(no_op.accounting)["decoded_bytes"], len(self.original))
+        for kwargs in ({"max_opened_parts": 0}, {"max_stored_read_bytes": 0},
+                       {"max_decoded_bytes": len(self.original)}):
+            with self.subTest(limits=kwargs), patch.object(ProjectionReader, "_load",
+                    side_effect=AssertionError("part opened")):
+                with self.assertRaises(ProjectionMutationBudgetExceeded):
+                    self.stage_snapshot(view, limits=replace(MutationLimits(), **kwargs))
+        real_load = ProjectionReader._load
+        def refuse_leaf(reader, descriptor, prefix):
+            if descriptor["kind"] == "data":
+                self.fail("leaf opened before key reservation")
+            return real_load(reader, descriptor, prefix)
+        with patch.object(ProjectionReader, "_load", new=refuse_leaf):
+            with self.assertRaises(ProjectionMutationBudgetExceeded):
+                self.stage_snapshot(view, limits=replace(MutationLimits(), max_keys=0))
+
+    def test_snapshot_all_budgets_and_selected_candidate_parity(self):
+        selected = self.stage()
+        candidate = self.stage_snapshot()
+        self.assertEqual(candidate.root_bytes, selected.root_bytes)
+        self.assertEqual(candidate.delta_bytes, selected.delta_bytes)
+        for name, value in candidate.accounting:
+            if value:
+                with self.subTest(name=name), self.assertRaises(ProjectionMutationBudgetExceeded):
+                    self.stage_snapshot(limits=replace(MutationLimits(), **{"max_" + name: value - 1}))
+        exact = MutationLimits(**{"max_" + name: value for name, value in candidate.accounting})
+        self.assertEqual(self.stage_snapshot(limits=exact).root_bytes, candidate.root_bytes)
+
+    def test_snapshot_malformed_touched_index_refuses_before_install(self):
+        descriptor = self.reader.manifest["collections"]["records"]["root"]
+        index = json.loads((self.directory / descriptor["path"]).read_bytes())
+        index["count"] += 1
+        raw = canonical_bytes(index)
+        manifest = json.loads(self.original)
+        root = manifest["collections"]["records"]["root"]
+        digest = hashlib.sha256(raw).hexdigest()
+        root.update(size_bytes=len(raw), decoded_bytes=len(raw),
+                    sha256=digest, decoded_sha256=digest,
+                    path=f"selected.parts/{digest[:2]}/{digest}.index.json")
+        part = self.directory / root["path"]
+        part.parent.mkdir(exist_ok=True)
+        part.write_bytes(raw)
+        view = ProjectionSnapshotView(canonical_bytes(manifest), self.path)
+        with patch.object(mutation, "_install") as install:
+            with self.assertRaisesRegex(ProjectionMutationError, "invalid partition directory"):
+                self.stage_snapshot(view)
+            install.assert_not_called()
+
+    def test_snapshot_skipped_missing_parts_do_not_certify_closure(self):
+        descriptor = self.reader.manifest["collections"]["records"]["root"]
+        index = self.reader._children(descriptor, "")
+        digit = hashlib.sha256(b"key-2").hexdigest()[0]
+        untouched = next(child for key, child in index.items() if key != digit)
+        (self.directory / untouched["path"]).unlink()
+        candidate = self.stage_snapshot()
+        self.assertFalse(candidate.target_closure_verified)
+        self.assertFalse(candidate.delta()["target_closure_verified"])
 
     def test_candidate_reuses_namespace_and_never_selects_root(self):
         old_closure = self.reader.closure_paths()

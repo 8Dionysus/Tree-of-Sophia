@@ -92,6 +92,26 @@ class _MutationReader(_CheckedReader):
         self.budget.take(stored_read_bytes=descriptor["size_bytes"] + 1)
         return super()._load(descriptor, prefix)
 
+    def verify_binding(self):
+        self.verify_current()
+
+
+class _SnapshotMutationReader(_MutationReader):
+    def __init__(self, snapshot, binding, budget):
+        self.budget = budget
+        self.path = snapshot.namespace_path
+        self._root_bytes = snapshot.root_bytes
+        self._binding = binding
+        # These bytes already exist; reserve their actual size before decoding.
+        # The namespace path resolves parts only, never a selected root file.
+        budget.reserve(decoded=len(self._root_bytes))
+        self.verify_binding()
+        self._initialize_manifest(0)
+
+    def verify_binding(self):
+        if _digest(self._root_bytes) != self._binding:
+            raise ProjectionMutationError("immutable projection binding differs")
+
 
 class _ViewReader(ProjectionReader):
     def __init__(self, root_bytes, namespace_path):
@@ -108,7 +128,8 @@ class ProjectionSnapshotView:
     """Immutable bytes in an existing namespace, not a selected-file reader.
 
     It intentionally is not a ProjectionReader and cannot enter diff_projections
-    or another mutation as a purported currently selected publication.
+    or selected-file mutation as a purported currently selected publication.
+    Explicit snapshot staging preserves this nonpublication boundary.
     """
     root_bytes: bytes
     namespace_path: Path
@@ -307,24 +328,49 @@ def stage_projection_changes(before: ProjectionReader, *, expected_before_sha256
     """
     if not isinstance(before, ProjectionReader) or isinstance(before, _ViewReader):
         raise TypeError("an explicitly selected ProjectionReader is required")
+    return _stage_from(_MutationReader, before, expected_before_sha256,
+                       trusted_baseline_sha256, changes, header_change, limits,
+                       target_part_bytes)
+
+
+def stage_projection_snapshot_changes(before: ProjectionSnapshotView, *,
+                                      expected_before_sha256: str,
+                                      trusted_baseline_sha256: str, changes,
+                                      header_change: ProjectionHeaderChange | None = None,
+                                      limits: MutationLimits | None = None,
+                                      target_part_bytes: int = DEFAULT_PART_BYTES) -> ProjectionCandidate:
+    """Stage from exact immutable root bytes without reading a selected root.
+
+    The caller owns baseline trust, part retention, selection and publication
+    CAS. This function establishes none of them. It checks only the supplied
+    byte binding and touched parts, using the selected route's COW core/budgets.
+    The namespace root file may be absent or have unrelated selected bytes.
+    """
+    if not isinstance(before, ProjectionSnapshotView):
+        raise TypeError("an explicit ProjectionSnapshotView is required")
+    return _stage_from(_SnapshotMutationReader, before, expected_before_sha256,
+                       trusted_baseline_sha256, changes, header_change, limits,
+                       target_part_bytes)
+
+
+def _stage_from(reader_type, before, binding, trust, changes, header_change, limits, target):
     if limits is not None and not isinstance(limits, MutationLimits):
         raise TypeError("limits must be MutationLimits")
-    if type(target_part_bytes) is not int or not 256 <= target_part_bytes <= MAX_PART_BYTES:
+    if type(target) is not int or not 256 <= target <= MAX_PART_BYTES:
         raise ProjectionMutationError("invalid target partition size")
-    if _sha(expected_before_sha256) != _sha(trusted_baseline_sha256):
+    if _sha(binding) != _sha(trust):
         raise ProjectionMutationError("trusted baseline differs from selected binding")
     budget = _Budget(limits or MutationLimits())
     try:
-        return _stage(before, expected_before_sha256, trusted_baseline_sha256,
-                      changes, header_change, target_part_bytes, budget)
+        reader = reader_type(before, binding, budget)
+        return _stage(reader, binding, trust, changes, header_change, target, budget)
     except ProjectionMutationError:
         raise
     except (ProjectionStoreError, TypeError, ValueError, UnicodeError, RecursionError) as error:
         raise ProjectionMutationError(str(error)) from error
 
 
-def _stage(before, binding, trust, changes, header_change, target, budget):
-    reader = _MutationReader(before, binding, budget)
+def _stage(reader, binding, trust, changes, header_change, target, budget):
     manifest = _strict_json(reader._root_bytes)
     for spec in manifest["collections"].values():
         field, order = spec["key_field"], spec["order_fields"]
@@ -467,11 +513,11 @@ def _stage(before, binding, trust, changes, header_change, target, budget):
              "changes": sorted(frames, key=lambda frame: (frame["collection"], frame["key"]))}
     delta_bytes = _json_bytes(delta, budget.limits.max_result_bytes)
     budget.take(result_bytes=len(root_bytes) + len(delta_bytes))
-    reader.verify_current()
+    reader.verify_binding()
     created = []
     for relative, raw in parts.items():
         if _install(reader.path.parent / relative, raw, budget):
             created.append(relative.as_posix())
-    reader.verify_current()
+    reader.verify_binding()
     return ProjectionCandidate(reader.path, binding, root_bytes, delta_bytes,
                                tuple(created), tuple(sorted(budget.usage.items())))
