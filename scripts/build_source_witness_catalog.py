@@ -117,6 +117,24 @@ def canonical_json(payload: object) -> str:
     return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def render_native_catalog_entry(payload: dict, relative: str) -> dict:
+    """Pure native Corpus/Link projection; callers own schema/source checks.
+
+    This is the exact legacy full collector rendering, not a profile adapter
+    or a source-admission function. Nested source values remain borrowed.
+    """
+    return {
+        "schema_version": "tos_source_witness_catalog_entry_v1",
+        "record_id": payload["record_id"],
+        "record_type": payload["record_type"],
+        "preferred_label": payload.get("preferred_label", ""),
+        "identity_status": payload.get("identity_status", ""),
+        "source_record_ref": relative,
+        "record_sha256": hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest(),
+        "links": {field: payload[field] for field in LINK_FIELDS if field in payload},
+    }
+
+
 def artifact_catalog_entry(repo_root: Path, payload: dict, relative: str,
                            validators: dict | None = None) -> dict:
     """Project native physical identity; never manufacture a Corpus record.
@@ -329,20 +347,9 @@ def _collect_records(repo_root: Path, *, profiles: SourceRecordProfiles | None) 
                 )
             seen_ids[record_id] = relative
 
-            digest = hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
-            links = {field: payload[field] for field in LINK_FIELDS if field in payload}
             records[record_type].append(
                 profiles.catalog_entry(record_type, payload, relative) if record_type in profiles.profiles else
-                {
-                    "schema_version": "tos_source_witness_catalog_entry_v1",
-                    "record_id": record_id,
-                    "record_type": record_type,
-                    "preferred_label": payload.get("preferred_label", ""),
-                    "identity_status": payload.get("identity_status", ""),
-                    "source_record_ref": relative,
-                    "record_sha256": digest,
-                    "links": links,
-                }
+                render_native_catalog_entry(payload, relative)
             )
 
     artifacts, validators = [], {}
@@ -488,10 +495,17 @@ def render_outputs(repo_root: Path = REPO_ROOT) -> dict[Path, str]:
     profiles = SourceRecordProfiles(repo_root)
     records = collect_records(repo_root, profiles=profiles)
     claims = collect_claims(repo_root)
+    outputs = render_catalog_rows(records, claims, profile_files=profiles.catalog_files,
+                                  publication_token=publication.token)
+    publication.verify_current()
+    return outputs
+
+
+def render_catalog_rows(records, claims, *, profile_files, publication_token) -> dict[Path, str]:
+    """Pure legacy file rendering shared by full build and explicit bootstrap."""
     outputs: dict[Path, str] = {}
     digest_parts: list[str] = []
 
-    profile_files = profiles.catalog_files
     record_files = {**RECORD_FILES, **{kind: filename for kind, filename in
                                     {**profile_files, **ADAPTED_RECORD_FILES}.items()
                                     if kind in records}}
@@ -531,16 +545,15 @@ def render_outputs(repo_root: Path = REPO_ROOT) -> dict[Path, str]:
         "counts": counts,
         "catalog_sha256": hashlib.sha256("".join(digest_parts).encode("utf-8")).hexdigest(),
         **({'selected_metadata_publication': {
-            'protocol': 'tos_selected_source_metadata_v1', 'token': publication.token,
+            'protocol': 'tos_selected_source_metadata_v1', 'token': publication_token,
             'files': {str(ref): hashlib.sha256(text.encode('utf-8')).hexdigest()
-                      for ref, text in outputs.items()}}} if publication.token is not None else {}),
+                      for ref, text in outputs.items()}}} if publication_token is not None else {}),
         "authority_boundary": (
             "generated navigation over tracked object and claim records; not "
             "bibliographic, textual, rights, review, or semantic authority"
         ),
     }
     outputs[MANIFEST_PATH] = json.dumps(manifest, ensure_ascii=False, indent=2) + "\n"
-    publication.verify_current()
     return outputs
 
 

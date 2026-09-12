@@ -148,6 +148,69 @@ reviewed public-safe derivative. Filesystem paths are human navigation and may
 improve through reviewed migrations. A path change never silently changes
 object or claim identity.
 
+### Explicit addressed record catalog
+
+The additive [catalog-v2 contract](../contracts/source-catalog-projection-v2.schema.json)
+and [`source_catalog_projection.py`](../../scripts/source_catalog_projection.py)
+provide an explicit immutable `records` collection keyed and ordered by stable
+record ID. This is not a replacement publication of the tracked legacy catalog.
+Each row preserves its exact legacy entry plus the original source locator,
+raw-byte SHA-256/length and canonical record ref. The legacy canonical record
+digest, raw source-byte digest and addressed row digest are different bindings.
+Source body, HumanForms and retained history remain with their source owners;
+the catalog does not copy them into another authority surface.
+
+`bootstrap_source_catalog(root, namespace_path, catalog_namespace=...,
+expected_manifest_sha256=..., expected_publication_token=..., work_dir=...)`
+is explicitly a full bootstrap. It checks complete record membership,
+duplicates and native identity reservations, native/declared source schemas,
+exact row rendering and full legacy catalog parity, then rechecks observed
+bytes, membership, profile inputs and the cooperating publication snapshot.
+The existing full collector and pure file renderer remain the parity owner;
+native Agent validation uses its actual Corpus schema and registry mappings,
+never the declared-profile adapter. Native reservation/text dependencies retain
+their owner's bounded opaque snapshot checks. This is catalog/source mechanical
+closure, not the whole foundation validator, reference closure, historical
+completeness, rights, assessment, or Claim admission.
+
+The full writer uses only explicit disposable bootstrap scratch. Immutable parts
+are installed without replacement into the caller's existing namespace parent;
+the target root pathname is never written or selected. The result returns exact
+root bytes for a separately owned paired publication. A failure may leave
+unselected immutable parts, never permission to prune source or retained parts.
+
+`SourceCatalogSnapshot(ProjectionSnapshotView(...), expected_root_sha256=...,
+trusted_baseline_sha256=...)` performs budgeted keyed access without opening the
+root pathname or reading a legacy JSONL family. `lookup(record_id)` distinguishes
+absence in that explicit snapshot; `get(record_id)` requires presence. Returned
+`CatalogRecord.entry`, `.source` and `.provenance` are detached. A row's provenance
+contains stable catalog namespace/profile, key, row digest and exact source/ref
+bindings only. Global catalog root digests, publication tokens, baseline anchors,
+processor/schema bindings and prepared epochs belong to the outer envelope, not
+to every record/history/version row. An unrelated Agent revision must not change
+another record's provenance merely by changing the catalog root.
+
+`stage_agent_catalog_transition(root, before, transaction_id=...,
+expected_publication_token=...)` supports only one immediate committed,
+present-to-present native Agent descriptive correction. It checks the retained
+transaction, exact old row/raw binding, current after bytes, unchanged ID/type/path,
+allowed descriptive fields, version increment, reconstructed HumanForms/history,
+predecessor archive and revision dependencies. It executes no source command.
+Insertions, deletions, moves, non-Agent transitions and a skipped publication
+predecessor fail; missing source/carrier files are never deletion authority.
+Candidates remain unpublished and establish neither a prepared epoch nor fresh
+availability of reused sibling parts. Native writer/archive/transaction reads
+keep their existing per-package bounds; catalog capture and COW access have their
+own explicit `CatalogLimits` and `MutationLimits`. Full bootstrap is not a hidden
+fallback when a bounded transition refuses.
+
+Legacy Claims are exact bootstrap anchors, not yet an addressed Claim collection.
+Complete source-reference dependency closure also remains an integration gap:
+an Agent may supply maker/evidence labels and digests without a direct identity
+graph edge. Graph incidence alone cannot prove that no dependent row exists.
+A separate reverse reference route and downstream owner validation are required
+before a catalog transition can justify a complete normalized/prepared delta.
+
 Evidence nodes carry a bounded readable `display` from owner metadata.
 An identity can reuse its catalog `preferred_label`. Direct Markdown
 notes in `ToS/review-ledger/` and in

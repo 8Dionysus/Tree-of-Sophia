@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-catalog-projection-v2.schema.json",
+  "title": "Explicit addressed source-record catalog projection v2",
+  "description": "Logical records and envelope carried by tos_partitioned_projection_v1. Source authority, source-reference dependency closure, selected-root publication and epoch authority remain separate. A transport root digest never enters each record address.",
+  "allOf": [
+    {"$ref": "#/$defs/headerFields"},
+    {
+      "type": "object",
+      "required": ["records"],
+      "properties": {"records": {"type": "array", "items": {"$ref": "#/$defs/row"}}}
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$(?![\\s\\S])"},
+    "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$(?![\\s\\S])"},
+    "identity": {"type": "string", "maxLength": 4096, "pattern": "^tos\\.[a-z][a-z0-9-]*\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$(?![\\s\\S])"},
+    "recordRef": {
+      "type": "object", "additionalProperties": false, "required": ["id", "version", "digest"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identity"},
+        "version": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+        "digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "sourceRef": {
+      "type": "string", "maxLength": 1024,
+      "pattern": "^ToS/source-witnesses/(?!.*(?:^|/)(?:\\.[^/]*|catalog|payload|private|owner-local|local-content)(?:/|$))[^\\\\\\u0000]+\\.json$(?![\\s\\S])"
+    },
+    "binding": {
+      "type": "object", "additionalProperties": false, "required": ["sha256", "bytes"],
+      "properties": {"sha256": {"$ref": "#/$defs/sha256"}, "bytes": {"type": "integer", "minimum": 0}}
+    },
+    "bindings": {
+      "type": "object", "maxProperties": 1024,
+      "propertyNames": {"type": "string", "maxLength": 1024, "pattern": "^(?:ToS|scripts|access|mechanics)/"},
+      "additionalProperties": {"$ref": "#/$defs/binding"}
+    },
+    "sourceBinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_ref", "raw_sha256", "raw_bytes", "record_ref"],
+      "properties": {
+        "source_ref": {"$ref": "#/$defs/sourceRef"},
+        "raw_sha256": {"$ref": "#/$defs/sha256"},
+        "raw_bytes": {"type": "integer", "minimum": 1, "maximum": 1048576},
+        "record_ref": {"$ref": "#/$defs/recordRef"}
+      }
+    },
+    "entry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "record_id", "record_type", "preferred_label", "identity_status", "source_record_ref", "record_sha256", "links"],
+      "properties": {
+        "schema_version": {"const": "tos_source_witness_catalog_entry_v1"},
+        "record_id": {"$ref": "#/$defs/identity"},
+        "record_type": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$(?![\\s\\S])"},
+        "preferred_label": {"type": "string"},
+        "identity_status": {"type": ["string", "null"]},
+        "source_record_ref": {"$ref": "#/$defs/sourceRef"},
+        "record_sha256": {"$ref": "#/$defs/sha256"},
+        "source_schema_ref": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$(?![\\s\\S])"},
+        "label_source_pointer": {"type": "string", "pattern": "^/"},
+        "links": {"type": "object"}
+      }
+    },
+    "row": {
+      "type": "object", "additionalProperties": false, "required": ["record_id", "entry", "source"],
+      "properties": {
+        "record_id": {"$ref": "#/$defs/identity"},
+        "entry": {"$ref": "#/$defs/entry"},
+        "source": {"$ref": "#/$defs/sourceBinding"}
+      }
+    },
+    "publication": {
+      "type": "object", "additionalProperties": false, "required": ["protocol", "token", "generation"],
+      "properties": {
+        "protocol": {"const": "tos_selected_source_metadata_v1"},
+        "token": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/digest"}]},
+        "generation": {"type": "integer", "minimum": 0, "maximum": 9007199254740991}
+      },
+      "allOf": [{"if": {"properties": {"token": {"type": "null"}}},
+                 "then": {"properties": {"generation": {"const": 0}}},
+                 "else": {"properties": {"generation": {"minimum": 1}}}}]
+    },
+    "headerFields": {
+      "type": "object",
+      "required": ["schema_version", "catalog_namespace", "profile_id", "record_families", "record_count", "source_publication", "legacy_baseline", "profile_bindings", "membership_basis", "last_transition", "claims_addressed", "source_reference_closure_verified"],
+      "properties": {
+        "schema_version": {"const": "tos_source_catalog_projection_v2"},
+        "catalog_namespace": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[a-z0-9][a-z0-9._:-]*$(?![\\s\\S])"},
+        "profile_id": {"const": "tos.source-catalog.public-records.v2"},
+        "record_families": {"type": "array", "minItems": 1, "maxItems": 1024, "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$(?![\\s\\S])"}},
+        "record_count": {"type": "integer", "minimum": 0},
+        "source_publication": {"$ref": "#/$defs/publication"},
+        "legacy_baseline": {
+          "type": "object", "additionalProperties": false,
+          "required": ["manifest_ref", "manifest_sha256", "catalog_sha256", "files", "native_identity_snapshot", "native_text_snapshot"],
+          "properties": {
+            "manifest_ref": {"const": "ToS/source-witnesses/catalog/catalog.manifest.json"},
+            "manifest_sha256": {"$ref": "#/$defs/sha256"},
+            "catalog_sha256": {"$ref": "#/$defs/sha256"},
+            "files": {"$ref": "#/$defs/bindings"},
+            "native_identity_snapshot": {"$ref": "#/$defs/digest"},
+            "native_text_snapshot": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/digest"}]}
+          }
+        },
+        "profile_bindings": {
+          "type": "object", "additionalProperties": false, "required": ["source", "execution"],
+          "properties": {"source": {"$ref": "#/$defs/bindings"}, "execution": {"$ref": "#/$defs/bindings"}}
+        },
+        "membership_basis": {"const": "verified-full-baseline-plus-explicit-transitions"},
+        "last_transition": {"anyOf": [{"type": "null"}, {
+          "type": "object", "additionalProperties": false, "required": ["transaction_id", "manifest_sha256", "record_id"],
+          "properties": {
+            "transaction_id": {"$ref": "#/$defs/digest"},
+            "manifest_sha256": {"$ref": "#/$defs/digest"},
+            "record_id": {"$ref": "#/$defs/identity"}
+          }
+        }]},
+        "claims_addressed": {"const": false},
+        "source_reference_closure_verified": {"const": false}
+      }
+    },
+    "header": {"allOf": [{"$ref": "#/$defs/headerFields"}], "unevaluatedProperties": false},
+    "address": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "catalog_namespace", "profile_id", "record_key", "row_sha256", "source_ref", "raw_sha256", "raw_bytes", "record_ref"],
+      "properties": {
+        "schema_version": {"const": "tos_source_catalog_address_v2"},
+        "catalog_namespace": {"type": "string", "minLength": 1, "maxLength": 256},
+        "profile_id": {"const": "tos.source-catalog.public-records.v2"},
+        "record_key": {"$ref": "#/$defs/identity"},
+        "row_sha256": {"$ref": "#/$defs/sha256"},
+        "source_ref": {"$ref": "#/$defs/sourceRef"},
+        "raw_sha256": {"$ref": "#/$defs/sha256"},
+        "raw_bytes": {"type": "integer", "minimum": 1, "maximum": 1048576},
+        "record_ref": {"$ref": "#/$defs/recordRef"}
+      }
+    }
+  }
+}

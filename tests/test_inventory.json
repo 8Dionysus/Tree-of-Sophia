@@ -93,6 +93,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_source_catalog_projection.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/contracts/source-catalog-projection-v2.schema.json",
+      "protects": "explicit full catalog membership/source/schema parity, raw versus canonical versus addressed row digests, bounded immutable keyed access, real immediate Agent descriptive transitions, unchanged neighboring row provenance and refusal of drift without publication or source-reference closure",
+      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_source_catalog_projection.py",
+      "failure_route": "Fix source catalog binding or addressed transition mechanics without trusting a catalog as source authority, reading full JSONL on a selected revision or putting global root identity in each record provenance.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_prepared_semantics.py",
       "home": "access",
       "home_scope": "product-local",
