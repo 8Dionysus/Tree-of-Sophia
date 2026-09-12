@@ -24,7 +24,7 @@ from tos_access import knowledge as k
 from tos_access.http_server import build_handler
 from tos_access.published_lens import PublishedLensService, PublishedLensLimits
 from tos_access.published_read_metadata import (
-    TOP_KEY, LENS_META_KEY, READER_SCHEMA, _compact, emitted_row_digest,
+    TOP_KEY, LENS_META_KEY, READER_SCHEMA, LOCAL_READ_MODEL_SCHEMA, _compact, emitted_row_digest,
     published_row_digest_key, published_snapshot_binding, lens_order_row,
 )
 from tos_access.published_read_model import (
@@ -164,6 +164,30 @@ class PublishedLensTests(unittest.TestCase):
         for number, spec in enumerate(scenarios()):
             with self.subTest(scenario=number):
                 self.parity(spec)
+
+    def test_explicit_local_profile_reads_without_edge_search_compatibility_planes(self):
+        # This is a reader-profile fixture, not evidence of the local publisher.
+        with closing(sqlite3.connect(self.path)) as db:
+            for table in ('knowledge_search_documents', 'knowledge_search_grams', 'knowledge_search_gram_stats'):
+                db.execute(f'DROP TABLE {table}')
+            top = json.loads(db.execute('SELECT json_chunk FROM edge_meta WHERE key=?', (TOP_KEY,)).fetchone()[0])
+            top['read_model_schema'] = LOCAL_READ_MODEL_SCHEMA
+            db.execute('UPDATE edge_meta SET json_chunk=? WHERE key=?', (_compact(top), TOP_KEY))
+            db.commit()
+        binding = published_snapshot_binding(top, self.binding['publication_epoch'])
+        reader = PublishedKnowledgeReadModel(self.path, binding)
+        service = PublishedLensService(reader)
+        self.assertEqual(reader.status()['read_model_schema'], LOCAL_READ_MODEL_SCHEMA)
+        self.assertEqual(service.capability()['read_model_schema'], LOCAL_READ_MODEL_SCHEMA)
+        self.assertEqual(reader.catalog()['lenses'], [self.stored])
+        self.assertEqual(service.focus('n00'), k.focus_knowledge_node(self.graph, 'n00'))
+        self.assertEqual(service.execute(self.stored), k.execute_knowledge_lens(self.graph, self.stored))
+        with self.assertRaises(PublishedSnapshotConflict):
+            self.reader.status()  # The edge-v9 binding cannot silently select local-v1.
+        top['schema'] = READER_SCHEMA
+        del top['lens_sha256']
+        with self.assertRaises(PublishedReadModelError):
+            published_snapshot_binding(top, self.binding['publication_epoch'])
 
     def test_focus_exact_entity_native_scopes(self):
         for identifier in ('philosophy:n00', 'tos.synthetic.subject.0', 'n00'):

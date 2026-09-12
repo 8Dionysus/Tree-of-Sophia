@@ -323,6 +323,14 @@ across requests/restarts. SQLite may use its ordinary WAL coordination sidecars;
 `mode=ro` and `query_only` prohibit database writes, not SQLite's filesystem
 coordination protocol.
 
+The distinct `tos_local_prepared_read_model_v1` profile may reuse these
+catalog/inspect, lens and exploration carriers without the edge-v9 compatibility
+search tables. It requires the same lens metadata and ordered indices, but an
+edge-v9 binding never implicitly selects it. Reader admission for this profile
+does not claim a complete publisher, integrated search or source assembly;
+those components must be selected and verified separately. The Cloudflare
+producer's v9 schema and capabilities are unchanged.
+
 Search integration is separate from these services. Lens/focus and exploration
 use the prepared services described below. The default, without these two arguments,
 retains the existing compatibility route. This is not completion of the broader

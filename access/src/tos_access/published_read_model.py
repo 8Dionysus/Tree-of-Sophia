@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .published_read_metadata import (
-    BINDING_SCHEMA, CATALOG_KEY, TOP_KEY, LENS_READER_SCHEMA, PublishedReadModelError,
+    BINDING_SCHEMA, CATALOG_KEY, TOP_KEY, LENS_READER_SCHEMA, LENS_READ_MODEL_SCHEMAS, PublishedReadModelError,
     _BINDING_KEYS, _HASH, _compact, _normalization, _validate_top,
     emitted_row_digest, published_reader_metadata, published_row_digest_key,
     published_snapshot_binding,
@@ -29,7 +29,7 @@ _INDEXES = (
     "knowledge_relations_native_idx", "knowledge_relations_from_seek",
     "knowledge_relations_to_seek",
 )
-SUPPORTED_READ_MODEL_SCHEMAS = frozenset({"tos_cloudflare_edge_read_model_v8", "tos_cloudflare_edge_read_model_v9"})
+SUPPORTED_READ_MODEL_SCHEMAS = LENS_READ_MODEL_SCHEMAS | {"tos_cloudflare_edge_read_model_v8"}
 
 
 class PublishedSnapshotConflict(PublishedReadModelError):
@@ -215,9 +215,9 @@ class PublishedKnowledgeReadModel:
         _validate_top(top)
         if top["read_model_schema"] not in SUPPORTED_READ_MODEL_SCHEMAS:
             raise PublishedReadModelError("prepared reader does not support this read-model schema")
-        if (top["read_model_schema"] == "tos_cloudflare_edge_read_model_v9"
+        if (top["read_model_schema"] in LENS_READ_MODEL_SCHEMAS
                 and top['schema'] != LENS_READER_SCHEMA):
-            raise PublishedReadModelError("prepared v9 reader metadata requires the lens binding")
+            raise PublishedReadModelError("prepared lens reader metadata requires the lens binding")
         _, revision = read.metadata("data_revision", 1024)
         clocks = read.query("SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1 LIMIT 2")
         if (len(clocks) != 1 or type(clocks[0]["epoch"]) is not int
@@ -242,7 +242,7 @@ class PublishedKnowledgeReadModel:
                 connection.execute("BEGIN")
                 top = self._snapshot(read)
                 required = set(_INDEXES)
-                if top['read_model_schema'] == 'tos_cloudflare_edge_read_model_v9':
+                if top['read_model_schema'] in LENS_READ_MODEL_SCHEMAS:
                     required.update(('knowledge_nodes_identity_seek', 'knowledge_lens_order_sort',
                                      'knowledge_lens_order_from', 'knowledge_lens_order_to',
                                      'knowledge_lens_order_pair'))

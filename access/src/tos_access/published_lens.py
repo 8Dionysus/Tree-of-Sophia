@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from . import knowledge as k
 from .published_exploration import _Rows
 from .published_read_metadata import (
-    LENS_EXECUTION_VERSION, LENS_META_KEY, LENS_METADATA_MAX_BYTES, LENS_READER_SCHEMA,
+    LENS_EXECUTION_VERSION, LENS_META_KEY, LENS_METADATA_MAX_BYTES, LENS_READER_SCHEMA, LENS_READ_MODEL_SCHEMAS,
     _compact, emitted_row_digest, lens_order_row, validate_lens_metadata,
 )
 from .published_read_model import PublishedReadBudgetExceeded, PublishedReadModelError
@@ -475,10 +475,11 @@ class PublishedLensService:
         self.limits = limits or PublishedLensLimits()
 
     def capability(self):
-        available = self.reader.snapshot_binding['read_model_schema'] == 'tos_cloudflare_edge_read_model_v9'
+        selected = self.reader.snapshot_binding['read_model_schema']
+        available = selected in LENS_READ_MODEL_SCHEMAS
         return {"available": available, **({"reason": "published-v9-required"} if not available else {}),
                 "execution_version": LENS_EXECUTION_VERSION,
-                "read_model_schema": "tos_cloudflare_edge_read_model_v9",
+                "read_model_schema": selected if available else "tos_cloudflare_edge_read_model_v9",
                 "pagination": "stateless-reexecution-of-complete-bounded-lens-result",
                 "default_counts": "exact-owner-built-source-kind-type-predicate-histograms",
                 "generic_queries": "exact-within-explicit-budgets-or-refusal",
@@ -490,8 +491,8 @@ class PublishedLensService:
     def execute(self, value):
         public = k.normalize_lens_spec(value)
         def operation(read, top):
-            if top["read_model_schema"] != "tos_cloudflare_edge_read_model_v9" or top["schema"] != LENS_READER_SCHEMA:
-                raise PublishedReadModelError("prepared lens requires an owner-published v9 snapshot")
+            if top["read_model_schema"] not in LENS_READ_MODEL_SCHEMAS or top["schema"] != LENS_READER_SCHEMA:
+                raise PublishedReadModelError("prepared lens requires an owner-published v9 or local prepared v1 snapshot")
             raw, metadata = read.metadata(LENS_META_KEY, LENS_METADATA_MAX_BYTES)
             if emitted_row_digest(raw)["sha256"] != top.get("lens_sha256"):
                 raise PublishedReadModelError("prepared lens metadata checksum differs")

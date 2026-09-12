@@ -16,6 +16,8 @@ from typing import Any
 
 READER_SCHEMA = "tos_published_knowledge_reader_v1"
 LENS_READER_SCHEMA = "tos_published_knowledge_reader_v2"
+LOCAL_READ_MODEL_SCHEMA = "tos_local_prepared_read_model_v1"
+LENS_READ_MODEL_SCHEMAS = frozenset({"tos_cloudflare_edge_read_model_v9", LOCAL_READ_MODEL_SCHEMA})
 LENS_META_KEY = "knowledge_lens_top"
 LENS_META_SCHEMA = "tos_published_lens_metadata_v1"
 LENS_EXECUTION_VERSION = "tos-lens-execution-v7"
@@ -74,7 +76,9 @@ def _validate_top(top: Any) -> None:
             or top.get("schema") not in {READER_SCHEMA, LENS_READER_SCHEMA}
             or top.get("graph_schema") != "tos_knowledge_graph_v1"
             or not isinstance(top.get("read_model_schema"), str)
-            or not re.fullmatch(r"tos_cloudflare_edge_read_model_v[1-9][0-9]*", top["read_model_schema"])
+            or not (re.fullmatch(r"tos_cloudflare_edge_read_model_v[1-9][0-9]*", top["read_model_schema"])
+                    or top["read_model_schema"] == LOCAL_READ_MODEL_SCHEMA)
+            or (top["read_model_schema"] == LOCAL_READ_MODEL_SCHEMA and not lens)
             or top.get("row_integrity") != ROW_INTEGRITY
             or not _normalization(top.get("normalization_binding"))
             or any(not isinstance(top.get(key), str) or not _HASH.fullmatch(top[key])
