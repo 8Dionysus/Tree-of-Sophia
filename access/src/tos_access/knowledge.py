@@ -3047,9 +3047,18 @@ def build_knowledge_graph(
             continue
         for endpoint in (str(relation["from_id"]), str(relation["to_id"])):
             inherited_views.setdefault(endpoint, set()).update(view_ids)
-    nodes = [_finalize_knowledge_node(node, claim_updates.get(node['id']),
-                                      sorted(inherited_views.get(node['id'], set())),
-                                      literal_contexts.get(node['id'])) for node in nodes]
+    # These assembly indexes refer to base nodes, not the final graph. Do not
+    # retain a superseded node generation through context compilation and
+    # semantic validation (the opt-in cache owns its own dependency lifetime).
+    del nodes_by_id, representations_by_entity, representation_pairs
+    del relation_sources, claim_context_index, referenced_contexts
+    owned_nodes = active_cache.get() is None
+    for index, node in enumerate(nodes):
+        nodes[index] = _finalize_knowledge_node(
+            node, claim_updates.get(node['id']),
+            sorted(inherited_views.get(node['id'], set())),
+            literal_contexts.get(node['id']), _owned=owned_nodes)
+    del claim_updates, literal_contexts, inherited_views
     context_compiler = ReadableContextCompiler(entity_registry, digest=_stable_digest)
     nodes = [_attach_readable_context(node, context_compiler, 'node') for node in nodes]
     relations = [_attach_readable_context(relation, context_compiler, 'relation') for relation in relations]
@@ -3591,7 +3600,7 @@ def _attach_readable_context(item, compiler, kind):
     return compute()
 
 
-def _finalize_knowledge_node(node, claim_update, inherited_views, claim_contexts=None):
+def _finalize_knowledge_node(node, claim_update, inherited_views, claim_contexts=None, *, _owned=False):
     cache = active_cache.get()
     if cache:
         identifier = node['id']
@@ -3601,11 +3610,33 @@ def _finalize_knowledge_node(node, claim_update, inherited_views, claim_contexts
             Input('inherited-views:' + identifier, inherited_views),
             Input('literal-claim-contexts:' + identifier, claim_contexts),
         ], lambda: _final_node_value(node, claim_update, inherited_views, claim_contexts))
+    if _owned:
+        return _owned_final_node_value(node, claim_update, inherited_views, claim_contexts)
     return _final_node_value(node, claim_update, inherited_views, claim_contexts)
 
 
 def _final_node_value(node, claim_update, inherited_views, claim_contexts=None):
-    result = copy.deepcopy(node)
+    return _apply_final_node_changes(copy.deepcopy(node), claim_update, inherited_views, claim_contexts)
+
+
+def _owned_final_node_value(node, claim_update, inherited_views, claim_contexts=None):
+    """Consume one uncached builder node, never a caller/cache-owned snapshot.
+
+    _normalize_node creates the node, scalar fields, string lists, type mapping,
+    and a deep-copied source_record envelope. Only attributes, display provenance,
+    and some semantics can borrow nested source values. Detach those together
+    before mutation/delivery, preserving their internal aliases without copying
+    the already isolated source envelope a second time. A bare shallow copy or
+    unchanged-node return would leak raw-input mutation into the published node.
+    """
+    if active_cache.get() is not None:
+        raise RuntimeError('owned finalization cannot consume a cached node')
+    node.update(copy.deepcopy({key: node[key] for key in ('attributes', 'display', 'semantics')}))
+    return _apply_final_node_changes(node, claim_update, inherited_views, claim_contexts)
+
+
+def _apply_final_node_changes(result, claim_update, inherited_views, claim_contexts=None):
+    """Mutate only the detached finalization target; keep both routes identical."""
     changed = not result.get('content_revision')
     if claim_update is not None:
         claim, trace = copy.deepcopy(claim_update)
