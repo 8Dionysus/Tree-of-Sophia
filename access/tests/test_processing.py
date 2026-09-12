@@ -11,14 +11,19 @@ from unittest.mock import patch
 
 ACCESS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ACCESS / 'src'))
-from tos_access.processing import Input, Task, ProcessingScheduler, processing_input_changes
+from tos_access.processing import Input, Task, ProcessingScheduler, processing_input_changes, digest
+from tos_access.processing_closure import processing_dependency_closure
 from tos_access.normalization_cache import NormalizationCache, normalization_processor_digest
 from tos_access.knowledge import (
     AddressedUpdateError,
     addressed_update_knowledge_graph,
     build_knowledge_graph,
     validate_knowledge_semantics,
+    _normalize_node,
+    _finalize_knowledge_node,
+    _attach_readable_context,
 )
+from tos_access.readable_context import ReadableContextCompiler
 
 
 class ProcessingTests(unittest.TestCase):
@@ -489,6 +494,128 @@ class ProcessingTests(unittest.TestCase):
             self.assertEqual(normalization_processor_digest(path),before)
             path.write_text(initial.replace('LIMIT=1','LIMIT=2'))
             self.assertNotEqual(normalization_processor_digest(path),before)
+
+
+class TerminalCarrierLineageTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from test_knowledge_contract import KnowledgeContractTests
+        KnowledgeContractTests.setUpClass()
+        cls.entities = KnowledgeContractTests.entity_type_registry
+        cls.relation_types = KnowledgeContractTests.relation_type_registry
+
+    def fixture(self, *, context=True):
+        from test_knowledge_contract import KnowledgeContractTests
+        corpus, philosophy = KnowledgeContractTests().fixture()
+        if context:
+            # Synthetic presentation context, not a source assertion or grant.
+            record = {'schema_version': 'tos_lineage_fixture_v1',
+                      'record_id': 'test:lineage', 'notes': 'unclassified context',
+                      'negative': False, 'unknown': None}
+            philosophy['nodes'][0]['properties']['source_record'] = copy.deepcopy(record)
+            philosophy['edges'][0]['properties']['source_record'] = copy.deepcopy(record)
+        return corpus, philosophy
+
+    def closure(self, path, run_id, seed):
+        with closing(sqlite3.connect(path)) as db:
+            db.execute('BEGIN')
+            return processing_dependency_closure(db, run_id, [seed])
+
+    def test_source_seeds_reach_exact_terminal_node_and_relation_carriers(self):
+        corpus, philosophy = self.fixture()
+        untouched = copy.deepcopy((corpus, philosophy))
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'steps.sqlite'
+            with NormalizationCache(path, 'terminal-v1') as cache:
+                graph = build_knowledge_graph(corpus, philosophy, {}, self.entities, self.relation_types)
+            node_packet = self.closure(path, cache.scheduler.run_id, 'source-node:philosophy:a')
+            nodes = {item['id']: item for item in node_packet['nodes']}
+            self.assertTrue({'node:philosophy:a', 'final-node:philosophy:a',
+                             'readable-node:philosophy:a', 'endpoint-title:philosophy:a',
+                             'relation:philosophy:e', 'readable-relation:philosophy:e'} <= nodes.keys())
+            edges = {(item['dependency_id'], item['task_id']) for item in node_packet['edges']}
+            self.assertTrue({('node:philosophy:a', 'final-node:philosophy:a'),
+                             ('final-node:philosophy:a', 'readable-node:philosophy:a'),
+                             ('relation:philosophy:e', 'readable-relation:philosophy:e')} <= edges)
+            relation_packet = self.closure(path, cache.scheduler.run_id, 'source-relation:philosophy:e')
+            relation_ids = {item['id'] for item in relation_packet['nodes']}
+            self.assertIn('readable-relation:philosophy:e', relation_ids)
+            for kind, identifier in (('node', 'philosophy:a'), ('relation', 'philosophy:e')):
+                row = next(item for item in graph[kind + 's'] if item['id'] == identifier)
+                self.assertIn('readable_context', row)
+                self.assertEqual(nodes['readable-' + kind + ':' + identifier]['output_digest'], digest(row))
+            # Terminal producer links do not assert complete inherited-view,
+            # Claim-context, assessment or other source-owner dependencies.
+            self.assertFalse(node_packet['is_source_change_completeness'])
+            self.assertFalse(relation_packet['is_source_change_completeness'])
+        self.assertEqual((corpus, philosophy), untouched)
+
+    def test_no_context_fast_path_has_the_actual_final_node_as_terminal(self):
+        corpus, philosophy = self.fixture(context=False)
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'steps.sqlite'
+            with NormalizationCache(path, 'terminal-v1') as cache:
+                graph = build_knowledge_graph(corpus, philosophy)
+            packet = self.closure(path, cache.scheduler.run_id, 'source-node:philosophy:a')
+            nodes = {item['id']: item for item in packet['nodes']}
+            row = next(item for item in graph['nodes'] if item['id'] == 'philosophy:a')
+            self.assertEqual(nodes['final-node:philosophy:a']['output_digest'], digest(row))
+            self.assertNotIn('readable-node:philosophy:a', nodes)
+            self.assertNotIn('readable-relation:philosophy:e', nodes)
+
+    def test_cold_warm_and_repeated_stages_preserve_semantics_without_extra_execution(self):
+        corpus, philosophy = self.fixture()
+        expected = build_knowledge_graph(corpus, philosophy, {}, self.entities, self.relation_types)
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'steps.sqlite'
+            for attempt in range(2):
+                with NormalizationCache(path, 'terminal-v1') as cache:
+                    actual = build_knowledge_graph(corpus, philosophy, {}, self.entities, self.relation_types)
+                self.assertEqual(actual, expected)
+                if attempt:
+                    self.assertEqual(cache.scheduler.executed, 0)
+                    for stage in ('final-node', 'readable-node', 'readable-relation'):
+                        self.assertGreater(cache.processing_report['steps_by_kind'][stage]['reused'], 0)
+            with NormalizationCache(path, 'terminal-v1') as cache:
+                raw = philosophy['nodes'][0]
+                base = _normalize_node(raw, 'philosophy')
+                finalized = _finalize_knowledge_node(base, None, [])
+                compiler = ReadableContextCompiler(self.entities, digest=digest)
+                terminal = _attach_readable_context(finalized, compiler, 'node')
+                executed = cache.scheduler.executed
+                self.assertEqual(_finalize_knowledge_node(copy.deepcopy(base), None, []), finalized)
+                self.assertEqual(_attach_readable_context(copy.deepcopy(finalized), compiler, 'node'), terminal)
+                self.assertEqual(cache.scheduler.executed, executed)
+
+    def test_absent_producer_remains_an_explicit_standalone_input(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'steps.sqlite'
+            base = _normalize_node({'node_id': 'external', 'label': 'Standalone'}, 'philosophy')
+            expected = _finalize_knowledge_node(base, None, [])
+            with NormalizationCache(path, 'terminal-v1') as cache:
+                self.assertEqual(_finalize_knowledge_node(base, None, []), expected)
+                dependency = cache.scheduler.definitions['base-node:philosophy:external']
+                self.assertIsInstance(dependency, Input)
+                self.assertNotIn('node:philosophy:external', cache.scheduler.definitions)
+
+    def test_mismatched_or_incomplete_existing_producer_cannot_publish_a_caught_failure(self):
+        for defect in ('changed-value', 'invalid-value', 'input-not-task', 'incomplete-task'):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as folder:
+                path = Path(folder) / 'steps.sqlite'
+                with self.assertRaisesRegex(RuntimeError, 'failed tasks'):
+                    with NormalizationCache(path, 'terminal-v1') as cache:
+                        value = {'id': 'a', 'value': 1}
+                        if defect in {'changed-value', 'invalid-value'}:
+                            cache.normalize('node', 'a', None, (), lambda: value)
+                            value = {**value, 'value': 2 if defect == 'changed-value' else {1, 2}}
+                        elif defect == 'input-not-task':
+                            cache.scheduler.evaluate(Input('node:a', value))
+                        else:
+                            cache.scheduler.definitions['node:a'] = Task('node:a', 'v1', (), None, lambda _: value)
+                        with self.assertRaises((TypeError, ValueError)):
+                            cache.carrier_dependency('node', 'a', value, input_id='base-node:a')
+                with closing(sqlite3.connect(path)) as db:
+                    self.assertIsNone(db.execute('SELECT * FROM processing_publication').fetchone())
 
 
 if __name__=='__main__': unittest.main()

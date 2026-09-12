@@ -252,7 +252,7 @@
       "family": "normalization_processing_dependencies",
       "validation_lane": "standalone_access",
       "owner_surface": "access/src/tos_access/processing.py",
-      "protects": "dependency-output reuse, failed-run resume, cycle and identity rejection, guarded execution-index publication and scoped processor invalidation",
+      "protects": "dependency-output reuse, exact terminal-carrier producer lineage, failed-run resume, cycle and identity rejection, guarded execution-index publication and scoped processor invalidation",
       "coverage_authority": "access/AGENTS.md standalone access validation",
       "mode": "blocking",
       "runtime_cost": "fast",

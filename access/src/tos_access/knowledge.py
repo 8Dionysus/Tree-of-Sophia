@@ -3594,7 +3594,8 @@ def _attach_readable_context(item, compiler, kind):
     cache = active_cache.get()
     if cache:
         return cache.memo('readable-' + kind, item['id'], [
-            Input('context-carrier:' + kind + ':' + item['id'], item),
+            cache.carrier_dependency('final-node' if kind == 'node' else 'relation', item['id'], item,
+                                     input_id='context-carrier:' + kind + ':' + item['id']),
             Input('context-presentation', compiler.dependency),
         ], compute)
     return compute()
@@ -3605,7 +3606,7 @@ def _finalize_knowledge_node(node, claim_update, inherited_views, claim_contexts
     if cache:
         identifier = node['id']
         return cache.memo('final-node', identifier, [
-            Input('base-node:' + identifier, node),
+            cache.carrier_dependency('node', identifier, node, input_id='base-node:' + identifier),
             Input('claim-finalization:' + identifier, claim_update),
             Input('inherited-views:' + identifier, inherited_views),
             Input('literal-claim-contexts:' + identifier, claim_contexts),

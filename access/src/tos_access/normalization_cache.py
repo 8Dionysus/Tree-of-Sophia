@@ -12,7 +12,7 @@ import ast
 import sys
 from contextvars import ContextVar
 from pathlib import Path
-from .processing import Input, Task, ProcessingScheduler, DEFAULT_CACHE_BYTES, DEFAULT_CACHE_ENTRIES
+from .processing import Input, Task, ProcessingScheduler, DEFAULT_CACHE_BYTES, DEFAULT_CACHE_ENTRIES, digest
 
 active_cache: ContextVar['NormalizationCache | None'] = ContextVar('tos_normalization_cache', default=None)
 
@@ -119,6 +119,32 @@ class NormalizationCache:
             return Input('endpoint-title:' + identifier, value)
         return Task('endpoint-title:' + identifier, self.processor_digest, (parent,), None,
                     lambda values: values[0].get('display', {}).get('title'))
+
+    def carrier_dependency(self, stage, identifier, value, *, input_id):
+        """Bind a carrier to its exact completed producer, never a latest task.
+
+        Standalone helper inputs have no producer in this run and remain
+        explicit Inputs. An existing producer must match the supplied value;
+        silently falling back would hide missing or stale intermediate work.
+        Reuse the scheduler's retained references, without retaining row copies.
+        """
+        task_id = f'{stage}:{identifier}'
+        task = self.scheduler.definitions.get(task_id)
+        if task is None:
+            return Input(input_id, value)
+        result = self.scheduler.results.get(task_id)
+        if not isinstance(task, Task) or result is None:
+            self.scheduler.failed = True
+            raise ValueError('carrier producer is not a completed task: ' + task_id)
+        try:
+            matches = digest(value) == result[1]
+        except Exception:
+            self.scheduler.failed = True
+            raise
+        if not matches:
+            self.scheduler.failed = True
+            raise ValueError('carrier differs from its completed producer: ' + task_id)
+        return task
 
     def memo(self, kind, identifier, dependencies, compute):
         """Cache one finalization/check without hiding its complete dependencies."""
