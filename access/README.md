@@ -716,6 +716,9 @@ semantic facts. Backend construction support is not completed corpus annotation.
 Offline processing reports added/changed/removed input IDs and per-kind work.
 `tos_access.processing.processing_input_changes` reads ID-ordered pages with
 before/after digests from the cache DB; incomplete scans never imply removal.
+An exact completed run also supports [bounded reverse dependency navigation](PROCESSING_DEPENDENCIES.md)
+through `processing_dependency_closure`. Its read-only result describes the
+retained DAG, not complete source impact or permission for partial publication.
 The disposable cache has output byte/count limits, integrity checks, exclusive
 builder ownership and bounded run history. See the
 [retention boundary](deploy/cloudflare-worker/README.md#incremental-checks-and-cache-retention).
