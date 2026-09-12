@@ -10,6 +10,7 @@ import {executeNativeLensD1} from './native-lens-store.ts';
 import {inspectNativeD1} from './native-inspection-store.ts';
 import {parseNativeJson, type NativeRef, type NativeLensResult, type NativePacket} from './native-lens.ts';
 import {compareNativeTemporalD1} from './native-temporal-store.ts';
+import {normalizeTemporalComparisonRequest} from './temporal-comparison.ts';
 
 const KNOWLEDGE_SOURCES = new Set(["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"]);
 const PAGE_SIZE = 2000;
@@ -155,7 +156,8 @@ export async function knowledgeRelationD1(db: D1Database, id: string): Promise<N
 }
 
 export async function knowledgeTemporalCompareD1(db: D1Database, request: unknown): Promise<NativePacket> {
-  return consistentRead(db, snapshot => compareNativeTemporalD1(db,request,snapshot.revision));
+  const normalized = normalizeTemporalComparisonRequest(request);
+  return consistentRead(db, snapshot => compareNativeTemporalD1(db,normalized,snapshot.revision));
 }
 
 type SqlFragment = { sql: string; bindings: unknown[] };

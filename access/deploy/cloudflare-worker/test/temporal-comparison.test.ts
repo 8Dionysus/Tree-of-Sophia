@@ -6,9 +6,27 @@ import { HttpError, type Item } from '../src/common.ts';
 import { KnowledgeRevisionConflict } from '../src/lens-pagination.ts';
 import { compareTemporalOperands, normalizeTemporalComparisonRequest, temporalNodeFromJson, type TemporalRequest } from '../src/temporal-comparison.ts';
 import { lensCarrier, type KnowledgeNode } from '../src/knowledge.ts';
+import {knowledgeTemporalCompareD1} from '../src/knowledge-store.ts';
 
 import {nativePacketJson, type NativePacket} from '../src/native-lens.ts';
 const decoded = (packet: NativePacket): Item => JSON.parse(nativePacketJson(packet));
+
+test('invalid temporal requests fail 400 before any forbidden or unavailable D1 access', async () => {
+  const valid = {schema_version:'tos_temporal_comparison_request_v1',source_revision:'a'.repeat(64),
+    left:{node_id:'left',content_revision:'b'.repeat(64)},right:{node_id:'right',content_revision:'c'.repeat(64)}};
+  let accesses = 0;
+  const db = new Proxy({} as D1Database, {get() {
+    accesses++;
+    throw new Error('D1 access forbidden by this request-validation test');
+  }});
+  for (const request of [null, [], {}, {...valid,extra:true},
+    {...valid,source_revision:'invalid'}, {...valid,left:{...valid.left,node_id:' x'}},
+    {...valid,right:{...valid.right,content_revision:'invalid'}}]) {
+    await assert.rejects(knowledgeTemporalCompareD1(db,request),
+      (error: unknown) => error instanceof HttpError && error.status === 400);
+  }
+  assert.equal(accesses,0);
+});
 
 type Fixture = { name: string; graph: { source_revision: string; nodes: Item[] };
   raw_nodes: string[];
