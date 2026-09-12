@@ -235,14 +235,37 @@ delta budgets do not change the caller's transaction or page cap. An admitted
 budget is still checked against actual writes, with the same rollback duty.
 
 A full cohort accumulates term/document memberships across every carrier;
-even an existing term needs a block write, reverse-membership insertion and
-posting-count update. The delta ceiling is therefore not a portable full-corpus
-size limit. A larger bootstrap budget changes neither stored wire format nor
+each membership needs a reverse-membership insertion and posting-count update,
+and each dirty block eventually needs a block write. The delta ceiling is
+therefore not a portable full-corpus size limit. A larger bootstrap budget
+changes neither stored wire format nor
 query, row, term, block, chunk or database-page limits. Prepared publication
 also enforces its whole-publication mutation cap, including carrier writes;
 the offline bootstrap receipt records the selected `PublicationLimits`.
 Tiny-document tests of a larger admitted budget prove admission and rollback,
 not full-corpus scalability, latency, disk capacity or memory feasibility.
+
+Initial publication coalesces repeated writes to a bounded cache of posting
+blocks. At most 8192 entries and 32 MiB of accounted retained payload are kept;
+entry overhead and the current bounded insertion/sort/split workspace are not
+an RSS measurement. Oversized entries bypass retention. Each term retains at
+most one range, with explicit lower/upper fences. Eviction and range changes
+flush dirty data; overflowing blocks use the same 128/129 split and publish
+both directory ranges immediately inside the still-uncommitted transaction.
+The final flush precedes `search_header`. Flush writes count against the same
+mutation limit, and failure still requires whole-transaction rollback.
+
+On a monotonic insertion into a retained range, no block read/decode, complete
+key reload/sort, or per-membership payload rewrite is needed. Nonmonotonic keys
+use the original exact ordering; no pre-sorted corpus, locale sort, source-order
+reinterpretation, unbounded cohort map, external sort, or temporary full index
+is assumed. Dictionary lookup, reverse membership and term-count writes remain
+per membership. Delta operations keep the original unbuffered writer. Storage
+version, fence contents/splits, query semantics and cursor ABI are unchanged.
+`test_compressed_search_bootstrap.py` compares complete logical tables (except
+fresh random cursor secrets), paged results, flush failures and write counters
+against that original writer. Its synthetic reduction in block rewrites is
+not a full-corpus timing or storage claim.
 
 Initial limits: 8 MiB per searchable/value stream, 32 MiB aggregate prepared
 text, 8192 rank values, 200000 distinct terms per document and 1900000 bytes of

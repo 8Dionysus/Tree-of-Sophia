@@ -15,6 +15,8 @@ from pathlib import Path
 import sqlite3
 import time
 import unicodedata
+from array import array
+from collections import OrderedDict
 from dataclasses import dataclass
 from functools import wraps
 from typing import Any, Iterable
@@ -380,6 +382,123 @@ class _Writer:
         return {"mutations": self.mutations, "blocks_written": self.blocks_written, "payload_bytes_written": self.payload_bytes_written}
 
 
+@dataclass(slots=True)
+class _BootstrapBlock:
+    term: int
+    fence: bytes
+    upper: bytes | None
+    addresses: array
+    last_key: bytes | None
+    dirty: bool = False
+
+    def retained_bytes(self) -> int:
+        # Payload accounting, not an RSS claim. Entry count separately bounds
+        # Python/container overhead. Working storage additionally includes a
+        # <=257-address insertion/sort and its two bounded split halves.
+        return (256 + len(self.fence) + len(self.upper or b"")
+                + len(self.last_key or b"") + len(self.addresses) * 8)
+
+
+class _BootstrapWriter(_Writer):
+    """Bounded dirty-block coalescing for an initially empty search store.
+
+    Keep the exact existing fence/split algorithm, including arbitrary source
+    order. A cached range is usable only within its known upper/lower fences.
+    Splits are written immediately; dirty entries flush on eviction and before
+    the publication header. No caller transaction is committed or rolled back.
+    Delta mutation continues to use the unbuffered writer above.
+    """
+    def __init__(self, connection, max_mutations, *, max_cached_blocks=8192,
+                 max_cached_bytes=32 * 1024 * 1024):
+        super().__init__(connection, max_mutations, mode="bootstrap")
+        self.max_cached_blocks = _integer(max_cached_blocks, "bootstrap cache entries", 1, 8192)
+        self.max_cached_bytes = _integer(max_cached_bytes, "bootstrap cache bytes", 1, 32 * 1024 * 1024)
+        self.cache = OrderedDict()
+        self.cached_bytes = 0
+        self.peak_cached_bytes = self.peak_cached_blocks = 0
+        self.cache_hits = self.cache_misses = 0
+
+    def _flush_block(self, block):
+        if block.dirty:
+            self.block(block.term, block.fence, block.addresses)
+            block.dirty = False
+
+    def _take(self, term, key):
+        block = self.cache.pop(term, None)
+        if block is not None:
+            self.cached_bytes -= block.retained_bytes()
+            if block.fence <= key and (block.upper is None or key < block.upper):
+                self.cache_hits += 1
+                return block
+            # Directory reads below must see the displaced dirty range.
+            self._flush_block(block)
+        self.cache_misses += 1
+        found = self.db.execute(
+            "SELECT lower_fence,payload FROM search_blocks WHERE term_id=? AND lower_fence<=? ORDER BY lower_fence DESC LIMIT 1",
+            (term, key)).fetchone()
+        fence, addresses = (found[0], decode_postings(found[1])) if found is not None else (b"", [])
+        upper = self.db.execute(
+            "SELECT lower_fence FROM search_blocks WHERE term_id=? AND lower_fence>? ORDER BY lower_fence LIMIT 1",
+            (term, fence)).fetchone()
+        last_key = self.keys([addresses[-1]])[addresses[-1]] if addresses else None
+        return _BootstrapBlock(term, fence, upper[0] if upper is not None else None,
+                               array("Q", addresses), last_key)
+
+    def _retain(self, block):
+        size = block.retained_bytes()
+        if size > self.max_cached_bytes:
+            self._flush_block(block)
+            return
+        while self.cache and (len(self.cache) >= self.max_cached_blocks
+                              or self.cached_bytes + size > self.max_cached_bytes):
+            _, previous = self.cache.popitem(last=False)
+            self.cached_bytes -= previous.retained_bytes()
+            self._flush_block(previous)
+        self.cache[block.term] = block
+        self.cached_bytes += size
+        self.peak_cached_bytes = max(self.peak_cached_bytes, self.cached_bytes)
+        self.peak_cached_blocks = max(self.peak_cached_blocks, len(self.cache))
+
+    def membership(self, term, doc_id, key, *, insert):
+        if not insert:
+            raise ValueError("bootstrap buffer accepts insertions only")
+        # The reverse PK rejects duplicate membership without a per-insertion
+        # scan of an entire 256-address block. Failure still requires rollback.
+        self.write("INSERT INTO search_document_terms VALUES (?,?)", (doc_id, term))
+        block = self._take(term, key)
+        block.addresses.append(doc_id)
+        keys = None
+        if block.last_key is None or block.last_key < key:
+            block.last_key = key
+        else:
+            # No monotonic-input assumption: case ties, Unicode and explicitly
+            # nonmonotonic source/address orders follow the original keys.
+            keys = self.keys(list(block.addresses))
+            block.addresses = array("Q", sorted(block.addresses, key=keys.__getitem__))
+            block.last_key = keys[block.addresses[-1]]
+        block.dirty = True
+        if len(block.addresses) > BLOCK_SIZE:
+            middle = len(block.addresses) // 2
+            if keys is None:
+                keys = self.keys([block.addresses[middle], block.addresses[middle - 1]])
+            pivot = keys[block.addresses[middle]]
+            left = _BootstrapBlock(term, block.fence, pivot, block.addresses[:middle],
+                                   keys[block.addresses[middle - 1]], True)
+            right = _BootstrapBlock(term, pivot, block.upper, block.addresses[middle:],
+                                    block.last_key, True)
+            self._flush_block(left)
+            self._flush_block(right)
+            block = right if key >= pivot else left
+        self._retain(block)
+        self.write("UPDATE search_terms SET posting_count=posting_count+1 WHERE term_id=?", (term,))
+
+    def flush(self):
+        while self.cache:
+            _, block = self.cache.popitem(last=False)
+            self.cached_bytes -= block.retained_bytes()
+            self._flush_block(block)
+
+
 class SearchStore:
     """Snapshot-selected reader and offline atomic publisher.
 
@@ -442,7 +561,7 @@ class SearchStore:
         _require_transaction(connection)
         header = cls._header(binding)
         _integer(max_bytes, "max_bytes", 65536, 2**40)
-        writer = _Writer(connection, max_mutations, mode="bootstrap")
+        writer = _BootstrapWriter(connection, max_mutations)
         page_size = connection.execute("PRAGMA page_size").fetchone()[0]
         max_pages = _page_cap(connection, max_bytes // page_size)
         # executescript commits a pending transaction, even for plain DDL.
@@ -453,6 +572,7 @@ class SearchStore:
         for document in documents:
             writer.replace(document, insert=True)
             high_water = max(high_water, document.doc_id)
+        writer.flush()
         writer.write("INSERT INTO search_header VALUES (1,?,?,?,?)", (header, os.urandom(32), high_water, max_pages))
         result = writer.report()
         result["database_bytes"] = connection.execute("PRAGMA page_count").fetchone()[0] * page_size

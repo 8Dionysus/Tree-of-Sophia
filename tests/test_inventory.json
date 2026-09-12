@@ -123,6 +123,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_compressed_search_bootstrap.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/compressed_search_store.py",
+      "protects": "bounded initial posting coalescing preserves exact original fences, source ordering, paged results, final flush and mutation rollback while leaving delta execution unchanged",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_compressed_search_bootstrap.py",
+      "failure_route": "Fix the bootstrap cache or refuse publication without widening query semantics, source identity, memory budgets or transaction authority.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_projection_mutation.py",
       "home": "access",
       "home_scope": "product-local",
