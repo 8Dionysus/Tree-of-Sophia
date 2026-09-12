@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import urlsplit
@@ -750,12 +751,28 @@ def _literal_node(value: Any, claim: dict[str, Any], entry: dict[str, Any]) -> d
     }
 
 
-def _identity_node(entry: dict[str, Any]) -> dict[str, Any]:
-    source_record = (
-        dict(entry["_source_record"])
-        if isinstance(entry.get("_source_record"), dict)
-        else {}
-    )
+@dataclass(frozen=True)
+class BibliographicIdentityInput:
+    """Caller-supplied catalog/source binding, not a verification receipt.
+
+    The full loader verifies these inputs. Addressed callers must independently
+    retain equivalent source/profile/catalog/form checks. This renderer cannot
+    discover or verify incident claims, assessment, or publication currentness.
+    """
+
+    entry: dict[str, Any]
+    source_record: dict[str, Any]
+    human_forms: list[dict[str, Any]] | None = None
+    human_forms_source_ref: str | None = None
+
+
+def project_bibliographic_identity(inputs: BibliographicIdentityInput) -> dict[str, Any]:
+    """Render one identity with the full builder's exact field precedence.
+
+    Inputs are borrowed read-only; output is not an immutable snapshot and is
+    not a complete incident projection or a source-verification receipt.
+    """
+    entry, source_record = inputs.entry, dict(inputs.source_record)
     return {
         "node_id": _node_id("identity", str(entry["record_id"])),
         "node_kind": "identity",
@@ -763,9 +780,9 @@ def _identity_node(entry: dict[str, Any]) -> dict[str, Any]:
         "source_sha256": entry["record_sha256"],
         "properties": {
             **source_record,
-            **({'human_forms': entry['_human_forms'],
-                'human_forms_source_ref': entry['_human_forms_source_ref']}
-               if '_human_forms' in entry else {}),
+            **({'human_forms': inputs.human_forms,
+                'human_forms_source_ref': inputs.human_forms_source_ref}
+               if inputs.human_forms is not None else {}),
             "identity_ref": entry["record_id"],
             "identity_kind": entry["record_type"],
             "preferred_label": entry["preferred_label"],
@@ -777,6 +794,14 @@ def _identity_node(entry: dict[str, Any]) -> dict[str, Any]:
             "source_record": source_record,
         },
     }
+
+
+def _identity_node(entry: dict[str, Any]) -> dict[str, Any]:
+    source_record = entry.get('_source_record')
+    return project_bibliographic_identity(BibliographicIdentityInput(
+        entry, source_record if isinstance(source_record, dict) else {},
+        entry['_human_forms'] if '_human_forms' in entry else None,
+        entry['_human_forms_source_ref'] if '_human_forms' in entry else None))
 
 
 def _provision_identity_edges(

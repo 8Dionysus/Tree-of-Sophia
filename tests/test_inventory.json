@@ -1032,7 +1032,7 @@
       "family": "validator_behavior",
       "validation_lane": "source_witness_foundation",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SELECTED_METADATA_TRANSACTIONS.md",
-      "protects": "whole-operation publication guards across exact metadata/Claim readers, catalog and graph/corpus builders; pending-before-read, commit/rollback ABA, negative-result currentness, missing manifest/new subject, manifest-last file hashes and catalog-only TOCTOU; synthetic transport is not source acceptance",
+      "protects": "whole-operation publication guards across exact metadata/Claim readers, catalog and graph/corpus builders; pending-before-read, commit/rollback ABA, negative-result currentness, missing manifest/new subject, manifest-last file hashes and catalog-only TOCTOU; shared per-record/full-builder native correction parity, exact current/historical record versions, lossless fields/forms/links and explicit unverified incident closure; synthetic transport is not source acceptance",
       "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
       "mode": "blocking",
       "runtime_cost": "fast",

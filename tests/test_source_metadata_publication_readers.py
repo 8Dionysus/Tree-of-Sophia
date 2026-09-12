@@ -54,8 +54,11 @@ class PublicationReaderTests(unittest.TestCase):
         self.write(self.agent_ref, encoded(self.agent))
         self.write(self.claim_ref, encoded(self.claim))
         self.write(self.observation_ref, encoded({'synthetic_epoch': 0}))
-        schema = 'ToS/contracts/corpus-record.schema.json'
-        self.write(schema, (ROOT / schema).read_bytes())
+        # Exact metadata identity resolution also binds the declared registry
+        # and its schema; absent dependencies are not a publication result.
+        for ref in ('ToS/contracts/corpus-record.schema.json', metadata_reader.REGISTRY_REF,
+                    metadata_reader.CONTRACT_REF):
+            self.write(ref, (ROOT / ref).read_bytes())
         self.authority = {'command_id': 'test:publication-readers',
                           'authority_ref': 'test:synthetic-owner-only'}
         self.sequence = 0
@@ -428,6 +431,135 @@ class PublicationReaderTests(unittest.TestCase):
         self.rollback(identity)
         with source._locked(target):
             self.assertEqual(publication.read_publication_state(self.root)['phase'], 'ready')
+
+
+class RecordProjectorTests(unittest.TestCase):
+    def test_native_revision_projectors_equal_full_builders_and_preserve_exact_history(self):
+        """Tiny real source revision; no imported corpus or assessed admission."""
+        from source_witness_human_forms import load_metadata_forms
+        sys.path.insert(0, str(ROOT / 'mechanics/growth-cycle/tests'))
+        from test_source_revisions import NativeSourceRevisionTests
+        fixture = NativeSourceRevisionTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        root = fixture.root
+        # Reuse the real full graph schema and navigation grammar, not a mock
+        # projector or a second copy of its expected rendering logic.
+        for ref in (graph.CLAIM_REGISTRY_REF, graph.CLAIM_CONTRACT_REF, graph.SCHEMA_REF):
+            path = root / ref
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes((ROOT / ref).read_bytes())
+        fixture.config['allowed_fields'].append('preferred_label')
+        fixture.owner.write_bytes(encoded(fixture.config))
+
+        def assemble():
+            catalog.write_outputs(root, catalog.render_outputs(root))
+            entry = json.loads((root / catalog.CATALOG_ROOT / 'agents.jsonl').read_bytes())
+            record = json.loads(fixture.path.read_bytes())
+            forms = load_metadata_forms(root, fixture.relative, record, access_allowed=True)
+            versions = metadata_reader.MetadataVersionReader(root)
+            history = versions.exact_refs(record['record_id'])
+            resolved = tuple((ref, versions.resolve(ref)) for ref in history['refs'])
+            inputs = corpus.SourceNavigationRecordInput('agent', entry, record, forms, history, resolved)
+            before_inputs = copy.deepcopy(inputs)
+            # Pure selected renderers cannot discover or reopen owner inputs.
+            with patch.object(Path, 'open', side_effect=AssertionError('projector performed I/O')):
+                selected = corpus.project_source_navigation_record(inputs)
+                identity = graph.project_bibliographic_identity(graph.BibliographicIdentityInput(
+                    entry, record, forms[2], forms[0]))
+            self.assertEqual(inputs, before_inputs)
+            self.assertFalse(selected.incident_closure_verified)
+            self.assertFalse(selected.source_verification_performed)
+            with (patch.object(corpus, 'REPO_ROOT', root), patch.object(corpus, 'TOS_ROOT', root / 'ToS')):
+                diagnostics = []
+                full = corpus.build_source_navigation(diagnostics)
+            self.assertEqual(full['nodes'], sorted(selected.nodes, key=lambda row: row['node_id']))
+            self.assertEqual(full['edges'], sorted(selected.edges, key=lambda row: row['edge_id']))
+            self.assertEqual(diagnostics, list(selected.diagnostics))
+            self.assertEqual(graph.build_payload(root)['nodes'], [identity])
+            self.assertEqual(identity['properties']['source_record'], record)
+            self.assertEqual(selected.nodes[0]['properties']['source_record'], record)
+            self.assertEqual(identity['properties']['human_forms'], selected.nodes[0]['properties']['human_forms'])
+            return selected
+
+        before = assemble()
+        request = fixture.request(command_id='test:projector-native-revision')
+        request['fields']['preferred_label'] = 'Новое имя только синтетической записи'
+        source.run_local_command(fixture.owner, request)
+        after = assemble()
+        self.assertEqual(len(before.nodes), 2)
+        self.assertEqual(len(after.nodes), 3)
+        self.assertEqual(len(before.edges), 1)
+        self.assertEqual(len(after.edges), 2)
+        self.assertEqual(before.nodes[0]['node_id'], after.nodes[0]['node_id'])
+        self.assertNotEqual(before.nodes[0]['label'], after.nodes[0]['label'])
+        before_view = before.nodes[1]['properties']['record_version_view']
+        old_view = after.nodes[1]['properties']['record_version_view']
+        current_view = after.nodes[2]['properties']['record_version_view']
+        self.assertEqual(before.nodes[1]['node_id'], after.nodes[1]['node_id'])
+        self.assertEqual(before_view['record'], old_view['record'])
+        self.assertEqual(before_view['version_status'], 'current')
+        self.assertEqual(old_view['version_status'], 'historical')
+        self.assertEqual(current_view['version_status'], 'current')
+        self.assertTrue(old_view['provenance']['source']['archive_blob_ref'])
+        self.assertIsNone(current_view['provenance']['source']['archive_blob_ref'])
+        for view in (before_view, old_view, current_view):
+            self.assertFalse(view['grants_current_use'])
+            self.assertFalse(view['performs_assessment'])
+            self.assertEqual(view['record']['external_identifiers'], fixture.record['external_identifiers'])
+        self.assertEqual(old_view['record']['field_languages'], fixture.record['field_languages'])
+
+    def test_record_projector_preserves_links_unknown_fields_and_unavailable_history(self):
+        record = {'record_id': 'tos.agent.synthetic', 'record_type': 'agent',
+            'preferred_label': 'Body label', 'notes': '  Keep description  ',
+            'unknown': [None, False, 0, '', {'nested': True}], 'variant_labels': [],
+            'external_identifiers': [], 'source_refs': ['test:synthetic'], 'description': 'body description'}
+        entry = {'record_id': record['record_id'], 'source_record_ref': 'test:agent',
+            'record_type': 'agent', 'preferred_label': 'Catalog label', 'identity_status': 'provisional',
+            'record_sha256': 'a' * 64, 'links': {'unknown_link': [None, 'test:target'], 'description': 'link description'}}
+        history = {'status': 'stale', 'reason': 'test-unavailable', 'refs': [], 'current_ref': None}
+        inputs = corpus.SourceNavigationRecordInput('agent', entry, record, history=history)
+        original = copy.deepcopy(inputs)
+        result = corpus.project_source_navigation_record(inputs)
+        self.assertEqual(inputs, original)
+        self.assertEqual(result.nodes[0]['properties']['source_record'], record)
+        self.assertEqual(result.nodes[0]['properties']['unknown'], record['unknown'])
+        self.assertEqual(result.nodes[0]['properties']['unknown_link'], entry['links']['unknown_link'])
+        self.assertEqual(result.nodes[0]['properties']['description'], 'Keep description')
+        self.assertEqual(result.nodes[0]['label'], 'Catalog label')
+        self.assertEqual(result.edges, ())
+        self.assertEqual(result.diagnostics[0]['message'], 'exact metadata history unavailable: stale/test-unavailable')
+        with self.assertRaisesRegex(ValueError, 'exact ordered history'):
+            corpus.project_source_navigation_record(corpus.SourceNavigationRecordInput(
+                'agent', entry, record, history={**history, 'refs': [{'id': record['record_id']}]}, versions=()))
+
+    def test_exact_claim_version_renderer_keeps_line_locator_and_unavailable_boundary(self):
+        reference = {'id': 'tos.claim.synthetic', 'version': 1, 'digest': 'sha256:' + 'a' * 64}
+        record = {'claim_id': reference['id'], 'claim_version': 1,
+                  'qualifiers': {'uninterpreted': [None, False, '', 0]}}
+        provenance = {'source': {'source_ref': 'test:current-claims', 'archive_blob_ref': 'test:archive', 'line': 7},
+                      'unknown': {'flag': False}}
+        resolved = {'status': 'available', 'reason': 'test-historical', 'version_status': 'historical',
+                    'record': record, 'provenance': provenance}
+        node = corpus.project_record_version(reference, resolved, 'claim')
+        view = node['properties']['record_version_view']
+        self.assertEqual(node['source_ref'], 'test:archive#L7')
+        self.assertEqual(view['record'], record)
+        self.assertEqual(view['provenance'], provenance)
+        self.assertFalse(view['grants_current_use'])
+        self.assertFalse(view['performs_assessment'])
+        current = copy.deepcopy(resolved)
+        current['provenance']['source']['archive_blob_ref'] = None
+        self.assertEqual(corpus.project_record_version(reference, current, 'claim')['source_ref'],
+                         'test:current-claims#L7')
+        unavailable = {**resolved, 'status': 'missing', 'reason': 'test-missing',
+                       'record': None, 'version_status': None}
+        missing = corpus.project_record_version(reference, unavailable, 'claim')
+        self.assertEqual(missing['node_id'], node['node_id'])
+        self.assertEqual(missing['source_ref'],
+                         'ToS/contracts/record-version-view.schema.json#/properties/record_ref')
+        self.assertEqual(missing['properties']['record_version_view']['provenance'], {})
+        self.assertIsNone(missing['properties']['record_version_view']['record'])
 
 
 if __name__ == '__main__':

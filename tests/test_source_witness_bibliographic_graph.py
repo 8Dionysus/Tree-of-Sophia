@@ -2721,11 +2721,17 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 'fields': {'qualifiers': {**original['qualifiers'],
                     'statement': 'CURRENT VERSION TWO MUST NOT REPLACE THE SIGN BASIS',
                     'statement_language': 'en', 'statement_script': 'Latn'}},
-                'forms': [], 'reason': 'Synthetic correction only.', 'expected_source': reference,
+                'forms': [{'form_id': 'tos.form.synthetic-sign-basis-statement', 'field_id': 'claim.statement'}],
+                'reason': 'Synthetic correction only.', 'expected_source': reference,
                 'expected_revision': revision, 'expected_configuration': 'sha256:' + '0' * 64,
                 'expected_dependencies': 'sha256:' + '1' * 64, 'expected_inputs': {}}
             current = revisions._advance(original, request['fields'])
             SourceClaimProfiles(root).validate(current)
+            # Retained revision history must carry the real producer's exact
+            # source-copy form result; an empty synthetic receipt is invalid.
+            changes = [commands.prepare_claim_change(current, None, 'test:synthetic', **selection)
+                       for selection in request['forms']]
+            formset = commands._apply(None, revisions._subject(current), changes)
             archive = packages._archive(root, {'source_root': str(root), 'source_path': relative,
                 'record_id': original['claim_id']}, files, revisions._subject(original), revision,
                 reader=revisions._read_archive)
@@ -2735,8 +2741,11 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 'reason': request['reason'], 'previous_source': reference, 'source': revisions._subject(current).ref,
                 'previous_revision': revision, 'archive_path': archive.as_posix(),
                 'dependencies': request['expected_dependencies'], 'source_bindings': request['expected_inputs'],
-                'changed_fields': sorted(request['fields']), 'forms': [], 'grants_admission': False, 'request': request}
+                'changed_fields': sorted(request['fields']),
+                'forms': [commands._form_ref(change['form']) for change in changes],
+                'grants_admission': False, 'request': request}
             claim_path.write_bytes(revisions._replace(files[claim_path.name], current))
+            commands.claim_forms_path(claim_path, current['claim_id']).write_bytes(packages._encode(formset))
             claim_path.with_name(revisions.HISTORY).write_bytes(packages._encode({
                 'schema_version': 'tos_claim_revision_history_v1', 'source_path': relative, 'receipts': [receipt]}))
             projection = rebuild()

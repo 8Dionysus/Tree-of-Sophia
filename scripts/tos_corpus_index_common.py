@@ -7,6 +7,7 @@ import csv
 import hashlib
 import io
 import json
+from dataclasses import dataclass
 from pathlib import Path
 import subprocess
 from typing import Any
@@ -661,6 +662,121 @@ def _nearest_branch_parents(branch_paths: list[str]) -> dict[str, str]:
     return parents
 
 
+@dataclass(frozen=True)
+class SourceNavigationRecordInput:
+    """Caller-supplied owner inputs, not a source-verification receipt.
+
+    The full loader verifies its inputs before rendering. Addressed callers
+    must independently retain those checks; this type does not perform them.
+    Forms are the owner's materialized (source_ref, raw, packets) tuple.
+    History resolutions must cover exactly history.refs in its original order.
+    The caller owns source/schema/catalog binding and complete external
+    incidence, including claims, plantings and assessment dependencies.
+    """
+
+    record_type: str
+    entry: dict[str, Any]
+    source_record: dict[str, Any]
+    forms: tuple[str, bytes, list[dict[str, Any]]] | None = None
+    history: dict[str, Any] | None = None
+    versions: tuple[tuple[dict[str, Any], dict[str, Any]], ...] = ()
+    native_composite: bool = False
+
+
+@dataclass(frozen=True)
+class SourceNavigationRecordProjection:
+    nodes: tuple[dict[str, Any], ...]
+    edges: tuple[dict[str, Any], ...]
+    diagnostics: tuple[dict[str, str], ...]
+
+    @property
+    def incident_closure_verified(self) -> bool:
+        return False
+
+    @property
+    def source_verification_performed(self) -> bool:
+        return False
+
+
+def project_record_version(reference: dict[str, Any], resolved: dict[str, Any],
+                           record_kind: str) -> dict[str, Any]:
+    """Render one exact resolved version, without resolving or assessing it."""
+    available = resolved['status'] == 'available'
+    view = {'schema_version': 'tos_record_version_view_v1',
+        'record_ref': dict(reference), 'record_kind': record_kind,
+        'status': resolved['status'], 'reason': resolved['reason'],
+        'version_status': resolved['version_status'], 'record': resolved['record'],
+        'provenance': resolved['provenance'] if available else {},
+        'grants_current_use': False, 'performs_assessment': False}
+    version_id = 'record-version:' + hashlib.sha256(canonical_json(reference).encode('utf-8')).hexdigest()
+    version_ref = 'ToS/contracts/record-version-view.schema.json#/properties/record_ref'
+    if available:
+        locator = resolved['provenance']['source']
+        version_ref = locator['archive_blob_ref'] or locator['source_ref']
+        if record_kind == 'claim':
+            version_ref += '#L' + str(locator['line'])
+    return {'node_id': version_id, 'node_kind': 'record-version',
+        'label': 'Exact record version', 'source_ref': version_ref,
+        'identity_status': 'not_applicable', 'properties': {'record_version_view': view}}
+
+
+def project_source_navigation_record(inputs: SourceNavigationRecordInput) -> SourceNavigationRecordProjection:
+    """Shared full/addressed renderer for a record and its exact history only.
+
+    This performs no I/O and does not validate source admission or discover
+    dependencies. In particular Sign promotion-basis and external incident
+    edges remain the caller's responsibility. Input dictionaries are borrowed
+    read-only, as in the full builder; this is not an immutable snapshot API.
+    """
+    record_type, entry, source_record = inputs.record_type, inputs.entry, inputs.source_record
+    record_id = str(entry.get('record_id') or '')
+    source_ref = str(entry.get('source_record_ref') or '')
+    history = inputs.history
+    if [reference for reference, _ in inputs.versions] != ([] if history is None else history['refs']):
+        raise ValueError('record projector requires the exact ordered history resolution set')
+    properties = dict(source_record)
+    properties['source_record'] = dict(source_record)
+    if record_type == 'artifact':
+        properties.update(artifact_display_fields(source_record))
+    if inputs.native_composite:
+        properties.update(composite_display_fields(source_record))
+    if inputs.forms is not None:
+        forms_ref, _forms_raw, materialized = inputs.forms
+        properties.update(human_forms=materialized, human_forms_source_ref=forms_ref,
+                          source_sha256=entry['record_sha256'])
+    properties.update(dict(entry.get('links') or {}))
+    variant_labels = source_record.get('variant_labels')
+    if isinstance(variant_labels, list):
+        properties['variant_labels'] = variant_labels
+    notes = source_record.get('notes')
+    if isinstance(notes, str) and notes.strip():
+        properties['description'] = notes.strip()
+    external_identifiers = source_record.get('external_identifiers')
+    if isinstance(external_identifiers, list):
+        properties['external_identifiers'] = external_identifiers
+    if record_type == 'link':
+        properties.update({key: source_record.get(key) for key in (
+            'uri', 'link_kind', 'provider_label', 'interface_type', 'access_status',
+            'observed_at', 'observation_ref', 'mutable', 'provenance_event_ref')})
+    if history is not None:
+        properties['record_history'] = {'schema_version': 'tos_metadata_record_history_v1', **history}
+    nodes = [{'node_id': record_id, 'node_kind': str(record_type),
+        'label': str(entry.get('preferred_label') or record_id), 'source_ref': source_ref,
+        'identity_status': str(entry.get('identity_status') or 'unknown'), 'properties': properties}]
+    edges, diagnostics = [], []
+    for reference, resolved in inputs.versions:
+        node = project_record_version(reference, resolved, 'metadata')
+        nodes.append(node)
+        edges.append({'edge_id': 'source-navigation:record-history:' + node['node_id'],
+            'from_id': record_id, 'predicate_id': 'has_record_version', 'to_id': node['node_id'],
+            'edge_kind': 'exact_historical_record_reference', 'review_status': 'not_applicable',
+            'source_refs': sorted(set((source_ref, node['source_ref'])))})
+    if history is not None and history['status'] != 'available':
+        diagnostics.append({'level': 'warning', 'path': source_ref,
+            'message': 'exact metadata history unavailable: ' + history['status'] + '/' + history['reason']})
+    return SourceNavigationRecordProjection(tuple(nodes), tuple(edges), tuple(diagnostics))
+
+
 def build_source_navigation(diagnostics: list[dict[str, str]], *,
                             assessed_forms: AssessedFormSnapshot | None = None) -> dict[str, Any]:
     snapshot = PublicationSnapshot(REPO_ROOT)
@@ -744,23 +860,9 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication):
         edges[edge_id] = candidate
 
     def add_version_node(reference: dict[str, Any], resolved: dict[str, Any], record_kind: str) -> tuple[str, str]:
-        available = resolved['status'] == 'available'
-        view = {'schema_version': 'tos_record_version_view_v1',
-            'record_ref': dict(reference), 'record_kind': record_kind,
-            'status': resolved['status'], 'reason': resolved['reason'],
-            'version_status': resolved['version_status'], 'record': resolved['record'],
-            'provenance': resolved['provenance'] if available else {},
-            'grants_current_use': False, 'performs_assessment': False}
-        version_id = 'record-version:' + hashlib.sha256(canonical_json(reference).encode('utf-8')).hexdigest()
-        version_ref = 'ToS/contracts/record-version-view.schema.json#/properties/record_ref'
-        if available:
-            locator = resolved['provenance']['source']
-            version_ref = locator['archive_blob_ref'] or locator['source_ref']
-            if record_kind == 'claim':
-                version_ref += '#L' + str(locator['line'])
-        add_node(version_id, 'record-version', 'Exact record version', version_ref,
-                 'not_applicable', {'record_version_view': view})
-        return version_id, version_ref
+        node = project_record_version(reference, resolved, record_kind)
+        add_node(**node)
+        return node['node_id'], node['source_ref']
 
     branch_by_path: dict[str, dict[str, Any]] = {}
     for manifest_path in sorted((TOS_ROOT / "philosophy" / "eras").rglob("branch.manifest.json")):
@@ -851,67 +953,21 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication):
                         raise ValueError(f'{source_ref}: native metadata catalog/source identity drifted')
                     if hashlib.sha256(canonical_json(source_record).encode('utf-8')).hexdigest() != entry.get('record_sha256'):
                         raise ValueError(f'{source_ref}: native metadata catalog/source digest drifted')
-                properties = dict(source_record)
-                properties["source_record"] = dict(source_record)
-                if record_type == 'artifact':
-                    properties.update(artifact_display_fields(source_record))
-                if native_composite:
-                    properties.update(composite_display_fields(source_record))
+                forms = None
                 if record_type in profiles.profiles or native_metadata or record_type in {'artifact', 'link'} or native_composite:
                     forms = load_metadata_forms(REPO_ROOT, source_ref, source_record, access_allowed=True)
-                    if forms is not None:
-                        forms_ref, _forms_raw, materialized = forms
-                        properties.update(human_forms=materialized, human_forms_source_ref=forms_ref,
-                                          source_sha256=entry['record_sha256'])
-                properties.update(dict(entry.get("links") or {}))
-                variant_labels = source_record.get("variant_labels")
-                if isinstance(variant_labels, list):
-                    properties["variant_labels"] = variant_labels
-                notes = source_record.get("notes")
-                if isinstance(notes, str) and notes.strip():
-                    properties["description"] = notes.strip()
-                external_identifiers = source_record.get("external_identifiers")
-                if isinstance(external_identifiers, list):
-                    properties["external_identifiers"] = external_identifiers
-                if record_type == "link":
-                    properties.update(
-                        {
-                            key: source_record.get(key)
-                            for key in (
-                                "uri",
-                                "link_kind",
-                                "provider_label",
-                                "interface_type",
-                                "access_status",
-                                "observed_at",
-                                "observation_ref",
-                                "mutable",
-                                "provenance_event_ref",
-                            )
-                        }
-                    )
                 history = None
                 if metadata_reader.supports(record_type, source_ref=source_ref):
                     history = metadata_reader.exact_refs(record_id)
-                    properties['record_history'] = {'schema_version': 'tos_metadata_record_history_v1', **history}
-                add_node(
-                    record_id,
-                    str(record_type),
-                    str(entry.get("preferred_label") or record_id),
-                    source_ref,
-                    str(entry.get("identity_status") or "unknown"),
-                    properties,
-                )
-                if history is not None:
-                    for reference in history['refs']:
-                        resolved = metadata_reader.resolve(reference)
-                        version_id, version_ref = add_version_node(reference, resolved, 'metadata')
-                        add_edge('source-navigation:record-history:' + version_id, record_id,
-                                 'has_record_version', version_id, 'exact_historical_record_reference',
-                                 [source_ref, version_ref])
-                    if history['status'] != 'available':
-                        diagnostics.append({'level': 'warning', 'path': source_ref,
-                            'message': 'exact metadata history unavailable: ' + history['status'] + '/' + history['reason']})
+                projected = project_source_navigation_record(SourceNavigationRecordInput(
+                    record_type, entry, source_record, forms, history,
+                    tuple((reference, metadata_reader.resolve(reference)) for reference in history['refs'])
+                    if history is not None else (), native_composite))
+                for node in projected.nodes:
+                    add_node(**node)
+                for edge in projected.edges:
+                    add_edge(**edge)
+                diagnostics.extend(projected.diagnostics)
                 if record_type == 'sign':
                     # The immutable issuance reference points to a version,
                     # never to a convenient current Claim with the same ID.
