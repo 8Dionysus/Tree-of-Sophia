@@ -290,6 +290,11 @@ performance or remove the compatibility reader's initial graph construction.
 
 ## Explicit prepared local reader
 
+The [local prepared publisher](LOCAL_PREPARED_PUBLICATION.md) also provides an
+explicit offline, one-file full-row/catalog/lens/compressed-search profile and
+addressed storage deltas. It accepts normalized owner inputs, has its own local
+schema, and installs no public route or edge deployment.
+
 Python callers can opt into the published SQLite read model already emitted by
 the edge producer, using both `ToSAccessCore.discover(...,
 published_read_model_path=..., published_read_model_expected=...)` arguments.
