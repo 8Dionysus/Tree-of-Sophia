@@ -131,3 +131,61 @@ and budgets; it is not an acceptance claim for the entire source corpus.
 Focused checks: `PYTHONPATH=access/src:access/tests python -m unittest
 access/tests/test_prepared_publication.py`. Test ownership lives in
 `tests/test_inventory.json`; standalone access lane remains command authority.
+
+## Measured full-corpus baseline (2026-09-12)
+
+The explicit bulk bootstrap at implementation `c13004a277dca6f32ba3480cff76320df94afd0d`
+and source `7920ed81a54ddc5ac4e34d579f0c477b2e67ba3a` completed with
+42,487 nodes and 62,504 relations. Its SQLite file is 4,120,215,552 bytes;
+source revision is `98577ef4431523f7f809ff29db800958b85c68df092016b85919992883230de2`.
+This is a retained measurement, not current-source or consumer admission.
+All rows have a mapping, but 18,242 reported semantic gaps remain; mapping and
+mechanical validity do not resolve those gaps or accept their contents.
+
+The measured profile explicitly raised the database cap to 4 GiB and reserved
+12 GiB of host headroom. Bootstrap took 4,164.912 s wall time and 3,874.420 s
+CPU, with a reported cgroup peak of 1.9G and swap peak of 1.4G. Search used
+37,015,552 bytes of scratch, 1,515,815 blocks and 21,101,011 main-plus-scratch
+mutations. This cost is a full migration baseline, not a permissible small-edit
+path, latency promise or portable host forecast. It does not justify raising
+the default 64 MiB profile for every caller.
+
+Selected-reader measurements below use fresh processes with the OS page cache
+unchanged. Times measure local operation work, not process startup, HTTP,
+network transfer or rendering. Repeat ranges are three observations, not
+percentiles or a service-level guarantee.
+
+| Operation | First (ms) | Repeats (ms) | UTF-8 response bytes |
+| --- | ---: | ---: | ---: |
+| Complete catalog | 183.7 | 142.7–174.1 | 3,382,747 |
+| Search first page | 55.4 | 16.0–20.7 | 201,119 |
+| Full focus | 283.6 | 268.6–281.3 | 3,177,556 |
+| Exploration first page | 73.5 | 52.2–53.8 | 84,389 |
+| Node inspection, 20 incident relations | 39.0 | 19.6–20.2 | 554,366 |
+| Relation inspection | 18.4 | 3.6–3.8 | 63,392 |
+| Compact Person seed lens | 269.7 | 192.0–195.6 | 612,327 |
+| Compact Concept seed lens | 114.3 | 54.2–55.1 | 131,859 |
+
+The compact canaries select `source-claims:identity:tos.agent.friedrich-nietzsche`
+and `source-claims:identity:tos.crosscutting-concept.freedom`, respectively,
+through `seed.node_ids`, ru, depth 1, either/all, explain, limits 48/96/20.
+They return 30/29 and 7/6 nodes/relations. They are not the browser's default
+focus/overview request. Search continuation was 16.7 ms, replay 13.2 ms;
+exploration continuation was 68.2 ms, replay 4.7 ms. Source-carrier reads and
+full-graph fallback were forbidden during the selected read probes.
+
+The catalog and full focus are explicitly not small scene transports. The
+compact byte audit attributes 35.04%/27.41% to semantics, 17.66%/24.56% to
+shared-v2 HumanForm selection, and only 4.12%/3.52% to scene mappings.
+All 84/15 assertion-context wrappers are distinct. Repeated inner `fields`
+account for 77,672/12,816 bytes before any factoring overhead; dropping whole
+contexts or mandatory qualifications is not a valid optimization. A new scene
+profile requires an explicit consumer contract. HumanForm v1/v2 consumption
+and the current constructor's live-data adapter remain activation gates.
+
+Reproduction uses the explicit bootstrap above, the returned binding, and the
+selected reader/search/exploration APIs; no default reader is switched.
+The owner-retained evidence set `full-prepared-search3-r2-*` contains the exact
+source digests, limits, build stages, queries, bindings and response digests.
+Neither this baseline nor its read canaries prove addressed source-command
+maintenance, D1 deployment, live UI consumption or foundation completion.

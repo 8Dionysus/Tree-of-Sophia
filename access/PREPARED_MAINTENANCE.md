@@ -96,6 +96,24 @@ transaction. It stores the exact roots beside the final prepared binding,
 without replacing a second current-root file. Source assembly, complete
 dependency checks and precommit source guards remain separate obligations.
 
+The [source dependency index](contracts/prepared-source-dependencies.v1.md)
+adds exact reverse Claim selection. Its declarations bind concrete source slots
+and an executable declaration profile; the index does not infer those slots.
+`apply_dependency_bound_prepared_delta_transaction` in
+`tos_access.prepared_source_publication` stages those declarations, invokes the
+source-root/semantic/catalog/prepared join, and verifies the final dependency
+binding in the same caller transaction. It reserves the finalizer's writes
+before the publisher runs and accounts for all its SQLite mutations. Each
+lane retains its separate read/VM envelope. Its explicit progress-handler owner
+restores the caller's handler after success or failure.
+
+This join still requires a source assembler: capture before-images while they
+are current, execute the authorized source command, derive the complete changed
+cohort and verify source guards before committing the prepared transaction.
+A committed source correction is not silently undone when derived publication
+fails. The previous reader remains selected until an exact retry/reconciliation;
+source commit and prepared commit are not one cross-file atomic transaction.
+
 `PublicationLimits.max_mutations` counts actual SQLite changes across all three
 lanes, including final semantic binding verification. Each later lane receives
 only the remaining allowance. The semantic byte cap cannot exceed the declared
