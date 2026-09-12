@@ -49,6 +49,8 @@ class PublicationLimits:
     def __post_init__(self):
         if any(type(v) is not int or v < 1 for v in vars(self).values()):
             raise ValueError("publication limits must be positive integers")
+        if self.max_mutations > MAX_ADDRESS or self.max_bytes > 2**40:
+            raise ValueError("publication limits exceed portable search storage bounds")
 
 
 @dataclass(frozen=True)

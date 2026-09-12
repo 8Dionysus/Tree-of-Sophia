@@ -113,12 +113,12 @@ class OfflinePrepareTests(unittest.TestCase):
         self.assertEqual(before, {p.name: p.read_bytes() for p in self.output.iterdir()})
 
     def test_explicit_cli_caps_are_enforced_and_recorded(self):
-        result = self.command("--max-bytes", str(128 * 1024 * 1024), "--max-mutations", "1000000")
+        result = self.command("--max-bytes", str(128 * 1024 * 1024), "--max-mutations", "100000000")
         self.assertEqual(result.returncode, 0, result.stderr)
         receipt = json.loads(result.stdout)
         self.assertEqual(receipt["publication_limits"], {
             **vars(producer.PublicationLimits()), "max_bytes": 128 * 1024 * 1024,
-            "max_mutations": 1000000})
+            "max_mutations": 100000000})
         self.assertLessEqual(receipt["build_counts"]["snapshot_bytes"], 128 * 1024 * 1024)
         self.assertEqual(receipt, json.loads((self.output / "completed.json").read_text()))
         for flag, value in (("--max-bytes", "4096"), ("--max-mutations", "1")):
@@ -138,6 +138,13 @@ class OfflinePrepareTests(unittest.TestCase):
                     self.assertEqual(result.returncode, 2)
                     self.assertEqual(result.stdout, "")
                     self.assertFalse(self.output.exists())
+        for flag, value in (("--max-bytes", str(2**40 + 1)), ("--max-mutations", str(2**53))):
+            with self.subTest(flag=flag, value=value):
+                result = self.command(flag, value)
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(result.stdout, "")
+                self.assertEqual(json.loads(result.stderr)["status"], "failed")
+                self.assertFalse(self.output.exists())
 
     def test_portable_conversion_never_copies_the_whole_graph(self):
         original = producer.normalize_paths

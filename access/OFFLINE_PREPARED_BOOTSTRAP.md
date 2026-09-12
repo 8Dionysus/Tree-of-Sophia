@@ -52,7 +52,12 @@ metadata, two million SQL mutations, plus the publisher's delta-only limits
 forecasts or write authority. For a larger corpus, explicitly select
 `--max-bytes BYTES` and `--max-mutations COUNT` after obtaining resource/storage
 admission. Both require positive integers and are recorded in the completion
-receipt. Raising these whole-publication caps does not raise the row/metadata
+receipt. Portable storage admission also bounds the byte cap to `2**40` and
+the full-bootstrap mutation cap to `2**53 - 1`; invalid selections fail before
+source normalization or output creation. These upper bounds are numeric storage
+contracts, not recommended operating budgets. Addressed search deltas retain
+their separate 20,000,000 ceiling; a bootstrap budget is not a delta allowance.
+Raising these whole-publication caps does not raise the row/metadata
 limits, reserve any space, switch readers, or make full normalization incremental.
 The byte cap covers the SQLite file, not its transient journal or source memory;
 reserve those separately. There is no automatic retry with larger caps and no
