@@ -226,6 +226,24 @@ not merely the number of requested documents. The original database-page cap
 is retained on deltas. Journal/headroom capacity remains an offline-owner
 reservation responsibility; `max_bytes` limits database pages, not journal sum.
 
+Bootstrap and delta have distinct mutation admission. `initialize_transaction`
+and `publish_initial` keep their default of 2000000 mutations; an offline owner
+may explicitly select a positive integer through `MAX_ADDRESS` (`2**53 - 1`).
+The two delta methods keep their 100000 default and 20000000 ceiling. Invalid
+bootstrap budgets are rejected before search DDL or new-file creation; invalid
+delta budgets do not change the caller's transaction or page cap. An admitted
+budget is still checked against actual writes, with the same rollback duty.
+
+A full cohort accumulates term/document memberships across every carrier;
+even an existing term needs a block write, reverse-membership insertion and
+posting-count update. The delta ceiling is therefore not a portable full-corpus
+size limit. A larger bootstrap budget changes neither stored wire format nor
+query, row, term, block, chunk or database-page limits. Prepared publication
+also enforces its whole-publication mutation cap, including carrier writes;
+the offline bootstrap receipt records the selected `PublicationLimits`.
+Tiny-document tests of a larger admitted budget prove admission and rollback,
+not full-corpus scalability, latency, disk capacity or memory feasibility.
+
 Initial limits: 8 MiB per searchable/value stream, 32 MiB aggregate prepared
 text, 8192 rank values, 200000 distinct terms per document and 1900000 bytes of
 document metadata. Over-limit material is refused at offline publication;

@@ -218,9 +218,16 @@ CREATE TABLE search_document_terms (doc_id INTEGER NOT NULL, term_id INTEGER NOT
 
 
 class _Writer:
-    def __init__(self, connection: sqlite3.Connection, max_mutations: int):
+    def __init__(self, connection: sqlite3.Connection, max_mutations: int, *, mode: str = "delta"):
+        if mode not in ("bootstrap", "delta"):
+            raise ValueError("unknown search writer admission mode")
         self.db = connection
-        self.maximum = _integer(max_mutations, "max_mutations", 1, 20_000_000)
+        # A full cohort is not an addressed delta. Its explicit owner budget
+        # may exceed the bounded delta ceiling, but remains an exact portable
+        # integer count and is still enforced on every write.
+        self.maximum = _integer(max_mutations, "max_mutations", 1,
+                                MAX_ADDRESS if mode == "bootstrap" else 20_000_000)
+        self.mode = mode
         self.mutations = 0
         self.blocks_written = 0
         self.payload_bytes_written = 0
@@ -230,7 +237,7 @@ class _Writer:
         cursor = self.db.execute(sql, parameters)
         self.mutations += max(1, self.db.total_changes - before)
         if self.mutations > self.maximum:
-            raise SearchBudgetExceeded("delta mutation budget exceeded; caller must roll back transaction")
+            raise SearchBudgetExceeded(f"{self.mode} mutation budget exceeded; caller must roll back transaction")
         return cursor
 
     def block(self, term: int, fence: bytes, addresses: list[int]) -> None:
@@ -435,7 +442,7 @@ class SearchStore:
         _require_transaction(connection)
         header = cls._header(binding)
         _integer(max_bytes, "max_bytes", 65536, 2**40)
-        writer = _Writer(connection, max_mutations)
+        writer = _Writer(connection, max_mutations, mode="bootstrap")
         page_size = connection.execute("PRAGMA page_size").fetchone()[0]
         max_pages = _page_cap(connection, max_bytes // page_size)
         # executescript commits a pending transaction, even for plain DDL.
@@ -457,6 +464,7 @@ class SearchStore:
         path = Path(path)
         cls._header(binding)
         _integer(max_bytes, "max_bytes", 65536, 2**40)
+        _integer(max_mutations, "max_mutations", 1, MAX_ADDRESS)
         descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         os.close(descriptor)
         db = sqlite3.connect(path)
@@ -478,6 +486,7 @@ class SearchStore:
     def apply_delta_transaction(cls, connection: sqlite3.Connection, *, expected_binding: dict[str, Any], new_binding: dict[str, Any], changes: Iterable[SearchChange], max_mutations: int = 100_000) -> dict[str, int]:
         """Apply a delta without beginning, ending or closing owner work."""
         _require_transaction(connection)
+        writer = _Writer(connection, max_mutations)
         expected, new = cls._header(expected_binding), cls._header(new_binding)
         if expected == new:
             raise SearchInvalidRequest("delta requires a new snapshot binding")
@@ -487,7 +496,6 @@ class SearchStore:
             raise SearchUnavailable("invalid stored search allocation/page cap")
         high_water = row[0]
         max_pages = _page_cap(connection, row[1])
-        writer = _Writer(connection, max_mutations)
         seen = set()
         for change in changes:
             if not isinstance(change, SearchChange):

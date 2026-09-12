@@ -37,6 +37,95 @@ class CompressedSearchStoreTests(unittest.TestCase):
         report = SearchStore.publish_initial(self.path, binding=self.binding, documents=documents)
         return SearchStore(self.path, binding=self.binding), documents, report
 
+    def test_explicit_bootstrap_budget_can_exceed_delta_ceiling_without_more_work(self):
+        document = PreparedSearchDocument.from_item(1, "node", self.item("a"), 1)
+        for maximum in (20_000_001, MAX_ADDRESS):
+            with self.subTest(maximum=maximum), closing(sqlite3.connect(":memory:")) as db:
+                db.execute("BEGIN IMMEDIATE")
+                report = SearchStore.initialize_transaction(db, binding=self.binding,
+                    documents=[document], max_mutations=maximum)
+                self.assertGreater(report["mutations"], 0)
+                self.assertLess(report["mutations"], 20_000_000)
+                self.assertTrue(db.in_transaction)
+                self.assertEqual(SearchStore.query_transaction(db, binding=self.binding, kind="node")
+                                 ["matches"], [{"doc_id": 1, "id": "a", "rank": 3}])
+                db.rollback()
+        report = SearchStore.publish_initial(self.path, binding=self.binding,
+            documents=[document], max_mutations=20_000_001)
+        self.assertLess(report["mutations"], 20_000_000)
+        self.assertEqual(SearchStore(self.path, binding=self.binding).query_page(kind="node")
+                         ["matches"], [{"doc_id": 1, "id": "a", "rank": 3}])
+
+    def test_invalid_bootstrap_budget_is_rejected_before_ddl_or_file_creation(self):
+        document = PreparedSearchDocument.from_item(1, "node", self.item("a"), 1)
+        for maximum in (MAX_ADDRESS + 1, True, 0, -1, 1.5):
+            with self.subTest(maximum=maximum), closing(sqlite3.connect(":memory:")) as db:
+                db.execute("BEGIN IMMEDIATE")
+                db.execute("CREATE TABLE carrier (id TEXT)")
+                db.execute("INSERT INTO carrier VALUES ('owner-work')")
+                before = list(db.iterdump())
+                changes = db.total_changes
+                traced = []
+                db.set_trace_callback(traced.append)
+                with self.assertRaises(SearchInvalidRequest):
+                    SearchStore.initialize_transaction(db, binding=self.binding,
+                        documents=[document], max_mutations=maximum)
+                db.set_trace_callback(None)
+                self.assertEqual(traced, [])
+                self.assertTrue(db.in_transaction)
+                self.assertEqual(db.total_changes, changes)
+                self.assertEqual(list(db.iterdump()), before)
+                db.rollback()
+            with self.assertRaises(SearchInvalidRequest):
+                SearchStore.publish_initial(self.path, binding=self.binding,
+                    documents=[document], max_mutations=maximum)
+            self.assertFalse(self.path.exists())
+
+    def test_delta_keeps_20m_ceiling_and_does_not_touch_owner_transaction(self):
+        self.publish([self.item("a")])
+        change = SearchChange("update", 1,
+            PreparedSearchDocument.from_item(1, "node", self.item("changed"), 1))
+        with closing(sqlite3.connect(self.path)) as db:
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("CREATE TABLE carrier (id TEXT)")
+            db.execute("INSERT INTO carrier VALUES ('owner-work')")
+            before, changes = list(db.iterdump()), db.total_changes
+            cap = db.execute("PRAGMA max_page_count").fetchone()[0]
+            for maximum in (20_000_001, MAX_ADDRESS):
+                traced = []
+                db.set_trace_callback(traced.append)
+                with self.assertRaises(SearchInvalidRequest):
+                    SearchStore.apply_delta_transaction(db, expected_binding=self.binding,
+                        new_binding={"source_revision": "refused"}, changes=[change],
+                        max_mutations=maximum)
+                db.set_trace_callback(None)
+                self.assertEqual(traced, [])
+                self.assertTrue(db.in_transaction)
+                self.assertEqual(db.total_changes, changes)
+                self.assertEqual(list(db.iterdump()), before)
+                self.assertEqual(db.execute("PRAGMA max_page_count").fetchone()[0], cap)
+            db.rollback()
+        self.assertEqual(SearchStore(self.path, binding=self.binding).query_page(kind="node")
+                         ["matches"], [{"doc_id": 1, "id": "a", "rank": 3}])
+
+    def test_small_bootstrap_budget_still_enforces_actual_writes_and_rollback(self):
+        document = PreparedSearchDocument.from_item(1, "node", self.item("a"), 1)
+        with closing(sqlite3.connect(":memory:")) as db:
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("CREATE TABLE carrier (id TEXT)")
+            db.execute("INSERT INTO carrier VALUES ('owner-work')")
+            with self.assertRaisesRegex(SearchBudgetExceeded, "bootstrap mutation budget"):
+                SearchStore.initialize_transaction(db, binding=self.binding,
+                    documents=[document], max_mutations=1)
+            self.assertTrue(db.in_transaction)
+            self.assertEqual(db.execute("SELECT id FROM carrier").fetchone(), ("owner-work",))
+            db.rollback()
+            self.assertEqual(db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall(), [])
+        with self.assertRaisesRegex(SearchBudgetExceeded, "bootstrap mutation budget"):
+            SearchStore.publish_initial(self.path, binding=self.binding,
+                documents=[document], max_mutations=1)
+        self.assertFalse(self.path.exists())
+
     def drain(self, store, query="", *, kind="node", filters=None, page_size=3, candidate_budget=31, verification_bytes=8192):
         cursor = None
         result = []
