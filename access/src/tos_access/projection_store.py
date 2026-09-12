@@ -14,6 +14,7 @@ import gzip
 import hashlib
 import io
 import json
+import math
 import os
 from pathlib import Path, PurePosixPath
 import re
@@ -55,8 +56,16 @@ def _strict_json(raw: bytes) -> Any:
                 raise ProjectionStoreError(f"duplicate JSON member: {key}")
             result[key] = value
         return result
+
+    def finite_float(value):
+        number = float(value)
+        if not math.isfinite(number):
+            raise ProjectionStoreError("non-finite JSON number")
+        return number
+
     try:
         return json.loads(raw, object_pairs_hook=pairs,
+                          parse_float=finite_float,
                           parse_constant=lambda _: (_ for _ in ()).throw(
                               ProjectionStoreError("non-finite JSON number")))
     except (ValueError, UnicodeError) as error:
@@ -72,8 +81,10 @@ def _key(value: Any) -> str:
 def _atomic_write(path: Path, raw: bytes) -> None:
     if path.is_symlink():
         raise ProjectionStoreError(f"refusing symlink output: {path}")
-    if path.is_file() and path.read_bytes() == raw:
-        return
+    if path.is_file() and path.stat().st_size == len(raw):
+        with path.open("rb") as stream:
+            if stream.read(len(raw) + 1) == raw:
+                return
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(prefix=".projection-", dir=path.parent, delete=False) as handle:
         temporary = Path(handle.name)
@@ -148,8 +159,9 @@ def write_projection(path: Path, header: dict[str, Any], collections: Mapping[st
     fit the hard part limit. No whole-projection JSON string is constructed.
     """
     path = Path(path).absolute()
-    if not isinstance(header, dict) or not isinstance(header.get("schema_version"), str):
-        raise ProjectionStoreError("logical projection header needs schema_version")
+    if (not isinstance(header, dict) or not isinstance(header.get("schema_version"), str)
+            or not header["schema_version"]):
+        raise ProjectionStoreError("logical projection header needs nonempty schema_version")
     if not 256 <= target_part_bytes <= MAX_PART_BYTES:
         raise ProjectionStoreError("invalid target partition size")
     if not collections:
@@ -287,6 +299,7 @@ class ProjectionReader:
         root = self.manifest
         if (not isinstance(root, dict) or set(root) != {"schema_version", "logical_schema", "header", "limits", "collections"}
                 or root.get("schema_version") != FORMAT or not isinstance(root.get("header"), dict)
+                or not isinstance(root.get("logical_schema"), str) or not root["logical_schema"]
                 or root.get("logical_schema") != root["header"].get("schema_version")
                 or not isinstance(root.get("collections"), dict) or not root["collections"]):
             raise ProjectionStoreError("invalid partitioned projection manifest")

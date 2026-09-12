@@ -38,6 +38,11 @@ explicit keyed iteration, not infer absence from `get()`.
 
 Readers reject malformed descriptors, path escapes, symlink parts, wrong
 digests, wrong counts, duplicate keys, and misplaced keys on visited parts.
+Strict parsing rejects both named nonfinite constants and exponent overflow
+such as `1e309` before returning any root or leaf value. Finite numbers retain
+the standard JSON reader's integer/float types, integer precision and signed
+zero. Writer and reader require a matching nonempty string logical schema
+version, as declared by the structural schema.
 Their decoded-byte cache is bounded. A checksum proves selected transport
 integrity, not provenance, semantic acceptance, rights, or independent admission.
 `snapshot_digest` identifies exact root bytes; `require_current()` rechecks
@@ -47,7 +52,11 @@ those bytes. This is not a source publication generation or an ABA fence.
 writer, not an automatic read side effect. It stages the complete provided
 record streams in temporary SQLite, writes immutable parts, then atomically
 replaces the root. The caller owns the selected output path and scratch
-admission. Failure does not publish a partial root. The default does not prune;
+admission. Failure does not publish a partial root. The existing-output equality
+shortcut checks physical size first and reads at
+most the proposed byte length plus one overflow sentinel. An oversized old
+output is replaced without reading its full body.
+The default does not prune;
 explicit `prune=True` retires only valid digest-named unreferenced objects in
 that exact part namespace. Retiring old parts can make old snapshots unavailable.
 This whole-input writer is not an incremental source builder.
@@ -63,9 +72,13 @@ focused test modules; no corpus payload or generated manifest/part is adopted.
 The [bounded Merkle diff](projection-diff.v1.md) is a separate read-only layer
 over two explicitly bound readers. It relies on an independently admitted
 baseline asserted by the caller and does not certify skipped target parts.
-The adopted store/schema/tests are exact files from source-owner commit
-`78e628f00932cbebecbc3fc0e6f4433cb119a7ff`; the diff module/tests/contract are
-exact files from reviewed helper commit
+The initial adoption at `702ad351aa57c28a453a3f80b53f6f13875b8234` copied the
+store/schema/tests exactly from source-owner commit
+`78e628f00932cbebecbc3fc0e6f4433cb119a7ff`. Subsequent narrow store/parser
+hardening and focused tests reject nonfinite float overflow and missing, null,
+or empty logical schema versions, and bound existing-output equality reads;
+the schema itself is unchanged.
+The diff module/tests/contract remain exact files from reviewed helper commit
 `395caa2f818ca99395155af31924c658b34724fb`. This isolated composition does not
 adopt those commits' unrelated source builders, compiler, or runtime changes.
 

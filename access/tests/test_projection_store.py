@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from tos_access.projection_store import (
     Collection, ProjectionReader, ProjectionStoreError, canonical_bytes,
-    is_partitioned, load_projection, write_projection,
+    is_partitioned, load_projection, write_projection, _gzip, _atomic_write,
 )
 
 
@@ -215,6 +217,129 @@ class ProjectionStoreTests(unittest.TestCase):
         self.assertEqual(dict(reader.iter_items("input_digests")), {"source-a": "abc", "source-b": "def"})
         self.assertEqual(sorted(reader.iter_collection("input_digests"), key=lambda x: x['key']),
                          [{"key": "source-a", "value": "abc"}, {"key": "source-b", "value": "def"}])
+
+    def numeric_manifest(self, header=None):
+        return write_projection(self.path, header or {"schema_version": "numbers_v1"}, {
+            "numbers": Collection([("value", None)], None),
+        }, work_dir=self.root)
+
+    def write_matched_numeric_leaf(self, value_json):
+        manifest = self.numeric_manifest()
+        raw = b'{"key":"value","value":' + value_json + b'}\n'
+        stored = _gzip(raw)
+        digest = hashlib.sha256(stored).hexdigest()
+        part = self.path.with_name(self.path.stem + ".parts") / digest[:2] / (digest + ".jsonl.gz")
+        part.parent.mkdir(parents=True, exist_ok=True)
+        part.write_bytes(stored)
+        manifest["collections"]["numbers"]["root"].update(
+            path=part.relative_to(self.path.parent).as_posix(), sha256=digest,
+            size_bytes=len(stored), decoded_bytes=len(raw), decoded_sha256=hashlib.sha256(raw).hexdigest())
+        self.path.write_bytes(canonical_bytes(manifest))
+
+    def test_nonfinite_root_numbers_are_rejected_during_strict_parse(self):
+        manifest = self.numeric_manifest({"schema_version": "numbers_v1", "probe": "NON_FINITE"})
+        for literal in (b"1e309", b"-1e309", b"NaN", b"Infinity", b"-Infinity"):
+            with self.subTest(literal=literal):
+                self.path.write_bytes(canonical_bytes(manifest).replace(b'"NON_FINITE"', literal))
+                with self.assertRaisesRegex(ProjectionStoreError, "non-finite JSON number"):
+                    ProjectionReader(self.path)
+
+    def test_nonfinite_matched_digest_leaf_is_rejected(self):
+        for literal in (b"1e309", b"-1e309", b"NaN", b"Infinity", b"-Infinity"):
+            with self.subTest(literal=literal):
+                self.write_matched_numeric_leaf(literal)
+                reader = ProjectionReader(self.path, cache_bytes=0)
+                with self.assertRaisesRegex(ProjectionStoreError, "non-finite JSON number"):
+                    reader.get("numbers", "value")
+
+    def test_finite_numeric_types_and_precision_are_preserved(self):
+        self.write_matched_numeric_leaf(b'[1,1.0,9007199254740993,1e308,5e-324,-0.0,false]')
+        values = ProjectionReader(self.path).get("numbers", "value")
+        self.assertEqual([type(value) for value in values], [int, float, int, float, float, float, bool])
+        self.assertEqual(values[:3], [1, 1.0, 9007199254740993])
+        self.assertEqual(values[3:5], [1e308, 5e-324])
+        self.assertEqual(math.copysign(1, values[5]), -1)
+        self.assertTrue(all(math.isfinite(value) for value in values if type(value) is float))
+        self.numeric_manifest({"schema_version": "numbers_v1", "int": 1, "float": 1.0, "large": 1e308})
+        header = ProjectionReader(self.path).metadata()
+        self.assertIs(type(header["int"]), int)
+        self.assertIs(type(header["float"]), float)
+        self.assertEqual(header["large"], 1e308)
+
+    def test_writer_requires_nonempty_string_schema_before_publication(self):
+        self.numeric_manifest()
+        before = self.path.read_bytes()
+        for header in ({}, {"schema_version": ""}, {"schema_version": None},
+                       {"schema_version": False}, {"schema_version": 1}):
+            with self.subTest(header=header):
+                with self.assertRaisesRegex(ProjectionStoreError, "nonempty schema_version"):
+                    write_projection(self.path, header, {"numbers": Collection([], None)}, work_dir=self.root)
+                self.assertEqual(self.path.read_bytes(), before)
+
+    def test_reader_requires_matching_nonempty_string_logical_schema(self):
+        manifest = self.numeric_manifest()
+        for logical, header in (("", {"schema_version": ""}), (None, {"schema_version": None}),
+                                (None, {}), (False, {"schema_version": False}), (1, {"schema_version": 1}),
+                                ("numbers_v1", {}), ("numbers_v1", {"schema_version": "other_v1"})):
+            with self.subTest(logical=logical, header=header):
+                manifest.update(logical_schema=logical, header=header)
+                self.path.write_bytes(canonical_bytes(manifest))
+                with self.assertRaisesRegex(ProjectionStoreError, "invalid partitioned projection manifest"):
+                    ProjectionReader(self.path)
+
+    def test_atomic_replacement_does_not_read_oversized_existing_target(self):
+        target = self.root / "owned-output"
+        target.write_bytes(b"x" * 4096)
+        replacement = b"bounded replacement\n"
+        original = Path.open
+
+        def checked(path, *args, **kwargs):
+            if path == target:
+                raise AssertionError("oversized existing target must not be opened")
+            return original(path, *args, **kwargs)
+
+        with patch.object(Path, "open", checked), \
+             patch.object(Path, "read_bytes", side_effect=AssertionError("unbounded existing read")):
+            _atomic_write(target, replacement)
+        self.assertEqual(target.read_bytes(), replacement)
+
+    def test_atomic_same_size_comparison_is_bounded_and_keeps_equal_output(self):
+        target = self.root / "owned-output"
+        replacement = b"bounded replacement\n"
+        original = Path.open
+        reads = []
+
+        class BoundedRead:
+            def __init__(self, stream):
+                self.stream = stream
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return self.stream.__exit__(*args)
+
+            def read(self, size=-1):
+                if size != len(replacement) + 1:
+                    raise AssertionError("comparison must use an explicit bounded read")
+                reads.append(size)
+                return self.stream.read(size)
+
+        def checked(path, *args, **kwargs):
+            stream = original(path, *args, **kwargs)
+            return BoundedRead(stream) if path == target else stream
+
+        for previous in (replacement, b"x" * len(replacement)):
+            with self.subTest(equal=previous == replacement):
+                target.write_bytes(previous)
+                before_inode = target.stat().st_ino
+                with patch.object(Path, "open", checked), \
+                     patch.object(Path, "read_bytes", side_effect=AssertionError("unbounded existing read")):
+                    _atomic_write(target, replacement)
+                self.assertEqual(target.read_bytes(), replacement)
+                if previous == replacement:
+                    self.assertEqual(target.stat().st_ino, before_inode)
+        self.assertEqual(reads, [len(replacement) + 1, len(replacement) + 1])
 
 
 if __name__ == "__main__":
