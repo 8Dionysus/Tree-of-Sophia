@@ -1,0 +1,543 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "schema_version": "tos_source_resource_inventory_v1",
+  "item_id": "tos.item.pali-canon.sn4.7.en-sujato-bilara.bilara-d6d54741b7f2.git-segment-json",
+  "generated_from_manifest_ref": "ToS/source-witnesses/works/pali-canon/sn4-7/expressions/en-sujato-bilara/editions/bilara-d6d54741b7f2/items/git-segment-json/item.manifest.json",
+  "inventory_authority": "mechanical_metadata_only",
+  "source_text_included": false,
+  "files": [
+    {
+      "file_id": "tos.file.sha256.4509ca8bca42cf25992eddc91a2016d3e52790e2b742276d7a5cb2c5f723aa68",
+      "file_sha256": "4509ca8bca42cf25992eddc91a2016d3e52790e2b742276d7a5cb2c5f723aa68",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 17,
+        "top_level_member_count": 16,
+        "json_value_counts": {
+          "object_count": 1,
+          "array_count": 0,
+          "string_count": 16,
+          "number_count": 0,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 16
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "04650f3e59ceb2c408589424995105adf4a616df4b1d2488923742353ce86541",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "92d2eda82a0a41159ad545baeb71bb4f7990ddc5d88843dc0aed370b5932cd36",
+            "character_count": 22
+          }
+        },
+        {
+          "resource_id": "json-member-00002",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 2,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "f12845af5fb75d5bb45a6190d8f8e446dc2ca05c91ae6331e8c877b9c4f7b7af",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "c44fc2659fc81c41976ad6e99bd3779ab56cda86be70aafbc3dc57ef88bdf769",
+            "character_count": 12
+          }
+        },
+        {
+          "resource_id": "json-member-00003",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 3,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "e4f7fb12e7468520ae89d9fbd42cd102037ef7bb5e3f147e222c7513490f0c72",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "8fcadeb0c10f21ba93eea9eccf1ae0f3e2c27d4cc25db71a9d47fa6899cbf6a4",
+            "character_count": 9
+          }
+        },
+        {
+          "resource_id": "json-member-00004",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 4,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "68df86a734ace17bf9cff98888a48452a1e523c2d08dd1e076cbd804d9c6b822",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "8c5861441ec058c125fbb309767fafeedbad2b58a514eb9ce4af78d75df98dfe",
+            "character_count": 101
+          }
+        },
+        {
+          "resource_id": "json-member-00005",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 5,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "d710bd3d7a6409f853b2b2413a1502d9c6b6ae08007a1cc92084b15e44f3c7da",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "83fada214bbe55f2edcc012f56112d5ca0d14601157cb9d7767fc38c936fc3e6",
+            "character_count": 124
+          }
+        },
+        {
+          "resource_id": "json-member-00006",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 6,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "c20718614c6d775931ca9f893b2fc056b42f4e0d1f143f6dfbea9099704ddb3c",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "dc8e9032426892a67df52f585c0a9c10ff0441f55c26f897ba090f33a19a96ac",
+            "character_count": 149
+          }
+        },
+        {
+          "resource_id": "json-member-00007",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 7,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "5ed9c24a5dc54e71b8cb3e9e23af9e9686c44fcdd10bb8052ada37c494f5de67",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "a5f138db2e0053594ace063452b108fb547cba078855694f8ffc3cf22c8bad88",
+            "character_count": 71
+          }
+        },
+        {
+          "resource_id": "json-member-00008",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 8,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "1fed972b2ba19ecc6c83db10fd9afac77d3b46f38fc72e86e261e57da17add18",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "42b4e36187555c05a9710e35d85dc67327d95b698b0ae9609913aedebc3f2c32",
+            "character_count": 48
+          }
+        },
+        {
+          "resource_id": "json-member-00009",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 9,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "f7c68dc1c7ee4ce9fdba65062744acb8532b88f27d544c35645dab903ea3ebd6",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "c76b0dcdf352d7c3ce5edbccef734f4212037e7394815e14b5e21153ed985c88",
+            "character_count": 47
+          }
+        },
+        {
+          "resource_id": "json-member-00010",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 10,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "3ab7c940fc2a81fd73f8b7599f150645d4115011df2ab32dbe549609b43fe170",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "a9b6411ab9a58f8c1615b10f10706cb42a3fda990fe824b6c1816ae626a36a37",
+            "character_count": 43
+          }
+        },
+        {
+          "resource_id": "json-member-00011",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 11,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "1417eeed1f8f3eba220ee5399fddd4cdb07336d1e9991628bac5de419f807d49",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "9501361bca90532f8a3875f9dcbe9e0fc5674342c4faeaaa60aad61214f89b5d",
+            "character_count": 60
+          }
+        },
+        {
+          "resource_id": "json-member-00012",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 12,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "e2d580a1ef051b212133e5d4af9e3dc2640fc1d3ffd329f9d950fbe0f233fd60",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "4873c31e026fc224d980425a01f1ae1913cc5f5a62ecd25f0e0399b3f0e94959",
+            "character_count": 30
+          }
+        },
+        {
+          "resource_id": "json-member-00013",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 13,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "a8d4c788b575f5039adad997dd4b48975036d3302bdb428d1c0d594b67f7ad9e",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "73ace6e784703bff3039a67f36f6bd7a520b274ea1b194a051e6891e227c049b",
+            "character_count": 51
+          }
+        },
+        {
+          "resource_id": "json-member-00014",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 14,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "063b2165e23b8fdcea366de0a3964d219b00b8c9c09f2c523f37bb0e8f75e13c",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "ae76778fe438cd473bb94684876891d025e1799cf0116a86c5b1d408a709cf98",
+            "character_count": 66
+          }
+        },
+        {
+          "resource_id": "json-member-00015",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 15,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "b7cdd2828a06b7ea8e66b0e2e5b2262d56a9e3ad680bef3c0d4968b8c4668c2a",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "750ff9715db8ff1a2a59f02d26e11c7c32e9920c130c8a868b3973cbbafb3ae6",
+            "character_count": 39
+          }
+        },
+        {
+          "resource_id": "json-member-00016",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 16,
+            "json_value_type": "string",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 0,
+            "array_count": 0,
+            "string_count": 1,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 0
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "7a064229563add240feea561a59b812b9d93712e81f2abe663d159f545887b12",
+            "character_count": 9
+          },
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "4f11095500b0a69fbf882f90c06c594e49b63a67b7388f629fb484fe9ec09b87",
+            "character_count": 34
+          }
+        }
+      ]
+    }
+  ],
+  "generator": {
+    "name": "build_source_resource_inventories.py",
+    "version": "1"
+  },
+  "provenance_event_ref": "tos.event.resource-inventory.pali-canon.sn4.7.en-sujato-bilara.bilara-d6d54741b7f2.git-segment-json.2026-09-10",
+  "inventory_version": 1,
+  "supersedes_inventory_ref": null,
+  "authority_boundary": "resource enumeration, geometry, ordering, counts, and one-way fingerprints only; no source text, bibliographic acceptance, textual acceptance, rights clearance, translation, semantics, or canon authority"
+}

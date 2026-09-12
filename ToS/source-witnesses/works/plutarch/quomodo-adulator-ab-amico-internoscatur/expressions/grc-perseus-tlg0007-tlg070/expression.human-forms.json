@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.quomodo-adulator-ab-amico-internoscatur.grc-perseus-tlg0007-tlg070",
+    "version": 1,
+    "digest": "sha256:71a6292bf07a1ec073fbc9512063526e32f856cd4f422e21707c8bd5b9406b80"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:71a6292bf07a1ec073fbc9512063526e32f856cd4f422e21707c8bd5b9406b80",
+            "id": "tos.expression.plutarch.quomodo-adulator-ab-amico-internoscatur.grc-perseus-tlg0007-tlg070",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:71a6292bf07a1ec073fbc9512063526e32f856cd4f422e21707c8bd5b9406b80",
+            "id": "tos.expression.plutarch.quomodo-adulator-ab-amico-internoscatur.grc-perseus-tlg0007-tlg070",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:71a6292bf07a1ec073fbc9512063526e32f856cd4f422e21707c8bd5b9406b80",
+            "id": "tos.expression.plutarch.quomodo-adulator-ab-amico-internoscatur.grc-perseus-tlg0007-tlg070",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:71a6292bf07a1ec073fbc9512063526e32f856cd4f422e21707c8bd5b9406b80",
+            "id": "tos.expression.plutarch.quomodo-adulator-ab-amico-internoscatur.grc-perseus-tlg0007-tlg070",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.78f06bc7412ac730a6efbc41728b9218621622e05569f2b862dad44e00073f8b",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:71a6292bf07a1ec073fbc9512063526e32f856cd4f422e21707c8bd5b9406b80",
+        "id": "tos.expression.plutarch.quomodo-adulator-ab-amico-internoscatur.grc-perseus-tlg0007-tlg070",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:71a6292bf07a1ec073fbc9512063526e32f856cd4f422e21707c8bd5b9406b80",
+            "id": "tos.expression.plutarch.quomodo-adulator-ab-amico-internoscatur.grc-perseus-tlg0007-tlg070",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:71a6292bf07a1ec073fbc9512063526e32f856cd4f422e21707c8bd5b9406b80",
+            "id": "tos.expression.plutarch.quomodo-adulator-ab-amico-internoscatur.grc-perseus-tlg0007-tlg070",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:71a6292bf07a1ec073fbc9512063526e32f856cd4f422e21707c8bd5b9406b80",
+            "id": "tos.expression.plutarch.quomodo-adulator-ab-amico-internoscatur.grc-perseus-tlg0007-tlg070",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:71a6292bf07a1ec073fbc9512063526e32f856cd4f422e21707c8bd5b9406b80",
+            "id": "tos.expression.plutarch.quomodo-adulator-ab-amico-internoscatur.grc-perseus-tlg0007-tlg070",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.44a8bc5febff0672777f5032d2d02400547ec72a3dadd43f08264962eb09b08a",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:71a6292bf07a1ec073fbc9512063526e32f856cd4f422e21707c8bd5b9406b80",
+        "id": "tos.expression.plutarch.quomodo-adulator-ab-amico-internoscatur.grc-perseus-tlg0007-tlg070",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:ef1d1ed4751f737f9998c05abcc41e1035a77a4b7bb3fc5c1e5f9573e9e20e82",
+      "request_digest": "sha256:88d8a3ed97406e846dab9ff46891668f59754676c684605fb0691fa17f2a6ff5",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:1ebf4d34eeac7c78db8ad3b54c045abff48ecef10a77219f2884408c93dc6cb0",
+      "recorded_at": "2026-09-09T16:45:37.250694+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.quomodo-adulator-ab-amico-internoscatur.grc-perseus-tlg0007-tlg070",
+        "version": 1,
+        "digest": "sha256:71a6292bf07a1ec073fbc9512063526e32f856cd4f422e21707c8bd5b9406b80"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.78f06bc7412ac730a6efbc41728b9218621622e05569f2b862dad44e00073f8b",
+          "version": 1,
+          "digest": "sha256:e0bb77d385d6f909a19e0fdf089aacd2f1c35a1f7d33d8d5a1c9a9a26635e9b5"
+        },
+        {
+          "id": "tos.form.metadata.44a8bc5febff0672777f5032d2d02400547ec72a3dadd43f08264962eb09b08a",
+          "version": 1,
+          "digest": "sha256:ce189a9cd2a528eb81da378a812934df79bef9ac01a7a9fef8e95d17e957ed15"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:86aff8322e183d8830150876f22aa0372ee3a898946561afb581c63600ed1808",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:86aff8322e183d8830150876f22aa0372ee3a898946561afb581c63600ed1808",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:86aff8322e183d8830150876f22aa0372ee3a898946561afb581c63600ed1808",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:86aff8322e183d8830150876f22aa0372ee3a898946561afb581c63600ed1808",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.b68ee22094fb9496a2522dae34d25fd1866e4b9875ba5e380c29f052d205535c",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:7c687d0909f7931744994bda7282f583ba7571a4314952c37ff6c6ccd45891f9",
+        "id": "tos.form.metadata.b68ee22094fb9496a2522dae34d25fd1866e4b9875ba5e380c29f052d205535c",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:86aff8322e183d8830150876f22aa0372ee3a898946561afb581c63600ed1808",
+        "id": "tos.work.plutarch.de-amore-prolis",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:86aff8322e183d8830150876f22aa0372ee3a898946561afb581c63600ed1808",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:86aff8322e183d8830150876f22aa0372ee3a898946561afb581c63600ed1808",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:86aff8322e183d8830150876f22aa0372ee3a898946561afb581c63600ed1808",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:86aff8322e183d8830150876f22aa0372ee3a898946561afb581c63600ed1808",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.21751d0dbcc71c54b6ee1036eb6541569a7040204736237a29dcbb4099099bca",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:87c831d501633c170d4c47f609ba985e889dbebda9481bdbda289a13cf9732d8",
+        "id": "tos.form.metadata.21751d0dbcc71c54b6ee1036eb6541569a7040204736237a29dcbb4099099bca",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:86aff8322e183d8830150876f22aa0372ee3a898946561afb581c63600ed1808",
+        "id": "tos.work.plutarch.de-amore-prolis",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:70f0e80e644e10b74b98b2988975583716fa24fe3e1d6d8b54699014dea736f0",
+      "owner_configuration": "sha256:7969a357ae526eb11093315e201e2716b022df2cc882b6356892e48f84e672cd",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:38.973134+00:00",
+      "request_digest": "sha256:76c3953db6a3c95602d5f2bbbcf83085efe4ddfa62571926feefb79206739ab4",
+      "results": [
+        {
+          "digest": "sha256:7c687d0909f7931744994bda7282f583ba7571a4314952c37ff6c6ccd45891f9",
+          "id": "tos.form.metadata.b68ee22094fb9496a2522dae34d25fd1866e4b9875ba5e380c29f052d205535c",
+          "version": 1
+        },
+        {
+          "digest": "sha256:87c831d501633c170d4c47f609ba985e889dbebda9481bdbda289a13cf9732d8",
+          "id": "tos.form.metadata.21751d0dbcc71c54b6ee1036eb6541569a7040204736237a29dcbb4099099bca",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:7e011104a0332b39652abf6e32cc8e15be2422b332307ee177908d11704c76dd",
+        "id": "tos.work.plutarch.de-amore-prolis",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:70f0e80e644e10b74b98b2988975583716fa24fe3e1d6d8b54699014dea736f0",
+      "request_digest": "sha256:048923feebc67f03dd91a0aced540bbdc4bb3a1319d878bbdc30ac6817b30966",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:3d84b6f7871140f30b16f4e2d5605ca603600558493008826c8dbbe651000c3f",
+      "recorded_at": "2026-09-09T18:35:28.400187+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-amore-prolis",
+        "version": 2,
+        "digest": "sha256:86aff8322e183d8830150876f22aa0372ee3a898946561afb581c63600ed1808"
+      },
+      "previous_revision": "sha256:d23b02dc5f016525553db73dde7b862f2191623dbe577223ae0a116f48371d69",
+      "results": [
+        {
+          "id": "tos.form.metadata.b68ee22094fb9496a2522dae34d25fd1866e4b9875ba5e380c29f052d205535c",
+          "version": 2,
+          "digest": "sha256:6932935bbbcd341feb273894d53fa225bf81508a4b9929f07279daa1b593dce6"
+        },
+        {
+          "id": "tos.form.metadata.21751d0dbcc71c54b6ee1036eb6541569a7040204736237a29dcbb4099099bca",
+          "version": 2,
+          "digest": "sha256:c0f9cc5e9198f7c2e104d934483f231b4987608f6e962786c8e76f1c0f148a7b"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:7e011104a0332b39652abf6e32cc8e15be2422b332307ee177908d11704c76dd",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:7e011104a0332b39652abf6e32cc8e15be2422b332307ee177908d11704c76dd",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:7e011104a0332b39652abf6e32cc8e15be2422b332307ee177908d11704c76dd",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:7e011104a0332b39652abf6e32cc8e15be2422b332307ee177908d11704c76dd",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.b68ee22094fb9496a2522dae34d25fd1866e4b9875ba5e380c29f052d205535c",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:7e011104a0332b39652abf6e32cc8e15be2422b332307ee177908d11704c76dd",
+        "id": "tos.work.plutarch.de-amore-prolis",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:7e011104a0332b39652abf6e32cc8e15be2422b332307ee177908d11704c76dd",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:7e011104a0332b39652abf6e32cc8e15be2422b332307ee177908d11704c76dd",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:7e011104a0332b39652abf6e32cc8e15be2422b332307ee177908d11704c76dd",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:7e011104a0332b39652abf6e32cc8e15be2422b332307ee177908d11704c76dd",
+            "id": "tos.work.plutarch.de-amore-prolis",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.21751d0dbcc71c54b6ee1036eb6541569a7040204736237a29dcbb4099099bca",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:7e011104a0332b39652abf6e32cc8e15be2422b332307ee177908d11704c76dd",
+        "id": "tos.work.plutarch.de-amore-prolis",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-amore-prolis",
+    "version": 2,
+    "digest": "sha256:86aff8322e183d8830150876f22aa0372ee3a898946561afb581c63600ed1808"
+  }
+}

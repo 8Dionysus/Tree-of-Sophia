@@ -1,0 +1,333 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "schema_version": "tos_source_resource_inventory_v1",
+  "item_id": "tos.item.plutarch.comparison-of-philopoemen-and-titus.grc-perseus-tlg0007-tlg029.perseus-341e309c821d.git-tei-xml",
+  "generated_from_manifest_ref": "ToS/source-witnesses/works/plutarch/comparison-of-philopoemen-and-titus/expressions/grc-perseus-tlg0007-tlg029/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+  "inventory_authority": "mechanical_metadata_only",
+  "source_text_included": false,
+  "files": [
+    {
+      "file_id": "tos.file.sha256.9f3fe0170505dbb42a70c31dc70212ade4b6cc0e4cfc31a21f402c761632d56d",
+      "file_sha256": "9f3fe0170505dbb42a70c31dc70212ade4b6cc0e4cfc31a21f402c761632d56d",
+      "media_type": "application/tei+xml",
+      "profile": "tei_structure_v1",
+      "summary": {
+        "resource_count": 18,
+        "page_break_count": 5,
+        "division_count": 13,
+        "max_division_depth": 3
+      },
+      "resources": [
+        {
+          "resource_id": "tei-div-0001",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]",
+            "tei_depth": 1,
+            "tei_n": "urn:cts:greekLit:tlg0007.tlg029.perseus-grc2",
+            "tei_type": "edition"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a22fef5dd699c5c63856d9b3cce178eb25fad634475db42da2b1ba7907bf6fe1",
+            "character_count": 3574
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "0892c1924ff75d2df5f0d6e934008f88ca6ad1b1f421a8551fc10ec5f2f0fc79",
+            "character_count": 32
+          }
+        },
+        {
+          "resource_id": "tei-pb-0001",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/pb[1]",
+            "tei_page_label": "p.386",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0002",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]",
+            "tei_depth": 2,
+            "tei_page_label": "p.386",
+            "tei_n": "1",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "91f5831672e6a859beb3c62621ec77e39ef7882de08b116088056ac323c4f183",
+            "character_count": 1214
+          }
+        },
+        {
+          "resource_id": "tei-div-0003",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[1]",
+            "tei_depth": 3,
+            "tei_page_label": "p.386",
+            "tei_n": "1",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ddc81c1ace15c0704ea5043685fd6806bd324c7a50346d45764483ebf91f9da2",
+            "character_count": 401
+          }
+        },
+        {
+          "resource_id": "tei-div-0004",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[2]",
+            "tei_depth": 3,
+            "tei_page_label": "p.386",
+            "tei_n": "2",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "9c08ae07eb51624fd66e9b9ee2b6623fafe271f238afc2a33099a1b6145cecdf",
+            "character_count": 408
+          }
+        },
+        {
+          "resource_id": "tei-pb-0002",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[2]/p[1]/pb[1]",
+            "tei_page_label": "p.388",
+            "parent_resource_id": "tei-div-0004"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0003",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[2]/p[1]/pb[2]",
+            "tei_page_label": "paris.1624.382",
+            "parent_resource_id": "tei-div-0004"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0005",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[3]",
+            "tei_depth": 3,
+            "tei_page_label": "paris.1624.382",
+            "tei_n": "3",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6fd9a89469bc1af2938f6a7fc4c44e8693f65c4acb92a47a3a137a353cd67fb5",
+            "character_count": 403
+          }
+        },
+        {
+          "resource_id": "tei-div-0006",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]",
+            "tei_depth": 2,
+            "tei_page_label": "paris.1624.382",
+            "tei_n": "2",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2fc51cb76698e9600872fbda55ac1a13ece4ef68b4425dc4ece342a2a8d3ecf2",
+            "character_count": 1287
+          }
+        },
+        {
+          "resource_id": "tei-div-0007",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[1]",
+            "tei_depth": 3,
+            "tei_page_label": "paris.1624.382",
+            "tei_n": "1",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0006"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "3ae2b003dc545c19380d937347cdec9d380229d1ee780aa27cba1e29973d6931",
+            "character_count": 438
+          }
+        },
+        {
+          "resource_id": "tei-div-0008",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[2]",
+            "tei_depth": 3,
+            "tei_page_label": "paris.1624.382",
+            "tei_n": "2",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0006"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "14da90ac84ef55e551502023dff5fc9384346bdd0210d9ed138196e9845b5f0e",
+            "character_count": 295
+          }
+        },
+        {
+          "resource_id": "tei-pb-0004",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[2]/p[1]/pb[1]",
+            "tei_page_label": "p.390",
+            "parent_resource_id": "tei-div-0008"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0009",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[3]",
+            "tei_depth": 3,
+            "tei_page_label": "p.390",
+            "tei_n": "3",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0006"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b1501931a49c01aed7bcdd768b6b3d4bd841340c087b05fa3e27cb71c5b46980",
+            "character_count": 552
+          }
+        },
+        {
+          "resource_id": "tei-div-0010",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]",
+            "tei_depth": 2,
+            "tei_page_label": "p.390",
+            "tei_n": "3",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6fc0bd871926a1b6466402b9f0d69b95114701bfbfe6f5345e835b0ff7c10ff0",
+            "character_count": 1038
+          }
+        },
+        {
+          "resource_id": "tei-div-0011",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[1]",
+            "tei_depth": 3,
+            "tei_page_label": "p.390",
+            "tei_n": "1",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0010"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "0f0efb00a4baa1666ecea3231dd980ec07cdd05a55639524df41290f37a5763f",
+            "character_count": 345
+          }
+        },
+        {
+          "resource_id": "tei-div-0012",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[2]",
+            "tei_depth": 3,
+            "tei_page_label": "p.390",
+            "tei_n": "2",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0010"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "f9d4df97c3213565b9527c1c347d91c54ff9e82fce36ff53139709f5519d9e82",
+            "character_count": 268
+          }
+        },
+        {
+          "resource_id": "tei-pb-0005",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[2]/p[1]/pb[1]",
+            "tei_page_label": "p.392",
+            "parent_resource_id": "tei-div-0012"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0013",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[3]",
+            "tei_depth": 3,
+            "tei_page_label": "p.392",
+            "tei_n": "3",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0010"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "3ba814e5a60a916e118292bcf8f65590574a81927d4c70fbc1bf7b8d7b97a5ae",
+            "character_count": 423
+          }
+        }
+      ]
+    }
+  ],
+  "generator": {
+    "name": "build_source_resource_inventories.py",
+    "version": "1"
+  },
+  "provenance_event_ref": "tos.event.resource-inventory.plutarch.comparison-of-philopoemen-and-titus.grc-perseus-tlg0007-tlg029.perseus-341e309c821d.git-tei-xml.2026-09-09",
+  "inventory_version": 1,
+  "supersedes_inventory_ref": null,
+  "authority_boundary": "resource enumeration, geometry, ordering, counts, and one-way fingerprints only; no source text, bibliographic acceptance, textual acceptance, rights clearance, translation, semantics, or canon authority"
+}

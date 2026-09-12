@@ -1,0 +1,135 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.registry-plutarch-publicola-greek",
+  "item_ref": "tos.item.plutarch.publicola.grc-perseus-tlg0007-tlg008.perseus-341e309c821d.git-tei-xml",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/plutarch/publicola/expressions/grc-perseus-tlg0007-tlg008/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+    "sha256": "ea01639a527f819b8096dc2c1bcf78578aff134117020579b4665e4777be6215",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.0ad5f09c4ddb0eadf369882629fc4a9655c3326941cf24dc15a2ac5b98964223",
+      "relative_path": "payload/tlg0007.tlg008.perseus-grc2.xml",
+      "byte_size": 97010,
+      "sha256": "0ad5f09c4ddb0eadf369882629fc4a9655c3326941cf24dc15a2ac5b98964223",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/plutarch/publicola/expressions/grc-perseus-tlg0007-tlg008/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+    "rights_record_sha256": "8b004f331aafb1eece691001109ccda71a5c5a9811c236415fec3e7abc3ee545",
+    "assessment_status": "open-licensed",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [
+      "MX"
+    ],
+    "permission_or_license_refs": [
+      "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/manifest.json",
+      "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+      "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007.tlg008-cts.xml",
+      "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007.tlg008.perseus-grc2-header.xml",
+      "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007-cts.xml",
+      "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/perseus-README.md",
+      "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/perseus-license.md",
+      "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "lexical_index": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "search_projection": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "graph_projection": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "not-evaluated",
+  "publication_status": "not-published",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-09-09T19:07:10.237843+00:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.registry-20260909.plutarch-publicola-greek"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 1,
+  "supersedes_server_import_ref": null
+}

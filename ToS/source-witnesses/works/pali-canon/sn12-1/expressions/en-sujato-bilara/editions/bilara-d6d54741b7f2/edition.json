@@ -1,0 +1,58 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.pali-canon.sn12.1.en-sujato-bilara.bilara-d6d54741b7f2",
+  "preferred_label": "Dependent Origination — bilara Git snapshot d6d54741b7f2",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-fifteenth-planting-2026-09-09/source-observations.json",
+    "ToS/source-witnesses/discovery/registry-fifteenth-planting-2026-09-09/batch-scope.json",
+    "ToS/source-witnesses/discovery/registry-fifteenth-planting-2026-09-09/deferred-files.json",
+    "ToS/source-witnesses/discovery/registry-fifteenth-planting-2026-09-09/translations/manifest.json",
+    "ToS/source-witnesses/discovery/registry-fifteenth-planting-2026-09-09/translations/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-fifteenth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-fifteenth-planting-2026-09-09/evidence/bilara-sn12-en-tree.json",
+    "ToS/source-witnesses/discovery/registry-fifteenth-planting-2026-09-09/evidence/sn12.1_translation-en-sujato.json.opening",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-README.md",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-LICENSE.md",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_author.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_edition.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_publication.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_publication-v2.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json",
+    "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "SuttaCentral",
+      "value": "sn12.1/en/sujato",
+      "source_ref": "ToS/source-witnesses/discovery/registry-fifteenth-planting-2026-09-09/evidence/sn12.1_translation-en-sujato.json.opening",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.pali-canon.sn12.1.en-sujato-bilara"
+  ],
+  "publication_claim_refs": [],
+  "exemplar_claim_refs": [
+    "tos.claim.topology.registry-20260909.pali-sn12-1-sujato-english.edition-item"
+  ],
+  "edition_statement": "Immutable suttacentral/bilara-data commit d6d54741b7f2ddfeca82f02c3f95eb3990b4e351; Exact sn12.1 English translation by Bhikkhu Sujato in Bilara Git d6d54741b7f2ddfeca82f02c3f95eb3990b4e351; source filename sn12.1_translation-en-sujato.json.",
+  "notes": "Digital snapshot identity, not an ancient publication date. Bhikkhu Sujato, English translator; SuttaCentral digital publication and revisions.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

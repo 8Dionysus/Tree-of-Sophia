@@ -59,8 +59,34 @@ pairs. These structural addresses do not assert remote CTS resolution or
 critical completeness. The original flat-section checks remain in place for
 earlier preparations.
 
+An additional language version may extend an existing Work only through a
+prepared `existing_work` binding to its retained exact preimage and SHA-256.
+The acquisition helper permits only the new Expression claim refs and the
+Work's next record version; it preserves all previous fields and claims and
+fails on live preimage drift. Expression, Edition and Item records remain new
+identities. A later `operation_date` names its discovery/acquisition events
+without rewriting earlier operation identifiers.
+
+The `perseus-tei-translation` profile requires an explicit English translation
+role, the exact CTS translation identity, declared English XML language and
+the source's qualified division addresses. It checks nonempty Latin-letter
+text without claiming language identification or translation quality. Shared
+Work identity does not establish which Greek Edition a translator used.
+Where an exact source-language observation resolves a conflicting catalogue
+label, preserve the contradiction and bind the inspected source opening by
+digest; do not silently correct the provider's bytes. Registry coverage follows
+the planting's discovery record to the exact Item and acquisition event, so a
+branch route for one version does not mark another language version planted.
+
 Post-acquisition readiness records use explicit `execution` status.
 `completed` requires digest-bound local files and the exact Work/branch planting
-record. Completed, deferred and blocked entries remain in history and are not
+record. Additional versions name an already known Work in `existing_record_refs`,
+with the same digest and planting checks; they cannot also declare that Work
+new in `create_record_refs`. Completed, deferred and blocked entries remain in history and are not
 silently proposed for acquisition again. Absence of execution status preserves
 the existing pending/chronological behavior.
+
+Latin TEI intakes explicitly name the reviewed identity carrier: edition `n` or
+body `xml:base`. A conflicting carrier or different language/version role fails
+closed; legacy Greek and English profiles keep their original identity checks.
+Missing print-exemplar metadata remains an explicit source uncertainty.

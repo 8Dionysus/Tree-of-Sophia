@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -19,6 +19,10 @@ from build_source_witness_catalog import (OPTIONAL_RECORD_FILES, ADAPTED_RECORD_
                                          CatalogBuildError, artifact_catalog_entry, load_artifact_record,
                                          artifact_display_fields, composite_catalog_entry,
                                          load_composite_record, composite_display_fields, COMPOSITE_SCHEMA)
+from partitioned_projection_common import (ordered_rows, schema_validator,
+                                           canonical_digest as streaming_digest, DiskMap, DiskSequence,
+                                           ProjectionReader, ProjectionStoreError, is_partitioned, disk_payload,
+                                           check_partitioned_payload, load_projection, json_chunks)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -333,23 +337,24 @@ def load_json(path: Path) -> dict[str, Any]:
 
 def iter_jsonl(path: Path, repo_root: Path = REPO_ROOT) -> Iterable[tuple[int, dict[str, Any]]]:
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()
+        stream = path.open(encoding="utf-8")
     except OSError as exc:
         raise BibliographicGraphBuildError(f"{repo_ref(path, repo_root)}: cannot read JSONL: {exc}") from exc
-    for line_number, raw_line in enumerate(lines, start=1):
-        if not raw_line.strip():
-            continue
-        try:
-            payload = json.loads(raw_line)
-        except json.JSONDecodeError as exc:
-            raise BibliographicGraphBuildError(
-                f"{repo_ref(path, repo_root)}:{line_number}: cannot parse JSON: {exc}"
-            ) from exc
-        if not isinstance(payload, dict):
-            raise BibliographicGraphBuildError(
-                f"{repo_ref(path, repo_root)}:{line_number}: JSONL row must be an object"
-            )
-        yield line_number, payload
+    with stream:
+        for line_number, raw_line in enumerate(stream, start=1):
+            if not raw_line.strip():
+                continue
+            try:
+                payload = json.loads(raw_line)
+            except json.JSONDecodeError as exc:
+                raise BibliographicGraphBuildError(
+                    f"{repo_ref(path, repo_root)}:{line_number}: cannot parse JSON: {exc}"
+                ) from exc
+            if not isinstance(payload, dict):
+                raise BibliographicGraphBuildError(
+                    f"{repo_ref(path, repo_root)}:{line_number}: JSONL row must be an object"
+                )
+            yield line_number, payload
 
 
 def load_schema(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
@@ -357,7 +362,7 @@ def load_schema(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
 
 
 def validate_payload_schema(payload: dict[str, Any], repo_root: Path = REPO_ROOT) -> None:
-    validator = Draft202012Validator(load_schema(repo_root))
+    validator = schema_validator(load_schema(repo_root))
     errors = sorted(validator.iter_errors(payload), key=lambda error: list(error.absolute_path))
     if errors:
         error = errors[0]
@@ -381,8 +386,8 @@ def _catalog_input_digests(repo_root: Path, profiles: SourceRecordProfiles | Non
     return dict(sorted(digests.items()))
 
 
-def _load_object_catalog(repo_root: Path, profiles: SourceRecordProfiles | None = None) -> dict[str, dict[str, Any]]:
-    objects: dict[str, dict[str, Any]] = {}
+def _load_object_catalog(repo_root: Path, profiles: SourceRecordProfiles | None = None, storage=None) -> dict[str, dict[str, Any]]:
+    objects = storage.mapping() if storage is not None else {}
     profiles = profiles or SourceRecordProfiles(repo_root)
     artifact_validators = {}
     for expected_type, relative in _object_catalog_refs(repo_root, profiles).items():
@@ -447,9 +452,9 @@ def _load_object_catalog(repo_root: Path, profiles: SourceRecordProfiles | None 
     return objects
 
 
-def _load_claim_catalog(repo_root: Path, profiles=None) -> list[dict[str, Any]]:
+def _load_claim_catalog(repo_root: Path, profiles=None, storage=None) -> list[dict[str, Any]]:
     path = repo_root / CLAIM_CATALOG_REF
-    claims: list[dict[str, Any]] = []
+    claims = storage.sequence() if storage is not None else []
     seen: set[str] = set()
     for line_number, entry in iter_jsonl(path, repo_root):
         location = f"{CLAIM_CATALOG_REF}:{line_number}"
@@ -535,11 +540,32 @@ def _validate_historical_claim(claim: dict[str, Any], objects: dict[str, dict[st
             raise BibliographicGraphBuildError(f"{claim['claim_id']}: historical {field} violates registry domain/range")
 
 
+class _SourceClaimRows:
+    """Build-scoped source rows; each file is parsed once and rebound at finish."""
+    def __init__(self, repo_root, storage):
+        self.root = repo_root
+        self.rows = storage.mapping()
+        self.bindings = {}
+
+    def get(self, ref, line, read_rows):
+        if ref not in self.bindings:
+            self.bindings[ref] = file_digest(self.root / ref)
+            for number, row in read_rows():
+                self.rows[canonical_json([ref, number])] = row
+        return self.rows.get(canonical_json([ref, line]))
+
+    def verify_current(self):
+        for ref, digest in self.bindings.items():
+            if file_digest(self.root / ref) != digest:
+                raise BibliographicGraphBuildError(f"{ref}: source claims changed during build")
+
+
 def _load_source_claim(
     entry: dict[str, Any],
     *,
     repo_root: Path,
     profiles=None,
+    source_rows=None,
 ) -> dict[str, Any]:
     source_ref = entry.get("source_claim_file_ref")
     source_line = entry.get("source_claim_line")
@@ -551,8 +577,10 @@ def _load_source_claim(
     profiled = source_path.name == SOURCE_CLAIM_BASENAME
     if profiled:
         profiles = profiles or SourceClaimProfiles(repo_root)
-    rows = dict(profiles.read_rows(source_ref) if profiled else iter_jsonl(source_path, repo_root))
-    claim = rows.get(source_line)
+    def read_rows():
+        return profiles.read_rows(source_ref) if profiled else iter_jsonl(source_path, repo_root)
+    claim = (source_rows.get(source_ref, source_line, read_rows) if source_rows is not None
+             else dict(read_rows()).get(source_line))
     if claim is None:
         raise BibliographicGraphBuildError(
             f"{entry.get('claim_id')}: {source_ref}:{source_line} does not exist"
@@ -607,9 +635,10 @@ def _scan_index(
     *,
     filename_pattern: str,
     id_field: str,
+    storage=None,
 ) -> dict[str, dict[str, Any]]:
     source_root = repo_root / SOURCE_ROOT
-    indexed: dict[str, dict[str, Any]] = {}
+    indexed = storage.mapping() if storage is not None else {}
     for path in sorted(source_root.rglob(filename_pattern)):
         if CATALOG_ROOT in path.relative_to(repo_root).parents:
             continue
@@ -945,10 +974,12 @@ def _review_node(
 def _add_node(nodes: dict[str, dict[str, Any]], node: dict[str, Any]) -> None:
     node_id = str(node["node_id"])
     prior = nodes.get(node_id)
-    if prior is not None and prior != node:
-        raise BibliographicGraphBuildError(
-            f"{node_id}: the same projected node was derived with conflicting content"
-        )
+    if prior is not None:
+        if prior != node:
+            raise BibliographicGraphBuildError(
+                f"{node_id}: the same projected node was derived with conflicting content"
+            )
+        return
     nodes[node_id] = node
 
 
@@ -981,26 +1012,41 @@ def _edge(
     }
 
 
-def _validate_cross_references(payload: dict[str, Any]) -> None:
-    nodes = {
-        node["node_id"]: node
+def _validate_cross_references(payload: dict[str, Any], storage=None) -> None:
+    make_map = storage.mapping if storage is not None else dict
+    def node_facts(node):
+        if storage is None:
+            return node
+        # Incidence checks need identity facts, not repeated decoding of a
+        # potentially large provenance body for every incident edge.
+        return {"node_kind": node.get("node_kind"), "source_sha256": node.get("source_sha256"),
+                "properties": {key: node.get("properties", {}).get(key)
+                               for key in ("object", "identity_kind")}}
+
+    nodes = make_map((
+        (node["node_id"], node_facts(node))
         for node in payload["nodes"]
         if isinstance(node, dict) and isinstance(node.get("node_id"), str)
-    }
+    ))
     if len(nodes) != len(payload["nodes"]):
         raise BibliographicGraphBuildError("projected node IDs must be unique")
-    edges = {
-        edge["edge_id"]: edge
+    edges = make_map((
+        (edge["edge_id"], edge if storage is None else {
+            key: edge.get(key) for key in ("edge_kind", "to_id", "claim_ref")})
         for edge in payload["edges"]
         if isinstance(edge, dict) and isinstance(edge.get("edge_id"), str)
-    }
+    ))
     if len(edges) != len(payload["edges"]):
         raise BibliographicGraphBuildError("projected edge IDs must be unique")
-    claim_nodes = {
-        node["properties"]["claim_ref"]: node["node_id"]
+    claim_nodes = make_map((
+        (node["properties"]["claim_ref"], node["node_id"])
         for node in payload["nodes"]
         if node["node_kind"] == "claim"
-    }
+    ))
+    # One incidence pass, not an all-edge scan for every claim trace.
+    edge_ids_by_claim = storage.groups() if storage is not None else defaultdict(list)
+    for edge_id, edge in edges.items():
+        edge_ids_by_claim[edge["claim_ref"]].append(edge_id)
     for edge in payload["edges"]:
         for field in (
             "from_id",
@@ -1083,11 +1129,7 @@ def _validate_cross_references(payload: dict[str, Any]) -> None:
             raise BibliographicGraphBuildError(
                 f"{claim_ref}: trace edge does not resolve"
             )
-        expected_edge_ids = {
-            edge_id
-            for edge_id, edge in edges.items()
-            if edge["claim_ref"] == claim_ref
-        }
+        expected_edge_ids = set(edge_ids_by_claim.get(claim_ref, ()))
         if set(trace["edge_ids"]) != expected_edge_ids:
             raise BibliographicGraphBuildError(
                 f"{claim_ref}: trace edge set differs from projected claim edges"
@@ -1137,10 +1179,13 @@ def _validate_cross_references(payload: dict[str, Any]) -> None:
 def _projection_fingerprint(payload: dict[str, Any]) -> str:
     material = dict(payload)
     material.pop("projection_fingerprint", None)
+    if any(isinstance(value, (DiskSequence, DiskMap)) for value in material.values()):
+        return streaming_digest(material)
     return canonical_digest(material)
 
 
-def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSnapshot | None = None) -> dict[str, Any]:
+def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSnapshot | None = None,
+                  storage=None) -> dict[str, Any]:
     manifest = load_json(repo_root / CATALOG_MANIFEST_REF)
     if manifest.get("schema_version") != "tos_source_witness_catalog_v3":
         raise BibliographicGraphBuildError(
@@ -1156,7 +1201,7 @@ def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSn
     input_digests = _catalog_input_digests(repo_root, profiles)
     for ref in (CLAIM_REGISTRY_REF, CLAIM_CONTRACT_REF):
         input_digests[ref] = file_digest(repo_root / ref)
-    objects = _load_object_catalog(repo_root, profiles)
+    objects = _load_object_catalog(repo_root, profiles, storage)
     used_profiles = {entry['record_type'] for entry in objects.values()
                      if entry.get('source_schema_ref') != COMPOSITE_SCHEMA} & profiles.profiles.keys()
     profile_layers = {profiles.profiles[kind]['graph_layer'] for kind in used_profiles}
@@ -1178,15 +1223,17 @@ def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSn
         if '_human_forms_source_ref' in entry:
             input_digests[entry['_human_forms_source_ref']] = entry['_human_forms_sha256']
     input_digests = dict(sorted(input_digests.items()))
-    raw_claim_entries = [entry for _line_number, entry in iter_jsonl(repo_root / CLAIM_CATALOG_REF, repo_root)]
-    catalog_claim_count = len(raw_claim_entries)
+    catalog_claim_count = 0
+    has_profiled_claims = False
+    for _line_number, entry in iter_jsonl(repo_root / CLAIM_CATALOG_REF, repo_root):
+        catalog_claim_count += 1
+        has_profiled_claims |= Path(str(entry.get('source_claim_file_ref', ''))).name == SOURCE_CLAIM_BASENAME
     if manifest.get("counts", {}).get("claim") != catalog_claim_count:
         raise BibliographicGraphBuildError(
             f"{CATALOG_MANIFEST_REF}: claim count differs from the claim catalog"
         )
-    claim_profiles = (SourceClaimProfiles(repo_root) if any(
-        Path(str(entry.get('source_claim_file_ref', ''))).name == SOURCE_CLAIM_BASENAME for entry in raw_claim_entries) else None)
-    claim_entries = _load_claim_catalog(repo_root, claim_profiles)
+    claim_profiles = SourceClaimProfiles(repo_root) if has_profiled_claims else None
+    claim_entries = _load_claim_catalog(repo_root, claim_profiles, storage)
     historical_contract = (_historical_claim_contract(repo_root)
                            if any(entry.get('predicate') in HISTORICAL_PREDICATES for entry in claim_entries) else None)
 
@@ -1194,16 +1241,18 @@ def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSn
         repo_root,
         filename_pattern="*provenance*.jsonl",
         id_field="event_id",
+        storage=storage,
     )
     anchors = _scan_index(
         repo_root,
         filename_pattern="*anchor*.jsonl",
         id_field="anchor_id",
+        storage=storage,
     )
 
-    nodes: dict[str, dict[str, Any]] = {}
-    edges: list[dict[str, Any]] = []
-    traces: list[dict[str, Any]] = []
+    nodes = storage.mapping() if storage is not None else {}
+    edges = storage.sequence() if storage is not None else []
+    traces = storage.sequence() if storage is not None else []
     review_counts: Counter[str] = Counter()
     visibility_counts: Counter[str] = Counter()
     claim_ids = {str(entry["claim_id"]) for entry in claim_entries}
@@ -1214,8 +1263,10 @@ def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSn
     for record in objects.values():
         _add_node(nodes, _identity_node(record))
 
+    source_rows = _SourceClaimRows(repo_root, storage) if storage is not None else None
     for entry in claim_entries:
-        claim = _load_source_claim(entry, repo_root=repo_root, profiles=claim_profiles)
+        claim = _load_source_claim(entry, repo_root=repo_root, profiles=claim_profiles,
+                                   source_rows=source_rows)
         if Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME:
             claim_profiles.validate(claim, objects)
         elif claim.get('predicate') in HISTORICAL_PREDICATES:
@@ -1258,16 +1309,21 @@ def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSn
         _add_node(nodes, claim_node)
 
         event_ref = str(claim["provenance_event_ref"])
-        indexed_event = events.get(event_ref)
-        if indexed_event is None:
-            raise BibliographicGraphBuildError(
-                f"{claim_id}: provenance event {event_ref!r} does not resolve"
-            )
-        if indexed_event['payload'].get('schema_version') == 'tos_provenance_event_v2':
-            schema_ref = 'ToS/contracts/provenance-event-v2.schema.json'
-            input_digests[schema_ref] = file_digest(repo_root / schema_ref)
-        event_node = _event_node(indexed_event, repo_root=repo_root)
-        _add_node(nodes, event_node)
+        event_node_id = _node_id("provenance_event", event_ref)
+        if event_node_id not in nodes:
+            # _scan_index already rejects conflicting duplicate event IDs.
+            # This immutable build-owned row has one validation/projection,
+            # regardless of the number of claims returning to that event.
+            indexed_event = events.get(event_ref)
+            if indexed_event is None:
+                raise BibliographicGraphBuildError(
+                    f"{claim_id}: provenance event {event_ref!r} does not resolve"
+                )
+            if indexed_event['payload'].get('schema_version') == 'tos_provenance_event_v2':
+                schema_ref = 'ToS/contracts/provenance-event-v2.schema.json'
+                input_digests[schema_ref] = file_digest(repo_root / schema_ref)
+            _add_node(nodes, _event_node(indexed_event, repo_root=repo_root))
+        event_node = {"node_id": event_node_id}
 
         maker = claim["maker"]
         if not isinstance(maker, dict):
@@ -1444,7 +1500,7 @@ def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSn
         review_counts[str(claim["review_status"])] += 1
         visibility_counts[str(claim["visibility"])] += 1
 
-    nodes_list = sorted(nodes.values(), key=lambda node: str(node["node_id"]))
+    nodes_list = ordered_rows(storage, nodes.values(), "node_id")
     edges.sort(key=lambda edge: str(edge["edge_id"]))
     traces.sort(key=lambda trace: str(trace["claim_ref"]))
     node_kind_counts = Counter(str(node["node_kind"]) for node in nodes_list)
@@ -1523,7 +1579,9 @@ def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSn
             'publication clearance for assessed forms, assessment limits or source context')
     payload["projection_fingerprint"] = _projection_fingerprint(payload)
     validate_payload_schema(payload, repo_root)
-    _validate_cross_references(payload)
+    _validate_cross_references(payload, storage)
+    if source_rows is not None:
+        source_rows.verify_current()
     return payload
 
 
@@ -1535,13 +1593,15 @@ def load_verified_projection(
     repo_root: Path = REPO_ROOT,
     *,
     graph_path: Path | None = None,
+    storage=None,
 ) -> dict[str, Any]:
     """Load the tracked reader only after exact source-parity verification."""
 
     path = graph_path or repo_root / GRAPH_REF
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        payload = (disk_payload(ProjectionReader(path), storage)
+                   if storage is not None and is_partitioned(path) else load_projection(path))
+    except (OSError, json.JSONDecodeError, ProjectionStoreError) as exc:
         try:
             location = repo_ref(path, repo_root)
         except ValueError:
@@ -1555,14 +1615,16 @@ def load_verified_projection(
         )
 
     validate_payload_schema(payload, repo_root)
-    _validate_cross_references(payload)
+    _validate_cross_references(payload, storage)
     if payload.get("projection_fingerprint") != _projection_fingerprint(payload):
         raise BibliographicGraphBuildError(
             f"{GRAPH_REF}: projection fingerprint does not match graph content"
         )
 
-    expected = build_payload(repo_root)
-    if render_payload(payload) != render_payload(expected):
+    expected = build_payload(repo_root, storage=storage)
+    if is_partitioned(path):
+        check_partitioned_payload(path, expected)
+    elif streaming_digest(payload) != streaming_digest(expected):
         raise BibliographicGraphBuildError(
             f"{GRAPH_REF}: graph differs from the exact source-backed rebuild"
         )
@@ -1606,6 +1668,7 @@ def query_projection(
     review_status: str | None = None,
     visibility: str | None = None,
     limit: int = 20,
+    storage=None,
 ) -> dict[str, Any]:
     """Return deterministic, source-backed claim bundles using AND semantics."""
 
@@ -1630,47 +1693,58 @@ def query_projection(
         raise BibliographicGraphBuildError("query limit must be an integer from 1 to 100")
 
     validate_payload_schema(payload, repo_root)
-    _validate_cross_references(payload)
+    _validate_cross_references(payload, storage)
     if payload.get("projection_fingerprint") != _projection_fingerprint(payload):
         raise BibliographicGraphBuildError(
             "projection fingerprint does not match graph content"
         )
 
-    nodes = {node["node_id"]: node for node in payload["nodes"]}
-    edges_by_claim: dict[str, list[dict[str, Any]]] = {}
-    for edge in payload["edges"]:
-        edges_by_claim.setdefault(str(edge["claim_ref"]), []).append(edge)
-    for edges in edges_by_claim.values():
-        edges.sort(key=lambda edge: str(edge["edge_id"]))
-
-    selected: list[dict[str, Any]] = []
+    make_map = storage.mapping if storage is not None else dict
+    identities = make_map((node["node_id"], {
+        "node_kind": node["node_kind"], "identity_ref": node["properties"].get("identity_ref")
+    }) for node in payload["nodes"])
+    selected_traces = []
+    matched_count = 0
     for trace in payload["claim_traces"]:
-        subject_node = nodes[trace["subject_node_id"]]
-        object_node = nodes[trace["object_node_id"]]
-        trace_subject_ref = subject_node["properties"].get("identity_ref")
-        trace_object_ref = (
-            object_node["properties"].get("identity_ref")
-            if object_node["node_kind"] == "identity"
-            else None
-        )
+        subject = identities[trace["subject_node_id"]]
+        object_ = identities[trace["object_node_id"]]
         trace_normalized_refs = {
-            str(nodes[node_id]["properties"].get("identity_ref"))
+            str(identities[node_id]["identity_ref"])
             for node_id in trace.get("normalized_identity_node_ids", [])
         }
         values = {
             "claim_ref": trace["claim_ref"],
-            "subject_ref": trace_subject_ref,
-            "object_ref": trace_object_ref,
-            "normalized_ref": normalized_ref
-            if normalized_ref in trace_normalized_refs
-            else None,
+            "subject_ref": subject["identity_ref"],
+            "object_ref": object_["identity_ref"] if object_["node_kind"] == "identity" else None,
+            "normalized_ref": normalized_ref if normalized_ref in trace_normalized_refs else None,
             "predicate": trace["predicate"],
             "review_status": trace["review_status"],
             "visibility": trace["visibility"],
         }
         if any(values[key] != value for key, value in selectors.items()):
             continue
+        matched_count += 1
+        if matched_count <= limit:
+            selected_traces.append(trace)
 
+    # Full validation above remains source-complete. Only matching bundles
+    # need their full node and edge bodies assembled for source return.
+    selected_ids = set()
+    selected_claims = {trace["claim_ref"] for trace in selected_traces}
+    for trace in selected_traces:
+        selected_ids.update(trace[key] for key in ("claim_node_id", "subject_node_id", "object_node_id",
+                                                   "maker_node_id", "provenance_event_node_id"))
+        for key in ("evidence_node_ids", "counterevidence_node_ids", "review_node_ids", "normalized_identity_node_ids"):
+            selected_ids.update(trace.get(key, []))
+    nodes = make_map((node["node_id"], node) for node in payload["nodes"] if node["node_id"] in selected_ids)
+    edges_by_claim = storage.groups() if storage is not None else defaultdict(list)
+    for edge in payload["edges"]:
+        if edge["claim_ref"] in selected_claims:
+            edges_by_claim.setdefault(str(edge["claim_ref"]), []).append(edge)
+    selected: list[dict[str, Any]] = []
+    for trace in selected_traces:
+        subject_node = nodes[trace["subject_node_id"]]
+        object_node = nodes[trace["object_node_id"]]
         source_claim = _source_claim_for_trace(trace, repo_root=repo_root)
         selected.append(
             {
@@ -1704,14 +1778,14 @@ def query_projection(
                     nodes[node_id]
                     for node_id in trace.get("normalized_identity_node_ids", [])
                 ],
-                "edges": edges_by_claim[trace["claim_ref"]],
+                "edges": sorted(edges_by_claim[trace["claim_ref"]], key=lambda edge: str(edge["edge_id"])),
             }
         )
 
     selected.sort(key=lambda match: str(match["claim_ref"]))
-    if len(selected) > limit:
+    if matched_count > limit:
         raise BibliographicGraphBuildError(
-            f"query matched {len(selected)} claims, exceeding explicit limit {limit}"
+            f"query matched {matched_count} claims, exceeding explicit limit {limit}"
         )
 
     query = {
@@ -1724,15 +1798,18 @@ def query_projection(
         "query": query,
         "claim_refs": [match["claim_ref"] for match in selected],
     }
+    logical_digest = hashlib.sha256()
+    for chunk in json_chunks(payload):
+        logical_digest.update(chunk.encode("utf-8"))
+    logical_digest.update(b"\n")
     return {
         "schema_version": "tos_source_witness_bibliographic_query_result_v1",
         "status": "ok" if selected else "no_match",
         "owner_repo": "Tree-of-Sophia",
         "surface_kind": "ephemeral_source_witness_bibliographic_query_result",
         "source_graph_ref": GRAPH_REF,
-        "source_graph_sha256": hashlib.sha256(
-            render_payload(payload).encode("utf-8")
-        ).hexdigest(),
+        "source_graph_sha256": logical_digest.hexdigest(),
+        "source_graph_digest_scope": "canonical-logical-json-with-trailing-newline",
         "source_graph_fingerprint": payload["projection_fingerprint"],
         "query": query,
         "query_fingerprint": canonical_digest(query_material),

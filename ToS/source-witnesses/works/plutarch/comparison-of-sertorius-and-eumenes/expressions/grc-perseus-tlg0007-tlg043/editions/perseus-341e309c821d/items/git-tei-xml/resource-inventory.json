@@ -1,0 +1,276 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "schema_version": "tos_source_resource_inventory_v1",
+  "item_id": "tos.item.plutarch.comparison-of-sertorius-and-eumenes.grc-perseus-tlg0007-tlg043.perseus-341e309c821d.git-tei-xml",
+  "generated_from_manifest_ref": "ToS/source-witnesses/works/plutarch/comparison-of-sertorius-and-eumenes/expressions/grc-perseus-tlg0007-tlg043/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+  "inventory_authority": "mechanical_metadata_only",
+  "source_text_included": false,
+  "files": [
+    {
+      "file_id": "tos.file.sha256.5edfaea8d8d4d68e5e1e9331e6da53eb2ce558dec00c518bea2b9f8cd5aee2a6",
+      "file_sha256": "5edfaea8d8d4d68e5e1e9331e6da53eb2ce558dec00c518bea2b9f8cd5aee2a6",
+      "media_type": "application/tei+xml",
+      "profile": "tei_structure_v1",
+      "summary": {
+        "resource_count": 15,
+        "page_break_count": 5,
+        "division_count": 10,
+        "max_division_depth": 3
+      },
+      "resources": [
+        {
+          "resource_id": "tei-div-0001",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]",
+            "tei_depth": 1,
+            "tei_n": "urn:cts:greekLit:tlg0007.tlg043.perseus-grc2",
+            "tei_type": "edition"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "3d79810054a67f04a630bb5b37a699303116e206c917608decba313033182550",
+            "character_count": 2582
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "4c05eed24c935f9208e4955013d6eeee0f13510416d16e2c3b03b6a4670bda53",
+            "character_count": 32
+          }
+        },
+        {
+          "resource_id": "tei-pb-0001",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/pb[1]",
+            "tei_page_label": "p.136",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0002",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]",
+            "tei_depth": 2,
+            "tei_page_label": "p.136",
+            "tei_n": "1",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "f7f46e0c697fc8603d99d136032087a7e1642795bbb22a83ea6909d60117a813",
+            "character_count": 1253
+          }
+        },
+        {
+          "resource_id": "tei-div-0003",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[1]",
+            "tei_depth": 3,
+            "tei_page_label": "p.136",
+            "tei_n": "1",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "40003571d7662594441c5cb282d05af427fa78e27f8ac35c10e2fed9b215a312",
+            "character_count": 572
+          }
+        },
+        {
+          "resource_id": "tei-pb-0002",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[1]/p[1]/pb[1]",
+            "tei_page_label": "paris.1624.595",
+            "parent_resource_id": "tei-div-0003"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0003",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[1]/p[1]/pb[2]",
+            "tei_page_label": "p.138",
+            "parent_resource_id": "tei-div-0003"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0004",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[2]",
+            "tei_depth": 3,
+            "tei_page_label": "p.138",
+            "tei_n": "2",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "bea065a6158a62d0207701d24f646e40ce4f27e1ce9b296c470686d2269a3e86",
+            "character_count": 397
+          }
+        },
+        {
+          "resource_id": "tei-div-0005",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[3]",
+            "tei_depth": 3,
+            "tei_page_label": "p.138",
+            "tei_n": "3",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "897d804b46bc5122ee02951152d86ffbe3bfa7f8f5853eb5b554eeaebd300cb7",
+            "character_count": 282
+          }
+        },
+        {
+          "resource_id": "tei-div-0006",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]",
+            "tei_depth": 2,
+            "tei_page_label": "p.138",
+            "tei_n": "2",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a8f9dd87024cec47229893cee608f9978cf71914d1238caa31f368f37186851d",
+            "character_count": 1295
+          }
+        },
+        {
+          "resource_id": "tei-div-0007",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[1]",
+            "tei_depth": 3,
+            "tei_page_label": "p.138",
+            "tei_n": "1",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0006"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "130ac1b31cc02c67effbb0d1032e584dd164dd012237d8508f7da7cafe80d007",
+            "character_count": 382
+          }
+        },
+        {
+          "resource_id": "tei-pb-0004",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[1]/p[1]/pb[1]",
+            "tei_page_label": "p.140",
+            "parent_resource_id": "tei-div-0007"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0008",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[2]",
+            "tei_depth": 3,
+            "tei_page_label": "p.140",
+            "tei_n": "2",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0006"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "144440c2315ea7c7c6e1d22bc94f66b76bc19b4801dce18cb446b604972fe2ab",
+            "character_count": 260
+          }
+        },
+        {
+          "resource_id": "tei-div-0009",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[3]",
+            "tei_depth": 3,
+            "tei_page_label": "p.140",
+            "tei_n": "3",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0006"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "8b11a9d8f075c3a7031bf7bee41819f994b21327fc933fd81746a6a3684334d2",
+            "character_count": 296
+          }
+        },
+        {
+          "resource_id": "tei-div-0010",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[4]",
+            "tei_depth": 3,
+            "tei_page_label": "p.140",
+            "tei_n": "4",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0006"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7a6100807e4f00e1f61475ef5ae4b5551f719b19be295c7caa98f983c001bbf8",
+            "character_count": 354
+          }
+        },
+        {
+          "resource_id": "tei-pb-0005",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[4]/p[1]/pb[1]",
+            "tei_page_label": "paris.1624.596",
+            "parent_resource_id": "tei-div-0010"
+          },
+          "structural_role": "page_break"
+        }
+      ]
+    }
+  ],
+  "generator": {
+    "name": "build_source_resource_inventories.py",
+    "version": "1"
+  },
+  "provenance_event_ref": "tos.event.resource-inventory.plutarch.comparison-of-sertorius-and-eumenes.grc-perseus-tlg0007-tlg043.perseus-341e309c821d.git-tei-xml.2026-09-09",
+  "inventory_version": 1,
+  "supersedes_inventory_ref": null,
+  "authority_boundary": "resource enumeration, geometry, ordering, counts, and one-way fingerprints only; no source text, bibliographic acceptance, textual acceptance, rights clearance, translation, semantics, or canon authority"
+}

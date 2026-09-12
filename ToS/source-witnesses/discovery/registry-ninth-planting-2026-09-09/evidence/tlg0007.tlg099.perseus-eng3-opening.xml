@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>Whether vice be sufficient to cause unhappiness</title>
+				<author>Plutarch</author>
+				<editor role="translator">William Clark Helmbold</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Lucy Parr</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg099.perseus-eng3.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>Plutarch</author>
+						<title xml:lang="lat">Moralia</title>
+						<editor role="translator">William Clark Helmbold</editor>
+						<imprint>
+							<pubPlace>Cambridge, MA</pubPlace>
+							<publisher>Harvard University Press</publisher>
+							<pubPlace>London</pubPlace>
+							<publisher>William Heinemann Ltd.</publisher>
+							<date type="printing">1939</date>
+						</imprint>
+						<biblScope unit="volume">6</biblScope>
+					</monogr>
+					<series>
+						<title>Loeb Classical Library</title>
+					</series> 
+					<ref target="https://archive.org/details/moraliainfifteen06plutuoft/page/358">The Internet
+						Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+				<!-- <state unit="section"/> -->
+			</refsDecl>
+			<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+				<language ident="lat">Latin</language>
+				<language ident="deu">German</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="RS" when="2010-05">tagged and parsed</change>
+			<change who="Lucy Parr" when="2019-07-15">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg099.perseus-eng3">
+			<div n="urn:cts:greekLit:tlg0007.tlg099.perseus-eng3" type="translation" xml:lang="eng">
+				<pb xml:id="v.6.p.361"/>
+				<head>WHETHER VICE BE SUFFICIENT TO CAUSE UNHAPPINESS (<foreign xml:lang="lat">AN VITIOSITAS AD FELICITATEM SUFFICIAT</foreign>) <lb/></head>
+				<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg099.perseus-eng3" n="intro"> <head>INTRODUCTION</head> <p rend="indent"> Again we have a fragment, mutilated at the beginning and the end.<note resp="editor" place="inline" anchored="true">There may, in addition, be a lacuna between chapters 1 and 2.</note> The attribution to Plutarch has been questioned by Dübner, Hense,<note resp="editor" place="inline" anchored="true"> <title rend="italic">Teletea</title>, p. lxxxix., note.</note> Naber, and Hartman,<note resp="editor" place="inline" anchored="true"> <title xml:lang="lat" rend="italic">De Plutarcho</title>, pp. 249-253.</note> but on insufficient grounds, which have, in the main, been explained away by Siefert,<note resp="editor" place="inline" anchored="true"> <title xml:lang="lat" rend="italic">Commentationes Ienenses</title>, 1896, pp. 110-119.</note> who has also analysed the structure of the work and the Plutarchean parallels. Wilamowitz,<note resp="editor" place="inline" anchored="true"> <title rend="italic">Hermes</title>, xl. 161-165.</note> on the other hand, believed this and the following fragment to be scraps of the same dialogue: I follow Pohlenz in rejecting this view.<note resp="editor" place="inline" anchored="true">Similarly Usener, <title xml:lang="deu" rend="italic">Fleckeisens Jahrb.</title>, cxxxix. 381, believed this treatise to be a fragment of the work mentioned in the Lamprias catalogue as No. 84: <foreign xml:lang="grc">Ἀμμώνιος ἢ περὶ τοῦ μὴ ἡδέως τῇ κακίᾳ συνεῖναι</foreign>.</note> </p> 
+					<p rend="indent">The text is not good, and the work is not mentioned in the Lamprias catalogue. </p> </div>
+				<pb xml:id="v.6.p.363"/>
+				<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg099.perseus-eng3" n="1"><p rend="indent">...<note resp="editor" place="inline" anchored="true">This passage is tantalizing, not only because so much is lost of the text, and because the text is so corrupt, but chiefly because since the discovery of the Claremont fragments of Euripides’ <title rend="italic">Phaëthon</title> we may perceive that this play, of whose ingenious plot we now know a good deal, colours the whole of the opening passage. In the play Phaëthon, declining to accept marriage with the goddess to whom his mother Clymene wished to marry him, speaks the first verse quoted; and there are probably further quotations from the play in the second sentence (<foreign xml:lang="grc">πολλῆς διὰ τέφρας ἀλλὰ πυρκαϊᾶς τινος</foreign>). It is quite possible that Phaëthon himself swears that he will go through <q type="translation">heaps of cinders</q> rather than marry the goddess; and in the play there is in fact a <q type="translation">royal conflagration</q> when the Sun’s treasure-house burns (see Nauck, p. 601). But it cannot be too strongly insisted that the text is very corrupt and that the restorations here adopted can claim only an approximation to the truth.</note> He will not submit to (such a marriage)<note resp="editor" place="inline" anchored="true">Conjecturally supplied.</note> <quote rend="blockquote">His body bartered for the dower’s sake,</quote> as Euripides<note resp="editor" place="inline" anchored="true">Nauck, <title xml:lang="lat" rend="italic">Trag. Graec. Frag.</title> <hi rend="superscript">2</hi>, p. 606, Frag. 775, from the <title rend="italic">Phaëthon</title>; <foreign xml:lang="lat">cf. <title rend="italic">Moralia</title></foreign>, 13 f; Plautus, <title rend="italic">Asinaria</title>, 87.</note> says; but he has only a slight and precarious reason for being envied. For this man (i

@@ -1,0 +1,293 @@
+{
+  "schema_version": "tos_source_planting_preparation_batch_v1",
+  "status": "prepared-not-planted",
+  "review_scope": "5 English translations attached to existing Works and A29 branches",
+  "reviewer_ref": "model:codex",
+  "targets": [
+    {
+      "target_slug": "de-senectute-english",
+      "registry_source_record_id": "A29-R027",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "1450206154e1c8c0eef5f79a9520913511e283f8e08357b2d3e1c77a44eca411"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "parallel-translation-of-existing-work",
+      "scope_rationale": "English reading version of De Senectute alongside the already retained Latin version within the Цицероновский корпус source need. The corpus lead and other versions remain open.",
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography."
+      ]
+    },
+    {
+      "target_slug": "de-amicitia-english",
+      "registry_source_record_id": "A29-R027",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "1450206154e1c8c0eef5f79a9520913511e283f8e08357b2d3e1c77a44eca411"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "parallel-translation-of-existing-work",
+      "scope_rationale": "English reading version of De Amicitia alongside the already retained Latin version within the Цицероновский корпус source need. The corpus lead and other versions remain open.",
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography."
+      ]
+    },
+    {
+      "target_slug": "de-divinatione-english",
+      "registry_source_record_id": "A29-R027",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "1450206154e1c8c0eef5f79a9520913511e283f8e08357b2d3e1c77a44eca411"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "parallel-translation-of-existing-work",
+      "scope_rationale": "English reading version of De Divinatione alongside the already retained Latin version within the Цицероновский корпус source need. The corpus lead and other versions remain open.",
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography."
+      ]
+    },
+    {
+      "target_slug": "de-officiis-english",
+      "registry_source_record_id": "A29-R027",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "1450206154e1c8c0eef5f79a9520913511e283f8e08357b2d3e1c77a44eca411"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "parallel-translation-of-existing-work",
+      "scope_rationale": "English reading version of De Officiis alongside the already retained Latin version within the Цицероновский корпус source need. The corpus lead and other versions remain open.",
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography."
+      ]
+    },
+    {
+      "target_slug": "de-rerum-natura-english",
+      "registry_source_record_id": "A29-R041",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "1450206154e1c8c0eef5f79a9520913511e283f8e08357b2d3e1c77a44eca411"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 17,
+          "source_table_index": 14,
+          "source_row_index": 7,
+          "source_label": "De rerum natura"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "62e30f7688d9342210bc92711267c13e43b6dbbde9cfb258521abe1468869fdd",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Эпикурейская физика, клинамен, критика страха и религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [83]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "De rerum natura",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 7,
+          "source_table_index": 14,
+          "source_type": "Первичный философский текст"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "parallel-translation-of-existing-work",
+      "scope_rationale": "English reading version of De Rerum Natura alongside the already retained Latin version within the De rerum natura source need. The corpus lead and other versions remain open.",
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography."
+      ]
+    }
+  ]
+}

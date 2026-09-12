@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>How a Young Man Ought to Hear Poems</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+            <editor role="translator">Simon Ford</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+               <name>Bridget Almas</name>
+               <name>Angelia Hanhardt</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Lucy Parr</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2010-12-13">Perseus 4.0</date>
+            <idno type="filename">tlg0007.tlg068.perseus-eng4.xml</idno>
+           <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+         </publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+               </monogr>
+               <ref target="https://archive.org/details/plutarchsmoralst02plutuoft/page/42">The
+                  Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl><quotation marks="none"/></editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE
+            architecture</p>
+         <refsDecl n="CTS">
+            <cRefPattern n="section" matchPattern="(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change who="GRC" when="2006">tagging</change>
+         <change who="CHS Interns" when="2019-06-17">CTS and EpiDoc conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg068.perseus-eng4">
+         
+<div n="urn:cts:greekLit:tlg0007.tlg068.perseus-eng4" type="translation" xml:lang="eng"> 
+<pb xml:id="v.2.p.42"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg068.perseus-eng4" n="1"> <head>How a young man ought to hear poems.</head> 
+<p rend="indent">It may be allowed to be a question fit for the determination of those concerning whom Cato said, Their palates are more sensitive than their hearts, whether that saying of Philoxenus the poet be true or no, The most savory flesh is that which is no flesh, and fish that is no fish. Yet this to me, Marcus Sedatus, is out of question, that those precepts of philosophy which seem not to be delivered with a designed gravity, such as becomes philosophers, take most with persons that are very young, and meet with a more ready acceptance and compliance from them. Whence it is that they do not only read through Esop’s fables and the fictions of poets and the Abaris of Heraclides and Ariston’s Lyco; but they also read such doctrines as relate to the souls of men, if something fabulous be mixed with them, with an excess of pleasure that borders on enthusiasm. Wherefore we are not only to govern their appetites in the delights of eating and drinking, but also (and much more) to inure them to a like temperance in reading and hearing, that, while they make use of pleasure as a sauce, they may pursue that which is wholesome and profitable in those things which they read. For neither can a city be secure if but one gate be left open to receive the enemy, though all the rest be shut; nor a young man safe, though he be sufficiently fortified against the assaults of all other pleasures, whilst he is without any guard against those of the ear. Yea, the nearer the commerce is betwixt 
+<pb xml:id="v.2.p.43"/> the delights of that sense and those of the mind and reason, by so much the more, when he lies open on that side, is he apt to be debauched and corrupted thereby. Seeing therefore we cannot (and perhaps would not if we could) debar young men of the size of my Soclarus and thy Cleander altogether from the reading of poets, yet let us keep the stricter guard upon them, as those who need a guide to direct them in their reading more than in their walks. Upon which consideration, I find myself disposed to send thee at present in writing that discourse concerning Poetry which I had lately an occasion to deliver by word of mouth; that, when thou hast read it over thyself, thou mayst also make such use of it, if thou judgest it may be serviceable to that purpose, as those which are engaged to drink hard do of amethysts (or preservatives against drunkenness),— that is, that thou mayst communicate it to Cleander, to prepossess him therewith; seeing he is naturally endowed with a brisk, piercing, and daring wit, and therefore more prone to be inveigled by that sort of study.</p> 
+   <p rend="indent">They say of the fish called polypus that <quote rend="blockquote"> <lg> <l>His head in one respect is very good, </l> <l>But in another very naughty food;</l> </lg> </quote> because, though it be very luscious to eat, yet it is thought to disturb the fancy with frightful and confused dreams. And the like observation may be made concerning poetry, that it affords sweet and withal wholesome nourishment to the minds of young men, but yet it contains likewise no less matter of disturbance and emotion to them that want a right conduct in the study thereof. For of it also, as well as of Egypt, may it be said that (to those who will use it) <quote rend="blockquote"> <lg> <l>Its over-fertile and luxuriant field </l> <l>Medicines and poisons intermixt doth yield;</l> </lg> </quote>  for therein <quote rend="blockquote"> <lg> <l>Love with soft passions and rich language drest </l> <l>Oft steals the heart out of th’ ingenuous breast.</l> <note place="inline" anchored="true"> <title rend="italic">Odyss.</title> IV. 230; <title rend="italic" >Il.</title> XIV. 216.</note> </lg

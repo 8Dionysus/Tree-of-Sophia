@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title xml:lang="eng">Of Hearing</title>            
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">Thomas Hoy</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name> 
+         		<name>Bridget Almas</name>
+         	   <name>Angelia Hanhardt</name>
+         	</respStmt>            
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Karina Cooper</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg069.perseus-eng4.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">1</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst01plutuoft/page/440">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl><quotation marks="none"/></editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])"> 
+      			<p>This pointer pattern extracts section.</p></cRefPattern>
+      	</refsDecl><refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         	<language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Karina Cooper" when="2019-06-24">EpiDoc and CTS conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg069.perseus-eng4">
+      	
+<div n="urn:cts:greekLit:tlg0007.tlg069.perseus-eng4" type="translation" xml:lang="eng"> <pb xml:id="v.1.p.441"/> 
+	<head>Of hearing.</head> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg069.perseus-eng4" n="1"><p rend="center"><label rend="italic">The Introduction.</label></p>
+	<p rend="indent">I HAVE sent, Nicander, the reflections of some spare hours concerning Hearing, digested into the following short essay, that being out of the hands of governors and come to man’s estate, you may know how to pay a proper attention to those who would advise you. For that libertinism which some wild young fellows, for want of more happy education, mistake for liberty, subjects them to harder tyrants than their late tutors and masters, even to their own vicious inclinations, which, as it were, break loose upon them. And as Herodotus observes of women, that they put off modesty with their shift,<note place="inline" anchored="true">Herod. I. 8.</note> so some young men lay aside with the badges of minority all the sense of shame or fear, and divested of the garment of modesty which sat so well upon them are covered with insolence. But you, who have often heard that to follow God and to obey reason are all one, cannot but believe that men of best sense in passing from minority to manhood do not throw off the government, but simply change their governor. In the room of some mercenary pedant, they receive that divine guide and governor of human life, reason, under whose subjection alone men are properly said to live in freedom. For they only live at their own will who have learned to will as they ought; and that freedom of will which appears in unconstrained appetites and unreasonable actions is mean and narrow, and accompanied with much repentance.</p> <pb xml:id="v.1.p.442"/> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg069.perseus-eng4" n="2"><p rend="indent">For as newly naturalized citizens who were entire strangers and aliens are apt to disrelish many administrations of the government; while those who have previously lived in the country, bred up under the constitution and acquainted with it, act without difficulty in their several stations, well satisfied with their condition; in like manner, a man should for a long time have been bred up in philosophy, and accustomed from his earliest years to receive his lessons and instruction mingled with philosophic reason, that so he may come at last as a kind and familiar friend to philosophy, which alone can array young men in the perfect manly robes and ornaments of reason. Therefore, I believe, some directions concerning hearing will not be ill received by you.</p>
+	<p rend="center"><label rend="italic">Remarks about Hearing in general.</label></p>
+	<p rend="indent">Of this Theophrastus affirms, that it is the most sensitive of all the senses. For the several objects of sight, tasting, and feeling do not excite in us so great disturbances and alterations as the sudden and frightful noises which assault us only at the ears. Yet in reality this sense is more rational than sensitive. For there are many organs and other parts of the body which serve as avenues and inlets to the soul to give admission to vice; there is but one passage of virtue into young minds, and that is by the ears, provided they be preserved all along free from the corruptions of flattery and untainted with lewd discourses. For this reason Xenocrates was of opinion that children ought to have a defence fitted to their ears rather than fencers or prize-players, because the ears only of the latter suffered by the blows, but the morals of the former were hurt and maimed by words. Not that he thereby recommended deafness, or forbade that they should be suffered to hear at all; but he advised only that debauchery might be kept out, till better principles, like so many guardians appointed <pb xml:id="v.1.p.443"/> by philosophy, had taken charge of that p

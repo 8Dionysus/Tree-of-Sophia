@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> <TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Otho</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         	   <name>Bridget Almas</name>
+         	   <name>Lisa Cerrato</name>
+         	   <name>Rashmi Singhal</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date> 
+      	   <idno type="filename">tlg0007.tlg066.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      	   </availability>
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1926</date>
+                  </imprint>
+                  <biblScope unit="volume">11</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives11plut/page/274/mode/2up">Internet Archive</ref> 
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-04-18" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+      	<change when="1999-08-01" who="LMC">tagged and parsed</change>
+       </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg066.perseus-eng2" type="translation" xml:lang="eng"> 
+      	<head>OTHO</head> 
+      	<note resp="editor" place="inline" anchored="true">With Plutarch’s <title>Otho</title> may be compared <bibl n="Suet. Otho 1.1">Suetonius, <title>Otho</title> </bibl>; <bibl n="D.C. 64.10">Dion Cassius, lxiv. 10-15</bibl>; <bibl n="Tac. Hist. 1.46">Tacitus, <title>Hist.</title> i. 46-ii. 49</bibl>.</note> 
+      	
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-eng2:1" n="1"><p>At daybreak the new emperor went forth to the Capitol and sacrificed; then, having ordered Marius Celsus to be brought to him, he greeted that officer, conversed with him kindly, and urged him to forget the cause of his imprisonment rather than to remember his release. Celsus replied in a manner that was neither ignoble nor ungrateful, saying that the very charge made against him afforded proof of his character, for the charge was that he had been loyal to Galba, from whom he had received no special favours. Both speakers were admired by those who were present, and the soldiery gave their approval. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-eng2:1" n="2"><p>In the senate Otho spoke at length in a kindly strain and like a popular leader. For part of the time during which he himself was to have been consul, he assigned the office to Verginius Rufus, and all those who had been designated as future consuls by Nero or Galba he confirmed in their appointment. To the priesthoods he promoted those who were preeminent in age or reputation. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-eng2:1" n="3"><p>Moreover, to all the men of senatorial rank who had been exiled under Nero and restored under Galba, he restored whatever portions of each man’s property he found to be unsold. Wherefore the citizens of highest birth and greatest influence, who before this had felt a shuddering fear that it was not a man, but some genius of retribution or avenging spirit, that had suddenly fallen upon the state, became more cheerful in their hopes for a government which wore a face so smiling. </p></div></div>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-eng2:2" n="1"><p>But nothing so gladdened all Romans alike, and won their allegiance to the new emperor so much, as his treatment of Tigellinus. Men were not aware that Tigellinus was already punished by his very fear of that punishment which the city was demanding as a debt due to the public, </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-eng2:2" n="2"><p>and also by incurable bodily diseases; and besides, there were those unhallowed and unspeakable grovellings of his among the vilest harlots, for which his lustful nature still panted, clutching after them as his life painfully ebbed away; these were looked upon by reasonable men as extremest punishment and an equivalent of many deaths. Nevertheless it vexed the common people that he should see the light of day after so many good men had been robbed of that light by him. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-eng2:2" n="3"><p>Accordingly, Otho sent a messenger to fetch him from his country estate at Sinuessa; for he was staying there, where vessels lay at anchor, that he might fly to more distant parts. He tried to bribe the messenger with a large sum of money to let him go, but failing in this, he made him gifts nevertheless, and begged him to wait till he had shaved; and taking the razor he cut his own throat. </p></div></div>
+<div type="textpart" su

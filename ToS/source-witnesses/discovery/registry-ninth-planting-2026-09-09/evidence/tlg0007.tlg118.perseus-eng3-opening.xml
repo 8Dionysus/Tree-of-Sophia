@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>Precepts of Statecraft</title>
+				<author>Plutarch</author>
+				<editor role="translator">Harold North Fowler</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+					<name>Michael Konieczny</name>
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Lucy Parr</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg118.perseus-eng3.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>Plutarch</author>
+						<title xml:lang="lat">Moralia</title>
+						<editor role="translator">Harold North Fowler</editor>
+						<imprint>
+							<pubPlace>Cambridge, MA</pubPlace>
+							<publisher>Harvard University Press</publisher>
+							<pubPlace>London</pubPlace>
+							<publisher>William Heinemann Ltd.</publisher>
+							<date type="printing">1936</date>
+						</imprint>
+						<biblScope unit="volume">10</biblScope>
+					</monogr>
+					<series><title>Loeb Classical Library</title></series>
+					<ref target="https://archive.org/details/moraliainfifteen10plutuoft/page/154">The Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+				<!-- <state unit="section"/> -->
+			</refsDecl>
+			<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+				<language ident="lat">Latin</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="RS" when="2010-05">tagged and parsed</change>
+			<change who="Lucy Parr" when="2019-07-18">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg118.perseus-eng3">
+     <div n="urn:cts:greekLit:tlg0007.tlg118.perseus-eng3" type="translation" xml:lang="eng">
+				<pb xml:id="v.10.p.156"/>
+				
+					<head>PRECEPTS OF STATECRAFT (<foreign xml:lang="lat">PRAECEPTA GERENDAE REIPUBLICAE</foreign>)
+						</head>
+     <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg118.perseus-eng3" n="intro"> <head>INTRODUCTION</head> <p rend="indent">This essay is addressed to Menemachus, a young man who has asked Plutarch for advice concerning public life. Nothing further is known of the young man, except that Pardalas of Sardis is mentioned as his fellow-citizen (813 f; 825 d); but some of those to whom Plutarch’s various essays are addressed are known to be real persons, and it is, therefore, probable that Menemachus also actually existed. Plutarch held at different times various public offices, and moreover he was highly regarded by his fellowcitizens and many others as a guide, philosopher, and friend; it is, therefore, not unnatural that a young man who was thinldng of entering upon a political career should appeal to him for advice and counsel, though it is also possible that Plutarch wrote the essay without being asked to do so and addressed it to Menemachus merely as a matter of form. </p> 
+     	<p rend="indent">There is nothing profoundly philosophical and very little purely theoretical to be found here. Greece, like most of the known world, was a part of the Roman Empire, and the exercise of statecraft on a large scale was virtually limited to Romans. The ancient Greek city-states retained, however, their local self-government, subject to the supervision of the proconsul; they could enter into agreements with each other, and could send envoys to Rome if <pb xml:id="v.10.p.157"/> occasion arose. A man could, therefore, find useful and honourable occupation in public life, as Plutarch himself did. Although he frequently uses the great men of the great days of Greece as examples, Plutarch gives the sort of advice which would be useful to one engaged insuch political activity as was open to a Greek in his time. Some of his advice is applicable only to his own times and its conditions, but the politician or statesman of any age may recognize many of his precepts as common sense, the application of which is limited to no time or place. The essay is, then, of interest, not only because it throws a sidelight upon the conditions in Greece in Plutarch’s time, but also on account of its own inherent value. </p> 
+     	<p rend="indent">The reference to troubles which took place <q>recently under Domitian</q> (815 d, Chapter 19) may indicate that the essay was written not long after a.d. 96, the date of Domitian’s death. </p> </div>
+<pb xml:id="v.10.p.159"/>
+     <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg118.perseus-eng3" n="1"><p rend="indent">If, Menemachus, it is suitable to apply to anything at all the saying <quote rend="blockquote"> <l>No one of all the Achaeans finds fault with the words thou hast uttered, </l> <l>Nor will oppose them in speech; and yet thou hast reached no conclusion,<note resp="editor" place="inline" anchored="true" >Homer, <title rend="italic">Il.</title> ix. 55; <foreign xml:lang="lat">cf. <title rend="italic" >Moralia</title></foreign>, 795 b.</note> </l> </quote> it may be applied to those philosophers who urge people to take lessons from them, but give no real instruction or advice; for they are like those who trim the lamps, but fail to pour in oil. Therefore, seeing that the desire has been aroused in you a <quote rend="blockquote">Speaker of speeches to be, and also a doer of actions<note resp="editor" place="inline" anchored="true">Homer, <title rend="italic" >Il.</title> ix. 443; <foreign xml:lang="lat">cf. <title rend="italic">Moralia</title></foreign>, 795 e.</note> </quote> in your native State, as befits your noble birth, since you have not time to gain an understanding of a philosopher’s life in the open amo

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>Summary of a Comparison Between Aristophanes and Menander</title>
+				<author>Plutarch</author>
+				<editor role="translator">Harold North Fowler</editor>		
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+					<name>Michael Konieczny</name>
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Ethan Della Rocca</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg122.perseus-eng3.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+					<author>Plutarch</author>
+					<title xml:lang="lat">Moralia</title>
+					<editor role="translator">Harold North Fowler</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date n="printing">1936</date>
+                  </imprint>
+                  <biblScope unit="volume">10</biblScope>
+               </monogr>
+					<series>
+						<title>Loeb Classical Library</title>
+					</series> 
+					<ref target="https://archive.org/details/moraliainfifteen10plutuoft/page/459">The Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+				<!-- <state unit="section"/> -->
+			</refsDecl>
+			<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+				<language ident="lat">Latin</language>
+			</langUsage>
+			<particDesc>
+				<person><persName>Lamachus</persName></person>
+				<person><persName>Dicaeopolis</persName></person>
+			</particDesc>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="RS" when="2010-05">tagged and parsed</change>
+			<change who="Ethan Della Rocca" when="2019-07-19">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg122.perseus-eng3">
+		<div n="urn:cts:greekLit:tlg0007.tlg122.perseus-eng3" type="translation" xml:lang="eng">
+         <pb xml:id="v.10.p.461"/>
+			<head>SUMMARY OF A COMPARISON BETWEEN ARISTOPHANES AND MENANDER (<foreign xml:lang="lat">COMPARATIONIS ARISTOPHANIS ET MENANDRI COMPENDIUM</foreign>)</head>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg122.perseus-eng3" n="intro"> <head>INTRODUCTION</head> 
+         	<p rend="indent">This is at best a summary of one of Plutarch’s lost essays, and it may well be that we have only part of the summary. Bernardakis believes that the beginning is wanting, and even for a summary the end, as we have it, appears somewhat abrupt. The Old Comedy of the fifth century b.c., whose chief representative is, and always was, Aristophanes, with its brilliant wit, occasionally beautiful poetry, biting invective, unrestrained ribaldry, and unashamed indecency, was followed in the fourth century, after the brief vogue of the Middle Comedy, by the New Comedy, whose chief representative is Menander. The New Comedy abstained from politics, indulged in no personal invective, was indecent only by innuendo, and produced dramas in which the life of the times was reflected somewhat after the manner of modern <q>society plays.</q> Plutarch not unnaturally preferred Menander’s polished comedies of character to the boisterous wit and humour of Aristophanes, and he seems to have had no appreciation of the earlier dramatist’s vigour or of his poetic imagination. </p> </div>
+         <pb xml:id="v.10.p.463"/>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg122.perseus-eng3" n="1"><p rend="indent"><gap reason="lost" rend="..."/> In general he<note resp="editor" place="inline" anchored="true"> <q>He</q> seems to mean Plutarch; the compiler of this summary (or the editor who included it among Plutarch’s works) regarding Plutarch as the author of the statements which are introduced in this first sentence.</note> much prefers Menander, and in particular he adds what follows: </p> 
+         	<p rend="indent"><q>Coarseness,</q> he says, <q>in words, vulgarity and ribaldry are present in Aristophanes, but not at all in Menander; obviously, for the uneducated, ordinary person is captivated by what the former says, but the educated man will be displeased. I refer to antitheses and similar endings and plays on words. For of these Menander does make use with proper consideration and rarely, believing that they should be treated with care, but Aristophanes employs them frequently, inopportunely, and frigidly; for his punning is applauded,</q> he says, <q>in <quote rend="blockquote"> <l>because he soused the bankers - </l> <l>Though they never were that but damn curs,<note resp="editor" place="inline" anchored="true">This quotation is not found in any collection of the fragments of Aristophanes (Bernardakis). The play on words in the Greek consists in the change of the initial letters of the words <foreign xml:lang="lat">tamias</foreign> (<q>treasurers</q>) and <foreign xml:lang="lat">Lamias</foreign>, fabulous creatures such as the bugbears with which children are frightened by their nurses.</note> </l> </quote> and <pb xml:id="v.10.p.465"/> <quote rend="blockquote">This fellow blows an ill north-east or calumny,<note resp="editor" place="inline" anchored="true"> <title rend="italic">Knights</title>, 437. In the Greek <q>north-east</q> and <q>calumny</q> both have the same endings in -<emph>ias</emph>, characteristic of the names of winds.</note> </quote> and <quote rend="blockquote">Give him a belly-punch in his bowels and guts,<note resp="editor" place="inline" anchored="true"> <title rend="italic">Knights</title>, 454. The play here consists in the use of <emph>gastrize</emph>, usually meaning <q>stuff the belly</q> with food, as <q>punch in the belly.</q> The language is intentionally coarse as being characteristic of the Sausage-dealer, Cleon’s rival for politic

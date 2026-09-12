@@ -1,0 +1,918 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "schema_version": "tos_source_resource_inventory_v1",
+  "item_id": "tos.item.cicero.pro-c-rabirio-postumo.la-perseus-phi0474-phi030.perseus-8668397510ca.git-tei-xml",
+  "generated_from_manifest_ref": "ToS/source-witnesses/works/cicero/pro-c-rabirio-postumo/expressions/la-perseus-phi0474-phi030/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+  "inventory_authority": "mechanical_metadata_only",
+  "source_text_included": false,
+  "files": [
+    {
+      "file_id": "tos.file.sha256.c4e148be165c093a5f920487bf11098cc8b5cf38ee9062b73271cbed83f5c896",
+      "file_sha256": "c4e148be165c093a5f920487bf11098cc8b5cf38ee9062b73271cbed83f5c896",
+      "media_type": "application/tei+xml",
+      "profile": "tei_structure_v1",
+      "summary": {
+        "resource_count": 49,
+        "page_break_count": 0,
+        "division_count": 49,
+        "max_division_depth": 2
+      },
+      "resources": [
+        {
+          "resource_id": "tei-div-0001",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]",
+            "tei_depth": 1,
+            "tei_type": "edition"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "35a14c00b0e53ef6d587902d69b86a4c7fe5c4e287015cbcebcd14d9cbcb531f",
+            "character_count": 27360
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d89457517c4627246c3e8c2eb762cea51cb144e864e510a7fe206fde8d621b17",
+            "character_count": 29
+          }
+        },
+        {
+          "resource_id": "tei-div-0002",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]",
+            "tei_depth": 2,
+            "tei_n": "1",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "606c747a20ddd47c50dadb13b90ce399b2de33b85db614ad383406438edc783b",
+            "character_count": 633
+          }
+        },
+        {
+          "resource_id": "tei-div-0003",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]",
+            "tei_depth": 2,
+            "tei_n": "2",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "fe88f5fe5a7764e8bf7f6d5b8d1097b3a95751d6db80f8e343cdd6a28d3e8378",
+            "character_count": 920
+          }
+        },
+        {
+          "resource_id": "tei-div-0004",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]",
+            "tei_depth": 2,
+            "tei_n": "3",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b0c4697064613668944ebc00c7973c829624057be48f71d56919136758d5fb52",
+            "character_count": 317
+          }
+        },
+        {
+          "resource_id": "tei-div-0005",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]",
+            "tei_depth": 2,
+            "tei_n": "4",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "23bf2d2e24d2e64691342fda02bc999b997758c23a8af8c5df1c54e84bed7d46",
+            "character_count": 923
+          }
+        },
+        {
+          "resource_id": "tei-div-0006",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]",
+            "tei_depth": 2,
+            "tei_n": "5",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2a8f1768eee6c25a1f47881995c489ceaa419c8b40df39be558b3dbd96339358",
+            "character_count": 523
+          }
+        },
+        {
+          "resource_id": "tei-div-0007",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]",
+            "tei_depth": 2,
+            "tei_n": "6",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5d6e30a80c2986569b7d96ebc607d26770ee3430cc04919b960780bed3cb306c",
+            "character_count": 880
+          }
+        },
+        {
+          "resource_id": "tei-div-0008",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]",
+            "tei_depth": 2,
+            "tei_n": "7",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "76c8094ae68c3768a162fa0784ef364d3f16fb2027fa0bbbd8659d9dcf7b0c5f",
+            "character_count": 415
+          }
+        },
+        {
+          "resource_id": "tei-div-0009",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]",
+            "tei_depth": 2,
+            "tei_n": "8",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c1605b508a0118e096a42f5df10459d6fc0f4b884ccaaa3eac7573b4eeebd79e",
+            "character_count": 540
+          }
+        },
+        {
+          "resource_id": "tei-div-0010",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]",
+            "tei_depth": 2,
+            "tei_n": "9",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "92ce138e65fd4545ca9d424df825199b1d160ee39c2e07c9b2d76de0f5bc896b",
+            "character_count": 710
+          }
+        },
+        {
+          "resource_id": "tei-div-0011",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]",
+            "tei_depth": 2,
+            "tei_n": "10",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "9527f4a2e0137f3f199946d525acebf720633b91f47c821d2a80912df22dd747",
+            "character_count": 537
+          }
+        },
+        {
+          "resource_id": "tei-div-0012",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[11]",
+            "tei_depth": 2,
+            "tei_n": "11",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "28af8a8cc0abb5af14bab9764a3dffc4c02d3b71f5fca6e09e0500768e3f1857",
+            "character_count": 657
+          }
+        },
+        {
+          "resource_id": "tei-div-0013",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[12]",
+            "tei_depth": 2,
+            "tei_n": "12",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "713843fdc062ea8d1d93943bdb9078ca1bc0ac525e95a7c582eb4edee9df490b",
+            "character_count": 574
+          }
+        },
+        {
+          "resource_id": "tei-div-0014",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[13]",
+            "tei_depth": 2,
+            "tei_n": "13",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6071c08b475271c4b94606063cac5abedd77fc8c5d4e6ca3b107911c3e323133",
+            "character_count": 707
+          }
+        },
+        {
+          "resource_id": "tei-div-0015",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[14]",
+            "tei_depth": 2,
+            "tei_n": "14",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d46547b21d4615eb600e1d0f9ad580c033776ecd6904e2eee96c371ac0aefc65",
+            "character_count": 379
+          }
+        },
+        {
+          "resource_id": "tei-div-0016",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[15]",
+            "tei_depth": 2,
+            "tei_n": "15",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "38ac66835752740319aeb98933a38cc97d97442afa638c2a0c50b97c81f10421",
+            "character_count": 467
+          }
+        },
+        {
+          "resource_id": "tei-div-0017",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[16]",
+            "tei_depth": 2,
+            "tei_n": "16",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b3fdd943fdb622ad8af2ed3c1ed3653159388646183ef24ab296d1ddb3b06bbf",
+            "character_count": 569
+          }
+        },
+        {
+          "resource_id": "tei-div-0018",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[17]",
+            "tei_depth": 2,
+            "tei_n": "17",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "4d5130b983325afbaa98a57f5a5c0e15cdc3258282482bf9211ef658d75513af",
+            "character_count": 387
+          }
+        },
+        {
+          "resource_id": "tei-div-0019",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[18]",
+            "tei_depth": 2,
+            "tei_n": "18",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c88301479e3451b21bb78de2208b8e4c6e198c20a062037839a98597cca9f3e7",
+            "character_count": 455
+          }
+        },
+        {
+          "resource_id": "tei-div-0020",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[19]",
+            "tei_depth": 2,
+            "tei_n": "19",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c3bb1cfc44b96b946cf3a3c634af4f1908069f0151d89698c3364f19646742ff",
+            "character_count": 537
+          }
+        },
+        {
+          "resource_id": "tei-div-0021",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[20]",
+            "tei_depth": 2,
+            "tei_n": "20",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5135d2ce58480d6e1444cbbb21133f5f5e857c654d45a6e219d0e34c11fba7c7",
+            "character_count": 431
+          }
+        },
+        {
+          "resource_id": "tei-div-0022",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[21]",
+            "tei_depth": 2,
+            "tei_n": "21",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ce9e3b29d0fc0c5b55856d36aec88d15a91a8bff27be6aee365a19be0a747e25",
+            "character_count": 622
+          }
+        },
+        {
+          "resource_id": "tei-div-0023",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[22]",
+            "tei_depth": 2,
+            "tei_n": "22",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "344555b99f39272e1bdfc130ee003ddd5e14a6ee5bb1eea517305becf296a96d",
+            "character_count": 494
+          }
+        },
+        {
+          "resource_id": "tei-div-0024",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[23]",
+            "tei_depth": 2,
+            "tei_n": "23",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "fed73e6c029283e33eae9a4b8f1cf1ba6a4509c89fa4153a511bde7ca1f2c607",
+            "character_count": 570
+          }
+        },
+        {
+          "resource_id": "tei-div-0025",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[24]",
+            "tei_depth": 2,
+            "tei_n": "24",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ac6e36cfd046804c833ea715510c34d9a0e92a163d7da33637e0d4cd4b554533",
+            "character_count": 423
+          }
+        },
+        {
+          "resource_id": "tei-div-0026",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[25]",
+            "tei_depth": 2,
+            "tei_n": "25",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "108064a61242927e5bf4d5f92e900746f55617058364b1cbbebd50c49df17922",
+            "character_count": 620
+          }
+        },
+        {
+          "resource_id": "tei-div-0027",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[26]",
+            "tei_depth": 2,
+            "tei_n": "26",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "4a807acc77f8552a448d63a3539ae2deccb6489600d8f8859773ced6d8791b37",
+            "character_count": 361
+          }
+        },
+        {
+          "resource_id": "tei-div-0028",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[27]",
+            "tei_depth": 2,
+            "tei_n": "27",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "745b80c0686cb23bb43c16a66e16691ca817834ec036ebbd653f2c25f714ea30",
+            "character_count": 790
+          }
+        },
+        {
+          "resource_id": "tei-div-0029",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[28]",
+            "tei_depth": 2,
+            "tei_n": "28",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e966a5efd8fd8a1aa4b24175353088620e7159ed912cf4c9bec1b8cd4be3300d",
+            "character_count": 577
+          }
+        },
+        {
+          "resource_id": "tei-div-0030",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[29]",
+            "tei_depth": 2,
+            "tei_n": "29",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "73c745a53082756d5f1aa63138723d6a0f237233e2c8dae73add9b76f830b676",
+            "character_count": 712
+          }
+        },
+        {
+          "resource_id": "tei-div-0031",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[30]",
+            "tei_depth": 2,
+            "tei_n": "30",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "8e873e87fc4c83a2805cc08906c97f6d5ec71062998a3da4c5a2aed6b1c8351f",
+            "character_count": 399
+          }
+        },
+        {
+          "resource_id": "tei-div-0032",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[31]",
+            "tei_depth": 2,
+            "tei_n": "31",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2e8fdfdb3d9265d74fc0170703c2273a3e2de99977ff4f8446e0e0055c21c592",
+            "character_count": 573
+          }
+        },
+        {
+          "resource_id": "tei-div-0033",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[32]",
+            "tei_depth": 2,
+            "tei_n": "32",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "800361a04e85c9182aec8d7231cbada13641f58c6ae273951636d56303df3003",
+            "character_count": 469
+          }
+        },
+        {
+          "resource_id": "tei-div-0034",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[33]",
+            "tei_depth": 2,
+            "tei_n": "33",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "4e0415d3321529178360540a281c004c5215a372bee99662825805023d0c58a3",
+            "character_count": 660
+          }
+        },
+        {
+          "resource_id": "tei-div-0035",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[34]",
+            "tei_depth": 2,
+            "tei_n": "34",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "207579d37acb8183a47af7138c07dbe05147e3df45e2b8549b3caac2691f4b4d",
+            "character_count": 441
+          }
+        },
+        {
+          "resource_id": "tei-div-0036",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[35]",
+            "tei_depth": 2,
+            "tei_n": "35",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "0d6a8c8f5e9493e2d7e51ce0b587be3f73f08d066a39cf8184a9e1695aa338f0",
+            "character_count": 450
+          }
+        },
+        {
+          "resource_id": "tei-div-0037",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[36]",
+            "tei_depth": 2,
+            "tei_n": "36",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e41cead3da43db9ed40e1624b9405d8c7aea1c75f545c6f33fcfd79401d54377",
+            "character_count": 503
+          }
+        },
+        {
+          "resource_id": "tei-div-0038",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[37]",
+            "tei_depth": 2,
+            "tei_n": "37",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "02dbbd8c93be753402d7eb70f1130cf8e4720ec0b6f5c5261fd1e8c8af3ea60a",
+            "character_count": 570
+          }
+        },
+        {
+          "resource_id": "tei-div-0039",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[38]",
+            "tei_depth": 2,
+            "tei_n": "38",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "52ba0c4144f2cc981fd80b83259479807cb48dee6e4e934bf3618a34efc17177",
+            "character_count": 683
+          }
+        },
+        {
+          "resource_id": "tei-div-0040",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[39]",
+            "tei_depth": 2,
+            "tei_n": "39",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "eb5acbdaf2388f53b2727c816787cb8eab4aa9f2a6b8916be4f96e6c43f1d3bf",
+            "character_count": 386
+          }
+        },
+        {
+          "resource_id": "tei-div-0041",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[40]",
+            "tei_depth": 2,
+            "tei_n": "40",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "0274a607e5affc1944684db2a1da7f8507a42112c7ee8519d380d373c824cd28",
+            "character_count": 453
+          }
+        },
+        {
+          "resource_id": "tei-div-0042",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[41]",
+            "tei_depth": 2,
+            "tei_n": "41",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "74534da17724b9e5bdf0b3540a27419cdb2221c9861af6a3c9c69cf154bc85d5",
+            "character_count": 953
+          }
+        },
+        {
+          "resource_id": "tei-div-0043",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[42]",
+            "tei_depth": 2,
+            "tei_n": "42",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "20727b6964a3c45c56af75d8c64849e1af9f28b68cfdd6fd56afd5bf299e28b8",
+            "character_count": 594
+          }
+        },
+        {
+          "resource_id": "tei-div-0044",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[43]",
+            "tei_depth": 2,
+            "tei_n": "43",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "93bdbb28a68811d6cb59361ad3709811ad788aeda94240417feca4e371626676",
+            "character_count": 552
+          }
+        },
+        {
+          "resource_id": "tei-div-0045",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[44]",
+            "tei_depth": 2,
+            "tei_n": "44",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "50ca6407611c3d5531376c702a1e0c9be9d50d4c97c3acd5075265dc6bc31d64",
+            "character_count": 693
+          }
+        },
+        {
+          "resource_id": "tei-div-0046",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[45]",
+            "tei_depth": 2,
+            "tei_n": "45",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "1c3c079990acc784caa7629a5900663848065ac164dcecb20a23cbb2c90c10a8",
+            "character_count": 677
+          }
+        },
+        {
+          "resource_id": "tei-div-0047",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[46]",
+            "tei_depth": 2,
+            "tei_n": "46",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e540b561d7c73a4fe910d6172477091d4c1b214f69e71ba07803976a11d54f43",
+            "character_count": 431
+          }
+        },
+        {
+          "resource_id": "tei-div-0048",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[47]",
+            "tei_depth": 2,
+            "tei_n": "47",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7133dcaaf25ff4a7744411b957d08144b4b200d32dca646ef50d48338a4c2d59",
+            "character_count": 579
+          }
+        },
+        {
+          "resource_id": "tei-div-0049",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[48]",
+            "tei_depth": 2,
+            "tei_n": "48",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "21bf78d72e9422bfa476686f3dc57834fb856f650716d53e9b419feca4a6f9fe",
+            "character_count": 487
+          }
+        }
+      ]
+    }
+  ],
+  "generator": {
+    "name": "build_source_resource_inventories.py",
+    "version": "1"
+  },
+  "provenance_event_ref": "tos.event.resource-inventory.cicero.pro-c-rabirio-postumo.la-perseus-phi0474-phi030.perseus-8668397510ca.git-tei-xml.2026-09-09",
+  "inventory_version": 1,
+  "supersedes_inventory_ref": null,
+  "authority_boundary": "resource enumeration, geometry, ordering, counts, and one-way fingerprints only; no source text, bibliographic acceptance, textual acceptance, rights clearance, translation, semantics, or canon authority"
+}

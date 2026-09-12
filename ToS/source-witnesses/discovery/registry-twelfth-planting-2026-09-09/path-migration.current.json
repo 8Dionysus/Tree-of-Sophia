@@ -1,0 +1,56 @@
+{
+  "schema_version": "tos_source_witness_path_migration_v1",
+  "status": "current",
+  "migration_id": "tos.source-witnesses.registry-twelfth.navigation-2026-09-10",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "migration_review_ref": "ToS/review-ledger/2026-09-10-registry-twelfth-path-migration.md",
+  "applied_to_commit": "d5c034871722b041f9966d5857f12703994ed23e",
+  "migration_reason": "Current Cicero forensic-speeches Latin preparation and execution routes name the source branch/corpus and language or version role; ordinal sequence labels remain historical provenance.",
+  "identity_boundary": {
+    "stable_record_ids_unchanged": true,
+    "payload_bytes_unchanged": true,
+    "preparation_input_bytes_retained": true,
+    "historical_receipts_retained": true,
+    "semantic_or_rights_admission": false
+  },
+  "current_routes": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/cicero-forensic-speeches-latin-20260909.json",
+      "sha256": "16e8692b7f3c5a4a43d18690e0981e7da718330ce803f562f785bbfaa2b4e550"
+    },
+    {
+      "role": "planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/execution/plant_cicero_forensic_speeches_latin.py",
+      "sha256": "09012d177bde75b008ea8d2e530f7e81de6b612d71c0aebf1e660ed29b75bf75"
+    },
+    {
+      "role": "report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/execution/report_cicero_forensic_speeches_latin.py",
+      "sha256": "ae9169d594ea7991e4df458bce23293d9e44eb5320dd4c014b3cc6eccd637fba"
+    }
+  ],
+  "current_manifests": [
+    {
+      "path": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/manifest.json",
+      "sha256": "2f530281a86e2ecd8f3e3f53cc6f9543dc799b77e031e3020b2d7e64f3b9565a",
+      "historical_manifest_sha256": "1ba1976957c5055cae383eaa5e7de2f867e4c77fa378eba261d2d10e0ea644f8",
+      "historical_receipt_ref": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/preparation-inputs/aa8f58eb0be58686a10a2f13fac6c819a9e456b29dd50fc3ec8b5abe5acf3946.preparation-receipt.json"
+    }
+  ],
+  "retained_inputs": [
+    {
+      "stage": "registry-preparation",
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/preparation-inputs/16e8692b7f3c5a4a43d18690e0981e7da718330ce803f562f785bbfaa2b4e550.source-preparation.json",
+      "preparation_sha256": "16e8692b7f3c5a4a43d18690e0981e7da718330ce803f562f785bbfaa2b4e550",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/preparation-inputs/1ba1976957c5055cae383eaa5e7de2f867e4c77fa378eba261d2d10e0ea644f8.manifest.json",
+      "manifest_sha256": "1ba1976957c5055cae383eaa5e7de2f867e4c77fa378eba261d2d10e0ea644f8",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/preparation-inputs/aa8f58eb0be58686a10a2f13fac6c819a9e456b29dd50fc3ec8b5abe5acf3946.preparation-receipt.json",
+      "receipt_sha256": "aa8f58eb0be58686a10a2f13fac6c819a9e456b29dd50fc3ec8b5abe5acf3946",
+      "preparation_commit": "545d54d6115da9f1c517cd3929dab73d7f0b6420",
+      "checkpoint_review_ref": "agent-review:545d54d61:20260909T212947Z"
+    }
+  ],
+  "historical_record_ref": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/legacy/path-migration.json",
+  "authority_boundary": "Navigation migration only. Historical preparation and execution bytes remain bound to their original manifest, checkpoint, commit and review references; the current migration receipt records route parity and does not authorize a new acquisition or alter source, rights, semantic, publication or canon state."
+}

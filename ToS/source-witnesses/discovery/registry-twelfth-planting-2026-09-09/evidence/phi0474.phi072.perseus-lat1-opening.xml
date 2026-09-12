@@ -1,0 +1,161 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title>Timaeus</title>
+            <editor>Carl Friedrich Wilhelm Mueller</editor>
+            <author>M. Tullius Cicero</author>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:Mellon">The Mellon Foundation</funder>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2011-09-12">Perseus 4.0</date>
+         </publicationStmt>
+         <sourceDesc xmlns="http://www.tei-c.org/ns/1.0">
+            <biblStruct >
+               <monogr>
+                  <author>M. Tullius Cicero</author>
+                  <title/>
+                  <editor>Carl Friedrich Wilhelm Mueller</editor>
+                  <imprint>
+                     <publisher>in aedibus B. G. Teubneri</publisher>
+                     <pubPlace>Lipsiae</pubPlace>
+                     <date>1900</date>
+                  </imprint>
+               </monogr>
+            </biblStruct>
+            <list>
+               <item>OCR cleanup</item>
+            </list>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts section</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+              <citeStructure match="/TEI/text/body" use="@xml:base">
+                <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+              </citeStructure>
+            </refsDecl>
+</encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Ancient Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="lat">
+      <body xml:base="urn:cts:latinLit:phi0474.phi072.perseus-lat1">
+         <div xml:lang="lat"
+              type="edition">
+            <div type="textpart" n="1" subtype="section">
+               <p >Multa sunt a nobis et in Academicis conscripta 
+contra physicos et saepe <add>cum</add> P. Nigidio Carneadeo 
+more et modo disputata. Fuit enim vir ille cum ceteris artibus, quae quidem dignae libero essent, ornatus omnibus, tum acer investigator et diligens earum 
+rerum, quae a natura involutae videntur; denique sic 
+iudico, post illos nobiles Pythagoreos, quorum disciplina extincta est quodam modo, cum aliquot saecla 
+in Italia Siciliaque viguisset, hunc extitisse, qui illam 
+renovaret.
+</p>
+            </div>
+            <div type="textpart" n="2" subtype="section">
+               <p >
+Qui cum me in Ciliciam proficiscentem 
+Ephesi expectavisset Romam ex legatione ipse decedens, 
+venissetque eodem Mytilenis mei salutandi et visendi 
+causa Cratippus, Peripateticorum omnium, quos quidem 
+ego audierim, meo iudicio facile princeps, perlibenter et 
+Nigidium vidi et cognovi Cratippum. Ac primum quidem 
+tempus salutationis in percontatione consumpsimus * * *</p>
+            </div>
+            <div type="textpart" n="3" subtype="section">
+               <p >
+Quid est, quod semper sit neque ullum habeat 
+ortum, et quod gignatur nec umquam sit? Quorum 
+alterum intellegentia et ratione conprehenditur, quod 
+unum atque idem semper est; alterum, quod adfert opinionem sensus rationis expers, quod totum 
+opinabile est, id gignitur et interit nec umquam esse <pb/> 
+vere potest. Omne autem, quod gignitur, ex aliqua 
+causa gigni necesse est; nullius enim rei causa remota 
+reperiri origo potest.
+</p>
+            </div>
+            <div type="textpart" n="4" subtype="section">
+               <p >
+Quocirca si is, qui aliquod munus 
+efficere molitur, eam speciem, quae semper eadem est, 
+intuebitur atque id sibi proponet exemplar, praeclarum 
+opus efficiat necesse est; sin autem eam, quae gignitur, numquam illam, quam expetet, pulchritudinem 
+consequetur. Omne igitur caelum sive mundus, sive 
+quo alio vocabulo gaudet, hoc a nobis nuncupatus 
+
+sit—
+</p>
+            </div>
+            <div type="textpart" n="5" subtype="section">
+               <p >
+de quo id primum consideremus, quod principio est in omni quaestione considerandum, semperne fuerit nullo generatus ortu, an ortus sit ab 
+aliquo temporis principatu. Ortus est, quandoquidem 
+cernitur et tangitur et est undique corporatus. Omnia 
+autem talia sensum movent, sensusque moventia quae 
+sunt, eadem in opinatione considunt; quae ortum habere 
+gignique diximus, nihil autem gigni posse sine causis. 
+</p>
+            </div>
+            <div type="textpart" n="6" subtype="section">
+               <p >
+Atque illum quidem quasi parentem huius universitatis 
+invenire difficile et, cum iam inveneris, indicare in 
+vulgus nefas. Rursus igitur videndum, ille fabricator 
+huius tanti operis utrum sit imitatus exemplar, idne, 
+quod semper unum <add>et</add> idem et sui simile, an id, quod 
+generatum ortumque dicimus. Atqui si pulcher est 
+hic mundus et si probus eius artifex, profecto speciem 
+aeternitatis imitari maluit, sin secus, quod ne dictu 
+quidem fas est, generatum exemplum est pro aeterno 
+secutus.
+</p>
+            </div>
+            <div type="textpart" n="7" subtype="section">
+               <p >
+Non igitur dubium, quin aeternitatem maluerit exsequi, quandoquidem neque mundo quicquam 
+pulchrius neque eius aedificatore praestantius. Sic ergo 
+generatus ad id est effectus, quod ratione sapientiaque 
+conprehenditur atque aeternitate inmutabili continetur. 
+Ex quo efficitur, ut sit necesse hunc, quem cernimus, 
+mundum simulacrum aeternum esse alicuius aeterni. 
+Difficillimum autem est in omni conquisitione rationis exordium. De iis igitur, quae diximus, haec 
+sit prima distinctio.
+</p>
+            </div>
+            <div type="textpart" n="8" subtype="section">
+               <p >
+Omni orationi cum iis rebus, de 
+quibus explicat, videtur esse cognatio. Itaque cum de 

@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plato.euthyphro",
+    "version": 2,
+    "digest": "sha256:c9c4545f914754ac6cfeb2224a4403ff693f489744aa588f3be8d5b2d4454398"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:c9c4545f914754ac6cfeb2224a4403ff693f489744aa588f3be8d5b2d4454398",
+            "id": "tos.work.plato.euthyphro",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:c9c4545f914754ac6cfeb2224a4403ff693f489744aa588f3be8d5b2d4454398",
+            "id": "tos.work.plato.euthyphro",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:c9c4545f914754ac6cfeb2224a4403ff693f489744aa588f3be8d5b2d4454398",
+            "id": "tos.work.plato.euthyphro",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:c9c4545f914754ac6cfeb2224a4403ff693f489744aa588f3be8d5b2d4454398",
+            "id": "tos.work.plato.euthyphro",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.da974d711eeea4c9d3a822dfc347edd8d5180e6a4204fc6fcc1e1cf729782754",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:c9c4545f914754ac6cfeb2224a4403ff693f489744aa588f3be8d5b2d4454398",
+        "id": "tos.work.plato.euthyphro",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:c9c4545f914754ac6cfeb2224a4403ff693f489744aa588f3be8d5b2d4454398",
+            "id": "tos.work.plato.euthyphro",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:c9c4545f914754ac6cfeb2224a4403ff693f489744aa588f3be8d5b2d4454398",
+            "id": "tos.work.plato.euthyphro",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:c9c4545f914754ac6cfeb2224a4403ff693f489744aa588f3be8d5b2d4454398",
+            "id": "tos.work.plato.euthyphro",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:c9c4545f914754ac6cfeb2224a4403ff693f489744aa588f3be8d5b2d4454398",
+            "id": "tos.work.plato.euthyphro",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.2f98bad0d2a0fdfb7bedc202d2de3f7915fdbd9ce98bec2f1620e504c3a17e1c",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:c9c4545f914754ac6cfeb2224a4403ff693f489744aa588f3be8d5b2d4454398",
+        "id": "tos.work.plato.euthyphro",
+        "version": 2
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.work.plato.euthyphro",
+      "request_digest": "sha256:924741a25ed3ff9acc0bd1b71ed4646c6d8bad6df39ba0597b352044b0ecaf6a",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:43a76cb3e0feb95d742950ae8c6dd120ef5efbd68916daf20df2d26d26fc1419",
+      "recorded_at": "2026-09-09T15:55:20.484346+00:00",
+      "source": {
+        "id": "tos.work.plato.euthyphro",
+        "version": 2,
+        "digest": "sha256:c9c4545f914754ac6cfeb2224a4403ff693f489744aa588f3be8d5b2d4454398"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.da974d711eeea4c9d3a822dfc347edd8d5180e6a4204fc6fcc1e1cf729782754",
+          "version": 1,
+          "digest": "sha256:520cc892b9bdd6ee05e73973a54804c2590b7e526af1768400f1a02ba4be639a"
+        },
+        {
+          "id": "tos.form.metadata.2f98bad0d2a0fdfb7bedc202d2de3f7915fdbd9ce98bec2f1620e504c3a17e1c",
+          "version": 1,
+          "digest": "sha256:7305c99222c43735414f03ead3767e4d84be94fd3373d34d001cd55a192019c4"
+        }
+      ]
+    }
+  ]
+}

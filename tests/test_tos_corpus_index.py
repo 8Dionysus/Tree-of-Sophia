@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -14,13 +16,60 @@ if str(SCRIPTS) not in sys.path:
 from tos_corpus_index_common import (  # noqa: E402
     TOS_CORPUS_INDEX_PATH,
     build_payload,
+    build_relations,
     render_payload,
     tracked_tos_paths,
     project_text_packet,
 )
+from partitioned_projection_common import (  # noqa: E402
+    build_storage,
+    check_partitioned_payload,
+    disk_payload,
+    is_partitioned,
+    ProjectionReader,
+)
 
 
 class ToSCorpusIndexTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls._projection_storage_cm = None
+        cls._projection_storage = None
+        cls._real_projection_partitioned = is_partitioned(TOS_CORPUS_INDEX_PATH)
+        if cls._real_projection_partitioned:
+            cls._projection_storage_cm = build_storage()
+            cls._projection_storage = cls._projection_storage_cm.__enter__()
+            try:
+                reader = ProjectionReader(TOS_CORPUS_INDEX_PATH)
+                cls._real_payload = disk_payload(reader, cls._projection_storage)
+                expected = build_payload(storage=cls._projection_storage)
+                check_partitioned_payload(TOS_CORPUS_INDEX_PATH, expected)
+                cls._real_parity_verified = True
+            except BaseException:
+                cls._projection_storage_cm.__exit__(*sys.exc_info())
+                cls._projection_storage_cm = None
+                cls._projection_storage = None
+                raise
+        else:
+            cls._real_payload = json.loads(
+                TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8")
+            )
+            cls._real_parity_verified = False
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        try:
+            if cls._projection_storage_cm is not None:
+                cls._projection_storage_cm.__exit__(None, None, None)
+        finally:
+            cls._projection_storage_cm = None
+            cls._projection_storage = None
+            super().tearDownClass()
+
+    def load_projection(self) -> dict[str, object]:
+        return self._real_payload
+
     def test_text_packet_projection_is_versioned_and_visibility_bounded(self):
         path = REPO_ROOT / "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-a-source-layout-observation.json"
         packet = json.loads(path.read_text())
@@ -42,18 +91,21 @@ class ToSCorpusIndexTest(unittest.TestCase):
         self.assertTrue(all(n['properties']['content_available'] is False for n in nodes))
 
     def test_generated_index_matches_builder(self) -> None:
-        expected = render_payload(build_payload())
-        current = TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8")
-        self.assertEqual(current, expected)
+        if self._real_projection_partitioned:
+            self.assertTrue(self._real_parity_verified)
+        else:
+            expected = render_payload(build_payload())
+            current = TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8")
+            self.assertEqual(current, expected)
 
     def test_index_keeps_runtime_projection_subordinate(self) -> None:
-        payload = json.loads(TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8"))
+        payload = self.load_projection()
         self.assertEqual(payload["runtime_projection_boundary"]["runtime_owner"], "abyss-stack")
         self.assertIn("runtime_projection", [entry["layer"] for entry in payload["authority_order"]])
         self.assertGreater(payload["counts"]["resources"], payload["counts"]["nodes"])
 
     def test_index_has_no_error_diagnostics(self) -> None:
-        payload = json.loads(TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8"))
+        payload = self.load_projection()
         errors = [
             diagnostic
             for diagnostic in payload["diagnostics"]
@@ -62,7 +114,7 @@ class ToSCorpusIndexTest(unittest.TestCase):
         self.assertEqual(errors, [])
 
     def test_authored_node_and_source_record_fields_survive_projection_losslessly(self) -> None:
-        payload = json.loads(TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8"))
+        payload = self.load_projection()
         indexed_nodes = {node["node_id"]: node for node in payload["nodes"]}
         source_nodes = {
             node["node_id"]: node for node in payload["source_navigation"]["nodes"]
@@ -94,7 +146,7 @@ class ToSCorpusIndexTest(unittest.TestCase):
         )
 
     def test_source_navigation_joins_branch_work_item_file_and_links(self) -> None:
-        payload = json.loads(TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8"))
+        payload = self.load_projection()
         navigation = payload["source_navigation"]
         nodes = {node["node_id"]: node for node in navigation["nodes"]}
         edges = {
@@ -168,7 +220,7 @@ class ToSCorpusIndexTest(unittest.TestCase):
         self.assertEqual(exact_scan_rights["review_status"], "unreviewed")
 
     def test_index_resources_are_owned_by_the_tracked_source_view(self) -> None:
-        payload = json.loads(TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8"))
+        payload = self.load_projection()
         tracked_refs = {
             path.relative_to(REPO_ROOT).as_posix()
             for path in tracked_tos_paths()
@@ -181,7 +233,7 @@ class ToSCorpusIndexTest(unittest.TestCase):
         )
 
     def test_authority_order_declares_all_emitted_layers(self) -> None:
-        payload = json.loads(TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8"))
+        payload = self.load_projection()
         declared = {entry["layer"] for entry in payload["authority_order"]}
         emitted = set()
         for collection_name in (
@@ -198,6 +250,44 @@ class ToSCorpusIndexTest(unittest.TestCase):
                 if "authority_layer" in item
             )
         self.assertEqual(sorted(emitted - declared), [])
+
+    def test_relation_edges_memory_and_disk_builds_share_declared_composite_order(self) -> None:
+        csv_header = "edge_id,from_id,predicate_id,to_id\n"
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paths = {
+                "canon": root / "ToS/canon/example/edges.csv",
+                "candidate": root / "ToS/candidate-intake/example/edges.csv",
+            }
+            paths["canon"].parent.mkdir(parents=True)
+            paths["candidate"].parent.mkdir(parents=True)
+            paths["canon"].write_text(
+                csv_header
+                + "m002,canon.from,p,canon.to\n"
+                + "m001,canon.from,p,canon.to\n",
+                encoding="utf-8",
+            )
+            paths["candidate"].write_text(
+                csv_header
+                + "m003,candidate.from,p,candidate.to\n",
+                encoding="utf-8",
+            )
+            with patch("tos_corpus_index_common.REPO_ROOT", root):
+                memory_packs, memory_edges = build_relations([], tuple(reversed(tuple(paths.values()))))
+                with build_storage() as storage:
+                    disk_packs, disk_edges = build_relations(
+                        [], tuple(reversed(tuple(paths.values()))), storage=storage
+                    )
+                    self.assertEqual(memory_packs, list(disk_packs))
+                    self.assertEqual(memory_edges, list(disk_edges))
+            self.assertEqual(
+                [(row["pack_id"], row["edge_id"]) for row in memory_edges],
+                [
+                    ("candidate-intake/example", "m003"),
+                    ("canon/example", "m001"),
+                    ("canon/example", "m002"),
+                ],
+            )
 
 
 if __name__ == "__main__":

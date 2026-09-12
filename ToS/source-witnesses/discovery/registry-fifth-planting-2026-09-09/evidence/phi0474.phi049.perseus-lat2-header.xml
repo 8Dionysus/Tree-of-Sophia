@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">Tusculanae Disputationes</title>
+            <author>M. Tullius Cicero</author>
+            <editor>Max Pohlenz</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+             <date type="release" when="2009-10-07">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi049.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+         <sourceDesc>
+            <biblStruct >
+               <monogr>
+                  <title xml:lang="lat">Scripta Quae Manserunt Omnia, Fasc. 44</title>
+                  <title xml:lang="lat" type="subtitle">Tusculanae Disputationes</title>
+                  <author>M. Tullius Cicero</author>
+                  <editor>Max Pohlenz</editor>
+                  
+                  <imprint>
+                     <pubPlace>Leipzig</pubPlace>
+                     <publisher>Teubner</publisher>
+                     <date>1918</date>
+                     <biblScope/>
+                  </imprint>   
+               </monogr>
+               <series xml:lang="lat">Scripta Quae Manserunt Omnia</series>
+               <ref target="https://babel.hathitrust.org/cgi/pt?id=ufl.31262040316167&amp;seq=28">HathiTrust</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      
+      <encodingDesc>
+         <editorialDecl><p>The footnotes appear to be highly suspect, often in the wrong place with incorrect beta code which may  or may not have been correctly converted, many oddities in presentation that were not initially captured, and incorrect line assignments. Many unusal things were labeled as figures. Milestones were not encoded.</p></editorialDecl>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+            <cRefPattern n="chapter"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="book"/>
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+            <language ident="fre">French</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+         <change when="2026-08" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN. Removed front and back matter for clarity.</change>
+ <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+<change who="gcrane" when="2013-06-08">TEI XML converted to facilitate CTS compatibility</change>
+<change who="gcrane" when="2011-07-19">typo fixed</change>
+<change who="gcrane" when="2011-01-15">base SDL file</change>
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+<change who="rsingh04" when="2009-09-15">added more cicero texts, removed old cicero files that aren't used</change>
+<change who="ajones06" when="2009-09-10">Fixed some of the metadata for the Cicero philosophical works.</change>
+<change who="gcrane" when="2009-09-09">base files</change>
+<change who="gcrane" when="2006-04-27">added to the repository</change>
+<change who="gcrane" when="2006-04-26">added to repository</change>
+ </revisionDesc>
+   </teiHeader>

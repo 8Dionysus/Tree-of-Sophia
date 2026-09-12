@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.plutarch.praecepta-gerendae-reipublicae.en-perseus-tlg0007-tlg118-perseus-eng3.perseus-341e309c821d",
+    "version": 1,
+    "digest": "sha256:12e3d2f0c29082d1fb5d0286fd4fc06175941c797928b79adca8d08101d80beb"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:12e3d2f0c29082d1fb5d0286fd4fc06175941c797928b79adca8d08101d80beb",
+            "id": "tos.edition.plutarch.praecepta-gerendae-reipublicae.en-perseus-tlg0007-tlg118-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:12e3d2f0c29082d1fb5d0286fd4fc06175941c797928b79adca8d08101d80beb",
+            "id": "tos.edition.plutarch.praecepta-gerendae-reipublicae.en-perseus-tlg0007-tlg118-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:12e3d2f0c29082d1fb5d0286fd4fc06175941c797928b79adca8d08101d80beb",
+            "id": "tos.edition.plutarch.praecepta-gerendae-reipublicae.en-perseus-tlg0007-tlg118-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:12e3d2f0c29082d1fb5d0286fd4fc06175941c797928b79adca8d08101d80beb",
+            "id": "tos.edition.plutarch.praecepta-gerendae-reipublicae.en-perseus-tlg0007-tlg118-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.b5f0e77bd7bf9a48dbf577cb5d08604a0fb10d77670a7c56cbf76df41f5a1b80",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:12e3d2f0c29082d1fb5d0286fd4fc06175941c797928b79adca8d08101d80beb",
+        "id": "tos.edition.plutarch.praecepta-gerendae-reipublicae.en-perseus-tlg0007-tlg118-perseus-eng3.perseus-341e309c821d",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:12e3d2f0c29082d1fb5d0286fd4fc06175941c797928b79adca8d08101d80beb",
+            "id": "tos.edition.plutarch.praecepta-gerendae-reipublicae.en-perseus-tlg0007-tlg118-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:12e3d2f0c29082d1fb5d0286fd4fc06175941c797928b79adca8d08101d80beb",
+            "id": "tos.edition.plutarch.praecepta-gerendae-reipublicae.en-perseus-tlg0007-tlg118-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:12e3d2f0c29082d1fb5d0286fd4fc06175941c797928b79adca8d08101d80beb",
+            "id": "tos.edition.plutarch.praecepta-gerendae-reipublicae.en-perseus-tlg0007-tlg118-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:12e3d2f0c29082d1fb5d0286fd4fc06175941c797928b79adca8d08101d80beb",
+            "id": "tos.edition.plutarch.praecepta-gerendae-reipublicae.en-perseus-tlg0007-tlg118-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.360c29cba4b78794755cb69a431c6790c5cf00666e280b5c501d8eb8891417ed",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:12e3d2f0c29082d1fb5d0286fd4fc06175941c797928b79adca8d08101d80beb",
+        "id": "tos.edition.plutarch.praecepta-gerendae-reipublicae.en-perseus-tlg0007-tlg118-perseus-eng3.perseus-341e309c821d",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-ninth-source-forms:7073356d8ce3f3a82563be20c32fe0b7cc96ee6e3f20460a29652bd4d52e6ce5",
+      "request_digest": "sha256:6549d5a2c7a6a7bed487dd9f63b437f16164b747bd453f44e61766d5bbd80b94",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:fcbd35add21a9d5d632d8e7bc4710b2468efcd1fad008c5b2e9a5f9516c8c2cd",
+      "recorded_at": "2026-09-09T18:35:30.225173+00:00",
+      "source": {
+        "id": "tos.edition.plutarch.praecepta-gerendae-reipublicae.en-perseus-tlg0007-tlg118-perseus-eng3.perseus-341e309c821d",
+        "version": 1,
+        "digest": "sha256:12e3d2f0c29082d1fb5d0286fd4fc06175941c797928b79adca8d08101d80beb"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.b5f0e77bd7bf9a48dbf577cb5d08604a0fb10d77670a7c56cbf76df41f5a1b80",
+          "version": 1,
+          "digest": "sha256:33e11f4b5e6b92a590bda259b441c128707c357d69f130293752dff2e7814c49"
+        },
+        {
+          "id": "tos.form.metadata.360c29cba4b78794755cb69a431c6790c5cf00666e280b5c501d8eb8891417ed",
+          "version": 1,
+          "digest": "sha256:fd112e9d9ef87e3bd9662b6908ac3ac4264156d7c8cb55370fd597739349ecb0"
+        }
+      ]
+    }
+  ]
+}

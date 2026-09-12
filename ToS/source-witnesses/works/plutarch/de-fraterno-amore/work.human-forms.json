@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:0ad2f1c9a902d97eb8cdf456a3d818b19df29dbca5ea37883f7752882cd0aa1f",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:0ad2f1c9a902d97eb8cdf456a3d818b19df29dbca5ea37883f7752882cd0aa1f",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:0ad2f1c9a902d97eb8cdf456a3d818b19df29dbca5ea37883f7752882cd0aa1f",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:0ad2f1c9a902d97eb8cdf456a3d818b19df29dbca5ea37883f7752882cd0aa1f",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.e0d12e9deb8ef9ca9df18822bf39507e3afb811193cac6509a58f588ab5eb468",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:e3fb48ebab70915330c172010813bc077de3ce8d2381c96d634489bb99a562b9",
+        "id": "tos.form.metadata.e0d12e9deb8ef9ca9df18822bf39507e3afb811193cac6509a58f588ab5eb468",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:0ad2f1c9a902d97eb8cdf456a3d818b19df29dbca5ea37883f7752882cd0aa1f",
+        "id": "tos.work.plutarch.de-fraterno-amore",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:0ad2f1c9a902d97eb8cdf456a3d818b19df29dbca5ea37883f7752882cd0aa1f",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:0ad2f1c9a902d97eb8cdf456a3d818b19df29dbca5ea37883f7752882cd0aa1f",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:0ad2f1c9a902d97eb8cdf456a3d818b19df29dbca5ea37883f7752882cd0aa1f",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:0ad2f1c9a902d97eb8cdf456a3d818b19df29dbca5ea37883f7752882cd0aa1f",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.28c3bf39cf8e511f2e89bd50d3a770d1db2ef94ca34d6e82d4eeb2720dd5392c",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:70b5ec0b1b1c7decbd3cf8ad781845d557ccb008d33d52b24b4e6e02ada05353",
+        "id": "tos.form.metadata.28c3bf39cf8e511f2e89bd50d3a770d1db2ef94ca34d6e82d4eeb2720dd5392c",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:0ad2f1c9a902d97eb8cdf456a3d818b19df29dbca5ea37883f7752882cd0aa1f",
+        "id": "tos.work.plutarch.de-fraterno-amore",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:0918f3c7f61caa0c47f0ffb89295de89202dc97686cadcacb8f1d33a8fdb0dea",
+      "owner_configuration": "sha256:5f77eed82d8437149a714a5dbe451ce2fbc4cf786abcb9b714d77f02bdc756aa",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:38.873680+00:00",
+      "request_digest": "sha256:bf98ec19078179df58023038f6a7764d639e705149660ee547ae68eb62d37ef9",
+      "results": [
+        {
+          "digest": "sha256:e3fb48ebab70915330c172010813bc077de3ce8d2381c96d634489bb99a562b9",
+          "id": "tos.form.metadata.e0d12e9deb8ef9ca9df18822bf39507e3afb811193cac6509a58f588ab5eb468",
+          "version": 1
+        },
+        {
+          "digest": "sha256:70b5ec0b1b1c7decbd3cf8ad781845d557ccb008d33d52b24b4e6e02ada05353",
+          "id": "tos.form.metadata.28c3bf39cf8e511f2e89bd50d3a770d1db2ef94ca34d6e82d4eeb2720dd5392c",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:8a32690698bbeb8645ec0c42f7e6c08b32c32f8afb62fb03bb57b73281dae57b",
+        "id": "tos.work.plutarch.de-fraterno-amore",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:0918f3c7f61caa0c47f0ffb89295de89202dc97686cadcacb8f1d33a8fdb0dea",
+      "request_digest": "sha256:a4dc34646959d9015e3ba2b96a538131e0c0dce6ab13daaa5b86143fe3f55558",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:c9bce3883aec8af3aa74db41a209f15f25738aba7e3b94dfd715b3287451df46",
+      "recorded_at": "2026-09-09T18:35:28.301177+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-fraterno-amore",
+        "version": 2,
+        "digest": "sha256:0ad2f1c9a902d97eb8cdf456a3d818b19df29dbca5ea37883f7752882cd0aa1f"
+      },
+      "previous_revision": "sha256:2409adc5c7d57ae95db9941f13fa4e84ee32934e037fca69a541a23ba94f8fbb",
+      "results": [
+        {
+          "id": "tos.form.metadata.e0d12e9deb8ef9ca9df18822bf39507e3afb811193cac6509a58f588ab5eb468",
+          "version": 2,
+          "digest": "sha256:853090a4a06efca199d4e19881bba81e0e067b1ba6759117304050e61121cafd"
+        },
+        {
+          "id": "tos.form.metadata.28c3bf39cf8e511f2e89bd50d3a770d1db2ef94ca34d6e82d4eeb2720dd5392c",
+          "version": 2,
+          "digest": "sha256:76cf0c2c448abed3882006184530caea784570bad14a3faa3a4182abdada686a"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8a32690698bbeb8645ec0c42f7e6c08b32c32f8afb62fb03bb57b73281dae57b",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8a32690698bbeb8645ec0c42f7e6c08b32c32f8afb62fb03bb57b73281dae57b",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:8a32690698bbeb8645ec0c42f7e6c08b32c32f8afb62fb03bb57b73281dae57b",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:8a32690698bbeb8645ec0c42f7e6c08b32c32f8afb62fb03bb57b73281dae57b",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.e0d12e9deb8ef9ca9df18822bf39507e3afb811193cac6509a58f588ab5eb468",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:8a32690698bbeb8645ec0c42f7e6c08b32c32f8afb62fb03bb57b73281dae57b",
+        "id": "tos.work.plutarch.de-fraterno-amore",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8a32690698bbeb8645ec0c42f7e6c08b32c32f8afb62fb03bb57b73281dae57b",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8a32690698bbeb8645ec0c42f7e6c08b32c32f8afb62fb03bb57b73281dae57b",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:8a32690698bbeb8645ec0c42f7e6c08b32c32f8afb62fb03bb57b73281dae57b",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:8a32690698bbeb8645ec0c42f7e6c08b32c32f8afb62fb03bb57b73281dae57b",
+            "id": "tos.work.plutarch.de-fraterno-amore",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.28c3bf39cf8e511f2e89bd50d3a770d1db2ef94ca34d6e82d4eeb2720dd5392c",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:8a32690698bbeb8645ec0c42f7e6c08b32c32f8afb62fb03bb57b73281dae57b",
+        "id": "tos.work.plutarch.de-fraterno-amore",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-fraterno-amore",
+    "version": 2,
+    "digest": "sha256:0ad2f1c9a902d97eb8cdf456a3d818b19df29dbca5ea37883f7752882cd0aa1f"
+  }
+}

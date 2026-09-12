@@ -1,0 +1,69 @@
+{
+  "schema_version": "tos_source_witness_path_migration_legacy_v1",
+  "status": "historical-provenance",
+  "migration_id": "tos.source-witnesses.registry-seventh.navigation-2026-09-09",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "historical_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/seventh-wave-20260909.json",
+      "sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6",
+      "byte_size": 43223
+    },
+    {
+      "role": "historical-planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/execution/plant_seventh_wave.py",
+      "sha256": "ae1671220605924e59c49fbeb5f4a9c6f10946e004ea26a133629350b27444a0",
+      "byte_size": 6449
+    },
+    {
+      "role": "historical-report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/execution/report_seventh_wave.py",
+      "sha256": "f895ad6d3a39056eb499df0e828077b083db82fce1dabaee06bd95003ecab5a8",
+      "byte_size": 13393
+    },
+    {
+      "role": "historical-manifest",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/preparation-inputs/5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1.manifest.json",
+      "sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1",
+      "byte_size": 115407
+    },
+    {
+      "role": "historical-preparation-receipt",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/preparation-inputs/0cd7512e3b3f1a1de52c24f0c7ff5804c4e9d404fa13497dddae0f41966cd48f.preparation-receipt.json",
+      "sha256": "0cd7512e3b3f1a1de52c24f0c7ff5804c4e9d404fa13497dddae0f41966cd48f",
+      "byte_size": 621
+    }
+  ],
+  "current_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/plutarch-epictetus-english-1874-20260909.json",
+      "sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6"
+    },
+    {
+      "role": "planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/execution/plant_plutarch_epictetus_english_1874.py",
+      "sha256": "7d2bd6cdd7fe49716075ac994b6fc4d3a24d209c4af28937bad7306d4589a1b2"
+    },
+    {
+      "role": "report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/execution/report_plutarch_epictetus_english_1874.py",
+      "sha256": "2b08990af2dcf205ec76394f10256c877d4126259a2b90f0f21fe0084b25e9c6"
+    }
+  ],
+  "retained_inputs": [
+    {
+      "stage": "registry-preparation",
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/preparation-inputs/156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6.source-preparation.json",
+      "preparation_sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/preparation-inputs/5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1.manifest.json",
+      "manifest_sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/legacy/preparation-inputs/0cd7512e3b3f1a1de52c24f0c7ff5804c4e9d404fa13497dddae0f41966cd48f.preparation-receipt.json",
+      "receipt_sha256": "0cd7512e3b3f1a1de52c24f0c7ff5804c4e9d404fa13497dddae0f41966cd48f",
+      "preparation_commit": "f9de90042a22dc40ce3e4605ade4f756a7492c15",
+      "checkpoint_review_ref": "agent-review:f9de90042:20260909T155153Z"
+    }
+  ],
+  "authority_boundary": "Historical provenance only. This record preserves exact prior bytes, paths, receipts and preparation commits; it does not restamp the current route or establish acquisition, rights, semantic admission, publication or canon."
+}

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+<title xml:lang="grc">Τίτος</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+    <respStmt>
+        <resp>Prepared under the supervision of</resp>
+        <name>Lisa Cerrato</name>
+        <name>Rashmi Singhal</name>
+        <name>Bridget Almas</name>
+    </respStmt>
+    
+    <funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+   
+    <publicationStmt>
+        <publisher>Trustees of Tufts University</publisher>
+        <pubPlace>Medford, MA</pubPlace>
+        <authority>Perseus Project</authority>
+        <date type="release" when="2010-10-22">Perseus 4.0</date>
+        <idno type="filename">tlg0007.tlg028.perseus-grc2.xml</idno>
+        <availability>
+            <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+        </availability>
+    </publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>    
+    <editor>Bernadotte Perrin</editor> 
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1921</date>
+</imprint>
+<biblScope unit="volume">10</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives10plut/page/322/mode/2up">Internet Archive</ref>    
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+    <language ident="grc">Greek</language>
+    <language ident="eng">English</language>
+</langUsage>
+</profileDesc>
+        <revisionDesc>
+          <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>    
+            <change when="2018-04-02" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+            <change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+    <text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-grc2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg028.perseus-grc2" type="edition" xml:lang="grc"> 
+    <head>Τίτος Κοΐντιος Φλαμινῖνος</head> <pb n="p.322"/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-grc2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-grc2:1" n="1"> <p> ὃν δὲ παραβάλλομεν αὐτῷ, Τίτος Κοΐντιος <pb n="paris.1624.369"/> Φλαμινῖνος, ἰδέαν μὲν ὁποῖος ἦν πάρεστι θεάσασθαι τοῖς βουλομένοις ἀπὸ τῆς ἐν Ῥώμῃ χαλκῆς εἰκόνος, ἣ κεῖται παρὰ τὸν μέγαν Ἀπόλλωνα τὸν ἐκ Καρχηδόνος ἀντικρὺ τοῦ ἱπποδρόμου, γράμμασιν Ἑλληνικοῖς ἐπιγεγραμμένη, τὸ δὲ ἦθος ὀξὺς λέγεται γενέσθαι καὶ πρὸς ὀργὴν καὶ πρὸς χάριν.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-grc2:1" n="2"> <p> οὐ μὴν ὁμοίως, ἀλλʼ ἐλαφρὸς μὲν ἐν τῷ κολάζειν καὶ οὐκ ἐπίμονος, πρὸς δὲ τὰς χάριτας τελεσιουργός καὶ τοῖς εὐεργετηθεῖσι διὰ παντὸς ὥσπερ εὐεργέταις εὔνους, καὶ πρόθυμος, ὡς κάλλιστα τῶν κτημάτων, τοὺς ἐν πεπονθότας ὑπʼ αὐτοῦ περιέπειν ἀεὶ καὶ σῴζειν. φιλοτιμότατος δὲ καὶ φιλοδοξότατος ὢν ἐβούλετο τῶν ἀρίστων καὶ μεγίστων πράξεων αὐτουργὸς εἶναι, καὶ τοῖς δεομένοις εὖ παθεῖν μᾶλλον ἢ τοῖς εὖ ποιῆσαι δυναμένοις ἔχαιρε, τοὺς μὲν ὕλην τῆς ἀρετῆς, τοὺς δὲ ὥσπερ ἀντιπάλους πρὸς δόξαν ἡγούμενος.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-grc2:1" n="3"> <p><milestone unit="para"/>παιδευθεὶς δὲ παιδείαν τὴν διὰ τῶν ἐθῶν τῶν στρατιωτικῶν, πολλοὺς τότε καὶ μεγάλους τῆς <pb n="p.324"/> Ῥώμης ἀγωνιζομένης ἀγῶνας καὶ τῶν νέων εὐθὺς ἐξ ἀρχῆς ἐν τῷ στρατεύεσθαι στρατηγεῖν διδασκομένων, πρῶτον μὲν ἐν τῷ πρὸς Ἀννίβαν πολέμῳ χιλίαρχος ὑπατεύοντι Μαρκέλλῳ συνεστρατεύσατο.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-grc2:1" n="4"> <p> καὶ Μάρκελλος μὲν ἐνέδρᾳ περιπεσὼν ἐτελεύτησε, Τίτος δὲ τῆς περὶ Τάραντα χώρας καὶ Τάραντος αὐτοῦ τὸ δεύτερον ἡλωκότος ἔπαρχος ἀποδειχθείς εὐδοκίμησεν οὐχ ἧττον ἐπὶ τοῖς δικαίοις ἢ κατὰ τὴν στρατείαν. διὸ καὶ πεμπομένων ἀποίκων εἰς δύο πόλεις, Νάρνειάν τε καὶ Κῶνσαν, ἄρχων ᾑρέθη καὶ οἰκιστής.</p></div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-grc2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-grc2:2" n="1"> <p> τοῦτο δὲ αὑτὸν ἐπῆρε μάλιστα τὰς διὰ μέσου καὶ συνήθεις τοῖς νέοις ἀρχὰς ὑπερβάντα, δημαρχίαν καὶ στρατηγίαν καὶ ἀγορανομίαν, εὐθὺς αὑτὸν ὑπ�

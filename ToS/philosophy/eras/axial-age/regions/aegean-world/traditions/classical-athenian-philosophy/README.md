@@ -32,3 +32,7 @@ The remaining works, other editions and translations stay in the source backlog.
 ## Registry planting: third wave (2026-09-08)
 
 32 exact Greek versions with verified local files. [Batch evidence and limits](../../../../../../../source-witnesses/discovery/registry-third-planting-2026-09-08/RESULTS.md).
+
+## Registry planting: fourth wave (2026-09-09)
+
+42 English versions alongside existing Greek texts. [Batch reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-fourth-planting-2026-09-09/RESULTS.md).

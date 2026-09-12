@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:baaca931f8c4a0fef7bcd1b47f03557971c0e523674d9d124af5d8dfd954f943",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:baaca931f8c4a0fef7bcd1b47f03557971c0e523674d9d124af5d8dfd954f943",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:baaca931f8c4a0fef7bcd1b47f03557971c0e523674d9d124af5d8dfd954f943",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:baaca931f8c4a0fef7bcd1b47f03557971c0e523674d9d124af5d8dfd954f943",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.782f354073c3fc67c89a396424e2ae605e2044f1ac17655e48d3f30b33e13585",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:a15feb87810318af17f894271b895fdff40f485051cca707613ce0dc292891bf",
+        "id": "tos.form.metadata.782f354073c3fc67c89a396424e2ae605e2044f1ac17655e48d3f30b33e13585",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:baaca931f8c4a0fef7bcd1b47f03557971c0e523674d9d124af5d8dfd954f943",
+        "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:baaca931f8c4a0fef7bcd1b47f03557971c0e523674d9d124af5d8dfd954f943",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:baaca931f8c4a0fef7bcd1b47f03557971c0e523674d9d124af5d8dfd954f943",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:baaca931f8c4a0fef7bcd1b47f03557971c0e523674d9d124af5d8dfd954f943",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:baaca931f8c4a0fef7bcd1b47f03557971c0e523674d9d124af5d8dfd954f943",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.f84b6527a0e1e46493f52eed218bd72f8b5e3a87682f7263f68eefbe8467fe9d",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:c9155c3de04048a4ccac9955336c63e06055b79ce3dfea42c407dd86dcfef62d",
+        "id": "tos.form.metadata.f84b6527a0e1e46493f52eed218bd72f8b5e3a87682f7263f68eefbe8467fe9d",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:baaca931f8c4a0fef7bcd1b47f03557971c0e523674d9d124af5d8dfd954f943",
+        "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-tenth-planting",
+      "command_id": "registry-tenth-source-forms:0b96207af4e655eb14d27c95e148cbf4575323fdd588902f1dff284a135d3cf9",
+      "owner_configuration": "sha256:f1fa87e3e53e5e00a611be7082177e41914ffd6f7507ba4d12eec8a70b08b359",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T19:06:32.450429+00:00",
+      "request_digest": "sha256:bc7779a4fd41d23c8c7ce8d0daae4ecd1d939d09be43f1891e33e4f06e04c02a",
+      "results": [
+        {
+          "digest": "sha256:a15feb87810318af17f894271b895fdff40f485051cca707613ce0dc292891bf",
+          "id": "tos.form.metadata.782f354073c3fc67c89a396424e2ae605e2044f1ac17655e48d3f30b33e13585",
+          "version": 1
+        },
+        {
+          "digest": "sha256:c9155c3de04048a4ccac9955336c63e06055b79ce3dfea42c407dd86dcfef62d",
+          "id": "tos.form.metadata.f84b6527a0e1e46493f52eed218bd72f8b5e3a87682f7263f68eefbe8467fe9d",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:fc4bf3e588a08e51bd00381bda112d3815e76d2f350be49a34aa432292fe5c7a",
+        "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-eleventh-source-forms:0b96207af4e655eb14d27c95e148cbf4575323fdd588902f1dff284a135d3cf9",
+      "request_digest": "sha256:767705592f7ba8df367196cbf83426b90a42461abf7e5aa02ea5f78b1cb57283",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eleventh-planting",
+      "owner_configuration": "sha256:274fe9afe58d0a9b7b299cbd7b1abd6ef217e95cf3d79c54b9b2be8ef3d2ec49",
+      "recorded_at": "2026-09-09T19:35:39.019797+00:00",
+      "source": {
+        "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+        "version": 2,
+        "digest": "sha256:baaca931f8c4a0fef7bcd1b47f03557971c0e523674d9d124af5d8dfd954f943"
+      },
+      "previous_revision": "sha256:46d24b7f892e75a60fea7595c828cefd078747a0c39a88de33dbcf0353e14149",
+      "results": [
+        {
+          "id": "tos.form.metadata.782f354073c3fc67c89a396424e2ae605e2044f1ac17655e48d3f30b33e13585",
+          "version": 2,
+          "digest": "sha256:2d3d5db6bd8bd9ffc64c9ff6c19944c795ecdf34deb61bf3b2112079752faca5"
+        },
+        {
+          "id": "tos.form.metadata.f84b6527a0e1e46493f52eed218bd72f8b5e3a87682f7263f68eefbe8467fe9d",
+          "version": 2,
+          "digest": "sha256:af7edb3a8d56418ab6980fc3ee2a33b8f9e3a9460fadb03abf690532eece2b6b"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:fc4bf3e588a08e51bd00381bda112d3815e76d2f350be49a34aa432292fe5c7a",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:fc4bf3e588a08e51bd00381bda112d3815e76d2f350be49a34aa432292fe5c7a",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:fc4bf3e588a08e51bd00381bda112d3815e76d2f350be49a34aa432292fe5c7a",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:fc4bf3e588a08e51bd00381bda112d3815e76d2f350be49a34aa432292fe5c7a",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.782f354073c3fc67c89a396424e2ae605e2044f1ac17655e48d3f30b33e13585",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:fc4bf3e588a08e51bd00381bda112d3815e76d2f350be49a34aa432292fe5c7a",
+        "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:fc4bf3e588a08e51bd00381bda112d3815e76d2f350be49a34aa432292fe5c7a",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:fc4bf3e588a08e51bd00381bda112d3815e76d2f350be49a34aa432292fe5c7a",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:fc4bf3e588a08e51bd00381bda112d3815e76d2f350be49a34aa432292fe5c7a",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:fc4bf3e588a08e51bd00381bda112d3815e76d2f350be49a34aa432292fe5c7a",
+            "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.f84b6527a0e1e46493f52eed218bd72f8b5e3a87682f7263f68eefbe8467fe9d",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:fc4bf3e588a08e51bd00381bda112d3815e76d2f350be49a34aa432292fe5c7a",
+        "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.comparison-of-alcibiades-and-coriolanus",
+    "version": 2,
+    "digest": "sha256:baaca931f8c4a0fef7bcd1b47f03557971c0e523674d9d124af5d8dfd954f943"
+  }
+}

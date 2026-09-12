@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+        <fileDesc>
+            <titleStmt>
+                <title xml:lang="grc">Δημοσθένης</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+                <respStmt>
+                    <resp>Prepared under the supervision of</resp>
+                    <name>Lisa Cerrato</name>
+                    <name>Rashmi Singhal</name>
+                    <name>Bridget Almas</name>
+                </respStmt>
+                
+                <funder n="org:NEH">The National Endowment for the Humanities</funder>
+            </titleStmt>
+     
+            <publicationStmt>
+                <publisher>Trustees of Tufts University</publisher>
+                <pubPlace>Medford, MA</pubPlace>
+                <authority>Perseus Project</authority>
+                <date type="release" when="2010-10-22">Perseus 4.0</date>
+                <idno type="filename">tlg0007.tlg054.perseus-grc2.xml</idno>
+                <availability>
+                    <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+                </availability>
+            </publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1919</date>
+</imprint>
+<biblScope unit="volume">7</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives07plut/page/2/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2018-03-07" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+    <change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+    
+    <text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-grc2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg054.perseus-grc2" type="edition" xml:lang="grc"> 
+    <pb n="p.2"/> 
+    <head>Δημοσθένης</head>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-grc2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-grc2:1" n="1"><p>ὁ μὲν γράψας τὸ ἐπὶ τῇ νίκῃ τῆς Ὀλυμπίασιν ἱπποδρομίας εἰς Ἀλκιβιάδην ἐγκώμιον, εἴτʼ Εὐριπίδης, ὡς ὁ πολὺς κρατεῖ λόγος, εἴθʼ <pb n="paris.1624.846"/> ἕτερός τις ἦν, Σόσσιε, φησὶ χρῆναι τῷ εὐδαίμονι πρῶτον ὑπάρξαι <q>τὰν<note anchored="true" place="inline" resp="editor" xml:lang="eng"><foreign xml:lang="grc">τὰν</foreign> Sintenis<hi rend="superscript">1</hi>, and Graux with M<hi rend="superscript">a</hi>:<foreign xml:lang="grc">τὴν</foreign>.</note> πόλιν εὐδόκιμον</q> ἐγὼ δὲ τῷ μὲν εὐδαιμονήσειν μέλλοντι τὴν ἀληθινὴν εὐδαιμονίαν, ἧς ἐν ἤθει καὶ διαθέσει τὸ πλεῖστόν ἐστιν, οὐδὲν διαφέρειν ἡγοῦμαι ἀδόξου καὶ ταπεινῆς πατρίδος ἢ μητρὸς ἀμόρφου καὶ μικρᾶς γενέσθαι. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-grc2:1" n="2"><p> γελοῖον γάρ εἴ τις οἴοιτο τὴν Ἰουλίδα, μέρος μικρὸν οὖσαν οὐ μεγάλης νήσου τῆς Κέω, καὶ τὴν Αἴγιναν, ἣν τῶν Ἀττικῶν τις ἐκέλευεν ὡς λήμην ἀφαιρεῖν τοῦ Πειραιῶς, ὑποκριτὰς μὲν ἀγαθοὺς τρέφειν καὶ ποιητάς, ἄνδρα δʼ οὐκ ἄν ποτε δύνασθαι δίκαιον καὶ αὐτάρκη καὶ νοῦν ἔχοντα καὶ μεγαλόψυχον προενεγκεῖν. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-grc2:1" n="3"><p> τὰς γὰρ ἄλλας τέχνας εἰκός ἐστι πρὸς ἐργασίαν ἢ δόξαν συνισταμένας ἐν ταῖς ἀδόξοις καὶ ταπειναῖς πόλεσιν ἀπομαραίνεσθαι, τὴν δʼ ἀρετὴν, ὥσπερ ἰσχυρὸν καὶ διαρκὲς φυτὸν, ἐν ἅπαντι ῥιζοῦσθαι τόπῳ, φύσεώς τε χρηστῆς καὶ φιλοπόνου ψυχῆς ἐπιλαμβανομένην. ὅθεν οὐδʼ ἡμεῖς, εἴ τι τοῦ <pb n="p.4"/> φρονεῖν ὡς δεῖ καὶ βιοῦν ἐλλείπομεν, τοῦτο τῇ σμικρότητι τῆς πατρίδος, ἀλλʼ αὑτοῖς δικαίως ἀναθήσομεν. </p></div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-grc2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-grc2:2" n="1"><p> τῷ μέντοι σύνταξιν ὑποβεβλημένῳ καὶ ἱστορίαν ἐξ οὐ προχείρων οὐδʼ οἰκείων, ἀλλὰ ξένων τε τῶν πολλῶν καὶ διεσπαρμένων ἐν ἑτέροις συνιοῦσαν ἀναγνωσμάτων, τῷ ὄντι χρὴ πρῶτον ὑπάρχειν καὶ μάλιστα τὴν πόλιν εὐδόκιμον καὶ φιλόκαλον καὶ πολυάνθρωπον, ὡς βιβλίων τε παντοδαπῶν ἀφθονίαν ἔχων, καὶ ὅσα τοὺς γράφοντας διαφύγοντα σωτηρίᾳ μνήμης ἐπιφανεστέραν εἴληφε πίστιν ὑπολαμβάνων ἀκοῇ καὶ διαπυνθανόμ�

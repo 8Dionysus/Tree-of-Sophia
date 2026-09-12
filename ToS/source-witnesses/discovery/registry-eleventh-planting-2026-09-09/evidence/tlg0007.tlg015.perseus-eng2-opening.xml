@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+      	<titleStmt>
+      		<title>Alcibiades</title>
+      		<author>Plutarch</author>
+      		<editor role="translator">Bernadotte Perrin</editor>
+      	<sponsor>Perseus Project, Tufts University</sponsor>
+      		<principal>Gregory Crane</principal>
+      		<respStmt>
+      			<resp>Prepared under the supervision of</resp>
+      			<name>Lisa Cerrato</name>
+      			<name>William Merrill</name>
+      			<name>Elli Mylonas</name>
+      			<name>David Smith</name>
+      		</respStmt>
+      		<funder n="org:AnnCPB">The Annenberg CPB/Project</funder>
+      		<respStmt>
+      			<persName>Zehava Robbins</persName>
+      			<orgName>Tufts University</orgName>
+      			<resp>Digital editing</resp>
+      		</respStmt></titleStmt>
+      	
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="1992">Perseus 1.0</date>
+      		<idno type="filename">tlg0007.tlg015.perseus-eng2.xml</idno>
+      		<availability>
+      			<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      		</availability>
+      	</publicationStmt>
+      	<sourceDesc>
+      		<biblStruct>
+      			
+      			<monogr>
+      				<author>Plutarch</author>
+      				<title>Plutarch's Lives</title>
+      			   <editor role="translator">Bernadotte Perrin</editor>
+      				<imprint>
+      					<pubPlace>Cambridge, MA</pubPlace>
+      					<publisher>Harvard University Press</publisher>
+      					<pubPlace>London</pubPlace>
+      					<publisher>William Heinemann Ltd.</publisher>
+      					<date>1916</date>
+      				</imprint>
+      				<biblScope unit="volume">4</biblScope>
+      			</monogr>
+      		   <series>
+      		      <title>Loeb Classical Library</title>
+      		   </series>
+      			<ref target="https://archive.org/details/plutarchslives04plut/page/2/mode/2up">Internet Archive</ref>
+      		</biblStruct>
+      	</sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+<editorialDecl>
+	<quotation marks="none"/>
+   <correction status="high" method="silent">
+      <p>optical character recognition</p>
+   </correction>
+</editorialDecl>
+<refsDecl>
+   <refState unit="chapter" delim="."/>
+   <refState unit="section"/>
+</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+<langUsage>
+   <language ident="eng">English</language>
+   <language ident="grc">Greek</language>
+</langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2017-01-09" who="Lisa Cerrato">review of EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+      	<change when="2013-09-13" who="balmas01">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory </change>
+		<change when="2013-06-29" who="gcrane">chapters are now divs </change>
+		<change when="2010-11-30" who="balmas01">getting rid of angle brackets in commit comments </change>
+		<change when="2010-11-19" who="balmas01">Normalizing quote q and lb </change>
+      	<change when="2010-09-08" who="rsingh04">cleanup</change>
+      	<change when="2009-12-15" who="rsingh04">converted demetrius, antony and comparison from sgml to xml and added to hopper.  also replaced xml snippets in other plutarch files with their respective entities. </change>
+      	<change when="2009-12-07" who="rsingh04">moved more xml files around based on copyright status.  split up Plutarch/plut_gk.xml into separate files and gave them their own doc ids.</change>
+		<change when="2009-08-06" who="rsingh04">fixed section numbers </change>
+      	<change when="2009-07-30" who="student ZR">fixed bibl errors - zr</change>
+      	<change when="2009-06-12" who="lcerrato">fixed bad bibls </change>
+      	<change when="2009-06-10" who="student AD">fixing citations - ad </change>
+      	<change when="2009-01-23" who="rsingh04">small fixes </change>
+      	<change when="2009-01-21" who="rsingh04">now validates and entities fixed </change>
+      	<change when="2001-09-28" who="lcerrato">fixed tagging error </change>
+      	<change when="2001-09-28" who="lcerrato">cleaned up quotes, bibls and notes</change>
+		<change when="2001-09-27" who="lcerrato">adding new tags for DE, ISBN, etc. </change>
+      	<change when="2001-09-01" who="lcerrato">removed from group file, retagged and parsed </change>
+      	<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header. </change>
+      	<change when="1999-07-28" who="dasmith">Added text to REFSDECL.</change>
+		<change when="1999-07-09" who="textgod">Converted to TEI-conformant SGML.</change>
+      	<change who="David Smith" when="1997-09-12">Made conformant with TEI P3.</change>
+		<change who="EM" when="1992-10-22">Glued all Plutarch files together, put in HEAD tags to title them.</change>
+      	<change who="DAS" when="1992-08-01">Removed highlighted text, cleaned up notes and citations, and changed chapters to DIV2's.</change>
+      	<change who="EM" when="1991-08-01">Revise DTDs and recheck texts.</change>
+      	<change who="EM" when="1990-08-01">Proofread by Ted Armstrong.</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg015.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg015.perseus-eng2" type="translation" xml:lang="eng">
+<head>ALCIBIADES</head>
+
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg015.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg015.perseus-eng2:1" n="1">
+
+<p>The family of Alcibiades, it is thought, may be traced back to Eurysaces,<note resp="editor" place="inline" anchored="true"> <bibl n="Plat. Alc. 1 121a">Plat. Alc. 1 121</bibl> </note> the son of Aias, as its founder; and on his mother’s side he was an Alcmaeonid, being the son of Deinomache, the daughter of Megacles. His father, Cleinias, fitted out a trireme at his own cost and fought it gloriously at Artemisium.<note resp="editor" place="inline" anchored="true">480 B.C.</note> He was afterwards slain at Coroneia,<note resp="editor" place="inline" anchored="true">447 B.C.</note> fighting the Boeotians, and Alcibiades was therefore reared as the ward of Pericles and Ariphron, the sons of Xanthippus, his near kinsmen.<note resp="editor" place="inline" anchored="true">They were first cousins, once removed.</note> </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg015.perseus-eng2:1" n="2">
+<p> It is said, and with good reason, that the favour and affection which Socrates showed him contributed not a little to his reputation. Certain it is that Nicias, Demosthenes, Lamachus, Phormio, Thrasybulus, and Theramenes were prominent men, and his contemporaries, and yet we cannot so much as name the mother of any one of them; whereas, in the case of Alcibiades, we even know that his nurse, who was a Spartan woman, was called Amycla, and his tutor Zopyrus. The one fact is mentioned by Antisthenes, the other by Plato.<note resp="editor" place="inline" anchored="true"> <bibl n="Plat. Alc. 1 122b">Plat. Alc. 1 122</bibl> </note> </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg015.perseus-eng2:1" n="3">
+<p> As regards the beauty of Alcibiades, it is perhaps unnecessary to say aught, except that it flowered out with each successive season of his bodily growth, and made him, alike in boyhood, youth and manhood, lovely and pleasant. The saying of Euripides,<note resp="editor" place="inline" anchored="true">Cf. <bibl n="Ael. VH 13.4">Aelian Var. Hist. 13.4</bibl> </note> that <quote>beauty’s autumn, too, is beautiful,</quote> is not always true. But it was certainly the case with Alcibiades, as with few besides, because of his excellent natural parts. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg015.perseus-eng2:1" n="4">
+<p> Even the lisp that he had became his speech, they say, and made his talk persuasive and full of charm. Aristophanes notices this lisp of his in the verses wherein he ridicules Theorus:— <quote type="translation"> <sp> <speaker>Sosias</speaker> <l>Then Alcibiades said to me with a lisp, said he,</l> <l><q>Cwemahk Theocwus? What a cwaven’s head he has!</q></l> </sp> <sp> <speaker>Xanthias</speaker> <l>That lisp of Alcibiades hit the mark for once!</l> </sp> </quote> <note resp="editor" place="inline" anchored="true"> <bibl n="Aristoph. Wasps 44"> <title>Wasps</title>, 44 ff</bibl>. The <q type="emph">lisp</q> of Alcibiades turned his r’s into l’s, and the play is on the Greek words <foreign xml:lang="grc">κόραξ</foreign>, <gloss>raven</gloss>, and <foreign xml:lang="grc">κόλαξ</foreign>, <gloss>flatterer</gloss> or <gloss>craven</gloss>.</note> And Archippus, ridiculing the son of Alcibiades, says: <quote rend="blockquote">He walks with utter wantonness, trailing his long robe behind him, that he may be thought the very picture of his father, yes, <l>He slants his neck awry, and overworks the lisp.</l> </quote> <note resp="editor" place="inline" anchored="true"> <bibl>Kock, <title>Com. Att. Frag.</title>, i. p. 688</bibl> </note> </p></div> </div> 
+<div type=

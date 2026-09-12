@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title xml:lang="lat">Pro M. Fonteio</title>            
+            <author>M. Tullius Cicero</author>
+            <editor>Albert Curtis Clark</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>William Merrill</name>
+               <name>David Mimno</name>
+               <name>Rashmi Singhal</name>
+               <name>David Smith</name>
+            </respStmt>
+            <respStmt>
+               <persName>Zach Himes</persName>
+               <orgName>Tufts University</orgName>
+               <resp>CTS and EpiDoc conversion</resp>
+            </respStmt>
+            <funder n="org:NEH">National Endowment For The Humanities (NEH)</funder>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="1997-10-28">Perseus 2.5</date>
+            <idno type="filename">phi0474.phi007.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>M. Tullius Cicero</author>
+                  <title xml:lang="lat">Orationes</title>
+                  <editor>Albert Curtis Clark</editor>
+                  <imprint>
+                     <pubPlace>Oxford</pubPlace>
+                     <publisher>Clarendon</publisher>
+                     <date>1911</date>
+                  </imprint>
+                  <biblScope unit="volume">6</biblScope>
+                  <biblScope n="contents">Pro Tullio; Pro Fonteio; Pro Sulla; Pro Archia; Pro Plancio; Pro Scauro</biblScope>
+               </monogr>
+               <series>
+                  <title>Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+               </series>
+               <ref target="https://hdl.handle.net/2027/njp.32101073249417?urlappend=%3Bseq=42%3Bownerid=13510798896722459-54">HathiTrust</ref>
+               <ref target="https://archive.org/details/orationes0006cice/page/n41/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+              <citeStructure match="/TEI/text/body" use="@xml:base">
+                <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+              </citeStructure>
+            </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+         <change when="2016-04-19" who="Lisa Cerrato">Minor edits and cleanup.</change>
+         <change when="2015-12-17" who="Zach Himes">Cleaned up teiHeader. Converted to TEI P5 and EpiDoc.</change>
+         <change when="2014-08-01" who="Stella Dee">edited markup</change>
+         <change when="2014-07-01" who="Stella Dee">split composite text and converted to unicode</change>
+         <change when="2013-09-13" who="balmas01">reverting texts back to pre_cts_reorg tagged version</change>
+         <change when="2011-07-19" who="gcrane">removed the earlier persName/placeName tags</change>
+         <change when="2011-01-15" who="gcrane">base SDL file</change>
+         <change when="2009-10-09" who="rsingh04">more reorganizing of texts module by collection</change>
+         <change when="2006-08-11" who="gcrane">small mods</change>
+         <change when="2006-04-21" who="gcrane">these now have the app crit entered as notes</change>
+         <change when="2005-08-01" who="packel">removed stray item tags</change>
+         <change when="2005-07-25" who="packel">Converted to XML</change>
+         <change when="2005-04-08" who="mimno">added default chunks</change>
+         <change when="2003-07-01" who="yorkc">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change>
+         <change when="2002-12-02" who="amahoney">correct spelling of Quirites, improperly 'regularized'</change>
+         <change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change>
+         <change when="1999-10-14" who="dasmith">Added explanatory subtitles to titleStmt</change>
+         <change when="1999-08-12" who="dasmith">Fixed refsDecl</change>
+         <change when="1999-08-04" who="textgod">Random changes over a period of months.</change>
+         <change when="1997-10-17" who="textgod">Added CVS log.</change>
+         <change when="1997-03-26" who="DAS">ed.</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="lat">
+      <body xml:base="urn:cts:latinLit:phi0474.phi007.perseus-lat2">
+         
+
+<div type="edition" xml:lang="lat" subtype="edition"> 
+<head rend="align(indent)">PRO M. FONTEIO ORATIO</head> 
+ 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi007.perseus-lat2" n="1"> <p rend="align(indent)"><milestone n="1" unit="chapter"/><gap reason="lost" rend=" . . . "/> <add>o</add>portuisse an ita dissolvit ut omnes alii dissolverunt? <reg>nam</reg> ita ego defendo M. Fonteium, iudices, itaque contendo post legem Valeriam latam<note> <app> <lem>latam</lem> </app> a Metello <hi rend="italic">suppl. Mommsen</hi> </note> <gap reason="lost" rend=" . . . "/> te <gap reason="lost" rend=" . . . "/> quaestore usque ad T. Crispinum quaestorem aliter neminem solvisse; hunc omnium superiorum, huius autem omnis qui postea fuerint auctoritatem dico secutos. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi007.perseus-lat2" n="2"> <p> <reg>quid</reg> accusas, quid reprendis? <reg>nam</reg> quod in tabulis dodrantariis et quadrantariis, quas ait ab Hirtuleio institutas, Fontei officium desiderat, non possum<note>possimus <hi rend="italic">Cus. m.</hi> 1: <hi rend="italic">corr. m.</hi> 2</note> existimare utrum ipse erret an vos<note>vos <hi rend="italic">P</hi>: alios <hi rend="italic">Cus.</hi> </note> in errorem inducere<note>inducere <hi rend="italic">Madvig</hi>: induci (<hi rend="italic">ex</hi> -ici) <hi rend="italic">Cus.</hi>: ducere <hi rend="italic">P</hi> </note> velit. <reg>quaero</reg> enim abs te, M. Plaetori, possitne tibi ipsi probata esse nostra causa, si, qua in re abs te M. Fonteius accusatur, auctorem habet eum quem tu maxime laudas Hirtuleium; qua in re autem laudas Hirtuleium, Fonteius idem fecisse reperitur. <reg>reprehendis</reg> solutionis genus; eodem modo Hirtuleium dissolvisse publicae tabulae coarguunt. <reg>laudas</reg> illum quod dodrantarias tabulas instituerit; easdem Fonteius instituit et eodem genere pecuniae. <reg>nam</reg> ne forte sis nescius et istas tabulas existimes <add>a</add>d <add>diversam v</add>e<add>te</add>ris<note>diversam <hi rend="italic">suppl. Niebuhr</hi> </note> aeris alieni rationem pertinere, ob unam causam et in uno genere sunt institutae. <reg>nam</reg> cum publicanis qui Africam, qui Aquileiense<note>Aquilei. <hi rend="italic">Mommsen</hi>: Aquili. <hi rend="italic">P</hi> </note> por<add>torium</add> <note>por <hi rend="italic">P</hi>: <hi rend="italic">suppl. Niebuhr</hi> </note> <gap reason="lost" rend=" . . . "/> </p> </div> 
+ 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi007.perseus-lat2" n="3"> <p rend="align(indent)"><milestone n="2" unit="chapter"/><gap reason="lost" rend=" . . . "/> cite<note> <app> <lem>cite</lem> </app> recitet <hi rend="italic">Niebuhr</hi> </note> <gap reason="lost" rend=" . . . "/> <reg>nemo</reg>, nemo, inquam, iudices, reperietur qui unum se in quaestura M. Fonteio nummum dedisse, aut illum ex ea pecunia quae pro aerario solveretur detraxisse dicat; nullius in tabulis ulla huius furti significatio, nullum in eis nominibus intertrimenti aut deminutionis vestigium reperietur. <reg>atqui</reg> homines<note> <app> <lem>homines</lem> </app> omnes <hi rend="italic">Niebuhr</hi> </note>, si qui in<note>in <hi rend="italic">sup. lin. hab. P</hi> </note> hoc genere quaestionis accusati sunt<note>accusati sunt <hi rend="italic">Madvig</hi>: accusatos <hi rend="italic">P</hi> </note>, reprehensos videmus primum testibus; difficile est enim eum qui magistratui pecuniam dederit non aut induci odio ut dicat aut cogi religione; deinde si qua gratia testes deterrentur, tabulae quidem certe incorruptae atque integrae manent. <reg>fac</reg> omnis amicissimos Fonteio fuisse, tantum hominum numerum ignotissimorum atque alienissimorum pepercisse huius capiti, consuluisse famae; res ipsa tamen ac ratio litterarum confectioque tabularum habet hanc vim ut ex acceptis et datis quidquid fingatur, aut surripiatur, aut non constet, appareat. <reg>acceptas

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+
+<title xml:lang="grc">Φάβιος Μάξιμος</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg013.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>   
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1916</date>
+</imprint>
+<biblScope unit="volume">3</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/liveswithenglish03plutuoft/page/118/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+    <quotation marks="none"/>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+<refsDecl>
+<refState unit="chapter" delim="."/>
+<refState unit="section"/>
+</refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change who="Lisa Cerrato" when="2017-01-05">EpiDoc and CTS file conversion</change>
+<change who="RS" when="2010-03-01">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+    
+<text xml:lang="grc">
+    <body xml:base="urn:cts:greekLit:tlg0007.tlg013.perseus-grc2"> 
+     
+<div n="urn:cts:greekLit:tlg0007.tlg013.perseus-grc2" type="edition" xml:lang="grc"> 
+    <pb n="p.118"/>  
+    <head>Φάβιος Μάξιμος</head>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg013.perseus-grc2" n="1">  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg013.perseus-grc2:1" n="1"> <p> τοιούτου δὲ τοῦ Περικλέους ἐν τοῖς ἀξίοις <pb n="paris.1624.174"/> μνήμης γεγονότος, ὡς παρειλήφαμεν, ἐπὶ τὸν Φάβιον τὴν ἱστορίαν μεταγάγωμεν. νυμφῶν μιᾶς λέγουσιν, οἱ δὲ γυναικὸς ἐπιχωρίας, Ἡρακλεῖ μιγείσης περὶ τὸν Θύμβριν ποταμὸν γενέσθαι Φάβιον, ἄνδρα πολὺ καὶ δόκιμον ἐν Ῥώμῃ τὸ Φαβίων γένος ἀφʼ αὐτοῦ παρασχόντα, </p> </div>  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg013.perseus-grc2:1" n="2"> <p> τινὲς δὲ τοὺς ἀπὸ τοῦ γένους τούτου πρώτους τῇ διʼ ὀρυγμάτων χρησαμένους ἄγρᾳ Φοδίους ἱστοροῦσιν ὀνομάζεσθαι τὸ παλαιόν οὕτω γὰρ ἄχρι νῦν αἱ διώρυχες φόσσαι καὶ φόδερε τὸ σκάψαι καλεῖται· χρόνῳ δὲ τῶν δυεῖν φθόγγων μεταπεσόντων Φάβιοι προσηγορεύθησαν. πολλοὺς δὲ καὶ μεγάλους τῆς οἰκίας ἐξενεγκαμένης ἄνδρας, ἀπὸ Ῥούλλου τοῦ μεγίστου καὶ διὰ τοῦτο Μαξίμου παρὰ Ῥωμαίοις ἐπονομασθέντος τέταρτος ἦν Φάβιος Μάξιμος, περὶ οὗ τάδε γράφομεν. </p> </div>  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg013.perseus-grc2:1" n="3"> <p> ἦν δʼ αὐτῷ σωματικὸν μὲν παρωνύμιον ὁ Βερρούκωσος· εἶχε γὰρ ἀκροχορδόνα μικρὰν ἐπάνω τοῦ χείλους ἐπιπεφυκυῖαν ὁ δὲ Ὀουικούλας σημαίνει μὲν τὸ προβάτων, ἐτέθη δὲ πρὸς τὴν πρᾳότητα καὶ βαρύτητα<note anchored="true" place="inline" resp="editor"> <foreign xml:lang="grc">βαρύτητα</foreign> MSS., Sint.<hi rend="superscript">1</hi>, Coraës, and Bekker: <foreign xml:lang="grc">βραδυτῆτα</foreign> <gloss>slowness</gloss>.</note> τοῦ ἤθους ἔτι παιδὸς ὄντος. τὸ γὰρ ἡσύχιον αὐτοῦ καὶ σιωπηλὸν καὶ <pb n="p.120"/> μετὰ πολλῆς εὐλαβείας τῶν παιδικῶν ἁπτόμενον ἡδονῶν, βραδέως δὲ καὶ διαπόνως δεχόμενον τὰς μαθήσεις, εὔκολον δὲ πρὸς τοὺς συνήθεις καὶ κατήκοον ἀβελτερίας τινὸς καὶ νωθρότητος ὑπόνοιαν εἶχε παρὰ τοῖς ἐκτός· ὀλίγοι δʼ ἦσαν οἱ τὸ δυσκίνητον ὑπὸ βάθους καὶ τὸ μεγαλόψυχον καὶ λεοντῶδες ἐν τῇ φύσει καθορῶντες αὐτοῦ. </p> </div>  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg013.perseus-grc2:1" n="4"> <p> ταχὺ δὲ τοῦ χρόνου προϊόντος ὑπὸ τῶν πραγμάτων ἐγειρόμενος διεσήμαινε καὶ τοῖς πολλοῖς ἀπάθειαν μὲν οὖσαν τὴν δοκοῦσαν ἀπραγίαν, εὐβουλίαν δὲ τὴν εὐλάβειαν, τὸ δὲ πρὸς μηδὲν ὀξὺ μηδʼ εὐκίνητον ἐν πᾶσι μόνιμον καὶ βέβα�

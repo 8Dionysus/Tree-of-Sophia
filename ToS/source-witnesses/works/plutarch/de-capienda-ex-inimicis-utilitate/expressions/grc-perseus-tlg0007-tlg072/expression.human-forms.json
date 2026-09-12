@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-capienda-ex-inimicis-utilitate.grc-perseus-tlg0007-tlg072",
+    "version": 1,
+    "digest": "sha256:2504729facb80f96fb9511e218939b4d6fe58c9ac86fc9078209ef5413b29758"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:2504729facb80f96fb9511e218939b4d6fe58c9ac86fc9078209ef5413b29758",
+            "id": "tos.expression.plutarch.de-capienda-ex-inimicis-utilitate.grc-perseus-tlg0007-tlg072",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:2504729facb80f96fb9511e218939b4d6fe58c9ac86fc9078209ef5413b29758",
+            "id": "tos.expression.plutarch.de-capienda-ex-inimicis-utilitate.grc-perseus-tlg0007-tlg072",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:2504729facb80f96fb9511e218939b4d6fe58c9ac86fc9078209ef5413b29758",
+            "id": "tos.expression.plutarch.de-capienda-ex-inimicis-utilitate.grc-perseus-tlg0007-tlg072",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:2504729facb80f96fb9511e218939b4d6fe58c9ac86fc9078209ef5413b29758",
+            "id": "tos.expression.plutarch.de-capienda-ex-inimicis-utilitate.grc-perseus-tlg0007-tlg072",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.936bb061be93a12ad6e22e5541f4b2ce21994367e156b0a911df16c4304a2cd1",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:2504729facb80f96fb9511e218939b4d6fe58c9ac86fc9078209ef5413b29758",
+        "id": "tos.expression.plutarch.de-capienda-ex-inimicis-utilitate.grc-perseus-tlg0007-tlg072",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:2504729facb80f96fb9511e218939b4d6fe58c9ac86fc9078209ef5413b29758",
+            "id": "tos.expression.plutarch.de-capienda-ex-inimicis-utilitate.grc-perseus-tlg0007-tlg072",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:2504729facb80f96fb9511e218939b4d6fe58c9ac86fc9078209ef5413b29758",
+            "id": "tos.expression.plutarch.de-capienda-ex-inimicis-utilitate.grc-perseus-tlg0007-tlg072",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:2504729facb80f96fb9511e218939b4d6fe58c9ac86fc9078209ef5413b29758",
+            "id": "tos.expression.plutarch.de-capienda-ex-inimicis-utilitate.grc-perseus-tlg0007-tlg072",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:2504729facb80f96fb9511e218939b4d6fe58c9ac86fc9078209ef5413b29758",
+            "id": "tos.expression.plutarch.de-capienda-ex-inimicis-utilitate.grc-perseus-tlg0007-tlg072",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.df8a2cf0c15222d375a703caa25035bdab20c334aa9e7ec73260f631f644aab0",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:2504729facb80f96fb9511e218939b4d6fe58c9ac86fc9078209ef5413b29758",
+        "id": "tos.expression.plutarch.de-capienda-ex-inimicis-utilitate.grc-perseus-tlg0007-tlg072",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:44601854a91d6e8ed2c213bd903b4102a1e45263aeac2b39fa23f5088bcadd4e",
+      "request_digest": "sha256:cf550cfc91afaab5b75e46cbb196f94649ff21c006ffbcc74fff5a9639704da4",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:ac2f421822f575a185da318ca5127d41a1eca2340fc7cb7a5af254e6f11ed137",
+      "recorded_at": "2026-09-09T16:45:37.453305+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-capienda-ex-inimicis-utilitate.grc-perseus-tlg0007-tlg072",
+        "version": 1,
+        "digest": "sha256:2504729facb80f96fb9511e218939b4d6fe58c9ac86fc9078209ef5413b29758"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.936bb061be93a12ad6e22e5541f4b2ce21994367e156b0a911df16c4304a2cd1",
+          "version": 1,
+          "digest": "sha256:2cd53ffdcc94edd406581f97662ee742554ab37c8a924157b23b8029ccec2098"
+        },
+        {
+          "id": "tos.form.metadata.df8a2cf0c15222d375a703caa25035bdab20c334aa9e7ec73260f631f644aab0",
+          "version": 1,
+          "digest": "sha256:33b53724f299fe64e913a029e0a0d64b14a6803853e6b30367fd5b8fdaf42de1"
+        }
+      ]
+    }
+  ]
+}

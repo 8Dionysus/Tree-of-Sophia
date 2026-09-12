@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>Of Love</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">John Philips</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         		<name>Angelia Hanhardt</name>
+         		<name>Michael Konieczny</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Karina Cooper</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg113.perseus-eng2.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch’s Morals.</title>
+                  <respStmt>
+                     <resp>Translated from the Greek by several hands. Corrected and revised	by</resp>
+                     <name>William W. Goodwin, PH. D.</name>
+                  </respStmt>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">4</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst04plutuoft/page/254">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	<editorialDecl>
+      		<quotation marks="none"/>
+      		<correction status="high" method="silent">
+      			<p>optical character recognition</p>
+      		</correction>
+      	</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+      	<refsDecl n="CTS">
+      <cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      	<p>This pointer pattern extracts section.</p>
+      	</cRefPattern>
+            
+         </refsDecl>
+      	<!--<refsDecl doctype="TEI.2">
+
+</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      	<particDesc>
+      		<person><persName>Flavianus</persName></person>
+      		<person><persName>Autobulus</persName></person>
+      	</particDesc>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Karina Cooper" when="2019-07-17">EpiDoc and CTS conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg113.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg113.perseus-eng2" type="translation" xml:lang="eng">
+         <head>Of love.</head><lb/>
+        <head> FLAVIANUS AND AUTOBULUS, SONS OF PLUTARCH.</head>
+         <pb xml:id="v.4.p.254"/>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg113.perseus-eng2" n="1"> <p rend="indent"><said who="#Flavianus"><label>FLAVIANUS.</label> Was it not in Helicon, dear Autobulus, that those discourses were held concerning Love, which — whether thou hast already set them down in writing, or still carriest them in thy memory, as having often desired them from thy father — we are now in expectation that thou wilt recite to us, at our importunate request?</said></p>
+<p rend="indent"><said who="#Autobulus"><label>AUTOBULUS.</label> I was in Helicon, dear Flavianus, among the Muses, at what time the Thespians performed the Erotic solemnities. For they celebrate every four years certain games and festivals very magnificent and splendid in honor of Cupid, as well as of the Muses.</said></p>
+<p rend="indent"><said who="#Flavianus"><label>FLAV.</label> Know’st thou then what it is we all desire at thy hands, as many as are gathered here together to be thy auditors?</said></p>
+<p rend="indent"><said who="#Autobulus"><label>AUTOB.</label> No; but I shall know, when I am once by you informed.</said></p>
+<p rend="indent"><said who="#Flavianus"><label>FLAV.</label> Curtail, we beseech ye, your discourse at present, forbearing the descriptions of meadows and shades, together with the crawling ivy, and whatever else poets are so studious to add to their descriptions, imitating with more curiosity than grace Plato’s Ilissus,<note resp="editor" place="inline" anchored="true">See Plato’s <title>Phaedrus</title>, p. 230 B.</note> with the chaste tree and the gentle rising hillock covered with green grass.</said></p>
+<p rend="indent"><said who="#Autobulus"><label>AUTOB.</label> What needed my relation, dearest Flavianus, such a proem as this? The occasion that gave birth to <pb xml:id="v.4.p.255"/> these discourses of itself (as it were) asks for a chorus, and it requires a theatre; otherwise there is nothing wanting of a complete drama. Therefore let us only beseech Memory, the mother of the Muses, to be propitious and assist us in the discovery of the fable.</said></p> </div>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg113.perseus-eng2" n="2"> <p rend="indent"><said who="#Autobulus" rend="merge"><label>AUTOB.</label> For a long time before we were born, when our father had newly espoused our mother, an unlucky variance that fell out between their parents caused him to take a journey to Thespiae, with an intention to sacrifice to the God of Love; and he carried my mother also to the feast (for that it properly belonged to her as well to make the feast as to perform the sacrifice), besides several of his familiar acquaintance that accompanied him from his house. Now being arrived at Thespiae, he met with Daphnaeus, the son of Archidamus, who was in love with Lysandra, the daughter of Simon, and who was, above all her suitors, chiefly the most welcome and acceptable to her. There he also found Soclarus, the son of Aristion, who was come from Tithorea; together with Protogenes of Tarsus and Zeuxippus the Lacedaemonian, by whom he had been several times kindly entertained; and he said that most of the chief men among the Boeotians were there also. Thus they staved for two or three days in the city, entertaining each other with learned discourses, one while in the common wrestling-places, sometimes in the theatres, still keeping company together. After that, avoiding the troublesome contest of the harpers and musicians, — it being found out that all had been settled beforehand by favor and intrigue, — the greatest part brake company, as if they had been discamping out of an enemy’s country, retired to Helicon, and took up their lodgi

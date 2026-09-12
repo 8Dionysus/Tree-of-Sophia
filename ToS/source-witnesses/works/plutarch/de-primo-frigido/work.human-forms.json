@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:727e287db61801fb230c5e9be0664fe0c7da32ea7a3e232dbb25bd192eeec162",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:727e287db61801fb230c5e9be0664fe0c7da32ea7a3e232dbb25bd192eeec162",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:727e287db61801fb230c5e9be0664fe0c7da32ea7a3e232dbb25bd192eeec162",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:727e287db61801fb230c5e9be0664fe0c7da32ea7a3e232dbb25bd192eeec162",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a260ed7e4420372a721124ffd4f317d3ad8d3e238840c6a9739377a988d88452",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:81c68483ccb61dcce1c103110dbaf8704c0e01f7108502d7126dda7025222138",
+        "id": "tos.form.metadata.a260ed7e4420372a721124ffd4f317d3ad8d3e238840c6a9739377a988d88452",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:727e287db61801fb230c5e9be0664fe0c7da32ea7a3e232dbb25bd192eeec162",
+        "id": "tos.work.plutarch.de-primo-frigido",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:727e287db61801fb230c5e9be0664fe0c7da32ea7a3e232dbb25bd192eeec162",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:727e287db61801fb230c5e9be0664fe0c7da32ea7a3e232dbb25bd192eeec162",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:727e287db61801fb230c5e9be0664fe0c7da32ea7a3e232dbb25bd192eeec162",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:727e287db61801fb230c5e9be0664fe0c7da32ea7a3e232dbb25bd192eeec162",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.28546d03bd4554cb92f76d3a5cb5d35e19fb75a409a3b032fba888c5edd57e1b",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:d744997a658b3a67a49d3c5fbcc85c7b0a6ec8f2c102fcdba1f13c837bbc58df",
+        "id": "tos.form.metadata.28546d03bd4554cb92f76d3a5cb5d35e19fb75a409a3b032fba888c5edd57e1b",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:727e287db61801fb230c5e9be0664fe0c7da32ea7a3e232dbb25bd192eeec162",
+        "id": "tos.work.plutarch.de-primo-frigido",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:4ef4123f09bfd043cd4f4fa09f74bcce6f6dcec6c3f065521b9a8f10b6abf3fd",
+      "owner_configuration": "sha256:6af2b0e538e1b61c9b60bfc1b3d8a6b41534874576ec6dcdf190622ee3e3a539",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:41.224162+00:00",
+      "request_digest": "sha256:248e43b3980789a8c86a1c3a07bdc00c96f114f2164ff4d05acc1ab5ca550813",
+      "results": [
+        {
+          "digest": "sha256:81c68483ccb61dcce1c103110dbaf8704c0e01f7108502d7126dda7025222138",
+          "id": "tos.form.metadata.a260ed7e4420372a721124ffd4f317d3ad8d3e238840c6a9739377a988d88452",
+          "version": 1
+        },
+        {
+          "digest": "sha256:d744997a658b3a67a49d3c5fbcc85c7b0a6ec8f2c102fcdba1f13c837bbc58df",
+          "id": "tos.form.metadata.28546d03bd4554cb92f76d3a5cb5d35e19fb75a409a3b032fba888c5edd57e1b",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:04af07d3023410c4810e867e909a545750054896995e2f503684796fbe21e800",
+        "id": "tos.work.plutarch.de-primo-frigido",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:4ef4123f09bfd043cd4f4fa09f74bcce6f6dcec6c3f065521b9a8f10b6abf3fd",
+      "request_digest": "sha256:e7f635bbb124edecf5eb2e21d0e8f8a4174e7b6e8668975d7f24932ebd7fe1b7",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:eac7d8b50dc48f03e85a9fccefa9cd4197cd8eac06c48839fb89ef9ce78caece",
+      "recorded_at": "2026-09-09T18:35:30.819388+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-primo-frigido",
+        "version": 2,
+        "digest": "sha256:727e287db61801fb230c5e9be0664fe0c7da32ea7a3e232dbb25bd192eeec162"
+      },
+      "previous_revision": "sha256:bf2694ac96ac61be2257b16b759f71cceeac9fcfba04744df21b21d44fe1fa08",
+      "results": [
+        {
+          "id": "tos.form.metadata.a260ed7e4420372a721124ffd4f317d3ad8d3e238840c6a9739377a988d88452",
+          "version": 2,
+          "digest": "sha256:ed66fc597cc52fe3de64e2a30b8ede7f65e0b457727cb02bd8ffdd28bb444d2b"
+        },
+        {
+          "id": "tos.form.metadata.28546d03bd4554cb92f76d3a5cb5d35e19fb75a409a3b032fba888c5edd57e1b",
+          "version": 2,
+          "digest": "sha256:377cc64233ce6136b07c4c6dfd92c36b2ff2b8172ca5fa6c35a1edc6a84076f8"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:04af07d3023410c4810e867e909a545750054896995e2f503684796fbe21e800",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:04af07d3023410c4810e867e909a545750054896995e2f503684796fbe21e800",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:04af07d3023410c4810e867e909a545750054896995e2f503684796fbe21e800",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:04af07d3023410c4810e867e909a545750054896995e2f503684796fbe21e800",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a260ed7e4420372a721124ffd4f317d3ad8d3e238840c6a9739377a988d88452",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:04af07d3023410c4810e867e909a545750054896995e2f503684796fbe21e800",
+        "id": "tos.work.plutarch.de-primo-frigido",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:04af07d3023410c4810e867e909a545750054896995e2f503684796fbe21e800",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:04af07d3023410c4810e867e909a545750054896995e2f503684796fbe21e800",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:04af07d3023410c4810e867e909a545750054896995e2f503684796fbe21e800",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:04af07d3023410c4810e867e909a545750054896995e2f503684796fbe21e800",
+            "id": "tos.work.plutarch.de-primo-frigido",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.28546d03bd4554cb92f76d3a5cb5d35e19fb75a409a3b032fba888c5edd57e1b",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:04af07d3023410c4810e867e909a545750054896995e2f503684796fbe21e800",
+        "id": "tos.work.plutarch.de-primo-frigido",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-primo-frigido",
+    "version": 2,
+    "digest": "sha256:727e287db61801fb230c5e9be0664fe0c7da32ea7a3e232dbb25bd192eeec162"
+  }
+}

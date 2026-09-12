@@ -1,0 +1,685 @@
+{
+  "review_scope": "branch fit and explicit coverage boundaries only",
+  "reviewer_ref": "codex:first-planting-sources",
+  "schema_version": "tos_source_planting_preparation_batch_v1",
+  "status": "prepared-not-planted",
+  "targets": [
+    {
+      "anchor_preparation": {
+        "atlas_row_id": "A12",
+        "atlas_source": {
+          "line": 11,
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "row_sha256": "41fc8b8c2229356ec76a683c39bd5456e00985874673d9d887b980bafc66df72"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted",
+        "backlog_row_sha256": "9cbec7a17bece3b0b455729d996ac0448bffe2d6997768845eac40d4503fde25",
+        "backlog_sha256": "8180531a4c0951fcfb9055849ac5867ac294b66d1f990dac49fdfb665a115d7b",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/branch.manifest.json",
+          "sha256": "04d876ee6caf3c74de3b3aa2a5ddf7eb073b90d0569c069fd794be616b3d46e7"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary",
+        "dossier_id": "A12",
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "source_backlog_anchor": {
+          "line": 9,
+          "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/source-anchor-backlog.jsonl",
+          "source_label": "Sefaria: Proverbs / Job / Ecclesiastes",
+          "source_row_index": 1,
+          "source_table_index": 14
+        },
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A12",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary",
+          "contribution": "Современный доступ к каноническим текстам",
+          "dossier_id": "A12",
+          "reliability": "высокая для доступа; не заменяет критическое издание",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Sefaria",
+          "source_document": "ToS Deep Research_ A12 — Левантская мудростная литература и иврито-арамейский документальный мир.docx",
+          "source_label": "Sefaria: Proverbs / Job / Ecclesiastes",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "Цифровой корпус"
+        },
+        "status": "prepared-not-planted"
+      },
+      "registry_source_record_id": "A12-R018",
+      "remaining_controls": [
+        "This is not a Sefaria copy and does not establish equivalence with its versions.",
+        "Morphology and lemma annotation remain a modern OSHB layer; ancient attribution is unresolved separately."
+      ],
+      "scope_rationale": "MorphHB supplies the Westminster Leningrad Codex edition for the three named works. The Sefaria anchor remains literal and unmodified.",
+      "scope_relationship": "alternative-edition-for-work-need",
+      "target_slug": "proverbs"
+    },
+    {
+      "anchor_preparation": {
+        "atlas_row_id": "A12",
+        "atlas_source": {
+          "line": 11,
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "row_sha256": "41fc8b8c2229356ec76a683c39bd5456e00985874673d9d887b980bafc66df72"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted",
+        "backlog_row_sha256": "9cbec7a17bece3b0b455729d996ac0448bffe2d6997768845eac40d4503fde25",
+        "backlog_sha256": "8180531a4c0951fcfb9055849ac5867ac294b66d1f990dac49fdfb665a115d7b",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/branch.manifest.json",
+          "sha256": "04d876ee6caf3c74de3b3aa2a5ddf7eb073b90d0569c069fd794be616b3d46e7"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary",
+        "dossier_id": "A12",
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "source_backlog_anchor": {
+          "line": 9,
+          "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/source-anchor-backlog.jsonl",
+          "source_label": "Sefaria: Proverbs / Job / Ecclesiastes",
+          "source_row_index": 1,
+          "source_table_index": 14
+        },
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A12",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary",
+          "contribution": "Современный доступ к каноническим текстам",
+          "dossier_id": "A12",
+          "reliability": "высокая для доступа; не заменяет критическое издание",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Sefaria",
+          "source_document": "ToS Deep Research_ A12 — Левантская мудростная литература и иврито-арамейский документальный мир.docx",
+          "source_label": "Sefaria: Proverbs / Job / Ecclesiastes",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "Цифровой корпус"
+        },
+        "status": "prepared-not-planted"
+      },
+      "registry_source_record_id": "A12-R018",
+      "remaining_controls": [
+        "This is not a Sefaria copy and does not establish equivalence with its versions.",
+        "Morphology and lemma annotation remain a modern OSHB layer; ancient attribution is unresolved separately."
+      ],
+      "scope_rationale": "MorphHB supplies the Westminster Leningrad Codex edition for the three named works. The Sefaria anchor remains literal and unmodified.",
+      "scope_relationship": "alternative-edition-for-work-need",
+      "target_slug": "job"
+    },
+    {
+      "anchor_preparation": {
+        "atlas_row_id": "A12",
+        "atlas_source": {
+          "line": 11,
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "row_sha256": "41fc8b8c2229356ec76a683c39bd5456e00985874673d9d887b980bafc66df72"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted",
+        "backlog_row_sha256": "9cbec7a17bece3b0b455729d996ac0448bffe2d6997768845eac40d4503fde25",
+        "backlog_sha256": "8180531a4c0951fcfb9055849ac5867ac294b66d1f990dac49fdfb665a115d7b",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/branch.manifest.json",
+          "sha256": "04d876ee6caf3c74de3b3aa2a5ddf7eb073b90d0569c069fd794be616b3d46e7"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary",
+        "dossier_id": "A12",
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "source_backlog_anchor": {
+          "line": 9,
+          "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/source-anchor-backlog.jsonl",
+          "source_label": "Sefaria: Proverbs / Job / Ecclesiastes",
+          "source_row_index": 1,
+          "source_table_index": 14
+        },
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A12",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary",
+          "contribution": "Современный доступ к каноническим текстам",
+          "dossier_id": "A12",
+          "reliability": "высокая для доступа; не заменяет критическое издание",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Sefaria",
+          "source_document": "ToS Deep Research_ A12 — Левантская мудростная литература и иврито-арамейский документальный мир.docx",
+          "source_label": "Sefaria: Proverbs / Job / Ecclesiastes",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "Цифровой корпус"
+        },
+        "status": "prepared-not-planted"
+      },
+      "registry_source_record_id": "A12-R018",
+      "remaining_controls": [
+        "This is not a Sefaria copy and does not establish equivalence with its versions.",
+        "Morphology and lemma annotation remain a modern OSHB layer; ancient attribution is unresolved separately."
+      ],
+      "scope_rationale": "MorphHB supplies the Westminster Leningrad Codex edition for the three named works. The Sefaria anchor remains literal and unmodified.",
+      "scope_relationship": "alternative-edition-for-work-need",
+      "target_slug": "qohelet"
+    },
+    {
+      "anchor_preparation": {
+        "atlas_row_id": "A04",
+        "atlas_source": {
+          "line": 4,
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "row_sha256": "2ead5a00500e02a92202151dba59f1f41683b08f10c8db74662fedd7ff9faf51"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted",
+        "backlog_row_sha256": "b77fd3b3c75cf1b7ac80f64e1f0a612a717ec565443db117984747d2f997c91a",
+        "backlog_sha256": "168d9f16f0c83315051a4f28aee2495f07cdb796cd06239c170034e99fbf50d3",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/branch.manifest.json",
+          "sha256": "4b8c7ad447d54cf6e2527b1a9e66bdb4891ca5b2ee98e796493b37fed687238a"
+        },
+        "branch_path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics",
+        "dossier_id": "A04",
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "source_backlog_anchor": {
+          "line": 15,
+          "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/source-anchor-backlog.jsonl",
+          "source_label": "TLA",
+          "source_row_index": 6,
+          "source_table_index": 13
+        },
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A04",
+          "branch_path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics",
+          "contribution": "Леммы, тексты, библиография, поиск по корпусу",
+          "dossier_id": "A04",
+          "reliability": "высокая как исследовательская инфраструктура. [23]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "BBAW / TLA",
+          "source_document": "ToS Deep Research_ A04 — Египетский sebayt, Маат и писцовая этика.docx",
+          "source_label": "TLA",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 13,
+          "source_type": "Цифровой словарь и корпус"
+        },
+        "status": "prepared-not-planted"
+      },
+      "registry_source_record_id": "A04-R062",
+      "remaining_controls": [
+        "Coverage is verso 2.5–3.11 for Immortality of Writers and verso 3.11–4.6 for Be a Scribe.",
+        "Two work-level textual sections share one physical artifact; no whole-papyrus or critical-composite completeness claim."
+      ],
+      "scope_rationale": "ORAEC provides openly licensed AED-TEI-derived representations of two distinct sections of pChester Beatty IV (EA 10684), within the TLA source route.",
+      "scope_relationship": "bounded-derived-textual-sections",
+      "target_slug": "immortality-of-writers"
+    },
+    {
+      "anchor_preparation": {
+        "atlas_row_id": "A04",
+        "atlas_source": {
+          "line": 4,
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "row_sha256": "2ead5a00500e02a92202151dba59f1f41683b08f10c8db74662fedd7ff9faf51"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted",
+        "backlog_row_sha256": "b77fd3b3c75cf1b7ac80f64e1f0a612a717ec565443db117984747d2f997c91a",
+        "backlog_sha256": "168d9f16f0c83315051a4f28aee2495f07cdb796cd06239c170034e99fbf50d3",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/branch.manifest.json",
+          "sha256": "4b8c7ad447d54cf6e2527b1a9e66bdb4891ca5b2ee98e796493b37fed687238a"
+        },
+        "branch_path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics",
+        "dossier_id": "A04",
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "source_backlog_anchor": {
+          "line": 15,
+          "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/source-anchor-backlog.jsonl",
+          "source_label": "TLA",
+          "source_row_index": 6,
+          "source_table_index": 13
+        },
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A04",
+          "branch_path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics",
+          "contribution": "Леммы, тексты, библиография, поиск по корпусу",
+          "dossier_id": "A04",
+          "reliability": "высокая как исследовательская инфраструктура. [23]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "BBAW / TLA",
+          "source_document": "ToS Deep Research_ A04 — Египетский sebayt, Маат и писцовая этика.docx",
+          "source_label": "TLA",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 13,
+          "source_type": "Цифровой словарь и корпус"
+        },
+        "status": "prepared-not-planted"
+      },
+      "registry_source_record_id": "A04-R078",
+      "remaining_controls": [
+        "Coverage is verso 2.5–3.11 for Immortality of Writers and verso 3.11–4.6 for Be a Scribe.",
+        "Two work-level textual sections share one physical artifact; no whole-papyrus or critical-composite completeness claim."
+      ],
+      "scope_rationale": "ORAEC provides openly licensed AED-TEI-derived representations of two distinct sections of pChester Beatty IV (EA 10684), within the TLA source route.",
+      "scope_relationship": "bounded-derived-textual-sections",
+      "target_slug": "be-a-scribe"
+    },
+    {
+      "anchor_preparation": {
+        "atlas_row_id": "A18",
+        "atlas_source": {
+          "line": 23,
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "row_sha256": "731b6f4155d90ec5c935619d6334961757facdf28fcd17221fd4e803d03ef384"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted",
+        "backlog_row_sha256": "2c890085f1f8c4b8d3567a7295c7068cb9399d4493da1aa25cbcbde0c0ec5256",
+        "backlog_sha256": "f9b3666c25fb11db1ca05d0ba14e550925c5719a1b08aff74d8b4855c4042c5b",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/branch.manifest.json",
+          "sha256": "510a144e6d661d5f0cee9c4ceb1b3fb01e5f5d24efdf8a900693ce7ea7f1124c"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain",
+        "dossier_id": "A18",
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "source_backlog_anchor": {
+          "line": 10,
+          "path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/source-anchor-backlog.jsonl",
+          "source_label": "Nikāya / Āgama-параллели",
+          "source_row_index": 1,
+          "source_table_index": 12
+        },
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A18",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain",
+          "contribution": "Ранние буддийские дискурсы и сравнительный слой",
+          "dossier_id": "A18",
+          "reliability": "высокая как базовый корпус [56]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "SuttaCentral; Āgama Research Group; CBETA",
+          "source_document": "ToS Deep Research_ A18 — Южная Азия — Шраманские традиции_ ранний буддизм, джайнизм, дисциплина.docx",
+          "source_label": "Nikāya / Āgama-параллели",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 12,
+          "source_type": "Канонический корпус"
+        },
+        "status": "prepared-not-planted"
+      },
+      "registry_source_record_id": "A18-R015",
+      "remaining_controls": [
+        "Agama parallels and their textual comparison remain unacquired and unassessed.",
+        "These individual texts do not complete the Nikaya corpus or establish historical authenticity."
+      ],
+      "scope_rationale": "DN 2 and MN 56 provide selected Pali Nikaya texts in the Mahasangiti–SuttaCentral edition.",
+      "scope_relationship": "partial-canonical-side-of-comparison",
+      "target_slug": "samannaphala-sutta"
+    },
+    {
+      "anchor_preparation": {
+        "atlas_row_id": "A18",
+        "atlas_source": {
+          "line": 23,
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "row_sha256": "731b6f4155d90ec5c935619d6334961757facdf28fcd17221fd4e803d03ef384"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted",
+        "backlog_row_sha256": "2c890085f1f8c4b8d3567a7295c7068cb9399d4493da1aa25cbcbde0c0ec5256",
+        "backlog_sha256": "f9b3666c25fb11db1ca05d0ba14e550925c5719a1b08aff74d8b4855c4042c5b",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/branch.manifest.json",
+          "sha256": "510a144e6d661d5f0cee9c4ceb1b3fb01e5f5d24efdf8a900693ce7ea7f1124c"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain",
+        "dossier_id": "A18",
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "source_backlog_anchor": {
+          "line": 10,
+          "path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/source-anchor-backlog.jsonl",
+          "source_label": "Nikāya / Āgama-параллели",
+          "source_row_index": 1,
+          "source_table_index": 12
+        },
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A18",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain",
+          "contribution": "Ранние буддийские дискурсы и сравнительный слой",
+          "dossier_id": "A18",
+          "reliability": "высокая как базовый корпус [56]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "SuttaCentral; Āgama Research Group; CBETA",
+          "source_document": "ToS Deep Research_ A18 — Южная Азия — Шраманские традиции_ ранний буддизм, джайнизм, дисциплина.docx",
+          "source_label": "Nikāya / Āgama-параллели",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 12,
+          "source_type": "Канонический корпус"
+        },
+        "status": "prepared-not-planted"
+      },
+      "registry_source_record_id": "A18-R016",
+      "remaining_controls": [
+        "Agama parallels and their textual comparison remain unacquired and unassessed.",
+        "These individual texts do not complete the Nikaya corpus or establish historical authenticity."
+      ],
+      "scope_rationale": "DN 2 and MN 56 provide selected Pali Nikaya texts in the Mahasangiti–SuttaCentral edition.",
+      "scope_relationship": "partial-canonical-side-of-comparison",
+      "target_slug": "upali-sutta"
+    },
+    {
+      "anchor_preparation": {
+        "atlas_row_id": "A21",
+        "atlas_source": {
+          "line": 26,
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "row_sha256": "711da942e5b96f9c159ef89d3e1e91bea0fbf2c9bf9bbd0ae360ee34b71e25d6"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted",
+        "backlog_row_sha256": "9170348fff5b1bc0223a9483bd752f7ed9b84e0adbf8a5533924c5a6acc39b6e",
+        "backlog_sha256": "16957085fd36a186371b7dcf9aa6cad4a573c268dab707a95d50fdf0ddbbc4d1",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/branch.manifest.json",
+          "sha256": "39b0e0d7ec968292aa9c0d29ec14fe4146dc93a5bfeb6db415b17e664538eb4a"
+        },
+        "branch_path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon",
+        "dossier_id": "A21",
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "source_backlog_anchor": {
+          "line": 13,
+          "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/source-anchor-backlog.jsonl",
+          "source_label": "Sutta-piṭaka",
+          "source_row_index": 3,
+          "source_table_index": 13
+        },
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A21",
+          "branch_path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon",
+          "contribution": "Доктрина, практика, диалогические и проповеднические формы",
+          "dossier_id": "A21",
+          "reliability": "Очень высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PTS; современные переводные издания",
+          "source_document": "ToS Deep Research_ A21 — Тхеравада и письменная фиксация палийского канона.docx",
+          "source_label": "Sutta-piṭaka",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 3,
+          "source_table_index": 13,
+          "source_type": "Первичный канон"
+        },
+        "status": "prepared-not-planted"
+      },
+      "registry_source_record_id": "A21-R050",
+      "remaining_controls": [
+        "The entire Sutta-pitaka remains outside this batch.",
+        "Provider segments, repeated passage abbreviations and edition-specific divisions remain explicit."
+      ],
+      "scope_rationale": "Five named Khuddaka collections provide bounded constituent works of the Sutta-pitaka in the Mahasangiti–SuttaCentral edition.",
+      "scope_relationship": "bounded-constituent-works",
+      "target_slug": "khuddakapatha"
+    },
+    {
+      "anchor_preparation": {
+        "atlas_row_id": "A21",
+        "atlas_source": {
+          "line": 26,
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "row_sha256": "711da942e5b96f9c159ef89d3e1e91bea0fbf2c9bf9bbd0ae360ee34b71e25d6"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted",
+        "backlog_row_sha256": "9170348fff5b1bc0223a9483bd752f7ed9b84e0adbf8a5533924c5a6acc39b6e",
+        "backlog_sha256": "16957085fd36a186371b7dcf9aa6cad4a573c268dab707a95d50fdf0ddbbc4d1",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/branch.manifest.json",
+          "sha256": "39b0e0d7ec968292aa9c0d29ec14fe4146dc93a5bfeb6db415b17e664538eb4a"
+        },
+        "branch_path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon",
+        "dossier_id": "A21",
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "source_backlog_anchor": {
+          "line": 13,
+          "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/source-anchor-backlog.jsonl",
+          "source_label": "Sutta-piṭaka",
+          "source_row_index": 3,
+          "source_table_index": 13
+        },
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A21",
+          "branch_path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon",
+          "contribution": "Доктрина, практика, диалогические и проповеднические формы",
+          "dossier_id": "A21",
+          "reliability": "Очень высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PTS; современные переводные издания",
+          "source_document": "ToS Deep Research_ A21 — Тхеравада и письменная фиксация палийского канона.docx",
+          "source_label": "Sutta-piṭaka",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 3,
+          "source_table_index": 13,
+          "source_type": "Первичный канон"
+        },
+        "status": "prepared-not-planted"
+      },
+      "registry_source_record_id": "A21-R046",
+      "remaining_controls": [
+        "The entire Sutta-pitaka remains outside this batch.",
+        "Provider segments, repeated passage abbreviations and edition-specific divisions remain explicit."
+      ],
+      "scope_rationale": "Five named Khuddaka collections provide bounded constituent works of the Sutta-pitaka in the Mahasangiti–SuttaCentral edition.",
+      "scope_relationship": "bounded-constituent-works",
+      "target_slug": "dhammapada"
+    },
+    {
+      "anchor_preparation": {
+        "atlas_row_id": "A21",
+        "atlas_source": {
+          "line": 26,
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "row_sha256": "711da942e5b96f9c159ef89d3e1e91bea0fbf2c9bf9bbd0ae360ee34b71e25d6"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted",
+        "backlog_row_sha256": "9170348fff5b1bc0223a9483bd752f7ed9b84e0adbf8a5533924c5a6acc39b6e",
+        "backlog_sha256": "16957085fd36a186371b7dcf9aa6cad4a573c268dab707a95d50fdf0ddbbc4d1",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/branch.manifest.json",
+          "sha256": "39b0e0d7ec968292aa9c0d29ec14fe4146dc93a5bfeb6db415b17e664538eb4a"
+        },
+        "branch_path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon",
+        "dossier_id": "A21",
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "source_backlog_anchor": {
+          "line": 13,
+          "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/source-anchor-backlog.jsonl",
+          "source_label": "Sutta-piṭaka",
+          "source_row_index": 3,
+          "source_table_index": 13
+        },
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A21",
+          "branch_path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon",
+          "contribution": "Доктрина, практика, диалогические и проповеднические формы",
+          "dossier_id": "A21",
+          "reliability": "Очень высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PTS; современные переводные издания",
+          "source_document": "ToS Deep Research_ A21 — Тхеравада и письменная фиксация палийского канона.docx",
+          "source_label": "Sutta-piṭaka",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 3,
+          "source_table_index": 13,
+          "source_type": "Первичный канон"
+        },
+        "status": "prepared-not-planted"
+      },
+      "registry_source_record_id": "A21-R047",
+      "remaining_controls": [
+        "The entire Sutta-pitaka remains outside this batch.",
+        "Provider segments, repeated passage abbreviations and edition-specific divisions remain explicit."
+      ],
+      "scope_rationale": "Five named Khuddaka collections provide bounded constituent works of the Sutta-pitaka in the Mahasangiti–SuttaCentral edition.",
+      "scope_relationship": "bounded-constituent-works",
+      "target_slug": "suttanipata"
+    },
+    {
+      "anchor_preparation": {
+        "atlas_row_id": "A21",
+        "atlas_source": {
+          "line": 26,
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "row_sha256": "711da942e5b96f9c159ef89d3e1e91bea0fbf2c9bf9bbd0ae360ee34b71e25d6"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted",
+        "backlog_row_sha256": "9170348fff5b1bc0223a9483bd752f7ed9b84e0adbf8a5533924c5a6acc39b6e",
+        "backlog_sha256": "16957085fd36a186371b7dcf9aa6cad4a573c268dab707a95d50fdf0ddbbc4d1",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/branch.manifest.json",
+          "sha256": "39b0e0d7ec968292aa9c0d29ec14fe4146dc93a5bfeb6db415b17e664538eb4a"
+        },
+        "branch_path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon",
+        "dossier_id": "A21",
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "source_backlog_anchor": {
+          "line": 13,
+          "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/source-anchor-backlog.jsonl",
+          "source_label": "Sutta-piṭaka",
+          "source_row_index": 3,
+          "source_table_index": 13
+        },
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A21",
+          "branch_path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon",
+          "contribution": "Доктрина, практика, диалогические и проповеднические формы",
+          "dossier_id": "A21",
+          "reliability": "Очень высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PTS; современные переводные издания",
+          "source_document": "ToS Deep Research_ A21 — Тхеравада и письменная фиксация палийского канона.docx",
+          "source_label": "Sutta-piṭaka",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 3,
+          "source_table_index": 13,
+          "source_type": "Первичный канон"
+        },
+        "status": "prepared-not-planted"
+      },
+      "registry_source_record_id": "A21-R048",
+      "remaining_controls": [
+        "The entire Sutta-pitaka remains outside this batch.",
+        "Provider segments, repeated passage abbreviations and edition-specific divisions remain explicit."
+      ],
+      "scope_rationale": "Five named Khuddaka collections provide bounded constituent works of the Sutta-pitaka in the Mahasangiti–SuttaCentral edition.",
+      "scope_relationship": "bounded-constituent-works",
+      "target_slug": "udana"
+    },
+    {
+      "anchor_preparation": {
+        "atlas_row_id": "A21",
+        "atlas_source": {
+          "line": 26,
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "row_sha256": "711da942e5b96f9c159ef89d3e1e91bea0fbf2c9bf9bbd0ae360ee34b71e25d6"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted",
+        "backlog_row_sha256": "9170348fff5b1bc0223a9483bd752f7ed9b84e0adbf8a5533924c5a6acc39b6e",
+        "backlog_sha256": "16957085fd36a186371b7dcf9aa6cad4a573c268dab707a95d50fdf0ddbbc4d1",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/branch.manifest.json",
+          "sha256": "39b0e0d7ec968292aa9c0d29ec14fe4146dc93a5bfeb6db415b17e664538eb4a"
+        },
+        "branch_path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon",
+        "dossier_id": "A21",
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "source_backlog_anchor": {
+          "line": 13,
+          "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/source-anchor-backlog.jsonl",
+          "source_label": "Sutta-piṭaka",
+          "source_row_index": 3,
+          "source_table_index": 13
+        },
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A21",
+          "branch_path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon",
+          "contribution": "Доктрина, практика, диалогические и проповеднические формы",
+          "dossier_id": "A21",
+          "reliability": "Очень высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PTS; современные переводные издания",
+          "source_document": "ToS Deep Research_ A21 — Тхеравада и письменная фиксация палийского канона.docx",
+          "source_label": "Sutta-piṭaka",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 3,
+          "source_table_index": 13,
+          "source_type": "Первичный канон"
+        },
+        "status": "prepared-not-planted"
+      },
+      "registry_source_record_id": "A21-R049",
+      "remaining_controls": [
+        "The entire Sutta-pitaka remains outside this batch.",
+        "Provider segments, repeated passage abbreviations and edition-specific divisions remain explicit."
+      ],
+      "scope_rationale": "Five named Khuddaka collections provide bounded constituent works of the Sutta-pitaka in the Mahasangiti–SuttaCentral edition.",
+      "scope_relationship": "bounded-constituent-works",
+      "target_slug": "itivuttaka"
+    },
+    {
+      "anchor_preparation": {
+        "atlas_row_id": "T2-39",
+        "atlas_source": {
+          "line": 39,
+          "path": "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
+          "row_sha256": "7cd180d084e3f546632b281ca0c33f7278ba7b01de269c5fc6cabb9d25f076c6"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted",
+        "backlog_row_sha256": "6e7a5ec3db848f7226ea349adb57ab089045a471d838cbb49049099a03c1fd07",
+        "backlog_sha256": "f396138996a132af6c0e91d9e62efad70275a40198caaa6170f6c80976fde34d",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/branch.manifest.json",
+          "sha256": "04eee76b5596cfbad458ae4c554b2ef54d45537af75af0b08b2751138d15c033"
+        },
+        "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff",
+        "dossier_id": "T2-39",
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "source_backlog_anchor": {
+          "line": 14,
+          "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/sources/source-anchor-backlog.jsonl",
+          "source_label": "SuttaCentral",
+          "source_row_index": 2,
+          "source_table_index": 14
+        },
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "T2-39",
+          "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff",
+          "contribution": "searchable Sutta/Vinaya, parallels, translations",
+          "dossier_id": "T2-39",
+          "reliability": "Высокая для навигации и цифрового чтения; для сложной текстологии сверять critical editions",
+          "route_status": "source_anchor_backlog",
+          "source_access": "SuttaCentral",
+          "source_document": "ToS Deep Research_ T2-39 — Шри-ланкийская палийская схоластика и комментаторский handoff.docx",
+          "source_label": "SuttaCentral",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 2,
+          "source_table_index": 14,
+          "source_type": "digital canonical corpus",
+          "table_id": "table-ii"
+        },
+        "status": "prepared-not-planted"
+      },
+      "registry_source_record_id": "T2-39-R113",
+      "remaining_controls": [
+        "No medieval commentary is acquired by planting its canonical antecedent.",
+        "No attribution of the canonical text to Buddhaghosa and no commentary completeness claim."
+      ],
+      "scope_rationale": "MN 9 is a canonical antecedent of its commentarial reception; the selected Pali root is a separate version from the Sujato translation described in the registry.",
+      "scope_relationship": "canonical-antecedent",
+      "target_slug": "sammaditthi-sutta"
+    }
+  ]
+}

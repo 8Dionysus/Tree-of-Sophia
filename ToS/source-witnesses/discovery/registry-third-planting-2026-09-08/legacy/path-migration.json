@@ -1,0 +1,69 @@
+{
+  "schema_version": "tos_source_witness_path_migration_legacy_v1",
+  "status": "historical-provenance",
+  "migration_id": "tos.source-witnesses.registry-third.navigation-2026-09-09",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "historical_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/third-wave-20260908.json",
+      "sha256": "f97d477b234e9f9dffeddd7309713d48173ecac9557b3c55b548e01582905c92",
+      "byte_size": 185643
+    },
+    {
+      "role": "historical-planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/legacy/execution/plant_third_wave.py",
+      "sha256": "55335ffd4c92bc69621737b1fd2c1124820a340d54aa559a6b8f9b93c90bcf67",
+      "byte_size": 5010
+    },
+    {
+      "role": "historical-report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/legacy/execution/report_third_wave.py",
+      "sha256": "a9b89690981446df88b1949a096ffaac8bb37e09258c68e81df135813d5739fe",
+      "byte_size": 8909
+    },
+    {
+      "role": "historical-manifest",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/legacy/preparation-inputs/108555bc5f6bfb1c11062def9fef4b8702d7779c7c294377d0001e637e9b35f8.manifest.json",
+      "sha256": "108555bc5f6bfb1c11062def9fef4b8702d7779c7c294377d0001e637e9b35f8",
+      "byte_size": 407249
+    },
+    {
+      "role": "historical-preparation-receipt",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/legacy/preparation-inputs/2b01e420a95388da5a4096efac9c3449ded2b38387093acf691da1fddb752959.preparation-receipt.json",
+      "sha256": "2b01e420a95388da5a4096efac9c3449ded2b38387093acf691da1fddb752959",
+      "byte_size": 665
+    }
+  ],
+  "current_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/ancient-mediterranean-source-editions-20260908.json",
+      "sha256": "f97d477b234e9f9dffeddd7309713d48173ecac9557b3c55b548e01582905c92"
+    },
+    {
+      "role": "planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/execution/plant_ancient_mediterranean_sources.py",
+      "sha256": "690d430ea218ea6366acba0259efd24b7b2b9107ae2093a767c1834bec70c2fd"
+    },
+    {
+      "role": "report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/execution/report_ancient_mediterranean_sources.py",
+      "sha256": "5512081b989fbd7a0dbe32bbae1fed2161e053a3ca8ccac5523896666e04944c"
+    }
+  ],
+  "retained_inputs": [
+    {
+      "stage": "registry-preparation",
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/legacy/preparation-inputs/f97d477b234e9f9dffeddd7309713d48173ecac9557b3c55b548e01582905c92.source-preparation.json",
+      "preparation_sha256": "f97d477b234e9f9dffeddd7309713d48173ecac9557b3c55b548e01582905c92",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/legacy/preparation-inputs/108555bc5f6bfb1c11062def9fef4b8702d7779c7c294377d0001e637e9b35f8.manifest.json",
+      "manifest_sha256": "108555bc5f6bfb1c11062def9fef4b8702d7779c7c294377d0001e637e9b35f8",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/legacy/preparation-inputs/2b01e420a95388da5a4096efac9c3449ded2b38387093acf691da1fddb752959.preparation-receipt.json",
+      "receipt_sha256": "2b01e420a95388da5a4096efac9c3449ded2b38387093acf691da1fddb752959",
+      "preparation_commit": "e3803fee781c43e8044dc8b355ad8f5634ad4226",
+      "checkpoint_review_ref": "agent-review:e3803fee7:20260908T234730Z"
+    }
+  ],
+  "authority_boundary": "Historical provenance only. This record preserves exact prior bytes, paths, receipts and preparation commits; it does not restamp the current route or establish acquisition, rights, semantic admission, publication or canon."
+}

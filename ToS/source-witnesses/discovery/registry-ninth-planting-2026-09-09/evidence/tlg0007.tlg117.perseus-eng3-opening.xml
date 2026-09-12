@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>Whether an Old Man Should Engage in Public Affairs</title>
+            <author>Plutarch</author>
+            <editor role="translator">Harold North Fowler</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         	   
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            
+            <respStmt>
+               <persName>Angelia Hanhardt</persName>
+               <orgName>Center for Hellenic Studies</orgName>        
+               <resp>CTS conversion</resp>
+            </respStmt>
+            
+            <respStmt>
+               <persName>Michael Konieczny</persName>
+               <orgName>Center for Hellenic Studies</orgName>        
+               <resp>CTS conversion</resp>
+            </respStmt>
+            
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg117.perseus-eng3.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title xml:lang="lat">Moralia</title>
+                  <editor role="translator">Harold North Fowler</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1936</date>
+                  </imprint>
+                  <biblScope unit="volume">10</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series> 
+            	<ref target="https://archive.org/details/in.gov.ignca.747/page/n85">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+        <editorialDecl>
+           <quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+         <!--<refsDecl doctype="TEI.2">
+            <state unit="section"/>
+         </refsDecl><refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+      	<p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts section.</p>
+      		</cRefPattern>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2010-05" who="RS">tagged and parsed</change>
+      	<change when="2019-07-23" who="Angelia Hanhardt">EpiDoc and CTS conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg117.perseus-eng3">
+      	
+<div n="urn:cts:greekLit:tlg0007.tlg117.perseus-eng3" type="translation" xml:lang="eng"> <pb xml:id="v.10.p.75"/> <head>WHETHER AN OLD MAN SHOULD ENGAGE IN PUBLIC AFFAIRS (<foreign xml:lang="lat">AN SENI RESPUBLICA GERENDA SIT</foreign>)</head> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg117.perseus-eng3" n="intro"> <head>INTRODUCTION</head> <p rend="indent">Euphanes, to whom this essay is addressed, is known from no other source. That he and Plutarch were aged men when the essay was written appears from the opening sentences (see also Chapter 17, towards the end, 792 f). He was evidently a man of some distinction at Athens, where he held important offices (Chapter 20, 794 b). It is not unlikely that he may have asked Plutarch’s advice about retiring from public life and that this essay is in reply to his appeal, but there is no definite statement to that effect. Cicero’s <title rend="italic">Cato Maior</title> or <title rend="italic">De Senectute</title> differs from this in not being limited to the discussion of old age in its relation to public activities, but the two essays have much in common and may well be read in connexion with each other.</p> </div> <pb xml:id="v.10.p.77"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg117.perseus-eng3" n="1"><p rend="indent">We are well aware, Euphanes, that you, who are an outspoken admirer of Pindar, often repeat, as well and convincingly expressed, these lines of his, <quote rend="blockquote"> <l>When contests are before us, an excuse </l> <l>Casts down our manhood into abysmal gloom.<note resp="editor" place="inline" anchored="true">Pindar, ed. Bergk-Schroeder, p. 475, no. 228 (252).</note> </l> </quote> But inasmuch as our shrinking from the contests of political life and our various infirmities furnish innumerable excuses and offer us finally, like <q>the move from the sacred line</q><note resp="editor" place="inline" anchored="true">In one form of the game of draughts the <q>pieces</q> or <q>men</q> stood on lines, of which there were five for each of the two players. One of these, perhaps the middle one, was called the <q>sacred line.</q> The expression as here used seems to be about equivalent to <q>playing the highest trump.</q> </note> in draughts, old age; and since it is more especially because of this last that these excuses seem to blunt and baffle our ambition and begin to convince us that there is a fitting limit of age, not only to the athlete’s career, but to the statesman’s as well, I therefore think it my duty to discuss with you the thoughts which I am continually going over in my own mind concerning the activity of old men in public affairs, that neither of us shall desert the long companionship in the journey which we have thus far made together, and neither shall renounce public life, which is, as it were, a familiar friend of our own <pb xml:id="v.10.p.79"/> years, only to change and adopt another which is unfamiliar and for becoming familiar with which and making it our own time does not suffice, but that we shall abide by the choice which we made in the beginning when we fixed the same end and aim for life as for honourable life - unless indeed we were in the short time remaining to us to prove that the long time we have lived was spent in vain and for no honourable purpose.</p>
+<p rend="indent"> For the fact is that tyranny, as someone said to Dionysius, is not an honourable winding-sheet<note resp="editor" place="inline" anchored="true"> <emph rend="italic">Cf.</emph> Isocrates, vi. 125.</note>; no, and in his case its continuance made his unjust monarchy a more complete misfortune. And at a later time, at Corinth, when Diogenes saw the son of Dionysius no longer a tyrant but a private citizen, he very aptly said, <q>How little you deserve your present fate, Dionysius! For you ought not to be living here with us in freedom and without fear, but you should pass your life to o

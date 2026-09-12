@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>Plutarch's Rules for the Preservation of Health</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">Matthew Poole</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name> 
+         		<name>Bridget Almas</name>
+         	   <name>Angelia Hanhardt</name>
+         	</respStmt>            
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Karina Cooper</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg077.perseus-eng4.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">1</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst01plutuoft/page/250">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl><quotation marks="none"/></editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+         <cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])"> 
+         <p>This pointer pattern extracts section.</p></cRefPattern>
+            
+         </refsDecl><!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>--><refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         	<language ident="lat">Latin</language>
+         </langUsage>
+      	<particDesc>
+      		<person><persName>Moschio</persName></person>
+      		<person><persName>Zeuxippus</persName></person>
+      	</particDesc>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Karina Cooper" when="2019-06-27">EpiDoc and CTS conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng"> <body xml:base="urn:cts:greekLit:tlg0007.tlg077.perseus-eng4"> 
+   	
+<div n="urn:cts:greekLit:tlg0007.tlg077.perseus-eng4" type="translation" xml:lang="eng"> 
+   		<pb xml:id="v.1.p.251"/> 
+   		<head>Plutarch’s Rules for the Preservation of Health.</head><lb/> <head>A Dialogue.</head><lb/> 
+   		<head>MOSCHIO, ZEUXIPPUS.</head> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg077.perseus-eng4" n="1"> <p rend="indent"><said who="#Moschio"><label>MOSCHIO.</label> And you, Zeuxippus, diverted Glaucus the physician from entering into a philosophical discourse with you yesterday.</said></p> <p rend="indent"><said who="#Zeuxippus"><label>ZEUXIPPUS.</label> I did not hinder him in the least, friend Moschio, it was he that would not discourse in philosophy. But I feared and avoided giving so contentious a man any opportunity of discourse; for though in physic the man has (as Homer<note place="inline" anchored="true"><title>Il.</title> XL 514.</note> expresses it) an excellency before most of his profession, yet in philosophy he is not altogether so candid, but indeed so rude in all his disputations, that he is hardly to be borne with, flying (as it were) at us open mouthed. So that it is neither an easy nor indeed a just thing, that we should bear those confusions in terms he makes, when we are disputing about a wholesome diet. Besides, he maintains that the bounds of philosophy and medicine are as distinct as those of the Mysians and Phrygians. And taking hold of some of those things we were discoursing of, perhaps not with all exactness, yet not without some profit, he made scurrilous reflections on them.</said></p> <p rend="indent"><said who="#Moschio"><label>MOSCHIO.</label> But I am ready, Zeuxippus, to hear those and the other things you shall discourse of, with a great deal of pleasure.</said></p> <pb xml:id="v.1.p.252"/> <p rend="indent"><said who="#Zeuxippus"><label>ZEUXIPPUS.</label> You have naturally a philosophical genius, Moschio, and are troubled to see a philosopher have no kindness for the study of medicine. You are uneasy that he should think it concerns him more to study geometry, logic, and music, than to be desirous to understand <quote rend="blockquote"> <l>What in his house is well or ill-designed,</l> <note place="inline" anchored="true"> <bibl>Odyss. IV. 392.</bibl> </note> </quote> his house being his own body. You shall see manyspectators at that play where their charges are defrayed out of the public stock, as they do at Athens. Now among all the liberal arts, medicine not only contains so neat and large a field of pleasure as to give place to none, but she pays plentifully the charges of those who delight in the study of her by giving them health and safety; so that it ought not to be called transgressing the bounds of a philosopher to dispute about those things which relate to health, but rather, all bounds being laid aside, we ought to pursue our studies in the same common field, and so enjoy both the pleasure and the profit of them.</said></p> <p rend="indent"><said who="#Moschio"><label>MOSCHIO.</label> But to pass by Glaucus, who with his pretended gravity would be thought to be so perfect as not to stand in need of philosophy, — do you, if you please, run through the whole discourse, and first, those things which you say were not so exactly handled and which Glaucus carped at.</said></p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg077.perseus-eng4" n="2"> <p rend="indent"><said who="#Zeuxippus"><label>ZEUXIPPUS.</label> A friend of ours then heard one alleging that to keep one’s hands always warm and never suffer them to be cold did not a little conduce to health; and, on the contrary, keeping the extreme parts of the body cold drives the heat inward, so that you are always in a fever or the fear of one. But those things which force the heat outwards do distribute and draw the matter to all parts, with advantage to our health. If in any work we employ our hands, we are able to keep in them tha

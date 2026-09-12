@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>To an Uneducated Ruler</title>
+				<author>Plutarch</author>
+				<editor role="translator">Harold North Fowler</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+					<name>Michael Konieczny</name>
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Lucy Parr</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg116.perseus-eng3.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>Plutarch</author>
+						<title xml:lang="lat">Moralia</title>
+						<editor role="translator">Harold North Fowler</editor>
+						<imprint>
+							<pubPlace>Cambridge, MA</pubPlace>
+							<publisher>Harvard University Press</publisher>
+							<pubPlace>London</pubPlace>
+							<publisher>William Heinemann Ltd.</publisher>
+							<date type="printing">1936</date>
+						</imprint>
+						<biblScope unit="volume">10</biblScope>
+					</monogr>
+					<series>
+						<title>Loeb Classical Library</title>
+					</series>
+					<ref target="https://archive.org/details/moraliainfifteen10plutuoft/page/48">The Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+				<!-- <state unit="section"/> -->
+			</refsDecl>
+			<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+				<language ident="lat">Latin</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="RS" when="2010-05">tagged and parsed</change>
+			<change who="Lucy Parr" when="2019-07-18">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg116.perseus-eng3">
+     <div n="urn:cts:greekLit:tlg0007.tlg116.perseus-eng3" type="translation" xml:lang="eng">
+				<pb xml:id="v.10.p.51"/>
+					<head>TO AN UNEDUCATED RULER (<foreign xml:lang="lat">AD PRINCIPEM INERUDITUM</foreign>) </head>
+     <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg116.perseus-eng3" n="intro"> <head>INTRODUCTION</head> <p rend="indent">The brief essay To an Uneducated Ruler may have formed part of a lecture, or it may, as its traditional title suggests, have been composed as a letter to some person in authority. There is nothing in it to prove either assumption. No striking or unusual precepts or doctrines are here promulgated, but the essay is enlivened by a few interesting tales and, considering its brevity, by a somewhat unusual number of rather elaborate similes. As usual Plutarch depends upon earlier writers for most of his material. The ending is so abrupt as to warrant the belief that the essay, in its present form, is only a fragment.</p> </div>
+				<pb xml:id="v.10.p.53"/>
+     <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg116.perseus-eng3" n="1"><p rend="indent">Plato was asked by the Cyrenaeans<note resp="editor" place="inline" anchored="true">That Plato in his extensive travels visited Cyrene is attested by Diogenes Laertius, <title xml:lang="lat" rend="italic">Vit. Phil.</title> iii. 6.</note> to compose a set of laws and leave it for them and to give them a well-ordered government; but he refused, saying that it was difficult to make laws for the Cyrenaeans because they were so prosperous. <quote rend="blockquote">For nothing is so haughty</quote> harsh, and ungovernable <quote rend="blockquote">by nature as a man,<note resp="editor" place="inline" anchored="true">A quotation from some tragic poet; see Nauck, <title xml:lang="lat" rend="italic">Trag. Graec. Frag.</title> p. 617.</note> </quote> when he possesses what he regards as prosperity. And that is why it is difficult to give advice to rulers in matters of government, for they are afraid to accept reason as a ruler over them, lest it curtail the advantage of their power by making them slaves to duty. For they are not familiar with the saying of Theopompus, the King of Sparta who first made the Ephors<note resp="editor" place="inline" anchored="true">The five Ephors at Sparta, representing the five local tribes, were in charge of civil law and public order. Whether they were established by Lycurgus or by Theopompus (about 757 b.c. or later) is uncertain. In the sixth and fifth centuries b.c. they seem to have had more power than the kings.</note> associates of the Kings; then, when his wife reproached him because he would hand down to his children a less powerful office than that which he had received he said: <q>Nay, more powerful rather, inasmuch as it is more secure.</q> For by giving up that which was excessive and absolute in <pb xml:id="v.10.p.55"/> it he avoided both the envy and the danger. And yet Theopompus, by diverting to a different body the vast stream of his royal authority, deprived himself of as much as he gave to others. But when philosophical reason derived from philosophy has been established as the ruler’s coadjutor and guardian, it removes the hazardous element from his power, as a surgeon removes that which threatens a patient’s health and leaves that which is sound. </p> </div>
+     <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg116.perseus-eng3" n="2"><p rend="indent">But most kings and rulers are so foolish as to act like unskilful sculptors, who think their colossal figures look large and imposing if they are modelled with their feet far apart, their muscles tense, and their mouths wide open. For these rulers seem by heaviness of voice, harshness of expression, truculence of manner, and unsociability in their way of living to be imitating the dignity and majesty of the princely station, although in fact they are not at all different f

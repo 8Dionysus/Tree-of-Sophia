@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/8.19/tei-epidoc.rng"
+schematypens="http://relaxng.org/ns/structure/1.0"?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/8.19/tei-epidoc.rng"
+schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader>
+      <fileDesc>
+         <titleStmt>
+            <title>De Rerum Natura</title>
+            <author n="Lucr.">Lucretius</author>
+            <editor>William Ellery Leonard</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+		          <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>David Mimno</name>
+            </respStmt>
+         </titleStmt>
+         <publicationStmt>
+		          <publisher>Trustees of Tufts University</publisher>
+		          <pubPlace>Medford, MA</pubPlace>
+		          <authority>Perseus Project</authority>
+            <date type="release">2004-08-24</date>
+		       </publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Lucretius</author>
+                  <title>De Rerum Natura</title>
+                  <editor>William Ellery Leonard</editor>
+                  <imprint>
+                     <publisher>E. P. Dutton</publisher>
+                     <date>1916</date>
+                  </imprint>
+               </monogr>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+ 
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])"
+                         n="line">
+                <p>This pointer pattern extracts book and line</p>
+            </cRefPattern>
+            <cRefPattern matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])"
+                         n="book">
+                <p>This pointer pattern extracts book</p>
+            </cRefPattern>
+        </refsDecl>
+            <refsDecl xml:id="CTS">
+              <citeStructure match="/TEI/text/body" use="@xml:base">
+                <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+                  <citeStructure unit="line" delim="." match="l" use="@n"/>
+                </citeStructure>
+              </citeStructure>
+            </refsDecl>
+</encodingDesc>
+ 
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2015-10-30" who="Thibault Clerice">Moving to epidoc and cts correction</change>
+         <change when="2013-09-13" who="balmas01">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+         <change when="2013-06-30" who="gcrane">file tagging modified to bring it into easier conformance with CTS</change>
+         <change when="2009-12-01" who="rsingh04">moved more xml files around based on copyright status</change>
+         <change when="2006-02-10" who="packel">places/dates now actually tagged</change>
+         <change when="2004-03-19" who="mimno">moved some translation passages around and added a few cards</change>
+         <change when="2004-03-04" who="mimno">finished cardbreaks</change>
+         <change when="2004-03-01" who="mimno">milestones done through book 3</change>
+         <change when="2003-12-05" who="mimno">card breaks not yet aligned</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:latinLit:phi0550.phi001.perseus-eng1">
+         <div type="translation" xml:lang="eng">
+         <div type="textpart" subtype="book" n="1">
+               <head>BOOK I</head>  
+            <div type="textpart" subtype="card" n="1">
+               <head>PROEM</head>
+
+               <l>Mother of <placeName key="perseus,Rome">Rome</placeName>, delight of Gods and men,</l>
+               <l>Dear Venus that beneath the gliding stars</l>
+               <l>Makest to teem the many-voyaged main</l>
+               <l>And fruitful lands- for all of living things</l>
+               <l>Through thee alone are evermore conceived,</l>
+               <l>Through thee are risen to visit the great sun-</l>
+               <l>Before thee, Goddess, and thy coming on,</l>
+               <l>Flee stormy wind and massy cloud away,</l>
+               <l>For thee the daedal Earth bears scented flowers,</l>
+               <l>For thee waters of the unvexed deep</l>
+               <l>Smile, and the hollows of the serene sky</l>
+               <l>Glow with diffused radiance for thee!</l>
+               <l>For soon as comes the springtime face of day,</l>
+               <l>And procreant gales blow from the West unbarred,</l>
+               <l>First fowls of air, smit to the heart by thee,</l>
+               <l>Foretoken thy approach, O thou Divine,</l>
+               <l>And leap the wild herds round the happy fields</l>
+               <l>Or swim the bounding torrents. Thus amain,</l>
+               <l>Seized with the spell, all creatures follow thee</l>
+               <l>Whithersoever thou walkest forth to lead,</l>
+               <l>And thence through seas and mountains and swift streams,</l>
+               <l>Through leafy homes of birds and greening plains,</l>
+               <l>Kindling the lure of love in every breast,</l>
+               <l>Thou bringest the eternal generations forth,</l>
+               <l>Kind after kind. And since 'tis thou alone</l>
+               <l>Guidest the Cosmos, and without thee naught</l>
+               <l>Is risen to reach the shining shores of light,</l>
+               <l>Nor aught of joyful or of lovely born,</l>
+               <l>Thee do I crave co-partner in that verse</l>
+               <l>Which I presume on Nature to compose</l>
+               <l>For Memmius mine, whom thou hast willed to be</l>
+               <l>Peerless in every grace at every hour-</l>
+               <l>Wherefore indeed, Divine one, give my words</l>
+               <l>Immortal charm. Lull to a timely rest</l>
+               <l>O'er sea and land the savage works of war,</l>
+               <l>For thou alone hast power with public peace</l>
+               <l>To aid mortality; since he who rules</l>
+               <l>The savage works of battle, puissant Mars,</l>
+               <l>How often to thy bosom flings his strength</l>
+               <l>O'ermastered by the eternal wound of love-</l>
+               <l>And there, with eyes and full throat backward thrown,</l>
+               <l>Gazing, my Goddess, open-mouthed at thee,</l>
+               <l>Pastures on love his greedy sight, his breath</l>
+               <l>Hanging upon thy lips. Him thus reclined</l>
+               <l>Fill with thy holy body, round, above!</l>
+               <l>Pour from those lips soft syllables to win</l>
+               <l>Peace for the Romans, glorious Lady, peace!</l>
+               <l>For in a season troublous to the state</l>
+               <l>Neither may I attend this task of mine</l>
+               <l>With thought untroubled, nor mid such events</l>
+               <l>The illustrious scion of the Memmian house</l>
+               <l>Neglect the civic cause.</l>
+            </div>
+            <div type="textpart" subtype="card" n="50">
+               <l>And for the rest, summon to judgments true,</l>
+               <l>Unbusied ears and singleness of mind</l>
+               <l>Withdrawn from cares; lest these my gifts, arranged</l>
+               <l>For thee with eager service, thou disdain</l>
+               <l>Befo

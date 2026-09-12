@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.aristotle.economics.grc-perseus-tlg0086-tlg029.perseus-341e309c821d",
+    "version": 1,
+    "digest": "sha256:6ed8f7743b5e718675cf7bae9c30be11e086188e66089116974394234c5ae1be"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6ed8f7743b5e718675cf7bae9c30be11e086188e66089116974394234c5ae1be",
+            "id": "tos.edition.aristotle.economics.grc-perseus-tlg0086-tlg029.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6ed8f7743b5e718675cf7bae9c30be11e086188e66089116974394234c5ae1be",
+            "id": "tos.edition.aristotle.economics.grc-perseus-tlg0086-tlg029.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:6ed8f7743b5e718675cf7bae9c30be11e086188e66089116974394234c5ae1be",
+            "id": "tos.edition.aristotle.economics.grc-perseus-tlg0086-tlg029.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:6ed8f7743b5e718675cf7bae9c30be11e086188e66089116974394234c5ae1be",
+            "id": "tos.edition.aristotle.economics.grc-perseus-tlg0086-tlg029.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.73c3079fd3cf125e245c0ed4001fdf9391c318f590b3adc98cb5e9fe31402026",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6ed8f7743b5e718675cf7bae9c30be11e086188e66089116974394234c5ae1be",
+        "id": "tos.edition.aristotle.economics.grc-perseus-tlg0086-tlg029.perseus-341e309c821d",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6ed8f7743b5e718675cf7bae9c30be11e086188e66089116974394234c5ae1be",
+            "id": "tos.edition.aristotle.economics.grc-perseus-tlg0086-tlg029.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6ed8f7743b5e718675cf7bae9c30be11e086188e66089116974394234c5ae1be",
+            "id": "tos.edition.aristotle.economics.grc-perseus-tlg0086-tlg029.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:6ed8f7743b5e718675cf7bae9c30be11e086188e66089116974394234c5ae1be",
+            "id": "tos.edition.aristotle.economics.grc-perseus-tlg0086-tlg029.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:6ed8f7743b5e718675cf7bae9c30be11e086188e66089116974394234c5ae1be",
+            "id": "tos.edition.aristotle.economics.grc-perseus-tlg0086-tlg029.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.8903f158a6d07248176bc7cc46c9e47d1d580147fc57b9f79a6a6c2ad58de507",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6ed8f7743b5e718675cf7bae9c30be11e086188e66089116974394234c5ae1be",
+        "id": "tos.edition.aristotle.economics.grc-perseus-tlg0086-tlg029.perseus-341e309c821d",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.edition.aristotle.economics.grc-perseus-tlg0086-tlg029.perseus-341e309c821d",
+      "request_digest": "sha256:f9df77bd49a4867e2c9a1237cda3b333eb04afe0f7173b2cc7acafb493b7cf88",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:178326bc3f63ca648706929008920c2c700619e4d49adf1fb45929f8dae4ea02",
+      "recorded_at": "2026-09-09T15:55:24.933951+00:00",
+      "source": {
+        "id": "tos.edition.aristotle.economics.grc-perseus-tlg0086-tlg029.perseus-341e309c821d",
+        "version": 1,
+        "digest": "sha256:6ed8f7743b5e718675cf7bae9c30be11e086188e66089116974394234c5ae1be"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.73c3079fd3cf125e245c0ed4001fdf9391c318f590b3adc98cb5e9fe31402026",
+          "version": 1,
+          "digest": "sha256:b0b564a6cae419070684996cdb214de5495999a80486aa1f5b29d65e7b527c61"
+        },
+        {
+          "id": "tos.form.metadata.8903f158a6d07248176bc7cc46c9e47d1d580147fc57b9f79a6a6c2ad58de507",
+          "version": 1,
+          "digest": "sha256:bc2a4c17684767b1e1da5a4f8c2b81f30f707a55af46b3b12df908923322a0c4"
+        }
+      ]
+    }
+  ]
+}

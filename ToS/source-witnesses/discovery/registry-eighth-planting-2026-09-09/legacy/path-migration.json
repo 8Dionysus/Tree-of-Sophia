@@ -1,0 +1,75 @@
+{
+  "schema_version": "tos_source_witness_path_migration_legacy_v1",
+  "status": "historical-provenance",
+  "migration_id": "tos.source-witnesses.registry-eighth.navigation-2026-09-09",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "historical_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/eighth-wave-20260909.json",
+      "sha256": "1e0059f9e5841c522f569e6b66c73850b376d9ae431f720033c97389c81f4cd5",
+      "byte_size": 177266
+    },
+    {
+      "role": "historical-planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/execution/plant_eighth_wave.py",
+      "sha256": "13dc1cecd2f03ad9c75759cdc0bb679e2e5a28afdff2fc6623ef70eb5411f1fd",
+      "byte_size": 5090
+    },
+    {
+      "role": "historical-report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/execution/report_eighth_wave.py",
+      "sha256": "6933ef7acd618b3111326da1bb39e04f3bd9e6c1c39021a3df3bc05f444ae864",
+      "byte_size": 12796
+    },
+    {
+      "role": "historical-manifest",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/preparation-inputs/779603a6295102f6bef2106843db72999d490c0786a89ca6d93adad27b58d481.manifest.json",
+      "sha256": "779603a6295102f6bef2106843db72999d490c0786a89ca6d93adad27b58d481",
+      "byte_size": 354486
+    },
+    {
+      "role": "historical-preparation-receipt",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/preparation-inputs/15a6dbce315f0407cd9ed708459247edc17ce4757fd7f84b58d1c0b89b97fc24.preparation-receipt.json",
+      "sha256": "15a6dbce315f0407cd9ed708459247edc17ce4757fd7f84b58d1c0b89b97fc24",
+      "byte_size": 685
+    },
+    {
+      "role": "historical-corrected-manifest",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/preparation-inputs/35c191291710a5667bfa8084a29e0397c7eb6f2de3c1e510b474cdd43f26d54e.manifest-corrected.json",
+      "sha256": "35c191291710a5667bfa8084a29e0397c7eb6f2de3c1e510b474cdd43f26d54e",
+      "byte_size": 354774
+    }
+  ],
+  "current_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/plutarch-moralia-greek-20260909.json",
+      "sha256": "1e0059f9e5841c522f569e6b66c73850b376d9ae431f720033c97389c81f4cd5"
+    },
+    {
+      "role": "planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/execution/plant_plutarch_moralia_greek.py",
+      "sha256": "4bcc216ce22fcbbbeb5dd547ff6898f812cd1622a31a171b40b4991d4c4a9030"
+    },
+    {
+      "role": "report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/execution/report_plutarch_moralia_greek.py",
+      "sha256": "f49cf9617963108cfe2f6bae686b45b2473a42488ecccc96b8d397da8e0442b5"
+    }
+  ],
+  "retained_inputs": [
+    {
+      "stage": "registry-preparation",
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/preparation-inputs/1e0059f9e5841c522f569e6b66c73850b376d9ae431f720033c97389c81f4cd5.source-preparation.json",
+      "preparation_sha256": "1e0059f9e5841c522f569e6b66c73850b376d9ae431f720033c97389c81f4cd5",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/preparation-inputs/779603a6295102f6bef2106843db72999d490c0786a89ca6d93adad27b58d481.manifest.json",
+      "manifest_sha256": "779603a6295102f6bef2106843db72999d490c0786a89ca6d93adad27b58d481",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/legacy/preparation-inputs/15a6dbce315f0407cd9ed708459247edc17ce4757fd7f84b58d1c0b89b97fc24.preparation-receipt.json",
+      "receipt_sha256": "15a6dbce315f0407cd9ed708459247edc17ce4757fd7f84b58d1c0b89b97fc24",
+      "preparation_commit": "dd9b88797cb346f36441b07eac493d9569801825",
+      "checkpoint_review_ref": "agent-review:dd9b88797:20260909T163650Z"
+    }
+  ],
+  "authority_boundary": "Historical provenance only. This record preserves exact prior bytes, paths, receipts and preparation commits; it does not restamp the current route or establish acquisition, rights, semantic admission, publication or canon."
+}

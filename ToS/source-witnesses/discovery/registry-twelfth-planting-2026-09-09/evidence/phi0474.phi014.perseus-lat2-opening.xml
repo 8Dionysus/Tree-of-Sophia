@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">Pro L. Murena</title>				
+				<author>M. Tullius Cicero</author>
+				<editor>Albert Curtis Clark</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				<respStmt>
+					<persName>Zach Himes</persName>
+					<orgName>Tufts University</orgName>
+					<resp>CTS and EpiDoc conversion</resp>
+				</respStmt>
+				<funder n="org:NEH">National Endowment For The Humanities (NEH)</funder> 
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1997-10-28">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi014.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt> 
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>Albert Curtis Clark</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon</publisher>
+							<date>1908</date>
+						</imprint>
+						<biblScope unit="volume">1</biblScope>
+						<biblScope n="contents">Pro Sex. Roscio; De imperio Cn. Pompei; Pro Cluentio; In Catilinam; Pro Murena; Pro Caelio</biblScope>
+					</monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+					<ref target="https://archive.org/details/orationesrecogno01ciceuoft/page/n267/mode/2up">Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		
+		<encodingDesc>
+		<refsDecl n="CTS">
+		<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+			<p>This pointer pattern extracts section.</p>
+		</cRefPattern>
+			</refsDecl>
+			<refsDecl>
+				<refState unit="section"/>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+		
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+		
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+			<change when="2016-04-20" who="Lisa Cerrato">Minor edits and review of CTS and EpiDoc work.</change>
+			<change when="2016-03-15" who="Zach Himes">Changed section milestones to dis.</change>
+			<change when="2015-12-17" who="Zach Himes">Cleaned up teiHeader.</change>
+			<change when="2014-08-01" who="Stella Dee">edited markup</change>
+			<change when="2014-07-01" who="Stella Dee">split composite text and converted to unicode</change>
+			<change when="2013-09-13" who="balmas01">reverting texts back to pre_cts_reorg tagged version</change>
+			<change when="2011-07-19" who="gcrane">removed the earlier persName/placeName tags</change>
+			<change when="2011-01-15" who="gcrane">base SDL file</change>
+			<change when="2009-10-09" who="rsingh04">more reorganizing of texts module by collection</change>
+			<change when="2006-11-03" who="gcrane">typo</change>
+			<change when="2006-08-21" who="gcrane">small fixes</change>
+			<change when="2006-08-17" who="gcrane">typo fixed</change>
+			<change when="2006-04-02" who="gcrane">mainly fixes to the words lower cased at the start of sentences: found that we had always had</change>
+			<change when="1996-03-26" who="DAS">ed.</change></revisionDesc>
+	</teiHeader>
+	
+<text xml:lang="lat">
+<body xml:base="urn:cts:latinLit:phi0474.phi014.perseus-lat2">
+
+
+<div type="edition" xml:lang="lat" subtype="edition"> 
+<head rend="align(center)">PRO L. MVRENA ORATIO</head> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi014.perseus-lat2" n="1"><p rend="align(indent)"><milestone n="1" unit="chapter"/> <reg>quae</reg> precatus<note>quae precatus <hi rend="italic">Naugerius</hi>: quae deprecatus <hi rend="italic">codd.</hi> (<hi rend="italic">cf. Quintil.</hi> ix. 4. 107, <hi rend="italic">Creticus et initiis optimus.</hi> Quod precatus a dis immortalibus sum): quod precatus <hi rend="italic">Halm</hi> (2) <hi rend="italic">cum Quintil.</hi></note> a<note>a <foreign xml:lang="grc">Σ1χψ</foreign>: ab <foreign xml:lang="grc">Σ2</foreign><hi rend="italic">BA</hi><foreign xml:lang="grc">π</foreign></note> dis immortalibus sum, iudices, more institutoque maiorum illo die quo auspicato comitiis centuriatis <expan><abbr>L.</abbr><ex>Lucium</ex></expan> Murenam consulem renuntiavi, ut ea res mihi fidei<note>fidei <hi rend="italic">Lambinus</hi>: fides <foreign xml:lang="grc">Σ</foreign><hi rend="italic">A</hi><foreign xml:lang="grc">π</foreign>, <hi rend="italic">om. B</hi><foreign xml:lang="grc">χψ</foreign></note> magistratuique meo, populo plebique Romanae bene atque feliciter eveniret, eadem<note><app><lem>eadem</lem></app> idem <hi rend="italic">Boot</hi></note> precor ab isdem dis immortalibus ob eiusdem hominis consulatum una cum salute obtinendum, et ut vestrae mentes atque sententiae cum populi Romani voluntatibus suffragiisque consentiant, eaque res vobis populoque Romano pacem, tranquillitatem, otium concordiamque adferat. <reg>quod</reg> si illa sollemnis comitiorum precatio consularibus auspiciis consecrata tantam habet in se vim et religionem quantam rei publicae dignitas postulat, idem ego sum precatus ut eis quoque hominibus quibus hic consulatus me rogante datus esset ea res fauste feliciter prospereque eveniret. </p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi014.perseus-lat2" n="2"><p><reg>quae</reg> cum ita sint, iudices, et cum omnis deorum immortalium potestas aut translata<note>tralata <foreign xml:lang="grc">Σπ</foreign></note> sit ad vos aut certe communicata vobiscum, idem consulem<note>consulem <hi rend="italic">Boot</hi>: consul ei (eum <foreign xml:lang="grc">ω</foreign>) <hi rend="italic">codd.</hi></note> vestrae fidei commendat qui antea dis immortalibus commendavit, ut eiusdem hominis voce et declaratus consul et defensus beneficium populi Romani cum vestra atque omnium civium salute tueatur. </p>
+<p rend="align(indent)"><reg>et</reg> quoniam in hoc officio studium meae defensionis ab accusatoribus atque etiam ipsa susceptio causae reprensa est, ante quam pro <expan><abbr>L.</abbr><ex>Lucio</ex></expan> Murena dicere instituo, pro me ipso pauca dicam, non quo mihi potior hoc quidem<note>quidem <hi rend="italic">Lag.</hi> 9: quidem in <hi rend="italic">cett.</hi></note> tempore sit offici mei quam huiusce salutis defensio, sed ut meo facto vobis probato maiore auctoritate ab huius honore fama fortunisque omnibus inimicorum impetus propulsare possim.</p></div>
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi014.perseus-lat2" n="3"><p rend="align(indent)"><milestone n="2" unit="chapter"/>  <reg>et</reg> primum <expan><abbr>M.</abbr><ex>Marco</ex></expan> Catoni vitam ad certam rationis normam derigenti<note>derigenti <foreign xml:lang="grc">Σ</foreign><hi rend="italic">A</hi><foreign xml:lang="grc">πφ</foreign>: dirigenti <foreign xml:lang="grc">χψω</foreign></note> et diligentissime perpendenti momenta officiorum omnium de officio meo respondebo. <reg>negat</reg> fuisse rectum Cato me et consulem et legis ambitus latorem et tam severe gesto consulatu causam <expan><abbr>L.</abbr><ex>Lucii</ex></expan> Murenae attingere. <reg>cuius</reg> reprehensio me vehementer movet, non solum ut vobis, iudices, quibus maxime debeo, verum etiam ut ipsi Catoni, gravissim

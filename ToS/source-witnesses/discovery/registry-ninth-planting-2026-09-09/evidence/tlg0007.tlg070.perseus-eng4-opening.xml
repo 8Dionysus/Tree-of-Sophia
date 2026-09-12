@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>How to Know a Flatterer from a Friend</title>
+         	<author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+		 <editor role="translator">George Tullie</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name> 
+         		<name>Bridget Almas</name>
+         	   <name>Angelia Hanhardt</name>
+         	</respStmt>            
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Ethan Della Rocca</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+     	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+     	   <idno type="filename">tlg0007.tlg070.perseus-eng4.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst02plutuoft/page/100">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	<editorialDecl>
+      	   <quotation marks="none"/>
+      		<correction status="high" method="silent">
+      			<p>optical character recognition</p>
+      		</correction>
+      	</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">         	
+         	<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p>
+         	</cRefPattern>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         	<language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Ethan Della Rocca" when="2019-06-21">EpiDoc and CTS conversion</change>
+      </revisionDesc>
+   </teiHeader>
+	<text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg070.perseus-eng4">
+      	
+<div n="urn:cts:greekLit:tlg0007.tlg070.perseus-eng4" type="translation" xml:lang="eng"> <pb xml:id="v.2.p.100"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg070.perseus-eng4" n="1"> <head>How to know a flatterer from a friend. <lb/> To Antiochus Philopappus.</head> <p rend="indent">PLATO is of opinion that it is very pardonable in a man to acknowledge that he has any extraordinary passion for himself; and yet the humor is attended with this ill consequent, besides several others, that it renders us incapable of making a right judgment of ourselves. For our affections usually blind our discerning faculties, unless we have learned to raise them above the sordid level of things congenial and familiar to us, to those which are truly noble and excellent in themselves. And hence it is that we are so frequently exposed to the attempts of a parasite, under the disguise and vizard of a friend. For self-love, that grand flatterer within, willingly entertains another from without, who will but soothe up and second the man in the good opinions he has conceived of himself. For he who deservedly lies under the character of one that loves to be flattered is doubtless sufficiently fond of himself: and through abundance of complaisance to his own person, not only wishes but thinks himself master of all those perfections which may recommend him to others. And though indeed it be laudable enough to covet such accomplishments, yet is it altogether unsafe for any man to fancy them inherent in him.</p> 
+	<p rend="indent">Now, if truth be a ray of the divinity, as Plato says it is, and the source of all the good that derives upon either Gods or men, then certainly the flatterer must be looked <pb xml:id="v.2.p.101"/> upon as a public enemy to all the Gods, and especially to Apollo; for he always acts counter to that celebrated oracle of his, Know thyself, endeavoring to make every man his own cheat, by keeping him ignorant of the good and ill qualities that are in him; whereupon the good never arrive at perfection, and the ill grow incorrigible.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg070.perseus-eng4" n="2"> <p rend="indent">Did flattery, indeed, as most other misfortunes do, generally or altogether wait on the debauched and ignoble part of mankind, the mischief were of less consequence, and might admit of an easier prevention. But, as worms breed most in sweet and tender woods, so usually the most obliging, the most brave and generous tempers readiliest receive and longest entertain the flattering insect that hangs and grows upon them. And since, to use Simonides’s expression, it is not for persons of a narrow fortune, but for gentlemen of estates, to keep a good stable of horses; so never saw we flattery the attendant of the poor, the inglorious and inconsiderable plebeian, but of the grandees of the world, the distemper and bane of great families and affairs, the plague in kings’ chambers, and the ruin of their kingdoms. Therefore it is a business of no small importance, and one which requires no ordinary circumspection, so to be able to know a flatterer in every shape he assumes, that the counterfeit resemblance some time or other bring not true friendship itself into suspicion and disrepute. For parasites,—;like lice, which desert a dying man, whose palled and vapid blood can feed them no longer,—; never intermix in dry and insipid business where there is nothing to be got; but prey upon a noble quarry, the ministers of state and potentates of the earth, and afterwards lousily shirk off, if the greatness of their fortune chance to leave them. But it will not be wisdom in us to stay till such fatal junctures, and then try the experiment, which will not only be useless but dangerous and hurtful; for it is a deplorable thing for a man to find himself then destitute <pb xml:id="v.2.p.102"/> of friends, when he most wants them, and has no opportunity ei

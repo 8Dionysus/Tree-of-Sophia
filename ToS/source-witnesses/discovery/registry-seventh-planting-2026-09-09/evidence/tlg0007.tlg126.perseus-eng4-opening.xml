@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>Of the Face Appearing Within the Orb Of the Moon</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">A.G.</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         		<name>Angelia Hanhardt</name>
+         		<name>Michael Konieczny</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg126.perseus-eng4.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">5</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst05plutuoft/page/234">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	<editorialDecl>
+      		<quotation marks="none"/>
+      		<correction status="medium" method="silent">
+      			<p>optical character recognition</p>
+      		</correction>
+      	</editorialDecl>
+      	<refsDecl n="CTS">
+         	<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p>
+         	</cRefPattern>
+            
+         </refsDecl><!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Sophia Elzie" when="2019-07-19">EpiDoc and CTS Conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg126.perseus-eng4">
+      	<div n="urn:cts:greekLit:tlg0007.tlg126.perseus-eng4" type="translation" xml:lang="eng">
+         <head>Of the face appearing within the orb of the moon.<note resp="editor" place="inline" anchored="true">The beginning of this discourse is lost.</note> <lb/> Lamprias, Apollonides, Lucius, Pharnaces, Sylla, Aristoteles, Theon, Menelaus.</head>
+         <pb xml:id="v.5.p.234"/>
+         <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg126.perseus-eng4" type="textpart" n="1"><p rend="indent">These things then, said Sylla, agree with my story, and are taken thence. But I should first willingly ask, what need there is of making such a preamble against these opinions, which are at hand and in every man’s mouth, concerning the face that is seen within the orb of the moon. Why should we not, said I, being, by the difficulty there is in these discourses, forced upon those? For, as they who have long lain lingering under chronical diseases, after they have been worn out and tired with experimenting all ordinary remedies and the usual rules of living and diet, have at last recourse to lustrations and purifications, to charms and amulets fastened about the neck, and to the interpretation of dreams; so in such obscure and abstruse questions and speculations, when the common, apparent, and ordinary reasons are not satisfactory, there is a necessity of trying such as are more extravagant, and of not contemning but enchanting ourselves (as one may say) with the discourses of the ancients, and endeavoring always to find out the truth.</p> </div>
+         <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg126.perseus-eng4" type="textpart" n="2"><p rend="indent">For you see at the very first blush, how impertinent his opinion is who said, that the form appearing in the moon is an accident of our sight, by its weakness giving way to her brightness, which we call the dazzling of our <pb xml:id="v.5.p.235"/> eyes; for he perceives not that this should rather befall our looking against the sun, whose lustre is more resplendent, and whose rays are more quick and piercing; as Empedocles also in a certain passage of his has not unpleasantly noted the difference of these two planets, saying, <quote rend="blockquote"> <lg> <l>The sharp-rayed sun, and gently shining moon.</l> </lg> </quote> For thus does he call her alluring, favorable, and harmless light. No less absurd appears the reason he afterwards gives why dull and weak eyes discern no difference of form in the moon, her orb appearing to them plain and smooth, whereas those whose sight is more acute and penetrating better descry the lineaments and more perfectly observe the impressions of a face, and more evidently distinguish its different parts. For it should, in my opinion, be quite contrary, if this were a fancy caused by the weakness of the vanquished sight; so that where the patient’s eye is weaker, the appearance would be more express and evident. Moreover, the inequality every way confutes this reason; for this face is not seen in a continuance and confused shadow, but the poet Agesianax not unelegantly describes it, saying, <quote rend="blockquote"> <lg> <l>With shining fire it circled does appear, </l> <l>And in the midst is seen the visage clear </l> <l>Of a young maid, whose eyes more gray than blue, </l> <l>Her brow and cheeks a blushing red do show.</l> </lg> </quote> For indeed dark and shady things, encompassed with others that are bright and shining, sink underneath and reciprocally rise again, being repelled by them; and in a word, they are so interlaced one within another, that they represent the figure of a face painted to the life; and there seems to have been great probability in that which was spoken against your Clearchus, my dear Aristotle. For he appears not inconveniently to be called yours, for he <pb xml:id="v.5.p.236"/> was intimately acquainted with the ancient Aristotle, although he perverted many of the Peripatetic doctrines.</p> </div

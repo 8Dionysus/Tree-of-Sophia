@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">In P. Vatinium testem interrogatio</title>
+				<author>M. Tullius Cicero</author>
+				<editor>William Peterson</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				<respStmt>
+					<persName>Michael Konieczny</persName>
+					<orgName/>
+					<resp>Digital editor</resp>
+				</respStmt>
+				<funder n="org:NEH">National Endowment For The Humanities (NEH)</funder>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1997-10-28">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi023.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt>
+
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>William Peterson</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon Press</publisher>
+							<date>1909</date>
+						</imprint>
+						<biblScope unit="volume">5</biblScope>
+						<biblScope n="contents">Cum Senatui Gratias Egit; Cum Populo Gratias Egit; De Domo Sua; De Haruspicum Responso; Pro Sestio; In Vatinium; De Provinciis Consularibus; Pro Balbo</biblScope>
+					</monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+					<ref target="https://archive.org/details/orationesrecogno05ciceuoft/page/193/mode/2up">Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+			</editorialDecl>
+			<editorialDecl>
+				<p>Notes may contain errors</p>
+			</editorialDecl>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])" matchPattern="(\w+)">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+<change when="2021-01-02" who="Michael Konieczny">Revisions for CTS and EpiDoc compliance</change> 
+<change when="2021-01-28" who="Thibault Clérice">Capitains + Epidoc</change> 
+<change when="2014-08-01" who="Stella Dee">edited markup</change> 
+<change when="2014-07-01" who="Stella Dee">split composite text and converted to unicode</change> 
+<change when="2013-09-13" who="balmas01">reverting texts back to pre_cts_reorg tagged version</change> 
+<change when="2011-07-19" who="gcrane">removed the earlier persName/placeName tags</change> 
+<change when="2011-07-09" who="gcrane">fixed problems with capitalization</change> 
+<change when="2011-01-15" who="gcrane">base SDL file</change> 
+<change when="2009-10-09" who="rsingh04">more reorganizing of texts module by collection</change> 
+<change when="2006-04-21" who="gcrane">these now have the app crit entered as notes</change> 
+<change when="2005-08-01" who="packel">removed stray item tags</change> 
+<change when="2005-07-25" who="packel">Converted to XML</change> 
+<change when="2005-04-08" who="mimno">added default chunks</change> 
+<change when="2004-12-23" who="mimno">typo: cDe harus... -> De harus</change> 
+<change when="2003-07-01" who="yorkc">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change> 
+<change when="2002-12-02" who="amahoney">correct spelling of Quirites, improperly 'regularized'</change> 
+<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change> 
+<change when="1999-10-14" who="dasmith">Added explanatory subtitles to titleStmt</change> 
+<change when="1999-08-12" who="dasmith">Fixed refsDecl</change> 
+<change when="1999-08-04" who="textgod">Random changes over a period of months.</change> 
+<change when="1997-10-31" who="textgod">Added QUOTE tags to verse.</change> 
+<change when="1997-05-13" who="cjsu">passed SGML validation</change>
+		</revisionDesc>
+	</teiHeader>
+	
+	<text xml:lang="lat">
+		<body xml:base="urn:cts:latinLit:phi0474.phi023.perseus-lat2">
+<div type="edition" xml:lang="lat">
+<head rend="align(center)">IN P. VATINIVM TESTEM INTERROGATIO</head> 	
+<div n="1" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi023.perseus-lat2"> <p rend="align(indent)"><milestone resp="editor" n="1" unit="chapter"/><reg>si</reg> tantum<note>Si tant. <hi rend="italic">PB<foreign xml:lang="grc">Σ</foreign></hi>: si tua tant. <hi rend="italic">H<foreign xml:lang="grc">Ϛ</foreign></hi> (<hi rend="italic">cf.</hi> tua indignitas § 11). Si tantum modo tua <hi rend="italic">Halm, haud prob.</hi></note> modo, Vatini, quid indignitas postularet spectare<note><hi rend="italic">Cf. Sest.</hi> § 60 ignari quid gravitas ... valeret, <hi rend="italic">Cl. Qu.</hi> iv. 173 4</note> voluissem, fecissem id quod his vehementer placebat, ut te, cuius testimonium propter turpitudinem vitae sordisque domesticas nullius momenti putaretur, tacitus dimitterem; nemo enim horum aut ita te refutandum ut gravem adversarium aut ita<note>ita <hi rend="italic">HGk</hi>: <hi rend="italic">om. PB, fort. recle</hi></note> rogandum ut religiosum testem arbitrabatur. <reg>sed</reg> fui paulo ante<note>ante <hi rend="italic">PB<foreign xml:lang="grc">Σ</foreign></hi>: in te <hi rend="italic">Hb<foreign xml:lang="grc">Ϛ</foreign></hi>: ante in te <hi rend="italic">Lamb.</hi></note> intemperantior<note>intemperatior <hi rend="italic">PB<foreign xml:lang="grc">Σ</foreign>G</hi></note> fortasse quam debui; odio enim tui, in quo etsi omnis propter tuum in me scelus superare debeo, tamen ab omnibus paene vincor, sic sum incitatus ut, cum te non minus contemnerem quam odissem, tamen vexatum potius quam despectum vellem dimittere. </p> </div> 
+<div n="2" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi023.perseus-lat2"> <p><reg>qua</reg> re ne tibi hunc honorem a me haberi forte mirere, quod interrogem quem nemo congressu, nemo aditu, nemo suffragio, nemo civitate, nemo luce dignum putet, nulla me causa impulisset nisi ut ferocitatem istam tuam comprimerem et audaciam frangerem et loquacitatem paucis meis interrogationibus inretitam retardarem. <reg>etenim</reg> debuisti, Vatini, etiam si falso venisses in suspicionem P. Sestio, tamen mihi ignoscere, si in tanto hominis de me optime meriti periculo et tempori eius et voluntati parere voluissem. </p> </div> 
+<div n="3" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi023.perseus-lat2"> <p><reg>sed</reg> <add>te</add><note>te <hi rend="italic">add. Lamb.</hi></note> hesterno <add>die</add><note>die <hi rend="italic">hic add. Schuetz, om. codd.</hi> (hesterno <hi rend="italic">v. Sisenna apud Char. p.</hi> 200, 20: <hi rend="italic">cf.</hi> cotidiano <hi rend="italic">Verr.</hi> iv, § 18): te die hesterno <hi rend="italic">Muell.</hi> hesterno in testimonio <hi rend="italic">b</hi></note> pro testimonio esse mentitum, cum adfirmares nullum tibi omnino cum Albinovano sermonem non modo de Sestio accusando, sed nulla umquam de re fuisse, paulo ante imprudens indicasti, qui et<note>qui et <hi rend="italic">vulg.</hi>: <hi rend="italic">in P est rasura</hi>: q<hi rend="superscript">2</hi> et (<hi rend="italic">i. e.</hi> quia et) <hi rend="italic">P<hi rend="superscript">2</hi>B<foreign xml:lang="grc">Σ</foreign>w</hi>: qui et vel quia <hi rend="italic">G</hi>: et <hi rend="italic">H</hi>: cum et <hi rend="italic">ut Halm ita k</hi></note> T. Claudium tecum communicasse et a te consilium P. Sesti accusandi petisse, et Albinovanum, quem antea vix tibi notum esse dixisses, domum tuam venisse, multa tecum locutum dixeris, denique contiones P. Sesti scriptas, quas neque nosset neque reperire posset, te Albinovano dedisse easque in hoc iudicio esse recitatas. <reg>in</reg> quo alterum<note>in quo alterum <hi rend="italic">P<hi rend="superscript">1</hi></hi>: in quorum altero <hi rend="italic">P<hi rend="superscript">2</hi>B rell.</hi></note> es confessus, a te accusatores esse instructos et subornatos, in altero incons

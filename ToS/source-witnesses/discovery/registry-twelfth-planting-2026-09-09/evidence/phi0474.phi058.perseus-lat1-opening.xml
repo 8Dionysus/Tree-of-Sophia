@@ -1,0 +1,138 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>Letters to and from Quintus</title>
+            
+            <author>M. Tullius Cicero</author>
+            <editor>Louis Claude Purser</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>William Merrill</name>
+               <name>David Mimno</name>
+               <name>Rashmi Singhal</name>
+               <name>David Smith</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2000-03-17" cert="medium">Perseus 2.5</date>
+         </publicationStmt>
+         <sourceDesc>
+            <list>
+               <item>OCR cleanup</item>
+            </list>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section" matchPattern="(\w+).(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+               <p>This pointer pattern extracts section</p>
+            </cRefPattern>
+            <cRefPattern n="letter" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts letter</p>
+            </cRefPattern>
+            <cRefPattern n="book" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts book</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState delim="." unit="book"/>
+            <refState delim="." unit="letter"/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+              <citeStructure match="/TEI/text/body" use="@xml:base">
+                <citeStructure unit="book" delim=":" match="div/div[@subtype='Book']" use="@n">
+                  <citeStructure unit="section" delim="." match="div/div[@subtype='section']" use="@n"/>
+                </citeStructure>
+              </citeStructure>
+            </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="lat">Latin
+   </language>
+            <language ident="grc">Greek
+      </language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+<change who="gcrane" when="2013-06-08">TEI XML converted to facilitate CTS compatibility</change>
+<change who="gcrane" when="2011-07-21">small mods</change>
+<change who="gcrane" when="2011-07-19">removed the earlier persName/placeName tags</change>
+<change who="gcrane" when="2011-07-18">small fixes</change>
+<change who="gcrane" when="2011-01-15">base SDL file</change>
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+<change who="packel" when="2006-05-05">fixed date tags</change>
+<change who="packel" when="2006-02-10">places/dates now actually tagged</change>
+<change who="packel" when="2005-08-01">removed stray item tags</change>
+   <change who="packel" when="2005-07-25">   Converted to XML</change>
+   
+<change who="amahoney" when="2004-05-24">mark dates in headers</change>
+<change who="yorkc" when="2003-07-01">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change>
+<change who="amahoney" when="2000-03-06">remove headers so books show up in short toc</change>
+<change who="dasmith" when="2000-03-05">Added responsibility and funder info to TEI header.</change>
+<change who="dasmith" when="1999-08-04">Added encodingDesc and revisionDesc.</change>
+
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="lat">
+      <body xml:base="urn:cts:latinLit:phi0474.phi058.perseus-lat1">
+         <div xml:lang="lat" type="edition">
+            <div type="textpart" n="1" subtype="Book">
+               <head>LIBER PRIMVS</head>
+               <div type="textpart" n="1" subtype="letter">
+                  <label rend="opener">
+
+                     <seg rend="dateline">Scr. Romae ex. a. <date when="-0060">694 (60)</date> aut in. a. 695 (59).</seg>
+                     <seg rend="salute">MARCVS QVINTO FRATRI S.</seg>
+                  </label>
+                  <milestone n="1" unit="chapter"/>
+                  <div type="textpart" n="1" subtype="section">
+                     <p>
+                        <reg>etsi</reg> non dubitabam quin hanc epistulam multi nuntii, 
+
+fama denique esset ipsa sua celeritate superatura tuque
+ante ab aliis auditurus esses annum tertium accessisse desiderio nostro et labori tuo, tamen existimavi a me quoque tibi huius molestiae nuntium perferri oportere.  <reg>nam</reg> superioribus litteris non unis sed pluribus, cum iam ab aliis desperata res esset, tamen tibi ego spem maturae decessionis
+adferebam, non solum ut quam diutissime te iucunda opinione oblectarem sed etiam quia tanta adhibebatur et a nobis et a praetoribus contentio ut rem posse confici non diffiderem. 
+</p>
+                  </div>
+                  <div type="textpart" n="2" subtype="section">
+                     <p>
+                        <reg>nunc</reg> quoniam ita accidit ut neque praetores  suis opibus neque nos nostro studio, quicquam proficere
+possemus, est omnino difficile non graviter id ferre, sed tamen nostros animos maximis in rebus et gerendis et sustinendis exercitatos frangi et debilitari molestia non
+oportet.  <add>
+                           <reg>et</reg>
+                        </add> quoniam ea molestissime ferre homines debent quae ipsorum culpa contracta sunt, est quiddam in hac re mihi molestius ferendum quam tibi.  <reg>factum</reg> est enim mea culpa contra quam tu mecum et proficiscens et per litteras egeras ut priore anno non succederetur ; quod ego, dum saluti sociorum consulo, dum impudentiae non nullorum negotiatorum resisto, dum nostram gloriam tua virtute augeri expeto, feci non sapienter, praesertim cum id commiserim ut ille alter annus etiam tertium posset adducere. 
+
+</p>
+                  </div>
+                  <div type="textpart" n="3" subtype="section">
+                     <p>
+                        <reg>quod</reg> quoniam peccatum meum esse confiteor, est sapientiae atque humanitatis tuae curare et perficere ut hoc minus sapienter a me provisum diligentia tua corrigatur. <reg>ac</reg> si te ipse vehementius ad omnis partis bene audiendi excitaris, non ut cum aliis sed ut tecum iam ipse certes, si omnem tuam mentem, curam, cogitationem ad excellentis in omnibus rebus laudis cupiditatem incitaris, mihi crede, unus annus additus labori tuo multorum annorum laetitiam nobis, immo vero etiam posteris nostris adferet. 
+
+</p>
+                  </div>
+                  <div type="textpart" n="4" subtype="section">
+                     <p>
+                        <reg>quapropter</reg> hoc te primum rogo ne contrahas ac demittas animum neve te obrui tamquam fluctu sic magnitudine negoti sinas contraque erigas ac resistas sive etiam ultro occurras negotiis  <reg>neque</reg> enim eius modi partem rei publicae geris in qua fortuna dominetur, sed in qua plurimum ratio possit et diligentia.  <reg>quod</reg> si tibi bellum aliquod magnum et periculosum administranti prorogatum imperium viderem, tremerem, animo quod eodem tempore esse intellegerem etiam fortunae potestatem in nos prorogatam. 
+
+</p>
+                  </div>
+                  <div type="textpart" n="5" subtype="section">
+                     <p>
+                        <reg>nunc</reg> vero ea pars tibi rei publicae commissa est in qua aut nullam aut perexiguam partem fortuna tenet et quae mihi tota in tua virtute ac moderatione animi posita esse
+videatur.  <reg>nullas</reg> ut opinor, insidias hostium, nullam proeli dimicatione

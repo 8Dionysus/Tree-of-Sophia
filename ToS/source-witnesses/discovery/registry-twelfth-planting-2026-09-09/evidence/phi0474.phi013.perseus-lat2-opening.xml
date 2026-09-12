@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">In L. Catilinam</title>
+				<author>M. Tullius Cicero</author>
+				<editor>Albert Curtis Clark</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				<funder n="org:NEH">National Endowment For The Humanities (NEH)</funder> 
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1997-10-28">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi013.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt> 
+
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>Albert Curtis Clark</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon</publisher>
+							<date>1908</date>
+						</imprint>
+						<biblScope unit="volume">1</biblScope>
+						<biblScope n="contents">Pro Sex. Roscio; De imperio Cn. Pompei; Pro Cluentio; In Catilinam; Pro Murena; Pro Caelio</biblScope>
+					</monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+					<ref target="https://archive.org/details/orationesrecogno01ciceuoft/page/n209/mode/2up">Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+
+<encodingDesc>
+<refsDecl n="CTS">
+<cRefPattern n="section" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+	<p>This pointer pattern extracts speech and section.</p>
+</cRefPattern>
+<cRefPattern n="chapter" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+	<p>This pointer pattern extracts speech.</p>
+</cRefPattern>
+	</refsDecl>
+			<refsDecl>
+				<refState unit="speech" delim="."/>
+				<refState unit="section"/>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="speech" delim=":" match="div/div[@subtype='speech']" use="@n">
+				      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n" n="chunk"/>
+				    </citeStructure>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+			<change when="2016-04-20" who="Lisa Cerrato">fixed bad section breaks; made section default div; fixed title</change>
+			<change when="2015-10-29" who="Thibault Clerice">CTS according to Capitains Guidelines +
+				Epidoc</change>
+			<change when="2014-11-06" who="Thibault Clerice">Moving to Epidoc with new URN</change>
+			<change when="2014-08-01" who="Stella Dee">edited markup</change>
+			<change when="2014-12-05" who="Bridget Almas">Converted milestones to divs</change>
+			<change when="2014-07-01" who="Stella Dee">split composite text and converted to
+				unicode</change>
+			<change when="2013-09-13" who="balmas01">reverting texts back to pre_cts_reorg tagged
+				version</change>
+			<change when="2011-07-19" who="gcrane">removed the earlier persName/placeName
+				tags</change>
+			<change when="2011-01-15" who="gcrane">base SDL file</change>
+			<change when="2009-10-09" who="rsingh04">more reorganizing of texts module by
+				collection</change>
+			<change when="2006-11-03" who="gcrane">typo</change>
+			<change when="2006-08-21" who="gcrane">small fixes</change>
+			<change when="2006-08-17" who="gcrane">typo fixed</change>
+			<change when="2006-04-02" who="gcrane">mainly fixes to the words lower cased at the
+				start of sentences: found that we had always had <name>Cum</name> rather than
+					<reg>cum</reg>. This has been fixed in oct.cic[123] oct.cic[456] are having the
+				app crits added and will need to be updated when those files come back</change>
+			<change when="2005-12-29" who="gcrane">this now contains textual notes</change>
+			<change when="2005-11-17" who="gcrane">began vestigial app crit</change>
+			<change when="2005-08-01" who="packel">removed stray item tags</change>
+			<change when="2005-07-25" who="packel">Converted to XML</change>
+			<change when="2005-04-08" who="mimno">added default chunks</change>
+			<change when="2004-05-24" who="amahoney">experiment with marking abbreviations of
+				praenomina</change>
+			<change when="2003-07-01" who="yorkc">Updated texts to TEI P4 and Perseus P4 extensions;
+				minor cleanup (esp. character encodings and typos.)</change>
+			<change when="2002-12-02" who="amahoney">correct spelling of Quirites, improperly
+				'regularized'</change>
+			<change when="2002-01-18" who="amahoney">put spaces around mdash because umorphck is
+				confused if there are none</change>
+			<change when="2002-01-18" who="amahoney">missed a few 'v' in the small caps</change>
+			<change when="2001-12-31" who="amahoney">finish fixing the small caps, partially
+				converted to lower case</change>
+			<change when="2000-03-06" who="amahoney">add headers for groups of speeches, so they
+				show up in the toc: Catilines, Verrines, Philippics, and Agrarian Law</change>
+			<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI
+				header.</change>
+			<change when="1999-10-14" who="dasmith">Added explanatory subtitles to
+				titleStmt</change>
+			<change when="1999-08-12" who="dasmith">Fixed refsDecl</change>
+			<change when="1999-08-04" who="textgod">Random changes over a period of months.</change>
+			<change when="1997-08-18" who="textgod">???</change>
+			<change when="1997-05-12" who="cjsu">Finalized tagging. Passes validation.</change>
+			<change when="1997-05-12" who="textgod">Added the rest of volume 1</change>
+			<change when="1997-03-26" who="textgod">Added to repository. Passes TEI parse.</change>
+		</revisionDesc>
+	</teiHeader>
+	
+	<text xml:lang="lat">
+		<body xml:base="urn:cts:latinLit:phi0474.phi013.perseus-lat2">
+
+
+<div type="edition" xml:lang="lat">
+<head rend="align(center)">Orationes in Catilinam</head>
+
+
+<div type="textpart" subtype="speech" xml:base="urn:cts:latinLit:phi0474.phi013.perseus-lat2" n="1"> 
+<head rend="align(center)">ORATIO QVA L. CATILINAM EMISIT IN SENATV HABITA</head> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi013.perseus-lat2:1" n="1"> <p rend="align(indent)"><milestone unit="chapter" n="1"/> <reg>quo</reg> usque tandem abutere, Catilina, patientia nostra? quam diu etiam furor iste tuus nos<note>nos <hi rend="italic">om. A et Iulius Victor</hi> (<hi rend="italic">Rhet. M. p.</hi> 439): <hi rend="italic">post</hi> diu <hi rend="italic">hab. bs</hi> </note> eludet? quem ad finem sese effrenata iactabit audacia? <reg>nihilne</reg> te nocturnum praesidium Palati, nihil urbis vigiliae, nihil timor populi, nihil concursus bonorum omnium, nihil hic munitissimus habendi senatus locus, nihil horum ora voltusque moverunt? <reg>patere</reg> tua consilia non sentis, constrictam iam horum omnium scientia teneri coniurationem tuam<note>tuam <hi rend="italic">om. CAV</hi> </note> non vides? <reg>quid</reg> proxima, quid superiore nocte egeris, ubi fueris, quos convocaveris, quid consili ceperis quem nostrum ignorare arbitraris? </p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi013.perseus-lat2:1" n="2"><p>O tempora, o mores! <reg>senatus</reg> haec intellegit, consul videt; hic tamen vivit. <reg>vivit</reg>? immo vero etiam in senatum venit, fit publici consili particeps, notat et designat oculis ad caedem unum quemque nostrum. <reg>nos</reg> autem fortes viri satis facere rei publicae videmur, si istius furorem ac tela vitamus<note>vitamus <hi rend="italic">CAV</hi>: vitemus <hi rend="italic">cett.</hi> </note>. <reg>ad</reg> mortem te, Catilina, duci iussu consulis iam pridem oportebat, in te conferri pestem<note>pestem <foreign xml:lang="grc">α</foreign> (<hi rend="italic">C pr. scr.</hi>): pestem istam <hi rend="italic">cett.</hi> (<hi rend="italic">C corr. m.</hi> 1)</note> quam tu in nos<note>nos <hi rend="italic">om. A</hi> (<hi rend="italic">in lac.</hi>) <hi rend="italic">V</hi> </note> omnis iam diu<note>omnis <hi rend="italic">om.</hi> <foreign xml:lang="grc">αγ</foreign>: omnis iam diu <hi rend="italic">om. bs</hi> </note> machinaris.</p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi013.perseus-lat2:1" n="3"><p> <reg>an</reg> vero vir amplissimus, P. Scipio, pontifex maximus, <choice> <abbr>Ti.</abbr> <expan>T<ex>itum</ex></expan> </choice> Gracchum mediocriter labefactantem statum rei publicae privatus interfecit: Catilinam<note>Catilinam <hi rend="italic">Aah, Quintil.</hi> viii. 4. 13: Catilinam vero <hi rend="italic">C cett.</hi> </note> orbem terrae caede atque incendiis vastare cupientem nos consules perferemus<note>perferremus <hi rend="italic">C</hi> </note>? <reg>nam</reg> illa nimis antiqua praetereo, quod<note> <app> <lem>quod C.</lem> </app> quodque <hi rend="italic">CAah</hi>: quod Q. <hi rend="italic">V<foreign xml:lang="grc">αβγ</foreign> </hi> </note> <choice> <abbr>C.</abbr> <expan>G<ex>aius</ex></expan> </choice> Servilius Ahala Sp. Maelium novis rebus studentem manu sua occidit. <reg>fuit</reg>, fuit ista quondam in hac re publica virtus ut viri fortes acrioribus suppliciis civem perniciosum quam acerbissimum hostem coercerent. <reg>habemus</reg> <note>habemus <foreign xml:lang="grc">α</foreign>: habemus enim <hi rend="italic">h</hi> <foreign xml:lang="grc">αβγ</foreign> </note> senatus consultum in te, Catilina, vehemens et grave<note>et grave <hi rend="italic">sup. lin. in C</hi> (<hi rend="italic">m</hi>1): <hi rend="italic">om. AV</hi> </note>, non deest rei publicae consilium neque auctoritas huius ordinis: nos, nos, dico aperte, consules desumus. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi013.perseus-lat2:1" n="4"> <p><milesto

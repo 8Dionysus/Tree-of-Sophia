@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.pali-canon.sammaditthi-sutta",
+    "version": 2,
+    "digest": "sha256:5d8fab5b92df0fcfa8b293b1724ddfc7e3d56d0f0c1a1523253355ed179a0403"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5d8fab5b92df0fcfa8b293b1724ddfc7e3d56d0f0c1a1523253355ed179a0403",
+            "id": "tos.work.pali-canon.sammaditthi-sutta",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5d8fab5b92df0fcfa8b293b1724ddfc7e3d56d0f0c1a1523253355ed179a0403",
+            "id": "tos.work.pali-canon.sammaditthi-sutta",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:5d8fab5b92df0fcfa8b293b1724ddfc7e3d56d0f0c1a1523253355ed179a0403",
+            "id": "tos.work.pali-canon.sammaditthi-sutta",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:5d8fab5b92df0fcfa8b293b1724ddfc7e3d56d0f0c1a1523253355ed179a0403",
+            "id": "tos.work.pali-canon.sammaditthi-sutta",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.16db4a2f536e5bfa9cd2c0a2c47d2476132875419ff61670fbbae2bb95b55b90",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:5d8fab5b92df0fcfa8b293b1724ddfc7e3d56d0f0c1a1523253355ed179a0403",
+        "id": "tos.work.pali-canon.sammaditthi-sutta",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5d8fab5b92df0fcfa8b293b1724ddfc7e3d56d0f0c1a1523253355ed179a0403",
+            "id": "tos.work.pali-canon.sammaditthi-sutta",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5d8fab5b92df0fcfa8b293b1724ddfc7e3d56d0f0c1a1523253355ed179a0403",
+            "id": "tos.work.pali-canon.sammaditthi-sutta",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:5d8fab5b92df0fcfa8b293b1724ddfc7e3d56d0f0c1a1523253355ed179a0403",
+            "id": "tos.work.pali-canon.sammaditthi-sutta",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:5d8fab5b92df0fcfa8b293b1724ddfc7e3d56d0f0c1a1523253355ed179a0403",
+            "id": "tos.work.pali-canon.sammaditthi-sutta",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.7e7a3ae4bb0926d6ec3e4babf5418ddaa675dd06b975bfdcbf98a740bd8c6f13",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:5d8fab5b92df0fcfa8b293b1724ddfc7e3d56d0f0c1a1523253355ed179a0403",
+        "id": "tos.work.pali-canon.sammaditthi-sutta",
+        "version": 2
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-thirteenth-English-source-forms:25e43ee98c9567d4a921b4215d810de26d13911aca770a27eda5eb3686d49493",
+      "request_digest": "sha256:7614302108cbb1bb90aa86d867f9d08c2934653bff8e174b680ceb4b8647b6e8",
+      "principal_id": "model:codex",
+      "authority_ref": "session:01a08281-293a-7ff0-927a-0fd73dfacf7d",
+      "owner_configuration": "sha256:ca1675b285e5f99fabae5af9fb4194880cd6a5f52d9f472cef4684e0adda8b20",
+      "recorded_at": "2026-09-09T22:38:44.100783+00:00",
+      "source": {
+        "id": "tos.work.pali-canon.sammaditthi-sutta",
+        "version": 2,
+        "digest": "sha256:5d8fab5b92df0fcfa8b293b1724ddfc7e3d56d0f0c1a1523253355ed179a0403"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.16db4a2f536e5bfa9cd2c0a2c47d2476132875419ff61670fbbae2bb95b55b90",
+          "version": 1,
+          "digest": "sha256:2cf57ef63861761790fe4c366608eb71197a0172603b4296f6043fca5c05cfac"
+        },
+        {
+          "id": "tos.form.metadata.7e7a3ae4bb0926d6ec3e4babf5418ddaa675dd06b975bfdcbf98a740bd8c6f13",
+          "version": 1,
+          "digest": "sha256:7dbf75d8f1a5046d6fb3e550d3b9557f8cd3d88b96cd152fc0f7bc7cb32d447c"
+        }
+      ]
+    }
+  ]
+}

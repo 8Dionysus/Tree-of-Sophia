@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>Of Large Acquaintance: or, an Essay to Prove the Folly of Seeking Many Friends</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+			<editor role="translator">William W. Goodwin</editor>
+			<sponsor>Perseus Project, Tufts University</sponsor>
+			<principal>Gregory Crane</principal>
+			<respStmt>
+				<resp>Prepared under the supervision of</resp>
+				<name>Lisa Cerrato</name>
+				<name>Rashmi Singhal</name>
+				<name>Bridget Almas</name>
+				<name>Angelia Hanhardt</name>
+			</respStmt>
+			<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Ethan Della Rocca</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg073.perseus-eng4.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">1</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst01plutuoft/page/464">The Internet Archive</ref>
+            </biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="GRC" when="2006">tagging</change>
+			<change who="Ethan Della Rocca" when="2019-07-02">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg073.perseus-eng4">
+		
+<div n="urn:cts:greekLit:tlg0007.tlg073.perseus-eng4" type="translation" xml:lang="eng"> <pb xml:id="v.1.p.464"/> <head>Of large acquaintance; or, an essay to prove the folly of seeking many friends.</head> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg073.perseus-eng4" n="1"><p rend="indent">Menon the Thessalian, a person who had no mean opinion of his own parts, who thought himself well accomplished in all the arts of discourse and to have reached (as Empedocles words it) the highest pitch of wisdom, was asked by Socrates, What is virtue? And he answered readily enough, and as impertinently, that there is one virtue belonging to childhood, another to old age; that there are distinct virtues in men and women, magistrates and private persons, masters and servants. Excellently well! replied Socrates in raillery, when you were asked about one virtue, you have raised, as it were, a whole swarm; conjecturing, not without reason, that the man therefore named many because he knew the nature of none. And may not we ourselves expect and deserve as justly to be scoffed and rallied, who having not yet contracted one firm friendship seem nevertheless exceeding cautious of too many? It is almost the same thing as if one maimed and blind should appear solicitous lest like Briareus he may chance to be furnished with a hundred hands, and become all over eyes like Argus. However, we cannot but extol the sense of that young man in Menander the poet, who said that he counted every man wonderfully honest and happy who had found even the shadow of a friend.</p> <pb xml:id="v.1.p.465"/> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg073.perseus-eng4" n="2"><p rend="indent">But all the difficulty lies in finding him; and the chiefest reason is that, instead of one choice true friend, nothing under a multitude will content us; like women of the town who admit the embraces of all gallants that come, at the gay appearance of the last which comes we neglect and slight the former, and so are unable to hold them. Or rather, like the foster-child of Hypsipyle, who <q>in a green meadow sat cropping the flowers one after another, snatching each prize with delighted heart, insatiable in his childish joy,</q> <note place="inline" anchored="true"> <quote rend="blockquote" xml:lang="grc"> <l>Εἰς τὸν λειμῶνα καθίσας</l> <l>ἔδρεπεν ἕτερον ἐφ’ ἑτέρῳ</l> <l>αἰρόμενος ἄγρευμα ἀνθέων</l> <l>ἡδομένᾳ ψυχᾷ,</l> <l>τὸ νήπιον ἄπληστον ἔχων.</l> </quote> From the Hypsipyle of Euripides.</note> —so we of riper years, from an inbred affection of novelty and disdain of things already possessed, take up presently with the first promising aspect of every fresh and new-blooming friend, and lay all at once the foundations of several acquaintances; but we leave each unfinished, and when we have scarce fixed on one, our love immediately palls there, while we passionately pursue some other.</p> <p rend="indent">Wherefore, in this affair,—to begin at the beginning (at the domestic altar, as the saying is),—let us ask the opinion and counsel of our forefathers, and consider what report the records of antiquity make concerning true friends. They are, we find, always reckoned in pairs; as Theseus and Pirithous, Achilles and Patroclus, Orestes and Pylades, Phintias and Damon, Epaminondas and Pelopidas. Friendship (so to speak) is a creature sociable, but affects not a herd or a flock; and that we usually esteem a friend another self, and call him <foreign xml:lang="grc">ἑταῖρος</foreign> (companion) as much as to say <foreign xml:lang="grc">ἕτερος</foreign> (the other one), is a convincing argument that the number two is the adequate and complete measure of friendship. And in truth, a great <pb xml:id="v.1.p.466"/> number of friends or servants is not to be purchased at an easy rate. That wh

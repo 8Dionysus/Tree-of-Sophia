@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+<title xml:lang="grc">Ἄγις καὶ Κλεομένης</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+    <resp>Prepared under the supervision of</resp>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+    <name>Bridget Almas</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg051.perseus-grc1.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1921</date>
+</imprint>
+<biblScope unit="volume">10</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives10plut/page/2/mode/2up">Internet Archive</ref> 
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+).(\w+)"
+          replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+            <p>This pointer pattern extracts book, chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts book and chapter.</p>
+        </cRefPattern>
+        <cRefPattern n="book"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts book.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="book" delim="."/>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+      <citeStructure unit="chapter" delim="." match="div[@subtype='chapter']" use="@n">
+        <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+      </citeStructure>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+<language ident="eng">English</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change when="2018-04-05" who="Lisa Cerrato">EpiDoc and CTS conversion; merged files</change>
+<change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg051.perseus-grc1"> 
+<div n="urn:cts:greekLit:tlg0007.tlg051.perseus-grc1" type="edition" xml:lang="grc"> 
+    <div type="textpart" subtype="book" xml:base="urn:cts:greekLit:tlg0007.tlg051.perseus-grc1" n="Agis">
+        <head>Ἄγις</head>
+        <pb n="p.2"/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg051.perseus-grc1:Agis" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg051.perseus-grc1:Agis.1" n="1"><p> οὐκ ἀτόπως τινὲς οὐδὲ φαύλως συγκεῖσθαι <pb n="paris.1624.795"/> πρὸς τοὺς φιλοδόξους ὑπονοοῦσι τὸν ἐπὶ τῷ Ἰξίονι μῦθον, ὡς δὴ λαβόντι τὴν νεφέλην ἀντὶ τῆς Ἥρας καὶ τῶν Κενταύρων οὕτως γενομένων, καὶ γὰρ οὗτοι τῆς ἀρετῆς ὥσπερ εἰδώλῳ τινὶ τῇ δόξῃ συνόντες, οὐδὲν εἰλικρινὲς οὐδʼ ὡμολογημένον, ἀλλὰ νόθα καὶ μικτὰ πολλὰ πράττουσιν, ἄλλας ἄλλας φορὰς φερόμενοι, ζήλοις καὶ πάθεσιν ἐπακολουθοῦντες, ὅπερ οἱ Σοφοκλέους βοτῆρες ἐπὶ τῶν ποιμνίων λέγουσιν <quote rend="blockquote"> <l> τούτοις γὰρ ὄντες δεσπόται δουλεύομεν, </l> <l>καὶ τῶνδʼ ἀνάγκη καὶ σιωπώντων κλύειν.</l> </quote></p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg051.perseus-grc1:Agis.1" n="2"><p> ὅπερ ἀληθῶς οἱ πρὸς ἐπιθυμίας ὄχλων καὶ ὁρμὰς πολιτευόμενοι πάσχουσι, δουλεύοντες καὶ ἀκολουθοῦντες ἵνα δημαγωγοὶ καὶ ἄρχοντες ὀνομάζωνται. καθάπερ γὰρ οἱ πρωρεῖς τὰ ἔμπροσθεν προορώμενοι τῶν κυβερνητῶν ἀφορῶσι πρὸς ἐκείνους καὶ τὸ προστασσόμενον ὑπʼ ἐκείνων ποιοῦσιν, οὕτως οἱ πολιτευόμενοι καὶ πρὸς δόξαν ὁρῶντες ὑπηρέται μὲν τῶν πολλῶν εἰσιν, ὄνομα δὲ ἀρχόντων ἔχουσιν. <pb n="p.4"/> </p> </div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg051.perseus-grc1:Agis" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg051.perseus-grc1:Agis.2" n="1"><p> ὁ μὲν γὰρ ἀπηκριβωμένος καὶ τελείως ἀγαθὸς οὐδʼ ἂν ὅλως δόξης δέοιτο, πλὴν ὅση πάροδον ἐπὶ τὰς πράξεις διὰ τοῦ πιστεύεσθαι<note anchored="true" place="inline" resp="editor" xml:lang="eng"> <foreign xml:lang="grc">διὰ τοῦ π.,</foreign> Coraës, Bekker, and Ziegler, after Bryan: <foreign xml:lang="grc">καὶ διὰ τοῦ π.</foreign> </note> δίδωσι· νέῳ δὲ ἔτι ὄντι καὶ φιλοτίμῳ δοτέον ἀπὸ τῶν καλῶν ἔργων καὶ δόξῃ τι καλλωπίσασθαι καὶ κομπάσαι. φυόμεναι γὰρ ἐν τοῖς τηλικούτοις αἱ ἀρεταὶ καὶ βάλαστνουσαι τό τε κατορθούμενον ὥς φησι Θεόφραστος, ἐκβεβαιοῦνται τοῖς ἐπαίνοις, καὶ τὸ λοιπὸν αὔξονται μετὰ φρονήματος ἐπαιρόμεναι.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg051.perseus-grc1:Agis.2" n="2"><p> τὸ δὲ ἄγαν πανταχοῦ μὲν ἐπισφαλές, ἐν δὲ ταῖς πολιτικαῖς φιλοτιμίαις ὀλέθριον ἐκφέρει γὰρ εἰς μανίαν καὶ παρ

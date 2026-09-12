@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+
+<title xml:lang="grc">Ἀλκιβιάδου καὶ Κοριολὰνου σύγκρισις</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg017.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>    
+    <imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1916</date>
+</imprint>
+<biblScope unit="volume">4</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives04plut/page/218/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+    <quotation marks="none"/>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+<refsDecl>
+<refState unit="chapter" delim="."/>
+<refState unit="section"/>
+</refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2017-01-09" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+    <change who="RS" when="2010-03-01">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+    
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-grc2">
+    <div n="urn:cts:greekLit:tlg0007.tlg017.perseus-grc2" type="edition" xml:lang="grc">
+        <head>Ἀλκιβιάδου καὶ Κοριολὰνου σύγκρισις</head>
+<pb n="p.218"/>
+        <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-grc2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-grc2:1" n="1">
+<p> ἐκκειμένων δὲ τῶν πράξεων, ὅσας ἡγούμεθα <pb n="paris.1624.233"/> λόγου καὶ μνήμης ἀξίας εἶναι, τὰς μὲν πολεμικὰς ἐπʼ οὐδέτερον ποιούσας ῥοπὴν μεγάλην ὁρᾶν ἐστιν, ὁμαλῶς γὰρ ἀμφότεροι πολλὰ μὲν στρατιωτικῆς ἔργα τόλμης καὶ ἀνδρείας, πολλὰ δὲ καὶ τέχνης καὶ προνοίας στρατηγοῦντες ἐπεδείξαντο, </p>
+</div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-grc2:1" n="2">
+<p> πλὴν εἰ μή τις θέλοι τὸν Ἀλκιβιάδην, ὅτι καὶ κατὰ γῆν καὶ κατὰ θάλατταν ἐν πολλοῖς ἀγῶσι νικῶν καὶ κατορθῶν διετέλεσεν, ἀποφαίνειν τελειότερον στρατηγόν ἐπεὶ τό γε παρόντας καὶ ἄρχοντας ὀρθοῦν ἀεὶ προδήλως τὰ οἰκεῖα καὶ προδηλότερον αὖ πάλιν βλάπτειν μεθισταμένους ἀμφοτέροις ὑπῆρξε.</p>
+</div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-grc2:1" n="3">
+<p> πολιτείαν δὲ τὴν μὲν Ἀλκιβιάδου τὴν ἄγαν λαμυρὰν καὶ τὸ μὴ καθαρεῦον ἀναγωγίας καὶ βωμολοχίας ἐν τῷ πρὸς χάριν ὁμιλεῖν τοῖς πολλοῖς οἱ σώφρονες ἐβδελύττοντο, τὴν δὲ Μαρκίου παντάπασιν ἄχαριν καὶ <pb n="p.220"/> ὑπερήφανον καὶ ὀλιγαρχικὴν γενομένην ἐμίσησεν ὁ Ῥωμαίων δῆμος. </p>
+</div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-grc2:1" n="4">
+<p> οὐδετέραν μὲν οὖν ἐπαινετέον ὁ δὲ δημαγωγῶν καὶ χαριζόμενος τῶν ὅπως οὐ δόξουσι δημαγωγεῖν προπηλακιζόντων τοὺς πολλοὺς ἀμεμπτότερος· αἰσχρὸν μὲν γὰρ τὸ κολακεύειν δῆμον ἐπὶ τῷ δύνασθαι, τὸ δʼ ἰσχύειν ἐκ τοῦ φοβερὸν εἶναι καὶ κακοῦν καὶ πιέζειν πρὸς τῷ αἰσχρῷ καὶ ἄδικόν ἐστιν. </p>
+</div>
+</div>
+        <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-grc2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-grc2:2" n="1">
+<p> ὅτι τοίνυν ἁπλοῦς τις ὁ Μάρκιος ὑπείληπται τῷ τρόπῳ γεγονέναι καὶ αὐθέκαστος, ὁ δὲ Ἀλκιβιάδης πανοῦργος ἐν τῇ πολιτείᾳ καὶ ἀναλήθης, οὐκ ἄδηλόν ἐστι. μάλιστα δὲ κατηγοροῦσιν αὐτοῦ κακοήθειαν καὶ ἀπάτην, ᾗ τοὺς Λακεδαιμονίων πρέσβεις παρακρουσάμενος, ὡς Θουκυδίδης ἱστόρηκε, τὴν εἰρήνην ἔλυσεν. </p>
+</div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-grc2:2" n="2">
+<p> ἀλλʼ αὕτη μὲν ἡ πολιτείᾳ, καίπερ εἰς πόλεμον αὖθις ἐμβαλοῦσα

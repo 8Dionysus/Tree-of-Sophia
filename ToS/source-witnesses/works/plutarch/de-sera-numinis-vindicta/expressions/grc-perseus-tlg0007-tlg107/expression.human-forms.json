@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-sera-numinis-vindicta.grc-perseus-tlg0007-tlg107",
+    "version": 1,
+    "digest": "sha256:78d634a27edcfd3f6bbcad2d25d30bab994f9efb998916df188cd91706e0934b"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:78d634a27edcfd3f6bbcad2d25d30bab994f9efb998916df188cd91706e0934b",
+            "id": "tos.expression.plutarch.de-sera-numinis-vindicta.grc-perseus-tlg0007-tlg107",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:78d634a27edcfd3f6bbcad2d25d30bab994f9efb998916df188cd91706e0934b",
+            "id": "tos.expression.plutarch.de-sera-numinis-vindicta.grc-perseus-tlg0007-tlg107",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:78d634a27edcfd3f6bbcad2d25d30bab994f9efb998916df188cd91706e0934b",
+            "id": "tos.expression.plutarch.de-sera-numinis-vindicta.grc-perseus-tlg0007-tlg107",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:78d634a27edcfd3f6bbcad2d25d30bab994f9efb998916df188cd91706e0934b",
+            "id": "tos.expression.plutarch.de-sera-numinis-vindicta.grc-perseus-tlg0007-tlg107",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.1f26f250156eed72a78ce4d4b0f7b3a5a171840b4468b426af4798a7a8eae246",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:78d634a27edcfd3f6bbcad2d25d30bab994f9efb998916df188cd91706e0934b",
+        "id": "tos.expression.plutarch.de-sera-numinis-vindicta.grc-perseus-tlg0007-tlg107",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:78d634a27edcfd3f6bbcad2d25d30bab994f9efb998916df188cd91706e0934b",
+            "id": "tos.expression.plutarch.de-sera-numinis-vindicta.grc-perseus-tlg0007-tlg107",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:78d634a27edcfd3f6bbcad2d25d30bab994f9efb998916df188cd91706e0934b",
+            "id": "tos.expression.plutarch.de-sera-numinis-vindicta.grc-perseus-tlg0007-tlg107",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:78d634a27edcfd3f6bbcad2d25d30bab994f9efb998916df188cd91706e0934b",
+            "id": "tos.expression.plutarch.de-sera-numinis-vindicta.grc-perseus-tlg0007-tlg107",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:78d634a27edcfd3f6bbcad2d25d30bab994f9efb998916df188cd91706e0934b",
+            "id": "tos.expression.plutarch.de-sera-numinis-vindicta.grc-perseus-tlg0007-tlg107",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.db66069006e291cb9e0c72469fe9dc702882a866105e112f9dc38e9201ef7e4d",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:78d634a27edcfd3f6bbcad2d25d30bab994f9efb998916df188cd91706e0934b",
+        "id": "tos.expression.plutarch.de-sera-numinis-vindicta.grc-perseus-tlg0007-tlg107",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.plutarch.de-sera-numinis-vindicta.grc-perseus-tlg0007-tlg107",
+      "request_digest": "sha256:1b05c04dc761c09a076966378fec3e22c98b0130fb8ce74dddc22fec5ec2aef8",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:62ba16aea82b4419acf41a73744f53bc7eb83dd59c54b742603b6e8b91ef2337",
+      "recorded_at": "2026-09-09T15:55:24.629338+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-sera-numinis-vindicta.grc-perseus-tlg0007-tlg107",
+        "version": 1,
+        "digest": "sha256:78d634a27edcfd3f6bbcad2d25d30bab994f9efb998916df188cd91706e0934b"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.1f26f250156eed72a78ce4d4b0f7b3a5a171840b4468b426af4798a7a8eae246",
+          "version": 1,
+          "digest": "sha256:19c4e516f7903c02f9434c90eaafd3fc982644d801c1751bd2ce58e14a67c230"
+        },
+        {
+          "id": "tos.form.metadata.db66069006e291cb9e0c72469fe9dc702882a866105e112f9dc38e9201ef7e4d",
+          "version": 1,
+          "digest": "sha256:640f227e8f006b217d4cd3da2ba2f0061af4b8b3228556a39df0404f18e12125"
+        }
+      ]
+    }
+  ]
+}

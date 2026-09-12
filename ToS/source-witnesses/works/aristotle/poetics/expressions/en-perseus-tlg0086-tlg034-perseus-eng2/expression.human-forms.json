@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.aristotle.poetics.en-perseus-tlg0086-tlg034-perseus-eng2",
+    "version": 1,
+    "digest": "sha256:3c7a222ab16f73d947f1ed50884e6a17ce57279c6c63ab098cc2d0b4b67e617f"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:3c7a222ab16f73d947f1ed50884e6a17ce57279c6c63ab098cc2d0b4b67e617f",
+            "id": "tos.expression.aristotle.poetics.en-perseus-tlg0086-tlg034-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:3c7a222ab16f73d947f1ed50884e6a17ce57279c6c63ab098cc2d0b4b67e617f",
+            "id": "tos.expression.aristotle.poetics.en-perseus-tlg0086-tlg034-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:3c7a222ab16f73d947f1ed50884e6a17ce57279c6c63ab098cc2d0b4b67e617f",
+            "id": "tos.expression.aristotle.poetics.en-perseus-tlg0086-tlg034-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:3c7a222ab16f73d947f1ed50884e6a17ce57279c6c63ab098cc2d0b4b67e617f",
+            "id": "tos.expression.aristotle.poetics.en-perseus-tlg0086-tlg034-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.c09e0f0bd4da348c756be0f82685351a8896d8bd65ce93ce090a9f48d0cb3e4e",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:3c7a222ab16f73d947f1ed50884e6a17ce57279c6c63ab098cc2d0b4b67e617f",
+        "id": "tos.expression.aristotle.poetics.en-perseus-tlg0086-tlg034-perseus-eng2",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:3c7a222ab16f73d947f1ed50884e6a17ce57279c6c63ab098cc2d0b4b67e617f",
+            "id": "tos.expression.aristotle.poetics.en-perseus-tlg0086-tlg034-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:3c7a222ab16f73d947f1ed50884e6a17ce57279c6c63ab098cc2d0b4b67e617f",
+            "id": "tos.expression.aristotle.poetics.en-perseus-tlg0086-tlg034-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:3c7a222ab16f73d947f1ed50884e6a17ce57279c6c63ab098cc2d0b4b67e617f",
+            "id": "tos.expression.aristotle.poetics.en-perseus-tlg0086-tlg034-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:3c7a222ab16f73d947f1ed50884e6a17ce57279c6c63ab098cc2d0b4b67e617f",
+            "id": "tos.expression.aristotle.poetics.en-perseus-tlg0086-tlg034-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.afad1c9f85ad29d22eb4b9ede29c4d7d146f97e51238d2c5d7d9122b30830138",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:3c7a222ab16f73d947f1ed50884e6a17ce57279c6c63ab098cc2d0b4b67e617f",
+        "id": "tos.expression.aristotle.poetics.en-perseus-tlg0086-tlg034-perseus-eng2",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.aristotle.poetics.en-perseus-tlg0086-tlg034-perseus-eng2",
+      "request_digest": "sha256:31a8468b4e8111cd66b8f005c95407d6d2f1692d0d7f663f20557f1fc36cd95b",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:78f8e875978533917709b82664ee4ddf14b8713790ec64e7962496c94c078209",
+      "recorded_at": "2026-09-09T15:55:21.546322+00:00",
+      "source": {
+        "id": "tos.expression.aristotle.poetics.en-perseus-tlg0086-tlg034-perseus-eng2",
+        "version": 1,
+        "digest": "sha256:3c7a222ab16f73d947f1ed50884e6a17ce57279c6c63ab098cc2d0b4b67e617f"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.c09e0f0bd4da348c756be0f82685351a8896d8bd65ce93ce090a9f48d0cb3e4e",
+          "version": 1,
+          "digest": "sha256:9fcb827192662d898762affeb0ba292224e96b79aa21c2067b57d4fb9df0c656"
+        },
+        {
+          "id": "tos.form.metadata.afad1c9f85ad29d22eb4b9ede29c4d7d146f97e51238d2c5d7d9122b30830138",
+          "version": 1,
+          "digest": "sha256:74cc738218191eb83c1407c59ae1c8d6d9d4b04830d0f1b1b148fe487d78ec1b"
+        }
+      ]
+    }
+  ]
+}

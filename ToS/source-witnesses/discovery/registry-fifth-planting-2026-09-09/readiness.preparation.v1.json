@@ -1,0 +1,2782 @@
+{
+  "schema_version": "tos_open_work_readiness_plan_v1",
+  "reviewed_at": "2026-09-09T06:42:45.694177+00:00",
+  "reviewer_ref": "model:codex/session/01a08281-293a-7ff0-927a-0fd73dfacf7d",
+  "targets": [
+    {
+      "target_id": "registry-fifth-planting.01.de-inventione",
+      "preferred_label": "De Inventione",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-31776a9b2851ac47d8ca5f9b"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi036.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: Rhetorici libri duo qui vocantur de inventione M. Tullius Cicero Eduard Stroebel Teubner Leipzig 1915 M. Tulli Ciceronis Scripta Quae Manserunt Omnia 2 Bibliotheca Teubneriana The Internet Archive OCR cleanup",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/de-inventione/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/de-inventione/expressions/la-perseus-phi0474-phi036/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/de-inventione/expressions/la-perseus-phi0474-phi036/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/de-inventione/expressions/la-perseus-phi0474-phi036/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/de-inventione/expressions/la-perseus-phi0474-phi036/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.de-inventione",
+          "expression": "tos.expression.cicero.de-inventione.la-perseus-phi0474-phi036",
+          "edition": "tos.edition.cicero.de-inventione.la-perseus-phi0474-phi036.perseus-8668397510ca",
+          "item": "tos.item.cicero.de-inventione.la-perseus-phi0474-phi036.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi036.perseus-lat2",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "60309131928f41e94ccd0c875e5105b9f55c27b963c0409a3a15e5228cfdd9cb",
+          "reviewed_body_prefix_sha256": "b404e17324d815862f736d404e007c2217ef36428f1ab58f48eb40a2804153e8",
+          "reviewed_body_prefix_bytes": 7817
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 274425,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi036.perseus-lat2-opening.xml.receipt.json",
+              "sha256": "ce5892a310f0a3e51fa899f1ddfc920b578f5b98f1b093450c68180964d5d6b7"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi036/phi0474.phi036.perseus-lat2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/de-inventione/expressions/la-perseus-phi0474-phi036/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi036.perseus-lat2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.02.on-oratory",
+      "preferred_label": "On Oratory",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-31776a9b2851ac47d8ca5f9b"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi037.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: M. Tullius Cicero Rhetorica Augustus Samuel Wilkins Oxford Clarendon Press 1902 1 Scriptorum Classicorum Bibliotheca Oxoniensis Oxford Classical Texts Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/on-oratory/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/on-oratory/expressions/la-perseus-phi0474-phi037/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/on-oratory/expressions/la-perseus-phi0474-phi037/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/on-oratory/expressions/la-perseus-phi0474-phi037/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/on-oratory/expressions/la-perseus-phi0474-phi037/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.on-oratory",
+          "expression": "tos.expression.cicero.on-oratory.la-perseus-phi0474-phi037",
+          "edition": "tos.edition.cicero.on-oratory.la-perseus-phi0474-phi037.perseus-8668397510ca",
+          "item": "tos.item.cicero.on-oratory.la-perseus-phi0474-phi037.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi037.perseus-lat2",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "d9c637f943cff3e5345b37ea99eb07b43c1dec7c8343d218e0d0f7d8d91dc991",
+          "reviewed_body_prefix_sha256": "1f41d133f81adfa6db35875937f4fcd654b5d87a50c09aad608d35e2fe2aeb7f",
+          "reviewed_body_prefix_bytes": 9113
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 566202,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi037.perseus-lat2-opening.xml.receipt.json",
+              "sha256": "11b7ccf950696a83d3180a62282ab957b7ae3aa18b77295e6a54752551668236"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi037/phi0474.phi037.perseus-lat2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/on-oratory/expressions/la-perseus-phi0474-phi037/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi037.perseus-lat2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.03.partitiones-oratoriae",
+      "preferred_label": "Partitiones Oratoriae",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-31776a9b2851ac47d8ca5f9b"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi038.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: M. Tullius Cicero Rhetorica Augustus Samuel Wilkins Oxford Clarendon Press 1902 2 Scriptorum Classicorum Bibliotheca Oxoniensis Oxford Classical Texts Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/partitiones-oratoriae/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/partitiones-oratoriae/expressions/la-perseus-phi0474-phi038/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/partitiones-oratoriae/expressions/la-perseus-phi0474-phi038/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/partitiones-oratoriae/expressions/la-perseus-phi0474-phi038/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/partitiones-oratoriae/expressions/la-perseus-phi0474-phi038/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.partitiones-oratoriae",
+          "expression": "tos.expression.cicero.partitiones-oratoriae.la-perseus-phi0474-phi038",
+          "edition": "tos.edition.cicero.partitiones-oratoriae.la-perseus-phi0474-phi038.perseus-8668397510ca",
+          "item": "tos.item.cicero.partitiones-oratoriae.la-perseus-phi0474-phi038.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi038.perseus-lat2",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "b9a329269d61b24c67d1ce506c5e828eb4dc2bc3dab591a535f000d174d1dad2",
+          "reviewed_body_prefix_sha256": "6497f3ef0e351108535ed4dfbced4b41e10d7a574406b42bb13ce4b49247c225",
+          "reviewed_body_prefix_bytes": 7555
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 116733,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi038.perseus-lat2-opening.xml.receipt.json",
+              "sha256": "79d290a9615231e0342cfbdca2236dbf7ed4c9cb3286d7c8884290a8bcabd210"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi038/phi0474.phi038.perseus-lat2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/partitiones-oratoriae/expressions/la-perseus-phi0474-phi038/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi038.perseus-lat2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.04.brutus",
+      "preferred_label": "Brutus",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-31776a9b2851ac47d8ca5f9b"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi039.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: M. Tullius Cicero Rhetorica Augustus Samuel Wilkins Oxford Clarendon Press 1902 2 Scriptorum Classicorum Bibliotheca Oxoniensis Oxford Classical Texts Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/brutus/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/brutus/expressions/la-perseus-phi0474-phi039/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/brutus/expressions/la-perseus-phi0474-phi039/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/brutus/expressions/la-perseus-phi0474-phi039/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/brutus/expressions/la-perseus-phi0474-phi039/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.brutus",
+          "expression": "tos.expression.cicero.brutus.la-perseus-phi0474-phi039",
+          "edition": "tos.edition.cicero.brutus.la-perseus-phi0474-phi039.perseus-8668397510ca",
+          "item": "tos.item.cicero.brutus.la-perseus-phi0474-phi039.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi039.perseus-lat2",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "3c0015cf44de3795b7e4b7fe11af310bc2704f37d3305477ccc2e8b509505dcf",
+          "reviewed_body_prefix_sha256": "cd63b616c97d7e9b4c1ae6eb0fe315dfedcfb272bbbb9094834bea2b725f4740",
+          "reviewed_body_prefix_bytes": 7533
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 317575,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi039.perseus-lat2-opening.xml.receipt.json",
+              "sha256": "df16dbc50066456f2ba856aab951dd65ebd89eadf55a76ee5946328c361bd5bd"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi039/phi0474.phi039.perseus-lat2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/brutus/expressions/la-perseus-phi0474-phi039/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi039.perseus-lat2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.05.orator",
+      "preferred_label": "Orator",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-31776a9b2851ac47d8ca5f9b"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi040.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: M. Tullius Cicero Rhetorica Augustus Samuel Wilkins Oxford Clarendon Press 1902 2 Scriptorum Classicorum Bibliotheca Oxoniensis Oxford Classical Texts Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/orator/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/orator/expressions/la-perseus-phi0474-phi040/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/orator/expressions/la-perseus-phi0474-phi040/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/orator/expressions/la-perseus-phi0474-phi040/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/orator/expressions/la-perseus-phi0474-phi040/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.orator",
+          "expression": "tos.expression.cicero.orator.la-perseus-phi0474-phi040",
+          "edition": "tos.edition.cicero.orator.la-perseus-phi0474-phi040.perseus-8668397510ca",
+          "item": "tos.item.cicero.orator.la-perseus-phi0474-phi040.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi040.perseus-lat2",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "fe1aafcb4c1f1f5f9c09bd25b4d4e4707bbe53f34dbb22495e8d95ffb05ebe0e",
+          "reviewed_body_prefix_sha256": "03af5d30d811fc37efe6f3da171aa45b649b0122e4633e0ac4c4f2085754ba67",
+          "reviewed_body_prefix_bytes": 7526
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 243910,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi040.perseus-lat2-opening.xml.receipt.json",
+              "sha256": "72468307a6e3359e829e28bf72bff82007e19d7e4df2c57c4763bb6029c0bedb"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi040/phi0474.phi040.perseus-lat2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/orator/expressions/la-perseus-phi0474-phi040/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi040.perseus-lat2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.06.de-optimo-genere-oratorum",
+      "preferred_label": "De Optimo Genere Oratorum",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-31776a9b2851ac47d8ca5f9b"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi041.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: M. Tullius Cicero Rhetorica Augustus Samuel Wilkins Oxford Clarendon Press 1902 2 Scriptorum Classicorum Bibliotheca Oxoniensis Oxford Classical Texts Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/de-optimo-genere-oratorum/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/de-optimo-genere-oratorum/expressions/la-perseus-phi0474-phi041/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/de-optimo-genere-oratorum/expressions/la-perseus-phi0474-phi041/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/de-optimo-genere-oratorum/expressions/la-perseus-phi0474-phi041/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/de-optimo-genere-oratorum/expressions/la-perseus-phi0474-phi041/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.de-optimo-genere-oratorum",
+          "expression": "tos.expression.cicero.de-optimo-genere-oratorum.la-perseus-phi0474-phi041",
+          "edition": "tos.edition.cicero.de-optimo-genere-oratorum.la-perseus-phi0474-phi041.perseus-8668397510ca",
+          "item": "tos.item.cicero.de-optimo-genere-oratorum.la-perseus-phi0474-phi041.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi041.perseus-lat2",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "4839ac0f4620fee76c37cb8b6109384f89cd92ae267c4341313c74f79c899462",
+          "reviewed_body_prefix_sha256": "c16d88ebfdb81b79f20f9665b097b1daf4c00f05688f275499df86b414880c9c",
+          "reviewed_body_prefix_bytes": 7548
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 23986,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi041.perseus-lat2-opening.xml.receipt.json",
+              "sha256": "e8958e341db3a8c038cf9c7fa23a85d145b07c41a9a1c0698b3aeb4cc4f4ca94"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi041/phi0474.phi041.perseus-lat2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/de-optimo-genere-oratorum/expressions/la-perseus-phi0474-phi041/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi041.perseus-lat2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.07.topica",
+      "preferred_label": "Topica",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-31776a9b2851ac47d8ca5f9b"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi042.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: M. Tullius Cicero Rhetorica Augustus Samuel Wilkins Oxford Clarendon Press 1902 2 Scriptorum Classicorum Bibliotheca Oxoniensis Oxford Classical Texts Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/topica/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/topica/expressions/la-perseus-phi0474-phi042/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/topica/expressions/la-perseus-phi0474-phi042/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/topica/expressions/la-perseus-phi0474-phi042/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/topica/expressions/la-perseus-phi0474-phi042/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.topica",
+          "expression": "tos.expression.cicero.topica.la-perseus-phi0474-phi042",
+          "edition": "tos.edition.cicero.topica.la-perseus-phi0474-phi042.perseus-8668397510ca",
+          "item": "tos.item.cicero.topica.la-perseus-phi0474-phi042.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi042.perseus-lat2",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "3b359403b1e4d86e0465d4350801367488bde52d6b566317104598ffc4e5a2d3",
+          "reviewed_body_prefix_sha256": "48ed1214d74aa1a9cb14752e836bcaa2ab39a0e789a6ad8afdd27b842074cafd",
+          "reviewed_body_prefix_bytes": 7599
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 77476,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi042.perseus-lat2-opening.xml.receipt.json",
+              "sha256": "bc459788b76ad4a490b76aa326b8fd68abbbca972f9ed55234375ec50f8bcdb5"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi042/phi0474.phi042.perseus-lat2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/topica/expressions/la-perseus-phi0474-phi042/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi042.perseus-lat2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.08.de-republica",
+      "preferred_label": "De Republica",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-92463ebb2a8db3fd49739964"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi043.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: M. Tullius Cicero Librorum de Re Publica Sex Carl Friedrich Wilhelm Mueller Leipzig Teubner 1889 Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/de-republica/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/de-republica/expressions/la-perseus-phi0474-phi043/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/de-republica/expressions/la-perseus-phi0474-phi043/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/de-republica/expressions/la-perseus-phi0474-phi043/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/de-republica/expressions/la-perseus-phi0474-phi043/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.de-republica",
+          "expression": "tos.expression.cicero.de-republica.la-perseus-phi0474-phi043",
+          "edition": "tos.edition.cicero.de-republica.la-perseus-phi0474-phi043.perseus-8668397510ca",
+          "item": "tos.item.cicero.de-republica.la-perseus-phi0474-phi043.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi043.perseus-lat2",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "0e4c79a31acb86a2e6b8643bdee7f2f536c654df01f32dda1159c448a295f0a8",
+          "reviewed_body_prefix_sha256": "0ef834d43789336f5402ff9e7f084023ef50a0dfe698098b24b6db3ef3ff7d45",
+          "reviewed_body_prefix_bytes": 7675
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 213840,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+          "The supplied surviving or reconstructed text does not restore lost ancient books. Academica/Lucullus redaction and part relations remain unasserted; the separately supplied Lucullus is deferred."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi043.perseus-lat2-opening.xml.receipt.json",
+              "sha256": "8f6fcf46beca596f7bb427bfe2ddc4bf498135bcce1e738c4d569c13d17f11ad"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi043/phi0474.phi043.perseus-lat2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/de-republica/expressions/la-perseus-phi0474-phi043/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi043.perseus-lat2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.09.academica",
+      "preferred_label": "Academica",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-45a65011a2e02163ec514776"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi045.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: Academicorum reliquiae cum Lucullo M. Tullius Cicero Otto Plasberg Leipzig Teubner 1922 HathiTrust",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/academica/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/academica/expressions/la-perseus-phi0474-phi045/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/academica/expressions/la-perseus-phi0474-phi045/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/academica/expressions/la-perseus-phi0474-phi045/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/academica/expressions/la-perseus-phi0474-phi045/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.academica",
+          "expression": "tos.expression.cicero.academica.la-perseus-phi0474-phi045",
+          "edition": "tos.edition.cicero.academica.la-perseus-phi0474-phi045.perseus-8668397510ca",
+          "item": "tos.item.cicero.academica.la-perseus-phi0474-phi045.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi045.perseus-lat2",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "2c53076f9304e122354cc38d1d20ca51c656edf71e002fe55ec82e404073b738",
+          "reviewed_body_prefix_sha256": "b162498f90c3ac28c559d85dc40cc71e1cc3a049e5f68fbc2eb94cca6e738e59",
+          "reviewed_body_prefix_bytes": 8469
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 91317,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+          "The supplied surviving or reconstructed text does not restore lost ancient books. Academica/Lucullus redaction and part relations remain unasserted; the separately supplied Lucullus is deferred."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi045.perseus-lat2-opening.xml.receipt.json",
+              "sha256": "904ffff37489b06841eb1ae87f281ba01bd834f1138752211f11ae38fb130175"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi045/phi0474.phi045.perseus-lat2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/academica/expressions/la-perseus-phi0474-phi045/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi045.perseus-lat2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.10.paradoxa-stoicorum",
+      "preferred_label": "Paradoxa Stoicorum",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-2d95097624c32d23272ce9f3"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi047.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: Opera Quae Supersunt Omnia, Vol. 7 Opera Philosopha et Politica M. Tullius Cicero Johann Georg Baiter Carl Ludwig Kayser Leipzig Tauchnitz 1864 2 Opera Quae Supersunt Omnia HathiTrust",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/paradoxa-stoicorum/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/paradoxa-stoicorum/expressions/la-perseus-phi0474-phi047/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/paradoxa-stoicorum/expressions/la-perseus-phi0474-phi047/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/paradoxa-stoicorum/expressions/la-perseus-phi0474-phi047/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/paradoxa-stoicorum/expressions/la-perseus-phi0474-phi047/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.paradoxa-stoicorum",
+          "expression": "tos.expression.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047",
+          "edition": "tos.edition.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047.perseus-8668397510ca",
+          "item": "tos.item.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi047.perseus-lat2",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "886328b8911953d73a12031d26c4bb3c72d8766a1b7c05d82678389bb6adfb55",
+          "reviewed_body_prefix_sha256": "55901437109f95ccab877c3bb053fb1c1fdf2fede14434ff43ec8f7e2e727350",
+          "reviewed_body_prefix_bytes": 9164
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 49343,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi047.perseus-lat2-opening.xml.receipt.json",
+              "sha256": "6f7894293be2177bf6c248d2aca5b28aa0c8c50bf45a731b51e91b2cf7a24e17"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi047/phi0474.phi047.perseus-lat2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/paradoxa-stoicorum/expressions/la-perseus-phi0474-phi047/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi047.perseus-lat2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.11.de-finibus-bonorum-et-malorum",
+      "preferred_label": "de Finibus Bonorum et Malorum",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-bd7578274f007f13528830b5"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi048.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: Scripta Quae Manserunt Omnia, Fasc. 43 De Finibus Bonorum et Malorum Libri Quinque M. Tullius Cicero Theodor Schiche Leipzig Teubner 1915 Scripta Quae Manserunt Omnia HathiTrust",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/la-perseus-phi0474-phi048/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/la-perseus-phi0474-phi048/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/la-perseus-phi0474-phi048/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/la-perseus-phi0474-phi048/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.de-finibus-bonorum-et-malorum",
+          "expression": "tos.expression.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048",
+          "edition": "tos.edition.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048.perseus-8668397510ca",
+          "item": "tos.item.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi048.perseus-lat2",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "a6932d9f2aafd64876085891e4d7231140bdbe241e39b265b962d6e9691a715d",
+          "reviewed_body_prefix_sha256": "f772232c8e416eba85857cc24cded93502ba97ca853d3151afdbffc39c6f8505",
+          "reviewed_body_prefix_bytes": 8888
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 532293,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi048.perseus-lat2-opening.xml.receipt.json",
+              "sha256": "0bfc152bc5aa594fd1e58e0b5f9a057009068cb3c43acf1dd97eff2f2bb54967"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi048/phi0474.phi048.perseus-lat2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/la-perseus-phi0474-phi048/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi048.perseus-lat2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.12.tusculanae-disputationes",
+      "preferred_label": "Tusculanae Disputationes",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-db4cf7c8c928d99873286048"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi049.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: Scripta Quae Manserunt Omnia, Fasc. 44 Tusculanae Disputationes M. Tullius Cicero Max Pohlenz Leipzig Teubner 1918 Scripta Quae Manserunt Omnia HathiTrust",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/tusculanae-disputationes/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/tusculanae-disputationes/expressions/la-perseus-phi0474-phi049/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/tusculanae-disputationes/expressions/la-perseus-phi0474-phi049/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/tusculanae-disputationes/expressions/la-perseus-phi0474-phi049/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/tusculanae-disputationes/expressions/la-perseus-phi0474-phi049/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.tusculanae-disputationes",
+          "expression": "tos.expression.cicero.tusculanae-disputationes.la-perseus-phi0474-phi049",
+          "edition": "tos.edition.cicero.tusculanae-disputationes.la-perseus-phi0474-phi049.perseus-8668397510ca",
+          "item": "tos.item.cicero.tusculanae-disputationes.la-perseus-phi0474-phi049.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi049.perseus-lat2",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "4023ad8ad0e8e888a2d4c6dc7d60a5a6ad4f76177b305feef834318401ea77d3",
+          "reviewed_body_prefix_sha256": "1ced115a4e1d63968279d68bdffda2abee475743652f77f3b4b1202056018a14",
+          "reviewed_body_prefix_bytes": 9096
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 760209,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi049.perseus-lat2-opening.xml.receipt.json",
+              "sha256": "267de8a6e514e5338868f76f6da19a3d42fcc8b489a1a10c06433b5ef415da9d"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi049/phi0474.phi049.perseus-lat2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/tusculanae-disputationes/expressions/la-perseus-phi0474-phi049/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi049.perseus-lat2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.13.de-natura-deorum",
+      "preferred_label": "de Natura Deorum",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-7fbe3a02d23a642fa0fccc63"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi050.perseus-lat1, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: de Natura Deorum M. Tullius Cicero Otto Plasberg Leipzig Teubner 1917",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/de-natura-deorum/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/la-perseus-phi0474-phi050/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/la-perseus-phi0474-phi050/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/la-perseus-phi0474-phi050/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/la-perseus-phi0474-phi050/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.de-natura-deorum",
+          "expression": "tos.expression.cicero.de-natura-deorum.la-perseus-phi0474-phi050",
+          "edition": "tos.edition.cicero.de-natura-deorum.la-perseus-phi0474-phi050.perseus-8668397510ca",
+          "item": "tos.item.cicero.de-natura-deorum.la-perseus-phi0474-phi050.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi050.perseus-lat1",
+          "identity_anchor": "body_xml_base",
+          "header_prefix_sha256": "3274bf90a4347f16f6634b2a0c31cfd3946be0523c2daeec0ef68fec31b11e85",
+          "reviewed_body_prefix_sha256": "af855af2131ea9fc6dc153e0fd3ceca336cb17c96846038ff594ed1274175ad8",
+          "reviewed_body_prefix_bytes": 8470
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 312217,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi050.perseus-lat1-opening.xml.receipt.json",
+              "sha256": "d9f6fb0496ab1e31b4d11d4917bb79c1f6c0acf48618db4627ca169d9220d7a0"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi050/phi0474.phi050.perseus-lat1.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/la-perseus-phi0474-phi050/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi050.perseus-lat1.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.14.de-senectute",
+      "preferred_label": "De Senectute",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-73705ffc14ffef1bdf573356"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi051.perseus-lat1, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: Cicero: De Senectute De Amicitia De Divinatione With An English Translation William Armistead Falconer Cambridge Harvard University Press; Cambridge, Mass., London, England 1923",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/de-senectute/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.de-senectute",
+          "expression": "tos.expression.cicero.de-senectute.la-perseus-phi0474-phi051",
+          "edition": "tos.edition.cicero.de-senectute.la-perseus-phi0474-phi051.perseus-8668397510ca",
+          "item": "tos.item.cicero.de-senectute.la-perseus-phi0474-phi051.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi051.perseus-lat1",
+          "identity_anchor": "body_xml_base",
+          "header_prefix_sha256": "062e16126064fe1c1a2cab909ecca4b4f6f42a6ec02d0d08f3a69c93cac3e136",
+          "reviewed_body_prefix_sha256": "437ccb7e1e7e9c89ee5f16c03a0e97b31ba8129e5b172b5c965053da237be589",
+          "reviewed_body_prefix_bytes": 7195
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 82135,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi051.perseus-lat1-opening.xml.receipt.json",
+              "sha256": "6a381aa0b09d4b491ce294839ca76af218e3b95f7917abf5fd22d792cc805555"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi051/phi0474.phi051.perseus-lat1.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi051.perseus-lat1.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.15.de-amicitia",
+      "preferred_label": "De Amicitia",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-e2450bb5e5ee1305cf326c7e"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi052.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: Cicero (Marcus Tullius) De Senectute De Amicitia De Divinatione, With An English Translation William Armistead Falconer Cambridge Harvard University Press; Cambridge, Mass., London, England 1923 The Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/de-amicitia/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/la-perseus-phi0474-phi052/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/la-perseus-phi0474-phi052/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/la-perseus-phi0474-phi052/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/la-perseus-phi0474-phi052/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.de-amicitia",
+          "expression": "tos.expression.cicero.de-amicitia.la-perseus-phi0474-phi052",
+          "edition": "tos.edition.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca",
+          "item": "tos.item.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi052.perseus-lat2",
+          "identity_anchor": "body_xml_base",
+          "header_prefix_sha256": "67bcb408a6384c0bb75e3b4a49040c9ecd9e2af041df0168346349e7126222b8",
+          "reviewed_body_prefix_sha256": "9ad7a26333f7e654dc265a79b7b928254b6293d84ad71fd4f7e59309b6bd3ced",
+          "reviewed_body_prefix_bytes": 7720
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 89325,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi052.perseus-lat2-opening.xml.receipt.json",
+              "sha256": "25cb6cb94a00f6ad5c1a39df9aa319f2e4e06471426763a4c85c7bdac83d7c57"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi052/phi0474.phi052.perseus-lat2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/de-amicitia/expressions/la-perseus-phi0474-phi052/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi052.perseus-lat2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.16.de-divinatione",
+      "preferred_label": "De Divinatione",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-2795daf3704fa4966e599d90"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi053.perseus-lat1, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: De Divinatione M. Tullius Cicero Carl Friedrich Wilhelm Müller Leipzig Teubner 1915",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/de-divinatione/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/la-perseus-phi0474-phi053/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/la-perseus-phi0474-phi053/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/la-perseus-phi0474-phi053/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/la-perseus-phi0474-phi053/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.de-divinatione",
+          "expression": "tos.expression.cicero.de-divinatione.la-perseus-phi0474-phi053",
+          "edition": "tos.edition.cicero.de-divinatione.la-perseus-phi0474-phi053.perseus-8668397510ca",
+          "item": "tos.item.cicero.de-divinatione.la-perseus-phi0474-phi053.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi053.perseus-lat1",
+          "identity_anchor": "body_xml_base",
+          "header_prefix_sha256": "f7a54c571f916d103b2ad2b75b3da879d1bc6246073c83d3fe223994f50ca75e",
+          "reviewed_body_prefix_sha256": "cee0c4bf87383ea3df8e466ef4d391a9940b6ec479d1117bb839d35d98bfb574",
+          "reviewed_body_prefix_bytes": 8371
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 256351,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi053.perseus-lat1-opening.xml.receipt.json",
+              "sha256": "d4af587509721c654af2689f2191c8df89d13adb84eb726c25fbb53530454ae7"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi053/phi0474.phi053.perseus-lat1.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/de-divinatione/expressions/la-perseus-phi0474-phi053/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi053.perseus-lat1.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.17.de-fato",
+      "preferred_label": "De Fato",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-71ca4f59f901aee45d69df04"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi054.perseus-lat1, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: De Fato M. Tullius Cicero Carl Friedrich Wilhelm Müller Leipzig Teubner 1915",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/de-fato/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/de-fato/expressions/la-perseus-phi0474-phi054/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/de-fato/expressions/la-perseus-phi0474-phi054/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/de-fato/expressions/la-perseus-phi0474-phi054/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/de-fato/expressions/la-perseus-phi0474-phi054/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.de-fato",
+          "expression": "tos.expression.cicero.de-fato.la-perseus-phi0474-phi054",
+          "edition": "tos.edition.cicero.de-fato.la-perseus-phi0474-phi054.perseus-8668397510ca",
+          "item": "tos.item.cicero.de-fato.la-perseus-phi0474-phi054.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi054.perseus-lat1",
+          "identity_anchor": "body_xml_base",
+          "header_prefix_sha256": "2d5b627be2355d976ea8fa107bd8f46862288153c9984adfb9038edaf27c85e9",
+          "reviewed_body_prefix_sha256": "8492927f3d0d55007ddb2bafd3027402f6778e6813ad863c98aee07e78ce123b",
+          "reviewed_body_prefix_bytes": 7867
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 50579,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi054.perseus-lat1-opening.xml.receipt.json",
+              "sha256": "62a9fb5a88b57aa20f6368e0457870b534cb6caeffe85338f16584d06da91619"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi054/phi0474.phi054.perseus-lat1.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/de-fato/expressions/la-perseus-phi0474-phi054/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi054.perseus-lat1.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.18.de-officiis",
+      "preferred_label": "De Officiis",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-90c6c5e661a1b79e3ccb60ba"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi055.perseus-lat1, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: M. Tullius Cicero De Officiis Walter Miller London New York William Heinemann G.P. Putham's Sons 1913 Loeb Classical Library Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/cicero/de-officiis/work.json",
+          "expression": "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/expression.json",
+          "edition": "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.cicero.de-officiis",
+          "expression": "tos.expression.cicero.de-officiis.la-perseus-phi0474-phi055",
+          "edition": "tos.edition.cicero.de-officiis.la-perseus-phi0474-phi055.perseus-8668397510ca",
+          "item": "tos.item.cicero.de-officiis.la-perseus-phi0474-phi055.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0474.phi055.perseus-lat1",
+          "identity_anchor": "body_xml_base",
+          "header_prefix_sha256": "a17eb4380574074b5aef0e25c69bf54d35934e9433e0c757673cf75f2dff48f3",
+          "reviewed_body_prefix_sha256": "42016f79a53c69951dbd32ce10f4caa29cf4172f76d1e46ced9a43d7340253e7",
+          "reviewed_body_prefix_bytes": 7875
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 311452,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi055.perseus-lat1-opening.xml.receipt.json",
+              "sha256": "e4e8f6a8f170532314428ab23dc8963ae9782f438085e389c4e4adb1372977be"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi055/phi0474.phi055.perseus-lat1.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi055.perseus-lat1.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.19.de-rerum-natura",
+      "preferred_label": "De Rerum Natura",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-82c4e16dabcee09e377ed62d"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi0550.phi001.perseus-lat1, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: Lucretius De Rerum Natura Lost information",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/lucretius/de-rerum-natura/work.json",
+          "expression": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/expression.json",
+          "edition": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.lucretius.de-rerum-natura",
+          "expression": "tos.expression.lucretius.de-rerum-natura.la-perseus-phi0550-phi001",
+          "edition": "tos.edition.lucretius.de-rerum-natura.la-perseus-phi0550-phi001.perseus-8668397510ca",
+          "item": "tos.item.lucretius.de-rerum-natura.la-perseus-phi0550-phi001.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi0550.phi001.perseus-lat1",
+          "identity_anchor": "body_xml_base",
+          "header_prefix_sha256": "2eb8bb1f1b258dc2b00f5eafa457c9b5cfe8c9f98ca27d9c92e598de09c7742c",
+          "reviewed_body_prefix_sha256": "62a86840c8bc3fa921083a0569ab1088489d3ec4a9dd4c0ef827314b4dc565f5",
+          "reviewed_body_prefix_bytes": 7165
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 459795,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+          "The Latin header explicitly says Lost information for its print/source bibliography and the CTS edition description is a dash. The underlying print exemplar/editor remain unknown; no modern editor, critical edition or public-domain term is inferred."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0550.phi001.perseus-lat1-opening.xml.receipt.json",
+              "sha256": "d9194af31457aeff01dbc00454823d197b08c2fcca1bd9c1f2e77927f32efa52"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-lat1.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0550.phi001.perseus-lat1.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.20.de-beneficiis",
+      "preferred_label": "De Beneficiis",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-fa5223bfa3fc2117999de68b"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi1017.phi013.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: L. Annaeus Seneca Moral Essays John William Basore London New York G. P. Putnam's Sons William Heinemann 1935 3 Loeb Classical Library",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/seneca/de-beneficiis/work.json",
+          "expression": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/la-perseus-phi1017-phi013/expression.json",
+          "edition": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/la-perseus-phi1017-phi013/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/la-perseus-phi1017-phi013/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/la-perseus-phi1017-phi013/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.seneca.de-beneficiis",
+          "expression": "tos.expression.seneca.de-beneficiis.la-perseus-phi1017-phi013",
+          "edition": "tos.edition.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca",
+          "item": "tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi1017.phi013.perseus-lat2",
+          "identity_anchor": "body_xml_base",
+          "header_prefix_sha256": "d0c5969db08842c19c4755c694d9aefa66c726ee424265405ca25111ea95a04c",
+          "reviewed_body_prefix_sha256": "80858812bcde231b0082bc75d90365ff1e613f8123c1d732e029ad6cbe51c7c6",
+          "reviewed_body_prefix_bytes": 7763
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 439093,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi1017.phi013.perseus-lat2-opening.xml.receipt.json",
+              "sha256": "a3d47f8f7fbd0ca3424647055bd9123af2c51f21e5a94bc42be646cf4ab49fe2"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi1017/phi013/phi1017.phi013.perseus-lat2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/la-perseus-phi1017-phi013/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi1017.phi013.perseus-lat2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-fifth-planting.21.de-clementia",
+      "preferred_label": "De Clementia",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-1cbf41217c896e88545655ee"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Latin digital edition urn:cts:latinLit:phi1017.phi014.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: L. Annaeus Seneca Moral Essays John William Basore London New York G. P. Putnam's Sons William Heinemann 1928 1 Loeb Classical Library Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/seneca/de-clementia/work.json",
+          "expression": "ToS/source-witnesses/works/seneca/de-clementia/expressions/la-perseus-phi1017-phi014/expression.json",
+          "edition": "ToS/source-witnesses/works/seneca/de-clementia/expressions/la-perseus-phi1017-phi014/editions/perseus-8668397510ca/edition.json",
+          "item": "ToS/source-witnesses/works/seneca/de-clementia/expressions/la-perseus-phi1017-phi014/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/seneca/de-clementia/expressions/la-perseus-phi1017-phi014/editions/perseus-8668397510ca/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.seneca.de-clementia",
+          "expression": "tos.expression.seneca.de-clementia.la-perseus-phi1017-phi014",
+          "edition": "tos.edition.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca",
+          "item": "tos.item.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-latin-work",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:latinLit:phi1017.phi014.perseus-lat2",
+          "identity_anchor": "body_xml_base",
+          "header_prefix_sha256": "b8f790c94ea6dbe6fd5dd70807361f770d0f79a54e523658b0684929c8454601",
+          "reviewed_body_prefix_sha256": "10f734d8fecb6b758be0292dcd8cafdb07c79bd63e83db98931d80ae3df7c216",
+          "reviewed_body_prefix_bytes": 8712
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 76411,
+        "scope_limits": [
+          "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+          "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+          "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+          "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+          "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+              "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Exact Latin edition, source bibliography including unknowns, and XML identity carrier reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi1017.phi014.perseus-lat2-opening.xml.receipt.json",
+              "sha256": "3b64c581875ee68807b511f51c2d08aed1eb77d8da4ee364625c552cbc54efc4"
+            }
+          ],
+          "rationale": "Pinned incomplete source opening GET succeeded; complete acquisition remains pending."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "55ea524047fb9edb907cafc9b3bb95420b9a64b08fbf976600ca697c75224351"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "ceacc030c66da32317976615cc7d398766dd7ac6344e6c03e518951ac1e76e50"
+            }
+          ],
+          "rationale": "Positive supplier license reviewed for local preservation/research of exact digital layers.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "e5e4d8f57594ec65d9c25a06a6983bf2af3d87a8b3a7683ba34cd9caa5119f32"
+            }
+          ],
+          "rationale": "Exact destination paths inspected and absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/roman-philosophical-latin-editions-20260909.json",
+              "sha256": "a76dcc332f7f3f10f52068f75156e9b4da53aa1ee8aff85731488c739607ac2e"
+            }
+          ],
+          "rationale": "Explicit A29 corpus source anchor and scope reviewed."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi1017/phi014/phi1017.phi014.perseus-lat2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/seneca/de-clementia/expressions/la-perseus-phi1017-phi014/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi1017.phi014.perseus-lat2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    }
+  ]
+}

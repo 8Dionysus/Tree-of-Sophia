@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Comparison of Demetrius and Antony</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            
+            <funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2009-03-16">Perseus 4.0</date> 
+            <idno type="filename">tlg0007.tlg059.perseus-eng2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+         </publicationStmt>
+         <sourceDesc>
+            <listBibl>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1920</date>
+                  </imprint>
+                  <biblScope unit="volume">9</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives09plut/page/332/mode/2up">Internet Archive</ref>   
+            </biblStruct>
+            </listBibl>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+               matchPattern="(\w+).(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts chapter and section.</p>
+            </cRefPattern>
+            <cRefPattern n="chapter"
+               matchPattern="(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl>
+            <refState unit="chapter" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2018-04-02" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+         <change when="2001-08-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg059.perseus-eng2" type="translation" xml:lang="eng"> 
+<head>COMPARISON OF DEMETRIUS AND ANTONY</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-eng2:1" n="1"><p>Since, then, both these men experienced great reversals of fortune, let us first observe, with regard to their power and fame, that in the one case these were acquired for him by his father and inherited, since Antigonus became the strongest of Alexander’s successors, and before Demetrius came of age had attacked and mastered the greater part of Asia; </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-eng2:1" n="2"><p>Antony, on the contrary, was the son of a man who, though otherwise gifted, was yet no warrior, and could leave him no great legacy of reputation; and yet Antony had the courage to seek the power of Caesar, to which his birth gave him no claim, and to all that Caesar had wrought out before him he made himself the rightful successor. And so great strength did he attain, in reliance upon his own resources alone, that, after forcing a division of the empire into two parts, he chose one, and took the more splendid one of the two; and though absent himself through his assistants and lieutenant-generals he defeated the Parthians many times, and drove the barbarous tribes about the Caucasus as far as the Caspian Sea. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-eng2:1" n="3"><p>Moreover, even the things that brought him ill-repute bear witness to his greatness. For Antigonus was well pleased to have his son Demetrius marry Phila, the daughter of Antipater, in spite of her disparity in years, because he thought her a greater personage; whereas Antony’s marriage to Cleopatra was a disgrace to him, although she was a woman who surpassed in power and splendour all the royalties of her time except Arsaces. But he made himself so great that men thought him worthy of greater things than he desired.  </p> </div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-eng2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-eng2:2" n="1"><p>As regards their resolution to win empire, this was blameless in the case of Demetrius, who sought to subdue and reign as king over men who were accustomed to subjection and kings; but in the case of Antony it was harsh and tyrannical, since he tried to enslave the Roman people when it had just escaped from the sole rule of Caesar. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-eng2:2" n="2"><p>Moreover, as regards the greatest and most brilliant of his achievements, namely, the war against Cassius and Brutus, it was to deprive his country and his fellow citizens of their liberty that the war was waged. But Demetrius, even before he felt the constraints of adversity, kept on liberating Greece and expelling their garrisons from her cities, unlike Antony, whose boast was that he had slain in Macedonia the men who had given liberty to Rome. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-eng2:2" n="3"><p>And besides, as regards their love of giving and the largeness of their gifts, one of the things for which Antony is lauded, Demetrius far surpassed in this, and bestowed more upon his enemies than Antony ever gave to his friends. It is true that for ordering the body of Brutus to be robed and buried Antony won a good name; but Demetrius gave obsequies to all his enemy’s dead, and sent his prisoners back to Ptolemy with money and gifts.<note resp="editor" place="inline" anchored="true">See the <bibl n="Plut. Demetr. 17.1"> <title>Demetrius</title>, xvii. 

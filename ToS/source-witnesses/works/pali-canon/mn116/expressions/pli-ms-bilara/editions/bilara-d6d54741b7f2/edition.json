@@ -1,0 +1,54 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.pali-canon.mn116.pli-ms-bilara.bilara-d6d54741b7f2",
+  "preferred_label": "Isigilisutta — bilara Git snapshot d6d54741b7f2",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/manifest.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-mn-tree.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/mn116_root-pli-ms.json.opening",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-README.md",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-LICENSE.md",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_author.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_edition.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_publication.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_publication-v2.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json",
+    "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "SuttaCentral",
+      "value": "mn116/pli/ms",
+      "source_ref": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/mn116_root-pli-ms.json.opening",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.pali-canon.mn116.pli-ms-bilara"
+  ],
+  "publication_claim_refs": [],
+  "exemplar_claim_refs": [
+    "tos.claim.topology.registry-20260909.pali-mn116-root.edition-item"
+  ],
+  "edition_statement": "Immutable suttacentral/bilara-data commit d6d54741b7f2ddfeca82f02c3f95eb3990b4e351; Exact mn116 Pali root text of the Mahasangiti edition in Bilara Git d6d54741b7f2ddfeca82f02c3f95eb3990b4e351; source filename mn116_root-pli-ms.json.",
+  "notes": "Digital snapshot identity, not an ancient publication date. Mahasangiti Tipitaka Buddhavasse 2500; Dhamma Society digital edition and SuttaCentral contributions. Ancient authorship is not inferred.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

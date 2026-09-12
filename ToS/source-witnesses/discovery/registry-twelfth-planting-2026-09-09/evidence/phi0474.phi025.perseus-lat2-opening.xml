@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">De Provinciis Consularibus In Senatu</title>
+				<author>M. Tullius Cicero</author>
+				<editor>William Peterson</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				<respStmt>
+					<persName>Michael Konieczny</persName>
+					<orgName/>
+					<resp>Digital editor</resp>
+				</respStmt>
+				<funder n="org:NEH">National Endowment For The Humanities (NEH)</funder>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1997-10-28">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi025.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt>
+
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>William Peterson</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon Press</publisher>
+							<date>1909</date>
+						</imprint>
+						<biblScope unit="volume">5</biblScope>
+						<biblScope n="contents">Cum Senatui Gratias Egit; Cum Populo Gratias Egit; De Domo Sua; De Haruspicum Responso; Pro Sestio; In Vatinium; De Provinciis Consularibus; Pro Balbo</biblScope>
+					</monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+					<ref target="https://archive.org/details/orationesrecogno05ciceuoft/page/215/mode/2up">Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+			</editorialDecl>
+			<editorialDecl>
+				<p>Notes may contain errors</p>
+			</editorialDecl>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])" matchPattern="(\w+)">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+		
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+<change when="2021-02-04" who="Michael Konieczny">Revisions for EpiDoc/CTS compliance</change> 
+<change when="2021-01-28" who="Thibault Clérice">Capitains + Epidoc</change> 
+<change when="2014-08-01" who="Stella Dee">edited markup</change> 
+<change when="2014-07-01" who="Stella Dee">split composite text and converted to unicode</change> 
+<change when="2013-09-13" who="balmas01">reverting texts back to pre_cts_reorg tagged version</change> 
+<change when="2011-07-19" who="gcrane">removed the earlier persName/placeName tags</change> 
+<change when="2011-07-09" who="gcrane">fixed problems with capitalization</change> 
+<change when="2011-01-15" who="gcrane">base SDL file</change> 
+<change when="2009-10-09" who="rsingh04">more reorganizing of texts module by collection</change> 
+<change when="2006-04-21" who="gcrane">these now have the app crit entered as notes</change> 
+<change when="2005-08-01" who="packel">removed stray item tags</change> 
+<change when="2005-07-25" who="packel">Converted to XML</change> 
+<change when="2005-04-08" who="mimno">added default chunks</change> 
+<change when="2004-12-23" who="mimno">typo: cDe harus... -> De harus</change> 
+<change when="2003-07-01" who="yorkc">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change> 
+<change when="2002-12-02" who="amahoney">correct spelling of Quirites, improperly 'regularized'</change> 
+<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change> 
+<change when="1999-10-14" who="dasmith">Added explanatory subtitles to titleStmt</change> 
+<change when="1999-08-12" who="dasmith">Fixed refsDecl</change> 
+<change when="1999-08-04" who="textgod">Random changes over a period of months.</change> 
+<change when="1997-10-31" who="textgod">Added QUOTE tags to verse.</change> 
+<change when="1997-08-18" who="textgod">???</change> 
+<change when="1997-05-13" who="cjsu">passed SGML validation</change>
+		</revisionDesc>
+	</teiHeader>
+	
+	<text xml:lang="lat">
+		<body xml:base="urn:cts:latinLit:phi0474.phi025.perseus-lat2">
+	<div type="edition" xml:lang="lat">
+	<head rend="align(center)">DE PROVINCIIS CONSVLARIBVS IN SENATV ORATIO</head>
+				
+<div n="1" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi025.perseus-lat2"> <p rend="align(indent)"> <milestone resp="editor" n="1" unit="chapter"/><reg>si</reg> quis vestrum, patres conscripti, exspectat quas sim provincias decreturus, consideret ipse secum qui mihi homines ex provinciis potissimum detrahendi sint: non dubitabit quid sentire me conveniat, cum quid mihi sentire necesse sit cogitarit. <reg>ac</reg> si princeps eam sententiam dicerem, laudaretis profecto; si solus, certe ignosceretis; etiam si paulo minus utilis vobis sententia videretur, veniam tamen aliquam dolori meo tribueretis. <reg>nunc</reg> vero, patres conscripti, non parva adficior voluptate, vel quod hoc maxime rei publicae conducit, Syriam Macedoniamque decerni, ut dolor meus nihil a communi utilitate dissentiat, vel quod habeo auctorem P. Servilium, qui ante me sententiam dixit, virum clarissimum et cum in<note>in <hi rend="italic">ut Angelius ita mg. H, bk Harl.</hi> 2681 (<hi rend="italic">cum abl. c</hi>), <hi rend="italic">om. P rell. praeter t</hi> (ad)</note> universam rem publicam tum etiam erga meam salutem fide ac benivolentia singulari. </p> </div> 
+<div n="2" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi025.perseus-lat2"> <p><reg>quod</reg> si ille, et paulo ante et quotienscumque ei locus dicendi ac potestas fuit, Gabinium et Pisonem, duo rei publicae portenta ac paene funera, cum propter alias causas tum maxime propter illud insigne scelus eorum et importunam in me crudelitatem, non solum sententia sua sed etiam verborum gravitate esse notandos putavit, quonam me animo in eos esse oportet, cuius illi salutem pro pignore tradiderunt ad explendas<note>explendas <hi rend="italic">bk Harl.</hi> 2681 <hi rend="italic">et cod. Car. Steph.</hi>: expiendas <hi rend="italic">P<hi rend="superscript">1</hi>w</hi>: expiandas <hi rend="italic">P<hi rend="superscript">2</hi> rell.</hi> (<hi rend="italic">Phil.</hi> xiv, § 10)</note> suas cupiditates? <reg>sed</reg> ego in hac sententia dicenda non parebo dolori meo, non iracundiae serviam. <reg>quo</reg> animo unus quisque vestrum debet esse in illos<note>illos <hi rend="italic">Naugerius</hi> (1): illo <hi rend="italic">PHt</hi></note>, hoc ero<note>ego ero <hi rend="italic">Kraffert</hi></note>: praecipuum illum et proprium sensum doloris mei, quem tamen vos communem semper vobis mecum esse duxistis, a sententia dicenda amovebo, ad ulciscendi tempora reservabo. </p> </div> 
+<div n="3" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi025.perseus-lat2"> <p rend="align(indent)"><milestone resp="editor" n="2" unit="chapter"/><reg>quattuor</reg> sunt provinciae, patres conscripti, de quibus adhuc intellego sententias esse dictas, Galliae duae, quas hoc tempore uno imperio videmus esse coniunctas, et Syria et Macedonia, quas vobis invitis et oppressis pestiferi illi consules pro perversae<note>perversae <hi rend="italic">codd. praeter HGE<foreign xml:lang="grc">Ϛ</foreign></hi> (eversae): <hi rend="italic">cf.</hi> § 7, <hi rend="italic">Vatin.</hi> §§ 19, 23</note> rei publicae praemiis occupaverunt. <reg>decernendae</reg> nobis sunt<note>nobis sunt <hi rend="italic">B<foreign xml:lang="grc">Σ</foreign>Hkt all.</hi>: sunt nobis <hi rend="italic">P</hi> (<hi rend="italic">sed sign. transp. add. m.</hi> 1) <hi rend="italic">wc</hi></note> lege Sempronia duae. <reg>quid</reg> est quod possimus de Syria Macedoniaque dubitare? Mitto quod eas ita partas habent ii qui nunc obtinent ut non ante attigerint quam hunc ordinem condemnarint, quam auctoritatem vestram e civitate exterminarint, quam fidem publicam, quam perpetuam populi Romani salutem, quam me ac meos omnis foedissime crudelissimeque vexarint. </p> </div> 
+<div n="4" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi025.perseus-lat2"> 

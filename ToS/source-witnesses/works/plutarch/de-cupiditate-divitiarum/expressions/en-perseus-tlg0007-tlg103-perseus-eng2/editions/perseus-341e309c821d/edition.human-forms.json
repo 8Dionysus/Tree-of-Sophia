@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.plutarch.de-cupiditate-divitiarum.en-perseus-tlg0007-tlg103-perseus-eng2.perseus-341e309c821d",
+    "version": 1,
+    "digest": "sha256:1c08e9dd791174c4e8c9f45d4faa5a54c769b848f62a612e84110ec2af277c7a"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:1c08e9dd791174c4e8c9f45d4faa5a54c769b848f62a612e84110ec2af277c7a",
+            "id": "tos.edition.plutarch.de-cupiditate-divitiarum.en-perseus-tlg0007-tlg103-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:1c08e9dd791174c4e8c9f45d4faa5a54c769b848f62a612e84110ec2af277c7a",
+            "id": "tos.edition.plutarch.de-cupiditate-divitiarum.en-perseus-tlg0007-tlg103-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:1c08e9dd791174c4e8c9f45d4faa5a54c769b848f62a612e84110ec2af277c7a",
+            "id": "tos.edition.plutarch.de-cupiditate-divitiarum.en-perseus-tlg0007-tlg103-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:1c08e9dd791174c4e8c9f45d4faa5a54c769b848f62a612e84110ec2af277c7a",
+            "id": "tos.edition.plutarch.de-cupiditate-divitiarum.en-perseus-tlg0007-tlg103-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.7d8a980405da6858b7da110cbbd7efcf5487fd2009038ddb9c2fae87b07e6f18",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:1c08e9dd791174c4e8c9f45d4faa5a54c769b848f62a612e84110ec2af277c7a",
+        "id": "tos.edition.plutarch.de-cupiditate-divitiarum.en-perseus-tlg0007-tlg103-perseus-eng2.perseus-341e309c821d",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:1c08e9dd791174c4e8c9f45d4faa5a54c769b848f62a612e84110ec2af277c7a",
+            "id": "tos.edition.plutarch.de-cupiditate-divitiarum.en-perseus-tlg0007-tlg103-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:1c08e9dd791174c4e8c9f45d4faa5a54c769b848f62a612e84110ec2af277c7a",
+            "id": "tos.edition.plutarch.de-cupiditate-divitiarum.en-perseus-tlg0007-tlg103-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:1c08e9dd791174c4e8c9f45d4faa5a54c769b848f62a612e84110ec2af277c7a",
+            "id": "tos.edition.plutarch.de-cupiditate-divitiarum.en-perseus-tlg0007-tlg103-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:1c08e9dd791174c4e8c9f45d4faa5a54c769b848f62a612e84110ec2af277c7a",
+            "id": "tos.edition.plutarch.de-cupiditate-divitiarum.en-perseus-tlg0007-tlg103-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.bc15f0c0a3c9e2e0a67c4f2e7e17fa8aff0d6dfb41884eb370c8fdd74621691f",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:1c08e9dd791174c4e8c9f45d4faa5a54c769b848f62a612e84110ec2af277c7a",
+        "id": "tos.edition.plutarch.de-cupiditate-divitiarum.en-perseus-tlg0007-tlg103-perseus-eng2.perseus-341e309c821d",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-ninth-source-forms:ce99a4ccd91b76a023b27f6781df70fda4fcb0d1eb6dbdb17f8fbaad775d38c8",
+      "request_digest": "sha256:abd5b036304d40b74b6fd4888db24ecc108248fb9cf8283c2b133a37c240f7b5",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:eff77b30f670027969d651930304bc63558e7fc40ae5ade099691fc3aba8b73c",
+      "recorded_at": "2026-09-09T18:35:28.849666+00:00",
+      "source": {
+        "id": "tos.edition.plutarch.de-cupiditate-divitiarum.en-perseus-tlg0007-tlg103-perseus-eng2.perseus-341e309c821d",
+        "version": 1,
+        "digest": "sha256:1c08e9dd791174c4e8c9f45d4faa5a54c769b848f62a612e84110ec2af277c7a"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.7d8a980405da6858b7da110cbbd7efcf5487fd2009038ddb9c2fae87b07e6f18",
+          "version": 1,
+          "digest": "sha256:5d4df3b9b86800ee569571e41b6094a1363927283031883208c4e520f8d0d229"
+        },
+        {
+          "id": "tos.form.metadata.bc15f0c0a3c9e2e0a67c4f2e7e17fa8aff0d6dfb41884eb370c8fdd74621691f",
+          "version": 1,
+          "digest": "sha256:f7260f87a8c982fc1a7280371b247a9982f2f5ba7d8de23b22110f6f2462f70f"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.registry-quomodo-quis-suos-in-virtute-sentiat-profectus",
+  "item_ref": "tos.item.plutarch.quomodo-quis-suos-in-virtute-sentiat-profectus.grc-perseus-tlg0007-tlg071.perseus-341e309c821d.git-tei-xml",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/plutarch/quomodo-quis-suos-in-virtute-sentiat-profectus/expressions/grc-perseus-tlg0007-tlg071/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+    "sha256": "3096250fc3c64e6d62a87dc90ee6563f732ae858b27c85e14c2f5149f073b096",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.61cf0830fb5621bba7ee46f7e26ed75c307cc3815824c7e3b922a73331440cb7",
+      "relative_path": "payload/tlg0007.tlg071.perseus-grc2.xml",
+      "byte_size": 91937,
+      "sha256": "61cf0830fb5621bba7ee46f7e26ed75c307cc3815824c7e3b922a73331440cb7",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/plutarch/quomodo-quis-suos-in-virtute-sentiat-profectus/expressions/grc-perseus-tlg0007-tlg071/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+    "rights_record_sha256": "5c6ad7480434bd11872bd8f13e7b70e97749a489d9c5584d38619a2ab5acc105",
+    "assessment_status": "open-licensed",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [
+      "MX"
+    ],
+    "permission_or_license_refs": [
+      "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/manifest.json",
+      "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+      "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/tlg0007.tlg071-cts.xml",
+      "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/tlg0007.tlg071.perseus-grc2-header.xml",
+      "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/tlg0007-cts.xml",
+      "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/perseus-README.md",
+      "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/perseus-license.md",
+      "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "lexical_index": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "search_projection": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "graph_projection": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "not-evaluated",
+  "publication_status": "not-published",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-09-09T16:46:14.186061+00:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.registry-20260909.quomodo-quis-suos-in-virtute-sentiat-profectus"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 1,
+  "supersedes_server_import_ref": null
+}

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> <TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+           <title>Comparison of Dion and Brutus</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2009-03-16">Perseus 4.0</date> 
+            <idno type="filename">tlg0007.tlg062.perseus-eng2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+         </publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1918</date>
+                  </imprint>
+                  <biblScope unit="volume">6</biblScope>
+               </monogr>
+               <ref target="https://archive.org/details/plutarchslives06plut/page/248/mode/2up">Internet Archive</ref> 
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+               matchPattern="(\w+).(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts chapter and section.</p>
+            </cRefPattern>
+            <cRefPattern n="chapter"
+               matchPattern="(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl>
+            <refState unit="chapter" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2018-02-27" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+         <change when="1999-06-01" who="Lisa Cerrato">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-eng2">
+         <div n="urn:cts:greekLit:tlg0007.tlg062.perseus-eng2" type="translation" xml:lang="eng">
+         <head>COMPARISON OF DION AND BRUTUS</head>
+            <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-eng2" n="1"> 
+               <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-eng2:1" n="1"><p>We see, therefore, that both men had many noble traits, and especially that they rose to the greatest heights from the most inconsiderable beginnings; but this is most to the credit of Dion. </p></div>
+               <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-eng2:1" n="2"><p>For he had no one to dispute his eminence, as Brutus had in Cassius, a man whose virtue and fame did not inspire confidence in like degree, but who, by reason of his boldness, ability, and efficiency, contributed no less than Brutus did to the war; </p></div>
+               <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-eng2:1" n="3"><p>indeed, some attribute to him the origin of the whole enterprise, declaring that he took the lead in the plot against Caesar when Brutus was passive.</p></div>
+               <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-eng2:1" n="4"><p>Dion, however, appears to have acquired by his own efforts, not only arms and vessels and a military force, but also friends and co-workers for his enterprise. </p></div>
+               <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-eng2:1" n="5"><p>However, Dion did not, like Brutus, win wealth and power from the course of the war itself, nay, he contributed his own wealth for the war, expending in behalf of the liberty of his countrymen those resources which supported him in his exile. </p></div>
+               <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-eng2:1" n="6"><p>And further, it was not safe for Brutus and Cassius to keep quiet after their banishment from Rome, but since they were condemned to death and pursued, it was of necessity that they resorted to war; and in committing their persons to the protection of their arms they incurred danger in their own behalf rather than in behalf of their countrymen; </p></div>
+               <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-eng2:1" n="7"><p>whereas Dion was living with greater confidence and pleasure in his banishment than the tyrant who banished him, and yet of his own accord he hazarded a peril so great in order to save Sicily.</p></div></div>
+                  <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-eng2" n="2"> 
+                     <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-eng2:2" n="1"><p>And verily it was not a like thing for Syracuse to be rid of Dionysius and Rome of Caesar. For Dionysius was even an avowed tyrant, and filled Sicily with countless ills; </p></div>
+                     <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-eng2:2" n="2"><p>whereas the rule of Caesar, although during its establishment it gave no little trouble to its opponents, still, after they had been overpowered and had accepted it, they saw that it was a tyranny only in name and appearance, and no cruel or tyrannical act was authorized by it; nay, it was plain that the ills of the state required a monarchy, and that Caesar, like a most gentle physician, had been assigned to them by Heaven itself.</p></div>
+                     <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-eng2:2" n="3"><p>Therefore the Roman people felt at once a yearning for Caesar, and in consequence became harsh and implacable towards his murderers; whereas Dion

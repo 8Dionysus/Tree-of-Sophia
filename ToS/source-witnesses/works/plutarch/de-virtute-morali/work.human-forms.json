@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:d2c236c5f373108b2644a60a9c26bd4e6b90995522fc49248f9cda343f1c5049",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 3
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:d2c236c5f373108b2644a60a9c26bd4e6b90995522fc49248f9cda343f1c5049",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 3
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:d2c236c5f373108b2644a60a9c26bd4e6b90995522fc49248f9cda343f1c5049",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 3
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:d2c236c5f373108b2644a60a9c26bd4e6b90995522fc49248f9cda343f1c5049",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 3
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.3ce07dc5c3615935b8a7696c53d4b5f8772b9f98eb45ae0a981bf52efb652b29",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:1b95e7089ca3b355edc4935e2ad403c3b73941cea234e2dd211a7ee00fc426ca",
+        "id": "tos.form.metadata.3ce07dc5c3615935b8a7696c53d4b5f8772b9f98eb45ae0a981bf52efb652b29",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:d2c236c5f373108b2644a60a9c26bd4e6b90995522fc49248f9cda343f1c5049",
+        "id": "tos.work.plutarch.de-virtute-morali",
+        "version": 3
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:d2c236c5f373108b2644a60a9c26bd4e6b90995522fc49248f9cda343f1c5049",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 3
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:d2c236c5f373108b2644a60a9c26bd4e6b90995522fc49248f9cda343f1c5049",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 3
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:d2c236c5f373108b2644a60a9c26bd4e6b90995522fc49248f9cda343f1c5049",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 3
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:d2c236c5f373108b2644a60a9c26bd4e6b90995522fc49248f9cda343f1c5049",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 3
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a84a1a28f2a608b909f9261a0b78e59c84186c66e1b3c1568857a14ae8d1b95e",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:bf528a4ed7fc634d50df1f761cab62e7fb914987b484b3619779f524e5c97258",
+        "id": "tos.form.metadata.a84a1a28f2a608b909f9261a0b78e59c84186c66e1b3c1568857a14ae8d1b95e",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:d2c236c5f373108b2644a60a9c26bd4e6b90995522fc49248f9cda343f1c5049",
+        "id": "tos.work.plutarch.de-virtute-morali",
+        "version": 3
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "command_id": "foundation-source-forms-v1:tos.work.plutarch.de-virtute-morali",
+      "owner_configuration": "sha256:de59419378b72a4811f0d80187136b4552c91c34c9aeecf7e43aaa2bf414c786",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T15:55:21.208470+00:00",
+      "request_digest": "sha256:ae3736d65e89be811e7a3a5391557bff7892fc8ae7a2ed63385b29c7f239cc17",
+      "results": [
+        {
+          "digest": "sha256:1b95e7089ca3b355edc4935e2ad403c3b73941cea234e2dd211a7ee00fc426ca",
+          "id": "tos.form.metadata.3ce07dc5c3615935b8a7696c53d4b5f8772b9f98eb45ae0a981bf52efb652b29",
+          "version": 1
+        },
+        {
+          "digest": "sha256:bf528a4ed7fc634d50df1f761cab62e7fb914987b484b3619779f524e5c97258",
+          "id": "tos.form.metadata.a84a1a28f2a608b909f9261a0b78e59c84186c66e1b3c1568857a14ae8d1b95e",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:41698f25d4cbdc61ad2cbfc58b3f236c309d08161742fb20aa5ef104deb03f14",
+        "id": "tos.work.plutarch.de-virtute-morali",
+        "version": 2
+      }
+    },
+    {
+      "command_id": "registry-seventh-source-forms:6d375591d5f55eefafcd022b09d13764e4cd9316a499e0bbafefb235e383500d",
+      "request_digest": "sha256:41201bbef423588259009c3c4b70259e50b9c2f10715f093e1114cde28cbd783",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:e89eae39e81b8190372036079f51190ef88dca0b9fdfe61413abd6fb9e2bfa2f",
+      "recorded_at": "2026-09-09T19:51:53.492978+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-virtute-morali",
+        "version": 3,
+        "digest": "sha256:d2c236c5f373108b2644a60a9c26bd4e6b90995522fc49248f9cda343f1c5049"
+      },
+      "previous_revision": "sha256:4dd6a9e4a67dc7c9d4bf0f45b63c1def939eb56ac90362e88c23bf9f3b8af34b",
+      "results": [
+        {
+          "id": "tos.form.metadata.3ce07dc5c3615935b8a7696c53d4b5f8772b9f98eb45ae0a981bf52efb652b29",
+          "version": 2,
+          "digest": "sha256:702f92cbbb3168a073871e14257a8a5d7efe864efe7d678be04970ad663f83c7"
+        },
+        {
+          "id": "tos.form.metadata.a84a1a28f2a608b909f9261a0b78e59c84186c66e1b3c1568857a14ae8d1b95e",
+          "version": 2,
+          "digest": "sha256:d5f730ff3e68d72ee83fd26968dd9fe9f16b94d533c490a20f168840b50caa37"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:41698f25d4cbdc61ad2cbfc58b3f236c309d08161742fb20aa5ef104deb03f14",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:41698f25d4cbdc61ad2cbfc58b3f236c309d08161742fb20aa5ef104deb03f14",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:41698f25d4cbdc61ad2cbfc58b3f236c309d08161742fb20aa5ef104deb03f14",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:41698f25d4cbdc61ad2cbfc58b3f236c309d08161742fb20aa5ef104deb03f14",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.3ce07dc5c3615935b8a7696c53d4b5f8772b9f98eb45ae0a981bf52efb652b29",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:41698f25d4cbdc61ad2cbfc58b3f236c309d08161742fb20aa5ef104deb03f14",
+        "id": "tos.work.plutarch.de-virtute-morali",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:41698f25d4cbdc61ad2cbfc58b3f236c309d08161742fb20aa5ef104deb03f14",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:41698f25d4cbdc61ad2cbfc58b3f236c309d08161742fb20aa5ef104deb03f14",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:41698f25d4cbdc61ad2cbfc58b3f236c309d08161742fb20aa5ef104deb03f14",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:41698f25d4cbdc61ad2cbfc58b3f236c309d08161742fb20aa5ef104deb03f14",
+            "id": "tos.work.plutarch.de-virtute-morali",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a84a1a28f2a608b909f9261a0b78e59c84186c66e1b3c1568857a14ae8d1b95e",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:41698f25d4cbdc61ad2cbfc58b3f236c309d08161742fb20aa5ef104deb03f14",
+        "id": "tos.work.plutarch.de-virtute-morali",
+        "version": 2
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-virtute-morali",
+    "version": 3,
+    "digest": "sha256:d2c236c5f373108b2644a60a9c26bd4e6b90995522fc49248f9cda343f1c5049"
+  }
+}

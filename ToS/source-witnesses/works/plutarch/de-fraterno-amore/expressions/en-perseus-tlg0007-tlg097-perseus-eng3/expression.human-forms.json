@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-fraterno-amore.en-perseus-tlg0007-tlg097-perseus-eng3",
+    "version": 1,
+    "digest": "sha256:971cebd8a2292f731c54248d9c948d7e173c99003fcd035c1b15b5d4976479ea"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:971cebd8a2292f731c54248d9c948d7e173c99003fcd035c1b15b5d4976479ea",
+            "id": "tos.expression.plutarch.de-fraterno-amore.en-perseus-tlg0007-tlg097-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:971cebd8a2292f731c54248d9c948d7e173c99003fcd035c1b15b5d4976479ea",
+            "id": "tos.expression.plutarch.de-fraterno-amore.en-perseus-tlg0007-tlg097-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:971cebd8a2292f731c54248d9c948d7e173c99003fcd035c1b15b5d4976479ea",
+            "id": "tos.expression.plutarch.de-fraterno-amore.en-perseus-tlg0007-tlg097-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:971cebd8a2292f731c54248d9c948d7e173c99003fcd035c1b15b5d4976479ea",
+            "id": "tos.expression.plutarch.de-fraterno-amore.en-perseus-tlg0007-tlg097-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.e0dc830e851a07dcdb30a734b581d4ffbcf3ea964203ba458ffc0db610e3211d",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:971cebd8a2292f731c54248d9c948d7e173c99003fcd035c1b15b5d4976479ea",
+        "id": "tos.expression.plutarch.de-fraterno-amore.en-perseus-tlg0007-tlg097-perseus-eng3",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:971cebd8a2292f731c54248d9c948d7e173c99003fcd035c1b15b5d4976479ea",
+            "id": "tos.expression.plutarch.de-fraterno-amore.en-perseus-tlg0007-tlg097-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:971cebd8a2292f731c54248d9c948d7e173c99003fcd035c1b15b5d4976479ea",
+            "id": "tos.expression.plutarch.de-fraterno-amore.en-perseus-tlg0007-tlg097-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:971cebd8a2292f731c54248d9c948d7e173c99003fcd035c1b15b5d4976479ea",
+            "id": "tos.expression.plutarch.de-fraterno-amore.en-perseus-tlg0007-tlg097-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:971cebd8a2292f731c54248d9c948d7e173c99003fcd035c1b15b5d4976479ea",
+            "id": "tos.expression.plutarch.de-fraterno-amore.en-perseus-tlg0007-tlg097-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.429b5ab0457be9885a7a0c778c672a5d8ddd06a69a2288b4b7549019b5c400ef",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:971cebd8a2292f731c54248d9c948d7e173c99003fcd035c1b15b5d4976479ea",
+        "id": "tos.expression.plutarch.de-fraterno-amore.en-perseus-tlg0007-tlg097-perseus-eng3",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-ninth-source-forms:41b214b4c7071355130bee6c4faf4058948bd6c8981a32611a5db6aac29ec3ed",
+      "request_digest": "sha256:b4f2bacad8a0e4dfef9cf2be72e9fa345ff6b018434320fe701e0ead92fe4748",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:5dfe761964b3f427637333d2cf16f6783f3792f34c3354907a33c2a142bffcb5",
+      "recorded_at": "2026-09-09T18:35:28.324757+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-fraterno-amore.en-perseus-tlg0007-tlg097-perseus-eng3",
+        "version": 1,
+        "digest": "sha256:971cebd8a2292f731c54248d9c948d7e173c99003fcd035c1b15b5d4976479ea"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.e0dc830e851a07dcdb30a734b581d4ffbcf3ea964203ba458ffc0db610e3211d",
+          "version": 1,
+          "digest": "sha256:b5c89f434a88c44163545b1e6d42d513f7791ec679d4f4e0923d37a701f42089"
+        },
+        {
+          "id": "tos.form.metadata.429b5ab0457be9885a7a0c778c672a5d8ddd06a69a2288b4b7549019b5c400ef",
+          "version": 1,
+          "digest": "sha256:ff932d495e20996c8ebd6571aa65f96a04419be67a95a59e15fb060ff1ff7c48"
+        }
+      ]
+    }
+  ]
+}

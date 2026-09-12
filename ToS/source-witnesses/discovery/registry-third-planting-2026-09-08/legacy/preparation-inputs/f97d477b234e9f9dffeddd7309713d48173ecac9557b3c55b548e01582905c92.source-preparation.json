@@ -1,0 +1,2812 @@
+{
+  "schema_version": "tos_source_planting_preparation_batch_v1",
+  "status": "prepared-not-planted",
+  "review_scope": "Exact supplied edition, attribution limits and existing A25/A26/A29 corpus anchors",
+  "reviewer_ref": "model:codex",
+  "targets": [
+    {
+      "target_slug": "vitae-philosophorum",
+      "registry_source_record_id": "A26-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A26",
+        "dossier_id": "A26",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 33,
+          "row_sha256": "f36fa2bd66d6f2741cc66da7d99bbb5ea7488eaec007b851d93bfa140b53711a"
+        },
+        "branch_path": "ToS/philosophy/eras/hellenistic-age/regions/mediterranean/traditions/hellenistic-schools-library-ecology",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/hellenistic-age/regions/mediterranean/traditions/hellenistic-schools-library-ecology/branch.manifest.json",
+          "sha256": "a6682e3e5361f4109e8ed758f1be417543e1f5ed9812f44258ee17db98a6ffe2"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/hellenistic-age/regions/mediterranean/traditions/hellenistic-schools-library-ecology/sources/source-anchor-backlog.jsonl",
+          "line": 12,
+          "source_table_index": 12,
+          "source_row_index": 1,
+          "source_label": "Diogenes Laertius, Lives Books 6–10"
+        },
+        "backlog_sha256": "aab62a03185f8bd1e97e6c8c4769a908dbba7204f6386dd00d7a12848e37381c",
+        "backlog_row_sha256": "e7a3f0243cd7455f9328096a7d9469288bf27ada72000bc785ed9a660dda2ed5",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A26",
+          "branch_path": "ToS/philosophy/eras/hellenistic-age/regions/mediterranean/traditions/hellenistic-schools-library-ecology",
+          "contribution": "базовое биографико-доксографическое ядро",
+          "dossier_id": "A26",
+          "reliability": "высокая, но поздняя",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / Cambridge edition",
+          "source_document": "ToS Deep Research_ A26 — Европа — Эллинистические школы и библиотечная экосистема.docx",
+          "source_label": "Diogenes Laertius, Lives Books 6–10",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 12,
+          "source_type": "поздний первичный свод"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Vitae philosophorum Greek edition within the reviewed Diogenes Laertius, Lives Books 6–10 source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The entire ten-book supplied edition provides the selected Books 6–10 branch context; individual quotations, letters and school reports are not separately identified or admitted by this intake."
+      ]
+    },
+    {
+      "target_slug": "de-fortuna",
+      "registry_source_record_id": "A29-R126",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De fortuna Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools."
+      ]
+    },
+    {
+      "target_slug": "de-iside-et-osiride",
+      "registry_source_record_id": "A29-R116",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Iside et Osiride Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools."
+      ]
+    },
+    {
+      "target_slug": "de-e-apud-delphos",
+      "registry_source_record_id": "A29-R114",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De E apud Delphos Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools."
+      ]
+    },
+    {
+      "target_slug": "de-defectu-oraculorum",
+      "registry_source_record_id": "A29-R115",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Defectu Oraculorum Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools."
+      ]
+    },
+    {
+      "target_slug": "de-virtute-morali",
+      "registry_source_record_id": "A29-R123",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Virtute Morali Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools."
+      ]
+    },
+    {
+      "target_slug": "de-curiositate",
+      "registry_source_record_id": "A29-R125",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De curiositate Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools."
+      ]
+    },
+    {
+      "target_slug": "de-sera-numinis-vindicta",
+      "registry_source_record_id": "A29-R124",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Sera Numinis Vindicta Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools."
+      ]
+    },
+    {
+      "target_slug": "de-facie-quae-in-orbe-lunae-apparet",
+      "registry_source_record_id": "A29-R117",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Facie Quae in orbe Lunae Apparet Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools."
+      ]
+    },
+    {
+      "target_slug": "platonicae-quaestiones",
+      "registry_source_record_id": "A29-R118",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Platonicae quaestiones Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools."
+      ]
+    },
+    {
+      "target_slug": "de-animae-procreatione-in-timaeo",
+      "registry_source_record_id": "A29-R119",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De animae procreatione in Timaeo Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools."
+      ]
+    },
+    {
+      "target_slug": "epitome-libri-de-animae-procreatione-in-timaeo",
+      "registry_source_record_id": "A29-R120",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Epitome libri de animae procreatione in Timaeo Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools."
+      ]
+    },
+    {
+      "target_slug": "de-stoicorum-repugnantiis",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Stoicorum repugnantiis Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools."
+      ]
+    },
+    {
+      "target_slug": "de-communibus-notitiis-adversus-stoicos",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De communibus notitiis adversus Stoicos Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools."
+      ]
+    },
+    {
+      "target_slug": "non-posse-suaviter-vivi-secundum-epicurum",
+      "registry_source_record_id": "A29-R122",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Non Posse Suaviter Vivi Secundum Epicurum Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools."
+      ]
+    },
+    {
+      "target_slug": "adversus-coloten",
+      "registry_source_record_id": "A29-R121",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Adversus Coloten Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools."
+      ]
+    },
+    {
+      "target_slug": "alcibiades-1",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Alcibiades 1 Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "alcibiades-2",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Alcibiades 2 Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "hipparchus",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Hipparchus Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "lovers",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Lovers Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "theages",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Theages Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "charmides",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Charmides Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "laches",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Laches Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "lysis",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Lysis Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "euthydemus",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Euthydemus Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "protagoras",
+      "registry_source_record_id": "A25-R022",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Protagoras Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "gorgias",
+      "registry_source_record_id": "A25-R023",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Gorgias Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "meno",
+      "registry_source_record_id": "A25-R024",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Meno Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "greater-hippias",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Greater Hippias Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "lesser-hippias",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Lesser Hippias Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "ion",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Ion Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "menexenus",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Menexenus Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "cleitophon",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Cleitophon Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "republic",
+      "registry_source_record_id": "A25-R025",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Republic Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "timaeus",
+      "registry_source_record_id": "A25-R026",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Timaeus Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "critias",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Critias Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "minos",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Minos Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "laws",
+      "registry_source_record_id": "A25-R027",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Laws Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "epinomis",
+      "registry_source_record_id": "A25-R001",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Epinomis Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis."
+      ]
+    },
+    {
+      "target_slug": "constitution-of-the-athenians",
+      "registry_source_record_id": "A25-R072",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Constitution of the Athenians Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation."
+      ]
+    },
+    {
+      "target_slug": "eudemian-ethics",
+      "registry_source_record_id": "A25-R074",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Eudemian Ethics Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation."
+      ]
+    },
+    {
+      "target_slug": "nicomachean-ethics",
+      "registry_source_record_id": "A25-R075",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Nicomachean Ethics Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation."
+      ]
+    },
+    {
+      "target_slug": "metaphysics",
+      "registry_source_record_id": "A25-R077",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Metaphysics Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation."
+      ]
+    },
+    {
+      "target_slug": "economics",
+      "registry_source_record_id": "A25-R079",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Economics Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation."
+      ]
+    },
+    {
+      "target_slug": "poetics",
+      "registry_source_record_id": "A25-R080",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Poetics Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation."
+      ]
+    },
+    {
+      "target_slug": "politics",
+      "registry_source_record_id": "A25-R081",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Politics Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation."
+      ]
+    },
+    {
+      "target_slug": "rhetoric",
+      "registry_source_record_id": "A25-R082",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Rhetoric Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation."
+      ]
+    },
+    {
+      "target_slug": "on-virtues-and-vices",
+      "registry_source_record_id": "A25-R083",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A25",
+        "dossier_id": "A25",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 32,
+          "row_sha256": "9920bfb76e4f5672c88c4985512f910d7660a52fab226adbc2ac5382fbc56089"
+        },
+        "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
+          "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+          "line": 9,
+          "source_table_index": 14,
+          "source_row_index": 1,
+          "source_label": "Scaife Viewer / Perseus"
+        },
+        "backlog_sha256": "0d2d11b938b461fa92febbd946cef4308f058dcbfe411cd3049859b778d7b021",
+        "backlog_row_sha256": "0ba461a0ec78413f18f82a8bb969e7f8c900527e1a58dbc62900cac8cc6a4828",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A25",
+          "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+          "contribution": "греческие тексты и переводы Платона и Аристотеля",
+          "dossier_id": "A25",
+          "reliability": "высокая для доступа, средняя как замена критическому аппарату [80]",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife/Perseus",
+          "source_document": "ToS Deep Research_ A25 — Европа — Классическая афинская философия.docx",
+          "source_label": "Scaife Viewer / Perseus",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 1,
+          "source_table_index": 14,
+          "source_type": "цифровой корпус первичных текстов"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact On Virtues and Vices Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation."
+      ]
+    },
+    {
+      "target_slug": "discourses",
+      "registry_source_record_id": "A29-R096",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 19,
+          "source_table_index": 14,
+          "source_row_index": 9,
+          "source_label": "Эпиктет"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "812bc92adff908ac98c38a96b2418099a79bed0852d651df6a9625320bc8dd6d",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Стоическая этика выбора и свободы",
+          "dossier_id": "A29",
+          "reliability": "Высокая, но редакторски медиированная",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [85]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Эпиктет",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 9,
+          "source_table_index": 14,
+          "source_type": "Первичный корпус в записи ученика"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Discourses Greek edition within the reviewed Эпиктет source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Arrian recording/editing/epitomizing and the earlier oral teaching remain distinct transmission layers."
+      ]
+    },
+    {
+      "target_slug": "the-handbook",
+      "registry_source_record_id": "A29-R107",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 19,
+          "source_table_index": 14,
+          "source_row_index": 9,
+          "source_label": "Эпиктет"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "812bc92adff908ac98c38a96b2418099a79bed0852d651df6a9625320bc8dd6d",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Стоическая этика выбора и свободы",
+          "dossier_id": "A29",
+          "reliability": "Высокая, но редакторски медиированная",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [85]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Эпиктет",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 9,
+          "source_table_index": 14,
+          "source_type": "Первичный корпус в записи ученика"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact The Handbook Greek edition within the reviewed Эпиктет source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Arrian recording/editing/epitomizing and the earlier oral teaching remain distinct transmission layers."
+      ]
+    },
+    {
+      "target_slug": "ad-se-ipsum",
+      "registry_source_record_id": "A29-R131",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "e26f3ffca83b694f71e4aa2f2617fc3eb06e3aa0eea5b86d152bf89c713fb322"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 21,
+          "source_table_index": 14,
+          "source_row_index": 11,
+          "source_label": "Meditations"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "f845dd963d9cbf6df4e60a316b9a894a682fdeba05b18695bb82bef29293876f",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Стоическая авторефлексия и упражнение",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [87]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Meditations",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 11,
+          "source_table_index": 14,
+          "source_type": "Первичный текст self-writing"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Ad Se Ipsum Greek edition within the reviewed Meditations source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author."
+      ]
+    }
+  ]
+}

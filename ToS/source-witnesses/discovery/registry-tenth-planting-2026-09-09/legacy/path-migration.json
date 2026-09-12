@@ -1,0 +1,75 @@
+{
+  "schema_version": "tos_source_witness_path_migration_legacy_v1",
+  "status": "historical-provenance",
+  "migration_id": "tos.source-witnesses.registry-tenth.navigation-2026-09-09",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "historical_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/tenth-wave-20260909.json",
+      "sha256": "4674256ee9f9587fd3180d1e7d72a5296ef31fc9ffad2d23829b959e3d748f93",
+      "byte_size": 255994
+    },
+    {
+      "role": "historical-planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/execution/plant_tenth_wave.py",
+      "sha256": "a08e414e58852329a02b17a455a186198ffcdb30d6d3bcadffc415afb5b2f31b",
+      "byte_size": 4746
+    },
+    {
+      "role": "historical-report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/execution/report_tenth_wave.py",
+      "sha256": "48aab4d0a81f5e3b8aea001b778de3a9ae6a404479ad5e3ac16581c8d52192ef",
+      "byte_size": 12330
+    },
+    {
+      "role": "historical-manifest",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/preparation-inputs/9be466b5d0f44d9b1a3d2525b3486b7f7f70a9a7cb03ce0b0c91f7e14631e419.manifest.json",
+      "sha256": "9be466b5d0f44d9b1a3d2525b3486b7f7f70a9a7cb03ce0b0c91f7e14631e419",
+      "byte_size": 563290
+    },
+    {
+      "role": "historical-preparation-receipt",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/preparation-inputs/50c34d318c86eea79f76352823b966f6bcfa668188f2e796ad76efd3ac9df2fa.preparation-receipt.json",
+      "sha256": "50c34d318c86eea79f76352823b966f6bcfa668188f2e796ad76efd3ac9df2fa",
+      "byte_size": 640
+    },
+    {
+      "role": "historical-preparation-engine",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/engine-history/prepare_registry_sources.py",
+      "sha256": "9eb8a6716795b3cf2af58183d287ca1582c0a01a382592133199bb5aa9d61c60",
+      "byte_size": 32628
+    }
+  ],
+  "current_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/plutarch-lives-greek-20260909.json",
+      "sha256": "4674256ee9f9587fd3180d1e7d72a5296ef31fc9ffad2d23829b959e3d748f93"
+    },
+    {
+      "role": "planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/execution/plant_plutarch_lives_greek.py",
+      "sha256": "78cf819ba389e28600dea34ee09877ad7f34a02678f25da855cd003a21b4fa6f"
+    },
+    {
+      "role": "report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/execution/report_plutarch_lives_greek.py",
+      "sha256": "f1dc1a48917b7a64128a1c240632d90c491173de4df5c41837101ecc66ec502d"
+    }
+  ],
+  "retained_inputs": [
+    {
+      "stage": "registry-preparation",
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/preparation-inputs/4674256ee9f9587fd3180d1e7d72a5296ef31fc9ffad2d23829b959e3d748f93.source-preparation.json",
+      "preparation_sha256": "4674256ee9f9587fd3180d1e7d72a5296ef31fc9ffad2d23829b959e3d748f93",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/preparation-inputs/9be466b5d0f44d9b1a3d2525b3486b7f7f70a9a7cb03ce0b0c91f7e14631e419.manifest.json",
+      "manifest_sha256": "9be466b5d0f44d9b1a3d2525b3486b7f7f70a9a7cb03ce0b0c91f7e14631e419",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/preparation-inputs/50c34d318c86eea79f76352823b966f6bcfa668188f2e796ad76efd3ac9df2fa.preparation-receipt.json",
+      "receipt_sha256": "50c34d318c86eea79f76352823b966f6bcfa668188f2e796ad76efd3ac9df2fa",
+      "preparation_commit": "24b1b271b1ba1c83027414f7599b8b751d649361",
+      "checkpoint_review_ref": "agent-review:24b1b271b:20260909T190443Z"
+    }
+  ],
+  "authority_boundary": "Historical provenance only. This record preserves exact prior bytes, paths, receipts and preparation commits; it does not restamp the current route or establish acquisition, rights, semantic admission, publication or canon."
+}

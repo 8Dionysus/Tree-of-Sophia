@@ -1,0 +1,50 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.cicero.pro-s-roscio-amerino.la-perseus-phi0474-phi002.perseus-8668397510ca",
+  "preferred_label": "Pro S. Roscio Amerino — perseus Git snapshot 8668397510ca",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/manifest.json",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi002-cts.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi002.perseus-lat2-header.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi002.perseus-lat2-opening.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474-cts.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/perseus-README.md",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/perseus-license.md",
+    "https://github.com/PerseusDL/canonical-latinLit/tree/8668397510ca77fec6406f7d48f405e50d296764",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "CTS",
+      "value": "urn:cts:latinLit:phi0474.phi002.perseus-lat2",
+      "source_ref": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi002-cts.xml",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.cicero.pro-s-roscio-amerino.la-perseus-phi0474-phi002"
+  ],
+  "publication_claim_refs": [],
+  "exemplar_claim_refs": [
+    "tos.claim.topology.registry-20260909.cicero-pro-s-roscio-amerino-latin.edition-item"
+  ],
+  "edition_statement": "Immutable PerseusDL/canonical-latinLit commit 8668397510ca77fec6406f7d48f405e50d296764; Perseus Latin digital edition urn:cts:latinLit:phi0474.phi002.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: M. Tullius Cicero Orationes Albert Curtis Clark Oxford Clarendon 1908 1 Pro Sex. Roscio; De imperio Cn. Pompei; Pro Cluentio; In Catilinam; Pro Murena; Pro Caelio Scriptorum Classicorum Bibliotheca Oxoniensis Oxford Classical Texts Internet Archive",
+  "notes": "Digital snapshot identity, not an ancient publication date. Supplied title/contributor statement: Pro Sex. Roscio Amerino M. Tullius Cicero Albert Curtis Clark Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Bridget Almas Lisa Cerrato William Merrill David Mimno Rashmi Singhal David Smith National Endowment For The Humanities (NEH). Claims remain reported; preserve exact header.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

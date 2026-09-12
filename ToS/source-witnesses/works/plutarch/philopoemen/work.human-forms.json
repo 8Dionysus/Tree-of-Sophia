@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:ad2d8135ab5a59c3968e24a5de105123d363aa4b6403fccbfcd5e959d688fb15",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:ad2d8135ab5a59c3968e24a5de105123d363aa4b6403fccbfcd5e959d688fb15",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:ad2d8135ab5a59c3968e24a5de105123d363aa4b6403fccbfcd5e959d688fb15",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:ad2d8135ab5a59c3968e24a5de105123d363aa4b6403fccbfcd5e959d688fb15",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.e601a823d12be6dd6d0a0eb4264bc80121784e35ad43212562afc2eb5e3668a1",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:6606bdc1bdc7bce42c00f86e63ba9bed36add41d7225fe47e15fb7bdca077efc",
+        "id": "tos.form.metadata.e601a823d12be6dd6d0a0eb4264bc80121784e35ad43212562afc2eb5e3668a1",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:ad2d8135ab5a59c3968e24a5de105123d363aa4b6403fccbfcd5e959d688fb15",
+        "id": "tos.work.plutarch.philopoemen",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:ad2d8135ab5a59c3968e24a5de105123d363aa4b6403fccbfcd5e959d688fb15",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:ad2d8135ab5a59c3968e24a5de105123d363aa4b6403fccbfcd5e959d688fb15",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:ad2d8135ab5a59c3968e24a5de105123d363aa4b6403fccbfcd5e959d688fb15",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:ad2d8135ab5a59c3968e24a5de105123d363aa4b6403fccbfcd5e959d688fb15",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.0287286b78d2e4e90d028e1b1c78982ed28204ae30eb4c43bf734a0941b79548",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:55feb55edf61a6717ee5ac8d62ce0fb967bec76ad6c35042f35367a91910a74a",
+        "id": "tos.form.metadata.0287286b78d2e4e90d028e1b1c78982ed28204ae30eb4c43bf734a0941b79548",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:ad2d8135ab5a59c3968e24a5de105123d363aa4b6403fccbfcd5e959d688fb15",
+        "id": "tos.work.plutarch.philopoemen",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-tenth-planting",
+      "command_id": "registry-tenth-source-forms:5532afbd31e02cfe7bcec33560e19fcdf8e77c1cc08f877356c0a78cb7703d30",
+      "owner_configuration": "sha256:77e01b5cf64699e54c6c961d6dd1fbb9c586610a17853126fe9d9d1593ca9888",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T19:06:33.334837+00:00",
+      "request_digest": "sha256:357263923579e272d586202c5045b1f94e88d472ada71b4201fecc3478e5fb32",
+      "results": [
+        {
+          "digest": "sha256:6606bdc1bdc7bce42c00f86e63ba9bed36add41d7225fe47e15fb7bdca077efc",
+          "id": "tos.form.metadata.e601a823d12be6dd6d0a0eb4264bc80121784e35ad43212562afc2eb5e3668a1",
+          "version": 1
+        },
+        {
+          "digest": "sha256:55feb55edf61a6717ee5ac8d62ce0fb967bec76ad6c35042f35367a91910a74a",
+          "id": "tos.form.metadata.0287286b78d2e4e90d028e1b1c78982ed28204ae30eb4c43bf734a0941b79548",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:a20770530e50451bcadd0e0200ea285052abcf1e1b070981e4f551db4bec01ee",
+        "id": "tos.work.plutarch.philopoemen",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-eleventh-source-forms:5532afbd31e02cfe7bcec33560e19fcdf8e77c1cc08f877356c0a78cb7703d30",
+      "request_digest": "sha256:3ae703cdd95e2572c6fe5eeab8e7ff73d470ae91b8206ffb2b3ac4d333413cc4",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eleventh-planting",
+      "owner_configuration": "sha256:ec79b35c44ad4774bd064e2c6066278937b60134934b4bfce11bfa52e17065b2",
+      "recorded_at": "2026-09-09T19:35:40.281877+00:00",
+      "source": {
+        "id": "tos.work.plutarch.philopoemen",
+        "version": 2,
+        "digest": "sha256:ad2d8135ab5a59c3968e24a5de105123d363aa4b6403fccbfcd5e959d688fb15"
+      },
+      "previous_revision": "sha256:ffa6a0852588dd19fa8db8c3386b7cdf3a506359647e17e9698272625c5860d8",
+      "results": [
+        {
+          "id": "tos.form.metadata.e601a823d12be6dd6d0a0eb4264bc80121784e35ad43212562afc2eb5e3668a1",
+          "version": 2,
+          "digest": "sha256:dfebc084ed7513b6491a5dd4ed4743d11803740996ae936d10851286a581916b"
+        },
+        {
+          "id": "tos.form.metadata.0287286b78d2e4e90d028e1b1c78982ed28204ae30eb4c43bf734a0941b79548",
+          "version": 2,
+          "digest": "sha256:441ba52a50bcb2941a87ab2cc4077c73485699a3cf6231d0d71753344a347359"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:a20770530e50451bcadd0e0200ea285052abcf1e1b070981e4f551db4bec01ee",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:a20770530e50451bcadd0e0200ea285052abcf1e1b070981e4f551db4bec01ee",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:a20770530e50451bcadd0e0200ea285052abcf1e1b070981e4f551db4bec01ee",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:a20770530e50451bcadd0e0200ea285052abcf1e1b070981e4f551db4bec01ee",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.e601a823d12be6dd6d0a0eb4264bc80121784e35ad43212562afc2eb5e3668a1",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:a20770530e50451bcadd0e0200ea285052abcf1e1b070981e4f551db4bec01ee",
+        "id": "tos.work.plutarch.philopoemen",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:a20770530e50451bcadd0e0200ea285052abcf1e1b070981e4f551db4bec01ee",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:a20770530e50451bcadd0e0200ea285052abcf1e1b070981e4f551db4bec01ee",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:a20770530e50451bcadd0e0200ea285052abcf1e1b070981e4f551db4bec01ee",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:a20770530e50451bcadd0e0200ea285052abcf1e1b070981e4f551db4bec01ee",
+            "id": "tos.work.plutarch.philopoemen",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.0287286b78d2e4e90d028e1b1c78982ed28204ae30eb4c43bf734a0941b79548",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:a20770530e50451bcadd0e0200ea285052abcf1e1b070981e4f551db4bec01ee",
+        "id": "tos.work.plutarch.philopoemen",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.philopoemen",
+    "version": 2,
+    "digest": "sha256:ad2d8135ab5a59c3968e24a5de105123d363aa4b6403fccbfcd5e959d688fb15"
+  }
+}

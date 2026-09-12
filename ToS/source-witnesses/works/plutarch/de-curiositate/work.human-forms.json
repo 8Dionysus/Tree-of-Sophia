@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:a5f338590b702ff4d06bd83b0321883b21ad7eda4c53d71d99c5d70f5faf5e94",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 3
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:a5f338590b702ff4d06bd83b0321883b21ad7eda4c53d71d99c5d70f5faf5e94",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 3
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:a5f338590b702ff4d06bd83b0321883b21ad7eda4c53d71d99c5d70f5faf5e94",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 3
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:a5f338590b702ff4d06bd83b0321883b21ad7eda4c53d71d99c5d70f5faf5e94",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 3
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.ebf0886401bfc23c0da5bed691b2562121c97fce1fddd4acade38cc366f27296",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:d98086e01706d88cc65ea279ad071add1ebedc1b3919d744a06aeb657103fbc6",
+        "id": "tos.form.metadata.ebf0886401bfc23c0da5bed691b2562121c97fce1fddd4acade38cc366f27296",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:a5f338590b702ff4d06bd83b0321883b21ad7eda4c53d71d99c5d70f5faf5e94",
+        "id": "tos.work.plutarch.de-curiositate",
+        "version": 3
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:a5f338590b702ff4d06bd83b0321883b21ad7eda4c53d71d99c5d70f5faf5e94",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 3
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:a5f338590b702ff4d06bd83b0321883b21ad7eda4c53d71d99c5d70f5faf5e94",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 3
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:a5f338590b702ff4d06bd83b0321883b21ad7eda4c53d71d99c5d70f5faf5e94",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 3
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:a5f338590b702ff4d06bd83b0321883b21ad7eda4c53d71d99c5d70f5faf5e94",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 3
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a8d6a21edc23321d16a897bc49b93ab9ce2b1e9f47939b9bdb83405b0b0ba729",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:e6654b2dc0f969524b4d194d2fb663453ffe7f0fc0bcad8992fa3684369b6159",
+        "id": "tos.form.metadata.a8d6a21edc23321d16a897bc49b93ab9ce2b1e9f47939b9bdb83405b0b0ba729",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:a5f338590b702ff4d06bd83b0321883b21ad7eda4c53d71d99c5d70f5faf5e94",
+        "id": "tos.work.plutarch.de-curiositate",
+        "version": 3
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "command_id": "foundation-source-forms-v1:tos.work.plutarch.de-curiositate",
+      "owner_configuration": "sha256:6c3f77a95dd9025125310a65ad2fe0e9eb71fc0d697aa5baab5c28543ba17a6b",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T15:55:21.043102+00:00",
+      "request_digest": "sha256:55d10c6f3ad3df51513252d7529e62ba325b7c2e139797a1aafe4a6810f2f8c4",
+      "results": [
+        {
+          "digest": "sha256:d98086e01706d88cc65ea279ad071add1ebedc1b3919d744a06aeb657103fbc6",
+          "id": "tos.form.metadata.ebf0886401bfc23c0da5bed691b2562121c97fce1fddd4acade38cc366f27296",
+          "version": 1
+        },
+        {
+          "digest": "sha256:e6654b2dc0f969524b4d194d2fb663453ffe7f0fc0bcad8992fa3684369b6159",
+          "id": "tos.form.metadata.a8d6a21edc23321d16a897bc49b93ab9ce2b1e9f47939b9bdb83405b0b0ba729",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:9dd7cae659d0933f14aad295423f30012ab8e136cde4b921a4e6b415fe16e2c0",
+        "id": "tos.work.plutarch.de-curiositate",
+        "version": 2
+      }
+    },
+    {
+      "command_id": "registry-seventh-source-forms:041f1a8ea479cd82e2eb29aaeeea8a4ab660386f7e0d8dd2dc33c8b2d82ff19c",
+      "request_digest": "sha256:8121c51a8e5cf88438fe89713495cfcdeec6d8254f793239d4b3c97ea41c64fa",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:219a395da0b954e31f784699740e40b6b10d329776dd2554a8816f655887b4c8",
+      "recorded_at": "2026-09-09T19:51:53.694639+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-curiositate",
+        "version": 3,
+        "digest": "sha256:a5f338590b702ff4d06bd83b0321883b21ad7eda4c53d71d99c5d70f5faf5e94"
+      },
+      "previous_revision": "sha256:5ee334041bfa940829e1184784d506666f561b93078ac0cc7156ae51225d5d06",
+      "results": [
+        {
+          "id": "tos.form.metadata.ebf0886401bfc23c0da5bed691b2562121c97fce1fddd4acade38cc366f27296",
+          "version": 2,
+          "digest": "sha256:d1a9837b557cc0d8ab2f36372cfcd3f905197faa2ff3c5fc090ee80fb59c9f12"
+        },
+        {
+          "id": "tos.form.metadata.a8d6a21edc23321d16a897bc49b93ab9ce2b1e9f47939b9bdb83405b0b0ba729",
+          "version": 2,
+          "digest": "sha256:5cb4be39b5524a8645d5fdfbcc6eb2aa73df7182f4e9c21c311c31b7df78e14f"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:9dd7cae659d0933f14aad295423f30012ab8e136cde4b921a4e6b415fe16e2c0",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:9dd7cae659d0933f14aad295423f30012ab8e136cde4b921a4e6b415fe16e2c0",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:9dd7cae659d0933f14aad295423f30012ab8e136cde4b921a4e6b415fe16e2c0",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:9dd7cae659d0933f14aad295423f30012ab8e136cde4b921a4e6b415fe16e2c0",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.ebf0886401bfc23c0da5bed691b2562121c97fce1fddd4acade38cc366f27296",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:9dd7cae659d0933f14aad295423f30012ab8e136cde4b921a4e6b415fe16e2c0",
+        "id": "tos.work.plutarch.de-curiositate",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:9dd7cae659d0933f14aad295423f30012ab8e136cde4b921a4e6b415fe16e2c0",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:9dd7cae659d0933f14aad295423f30012ab8e136cde4b921a4e6b415fe16e2c0",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:9dd7cae659d0933f14aad295423f30012ab8e136cde4b921a4e6b415fe16e2c0",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:9dd7cae659d0933f14aad295423f30012ab8e136cde4b921a4e6b415fe16e2c0",
+            "id": "tos.work.plutarch.de-curiositate",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a8d6a21edc23321d16a897bc49b93ab9ce2b1e9f47939b9bdb83405b0b0ba729",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:9dd7cae659d0933f14aad295423f30012ab8e136cde4b921a4e6b415fe16e2c0",
+        "id": "tos.work.plutarch.de-curiositate",
+        "version": 2
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-curiositate",
+    "version": 3,
+    "digest": "sha256:a5f338590b702ff4d06bd83b0321883b21ad7eda4c53d71d99c5d70f5faf5e94"
+  }
+}

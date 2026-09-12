@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>Plutarch's Natural Questions</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">R. Brown</editor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         		<name>Angelia Hanhardt</name>
+         		<name>Michael Konieczny</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg125.perseus-eng2.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">3</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst03plutuoft/page/494">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	<editorialDecl>
+      		<quotation marks="none"/>
+      		<correction status="high" method="silent">
+      			<p>optical character recognition</p>
+      		</correction>
+      	</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+         	<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p></cRefPattern>
+            <!--<state unit="section" delim="."/>-->
+         </refsDecl><!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+         	<language ident="grc">Greek</language>
+         	<language ident="lat">Latin</language>
+         	<language ident="eng">English</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Sophia Elzie" when="2019-07-19">EpiDoc and CTS Conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg125.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg125.perseus-eng2" type="translation" xml:lang="eng">
+         <head>Plutarch’s Natural Questions.</head>
+         <pb xml:id="v.3.p.495"/>
+         <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg125.perseus-eng2" type="textpart" n="1"> <head>I. <lb/> WHAT IS THE REASON THAT SEA-WATER NOURISHES NOT TREES?</head> <p rend="indent">Is it not for the same reason that it nourishes not earthly animals? For Plato, Anaxagoras, and Democritus think plants are earthly animals. Nor, though sea-water be aliment to marine plants, as it is to fishes, will it therefore nourish earthly plants, since it can neither penetrate the roots, because of its grossness, nor ascend, by reason of its weight; for this, among many other things, shows seawater to be heavy and terrene, because it more easily bears up ships and swimmers. Or is it because drought is a great enemy to trees? For sea-water is of a drying faculty; upon which account salt resists putrefaction, and the bodies of such as wash in the sea are presently dry and rough. Or is it because oil is destructive to earthly plants, and kills things anointed with it? But sea-water participates of much fatness; for it burns together with it. Wherefore, when men would quench fire, we forbid them to throw on sea-water. Or is it because sea-water is not fit to drink and bitter (as Aristotle says) through a mixture of burnt earth? For a lye is made by the falling of ashes into sweet water, and the dissolution ejects and corrupts what was good and potable, as in us men fevers convert the humors into bile. As for what woods and plants men talk of growing in the Red Sea, they bear no fruit, but are nourished by rivers casting up much mud; therefore <pb xml:id="v.3.p.496"/> they grow not at any great distance from land, but very near to it. </p> </div>
+         <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg125.perseus-eng2" type="textpart" n="2"> <head>II. <lb/> WHY DO TREES AND SEEDS THRIVE BETTER WITH RAIN THAN WITH WATERING?</head> <p rend="indent">WHETHER is it because (as Laitus thinks) showers, parting the earth by the violence of their fall, make passages, whereby the water may more easily penetrate to the root? Or cannot this be true; and did Laitus never consider that marsh-plants (as cat’s-tail, pond-weeds, and rushes) neither thrive nor sprout when the rains fall not in their season; but it is true, as Aristotle said, rain-water is new and fresh, that of lakes old and stale? And what if this be rather probable than true? For the waters of fountains and rivers are ever fresh, new always arriving; therefore Heraclitus said well, that no man could go twice into the same river. And yet these very waters nourish worse than rain-water. But water from the heavens is light and aerial, and, being mixed with spirit, is the quicker passed and elevated into the plant, by reason of its tenuity. And for this very reason it makes bubbles when mixed with the air. Or does that nourish most which is soonest altered and overcome by the thing nourished?—for this very thing is concoction. On the contrary, inconcoction is when the aliment is too strong to be affected by the thing nourished. Now thin, simple, and insipid things are the most easily altered, of which number is rain-water, which is bred in the air and wind, and falls pure and sincere. But fountain-water, being assimilated to the earth and places through which it passes, is filled with many qualities which render it less nutritive and slower in alteration to the thing nourished. Moreover, that rain-water is easily alterable is an argument; because it sooner putrefies than either spring <pb xml:id="v.3.p.497"/> or river-water. For concoction seems to be putrefaction, as Empedocles says,— <quote rend="blockquote"> <lg> <l>When in vine wood the water putrefies, </l> <l>It turns to wine, while under bark it lies.</l> </lg> </quote> </p> 
+        <p rend="indent">Or, which may most r

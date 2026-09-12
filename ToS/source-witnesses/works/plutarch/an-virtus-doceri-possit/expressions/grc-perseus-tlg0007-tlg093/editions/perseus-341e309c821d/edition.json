@@ -1,0 +1,49 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.plutarch.an-virtus-doceri-possit.grc-perseus-tlg0007-tlg093.perseus-341e309c821d",
+  "preferred_label": "An Virtus Doceri Possit — perseus Git snapshot 341e309c821d",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/manifest.json",
+    "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/tlg0007.tlg093-cts.xml",
+    "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/tlg0007.tlg093.perseus-grc2-header.xml",
+    "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/tlg0007-cts.xml",
+    "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/perseus-README.md",
+    "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/perseus-license.md",
+    "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "CTS",
+      "value": "urn:cts:greekLit:tlg0007.tlg093.perseus-grc2",
+      "source_ref": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/tlg0007.tlg093-cts.xml",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.plutarch.an-virtus-doceri-possit.grc-perseus-tlg0007-tlg093"
+  ],
+  "publication_claim_refs": [],
+  "exemplar_claim_refs": [
+    "tos.claim.topology.registry-20260909.an-virtus-doceri-possit.edition-item"
+  ],
+  "edition_statement": "Immutable PerseusDL/canonical-greekLit commit 341e309c821d5eca8c976bebca77c28b10bad58f; Perseus Ancient Greek TEI edition urn:cts:greekLit:tlg0007.tlg093.perseus-grc2, Git 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied print/source description: Plutarch Moralia Grēgorios N. Vernardakēs Leipzig Teubner 1891 3 The Internet Archive",
+  "notes": "Digital snapshot identity, not an ancient publication date. Supplied title and contributor statement: Εἰ διδακτὸν ἡ ἀρετή Plutarch Grēgorios N. Vernardakēs Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Lisa Cerrato Rashmi Singhal Bridget Almas Angelia Hanhardt The National Endowment for the Humanities Sophia Elzie Center for Hellenic Studies CTS conversion. Preserve the exact source header; its claims remain reported.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

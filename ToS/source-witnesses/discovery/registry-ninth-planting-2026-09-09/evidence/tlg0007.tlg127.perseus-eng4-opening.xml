@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+            <title>Concering the First Principles of Cold</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+				<editor role="translator">F. Fetherston</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Ethan Della Rocca</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg127.perseus-eng4.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <respStmt>
+                     <resp>Translated from the Greek by several hands. Corrected and revised	by</resp>
+                     <name>William W. Goodwin, PH. D.</name>
+                  </respStmt>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">5</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst05plutuoft/page/309">The Internet Archive</ref>
+            </biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+				<!-- <refsDecl doctype="TEI.2">
+				<state unit="section"/> -->
+			</refsDecl>
+			<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="GRC" when="2006">tagging</change>
+			<change who="Ethan Della Rocca" when="2019-07-22">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg127.perseus-eng4">
+			<div n="urn:cts:greekLit:tlg0007.tlg127.perseus-eng4" type="translation" xml:lang="eng">
+				<pb xml:id="v.5.p.309"/>
+				<head>Concerning the first principle of cold.</head> 
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg127.perseus-eng4" n="1"><p rend="indent">Is there then, Favorinus, any first or principal power or existence of cold, as fire is the principle of heat, by the presence and imparting of which all other things of the same nature become cold? Or rather is not cold the privation of heat, as they say darkness is the privation of light, and rest the privation of motion? In regard that cold seems to be firm and stable, and heat always in motion; and for that the refrigeration of hot things is not caused by the presence of any active power, but by the departure of the heat. For we find the heat go off in great quantity, and then that which remains grows cold. Thus the vapor which boiling water sends forth ceases also when the heat is gone. Therefore refrigeration, expelling the heat, diminishes the quantity, while nothing supplies the place of it.</p> </div>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg127.perseus-eng4" n="2"><p rend="indent">First, we might question this way of arguing, as being that which would abolish several manifest faculties, as being neither qualities nor habits, but the privations of habits and qualities; so as to make ponderosity the privation of levity, hardness the privation of softness, black of white, bitter of sweet, and so with other things which are naturally opposed to each other in their power and not as a privation to a habit. Or else for this reason, because all privation is a thing altogether sluggish and without action, as blindness, deafness, silence, and death; for they are the <pb xml:id="v.5.p.310"/> departure of forms, and the utter defacings of substances, not being natures nor substances of themselves; but cold, wherever it resides, causes no less affections and alterations in bodies than heat. For many things are congealed by cold, many things thereby condensed. So that whatever is solid in it and difficult to be moved cannot be said to be sluggish and void of action, but firm and ponderous, as being supported by its own strength, which is endued with a power to preserve it in its proper station. Wherefore privation is the deficiency and departure of the opposite power, but many things are subject to be cold, though abounding with heat within themselves. And there are some things which cold the more condenses and consolidates the hotter they are, as iron quenched in water. The Stoics also affirm, that the spirit which is in the bodies of infants is quickened by refrigeration, and changing its Nature, turns to a soul. But this is a thing much to be disputed. Neither is it rational to believe that cold, which is the productive agent in many other things, can be a privation.</p> </div>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg127.perseus-eng4" n="3"><p rend="indent">Besides, no privation is capable of more and less. Neither can any man say, that one among those that cannot see is more blind than another, or that one among those that cannot speak is more silent than another, or that any thing is more dead than another among those things that never had life. But in cold things there is more and less, and excess and diminution to several degrees; in a word, there is both intensity and remission as well as in hot things; because the matter suffers in some things more violently, in others more languidly, and therefore some things are hotter, some things colder than others, according to the nature of the matter. For there is no mixture of habit with privation. Neither does any power admit of privation opposite to it, nor associate with it in the same subject, but it withstands it altogether. Hot things allow themselves to be mixed <pb xml:id="v.5.p.311"/> with

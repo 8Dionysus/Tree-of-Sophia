@@ -143,7 +143,7 @@ digests. It neither downloads material nor writes planting records. Current
 Table I, II and III row names are supported; a syntactically valid row name
 must still exist in the actual atlas and belong to the selected branch.
 
-The [first-wave preparation](source-planting-preparation/first-wave-20260908.json)
+The [cross-branch-source-anchors preparation](source-planting-preparation/cross-branch-source-anchors-20260908.json)
 records thirteen intended routes and their scope limits. Alternative editions
 retain the original provider-specific backlog label; canonical antecedents
 remain distinct from the later commentaries they help study. In particular,

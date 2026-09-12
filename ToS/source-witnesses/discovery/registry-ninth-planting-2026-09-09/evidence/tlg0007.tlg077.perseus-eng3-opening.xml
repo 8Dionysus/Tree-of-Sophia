@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>Advice About Keeping Well</title>          
+            <author>Plutarch</author>
+            <editor role="translator">Frank Cole Babbitt</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name> 
+         		<name>Bridget Almas</name>
+         	   <name>Angelia Hanhardt</name>
+         	</respStmt>            
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Karina Cooper</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg077.perseus-eng3.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title xml:lang="lat">Moralia</title>
+                  <editor role="translator">Frank Cole Babbitt</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1928</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+            	<ref target="https://archive.org/details/in.ernet.dli.2015.233122/page/n229">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl><quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+         	<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])"> 
+         	<p>This pointer pattern extracts section.</p></cRefPattern>
+            
+         </refsDecl><!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>--><refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+            <language ident="lat">Latin</language>
+         	<language ident="deu">German</language>
+         </langUsage>
+      	<particDesc>
+      		<person><persName>Moschion</persName></person>
+      		<person><persName>Zeuxippus</persName></person>
+      	</particDesc>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="RS" when="2010-05">tagged and parsed</change>
+      	<change who="Karina Cooper" when="2019-06-26">EpiDoc and CTS conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng"> 
+   	<body xml:base="urn:cts:greekLit:tlg0007.tlg077.perseus-eng3"> 
+<div n="urn:cts:greekLit:tlg0007.tlg077.perseus-eng3" type="translation" xml:lang="eng"><pb xml:id="v.2.p.214"/> 
+	<head>ADVICE ABOUT KEEPING WELL (<foreign xml:lang="lat">DE TUENDA SANITATE PRAECEPTA</foreign>)</head> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg077.perseus-eng3" n="intro"> <head>INTRODUCTION</head><p rend="indent">Plutarch had more than a casual interest in medicine, for, besides this essay on keeping well, his other works abound in references to the behaviour of the sick and their treatment, and the medical practices of his day. Long before the time of Plutarch the art of medicine, always empirical, had been put on a solid foundation, and the acute observations of Hippocrates and his school had been set down in writing; and this body of Hippocratic medical writings, along with others, was in circulation, and had undoubtedly been read by Plutarch. </p>
+
+<p rend="indent">That medicine has made very great advances since Plutarch’s time is, of course, self-evident; <q>aseptic,</q> <q>antiseptic,</q> and <q>sterilize</q> are now household words, and the germ theory of disease has, in recent times, shed light on much which before was dark. But Plutarch is not dealing with the technical side of medicine; he is only giving some common-sense advice on rational living, and much that he has to say in regard to rest, exercise, and diet is in accord with the best medical practice of the present day. In fact, it is doubtful if any physician would take exception to anything that Plutarch advises (his advice is meant for men whose work is done with their heads rather than their hands), and one might name men in public life to-day, well on in years, who have followed many of his suggestions, unwittingly, no doubt, but to their own advantage. </p>
+
+<pb xml:id="v.2.p.215"/><p rend="indent">The essay seems, at the first glance, to be put in the form of a dialogue, but it is about as much of a dialogue as Quiller-Couch’s <title rend="italic">Foe-Farrell</title>. The dialogue form is merely a literary subterfuge to present an essay in a slightly more attractive form, and the third person of the dialogue, only occasionally recalled to the reader by the parsimonious interjection of <q>he said,</q> may be presumed to be Plutarch, the author. The two speakers in the brief dialogue at the beginning of the essay are Moschion, a physician, whom Plutarch introduces also into the <title rend="italic">Symposiacs</title> (<title rend="italic" xml:lang="lat">Moralia</title>, 658 a), and Zeuxippus, a friend of Plutarch’s, who is introduced also as a speaking character in two other essays of Plutarch’s (<title rend="italic" xml:lang="lat">Moralia</title>, 748 e and 1086 c), besides being mentioned several times in other essays. </p>
+
+<p rend="indent">That the essay was written some time after a.d. 81 is clear from the reference to the death of the Roman Emperor Titus (123 d). </p>
+
+<p rend="indent">The title of the essay is included in Lamprias’ list of Plutarch’s works, and Stobaeus, in his <title rend="italic" xml:lang="lat">Florilegium</title>, has several quotations from it, sometimes with a slightly different reading, but none of these readings changes the meaning of the passage at all, and rarely is one to be preferred to the reading found in the mss. of Plutarch (see Vol. I. Introd. p. xxi). </p>
+
+<p rend="indent">Indeed, the text of this essay has suffered more at the hands of modern editors than from the ancient copyists, for a glance at the foot-notes in Bernardakis’s edition will show that the gratuitous and unnecessary changes introduced into the text by modern editors outnumber their corrections of the minor errors in spelling, and the like, made by the ancient copyists. </p> </div><pb xml:id="v.2.p.217"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg077.perseus-eng3" n="1"><p rend="indent"><said who="#Moschion"><label>MOSCHION.</label> So, Zeuxippus, 

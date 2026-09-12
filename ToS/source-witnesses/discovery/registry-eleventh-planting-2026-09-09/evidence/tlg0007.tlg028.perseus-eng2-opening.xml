@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Titus Flamininus</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         	   <resp>Prepared under the supervision of</resp>
+         	   <name>Bridget Almas</name>
+         	   <name>Lisa Cerrato</name>
+         	   <name>Rashmi Singhal</name>
+         	</respStmt>
+         <funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg028.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+      	   </availability>
+      	</publicationStmt>
+      	
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1921</date>
+                  </imprint>
+                  <biblScope unit="volume">10</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives10plut/page/322/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2018-04-04" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+      	<change when="2000-08-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-eng2"> 
+      	<div n="urn:cts:greekLit:tlg0007.tlg028.perseus-eng2" type="translation" xml:lang="eng"> 
+      		<head>TITUS FLAMININUS</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-eng2:1" n="1"><p>IN parallel with Philopoemen we shall put Titus Quintius Flamininus. What his outward appearance was may be seen by those who wish it from the bronze statue of him at Rome. It stands by the side of the great Apollo from Carthage, opposite the Circus,<note resp="editor" place="inline" anchored="true">The Circus Flamininus is meant, which was erected in 221 B.C. by the censor Flamininus Nepos.</note> and has upon it an inscription in Greek characters. As to his disposition, he is said to have been quick to show anger as well as to confer favours, though not in like extent.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-eng2:1" n="2"><p>For he was gentle in his punishments and not persistent, whereas in his favours he was unremitting, always well disposed towards his beneficiaries as though they were his benefactors, and eager to protect at all times and preserve those who had ever met with kindness at his hands, as though they were his choicest possessions. But since he was covetous of honour and fame, he desired that his noblest and greatest achievements should be the result of his own efforts, and he took more pleasure in those who wanted to receive kindness than in those who were able to bestow it, considering that the former were objects upon which he could exercise his virtue, while the latter were his rivals, so to speak, in the struggle for fame.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-eng2:1" n="3"><p><milestone unit="para"/>From his earliest years he was trained in the arts of war, since at that time Rome was carrying on many great contests and her young men from the very outset were taught by service as soldiers how to command soldiers. To begin with, then, he served as military tribune in the war against Hannibal under Marcellus the consul.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-eng2:1" n="4"><p>Marcellus fell into an ambush and lost his life,<note resp="editor" place="inline" anchored="true">In 208 B.C. Cf. the <bibl n="Plut. Marc. 28.1"> <title>Marcellus</title>, xxviii. f.</bibl> </note> but Titus was appointed governor of the country about Tarentum and of Tarentum itself, now captured for the second time. Here he won a good name, no less for his administration of justice than for his conduct in the field. For this reason he was also chosen director-in-chief of the colonists sent out to the two cities of Narnia and Cosa.</p> </div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-eng2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-eng2:2" n="1"><p>This success more than anything else so exalted his ambition that he ignored the intervening offices which young men generally sought, the offices of tribune, praetor, and aedile, and thought himself worthy at once of a consulship; so he became a candidate for that office, with the eager support of his colonists. But the tribunes Fulvius and Manius opposed his course, and said that it was a monstrous thing for a young man to force his way into the highest office contrary to the laws, before he had been initiated, as it were, into the first rites and mysteries of government.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg028.perseus-eng2:2" n="2"><p>The senate, however, referred the matter to the votes of the people, and the people elected him consul<note resp="editor" place="inline" anchored="true">In 198 B.C.</note> along wi

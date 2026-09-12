@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d",
+    "version": 1,
+    "digest": "sha256:9971ee7e5c03593eb16a61cd15f9468f9d8f3591b69c453582e04014e04e9ef6"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:9971ee7e5c03593eb16a61cd15f9468f9d8f3591b69c453582e04014e04e9ef6",
+            "id": "tos.edition.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:9971ee7e5c03593eb16a61cd15f9468f9d8f3591b69c453582e04014e04e9ef6",
+            "id": "tos.edition.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:9971ee7e5c03593eb16a61cd15f9468f9d8f3591b69c453582e04014e04e9ef6",
+            "id": "tos.edition.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:9971ee7e5c03593eb16a61cd15f9468f9d8f3591b69c453582e04014e04e9ef6",
+            "id": "tos.edition.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.c01baeca02f3950daf69d76579feded16bd0a9a655cb4bc4c49b27f59fef70ba",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:9971ee7e5c03593eb16a61cd15f9468f9d8f3591b69c453582e04014e04e9ef6",
+        "id": "tos.edition.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:9971ee7e5c03593eb16a61cd15f9468f9d8f3591b69c453582e04014e04e9ef6",
+            "id": "tos.edition.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:9971ee7e5c03593eb16a61cd15f9468f9d8f3591b69c453582e04014e04e9ef6",
+            "id": "tos.edition.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:9971ee7e5c03593eb16a61cd15f9468f9d8f3591b69c453582e04014e04e9ef6",
+            "id": "tos.edition.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:9971ee7e5c03593eb16a61cd15f9468f9d8f3591b69c453582e04014e04e9ef6",
+            "id": "tos.edition.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.0db55ac422d1226547c41b1f0596420fa7e91c81c062bc04fc170d368c895857",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:9971ee7e5c03593eb16a61cd15f9468f9d8f3591b69c453582e04014e04e9ef6",
+        "id": "tos.edition.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-seventh-source-forms:01e336dc1917970f31fd38ba656f3cf345ff39372a9f5e10cb1a2b3e552baa83",
+      "request_digest": "sha256:11ccddd3c21cf9647bdb27ee0411a3e7997fcacac194f37c7c55dee2f63ade12",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:fe677eeb877b72b5138995b1ef15a86643963cdcfa059c6d36aaa2f1138d61ff",
+      "recorded_at": "2026-09-09T19:51:54.249096+00:00",
+      "source": {
+        "id": "tos.edition.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d",
+        "version": 1,
+        "digest": "sha256:9971ee7e5c03593eb16a61cd15f9468f9d8f3591b69c453582e04014e04e9ef6"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.c01baeca02f3950daf69d76579feded16bd0a9a655cb4bc4c49b27f59fef70ba",
+          "version": 1,
+          "digest": "sha256:3c107ff52b19bd9d234ebe1035f590e20bca013b1e5beb00fe29ba3c1a7538af"
+        },
+        {
+          "id": "tos.form.metadata.0db55ac422d1226547c41b1f0596420fa7e91c81c062bc04fc170d368c895857",
+          "version": 1,
+          "digest": "sha256:eb6afe9919893b9ea1e9658579a13ad79d605615a07c51b381c7b7fdfa6ab5a4"
+        }
+      ]
+    }
+  ]
+}

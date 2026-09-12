@@ -28,6 +28,9 @@ from tos_access.knowledge import (  # noqa: E402
     _normalize_node,
     _normalized_time,
 )
+from tos_access.core import ToSAccessCore  # noqa: E402
+from tos_access.projection_store import ProjectionReader, is_partitioned  # noqa: E402
+from tos_access.query_store import QueryStore  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
@@ -186,7 +189,48 @@ class KnowledgeContractTests(unittest.TestCase):
     def _claim_navigation_fixture(self):
         sys.path.insert(0, str(self.repo_root / 'scripts'))
         from source_witness_bibliographic_graph_common import build_claim_navigation_descriptor
-        payload = json.loads((self.repo_root / 'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text())
+        graph_path = self.repo_root / 'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json'
+        # Keep this semantic fixture bounded when the real graph is a
+        # partitioned projection.  It needs one translated_by claim and only
+        # its endpoint/evidence edge carriers; the fixture assertions below
+        # continue to exercise the pure normalizer.
+        fixture_cache = getattr(type(self), '_claim_navigation_fixture_cache', None)
+        if fixture_cache is None:
+            if is_partitioned(graph_path):
+                reader = ProjectionReader(graph_path)
+                trace = next(
+                    value for value in reader.iter_collection('claim_traces')
+                    if value['predicate'] == 'translated_by'
+                )
+                edges = [
+                    edge for edge in reader.iter_collection('edges')
+                    if edge.get('claim_ref') == trace['claim_ref']
+                ]
+                nodes = [
+                    node for node in reader.iter_collection('nodes')
+                    if node['node_id'] in {
+                        trace['claim_node_id'],
+                        *(edge[key] for edge in edges for key in ('from_id', 'to_id')),
+                    }
+                ]
+            else:
+                complete = json.loads(graph_path.read_text())
+                trace = next(
+                    value for value in complete['claim_traces']
+                    if value['predicate'] == 'translated_by'
+                )
+                edges = [
+                    edge for edge in complete['edges']
+                    if edge.get('claim_ref') == trace['claim_ref']
+                ]
+                identities = {
+                    trace['claim_node_id'],
+                    *(edge[key] for edge in edges for key in ('from_id', 'to_id')),
+                }
+                nodes = [node for node in complete['nodes'] if node['node_id'] in identities]
+            fixture_cache = {'nodes': nodes, 'edges': edges, 'claim_traces': [trace]}
+            type(self)._claim_navigation_fixture_cache = fixture_cache
+        payload = copy.deepcopy(fixture_cache)
         trace = next(value for value in payload['claim_traces'] if value['predicate'] == 'translated_by')
         edges = [edge for edge in payload['edges'] if edge.get('claim_ref') == trace['claim_ref']]
         identities = {trace['claim_node_id'], *(edge[key] for edge in edges for key in ('from_id', 'to_id'))}
@@ -1862,6 +1906,7 @@ class KnowledgeContractTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        super().setUpClass()
         cls.schemas = {
             name: json.loads((ACCESS_ROOT / "contracts" / name).read_text(encoding="utf-8"))
             for name in (
@@ -1888,6 +1933,22 @@ class KnowledgeContractTests(unittest.TestCase):
                 / "ToS/doctrine/semantic-interchange/relation-types.v1.json"
             ).read_text(encoding="utf-8")
         )
+        cls._claim_navigation_fixture_cache = None
+        cls._compiled_store = None
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._compiled_store = None
+        super().tearDownClass()
+
+    @classmethod
+    def _real_query_store(cls) -> QueryStore:
+        """Read the snapshot explicitly compiled by the validation lane."""
+        if cls._compiled_store is None:
+            cls._compiled_store = ToSAccessCore.discover(tos_root=cls.repo_root)._query_store()
+            if cls._compiled_store is None:
+                raise RuntimeError('compile the repository query snapshot before real-corpus tests')
+        return cls._compiled_store
 
     def fixture(self) -> tuple[dict[str, object], dict[str, object]]:
         corpus: dict[str, object] = {
@@ -2355,55 +2416,40 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertEqual(relation["predicate_mapping"]["status"], "unmapped")
 
     def test_current_repository_projection_has_complete_registry_coverage(self) -> None:
-        corpus = json.loads(
-            (self.repo_root / "ToS/derived-exports/tos_corpus_index.min.json").read_text(
-                encoding="utf-8"
-            )
-        )
-        philosophy = json.loads(
-            (
-                self.repo_root
-                / "ToS/derived-exports/philosophy_graph_projection.min.json"
-            ).read_text(encoding="utf-8")
-        )
-        bibliographic = json.loads(
-            (
-                self.repo_root
-                / "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json"
-            ).read_text(encoding="utf-8")
-        )
-
-        graph = build_knowledge_graph(
-            corpus,
-            philosophy,
-            bibliographic,
-            self.entity_type_registry,
-            self.relation_type_registry,
-        )
-        mapping = graph["counts"]["semantic_mapping"]
+        # The repository projections are large and the corpus/bibliography
+        # roots are partitioned. The lane explicitly compiled the SQLite read
+        # model; every assertion below retrieves only the rows it needs.
+        store = self._real_query_store()
+        mapping = store.header["counts"]["semantic_mapping"]
         self.assertEqual(mapping["unmapped_nodes"], 0)
         self.assertEqual(mapping["unmapped_relations"], 0)
         self.assertGreater(mapping["cross_layer_relations"], 0)
-        self.assertEqual(graph["counts"]["semantic_validation"]["violations"], [])
+        self.assertEqual(store.header["counts"]["semantic_validation"]["violations"], [])
 
-        nodes_by_id = {node['id']: node for node in graph['nodes']}
+        def one(table: str, where: str, params=()):
+            value = next(store.rows(table, where, params, limit=1), None)
+            self.assertIsNotNone(value, f"missing {table} row for {where}")
+            return value
+
         # Every source-owned metadata form travels into the ordinary reader,
         # not only the original Jenseits example. Do not freeze corpus counts.
-        for source_node in bibliographic['nodes']:
+        for source_node in store.raw('bibliographic/nodes'):
             forms = source_node['properties'].get('human_forms')
             if forms is None:
                 continue
-            projected = nodes_by_id['source-claims:' + source_node['node_id']]
+            projected = one('knowledge_nodes', 'id=?',
+                            ('source-claims:' + source_node['node_id'],))
             self.assertEqual(projected['attributes']['human_forms'], forms)
             self.assertEqual(projected['attributes']['human_forms_source_ref'],
                              source_node['properties']['human_forms_source_ref'])
         # The real source form set travels through the existing graph and full
         # inspection. It is not yet a scene/hover selection contract.
-        from tos_access.knowledge import inspect_knowledge_node
         form_subject = 'tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese'
-        source_identity = next(node for node in bibliographic['nodes']
-                               if node['properties'].get('identity_ref') == form_subject)
-        packet = inspect_knowledge_node(graph, form_subject, relation_limit=0)
+        source_identity = next(
+            node for node in store.raw('bibliographic/nodes')
+            if node['properties'].get('identity_ref') == form_subject
+        )
+        packet = store.inspect_node(form_subject, relation_limit=0)
         projected_identity = next(node for node in packet['matches'] if node['source_graph'] == 'source-claims')
         self.assertEqual(projected_identity['attributes']['human_forms'], source_identity['properties']['human_forms'])
         self.assertEqual(len(projected_identity['attributes']['human_forms']), 3)
@@ -2418,11 +2464,11 @@ class KnowledgeContractTests(unittest.TestCase):
                          source_identity['properties']['human_forms'][2])
         Draft202012Validator({'$ref': self.schemas['knowledge-graph.v1.schema.json']['$id'] + '#/$defs/node'},
                             registry=self.registry).validate(selected_identity)
-        claims = [node for node in graph['nodes'] if node['type_id'] == 'tos.entity.claim']
         from tos_access.knowledge import _ASSERTION_FIELDS, _lens_carrier
         contexts_by_claim = {}
-        for claim in claims:
-            target = nodes_by_id[claim['semantics']['claim']['object_node_id']]
+        for claim in store.rows('knowledge_nodes', 'type_id=?', ('tos.entity.claim',)):
+            target = one('knowledge_nodes', 'id=?',
+                         (claim['semantics']['claim']['object_node_id'],))
             self.assertNotEqual(claim['entity_id'], target['entity_id'])
             context, = claim['semantics']['assertion_contexts']
             source = claim['source_record']['payload']['properties']['source_claim']
@@ -2432,22 +2478,46 @@ class KnowledgeContractTests(unittest.TestCase):
             self.assertEqual(context['conflicts'], [])
             self.assertEqual(_lens_carrier(claim, 'compact')['semantics']['assertion_contexts'], [context])
             contexts_by_claim[source['claim_id']] = context
-        for relation in graph['relations']:
+        for relation in store.rows('knowledge_relations'):
             claim_ref = relation['attributes'].get('claim_ref')
             if relation['source_graph'] != 'source-claims' or claim_ref not in contexts_by_claim:
                 continue
             governed, = [context for context in _lens_carrier(relation, 'compact')['semantics']['assertion_contexts']
                          if context['binding_role'] == 'referenced-claim']
             self.assertEqual(governed, {**contexts_by_claim[claim_ref], 'binding_role': 'referenced-claim'})
-        subject_edge = next(edge for edge in graph['relations'] if edge['relation_type_id'] == 'tos.relation.has-subject')
-        graph['relations'].append({**subject_edge, 'id': subject_edge['id'] + ':duplicate-subject'})
-        report = validate_knowledge_semantics(graph, self.entity_type_registry, self.relation_type_registry)
+
+        # Re-run the cardinality guard over one complete Claim neighborhood;
+        # this preserves the mutation assertion without reconstructing the
+        # repository graph in Python memory.
+        subject_edge = next(store.rows(
+            'knowledge_relations', 'relation_type_id=?',
+            ('tos.relation.has-subject',)
+        ))
+        claim_node = one('knowledge_nodes', 'id=?', (subject_edge['from_id'],))
+        claim_edges = list(store.rows(
+            'knowledge_relations', 'from_id=?', (claim_node['id'],)
+        ))
+        endpoint_ids = {
+            claim_node['id'],
+            *(endpoint for edge in claim_edges for endpoint in
+              (edge.get('from_id'), edge.get('to_id')) if endpoint),
+            *(claim_node.get('semantics', {}).get('claim', {}).get('evidence_node_ids', [])),
+        }
+        id_clause, id_params = store.membership('id', sorted(endpoint_ids))
+        neighborhood_nodes = list(store.rows('knowledge_nodes', id_clause, id_params))
+        mutated_edges = [*claim_edges, {**subject_edge, 'id': subject_edge['id'] + ':duplicate-subject'}]
+        neighborhood = {
+            **store.header,
+            'nodes': neighborhood_nodes,
+            'relations': mutated_edges,
+        }
+        report = validate_knowledge_semantics(
+            neighborhood, self.entity_type_registry, self.relation_type_registry
+        )
         self.assertFalse(report['valid'])
         self.assertTrue(any('exactly one' in issue or 'per_subject_max' in issue for issue in report['violations']))
-        graph['relations'].pop()
 
-        focused = focus_knowledge_node(
-            graph,
+        focused = store.focus(
             "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
             sources=[
                 "canon",

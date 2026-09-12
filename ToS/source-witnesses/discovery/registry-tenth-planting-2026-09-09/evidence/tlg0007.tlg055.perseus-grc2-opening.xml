@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+
+<title>Cicero</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+   <name>Bridget Almas</name>
+   <name>Lisa Cerrato</name>
+   <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+ <date type="release" when="2010-10-22">Perseus 4.0</date> 
+   <idno type="filename">tlg0007.tlg055.perseus-grc2.xml</idno>
+   <availability>
+      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+   </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1919</date>
+</imprint>
+<biblScope unit="volume">7</biblScope>
+</monogr>
+   <series>
+      <title>Loeb Classical Library</title>
+   </series>
+   <ref target="https://archive.org/details/plutarchslives07plut/page/82/mode/2up">Internet Archive</ref>  
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+   <refsDecl n="CTS">
+      <cRefPattern n="section"
+         matchPattern="(\w+).(\w+)"
+         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+         <p>This pointer pattern extracts chapter and section.</p>
+      </cRefPattern>
+      <cRefPattern n="chapter"
+         matchPattern="(\w+)"
+         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         <p>This pointer pattern extracts chapter.</p>
+      </cRefPattern>
+   </refsDecl>
+   <refsDecl>
+      <refState unit="chapter" delim="."/>
+      <refState unit="section"/>
+   </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+   <change when="2018-03-07" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+   <change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+   <text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg055.perseus-grc2">
+   <div n="urn:cts:greekLit:tlg0007.tlg055.perseus-grc2" type="edition" xml:lang="grc">
+      
+<pb n="p.82"/>
+      <head>Κικέρων</head>
+ 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg055.perseus-grc2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg055.perseus-grc2:1" n="1"><p>Κικέρωνος δὲ τὴν μὲν μητέρα λέγουσιν <pb n="paris.1624.861"/> Ἑλβίαν καὶ γεγονέναι καλῶς καὶ βεβιωκέναι, περὶ δὲ τοῦ πατρὸς οὐδὲν ἦν πυθέσθαι μέτριον, οἱ μὲν γὰρ ἐν κναφείῳ τινὶ καὶ γενέσθαι καὶ τραφῆναι τόν ἄνδρα λέγουσιν, οἱ δʼ εἰς Τύλλον Ἄττιον ἀνάγουσι τὴν ἀρχὴν τοῦ γένους, βασιλεύσαντα λαμπρῶς ἐν Οὐολούσκοις καὶ πολεμήσαντα Ῥωμαίοις οὐκ ἀδυνάτως. </p></div>  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg055.perseus-grc2:1" n="2"><p>ὁ μέντοι πρῶτος ἐκ τοῦ γένους Κικέρων ἐπονομασθεὶς ἄξιος λόγου δοκεῖ γενέσθαι, διὸ τὴν ἐπίκλησιν οὐκ ἀπέρριψαν οἱ μετʼ αὐτόν, ἀλλʼ ἠσπάσαντο, καίπερ ὑπὸ πολλῶν χλευαζομένην. κίκερα γὰρ οἱ Λατῖνοι τόν ἐρέβινθον καλοῦσι, κἀκεῖνος ἐν τῷ πέρατι τῆς ῥινὸς διαστολὴν, ὡς ἔοικεν, ἀμβλεῖαν εἶχεν ὥσπερ ἐρεβίνθου διαφυήν, ἀφʼ ἧς ἐκτήσατο τὴν ἐπωνυμίαν. </p></div>  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg055.perseus-grc2:1" n="3"><p>αὐτός γε μὴν Κικέρων, ὑπὲρ οὗ τάδε γέγραπται, τῶν φίλων αὐτὸν οἰομένων δεῖν, ὅτε πρῶτον ἀρχὴν μετῄει καὶ πολιτείας ἥπτετο, φυγεῖν τοὔνομα καὶ μεταθέσθαι, λέγεται νεανιευσάμενος εἰπεῖν ὡς ἀγωνιεῖται τόν Κικέρωνα τῶν Σκαύρων καὶ τῶν Κάτλων ἐνδοξότερον ἀποδεῖξαι. </p></div>  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg055.perseus-grc2:1" n="4"><p>ταμιεύων δʼ ἐν Σικελίᾳ καὶ τοῖς θεοῖς ἀνάθημα ποιούμενος ἀργυροῦν τὰ μὲν πρῶτα δύο τῶν ὀνομάτων ἐπέγραψε, τόν τε Μᾶρκον καὶ τόν <pb n="p.84"/> Τύλλιον, ἀντὶ δὲ τοῦ τρίτου σκώπτων ἐρέβινθον ἐκέλευσε παρὰ τὰ γράμματα τόν τεχνίτην ἐντορεῦσαι. ταῦτα μὲν οὖν περὶ τοῦ ὀνόματος ἱστόρηται. </p></div></div>  
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg055.perseus-grc2" n="2">  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg055.perseus-grc2:2" n="1"><p>τεχθῆναι δὲ Κικέρωνα λέγουσιν ἀνωδύνως καί ἀπόνως λοχευθείσης αὐτοῦ τῆς μητρὸς ἡμέρᾳ τρίτῃ τῶν νέων Καλανδῶν, ἐν ᾗ νῦν οἱ ἄρχοντες εὔχονται καί θύουσιν ὑπὲρ τοῦ ἡγεμόνος. τῇ δὲ τίτθῃ φάσμα δοκεῖ γενέσθαι καί προειπεῖν ὡς ὄφελος μέγα πᾶσι Ῥωμαίοις ἐκτρεφούσῃ. </p></div>  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg055.perseus-grc2:2" n="2"><p>ταῦτα δὲ ἄλλως ὀνείρατα καί �

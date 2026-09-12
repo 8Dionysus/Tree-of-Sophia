@@ -18,6 +18,7 @@ from .knowledge import (
     _resolve_focus_node, _stable_digest, knowledge_scene, _identity_carrier_groups,
 )
 from .lens_pagination import KnowledgeRevisionConflict
+from .query_store import RowMapping, Adjacency, CarrierGroups
 
 EXECUTION_VERSION = "tos-exploration-execution-v5"
 
@@ -88,10 +89,12 @@ class ExplorationService:
 
     def __init__(self, graph_provider, *, clock=time.monotonic, ttl=900,
                  max_checkpoints=128, max_bytes=32 * 1024 * 1024,
-                 work_limit=512, node_limit=10000, relation_limit=20000):
+                 work_limit=512, node_limit=10000, relation_limit=20000, query_store_provider=None):
         if min(ttl, max_checkpoints, max_bytes, work_limit, node_limit, relation_limit) <= 0:
             raise ValueError("exploration service limits must be positive")
         self.graph_provider, self.clock, self.ttl = graph_provider, clock, ttl
+        self.query_store_provider = query_store_provider
+        self.query_store = None
         self.max_checkpoints, self.max_bytes = max_checkpoints, max_bytes
         self.work_limit, self.node_limit, self.relation_limit = work_limit, node_limit, relation_limit
         self.lock = threading.RLock()
@@ -153,7 +156,18 @@ class ExplorationService:
                     raise ExplorationExpired("exploration expired or was evicted; restart from focus")
                 expires, raw = self.records[cursor]
                 record = json.loads(raw)
-            self._index(self.graph_provider())
+            store = self.query_store_provider() if self.query_store_provider else None
+            if store is not None:
+                self.query_store = store
+                self.nodes = RowMapping(store)
+                self.relations = RowMapping(store, 'knowledge_relations')
+                self.adjacency = Adjacency(store, ids=True)
+                self.carrier_groups = CarrierGroups(store)
+                self.revision = store.revision
+                self.graph = store.header
+            else:
+                self.query_store = None
+                self._index(self.graph_provider())
             if continuing:
                 if record["revision"] != self.revision:
                     raise KnowledgeRevisionConflict("exploration snapshot changed; restart from focus")
@@ -161,8 +175,9 @@ class ExplorationService:
                     return record["result"]
                 state = record["state"]
             else:
-                focus = _resolve_focus_node([n for n in self.nodes.values()
-                                             if n["source_graph"] in query["sources"]], query["focus_node_id"])
+                focus = (self.query_store.focus_node(query['focus_node_id'], query['sources']) if self.query_store else
+                         _resolve_focus_node([n for n in self.nodes.values()
+                                             if n['source_graph'] in query['sources']], query['focus_node_id']))
                 query["focus_node_id"] = focus["id"]
                 expires = now + self.ttl
                 state = {"query": query, "queue": [[focus["id"], 0]], "head": 0, "offset": 0,

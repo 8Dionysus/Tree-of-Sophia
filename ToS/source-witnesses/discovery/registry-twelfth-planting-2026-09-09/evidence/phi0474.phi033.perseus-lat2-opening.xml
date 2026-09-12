@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">Pro Q. Ligario</title>
+				<author>M. Tullius Cicero</author>
+				<editor>Albert Curtis Clark</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				<respStmt>
+					<persName>Michael Konieczny</persName>
+					<orgName/>
+					<resp>Digital editor</resp>
+				</respStmt>
+				<funder n="org:NEH">National Endowment For The Humanities (NEH)</funder>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1997-10-28">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi033.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt>
+
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>Albert Curtis Clark</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon Press</publisher>
+							<date>1918</date>
+							<date type="alternate">1901</date>
+						</imprint>
+						<biblScope unit="volume">6</biblScope>
+						<biblScope n="contents">Pro Milone; Pro Marcello; Pro Ligario; Pro Rege Deiotaro; Philippicae I-XIV</biblScope>
+					</monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+					<ref target="https://hdl.handle.net/2027/uc1.31822018932749?urlappend=%3Bseq=96">HathiTrust</ref>
+					<ref target="https://archive.org/details/mtvlliciceroniso06cice/page/n81/mode/2up">Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+			</editorialDecl>
+			<editorialDecl>
+				<p>Notes may contain errors</p>
+			</editorialDecl>
+			<refsDecl n="CTS">
+				<cRefPattern matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])" n="section">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+<change who="Michael Konieczny" when="2021-01-11">Revisions for EpiDoc and CTS compliance</change> 
+<change who="Thibault Clérice" when="2021-01-29">Capitains + Epidoc</change> 
+<change who="Stella Dee" when="2014-08-01">edited markup</change> 
+<change who="Stella Dee" when="2014-07-01">split composite text and converted to unicode</change> 
+<change when="2013-09-13" who="balmas01">reverting texts back to pre_cts_reorg tagged version</change> 
+<change when="2011-07-19" who="gcrane">removed the earlier persName/placeName tags</change> 
+<change when="2011-01-15" who="gcrane">base SDL file</change> 
+<change when="2009-10-09" who="rsingh04">more reorganizing of texts module by collection</change> 
+<change when="2006-04-02" who="gcrane">mainly fixes to the words lower cased at the start of sentences: found that we had always had -name-Cum-/name- rather than -reg-cum-/reg-. This has been fixed in oct.cic[123]. oct.cic[456] are having the app crits added and will need to be updated when those files come back</change> 
+<change when="2006-03-31" who="gcrane">missing charaters from imaging problems have been checked</change> 
+<change when="2006-03-29" who="gaweaver">this includes the notes from the app crit. there is one known problem: the lower right hand corner of one page got clipped and the characters in the app crit need to be added with reference to a clean copy</change> 
+<change when="2005-08-01" who="packel">removed stray item tags</change> 
+<change when="2005-07-25" who="packel"> Converted to XML</change> 
+<change when="2005-04-08" who="mimno">added default chunks</change> 
+<change when="2003-07-01" who="yorkc">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change> 
+<change when="2003-05-20" who="amahoney">do not mark Heus as a proper name</change> 
+<change when="2002-12-02" who="amahoney">correct spelling of Quirites, improperly 'regularized'</change> 
+<change when="2000-03-06" who="amahoney">add headers for groups of speeches, so they show up in the toc: Catilines, Verrines, Philippics, and Agrarian Law</change> 
+<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change> 
+<change when="1999-10-14" who="dasmith">Added explanatory subtitles to titleStmt</change> 
+<change when="1999-08-12" who="dasmith">Fixed refsDecl</change> 
+<change when="1999-08-04" who="textgod">Random changes over a period of months.</change> 
+<change when="1997-05-12" who="cjsu">Fixed type attribute.</change> 
+<change when="1997-05-09" who="cjsu">Fixed header info. Added abbreviations.</change> 
+<change when="1997-05-09" who="cjsu">Added to repository. Passes SGML validation.</change>
+		</revisionDesc>
+	</teiHeader>
+
+	<text xml:lang="lat">
+		<body xml:base="urn:cts:latinLit:phi0474.phi033.perseus-lat2">
+			<div type="edition" xml:lang="lat">
+				<head rend="align(center)">PRO Q. LIGARIO ORATIO</head>
+				
+<div n="1" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi033.perseus-lat2">  <p rend="align(indent)"><milestone resp="editor" n="1" unit="chapter"/> <reg>novum</reg> crimen, C. Caesar, et ante hunc<note>hanc <hi rend="italic">Quintil.</hi> xi. 3. 108, 110</note> diem non auditum<note>non auditum <hi rend="italic"><foreign xml:lang="grc">α</foreign>BDL et Quintil.</hi>: in auditum <hi rend="italic">E<foreign xml:lang="grc">γ</foreign> et Aquila Rom. Rhet. L. p.</hi> 24</note> propinquus meus ad te Q. Tubero detulit, Q. Ligarium in Africa fuisse, idque C. Pansa, praestanti vir ingenio, fretus fortasse familiaritate ea quae est ei tecum ausus est confiteri. <reg>itaque</reg> quo me vertam nescio. <reg>paratus</reg> enim veneram, cum tu id neque per te scires<note>scires <hi rend="italic"><foreign xml:lang="grc">β</foreign>a</hi>: scire <hi rend="italic"><foreign xml:lang="grc">α</foreign>hm</hi></note> neque audire aliunde potuisses, ut ignoratione tua ad hominis miseri salutem abuterer<note><w type="lemma">abuterer</w> <hi rend="italic">mallem</hi> uterer (<hi rend="italic">numeri gratia</hi>) <hi rend="italic">sed vulg tuetur Quintil.</hi></note>. <reg>sed</reg> quoniam diligentia inimici investigatum est quod latebat, confitendum est, opinor<note>opinor <foreign xml:lang="grc">α</foreign>: ut opinor <foreign xml:lang="grc">βγ</foreign></note>, praesertim cum meus necessarius Pansa fecerit ut id integrum iam non esset, omissaque controversia omnis oratio ad misericordiam tuam conferenda est, qua plurimi sunt conservati, cum a te non liberationem culpae, sed errati veniam impetravissent. </p> </div> 
+<div n="2" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi033.perseus-lat2"> <p><reg>habes</reg> igitur, Tubero, quod est accusatori maxime optandum, confitentem reum, sed tamen hoc<note>hoc ita <foreign xml:lang="grc">γ</foreign></note> confitentem, se in ea parte fuisse qua te<note>te, Tubero <foreign xml:lang="grc">γ</foreign></note>, qua virum omni laude dignum, patrem tuum. <reg>itaque</reg><note><w type="lemma">itaque</w> quare <hi rend="italic">Quintil.</hi> viii. 5. 13</note> prius de vestro delicto confiteamini<note>vestro facto fateamini <hi rend="italic">Quintil.</hi></note> necesse est quam Ligari ullam culpam reprehendatis. </p> 
+<p rend="align(indent)">Q.<note>Q. igitur <foreign xml:lang="grc">γ</foreign></note> enim Ligarius, cum esset<note>esset adhuc <foreign xml:lang="grc">γ</foreign></note> nulla belli suspicio, legatus in Africam C. Considio<note>C. <hi rend="italic"><foreign xml:lang="grc">α</foreign>, Quintil.</hi> iv. 2. 109 <hi rend="italic">cod. A</hi>: cum C. <foreign xml:lang="grc">β</foreign>: cum consule <foreign xml:lang="grc">γ</foreign></note> profectus est, qua in legatione et civibus et sociis ita se probavit ut decedens Considius provincia satis facere hominibus non posset, si quemquam alium provinciae praefecisset. <reg>itaque</reg> Ligarius, cum diu recusans nihil profecisset, provinciam accepit invitus; cui sic praefuit in pace ut et civibus et sociis gratissima esset eius integritas et fides<note>ac fides <foreign xml:lang="grc">β</foreign></note>. </p> </div> 
+<div n="3" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi033.perseus-lat2"> <p><reg>bellum</reg> subito exarsit, quod qui erant in Africa ante audierunt geri quam parari. <reg>quo</reg> audito partim cupiditate inconsiderata, partim caeco quodam timore primo salutis, post etiam<note>post etiam <hi rend="italic">AV<foreign xml:lang="grc">β</foreign>am</hi>: postea <hi rend="italic">H</hi>: post <hi rend="italic">h</hi></note> studi sui quaerebant aliquem ducem, cum Ligarius domum spectans, ad<note>et ad <foreign xml:lang="grc">γ</foreign></note> suos redire cupiens, nullo se implicari negotio passus est. <reg>interim</reg> P. Attius Varus, qui tum<no

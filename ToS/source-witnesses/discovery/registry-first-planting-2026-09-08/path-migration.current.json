@@ -1,0 +1,56 @@
+{
+  "schema_version": "tos_source_witness_path_migration_v1",
+  "status": "current",
+  "migration_id": "tos.source-witnesses.registry-first.navigation-2026-09-10",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "migration_review_ref": "ToS/review-ledger/2026-09-10-registry-first-path-migration.md",
+  "applied_to_commit": "d5c034871722b041f9966d5857f12703994ed23e",
+  "migration_reason": "Current cross-branch source-anchor preparation and execution routes name the source branch/corpus and language or version role; ordinal sequence labels remain historical provenance.",
+  "identity_boundary": {
+    "stable_record_ids_unchanged": true,
+    "payload_bytes_unchanged": true,
+    "preparation_input_bytes_retained": true,
+    "historical_receipts_retained": true,
+    "semantic_or_rights_admission": false
+  },
+  "current_routes": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/cross-branch-source-anchors-20260908.json",
+      "sha256": "fe63957563adaed179b5a1d1764d82d467e7c67f56ffb0d007d44c9bc2b44155"
+    },
+    {
+      "role": "planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/plant_cross_branch_sources.py",
+      "sha256": "6fb48ae7166075cf194d9a3b37700d8a095567a6ea9d69c9e9c137686c6e7794"
+    },
+    {
+      "role": "report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/report_cross_branch_sources.py",
+      "sha256": "4dc5c6a169a19b06f1ed08bdce1f441a5d02a991b9576a1c95a0e1e08901d211"
+    }
+  ],
+  "current_manifests": [
+    {
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "sha256": "c472fae47ceabe45c28cc80915ac69359beb4e801ae0f492ca87755588a273dc",
+      "historical_manifest_sha256": "da1bdc754c3bb47ee8be84c0789550ca6657cadd62e9019e1a9fe0ad83a32c74",
+      "historical_receipt_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/preparation-inputs/3800c953e98c5ab26ee939d2684d566cc2b53440e7a401581421dd45663f81a6.preparation-receipt.json"
+    }
+  ],
+  "retained_inputs": [
+    {
+      "stage": "registry-preparation",
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/preparation-inputs/fe63957563adaed179b5a1d1764d82d467e7c67f56ffb0d007d44c9bc2b44155.source-preparation.json",
+      "preparation_sha256": "fe63957563adaed179b5a1d1764d82d467e7c67f56ffb0d007d44c9bc2b44155",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/preparation-inputs/da1bdc754c3bb47ee8be84c0789550ca6657cadd62e9019e1a9fe0ad83a32c74.manifest.json",
+      "manifest_sha256": "da1bdc754c3bb47ee8be84c0789550ca6657cadd62e9019e1a9fe0ad83a32c74",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/preparation-inputs/3800c953e98c5ab26ee939d2684d566cc2b53440e7a401581421dd45663f81a6.preparation-receipt.json",
+      "receipt_sha256": "3800c953e98c5ab26ee939d2684d566cc2b53440e7a401581421dd45663f81a6",
+      "preparation_commit": "8861fecf8e328a874887e875b255876061c80ac9",
+      "checkpoint_review_ref": "agent-review:8861fecf8:20260908T211104Z"
+    }
+  ],
+  "historical_record_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/legacy/path-migration.json",
+  "authority_boundary": "Navigation migration only. Historical preparation and execution bytes remain bound to their original manifest, checkpoint, commit and review references; the current migration receipt records route parity and does not authorize a new acquisition or alter source, rights, semantic, publication or canon state."
+}

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>How a Man May Become Aware of His Progress in Virtue</title>
+            <author>Plutarch</author>
+            <editor role="translator">Frank Cole Babbitt</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name> 
+         		<name>Bridget Almas</name>     
+         	   <name>Angelia Hanhardt</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg071.perseus-eng3.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title xml:lang="lat">Moralia</title>
+                  <editor role="translator">Frank Cole Babbitt</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1927</date>
+                  </imprint>
+                  <biblScope unit="volume">1</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+            	<ref target="https://archive.org/details/in.ernet.dli.2015.43837/page/n441">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+        <editorialDecl>
+           <quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>    
+         <refsDecl n="CTS">
+         	<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p></cRefPattern>     
+         </refsDecl><refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+         	<language ident="eng">English</language>
+         	<language ident="grc">Greek</language>
+         	<language ident="lat">Latin</language>
+         	<language ident="deu">German</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="RS" when="2010-05">tagged and parsed</change>
+      	<change who="Sophia Elzie" when="2019-06-21">CTS and Epidoc conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg071.perseus-eng3">
+      	
+<div n="urn:cts:greekLit:tlg0007.tlg071.perseus-eng3" type="translation" xml:lang="eng"> 
+<pb xml:id="v1.p.399"/> <head>HOW A MAN MAY BECOME AWARE OF HIS PROGRESS IN VIRTUE <foreign xml:lang="lat">(QUOMODO QUIS SUOS IN VIRTUTE SENTIAT PROFECTUS)</foreign></head><lb/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg071.perseus-eng3" n="intro"> <head>INTRODUCTION</head> <p rend="indent">The essay on Progress in Virtue is one of Plutarch’s polemics against the Stoics, and is directed mainly against two of the doctrines of the Stoic philosophy. The first is that the wise man alone is virtuous, and that wisdom with attendant virtue is a sudden acquisition with no preliminary stages; the second is in a way the corollary of the first, since, if a man is not perfect (i.e. wise), it may be argued that it matters little how trivial is his imperfection and whether his faults be great or small. <q>He that offendeth in one point is guilty of all.</q> </p> <p rend="indent">Against such doctrines as these Plutarch’s strong common sense revolts, and he endeavours to show not only that ethical advance is possible, but that there are plenty of signs by which it can be recognized.</p> <p rend="indent">The essay is addressed (or dedicated) to Q. Sosius <note place="inline" anchored="true">So spelled in the best MSS. of Pliny and in inscriptions. <foreign xml:lang="grc">Σόσιος</foreign> is found in Greek inscriptions.</note> Senecio, one of Plutarch’s numerous Roman friends, who was twice consul in the early years of Trajan’s reign. It was at his request that Plutarch composed the Symposiacs, in which his name frequently appears, and to him are inscribed also the parallel lives of Theseus and Romulus, Demosthenes and Cicero, and Dion and Brutus. Plutarch had been with him much in Rome, and he had visited Plutarch in Greece. It is doubtless the same Sosius whom the younger Pliny addressed in two letters (i. 13 and iv. 4) which have come down to us. a So spelled in the best mss. of Pliny and in inscriptions.</p> </div> <pb xml:id="v1.p.401"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg071.perseus-eng3" n="1"><p rend="indent">What possible form of argument, my dear Sosius Senetio, will keep alive in a mak the consciousness that he is growing better in regard to virtue, if it is a fact that the successive stages of his progress produce no abatement of his unwisdom, but, on the contrary, vice constantly besets all progress, and with countervailing weight drags him down, <quote rend="blockquote">As leaden weights submerge the fisher’s net?<note place="inline" anchored="true">From an unknown drama of Sophocles; Nauck, <title rend="italic" xml:lang="lat">Trag. Graec. Frag., Sophocles</title>, No. 756.</note> </quote> For, by the same token, in music or grammar a man would not realize that he was making any improvement if in the process of learning he should in no wise lower the level of his ignorance about these subjects, and his lack of proficiency should all the time persist to the same degree. So, too, in the case of a sick man, a course of treatment that should not in some way effect an easing and alleviation of the malady, by making it to yield and let go its hold on him, would not afford him any perception of a change for the better until the opposite condition had been unmistakably engendered, his body having completely recovered its strength. On the contrary, just as in these cases persons make no progress unless their progress is marked by such an abatement of what is oppressing them, that, when the scale turns <pb xml:id="v1.p.403"/> and they swing upward in the opposite direction, they can note the change, so too, in the study of philosophy, neither progress nor any sense of progress is to be assumed, if the soul does not put aside any of its gross stupidity and purge itself thereof, and if, up to the moment of its attaining the absolute and perfect good, it

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Fabius Maximus</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+		<principal>Gregory Crane</principal>
+		<respStmt>
+		<resp>Prepared under the supervision of</resp>
+		   <name>Bridget Almas</name>
+		   <name>Lisa Cerrato</name>
+		   <name>Rashmi Singhal</name>
+		</respStmt>
+         <funder n="org:Tufts">Tufts University</funder></titleStmt>
+         
+      	<publicationStmt>
+		<publisher>Trustees of Tufts University</publisher>
+		<pubPlace>Medford, MA</pubPlace>
+      	   <authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg013.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+      	   </availability>
+		</publicationStmt><sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>               
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1916</date>
+                  </imprint>
+                  <biblScope unit="volume">3</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+            	<ref target="https://archive.org/details/liveswithenglish03plutuoft/page/118/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+         	<quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+         <refsDecl>
+            <refState unit="chapter" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2017-01-06" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+      	<change when="1998-10-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg013.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg013.perseus-eng2" type="translation" xml:lang="eng">
+         <head>FABIUS MAXIMUS</head>
+         
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg013.perseus-eng2" n="1">  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg013.perseus-eng2:1" n="1">
+<p>Such were the memorable things in the career of Pericles, as we have received them, and now let us change the course of our narrative and tell of Fabius. It was a nymph, they say, or a woman native to the country, according to others, who consorted with Hercules by the river Tiber, and became by him the mother of Fabius, the founder of the family of the Fabii, which was a large one, and of high repute in Rome. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg013.perseus-eng2:1" n="2">
+<p>But some writers state that the first members of the family were called Fodii in ancient times, from their practice of taking wild beasts in pitfalls. For down to the present time <foreign xml:lang="lat">fossae</foreign> is the Latin for <gloss>ditches</gloss>, and <foreign xml:lang="lat">fodere</foreign> for <gloss>to dig</gloss>. In course of time, by a change of two letters, they were called Fabii. This family produced many great men, and from Rullus, the greatest of them, and on this account called Maximus by the Romans, the Fabius Maximus of whom we now write was fourth in descent. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg013.perseus-eng2:1" n="3">
+<p>He had the surname of Verrucosus from a physical peculiarity, namely, a small wart growing above his lip and that of <foreign xml:lang="lat">Ovicula</foreign>, which signifies <gloss>Lambkin</gloss>, was given him because of the gentleness and gravity of his nature when he was yet a child. Indeed, the calmness and silence of his demeanour, the great caution with which he indulged in childish pleasures, the slowness and difficulty with which he learned his lessons, and his contented submissivness in dealing with his comrades, led those who knew him superficially to suspect him of something like foolishness and stupidity. Only a few discerned the inexorable firmness in the depth of his soul, and the magnanimous and leonine qualities of his nature. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg013.perseus-eng2:1" n="4">
+<p>But soon, as time went on and he was roused by the demands of active life, he made it clear even to the multitude that his seeming lack of energy was only lack of passion, that his caution was prudence, and that his never being quick nor even easy to move made him always steadfast and sure. He saw that the conduct of the state was a great task, and that wars must be many; he therefore trained his body for the wars (nature’s own armour, as it were), and his speech as an instrument of persuasion with the people, giving it a form right well befitting his manner of life. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg013.perseus-eng2:1" n="5">
+<p>For it had no affectation, nor any empty, forensic grace, but an import of peculiar dignity, rendered weighty by an abundance of maxims. These, they say, most resembled those which Thucydides employs. And a speech of his is actually preserved, which was pronounced by him before the people in eulogy of his son,<note resp="editor" place="inline" anchored="true">Cf. <bibl n="Cic. Cato fr. 4">Cicero, <title>Cato Maior</title>, 4.</bibl> </note> who died consul.</p></div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg013.perseus-eng2" n="2">  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg013.perseus-eng2:2" n="1">
+<p>The first<note resp="editor" place="inline" anchored="true">233 B.C.</note> of the five consulships in which he served brought him the honou

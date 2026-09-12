@@ -60,8 +60,19 @@ def assess_target(root: Path, target: dict, plantings: dict, *, verify_local: bo
     result['file_count'] = len(manifest['payload_files'])
     result['intake_evidence'] = 'completed_acquisition_recorded'
     result['acquisition_event_ref'] = manifest['acquisition_event_ref']
-    result['branch_planting_refs'] = sorted(ref for ref, p in plantings.get(ids['work'], [])
-        if p['source_witness']['record_ref'] == paths['work'] and p['status'] == 'source_witness_planted')
+    # One Work may now have multiple acquired language/edition versions. A
+    # planting of another version cannot establish this version's branch route.
+    for ref, p in plantings.get(ids['work'], []):
+        if p['source_witness']['record_ref'] != paths['work'] or p['status'] != 'source_witness_planted':
+            continue
+        discovery_ref = p.get('discovery_ref')
+        if not discovery_ref or not safe(root, discovery_ref).is_file():
+            continue
+        discovery = read(safe(root, discovery_ref))
+        if (ids['item'] in discovery.get('target', {}).get('known_tos_refs', [])
+                and manifest['acquisition_event_ref'] in discovery.get('provenance_event_refs', [])):
+            result['branch_planting_refs'].append(ref)
+    result['branch_planting_refs'].sort()
     result['status'] = 'selected_version_planted' if result['branch_planting_refs'] else 'acquired_version_needs_branch'
     if verify_local:
         result['local_now'] = {'scope': 'this checkout only', 'state': 'verified' if all(f['state'] == 'verified' for f in local) else 'needs_attention', 'files': local}
@@ -96,7 +107,7 @@ def build(root: Path = ROOT, *, verify_local: bool = False) -> dict:
             plantings[p['source_witness']['work_id']].append((path.relative_to(root).as_posix(), p))
     selected = defaultdict(dict)
     targets = {}
-    for path in sorted((root / 'ToS/source-witnesses/discovery').glob('*/manifest.json')):
+    for path in sorted((root / 'ToS/source-witnesses/discovery').rglob('manifest.json')):
         manifest = read(path)
         if manifest.get('schema_version') != 'tos_registry_first_planting_preparation_v1':
             continue

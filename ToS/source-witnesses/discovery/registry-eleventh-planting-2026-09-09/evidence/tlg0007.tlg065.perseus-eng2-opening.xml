@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+  <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Galba</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         	   <name>Bridget Almas</name>
+         	   <name>Lisa Cerrato</name>
+         	   <name>Rashmi Singhal</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date> 
+      	   <idno type="filename">tlg0007.tlg065.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      	   </availability>      	   
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>               	
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1926</date>
+                  </imprint>
+                  <biblScope unit="volume">11</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives11plut/page/204/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-04-18" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+      	<change when="1999-08-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg065.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg065.perseus-eng2" type="translation" xml:lang="eng"> <head>GALBA</head><note resp="editor" place="inline" anchored="true">With Plutarch’s <title>Galba</title> may be compared <bibl n="Suet. Gal. 1">Suetonius, Galba</bibl>; <bibl n="D.C. 64.1">Dion Cassius, lxiv. 1-9</bibl>; <bibl n="Tac. Hist. 1.1">Tacitus, <title>Hist.</title> i. 1-45</bibl>.</note> <p/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg065.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg065.perseus-eng2:1" n="1"><p>Iphicrates the Athenian used to think that the mercenary soldier might well be fond of wealth and fond of pleasure, in order that his quest for the means to gratify his desires might lead him to fight with greater recklessness; but most people think that a body of soldiers, just like a natural body in full vigour, ought to have no initiative of its own, but should follow that of its commander. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg065.perseus-eng2:1" n="2"><p>Wherefore Paulus Aemilius, as we are told, finding that the army which he had taken over in Macedonia was infected with loquacity and meddlesomeness, as though they were all generals, gave out word that each man was to have his hand ready and his sword sharp, but that he himself would look out for the rest.<note resp="editor" place="inline" anchored="true">See the <bibl n="Plut. Aem. 8.4"> <title>Aemilius</title>, xiii. 4</bibl>.</note> </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg065.perseus-eng2:1" n="3"><p>Moreover, Plato<note resp="editor" place="inline" anchored="true">Cf. <emph>e.g.</emph> <bibl n="Plat. Rep. 376c"> <title>Republic</title> 376 C</bibl>.</note> sees that a good commander or general can do nothing unless his army is amenable and loyal; and he thinks that the quality of obedience, like the quality characteristic of a king, requires a noble nature and a philosophic training, which, above all things, blends harmoniously the qualities of gentleness and humanity with those of high courage and aggressiveness. Many dire events, and particularly those which befell the Romans after the death of Nero, bear witness to this, and show plainly that an empire has nothing more fearful to show than a military force given over to untrained and unreasoning impulses. </p></div>
+	<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg065.perseus-eng2:1" n="4"><p>Demades, indeed, after Alexander had died, likened the Macedonian army to the blinded Cyclops, observing the many random and disorderly movements that it made; but the Roman Empire was a prey to convulsions and disasters like those caused by the Titans of mythology, being torn into many fragments, and again in many places collapsing upon itself, not so much through the ambition of those who were proclaimed emperors, as through the greed and licence of the soldiery, which drove out one commander with another as nail drives out nail.<note resp="editor" place="inline" anchored="true">An allusion to the proverb <foreign xml:lang="grc">ἥλῳ ὁ ἧλος ἐκκρούεται.</foreign>.</note> </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg065.perseus-eng2:1" n="5"><p>And yet the Pheraean<note resp="editor" place="inline" anchored="true">Alexander, tyrant of Pherae. See the <bibl n="Plut. Pel. 24.1"> <title>Pelopidas</title>, xxiv.-xxxv</bibl>.</note> who ruled Thessaly for ten months and was then promptly killed, was called the tragedy-tyrant by Dionysius, with scornful reference to the quickness of the change. But the house of the Caesars, the Palatium, in a shorter time than this received four emperors, the soldiery ushering one in and another out, as in play. But the suffering people had one consolation at least in the fact that they needed no other punishment of 

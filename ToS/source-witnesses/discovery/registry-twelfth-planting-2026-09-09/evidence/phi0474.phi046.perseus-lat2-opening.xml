@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title>Lucullus</title>
+            <author>M. Tullius Cicero</author>
+            <editor>Otto Plasberg</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2009-10-07">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi046.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+       
+         <sourceDesc>
+            <biblStruct >
+               <monogr>
+                  <title xml:lang="lat">Scripta Quae Manserunt Omnia, Fasc. 42</title>
+                  <title xml:lang="lat" type="subtitle">Academicorum reliquiae cum Lucullo</title>
+                  <author>M. Tullius Cicero</author>
+                  <editor>Otto Plasberg</editor>
+                  <imprint>
+                     <pubPlace>Leipzig</pubPlace>
+                     <publisher>Teubner</publisher>
+                     <date>1922</date>
+                     <biblScope unit="volume"/>
+                     <biblScope n="contents"/>
+                  </imprint>
+               </monogr>
+               <series xml:lang="lat">Scripta Quae Manserunt Omnia</series>
+               <ref target="https://babel.hathitrust.org/cgi/pt?id=coo.31924006752632&amp;seq=58">HathiTrust</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+       
+      <encodingDesc>
+         <refsDecl n="CTS">
+          <cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+         <change when="2026-08" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN.</change>
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+<change who="gcrane" when="2013-06-08">TEI XML converted to facilitate CTS compatibility</change>
+<change who="gcrane" when="2011-01-15">base SDL file</change>
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+<change who="rsingh04" when="2009-09-14">added a bunch of cicero texts, removed old cicero files that aren't used</change>
+<change who="ajones06" when="2009-09-10">Fixed some of the metadata for the Cicero philosophical works.</change>
+<change who="gcrane" when="2009-09-09">base files</change>
+<change who="gcrane" when="2006-05-05">fixed the page numbers and the tei header</change>
+<change who="gcrane" when="2006-05-04">entered repository</change>
+<change who="gcrane" when="2006-05-04">added to repository</change>
+</revisionDesc>
+   </teiHeader>
+   
+   <text xml:lang="lat">
+      <body>
+        <div xml:lang="lat" type="edition" n="urn:cts:latinLit:phi0474.phi046.perseus-lat2">
+            <pb n="p.26"/>
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi046.perseus-lat2" n="1"> 
+<p rend="align(indent)"> <milestone unit="chapter" n="1"/> Magnum<note> <hi rend="italic">cf. testim.</hi> </note> ingenium L. Luculli magnumque optimarum artium studium, tum omnis liberalis et digna homine nobili ab eo percepta<note>per accepta V cepta B<hi rend="sup">1</hi> </note> doctrina<note>clarit A<hi rend="sup">3</hi>B<hi rend="sup">2</hi> </note> quibus temporibus florere in foro maxume potuit caruit omnino rebus urbanis. ut enim <del>urbanis<note>urbanis <hi rend="italic">Ven.</hi> <hi rend="sup">2</hi> humanis AVB</note> <note>urbanis A<hi rend="sup">1</hi>B -nus A<hi rend="sup">2</hi> <hi rend="italic">om.</hi> V</note> </del> admodum adulescens cum fratre pari pietate et industria praedito paternas inimicitias magna cum gloria est persecutus, in Asiam quaestor profectus ibi permultos annos admirabili quadam laude provinciae praefuit;<note>profuit A<hi rend="sup">1</hi> <hi rend="italic">B</hi> <hi rend="sup">1</hi> </note> deinde absens factus aedilis, continuo praetor (licebat enim celerius legis praemio), post in Africam, inde ad consulatum; quem ita gessit ut diligentiam admirarentur omnes ingenium agnoscerent.<note> <add>prudentes</add> agn. <hi rend="italic">Reitz.</hi> </note> post ad Mithridaticum bellum missus<note>missis A<hi rend="sup">1</hi>V<hi rend="sup">1</hi>B<hi rend="sup">1</hi> </note> a senatu non modo opinionem vicit omnii, quae de virtute eius erat sed etiam gloriam superiorum; </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi046.perseus-lat2" n="2"> 
+<p>idque eo fuit mirabilius quod ab eo laus imperatoria non admodum expectabatur,<note>expectabatur <hi rend="italic">dett. Rom.</hi> spect-AVB</note> qui adulescentiam<note>adulescentia A<hi rend="sup">1</hi>V<hi rend="sup">1</hi>B</note> in forensi opera, quaesturae diuturnum tempus Murena bellum in Ponto gerente in Asiae pace consumpserat. sed incredibilis quaedam ingenii magnitude non desideravit indocilem usus disciplinam. itaque cum totum iter et navigationem consumpsisset partim in percontando<note>percontando V<hi rend="sup">2</hi> -tendo A<hi rend="sup">3</hi> -tenda <hi rend="italic">A</hi> <hi rend="sup">1</hi>V<hi rend="sup">1</hi> -tanda B</note> <note> <hi rend="italic">cf. schol. Cic. Gron. D p. 320, 14 St.</hi> </note> a peritis partim in rebus gestis legendis, in Asiam factus imperator venit, cum esset Roma profectus rei militaris rudis. habuit enim divinam quandam memoriam rerum — verborum maiorem Horten- <pb n="p.27"/> sius; sed quo plus in negotiis gerendis res quaint verba prosunt, hoc erat memoria illa praestantior. quam fuisse in Themistocle, quem facile Graeciae principem ponimus, singularem ferunt; qui quidem etiam pollicenti cuidam se artem ei<note>et V<hi rend="sup">1</hi>B<hi rend="sup">1</hi> <del> <hi rend="italic">A</hi> <hi rend="sup">1</hi> </del> </note> memoriae, quae tum primum proferebatur, traditurum respondisse dicitur oblivisci se malle discere, credo quod haerebant in memorial quaecumque audierat<note>aut A<hi rend="sup">2</hi>B</note> et viderat. tali ingenio praeditus Lucullus adiunxerat<note>estet <hi rend="italic">A</hi> <hi rend="sup">1</hi>V<hi rend="sup">1</hi>B<hi rend="sup">1</hi> </note> etiam illam quam Themistocles spreverat disciplinam; itaque ut litteris consignamus quae monimentis mandare volumus sic ille in animo res insculptas habebat.</p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi046.perseus-lat2" n="3"> 
+<p> tantus ergo imperator in omni genere belli fuit, proeliis oppugnationibus navalibus pugnis totiusque belli instrunmento et adparatu, ut ille rex post Alexandrum maxumus hunc a se maiorem ducem cognitum quam quemquam eorum quos legisset fateretur. in eodem tanta prudentia fuit in constituendis temperandisque civitatibus. tanta aeq

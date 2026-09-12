@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-amicorum-multitudine.en-perseus-tlg0007-tlg073-perseus-eng3",
+    "version": 1,
+    "digest": "sha256:c3ae56899ac0ac36381e4d6f98d07ad1552071e92fe72e3cca36aa2eeec10d6e"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:c3ae56899ac0ac36381e4d6f98d07ad1552071e92fe72e3cca36aa2eeec10d6e",
+            "id": "tos.expression.plutarch.de-amicorum-multitudine.en-perseus-tlg0007-tlg073-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:c3ae56899ac0ac36381e4d6f98d07ad1552071e92fe72e3cca36aa2eeec10d6e",
+            "id": "tos.expression.plutarch.de-amicorum-multitudine.en-perseus-tlg0007-tlg073-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:c3ae56899ac0ac36381e4d6f98d07ad1552071e92fe72e3cca36aa2eeec10d6e",
+            "id": "tos.expression.plutarch.de-amicorum-multitudine.en-perseus-tlg0007-tlg073-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:c3ae56899ac0ac36381e4d6f98d07ad1552071e92fe72e3cca36aa2eeec10d6e",
+            "id": "tos.expression.plutarch.de-amicorum-multitudine.en-perseus-tlg0007-tlg073-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.5b72a4c766882b3e0fa3e626a7539c07a3f0bcaf79a40e29880d7befd718f015",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:c3ae56899ac0ac36381e4d6f98d07ad1552071e92fe72e3cca36aa2eeec10d6e",
+        "id": "tos.expression.plutarch.de-amicorum-multitudine.en-perseus-tlg0007-tlg073-perseus-eng3",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:c3ae56899ac0ac36381e4d6f98d07ad1552071e92fe72e3cca36aa2eeec10d6e",
+            "id": "tos.expression.plutarch.de-amicorum-multitudine.en-perseus-tlg0007-tlg073-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:c3ae56899ac0ac36381e4d6f98d07ad1552071e92fe72e3cca36aa2eeec10d6e",
+            "id": "tos.expression.plutarch.de-amicorum-multitudine.en-perseus-tlg0007-tlg073-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:c3ae56899ac0ac36381e4d6f98d07ad1552071e92fe72e3cca36aa2eeec10d6e",
+            "id": "tos.expression.plutarch.de-amicorum-multitudine.en-perseus-tlg0007-tlg073-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:c3ae56899ac0ac36381e4d6f98d07ad1552071e92fe72e3cca36aa2eeec10d6e",
+            "id": "tos.expression.plutarch.de-amicorum-multitudine.en-perseus-tlg0007-tlg073-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.ad7cc78241d7aa3b9b5ec9528ba8f9d0031b6beb43ee10d4a2630d04a5ca6dca",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:c3ae56899ac0ac36381e4d6f98d07ad1552071e92fe72e3cca36aa2eeec10d6e",
+        "id": "tos.expression.plutarch.de-amicorum-multitudine.en-perseus-tlg0007-tlg073-perseus-eng3",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-ninth-source-forms:d002a6ed076eb9ee014323ea0ed5a9d959941a39633e71625d66ac863bf660a6",
+      "request_digest": "sha256:991061396f5609dcdb1dec4ba3f5c39aef6a6a92a776fd75c02a5a0ba25d5c32",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:4af6ee9a439d4bd2f85cfc3c383075fda65450fa09ccc62ad18a05137e5bf625",
+      "recorded_at": "2026-09-09T18:35:27.145255+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-amicorum-multitudine.en-perseus-tlg0007-tlg073-perseus-eng3",
+        "version": 1,
+        "digest": "sha256:c3ae56899ac0ac36381e4d6f98d07ad1552071e92fe72e3cca36aa2eeec10d6e"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.5b72a4c766882b3e0fa3e626a7539c07a3f0bcaf79a40e29880d7befd718f015",
+          "version": 1,
+          "digest": "sha256:088767239f4b1ce7b6e88e6fbe584438386bacdcb919921ad011230ad626a254"
+        },
+        {
+          "id": "tos.form.metadata.ad7cc78241d7aa3b9b5ec9528ba8f9d0031b6beb43ee10d4a2630d04a5ca6dca",
+          "version": 1,
+          "digest": "sha256:398fdfb54088bd492530a09fbb6bebffe9d2701fa06b6cd4849eb30567910bb5"
+        }
+      ]
+    }
+  ]
+}

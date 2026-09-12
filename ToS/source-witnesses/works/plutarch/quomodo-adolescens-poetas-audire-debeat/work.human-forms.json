@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6d756459d17d54fc0d385262070dc1e4382afeb1c5bfa779aa538f400a81b4cb",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6d756459d17d54fc0d385262070dc1e4382afeb1c5bfa779aa538f400a81b4cb",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:6d756459d17d54fc0d385262070dc1e4382afeb1c5bfa779aa538f400a81b4cb",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:6d756459d17d54fc0d385262070dc1e4382afeb1c5bfa779aa538f400a81b4cb",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.7e4dab676b5365aae47ba0e460c033f9e0a0a57d892127e912693f2d6cb52a52",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:fc7bd26fd93d71f88c30cd42cf0726f4bab186c2560649c36322f937fd8fd139",
+        "id": "tos.form.metadata.7e4dab676b5365aae47ba0e460c033f9e0a0a57d892127e912693f2d6cb52a52",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6d756459d17d54fc0d385262070dc1e4382afeb1c5bfa779aa538f400a81b4cb",
+        "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6d756459d17d54fc0d385262070dc1e4382afeb1c5bfa779aa538f400a81b4cb",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6d756459d17d54fc0d385262070dc1e4382afeb1c5bfa779aa538f400a81b4cb",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:6d756459d17d54fc0d385262070dc1e4382afeb1c5bfa779aa538f400a81b4cb",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:6d756459d17d54fc0d385262070dc1e4382afeb1c5bfa779aa538f400a81b4cb",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a781eaf6fd825ba28a3f7cf772d78483d8b1ffaf19db30cedd0127540479aca3",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:9e871de0caaf537abea2e773399448656b4ee025c02a4876f4c8f9f63e11e2d3",
+        "id": "tos.form.metadata.a781eaf6fd825ba28a3f7cf772d78483d8b1ffaf19db30cedd0127540479aca3",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6d756459d17d54fc0d385262070dc1e4382afeb1c5bfa779aa538f400a81b4cb",
+        "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:81876e5157c5f8308973ce2d7deabc4a55e749019eaec51abae3aec7c4424444",
+      "owner_configuration": "sha256:98be826b98904f67efcd9c96127fde9076fa6d2eb31099aa517c5f0e33e6558e",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:37.026747+00:00",
+      "request_digest": "sha256:01561e8cb01402f9fd2a862a0331e1097e5dce75e0de2429b731bbc3fde82c08",
+      "results": [
+        {
+          "digest": "sha256:fc7bd26fd93d71f88c30cd42cf0726f4bab186c2560649c36322f937fd8fd139",
+          "id": "tos.form.metadata.7e4dab676b5365aae47ba0e460c033f9e0a0a57d892127e912693f2d6cb52a52",
+          "version": 1
+        },
+        {
+          "digest": "sha256:9e871de0caaf537abea2e773399448656b4ee025c02a4876f4c8f9f63e11e2d3",
+          "id": "tos.form.metadata.a781eaf6fd825ba28a3f7cf772d78483d8b1ffaf19db30cedd0127540479aca3",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:4aa6c83ebf584d12d2accab6b6f2a95ca47ef44306ffcb036a2947228505fa77",
+        "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:81876e5157c5f8308973ce2d7deabc4a55e749019eaec51abae3aec7c4424444",
+      "request_digest": "sha256:078ee7f05f7576a21fc539c8b533d2469fcf0a9a94785877720e13ae6f33f90d",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:ff9cda59ea98b1df210dbf5ff532f6d96298f297224c0e0735d60b47bef6a927",
+      "recorded_at": "2026-09-09T18:35:26.571798+00:00",
+      "source": {
+        "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+        "version": 2,
+        "digest": "sha256:6d756459d17d54fc0d385262070dc1e4382afeb1c5bfa779aa538f400a81b4cb"
+      },
+      "previous_revision": "sha256:b3435ac718e725eb1b082e8319b08cfa4dc05c1f2f6ba88ee2f7b40fae39d76a",
+      "results": [
+        {
+          "id": "tos.form.metadata.7e4dab676b5365aae47ba0e460c033f9e0a0a57d892127e912693f2d6cb52a52",
+          "version": 2,
+          "digest": "sha256:0330c6e9e64e0e5d366161131715ea50ca1164cc2397cfbeedfb812470b1ae69"
+        },
+        {
+          "id": "tos.form.metadata.a781eaf6fd825ba28a3f7cf772d78483d8b1ffaf19db30cedd0127540479aca3",
+          "version": 2,
+          "digest": "sha256:ed08c4a3778fadaae3301429e041fbd2cf15c22888fe0a9c64115581a3708aee"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4aa6c83ebf584d12d2accab6b6f2a95ca47ef44306ffcb036a2947228505fa77",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4aa6c83ebf584d12d2accab6b6f2a95ca47ef44306ffcb036a2947228505fa77",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:4aa6c83ebf584d12d2accab6b6f2a95ca47ef44306ffcb036a2947228505fa77",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:4aa6c83ebf584d12d2accab6b6f2a95ca47ef44306ffcb036a2947228505fa77",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.7e4dab676b5365aae47ba0e460c033f9e0a0a57d892127e912693f2d6cb52a52",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4aa6c83ebf584d12d2accab6b6f2a95ca47ef44306ffcb036a2947228505fa77",
+        "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4aa6c83ebf584d12d2accab6b6f2a95ca47ef44306ffcb036a2947228505fa77",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4aa6c83ebf584d12d2accab6b6f2a95ca47ef44306ffcb036a2947228505fa77",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:4aa6c83ebf584d12d2accab6b6f2a95ca47ef44306ffcb036a2947228505fa77",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:4aa6c83ebf584d12d2accab6b6f2a95ca47ef44306ffcb036a2947228505fa77",
+            "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a781eaf6fd825ba28a3f7cf772d78483d8b1ffaf19db30cedd0127540479aca3",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4aa6c83ebf584d12d2accab6b6f2a95ca47ef44306ffcb036a2947228505fa77",
+        "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.quomodo-adolescens-poetas-audire-debeat",
+    "version": 2,
+    "digest": "sha256:6d756459d17d54fc0d385262070dc1e4382afeb1c5bfa779aa538f400a81b4cb"
+  }
+}

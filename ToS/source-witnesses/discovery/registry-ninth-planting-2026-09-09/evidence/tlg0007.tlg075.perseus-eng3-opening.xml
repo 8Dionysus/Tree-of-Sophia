@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng"> 
+      <fileDesc>
+         <titleStmt>
+            <title>Virtue and Vice</title>
+            <author>Plutarch</author>
+            <editor role="translator">Frank Cole Babbitt</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name> 
+               <name>Bridget Almas</name>
+               <name>Angelia Hanhardt</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2010-12-13">Perseus 4.0</date>
+            <idno type="filename">tlg0007.tlg075.perseus-eng3.xml</idno>
+           <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+         </publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title xml:lang="lat">Moralia</title>
+                  <editor role="translator">Frank Cole Babbitt</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1928</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/moraliainfifteen02plutuoft/page/94">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>    
+         <refsDecl n="CTS">
+            <cRefPattern n= "section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts section.</p></cRefPattern>
+         </refsDecl>
+         <!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change who="RS" when="2010-05">tagged and parsed</change>
+         <change who="Sophia Elzie" when="2019-06-24">CTS and Epidoc conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg075.perseus-eng3">
+         
+<div n="urn:cts:greekLit:tlg0007.tlg075.perseus-eng3" type="translation" xml:lang="eng"> <pb xml:id="v.2.p.93"/> <head>VIRTUE AND VICE <foreign xml:lang="lat">(DE VIRTUTE ET VITIO)</foreign></head><lb/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg075.perseus-eng3" n="intro"> 
+<head>INTRODUCTION</head><p rend="indent">Plutarch’s essay on Virtue and Vice is an excellent sermon which has not been overlooked by Christian preachers. </p> </div> <pb xml:id="v.2.p.95"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg075.perseus-eng3" n="1"> <p rend="indent">Clothes are supposed to make a man warm, not of course by warming him themselves in the sense of adding their warmth to him, because each garment by itself is cold, and for this reason very often persons who feel hot and feverish keep changing from one set of clothes to another; but the warmth which a man gives off from his own person the clothing, closely applied to the body, confines and enwraps, and does not allow it, when thus imprisoned in the body, to be dissipated again. Now the same condition existing in human affairs deceives most people, who think that, if they surround themselves with vast houses, and get together a mass of slaves and money, they shall live pleasantly.<note place="inline" anchored="true"> <foreign xml:lang="lat">Cf.</foreign> <title rend="italic" xml:lang="lat">Moralia</title>, 99 E, <foreign xml:lang="lat">supra.</foreign> </note> But a pleasant and happy life comes not from external things, but, on the contrary, man draws on his own character as a source <note place="inline" anchored="true">A dictum of Zeno’s; <foreign xml:lang="lat">cf.</foreign> Plutarch, <title rend="italic" xml:lang="lat">Moralia</title>, 477 A, and Von Arnim, <foreign xml:lang="lat">Stoicorum veterum fragmenta</foreign>, i. p. 50.</note> from which to add the element of pleasure and joy to the things which surround him. Bright with a blazing fire a house looks far more cheerful,<note place="inline" anchored="true">A verse attributed to Homer; <foreign xml:lang="lat">cf.</foreign><title rend="italic"> The Contest of Homer and Hesiod</title>, 274. Again quoted <title rend="italic" xml:lang="lat">Moralia</title>, 762 D.</note> and wealth is pleasanter, and repute and power more resplendent, if with them goes the gladness which springs from the heart; and so too men bear poverty, exile, and old age lightly and gently in proportion to the serenity and mildness of their character. </p> </div> <pb xml:id="v.2.p.97"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg075.perseus-eng3" n="2"> <p rend="indent">As perfumes make coarse and ragged garments fragrant, but the body of Anchises gave off a noisome exudation, <quote rend="blockquote">Damping the linen robe adown his back,<note place="inline" anchored="true">From the <title rend="italic">Laocoön</title> of Sophocles; <foreign xml:lang="lat">cf.</foreign> Nauck, <title rend="italic" xml:lang="lat">Trag. Graec. Frag.,</title> Sophocles, No. 344</note> </quote> so every occupation and manner of life, if attended by virtue, is untroubled and delightful, while, on the other hand, any admixture of vice renders those things which to others seem splendid, precious, and imposing, only troublesome, sickening, and unwelcome to their possessors. <quote rend="blockquote">This man is happy deemed ’mid public throng, But when he opes his door he’s thrice a wretch; His wife controls, commands, and always fights.<note place="inline" anchored="true">Perhaps from Menander; <foreign xml:lang="lat">cf.</foreign>Kock, <title rend="italic" xml:lang="lat">Com. Attic. Frag.</title> iii. p. 86, and Plutarch, <title rend="italic" xml:lang="lat">Moralia</title>, 471 B.</note> </quote> Yet it is not difficult for any man to get rid of a bad wife if he be a real man and not a slave; but against his own vice it is not possible to draw up a writing of div

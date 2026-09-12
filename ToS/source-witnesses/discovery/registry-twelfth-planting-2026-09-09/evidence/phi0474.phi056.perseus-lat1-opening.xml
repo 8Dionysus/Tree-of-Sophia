@@ -1,0 +1,152 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">Epistulae ad Familiares</title>
+            
+            <author>M. Tullius Cicero</author>
+            <editor>Louis Claude Purser</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>William Merrill</name>
+               <name>David Mimno</name>
+               <name>Rashmi Singhal</name>
+               <name>David Smith</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2000-03-17" cert="medium">Perseus 2.5</date>
+         </publicationStmt>
+         <sourceDesc>
+            <list>
+               <item>OCR cleanup</item>
+            </list>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+               matchPattern="(\w+).(\w+).(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+               <p>This pointer pattern extracts section</p>
+            </cRefPattern>
+            <cRefPattern n="letter"
+               matchPattern="(\w+).(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts letter</p>
+            </cRefPattern>
+            <cRefPattern n="book"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts book</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState delim="." unit="book"/>
+            <refState delim="." unit="letter"/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+              <citeStructure match="/TEI/text/body" use="@xml:base">
+                <citeStructure unit="book" delim=":" match="div/div[@subtype='Book']" use="@n">
+                  <citeStructure unit="section" delim="." match="div/div[@subtype='section']" use="@n"/>
+                </citeStructure>
+              </citeStructure>
+            </refsDecl>
+</encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin
+	</language>
+            <language ident="grc">Greek
+      </language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change who="Lisa Cerrato" when="2019-09-03">readded missing pages 232-233 (end of 8.11 and beginning of 8.12)</change>
+<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+<change who="gcrane" when="2013-06-08">TEI XML converted to facilitate CTS compatibility</change>
+<change who="gcrane" when="2011-07-24">small fixes</change>
+<change who="gcrane" when="2011-07-21">small fixes</change>
+<change who="gcrane" when="2011-07-21">small mods</change>
+<change who="gcrane" when="2011-07-19">removed the earlier persName/placeName tags</change>
+<change who="gcrane" when="2011-07-18">small fixes</change>
+<change who="gcrane" when="2011-07-09">fixed problems with capitalization</change>
+<change who="gcrane" when="2011-01-15">base SDL file</change>
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+<change who="lcerrato" when="2009-09-10">fixed minor typos</change>
+<change who="lcerrato" when="2007-11-08">added missing word Cicero Ad Fam. 5.12.7 : gratiae</change>
+<change who="packel" when="2006-05-05">fixed date tags</change>
+<change who="packel" when="2006-02-10">places/dates now actually tagged</change>
+<change who="packel" when="2005-08-01">removed stray item tags</change>
+	<change who="packel" when="2005-07-25">	Converted to XML</change>
+	
+<change who="amahoney" when="2004-05-24">mark dates in headers</change>
+<change who="yorkc" when="2003-07-01">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change>
+<change who="amahoney" when="2002-05-23">fix some apostrophes (ocr errors) and mark some abbreviations</change>
+<change who="amahoney" when="2000-09-18">fix number for 16.13, oddly marked as 62</change>
+<change who="amahoney" when="2000-03-06">remove headers so books show up in short toc</change>
+<change who="dasmith" when="2000-03-05">Added responsibility and funder info to TEI header.</change>
+<change who="dasmith" when="1999-08-04">Added encodingDesc and revisionDesc.</change>
+
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="lat">
+      <body xml:base="urn:cts:latinLit:phi0474.phi056.perseus-lat1">
+         <div xml:lang="lat"
+              type="edition">
+            <div type="textpart" n="1" subtype="Book">
+               <head >AD P. LENTVLVM</head>
+               <div type="textpart" n="1" subtype="letter">
+                  <label rend="opener">
+
+                     <seg rend="dateline" >Scr. Romae Id. Ian. <date when="-0056">a. u. c. 698 (a. Chr. 56)</date>.</seg>
+                     <emph rend="salute" >M. CICERO S. D. P. LENTVLO PROCOS.</emph>
+                  </label>
+                  <div type="textpart" n="1" subtype="section">
+                     <p >
+                        <reg>ego</reg> omni officio ac potius pietate erga te ceteris satis facio omnibus, mihi ipse numquam satis facio; tanta enim magnitudo est tuorum erga me meritorum, ut, quod tu nisi perfecta re de me non conquiesti, ego quia non idem in tua causa efficio, vitam mihi esse acerbam putem.  <reg>in</reg> causa haec sunt: Hammonius, regis legatus, aperte pecunia nos oppugnat; res agitur per eosdem creditores, per quos, cum tu aderas, agebatur; regis causa si qui sunt qui velint, qui pauci sunt, omnes rem ad Pompeium deferri volunt, senatus religionis calumniam non religione, sed malevolentia et illius regiae largitionis invidia comprobat.  
+
+</p>
+                  </div>
+                  <div type="textpart" n="2" subtype="section">
+                     <p >
+Pompeium et hortari et orare et iam liberius accusare et monere, ut magnam
+infamiam fugiat, non desistimus; sed plane nec precibus nostris nec admonitionibus relinquit locum, nam cum in sermone cotidiano tum in senatu palam sic egit causam
+
+tuam, ut neque eloquentia maiore quisquam nec gravitate nec studio nec contentione agere potuerit, cum summa testificatione tuorum in se officiorum et amoris erga te sui. Marcellinum tibi esse iratum scis; is hac regia causa excepta ceteris in rebus se acerrimum tui defensorem fore ostendit.  <reg>quod</reg> dat, accipimus; quod instituit referre de religione et saepe iam retulit, ab eo deduci non potest.
+
+</p>
+                  </div>
+                  <div type="textpart" n="3" subtype="section">
+                     <p >
+                        <reg>res</reg> ante Idus acta sic est (nam haec Idibus mane scripsi):
+Hortensi et mea et Luculli sententia cedit religioni de exercitu; teneri enim res aliter non potest; sed ex illo senatus consulto, quod te referente factum est, tibi decernit, ut regem reducas, quod commodo rei p. facere possis, ut exercitum religio tollat, te auctorem senatus retineat. Crassus tris legatos decernit nec excludit Pompeium, censet enim etiam ex iis, qui cum imperio sint; Bibulus tris legatos ex iis, qui privati sunt.  <reg>huic</reg> adsentiuntur reliqui consulares praeter Servilium, qui omnino reduci negat oportere, et Volcacium, qui Lupo referente Pompeio decernit, et Afranium, qui adsentitur Volcacio.  <reg>quae</reg> res auget suspicionem Pompei voluntatis, nam advertebatur Pompei familiaris adsentiri Volcacio. <reg>laboratur</reg> vehementer; inclinata res est. Libonis et Hypsaei non obscura concursatio et contentio omniumque Pompei familiarium studium in eam opinionem rem adduxerunt, ut Pompeius cupere videatur; cui qui
+nolunt, idem tibi, quod eum ornasti, non sunt amici;
+
+</p>
+                  </div>
+                  <div type="textpart" n="4" subtype="section">
+                     <p >
+nos in causa auctoritatem eo minorem habemus, quod tibi debemus, gratiam autem nostram exstinguit hominum suspicio, quod Pompeio se gratificari putant.  <reg>ut</reg> in rebus multo ante, quam profectus es, ab ipso rege et ab intimis ac
+domesticis Pompei clam exulceratis, deinde palam a consularibus exagitatis et in summam invidiam adductis ita versamur.  <reg>nostram</reg> fidem omnes, amorem tui absentis praesentes tui cognoscent.  si esset in iis fides, in quibus summa esse
+debebat, non laboraremus.
+
+</p>
+                  </div>
+               </div>
+               <div type="textpart" n="2" subtype="letter">
+               

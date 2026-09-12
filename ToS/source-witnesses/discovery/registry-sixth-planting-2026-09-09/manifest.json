@@ -1,0 +1,775 @@
+{
+  "schema_version": "tos_registry_first_planting_preparation_v1",
+  "status": "prepared-not-acquired",
+  "source_registry_snapshot_ref": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json",
+  "source_registry_snapshot_sha256": "9468e2d27ac55066c87eb20a2e6c79be22ea5ee2a036d044ee7d252f4911cd5a",
+  "branch_preparation_ref": "ToS/philosophy/source-planting-preparation/roman-philosophical-english-translations-20260909.json",
+  "provider_pins": {
+    "perseus": "8668397510ca77fec6406f7d48f405e50d296764"
+  },
+  "metadata_observations": [
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/README.md",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/README.md",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:06.487213+00:00",
+      "ended_at": "2026-09-09T07:01:06.823905+00:00",
+      "elapsed_seconds": 0.33669306799856713,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-README.md",
+      "retained_sha256": "7ea684aea5b084c38fc919da2adf0df8339490243a43bf744fb8e27384d82623",
+      "retained_byte_size": 2334,
+      "received_bytes": 2334,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/license.md",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/license.md",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:06.487822+00:00",
+      "ended_at": "2026-09-09T07:01:07.901788+00:00",
+      "elapsed_seconds": 1.4139744429994607,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-license.md",
+      "retained_sha256": "ccf0e8ce183761bf82700126cc45a4e907b2cede024e65e3fef5c2338b9b7063",
+      "retained_byte_size": 18625,
+      "received_bytes": 18625,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:06.720292+00:00",
+      "ended_at": "2026-09-09T07:01:06.951980+00:00",
+      "elapsed_seconds": 0.23169968100410188,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474-cts.xml",
+      "retained_sha256": "f0e273baaf73cd27829165f141d5ad5bb7087dbf5d56c95842e7e2467bacabec",
+      "retained_byte_size": 219,
+      "received_bytes": 219,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi051/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi051/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:06.490470+00:00",
+      "ended_at": "2026-09-09T07:01:06.719960+00:00",
+      "elapsed_seconds": 0.22949703899939777,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi051-cts.xml",
+      "retained_sha256": "7fde15a73e24ff22eb0ae9162cd0310b38155b3a6e742cd6cf7991b3f41dce03",
+      "retained_byte_size": 1172,
+      "received_bytes": 1172,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi051/phi0474.phi051.perseus-eng1.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi051/phi0474.phi051.perseus-eng1.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:06.488354+00:00",
+      "ended_at": "2026-09-09T07:01:07.015153+00:00",
+      "elapsed_seconds": 0.5268082140028127,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi051.perseus-eng1-header.xml",
+      "retained_sha256": "c156063c8f1a8c976a7a5f99a8cd07357351cc0b8838d0cad60b0c440216cb12",
+      "retained_byte_size": 3347,
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded metadata prefix; complete source file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi051/phi0474.phi051.perseus-eng1.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi051/phi0474.phi051.perseus-eng1.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:48.534011+00:00",
+      "ended_at": "2026-09-09T07:01:48.700727+00:00",
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi051.perseus-eng1-opening.xml",
+      "retained_sha256": "9e7e25bc0b8a50d38ec8b1aeadaa07b609046d8bc4f2b34ff4f4d77fa4357632",
+      "retained_byte_size": 7443,
+      "received_bytes": 7443,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded incomplete opening only; not complete source custody",
+      "response_digest_scope": "retained incomplete prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi052/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi052/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:06.952251+00:00",
+      "ended_at": "2026-09-09T07:01:08.074316+00:00",
+      "elapsed_seconds": 1.1220757339979173,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi052-cts.xml",
+      "retained_sha256": "db3423b06c73cd8a4e45d5f7d2be9e514b4685dcd71db807a4c9508445d8e5d7",
+      "retained_byte_size": 1207,
+      "received_bytes": 1207,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi052/phi0474.phi052.perseus-eng2.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi052/phi0474.phi052.perseus-eng2.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:06.824244+00:00",
+      "ended_at": "2026-09-09T07:01:07.178735+00:00",
+      "elapsed_seconds": 0.35450062200106913,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi052.perseus-eng2-header.xml",
+      "retained_sha256": "b014b5041a5967be8777d9d656a76a3c0e71cef3a14c184732f4b37bd2e725bd",
+      "retained_byte_size": 3879,
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded metadata prefix; complete source file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi052/phi0474.phi052.perseus-eng2.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi052/phi0474.phi052.perseus-eng2.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:48.701048+00:00",
+      "ended_at": "2026-09-09T07:01:48.855448+00:00",
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi052.perseus-eng2-opening.xml",
+      "retained_sha256": "7d3aed7f4199be7ecfb1fe9a1a6f74953cb3ea34757acad98c52653f6c459a07",
+      "retained_byte_size": 7975,
+      "received_bytes": 7975,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded incomplete opening only; not complete source custody",
+      "response_digest_scope": "retained incomplete prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi053/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi053/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:07.179026+00:00",
+      "ended_at": "2026-09-09T07:01:07.398243+00:00",
+      "elapsed_seconds": 0.2192243339959532,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi053-cts.xml",
+      "retained_sha256": "689f7cd36c3721278509ad15ca5d5506352f51d05dae1a3db182dbac845cc3b3",
+      "retained_byte_size": 1128,
+      "received_bytes": 1128,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi053/phi0474.phi053.perseus-eng1.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi053/phi0474.phi053.perseus-eng1.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:07.015468+00:00",
+      "ended_at": "2026-09-09T07:01:07.426978+00:00",
+      "elapsed_seconds": 0.4115203660039697,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi053.perseus-eng1-header.xml",
+      "retained_sha256": "dbd186220e28e614a1378ee27f50133cb0f981024c4ce1b83ea115621ed93541",
+      "retained_byte_size": 3688,
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded metadata prefix; complete source file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi053/phi0474.phi053.perseus-eng1.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi053/phi0474.phi053.perseus-eng1.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:48.855733+00:00",
+      "ended_at": "2026-09-09T07:01:49.015044+00:00",
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi053.perseus-eng1-opening.xml",
+      "retained_sha256": "f1fc37a3668d964f35a5d64405223616ca2e9efa52393282dc20e6a64d599923",
+      "retained_byte_size": 7784,
+      "received_bytes": 7784,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded incomplete opening only; not complete source custody",
+      "response_digest_scope": "retained incomplete prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi055/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi055/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:07.427248+00:00",
+      "ended_at": "2026-09-09T07:01:07.767514+00:00",
+      "elapsed_seconds": 0.340277546994912,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi055-cts.xml",
+      "retained_sha256": "b78e2cdb91a8d29cc1cf1177218bedfcddcabd4fb2c41e3d30e6121640a2af4c",
+      "retained_byte_size": 1079,
+      "received_bytes": 1079,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi055/phi0474.phi055.perseus-eng1.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi055/phi0474.phi055.perseus-eng1.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:07.398565+00:00",
+      "ended_at": "2026-09-09T07:01:07.858276+00:00",
+      "elapsed_seconds": 0.45973460099776275,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi055.perseus-eng1-header.xml",
+      "retained_sha256": "e8c885895a6bd4874b1a3c64f785aa661412f663ee2e21acd09725fd6a5cb5e3",
+      "retained_byte_size": 3917,
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded metadata prefix; complete source file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi055/phi0474.phi055.perseus-eng1.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi055/phi0474.phi055.perseus-eng1.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:49.015336+00:00",
+      "ended_at": "2026-09-09T07:01:49.189547+00:00",
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi055.perseus-eng1-opening.xml",
+      "retained_sha256": "ec9238a2a73293f1bb7115b2d4e301d9354b80af2f3f7ee95ced4e0626c2702e",
+      "retained_byte_size": 8013,
+      "received_bytes": 8013,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded incomplete opening only; not complete source custody",
+      "response_digest_scope": "retained incomplete prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:07.902140+00:00",
+      "ended_at": "2026-09-09T07:01:08.139513+00:00",
+      "elapsed_seconds": 0.23738299799879314,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0550-cts.xml",
+      "retained_sha256": "3e95854e457947d08b4a16085435489695ec968a97153044546bd7e42a2c5c3b",
+      "retained_byte_size": 196,
+      "received_bytes": 196,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:07.858590+00:00",
+      "ended_at": "2026-09-09T07:01:08.089295+00:00",
+      "elapsed_seconds": 0.23070754400396254,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0550.phi001-cts.xml",
+      "retained_sha256": "21b74f426e105f6391f84cf81b092c1c03f46252f686f6b5bcf1055559c1ddd0",
+      "retained_byte_size": 987,
+      "received_bytes": 987,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:07.767787+00:00",
+      "ended_at": "2026-09-09T07:01:08.089204+00:00",
+      "elapsed_seconds": 0.32142660800309386,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0550.phi001.perseus-eng1-header.xml",
+      "retained_sha256": "92ebad1fca752a00575395eaccc82bc572fa9e640200bef32d3734e9251daf5e",
+      "retained_byte_size": 3897,
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded metadata prefix; complete source file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+      "http_status": 200,
+      "started_at": "2026-09-09T07:01:49.189858+00:00",
+      "ended_at": "2026-09-09T07:01:49.345286+00:00",
+      "retained_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0550.phi001.perseus-eng1-opening.xml",
+      "retained_sha256": "689b9075f9b574e64a1d18b2e74b788a669e611a2fe2a74eea4c6ff313c9d541",
+      "retained_byte_size": 7993,
+      "received_bytes": 7993,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "bounded incomplete opening only; not complete source custody",
+      "response_digest_scope": "retained incomplete prefix"
+    }
+  ],
+  "targets": [
+    {
+      "slug": "de-senectute-english",
+      "work_slug": "de-senectute",
+      "title": "De Senectute, De senectute; De amicitia; De divinatione",
+      "work_title": "De Senectute",
+      "family": "cicero",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-latinLit",
+      "pin": "8668397510ca77fec6406f7d48f405e50d296764",
+      "language": "en",
+      "script": "Latn",
+      "expression_role": "translation",
+      "operation_date": "2026-09-09",
+      "expression": "en-perseus-phi0474-phi051-perseus-eng1",
+      "edition": "perseus-8668397510ca",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A29",
+          "original_source_id": "A29-R027",
+          "entry_id": "tos-registry:table-i/A29/registry/source-31776a9b2851ac47d8ca5f9b",
+          "source_locator": {
+            "original_sha256": "7dc56342fcf292588afa54c0423669027453826fe27723ed980cf9abb1be0f1d",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 28,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "de-senectute-english",
+      "ids": {
+        "work": "tos.work.cicero.de-senectute",
+        "expression": "tos.expression.cicero.de-senectute.en-perseus-phi0474-phi051-perseus-eng1",
+        "edition": "tos.edition.cicero.de-senectute.en-perseus-phi0474-phi051-perseus-eng1.perseus-8668397510ca",
+        "item": "tos.item.cicero.de-senectute.en-perseus-phi0474-phi051-perseus-eng1.perseus-8668397510ca.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/cicero/de-senectute/work.json",
+        "expression": "ToS/source-witnesses/works/cicero/de-senectute/expressions/en-perseus-phi0474-phi051-perseus-eng1/expression.json",
+        "edition": "ToS/source-witnesses/works/cicero/de-senectute/expressions/en-perseus-phi0474-phi051-perseus-eng1/editions/perseus-8668397510ca/edition.json",
+        "item": "ToS/source-witnesses/works/cicero/de-senectute/expressions/en-perseus-phi0474-phi051-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/cicero/de-senectute/expressions/en-perseus-phi0474-phi051-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml"
+      },
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/cicero/de-senectute/work.json",
+        "expression_ref": "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/editions/perseus-8668397510ca/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi051.perseus-lat1.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "coverage": {
+        "kind": "perseus-tei-translation",
+        "citation_scope": "hierarchical_divisions_and_section_milestones",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi051.perseus-eng1",
+        "identity_anchor": "body_xml_base",
+        "header_prefix_sha256": "c156063c8f1a8c976a7a5f99a8cd07357351cc0b8838d0cad60b0c440216cb12",
+        "reviewed_body_prefix_sha256": "9e7e25bc0b8a50d38ec8b1aeadaa07b609046d8bc4f2b34ff4f4d77fa4357632",
+        "reviewed_body_prefix_bytes": 7443
+      },
+      "version_description": "English translation urn:cts:latinLit:phi0474.phi051.perseus-eng1. Cicero, Marcus Tullius, creator; Falconer, William Armistead, translator; Falconer, William Armistead, translator, editor Pinned digital file: PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: Cicero: De Senectute De Amicitia De Divinatione With An English Translation William Armistead Falconer Cambridge Harvard University Press; Cambridge, Mass., London, England 1923",
+      "responsibility": "Supplied title/contributor statement: Cato the Elder: on old age M. Tullius Cicero William Armistead Falconer Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Bridget Almas Lisa Cerrato Rashmi Singhal The National Endowment for the Humanities. CTS translation description: Cicero, Marcus Tullius, creator; Falconer, William Armistead, translator; Falconer, William Armistead, translator, editor",
+      "limits": [
+        "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography."
+      ],
+      "metadata_evidence_refs": [
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi051-cts.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi051.perseus-eng1-header.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi051.perseus-eng1-opening.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474-cts.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-license.md"
+      ],
+      "files": [
+        {
+          "upstream_path": "data/phi0474/phi051/phi0474.phi051.perseus-eng1.xml",
+          "basename": "phi0474.phi051.perseus-eng1.xml",
+          "git_blob_sha1": "4523a057acc5cbc0bcfab25676c207de9ddeeaf8",
+          "byte_size": 96162,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi051/phi0474.phi051.perseus-eng1.xml"
+        }
+      ],
+      "byte_size": 96162
+    },
+    {
+      "slug": "de-amicitia-english",
+      "work_slug": "de-amicitia",
+      "title": "Laelius on Friendship",
+      "work_title": "De Amicitia",
+      "family": "cicero",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-latinLit",
+      "pin": "8668397510ca77fec6406f7d48f405e50d296764",
+      "language": "en",
+      "script": "Latn",
+      "expression_role": "translation",
+      "operation_date": "2026-09-09",
+      "expression": "en-perseus-phi0474-phi052-perseus-eng2",
+      "edition": "perseus-8668397510ca",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A29",
+          "original_source_id": "A29-R027",
+          "entry_id": "tos-registry:table-i/A29/registry/source-31776a9b2851ac47d8ca5f9b",
+          "source_locator": {
+            "original_sha256": "7dc56342fcf292588afa54c0423669027453826fe27723ed980cf9abb1be0f1d",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 28,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "de-amicitia-english",
+      "ids": {
+        "work": "tos.work.cicero.de-amicitia",
+        "expression": "tos.expression.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2",
+        "edition": "tos.edition.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2.perseus-8668397510ca",
+        "item": "tos.item.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2.perseus-8668397510ca.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/cicero/de-amicitia/work.json",
+        "expression": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/en-perseus-phi0474-phi052-perseus-eng2/expression.json",
+        "edition": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/en-perseus-phi0474-phi052-perseus-eng2/editions/perseus-8668397510ca/edition.json",
+        "item": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/en-perseus-phi0474-phi052-perseus-eng2/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/en-perseus-phi0474-phi052-perseus-eng2/editions/perseus-8668397510ca/items/git-tei-xml"
+      },
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/cicero/de-amicitia/work.json",
+        "expression_ref": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/la-perseus-phi0474-phi052/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/la-perseus-phi0474-phi052/editions/perseus-8668397510ca/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/la-perseus-phi0474-phi052/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/cicero/de-amicitia/expressions/la-perseus-phi0474-phi052/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi052.perseus-lat2.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "coverage": {
+        "kind": "perseus-tei-translation",
+        "citation_scope": "hierarchical_divisions_and_section_milestones",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi052.perseus-eng2",
+        "identity_anchor": "body_xml_base",
+        "header_prefix_sha256": "b014b5041a5967be8777d9d656a76a3c0e71cef3a14c184732f4b37bd2e725bd",
+        "reviewed_body_prefix_sha256": "7d3aed7f4199be7ecfb1fe9a1a6f74953cb3ea34757acad98c52653f6c459a07",
+        "reviewed_body_prefix_bytes": 7975
+      },
+      "version_description": "English translation urn:cts:latinLit:phi0474.phi052.perseus-eng2. Cicero. De Senectute, De Amicitia, De Divinatione. Falconer, William Armistead, translator. Cambridge, MA: Harvard University Press. London: William Heinemann Ltd. 1923 (printing). Pinned digital file: PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: Cicero (Marcus Tullius) De Senectute De Amicitia De Divinatione, With An English Translation William Armistead Falconer Cambridge Harvard University Press; Cambridge, Mass., London, England 1923 The Internet Archive",
+      "responsibility": "Supplied title/contributor statement: Laelius on Friendship M. Tullius Cicero William Armistead Falconer Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Bridget Almas Lisa Cerrato Rashmi Singhal The National Endowment for the Humanities. CTS translation description: Cicero. De Senectute, De Amicitia, De Divinatione. Falconer, William Armistead, translator. Cambridge, MA: Harvard University Press. London: William Heinemann Ltd. 1923 (printing).",
+      "limits": [
+        "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography."
+      ],
+      "metadata_evidence_refs": [
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi052-cts.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi052.perseus-eng2-header.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi052.perseus-eng2-opening.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474-cts.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-license.md"
+      ],
+      "files": [
+        {
+          "upstream_path": "data/phi0474/phi052/phi0474.phi052.perseus-eng2.xml",
+          "basename": "phi0474.phi052.perseus-eng2.xml",
+          "git_blob_sha1": "03283c7d8809fdb9867c53cc518515424ce68ee0",
+          "byte_size": 121519,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi052/phi0474.phi052.perseus-eng2.xml"
+        }
+      ],
+      "byte_size": 121519
+    },
+    {
+      "slug": "de-divinatione-english",
+      "work_slug": "de-divinatione",
+      "title": "De Divinatione, De senectute; De amicitia; De divinatione",
+      "work_title": "De Divinatione",
+      "family": "cicero",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-latinLit",
+      "pin": "8668397510ca77fec6406f7d48f405e50d296764",
+      "language": "en",
+      "script": "Latn",
+      "expression_role": "translation",
+      "operation_date": "2026-09-09",
+      "expression": "en-perseus-phi0474-phi053-perseus-eng1",
+      "edition": "perseus-8668397510ca",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A29",
+          "original_source_id": "A29-R027",
+          "entry_id": "tos-registry:table-i/A29/registry/source-31776a9b2851ac47d8ca5f9b",
+          "source_locator": {
+            "original_sha256": "7dc56342fcf292588afa54c0423669027453826fe27723ed980cf9abb1be0f1d",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 28,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "de-divinatione-english",
+      "ids": {
+        "work": "tos.work.cicero.de-divinatione",
+        "expression": "tos.expression.cicero.de-divinatione.en-perseus-phi0474-phi053-perseus-eng1",
+        "edition": "tos.edition.cicero.de-divinatione.en-perseus-phi0474-phi053-perseus-eng1.perseus-8668397510ca",
+        "item": "tos.item.cicero.de-divinatione.en-perseus-phi0474-phi053-perseus-eng1.perseus-8668397510ca.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/cicero/de-divinatione/work.json",
+        "expression": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/en-perseus-phi0474-phi053-perseus-eng1/expression.json",
+        "edition": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/en-perseus-phi0474-phi053-perseus-eng1/editions/perseus-8668397510ca/edition.json",
+        "item": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/en-perseus-phi0474-phi053-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/en-perseus-phi0474-phi053-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml"
+      },
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/cicero/de-divinatione/work.json",
+        "expression_ref": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/la-perseus-phi0474-phi053/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/la-perseus-phi0474-phi053/editions/perseus-8668397510ca/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/la-perseus-phi0474-phi053/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/cicero/de-divinatione/expressions/la-perseus-phi0474-phi053/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi053.perseus-lat1.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "coverage": {
+        "kind": "perseus-tei-translation",
+        "citation_scope": "hierarchical_divisions_and_section_milestones",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi053.perseus-eng1",
+        "identity_anchor": "body_xml_base",
+        "header_prefix_sha256": "dbd186220e28e614a1378ee27f50133cb0f981024c4ce1b83ea115621ed93541",
+        "reviewed_body_prefix_sha256": "f1fc37a3668d964f35a5d64405223616ca2e9efa52393282dc20e6a64d599923",
+        "reviewed_body_prefix_bytes": 7784
+      },
+      "version_description": "English translation urn:cts:latinLit:phi0474.phi053.perseus-eng1. Cicero, Marcus Tullius, creator; Falconer, William Armistead, translator; Falconer, William Armistead, translator, editor Pinned digital file: PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: Cicero: De Senectute De Amicitia De Divinatione With An English Translation William Armistead Falconer Cambridge Harvard University Press; Cambridge, Mass., London, England 1923",
+      "responsibility": "Supplied title/contributor statement: Divination M. Tullius Cicero William Armistead Falconer Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Bridget Almas Lisa Cerrato Rashmi Singhal The National Endowment for the Humanities. CTS translation description: Cicero, Marcus Tullius, creator; Falconer, William Armistead, translator; Falconer, William Armistead, translator, editor",
+      "limits": [
+        "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography."
+      ],
+      "metadata_evidence_refs": [
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi053-cts.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi053.perseus-eng1-header.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi053.perseus-eng1-opening.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474-cts.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-license.md"
+      ],
+      "files": [
+        {
+          "upstream_path": "data/phi0474/phi053/phi0474.phi053.perseus-eng1.xml",
+          "basename": "phi0474.phi053.perseus-eng1.xml",
+          "git_blob_sha1": "323117072f99c28788b20a4335cfd88e5a0afa3c",
+          "byte_size": 349986,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi053/phi0474.phi053.perseus-eng1.xml"
+        }
+      ],
+      "byte_size": 349986
+    },
+    {
+      "slug": "de-officiis-english",
+      "work_slug": "de-officiis",
+      "title": "De Officiis, De officiis",
+      "work_title": "De Officiis",
+      "family": "cicero",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-latinLit",
+      "pin": "8668397510ca77fec6406f7d48f405e50d296764",
+      "language": "en",
+      "script": "Latn",
+      "expression_role": "translation",
+      "operation_date": "2026-09-09",
+      "expression": "en-perseus-phi0474-phi055-perseus-eng1",
+      "edition": "perseus-8668397510ca",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A29",
+          "original_source_id": "A29-R027",
+          "entry_id": "tos-registry:table-i/A29/registry/source-31776a9b2851ac47d8ca5f9b",
+          "source_locator": {
+            "original_sha256": "7dc56342fcf292588afa54c0423669027453826fe27723ed980cf9abb1be0f1d",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 28,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "de-officiis-english",
+      "ids": {
+        "work": "tos.work.cicero.de-officiis",
+        "expression": "tos.expression.cicero.de-officiis.en-perseus-phi0474-phi055-perseus-eng1",
+        "edition": "tos.edition.cicero.de-officiis.en-perseus-phi0474-phi055-perseus-eng1.perseus-8668397510ca",
+        "item": "tos.item.cicero.de-officiis.en-perseus-phi0474-phi055-perseus-eng1.perseus-8668397510ca.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/cicero/de-officiis/work.json",
+        "expression": "ToS/source-witnesses/works/cicero/de-officiis/expressions/en-perseus-phi0474-phi055-perseus-eng1/expression.json",
+        "edition": "ToS/source-witnesses/works/cicero/de-officiis/expressions/en-perseus-phi0474-phi055-perseus-eng1/editions/perseus-8668397510ca/edition.json",
+        "item": "ToS/source-witnesses/works/cicero/de-officiis/expressions/en-perseus-phi0474-phi055-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/cicero/de-officiis/expressions/en-perseus-phi0474-phi055-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml"
+      },
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/cicero/de-officiis/work.json",
+        "expression_ref": "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/editions/perseus-8668397510ca/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi055.perseus-lat1.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "coverage": {
+        "kind": "perseus-tei-translation",
+        "citation_scope": "hierarchical_divisions_and_section_milestones",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi055.perseus-eng1",
+        "identity_anchor": "body_xml_base",
+        "header_prefix_sha256": "e8c885895a6bd4874b1a3c64f785aa661412f663ee2e21acd09725fd6a5cb5e3",
+        "reviewed_body_prefix_sha256": "ec9238a2a73293f1bb7115b2d4e301d9354b80af2f3f7ee95ced4e0626c2702e",
+        "reviewed_body_prefix_bytes": 8013
+      },
+      "version_description": "English translation urn:cts:latinLit:phi0474.phi055.perseus-eng1. Cicero. De Officiis. Miller, Walter, translator. Cambridge, MA. Harvard University Press. London. William Heinemann Ltd. 1913. Pinned digital file: PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: M. Tullius Cicero De Officiis Walter Miller London New York William Heinemann G.P. Putham's Sons 1913 Loeb Classical Library Internet Archive",
+      "responsibility": "Supplied title/contributor statement: De Officiis M. Tullius Cicero Walter Miller Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Bridget Almas Lisa Cerrato Rashmi Singhal The National Endowment for the Humanities. CTS translation description: Cicero. De Officiis. Miller, Walter, translator. Cambridge, MA. Harvard University Press. London. William Heinemann Ltd. 1913.",
+      "limits": [
+        "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography."
+      ],
+      "metadata_evidence_refs": [
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi055-cts.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi055.perseus-eng1-header.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi055.perseus-eng1-opening.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474-cts.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-license.md"
+      ],
+      "files": [
+        {
+          "upstream_path": "data/phi0474/phi055/phi0474.phi055.perseus-eng1.xml",
+          "basename": "phi0474.phi055.perseus-eng1.xml",
+          "git_blob_sha1": "0b9ac16cd350d4cf397b8c6b1454cb037b4ed2d6",
+          "byte_size": 409894,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi055/phi0474.phi055.perseus-eng1.xml"
+        }
+      ],
+      "byte_size": 409894
+    },
+    {
+      "slug": "de-rerum-natura-english",
+      "work_slug": "de-rerum-natura",
+      "title": "De Rerum Natura",
+      "work_title": "De Rerum Natura",
+      "family": "lucretius",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-latinLit",
+      "pin": "8668397510ca77fec6406f7d48f405e50d296764",
+      "language": "en",
+      "script": "Latn",
+      "expression_role": "translation",
+      "operation_date": "2026-09-09",
+      "expression": "en-perseus-phi0550-phi001-perseus-eng1",
+      "edition": "perseus-8668397510ca",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A29",
+          "original_source_id": "A29-R041",
+          "entry_id": "tos-registry:table-i/A29/registry/source-82c4e16dabcee09e377ed62d",
+          "source_locator": {
+            "original_sha256": "7dc56342fcf292588afa54c0423669027453826fe27723ed980cf9abb1be0f1d",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 42,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "de-rerum-natura-english",
+      "ids": {
+        "work": "tos.work.lucretius.de-rerum-natura",
+        "expression": "tos.expression.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1",
+        "edition": "tos.edition.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca",
+        "item": "tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/lucretius/de-rerum-natura/work.json",
+        "expression": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/en-perseus-phi0550-phi001-perseus-eng1/expression.json",
+        "edition": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/en-perseus-phi0550-phi001-perseus-eng1/editions/perseus-8668397510ca/edition.json",
+        "item": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/en-perseus-phi0550-phi001-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/en-perseus-phi0550-phi001-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml"
+      },
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/lucretius/de-rerum-natura/work.json",
+        "expression_ref": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/editions/perseus-8668397510ca/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0550.phi001.perseus-lat1.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "coverage": {
+        "kind": "perseus-tei-translation",
+        "citation_scope": "hierarchical_divisions_and_section_milestones",
+        "cts_urn": "urn:cts:latinLit:phi0550.phi001.perseus-eng1",
+        "identity_anchor": "body_xml_base",
+        "header_prefix_sha256": "92ebad1fca752a00575395eaccc82bc572fa9e640200bef32d3734e9251daf5e",
+        "reviewed_body_prefix_sha256": "689b9075f9b574e64a1d18b2e74b788a669e611a2fe2a74eea4c6ff313c9d541",
+        "reviewed_body_prefix_bytes": 7993
+      },
+      "version_description": "English translation urn:cts:latinLit:phi0550.phi001.perseus-eng1. Lucretius. De Rerum Natura. William Ellery Leonard. E. P.\n        Dutton. 1916. Pinned digital file: PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: Lucretius De Rerum Natura William Ellery Leonard E. P. Dutton 1916",
+      "responsibility": "Supplied title/contributor statement: De Rerum Natura Lucretius William Ellery Leonard Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Bridget Almas Lisa Cerrato David Mimno. CTS translation description: Lucretius. De Rerum Natura. William Ellery Leonard. E. P.\n        Dutton. 1916.",
+      "limits": [
+        "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography."
+      ],
+      "metadata_evidence_refs": [
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0550.phi001-cts.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0550.phi001.perseus-eng1-header.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0550.phi001.perseus-eng1-opening.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0550-cts.xml",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-license.md"
+      ],
+      "files": [
+        {
+          "upstream_path": "data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+          "basename": "phi0550.phi001.perseus-eng1.xml",
+          "git_blob_sha1": "f784a393f276b92af396dd3dd5e7b174b8dd526c",
+          "byte_size": 662239,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml"
+        }
+      ],
+      "byte_size": 662239
+    }
+  ],
+  "prepared_packages_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/prepared-source-packages.jsonl",
+  "prepared_packages_sha256": "345e2bf8544a46b0011651ed6bcafe553cfb5de4c84dd7b6cea1e42f8d8d893d",
+  "totals": {
+    "works": 0,
+    "existing_works_extended": 5,
+    "expressions": 5,
+    "payload_files": 5,
+    "payload_bytes": 1639800,
+    "bibliographic_claims": 15
+  },
+  "authority_boundary": "Preparation is not custody, translation acceptance, source-file publication or canon. Existing Work fields and prior source versions are preserved."
+}

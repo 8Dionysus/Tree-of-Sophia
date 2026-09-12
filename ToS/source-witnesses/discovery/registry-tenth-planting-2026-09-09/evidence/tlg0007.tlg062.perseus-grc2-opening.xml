@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> <TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+    <title xml:lang="grc">Σύγκρισις Δίωνος καὶ Βρούτου</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date> 
+    <idno type="filename">tlg0007.tlg062.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1918</date>
+</imprint>
+<biblScope unit="volume">6</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives06plut/page/248/mode/2up">Internet Archive</ref> 
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+    <language ident="eng">English</language>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2018-02-27" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+    <change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-grc2">
+    <div n="urn:cts:greekLit:tlg0007.tlg062.perseus-grc2" type="edition" xml:lang="grc">
+        <head>Δίωνος καὶ Βρούτου σύγκρισις</head>
+<pb n="p.248"/> 
+        <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-grc2" n="1"> 
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-grc2:1" n="1"><p>πολλῶν τοίνυν τοῖς ἀνδράσιν ὑπαρξάντων καλῶν, ἐν τοῖς πρώτοις δὲ τοῦ μεγίστους ἐλαχίσταις ἀφορμαῖς γενέσθαι, τοῦτο τῷ Δίωνι κάλλιστόν ἐστιν. </p></div> 
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-grc2:1" n="2"><p>οὐ γὰρ εἶχε τὸν ἀμφισβητοῦντα, καθάπερ ὁ Βροῦτος Κάσσιον, ἄνδρα πρὸς μὲν ἀρετὴν καὶ δόξαν οὐχ ὁμοίως ἀξιόπιστον, εἰς δὲ τὸν πόλεμον οὐκ ἐλάττονας τόλμῃ καὶ δεινότητι καὶ πράξει συμβολὰς παρασχόμενον, </p></div> 
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-grc2:1" n="3"><p>ᾧ γε καὶ τοῦ παντὸς ἔργου προσποιοῦσιν ἔνιοι τὴν ἀρχήν, ἡγεμόνα τῆς ἐπὶ Καίσαρα γνώμης τοῦτον ἀτρεμοῦντι Βρούτῳ γενέσθαι λέγοντες.</p></div> 
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-grc2:1" n="4"><p>Δίων δʼ ὥσπερ ὅπλα καὶ πλοῖα καὶ στρατιωτικὴν δύναμιν, οὕτω καὶ φίλους καὶ συνεργοὺς ἐπὶ τὴν πρᾶξιν αὐτὸς ἑαυτῷ φαίνεται κτησάμενος. </p></div> 
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-grc2:1" n="5"><p>οὐ μὴν οὐδʼ ὡς Βροῦτος ἐκ τῶν πραγμάτων αὑτῶν καὶ τοῦ πολέμου πλοῦτον ἔσχε καὶ δύναμιν, οὕτω καὶ Δίων, ἀλλὰ τῷ πολέμῳ προεισήνεγκεν αὐτὸς τὸν ἑαυτοῦ πλοῦτον, ὑπὲρ τῆς τῶν πολιτῶν ἐλευθερίας τοῖς τῆς φυγῆς ἐφοδίοις προκαταχρησάμενος.</p></div> 
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-grc2:1" n="6"><p>ἔτι δὲ <pb n="paris.1624.1010"/> Βροῦτος μὲν καὶ Κάσσιος, οὐκ ὂν ἀσφαλὲς ἡσυχίαν ἄγειν ἐκπεσοῦσι τῆς Ῥώμης, ἀλλʼ ὠφληκόσι δίκην θανάτου καὶ διωκομένοις, ἀναγκαίως εἰς τὸν πόλεμον κατέφυγον καὶ τὰ σώματα τοῖς ὅπλοις παρακαταθέμενοι διεκινδύνευσαν ὑπὲρ αὑτῶν τὸ πλέον ἢ τῶν πολιτῶν, </p></div> 
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-grc2:1" n="7"><p>Δίων δʼ ἀδεέστερον ἐν τῇ φυγῇ τοῦ φυγαδεύσαντος τυράννου καὶ ἥδιον διάγων ἀνέρριψεν ἑκὼν κίνδυνον τοσοῦτον ἐπὶ τῷ σῶσαι Σικελίαν. <pb n="p.250"/></p></div></div>  
+        <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-grc2" n="2"> 
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg062.perseus-grc2:2" n="1"><p>καὶ μὴν οὐχ ὅμοιον Διονυσίου Συρακουσίοις ἡ Καίσαρος ἀπαλλαγῆναι Ῥω�

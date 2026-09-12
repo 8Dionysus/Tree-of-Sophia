@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            
+            <title>Marcellus</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+		<principal>Gregory Crane</principal>
+		<respStmt>
+		<resp>Prepared under the supervision of</resp>
+		   <name>Bridget Almas</name>
+		   <name>Lisa Cerrato</name>
+		   <name>Rashmi Singhal</name>
+		</respStmt>
+         <funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+		<publisher>Trustees of Tufts University</publisher>
+		<pubPlace>Medford, MA</pubPlace>
+		<authority>Perseus Project</authority>
+            <date type="release" when="2009-03-16">Perseus 4.0</date>
+            <idno type="filename">tlg0007.tlg022.perseus-eng2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+		</publicationStmt><sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1917</date>
+                  </imprint>
+                  <biblScope unit="volume">5</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives05plut/page/436/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+         	<quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+            <language ident="xgreek">Transliterated Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-02-20" who="Lisa Cerrato">EpiDoc and CTS file conversion work</change>
+      	<change when="1999-09-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+	
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-eng2"> 
+      	<div n="urn:cts:greekLit:tlg0007.tlg022.perseus-eng2" type="translation" xml:lang="eng">
+      		<head>MARCELLUS</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-eng2:1" n="1"><p> Marcus Claudius, who was five times consul of the Romans, was a son of Marcus, as we are told, and, according to Poseidonius, was the first of his family to be called Marcellus, which means <gloss>Martial</gloss>. For he was by experience a man of war, of a sturdy body and a vigorous arm. He was naturally fond of war, and in its conflicts displayed great impetuosity and high temper; </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-eng2:1" n="2"><p>but otherwise he was modest, humane, and so far a lover of Greek learning and discipline as to honour and admire those who excelled therein, although he himself was prevented by his occupations from achieving a knowledge and proficiency here which corresponded to his desires. For if ever there were men to whom Heaven, as Homer says,<note resp="editor" place="inline" anchored="true"> <bibl n="Hom. Il. 14.86"> <title>Iliad</title>, xiv. 86 f.</bibl></note> <quote rend="blockquote"> <l>From youth and to old age appointed the accomplishment of laborious wars,</l></quote> they were the chief Romans of that time, </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-eng2:1" n="3"><p>who, in their youth, waged war with the Carthaginians for Sicily; in their prime, with the Gauls to save Italy itself; and when they were now grown old, contended again with Hannibal and the Carthaginians, and did not have, like most men, that respite from service in the field which old age brings, but were called by their high birth and valour to undertake leaderships and commands in war.</p></div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-eng2:2" n="1"><p>Marcellus was efficient and practised in every kind of fighting, but in single combat he surpassed himself, never declining a challenge, and always killing his challengers. In Sicily he saved his brother Otacilius from peril of his life, covering him with his shield and killing those who were setting upon him.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-eng2:2" n="2"><p>Wherefore, although he was still a youth, he received garlands and prizes from his commanders, and since he grew in repute, the people appointed him curule aedile,<note resp="editor" place="inline" anchored="true">Literally, <gloss>aedile of the more illustrious class</gloss>, i.e. patrician, in distinction from plebeian, aedile.</note> and the priests, augur. This is a species of priesthood, to which the law particularly assigns the observation and study of prophetic signs from the flight of birds.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-eng2:2" n="3"><p>During his aedileship, he was compelled to bring a disagreeable impeachment into the senate. He had a son, named Marcus like himself, who was in the flower of his boyish beauty, and not less admired by his countrymen for his modesty and good training. To this boy Capitolinus, the colleague of Marcellus, a bold and licentious man, made overtures of love. The boy at first repelled the attempt by himself, but when it was made again, told his father. Marcellus, highly indignant, denounced the man in the senate.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-eng2:2" n="4"><p>The culprit devised many exceptions and ways of escape, appealing to the tribunes of the people, and when these rejected his appea

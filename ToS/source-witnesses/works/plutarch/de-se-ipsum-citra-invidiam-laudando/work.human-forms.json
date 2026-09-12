@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:521e0e9dbe5e32da33c224fb0b2def1aacfa090b8e6b778fefd79b8f061b53fe",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:521e0e9dbe5e32da33c224fb0b2def1aacfa090b8e6b778fefd79b8f061b53fe",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:521e0e9dbe5e32da33c224fb0b2def1aacfa090b8e6b778fefd79b8f061b53fe",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:521e0e9dbe5e32da33c224fb0b2def1aacfa090b8e6b778fefd79b8f061b53fe",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.b9784efc201869e938c485c3a1a2247b7f1f3f524a9650c8a72865d748c9e6ed",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:469b838c2d1079626cd615d628df9884556baba4127cfa7bcce3b9c816a415dc",
+        "id": "tos.form.metadata.b9784efc201869e938c485c3a1a2247b7f1f3f524a9650c8a72865d748c9e6ed",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:521e0e9dbe5e32da33c224fb0b2def1aacfa090b8e6b778fefd79b8f061b53fe",
+        "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:521e0e9dbe5e32da33c224fb0b2def1aacfa090b8e6b778fefd79b8f061b53fe",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:521e0e9dbe5e32da33c224fb0b2def1aacfa090b8e6b778fefd79b8f061b53fe",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:521e0e9dbe5e32da33c224fb0b2def1aacfa090b8e6b778fefd79b8f061b53fe",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:521e0e9dbe5e32da33c224fb0b2def1aacfa090b8e6b778fefd79b8f061b53fe",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.76f83164e86ce81155954a8e4818b28cccc3396cf2cb71c4d88cfdfcf5052a45",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:255f97e9ec39ee4f7c977f0111ec4cee9633164719166f7f71598816ec7781e7",
+        "id": "tos.form.metadata.76f83164e86ce81155954a8e4818b28cccc3396cf2cb71c4d88cfdfcf5052a45",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:521e0e9dbe5e32da33c224fb0b2def1aacfa090b8e6b778fefd79b8f061b53fe",
+        "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:a2031e97e7da4741af793f9f2b917323d9ab57e6b18e33a94fbdbb1b508f0da2",
+      "owner_configuration": "sha256:ee24f96d771dd9b5beb2a34e443b2f562aad19dc86729579a6ca253dda02f107",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:39.745164+00:00",
+      "request_digest": "sha256:d31e48e8d8fa315ec795c181c0f8ef089fcec269f78c00694c76dd74df5f621f",
+      "results": [
+        {
+          "digest": "sha256:469b838c2d1079626cd615d628df9884556baba4127cfa7bcce3b9c816a415dc",
+          "id": "tos.form.metadata.b9784efc201869e938c485c3a1a2247b7f1f3f524a9650c8a72865d748c9e6ed",
+          "version": 1
+        },
+        {
+          "digest": "sha256:255f97e9ec39ee4f7c977f0111ec4cee9633164719166f7f71598816ec7781e7",
+          "id": "tos.form.metadata.76f83164e86ce81155954a8e4818b28cccc3396cf2cb71c4d88cfdfcf5052a45",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:b6207a9361e85388cd1ce4a405c94e13dd08ac3670de4fa290041cd259877fd1",
+        "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:a2031e97e7da4741af793f9f2b917323d9ab57e6b18e33a94fbdbb1b508f0da2",
+      "request_digest": "sha256:d86f87c123a248cc99ef48be37cfb2909d31e6ae8e8aff477566f0a6b39c31d8",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:a28bd4128f2bcc292418126e04c5f1a90b35ef96e60328585fc9956f32a15d8f",
+      "recorded_at": "2026-09-09T18:35:29.157139+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+        "version": 2,
+        "digest": "sha256:521e0e9dbe5e32da33c224fb0b2def1aacfa090b8e6b778fefd79b8f061b53fe"
+      },
+      "previous_revision": "sha256:3db8dc6f9ccbfe7831259b28ca819b5b480ed108189f2a277ba977e1b921579b",
+      "results": [
+        {
+          "id": "tos.form.metadata.b9784efc201869e938c485c3a1a2247b7f1f3f524a9650c8a72865d748c9e6ed",
+          "version": 2,
+          "digest": "sha256:99aa084e897757c03e68dbfa35ea263f17d5924b6e5bd9554098bdcf9987ffa0"
+        },
+        {
+          "id": "tos.form.metadata.76f83164e86ce81155954a8e4818b28cccc3396cf2cb71c4d88cfdfcf5052a45",
+          "version": 2,
+          "digest": "sha256:260c649ca8e32d62ffc6ef474a5c34fe75d388e30902eb98d5bd6c2cb5ef49ac"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b6207a9361e85388cd1ce4a405c94e13dd08ac3670de4fa290041cd259877fd1",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b6207a9361e85388cd1ce4a405c94e13dd08ac3670de4fa290041cd259877fd1",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:b6207a9361e85388cd1ce4a405c94e13dd08ac3670de4fa290041cd259877fd1",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:b6207a9361e85388cd1ce4a405c94e13dd08ac3670de4fa290041cd259877fd1",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.b9784efc201869e938c485c3a1a2247b7f1f3f524a9650c8a72865d748c9e6ed",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:b6207a9361e85388cd1ce4a405c94e13dd08ac3670de4fa290041cd259877fd1",
+        "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b6207a9361e85388cd1ce4a405c94e13dd08ac3670de4fa290041cd259877fd1",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b6207a9361e85388cd1ce4a405c94e13dd08ac3670de4fa290041cd259877fd1",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:b6207a9361e85388cd1ce4a405c94e13dd08ac3670de4fa290041cd259877fd1",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:b6207a9361e85388cd1ce4a405c94e13dd08ac3670de4fa290041cd259877fd1",
+            "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.76f83164e86ce81155954a8e4818b28cccc3396cf2cb71c4d88cfdfcf5052a45",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:b6207a9361e85388cd1ce4a405c94e13dd08ac3670de4fa290041cd259877fd1",
+        "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-se-ipsum-citra-invidiam-laudando",
+    "version": 2,
+    "digest": "sha256:521e0e9dbe5e32da33c224fb0b2def1aacfa090b8e6b778fefd79b8f061b53fe"
+  }
+}

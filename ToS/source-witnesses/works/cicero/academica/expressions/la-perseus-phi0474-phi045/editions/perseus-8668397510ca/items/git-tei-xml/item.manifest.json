@@ -1,0 +1,39 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.cicero.academica.la-perseus-phi0474-phi045.perseus-8668397510ca.git-tei-xml",
+  "item_kind": "born_digital",
+  "embodiment_ref": "tos.edition.cicero.academica.la-perseus-phi0474-phi045.perseus-8668397510ca",
+  "storage_posture": "local_gitignored_payload",
+  "acquisition_event_ref": "tos.event.acquisition.registry-20260909.academica",
+  "rights_ref": "ToS/source-witnesses/works/cicero/academica/expressions/la-perseus-phi0474-phi045/editions/perseus-8668397510ca/items/git-tei-xml/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/cicero/academica/expressions/la-perseus-phi0474-phi045/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/cicero/academica/expressions/la-perseus-phi0474-phi045/editions/perseus-8668397510ca/items/git-tei-xml/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/cicero/academica/expressions/la-perseus-phi0474-phi045/editions/perseus-8668397510ca/items/git-tei-xml/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi045-cts.xml",
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi045.perseus-lat2-header.xml",
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi045.perseus-lat2-opening.xml",
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474-cts.xml",
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/perseus-README.md",
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/perseus-license.md",
+    "https://github.com/PerseusDL/canonical-latinLit/tree/8668397510ca77fec6406f7d48f405e50d296764",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null,
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.ac7a3da67ef56bf4e1d23e6563c73a9bea05e725944fc500d90f74bba1e602e3",
+      "relative_path": "payload/phi0474.phi045.perseus-lat2.xml",
+      "original_basename": "phi0474.phi045.perseus-lat2.xml",
+      "media_type": "application/tei+xml",
+      "byte_size": 91317,
+      "sha256": "ac7a3da67ef56bf4e1d23e6563c73a9bea05e725944fc500d90f74bba1e602e3",
+      "fixity_verified_at": "2026-09-09T06:45:17.422382+00:00"
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">De Fato</title>
+            <author>M. Tullius Cicero</author>
+            <editor>Carl Friedrich Wilhelm Müller</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         <extent>About 100Kb</extent>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+             <date type="release" when="2009-10-07">Perseus 4.0</date>
+         </publicationStmt>
+         <sourceDesc xmlns="http://www.tei-c.org/ns/1.0">
+            <biblStruct >
+               <monogr>
+                  <title xml:lang="lat">De Fato</title>
+                  <author>M. Tullius Cicero</author>
+                  <editor>Carl Friedrich Wilhelm Müller</editor>
+                  <imprint>
+                     <pubPlace>Leipzig</pubPlace>
+                     <publisher>Teubner</publisher>
+                     <date>1915</date>
+                  </imprint>
+               </monogr>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts section</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+              <citeStructure match="/TEI/text/body" use="@xml:base">
+                <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+              </citeStructure>
+            </refsDecl>
+</encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Ancient Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+<change who="gcrane" when="2013-06-08">TEI XML converted to facilitate CTS compatibility</change>
+<change who="gcrane" when="2011-01-15">base SDL file</change>
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+<change who="rsingh04" when="2009-09-14">added a bunch of cicero texts, removed old cicero files that aren't used</change>
+<change who="ajones06" when="2009-09-10">Fixed some of the metadata for the Cicero philosophical works.</change>
+<change who="gcrane" when="2009-09-09">base files</change>
+<change who="gcrane" when="2006-05-04">added to repository</change>
+<change who="gcrane" when="2006-05-03">added to repository</change>
+
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>

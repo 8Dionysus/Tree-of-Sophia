@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		    <fileDesc>
+			      <titleStmt>
+				        <title>Pericles</title>
+				        <author>Plutarch</author>
+				        <editor role="translator">Bernadotte Perrin</editor>
+				        <sponsor>Perseus Project, Tufts University</sponsor>
+				        <principal>Gregory Crane</principal>
+				        <respStmt>
+					 <resp>Prepared under the supervision of</resp>
+					 <name>Lisa Cerrato</name>
+					 <name>William Merrill</name>
+					 <name>Elli Mylonas</name>
+					 <name>David Smith</name>
+				        </respStmt>
+				        <funder n="org:AnnCPB">The Annenberg CPB/Project</funder>
+			      	<respStmt>
+			      		<persName>Allison Dempsey</persName>
+			      		<orgName>Tufts University</orgName>
+			      		<resp>Digital editing</resp>
+			      	</respStmt>
+			      </titleStmt>
+			      
+			      <publicationStmt>
+				        <publisher>Trustees of Tufts University</publisher>
+				        <pubPlace>Medford, MA</pubPlace>
+				        <authority>Perseus Project</authority>
+			      	<date type="release" when="1992">Perseus 1.0</date>
+			      	<idno type="filename">tlg0007.tlg012.perseus-eng2.xml</idno>
+			      	<availability>
+			      		<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+			      	</availability>
+			      </publicationStmt>
+			      <sourceDesc>
+				        <biblStruct>
+					 
+					 <monogr>
+						   <author>Plutarch</author>
+						   <title>Plutarch's Lives</title>
+					 	<editor role="translator">Bernadotte Perrin</editor>
+						   <imprint>
+							     <pubPlace>Cambridge, MA</pubPlace>
+							     <publisher>Harvard University Press</publisher>
+							     <pubPlace>London</pubPlace>
+							     <publisher>William Heinemann Ltd.</publisher>
+							     <date>1916</date>
+						   </imprint>
+						   <biblScope unit="volume">3</biblScope>
+					 </monogr>
+				        	<series>
+				        		<title>Loeb Classical Library</title>
+				        	</series>
+					 <ref target="https://archive.org/details/liveswithenglish03plutuoft/page/2/mode/2up">Internet Archive</ref>
+				        </biblStruct>
+			      </sourceDesc>
+		    </fileDesc>
+		    <encodingDesc>
+<refsDecl n="CTS">
+	<cRefPattern n="section" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+		<p>This pointer pattern extracts chapter and section.</p>
+	</cRefPattern>
+	<cRefPattern n="chapter" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+		<p>This pointer pattern extracts chapter.</p>
+	</cRefPattern>
+        </refsDecl>
+			      <editorialDecl>
+			      	<quotation marks="none"/>
+				        <correction status="high" method="silent">
+					 <p>optical character recognition</p>
+				        </correction>
+			      </editorialDecl>
+			      <refsDecl>
+				        <refState unit="chapter" delim="."/>
+				        <refState unit="section"/>
+			      </refsDecl>
+		    		    <refsDecl xml:id="CTS">
+		      <citeStructure match="/TEI/text/body" use="@xml:base">
+		        <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+		          <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+		        </citeStructure>
+		      </citeStructure>
+		    </refsDecl>
+</encodingDesc>
+		    <profileDesc>
+			      <langUsage>
+				        <language ident="eng">English</language>
+				        <language ident="grc">Greek</language>
+			      </langUsage>
+		    </profileDesc>
+		    <revisionDesc>
+		      <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+		    	<change who="Lisa Cerrato" when="2017-01-04">review of EpiDoc and CTS compliance; minor
+		    		cleanup; structural revision; readded change log</change>
+			      <change who="Bridget Almas">Converted tlg0007.tlg0012.perseus-grc1 to Epidoc</change>
+		    	<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+		    	<change who="gcrane" when="2013-06-29">chapters are now divs</change>
+		    	<change who="balmas01" when="2010-11-30">getting rid of angle brackets in commit comments</change>
+		    	<change who="balmas01" when="2010-11-19">Normalizing quote q and lb</change>
+		    	<change who="rsingh04 " when="2009-12-15">converted demetrius, antony and comparison from sgml to xml and added to hopper.  also replaced xml snippets in other plutarch files with their respective entities. </change>
+		    	<change who="rsingh04 " when="2009-12-07">moved more xml files around based on copyright status.  split up Plutarch/plut_gk.xml into separate files and gave them their own doc ids.</change>
+		    	<change who="lcerrato" when="2009-06-19">fixed bad bibls</change>
+		    	<change who="student-ad" when="2009-06-11">fixing citations - ad</change>
+		    	<change who="rsingh04 " when="2009-01-23">small fixes</change>
+		    	<change who="rsingh04 " when="2009-01-22">now validates and entities fixed</change>
+		    	<change who="lcerrato" when="2001-09-28">cleaned up quotes, bibls and notes</change>
+		    	<change who="lcerrato" when="2001-09-27"> adding new tags for DE, ISBN, etc.</change>
+		    	<change who="LMC" when="2001-09-01">removed from group file, retagged and parsed</change>
+		    	<change who="dasmith " when="2000-03-04">Added separate funder entity to TEI header.</change>
+		    	<change who="dasmith" when="1999-07-28">Added text to REFSDECL</change>
+		    	<change who="textgod" when="1999-07-09">Converted to TEI-conformant SGML.</change>
+		    	<change who="David Smith" when="1997-09-12">Made conformant with TEI P3.</change>
+		    	<change who="EM" when="1992-10-22">Glued all Plutarch files together,  put in HEAD tags to title them.</change>
+		    	<change who="DAS" when="1992-08-01">Removed highlighted text, cleaned up notes and citations, 					and changed chapters to DIV2's.</change>
+		    	<change who="EM" when="1991-08-01">Revise DTDs and recheck texts.</change>
+		    	<change who="EM" when="1990-08-01">Proofread by Ted Armstrong.</change>	    	
+		    </revisionDesc>
+	  </teiHeader>
+	  <text xml:lang="eng">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg012.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg012.perseus-eng2" type="translation" xml:lang="eng"> 
+<head>PERICLES</head> 
+		    		
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg012.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg012.perseus-eng2:1" n="1"> <p>On seeing certain wealthy foreigners in Rome carrying puppies and young monkeys about in their bosoms and fondling them, Caesar<note resp="editor" place="inline" anchored="true">Caesar Augustus.</note> asked, we are told, if the women in their country did not bear children, thus in right princely fashion rebuking those who squander on animals that proneness to love and loving affection which is ours by nature, and which is due only to our fellow-men.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg012.perseus-eng2:1" n="2"> <p> Since, then, our souls are by nature possessed of great fondness for learning and fondness for seeing, it is surely reasonable to chide those who abuse this fondness on objects all unworthy either of their eyes or ears, to the neglect of those which are good and serviceable. Our outward sense, since it apprehends the objects which encounter it by virtue of their mere impact upon it, must needs, perhaps, regard everything that presents itself, be it useful or useless; </p></div> 
+	<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg012.perseus-eng2:1" n="3"> <p> but in the exercise of his mind every man, if he pleases, has the natural power to turn himself away in every case, and to change, without the least difficulty, to that object upon which he himself determines. It is meet, therefore, that he pursue what is best, to the end that he may not merely regard it, but also be edified by regarding it. A color is suited to the eye if its freshness, and its pleasantness as well, stimulates and nourishes the vision; and so our intellectual vision must be applied to such objects as, by their very charm, invite it onward to its own proper good.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg012.perseus-eng2:1" n="4"> <p> Such objects are to be found in virtuous deeds; these implant in those who search them out a great and zealous eagerness which leads to imitation. In other cases, admiration of the deed is not immediately accompanied by an impulse to do it. Nay, many times, on the contrary, while we delight in the work, we despise the workman, as, for instance, in the case of perfumes and dyes; we take a delight in them, but dyers and perfumers we regard as illiberal and vulgar folk.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg012.perseus-eng2:1" n="5"> <p> Therefore it was a fine saying of Antisthenes, when he heard that Ismenias was an excellent piper: <q type="spoken">But he’s a worthless man,</q> said he, <q type="spoken">otherwise he wouldn’t be so good a piper.</q> And so Philip<note resp="editor" place="inline" anchored="true">Philip of Macedon, to Alexander.</note> once said to his son, who, as the wine went round, plucked the strings charmingly and skilfully, <q type="spoken">Art not ashamed to pluck the strings so well?</q> It is enough, surely, if a king have leisure to hear others pluck the strings, and he pays great deference to the Muses if he be but a spectator of such contests.</p></div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg012.perseus-eng2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg012.perseus-eng2:2" n="1"> <p> Labour with one’s own hands on lowly tasks gives witness, in the toil thus expended on useless things, to one’s own indifference to higher things. No generous youth, from seeing the Zeus at Pisa<note resp="editor" place="inline" anchored="true">That is, Olympia.</note> or the Hera at Argos, longs to be Pheidias or Polycleit

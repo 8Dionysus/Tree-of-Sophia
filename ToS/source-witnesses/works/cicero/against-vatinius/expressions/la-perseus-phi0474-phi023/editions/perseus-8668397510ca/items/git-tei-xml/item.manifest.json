@@ -1,0 +1,39 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.cicero.against-vatinius.la-perseus-phi0474-phi023.perseus-8668397510ca.git-tei-xml",
+  "item_kind": "born_digital",
+  "embodiment_ref": "tos.edition.cicero.against-vatinius.la-perseus-phi0474-phi023.perseus-8668397510ca",
+  "storage_posture": "local_gitignored_payload",
+  "acquisition_event_ref": "tos.event.acquisition.registry-20260909.cicero-against-vatinius-latin",
+  "rights_ref": "ToS/source-witnesses/works/cicero/against-vatinius/expressions/la-perseus-phi0474-phi023/editions/perseus-8668397510ca/items/git-tei-xml/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/cicero/against-vatinius/expressions/la-perseus-phi0474-phi023/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/cicero/against-vatinius/expressions/la-perseus-phi0474-phi023/editions/perseus-8668397510ca/items/git-tei-xml/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/cicero/against-vatinius/expressions/la-perseus-phi0474-phi023/editions/perseus-8668397510ca/items/git-tei-xml/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/manifest.json",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi023-cts.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi023.perseus-lat2-header.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi023.perseus-lat2-opening.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474-cts.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/perseus-README.md",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/perseus-license.md",
+    "https://github.com/PerseusDL/canonical-latinLit/tree/8668397510ca77fec6406f7d48f405e50d296764",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null,
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.63233c918fc6ff0da896705a8dd645d94c19ba1e0bd99e64f857ab345643c14d",
+      "relative_path": "payload/phi0474.phi023.perseus-lat2.xml",
+      "original_basename": "phi0474.phi023.perseus-lat2.xml",
+      "media_type": "application/tei+xml",
+      "byte_size": 62473,
+      "sha256": "63233c918fc6ff0da896705a8dd645d94c19ba1e0bd99e64f857ab345643c14d",
+      "fixity_verified_at": "2026-09-09T21:30:32.290203+00:00"
+    }
+  ]
+}

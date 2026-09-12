@@ -1,0 +1,49 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "expression",
+  "record_id": "tos.expression.cicero.divinatio-in-q-caecilium.la-perseus-phi0474-phi004",
+  "preferred_label": "Divinatio in Q. Caecilium — la source-language layer",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/manifest.json",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi004-cts.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi004.perseus-lat2-header.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi004.perseus-lat2-opening.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474-cts.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/perseus-README.md",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/perseus-license.md",
+    "https://github.com/PerseusDL/canonical-latinLit/tree/8668397510ca77fec6406f7d48f405e50d296764",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "CTS",
+      "value": "urn:cts:latinLit:phi0474.phi004.perseus-lat2",
+      "source_ref": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi004-cts.xml",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "work_ref": "tos.work.cicero.divinatio-in-q-caecilium",
+  "language": "la",
+  "expression_role": "source_language",
+  "responsibility_claim_refs": [],
+  "embodiment_claim_refs": [
+    "tos.claim.topology.registry-20260909.cicero-divinatio-in-q-caecilium-latin.expression-edition"
+  ],
+  "notes": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi004.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: M. Tullius Cicero Orationes William Peterson Oxford Clarendon 1917 3 Divinatio in Q. Caecilium; In C. Verrem Scriptorum Classicorum Bibliotheca Oxoniensis Oxford Classical Texts Open Content Alliance Supplied title/contributor statement: Divinatio in Q. Caecilium M. Tullius Cicero William Peterson Perseus Project, Tufts University Gregory Crane Prepared under the supervision of Bridget Almas Lisa Cerrato William Merrill David Mimno Rashmi Singhal David Smith Zach Himes Tufts University CTS and EpiDoc conversion National Endowment For The Humanities (NEH). Claims remain reported; preserve exact header. Supplied annotation or punctuation does not establish ToS source-text acceptance.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

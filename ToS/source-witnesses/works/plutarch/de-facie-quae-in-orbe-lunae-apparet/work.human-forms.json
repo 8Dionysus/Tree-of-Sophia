@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4f04b5314cf9dd815ce49f231124227939d4b7fee2aa66b0a59e670db15b501c",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 3
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4f04b5314cf9dd815ce49f231124227939d4b7fee2aa66b0a59e670db15b501c",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 3
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:4f04b5314cf9dd815ce49f231124227939d4b7fee2aa66b0a59e670db15b501c",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 3
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:4f04b5314cf9dd815ce49f231124227939d4b7fee2aa66b0a59e670db15b501c",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 3
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.42e18bec70aec261c259de10cc8c26ee744392e6427522a007630fecba38a150",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:2738296319a534660fcaa4582356c694ec67e3e7996165f997950ca90d145c8c",
+        "id": "tos.form.metadata.42e18bec70aec261c259de10cc8c26ee744392e6427522a007630fecba38a150",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4f04b5314cf9dd815ce49f231124227939d4b7fee2aa66b0a59e670db15b501c",
+        "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+        "version": 3
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4f04b5314cf9dd815ce49f231124227939d4b7fee2aa66b0a59e670db15b501c",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 3
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4f04b5314cf9dd815ce49f231124227939d4b7fee2aa66b0a59e670db15b501c",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 3
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:4f04b5314cf9dd815ce49f231124227939d4b7fee2aa66b0a59e670db15b501c",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 3
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:4f04b5314cf9dd815ce49f231124227939d4b7fee2aa66b0a59e670db15b501c",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 3
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.0130a88848ecc180067dd3439cd553168b4ab24e32e4911ff5ab0e456cd679bb",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:77b2f73f1b8fb20e4cabde125dde2bae6910132392894df0308018172928ec27",
+        "id": "tos.form.metadata.0130a88848ecc180067dd3439cd553168b4ab24e32e4911ff5ab0e456cd679bb",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4f04b5314cf9dd815ce49f231124227939d4b7fee2aa66b0a59e670db15b501c",
+        "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+        "version": 3
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "command_id": "foundation-source-forms-v1:tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+      "owner_configuration": "sha256:3f8cb3d7311ada6c0c39acf17db4542ca26324d3981a8ea9f3ef8ba2752c1f1e",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T15:55:21.103044+00:00",
+      "request_digest": "sha256:0598aed052049a6b2d40b1b9c73b3992be05a35ae266e6e91b4debc162bb15d8",
+      "results": [
+        {
+          "digest": "sha256:2738296319a534660fcaa4582356c694ec67e3e7996165f997950ca90d145c8c",
+          "id": "tos.form.metadata.42e18bec70aec261c259de10cc8c26ee744392e6427522a007630fecba38a150",
+          "version": 1
+        },
+        {
+          "digest": "sha256:77b2f73f1b8fb20e4cabde125dde2bae6910132392894df0308018172928ec27",
+          "id": "tos.form.metadata.0130a88848ecc180067dd3439cd553168b4ab24e32e4911ff5ab0e456cd679bb",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:3bec4cc5ab233e95c8de28498af84d9a1609f2745552be401c486ce44e267607",
+        "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+        "version": 2
+      }
+    },
+    {
+      "command_id": "registry-seventh-source-forms:de8e3bb0337592dfc72690cd80a4bb4ea4574652b8bc0e3ac79d132d6bf5a3db",
+      "request_digest": "sha256:fd3809dc5f76f1826739924cda341441a07a6353a57584af63442044d123adf8",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:56dcf642798bf7c6a7b56bb146de325d6d9de8d9e8776b19d5fa03ffe98af37a",
+      "recorded_at": "2026-09-09T19:51:53.901803+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+        "version": 3,
+        "digest": "sha256:4f04b5314cf9dd815ce49f231124227939d4b7fee2aa66b0a59e670db15b501c"
+      },
+      "previous_revision": "sha256:9d772f7ed5e57ce139b9147a76da6c0f926ed447268db3e1918edd23d218ccf4",
+      "results": [
+        {
+          "id": "tos.form.metadata.42e18bec70aec261c259de10cc8c26ee744392e6427522a007630fecba38a150",
+          "version": 2,
+          "digest": "sha256:ba783a0185b453f3e5d86ed4ee90d79dcd77da0e1108efd46c3e87698d876d25"
+        },
+        {
+          "id": "tos.form.metadata.0130a88848ecc180067dd3439cd553168b4ab24e32e4911ff5ab0e456cd679bb",
+          "version": 2,
+          "digest": "sha256:78b0ab6c8ffac1dd4381b81d15eba820632d2157d9a803baa020978360128b2f"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:3bec4cc5ab233e95c8de28498af84d9a1609f2745552be401c486ce44e267607",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:3bec4cc5ab233e95c8de28498af84d9a1609f2745552be401c486ce44e267607",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:3bec4cc5ab233e95c8de28498af84d9a1609f2745552be401c486ce44e267607",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:3bec4cc5ab233e95c8de28498af84d9a1609f2745552be401c486ce44e267607",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.42e18bec70aec261c259de10cc8c26ee744392e6427522a007630fecba38a150",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:3bec4cc5ab233e95c8de28498af84d9a1609f2745552be401c486ce44e267607",
+        "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:3bec4cc5ab233e95c8de28498af84d9a1609f2745552be401c486ce44e267607",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:3bec4cc5ab233e95c8de28498af84d9a1609f2745552be401c486ce44e267607",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:3bec4cc5ab233e95c8de28498af84d9a1609f2745552be401c486ce44e267607",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:3bec4cc5ab233e95c8de28498af84d9a1609f2745552be401c486ce44e267607",
+            "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.0130a88848ecc180067dd3439cd553168b4ab24e32e4911ff5ab0e456cd679bb",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:3bec4cc5ab233e95c8de28498af84d9a1609f2745552be401c486ce44e267607",
+        "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+        "version": 2
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+    "version": 3,
+    "digest": "sha256:4f04b5314cf9dd815ce49f231124227939d4b7fee2aa66b0a59e670db15b501c"
+  }
+}

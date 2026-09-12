@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>Whether land or sea animals are cleverer</title>
+				<author>Plutarch</author>
+				<editor role="translator">Harold Cherniss</editor>
+				<editor role="translator">William C. Helmbold</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+					<name>Michael Konieczny</name>
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Lucy Parr</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg129.perseus-eng3.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>Plutarch</author>
+						<title>Moralia</title>
+						<editor role="translator">Harold Cherniss</editor>
+						<editor role="translator">William C. Helmbold</editor>
+						<imprint>
+							<pubPlace>Cambridge, MA</pubPlace>
+							<publisher>Harvard University Press</publisher>
+							<pubPlace>London</pubPlace>
+							<publisher>William Heinemann Ltd.</publisher>
+							<date>1957</date>
+						</imprint>
+						<biblScope unit="volume">12</biblScope>
+					</monogr>
+					<series>
+						<title>Loeb Classical Library</title>
+					</series>
+					<ref target="https://archive.org/details/moraliainfifteen12plutuoft/page/308">The Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+			<!-- <state unit="section"/> -->
+			<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+				<language ident="lat">Latin</language>
+				<language ident="deu">German</language>
+				<language ident="ita">Italian</language>
+				<language ident="fre">French</language>
+				<language ident="spa">Spanish</language>
+			</langUsage>
+			<particDesc>
+				<person>
+					<persName>Autobulus</persName>
+				</person>
+				<person>
+					<persName>Soclarus</persName>
+				</person>
+				<person>
+					<persName>Optatus</persName>
+				</person>
+				<person>
+					<persName>Aristotimus</persName>
+				</person>
+				<person>
+					<persName>Phaedimus</persName>
+				</person>
+				<person>
+					<persName>Heracleon</persName>
+				</person>
+			</particDesc>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="RS" when="2010-05">tagged and parsed</change>
+			<change who="Lucy Parr" when="2019-07-22">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg129.perseus-eng3">
+			
+<div n="urn:cts:greekLit:tlg0007.tlg129.perseus-eng3" type="translation" xml:lang="eng"> <pb xml:id="v.12.p.309"/> 
+				<head>WHETHER LAND OR SEA ANIMALS ARE CLEVERER (<foreign xml:lang="lat">DE SOLLERTIA ANIMALIUM</foreign>) </head> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg129.perseus-eng3" n="0"><pb xml:id="v.12.p.311"/> 
+	<head>INTRODUCTION</head> 
+<p rend="indent">There can be little doubt that Plutarch composed this pleasant work from <foreign xml:lang="lat">commentarii</foreign> (<foreign xml:lang="grc">ὑπομνήματα</foreign>) derived not merely from Aristotle (mentioned specifically in 965 d and quoted often), but also from various other compendia, the remains of which are to be seen in Aelian’s and Pliny’s natural histories and elsewhere.<note resp="editor" place="inline" anchored="true">On the sources see Ziegler’s article <title>Plutarchos</title> in Pauly-Wissowa, col. 738, and, of the authorities he cites, particularly Wellmann’s papers in <title rend="italic">Hermes</title>, xxvi, xxvii, and li, and Max Schuster, <title xml:lang="deu" rend="italic">Untersuchungen zu Plutarchs De Sollertia Animalium</title> (Diss. Munich, 1917). There is also an amusing work of Philo, surviving only in an Armenian version, which is most conveniently accessible in Aucher’s Latin translation in vol. 8 of the <title xml:lang="lat" rend="italic">Bibliotheca Sacra</title> edition (Schwickert, Leipzig, 1830): <title xml:lang="lat" rend="italic">De Ratione quam habere etiam Bruta Animalia dicebat Alexander</title>. In the first part of this work Alexander presents the arguments for animal intelligence, which Philo himself attempts to refute in a somewhat summary fashion at the end. The occasional parallels with Plutarch will be cited as Philo, with Aucher’s section and page numbers. Antigonus of Carystus, <title xml:lang="lat" rend="italic">Historia Mirabilium</title>, will be cited from O. Keller’s edition of the <title xml:lang="lat" rend="italic">Naturalium Rerum Scriptores Graeci</title> (Teubner, 1877) and Aelian’s <title xml:lang="lat" rend="italic">De Natura Animalium</title> from R. Hercher’s Teubner (not Didot) edition.</note> In fact, if one reads Plutarch and Aelian and Pliny side by side, one may acquire the impression that they had before them substantially the same sources, and that these were numerous. Whereas <pb xml:id="v.12.p.312"/> Pliny and Aelian appear to adopt nearly everything their authorities may have offered (for they were writing factual commentaries), Plutarch, as always, selects. It is possible, in some cases, that Plutarch’s mss. (which are not good and also contain lacunae) may have been interpolated from Aelian’s; and the reverse is likewise possible. This is a very difficult matter, but the hope may be entertained that some main sources of Plutarch and Aelian, if not of Pliny, and the as yet unassessed evidence of Philo, may eventually be disentangled for substantial sections, though this is not the place to attempt such a feat. </p> 
+<p rend="indent">The title is not well chosen, since the victory is awarded to neither side. The real point of the dialogue seems to be, in its second as well as its first part, that all animals of whatever provenance are intelligent.<note resp="editor" place="inline" anchored="true">Schuster thinks, rather, that Plutarch’s chief aim is to make clear a moral and juridical relationship between man and beasts.</note> The occasionally bantering tone may serve to indicate that we have before us something of a school exercise from Plutarch’s own academy, with perhaps the first draft of the second part composed by pupils.<note resp="editor" place="inline" anchored="true">See Schuster, pp. 57 ff. Aristotimus and Phaedimus were doubtless actual pupils of Plutarch.</note> Note the carefully established details: the contest will take place at a fixed time (960 b, 963 b) before their fellow-pupils and a specially appo

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>Of Bashfulness</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">Thomas Hoy</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         		<name>Angelia Hanhardt</name>
+         		<name>Michael Konieczny</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg104.perseus-eng2.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">1</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst01plutuoft/page/60">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction method="silent">
+               <p>optical character recognition</p>
+            </correction>
+            <quotation marks="none"/>
+         </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+         	<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p>
+         	</cRefPattern>
+            
+         </refsDecl>
+      	<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+         	<language ident="grc">Greek</language>
+         	<language ident="eng">English</language>
+         	<language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Sophia Elzie" when="2019-07-16">EpiDoc and CTS Conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg104.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg104.perseus-eng2" type="translation" xml:lang="eng">
+         <pb xml:id="v.1.p.60"/>
+         <head>Of bashfulness.</head>
+         <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg104.perseus-eng2" type="textpart" n="1"><p rend="indent">Some plants there are, in their own nature wild and barren, and hurtful to seed and garden-sets, which yet among able husbandmen pass for infallible signs of a rich and promising soil. In like manner, some passions of the mind not good in themselves yet serve as first shoots and promises of a disposition which is naturally good, and also capable of much improvement by cultivation. Among these I rank bashfulness, the subject of our present discourse; no ill sign indeed, but the cause and occasion of a great deal of harm. For the bashful oftentimes run into the same enormities as the most hardened and impudent, with this difference only, that the former feel a regret for such miscarriages, but the latter take a pleasure and satisfaction therein. The shameless person is without sense of grief for his baseness, and the bashful is in distress at the very appearance of it. For bashfulness is only modesty in the excess, and is aptly enough named <foreign xml:lang="grc">δυσωπία</foreign> (<emph>the being put out of countenance</emph>), since the face is in some sense confused and dejected with the mind. For as that grief which casts down the eyes is termed dejection, so that kind of modesty which cannot look another in the face is called bashfulness. The orator, speaking of a shameless fellow, said he carried harlots, not virgins, in his eyes;<note resp="editor" place="inline" anchored="true"> <foreign xml:lang="grc">*οὐ κόρας ἀλλὰ πόρνας. Κόρη</foreign> means either <emph>maiden</emph> or <emph>the pupil of the eye.</emph> (G.)</note> on the other hand, the sheepishly bashful betrays <pb xml:id="v.1.p.61"/> no less the effeminacy and softness of his mind in his looks, palliating his weakness, which exposes him to the mercy of impudence, with the specious name of modesty. Cato indeed was wont to say of young persons, he had a greater opinion of such as were subject to color than of those that looked pale; teaching us thereby to look with greater apprehension on the heinousness of an action than on the reprimand which might follow, and to be more afraid of the suspicion of doing an ill thing than of the danger of it. However, too much anxiety and timidity lest we may do wrong is also to be avoided; because many men have become cowards and been deterred from generous undertakings, no less for fear of calumny and detraction than by the danger or difficulty of such attempts.</p> </div>
+         <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg104.perseus-eng2" type="textpart" n="2"><p rend="indent">While therefore we must not suffer the weakness in the one case to pass unnoticed, neither must we abet or countenance invincible impudence in the other, such as is reported of Anaxarchus,— <quote rend="blockquote"> <l>Whose dog-like carriage and effrontery,</l> <l>Despising infamy, out-faced disgrace.</l> </quote> A convenient mien between both is rather to be endeavored after, by repressing the over impudent, and animating the too meek temper. But as this kind of cure is difficult, so is the restraining such excesses not without danger; for as a gardener, in stubbing up some wild or useless bushes, makes at them carelessly with his spade, or burns them off the ground, but in dressing a vine, or grafting an apple, or pruning an olive, carries his hand with the greatest wariness and deliberation, that he may not unluckily injure the tree; so a philosopher, in removing envy, that useless and untractable plant, or covetousness or immoderate love of pleasure from the mind of youth, may cut deep safely, and make a large scar; but if he be to apply his discourse to some more sensible or delicate part, such as the rest

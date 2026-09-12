@@ -1,0 +1,135 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.registry-an-vitiositas-ad-infelicitatem-sufficia",
+  "item_ref": "tos.item.plutarch.an-vitiositas-ad-infelicitatem-sufficia.grc-perseus-tlg0007-tlg099.perseus-341e309c821d.git-tei-xml",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/plutarch/an-vitiositas-ad-infelicitatem-sufficia/expressions/grc-perseus-tlg0007-tlg099/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+    "sha256": "cd54f41634ff13353adb8b2b3fc70d461625fcef972a5885bfbeb5aa42260c36",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.d54cba1d4895cb689d244c07a375736165655dfc707ee8a266d571ad444fa39e",
+      "relative_path": "payload/tlg0007.tlg099.perseus-grc2.xml",
+      "byte_size": 22383,
+      "sha256": "d54cba1d4895cb689d244c07a375736165655dfc707ee8a266d571ad444fa39e",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/plutarch/an-vitiositas-ad-infelicitatem-sufficia/expressions/grc-perseus-tlg0007-tlg099/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+    "rights_record_sha256": "c2c39bba261e43712e7c5c27cfe4825b7a1f17698059355d93efa592e6e4ac3f",
+    "assessment_status": "open-licensed",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [
+      "MX"
+    ],
+    "permission_or_license_refs": [
+      "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/manifest.json",
+      "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+      "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/tlg0007.tlg099-cts.xml",
+      "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/tlg0007.tlg099.perseus-grc2-header.xml",
+      "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/tlg0007-cts.xml",
+      "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/perseus-README.md",
+      "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/evidence/perseus-license.md",
+      "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "lexical_index": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "search_projection": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "graph_projection": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "not-evaluated",
+  "publication_status": "not-published",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-09-09T16:46:14.222673+00:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.registry-20260909.an-vitiositas-ad-infelicitatem-sufficia"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 1,
+  "supersedes_server_import_ref": null
+}

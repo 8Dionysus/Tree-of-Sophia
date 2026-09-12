@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import gzip
 import hashlib
 import json
 import sys
@@ -200,6 +201,16 @@ class SourceRegistryNormalizationTest(unittest.TestCase):
         for kind in ('xlsx', 'docx'):
             self.assertEqual((self.inputs / spec[kind]['source_path']).read_bytes(),
                              (self.packet / spec[kind]['original_path']).read_bytes())
+
+    def test_gzip_wrapper_drift_does_not_change_canonical_snapshot(self):
+        self.add_document()
+        summary = common.run(self.packet, self.inputs)
+        links = self.packet / 'snapshots' / summary['snapshot_id'] / 'links.json.gz'
+        raw = gzip.decompress(links.read_bytes())
+        alternate = gzip.compress(raw, compresslevel=1)
+        self.assertNotEqual(links.read_bytes(), alternate)
+        links.write_bytes(alternate)
+        self.assertEqual(summary, common.run(self.packet, check=True))
 
     def test_same_source_id_in_different_corpora_is_not_merged(self):
         self.add_document(corpus='first')

@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:c9a82b3f28492bee0b98508186f3b87f4a2e484c083c5aff5b79a0bbb8468c27",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:c9a82b3f28492bee0b98508186f3b87f4a2e484c083c5aff5b79a0bbb8468c27",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:c9a82b3f28492bee0b98508186f3b87f4a2e484c083c5aff5b79a0bbb8468c27",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:c9a82b3f28492bee0b98508186f3b87f4a2e484c083c5aff5b79a0bbb8468c27",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.8d4c5c31da95896cccee9c7d9ed4280b5e082e7b498bcf14cbf103e0cdcdcd0f",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:4ea9b70fbfd3a31d1f215dd7a619b291716a6aff00808c9aaccfda2ce8956717",
+        "id": "tos.form.metadata.8d4c5c31da95896cccee9c7d9ed4280b5e082e7b498bcf14cbf103e0cdcdcd0f",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:c9a82b3f28492bee0b98508186f3b87f4a2e484c083c5aff5b79a0bbb8468c27",
+        "id": "tos.work.plutarch.de-sollertia-animalium",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:c9a82b3f28492bee0b98508186f3b87f4a2e484c083c5aff5b79a0bbb8468c27",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:c9a82b3f28492bee0b98508186f3b87f4a2e484c083c5aff5b79a0bbb8468c27",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:c9a82b3f28492bee0b98508186f3b87f4a2e484c083c5aff5b79a0bbb8468c27",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:c9a82b3f28492bee0b98508186f3b87f4a2e484c083c5aff5b79a0bbb8468c27",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.57c7c12a1f4ccff97732dc673d0883e95cd72a846775a4426ebbb48baf215f0f",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:f15291619275a0a74d5e729adb4d67b7749e949e4c9f637f4c94ea80f0f65c5d",
+        "id": "tos.form.metadata.57c7c12a1f4ccff97732dc673d0883e95cd72a846775a4426ebbb48baf215f0f",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:c9a82b3f28492bee0b98508186f3b87f4a2e484c083c5aff5b79a0bbb8468c27",
+        "id": "tos.work.plutarch.de-sollertia-animalium",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:ccab0d3a9503fec233b89cb4a2344037faef2fdcb271d3c7d98954a3f0885178",
+      "owner_configuration": "sha256:422f85fbd81d8b5e66752e15e088a4e7342608a63fb591e075c4197098913838",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:41.418617+00:00",
+      "request_digest": "sha256:97fbac14fab8c14a8b4e0c80489276e55d265bd338cf8e9ea4f5800c24a2730b",
+      "results": [
+        {
+          "digest": "sha256:4ea9b70fbfd3a31d1f215dd7a619b291716a6aff00808c9aaccfda2ce8956717",
+          "id": "tos.form.metadata.8d4c5c31da95896cccee9c7d9ed4280b5e082e7b498bcf14cbf103e0cdcdcd0f",
+          "version": 1
+        },
+        {
+          "digest": "sha256:f15291619275a0a74d5e729adb4d67b7749e949e4c9f637f4c94ea80f0f65c5d",
+          "id": "tos.form.metadata.57c7c12a1f4ccff97732dc673d0883e95cd72a846775a4426ebbb48baf215f0f",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:88c1ed22d98db8af473613f2dd415eccb2c44b51620767955b49111d60d6d352",
+        "id": "tos.work.plutarch.de-sollertia-animalium",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:ccab0d3a9503fec233b89cb4a2344037faef2fdcb271d3c7d98954a3f0885178",
+      "request_digest": "sha256:b65d1a0e6751283f1867fac149bd5bb4b0c675afb5a56c665e49a0971d49bf88",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:63eb9d7d0aaa79d38bdc20b54f6abafa8867b19268df6e5d8b071d233209aaf2",
+      "recorded_at": "2026-09-09T18:35:31.011330+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-sollertia-animalium",
+        "version": 2,
+        "digest": "sha256:c9a82b3f28492bee0b98508186f3b87f4a2e484c083c5aff5b79a0bbb8468c27"
+      },
+      "previous_revision": "sha256:50d2aff4ff10910669be56836d7cc4fa6e8a1f460a71316c7cad07964abe6d35",
+      "results": [
+        {
+          "id": "tos.form.metadata.8d4c5c31da95896cccee9c7d9ed4280b5e082e7b498bcf14cbf103e0cdcdcd0f",
+          "version": 2,
+          "digest": "sha256:a6df087313972c759d28be34bf5f6cd333869613014e67acb4f3973557c60466"
+        },
+        {
+          "id": "tos.form.metadata.57c7c12a1f4ccff97732dc673d0883e95cd72a846775a4426ebbb48baf215f0f",
+          "version": 2,
+          "digest": "sha256:5db30fa5071c6958402fa5b27b4f62efb12d872b97ba45b164fe6e42fb528a19"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:88c1ed22d98db8af473613f2dd415eccb2c44b51620767955b49111d60d6d352",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:88c1ed22d98db8af473613f2dd415eccb2c44b51620767955b49111d60d6d352",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:88c1ed22d98db8af473613f2dd415eccb2c44b51620767955b49111d60d6d352",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:88c1ed22d98db8af473613f2dd415eccb2c44b51620767955b49111d60d6d352",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.8d4c5c31da95896cccee9c7d9ed4280b5e082e7b498bcf14cbf103e0cdcdcd0f",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:88c1ed22d98db8af473613f2dd415eccb2c44b51620767955b49111d60d6d352",
+        "id": "tos.work.plutarch.de-sollertia-animalium",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:88c1ed22d98db8af473613f2dd415eccb2c44b51620767955b49111d60d6d352",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:88c1ed22d98db8af473613f2dd415eccb2c44b51620767955b49111d60d6d352",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:88c1ed22d98db8af473613f2dd415eccb2c44b51620767955b49111d60d6d352",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:88c1ed22d98db8af473613f2dd415eccb2c44b51620767955b49111d60d6d352",
+            "id": "tos.work.plutarch.de-sollertia-animalium",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.57c7c12a1f4ccff97732dc673d0883e95cd72a846775a4426ebbb48baf215f0f",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:88c1ed22d98db8af473613f2dd415eccb2c44b51620767955b49111d60d6d352",
+        "id": "tos.work.plutarch.de-sollertia-animalium",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-sollertia-animalium",
+    "version": 2,
+    "digest": "sha256:c9a82b3f28492bee0b98508186f3b87f4a2e484c083c5aff5b79a0bbb8468c27"
+  }
+}

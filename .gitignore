@@ -31,3 +31,7 @@ dist/
 # Only the boundary route card remains tracked.
 /ToS/source-witnesses/access-requests/private/*
 !/ToS/source-witnesses/access-requests/private/README.md
+
+# Explicitly compiled access query artifact; authored projection manifests remain tracked.
+/ToS/derived-exports/runtime/knowledge.sqlite3
+/ToS/derived-exports/runtime/knowledge.sqlite3.*.building*

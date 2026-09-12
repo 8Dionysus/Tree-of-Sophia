@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plato.statesman.en-perseus-tlg0059-tlg008-perseus-eng2",
+    "version": 1,
+    "digest": "sha256:53d725d415d4160af00a477170b6f378098acf88255f3ce793e646510389ae61"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:53d725d415d4160af00a477170b6f378098acf88255f3ce793e646510389ae61",
+            "id": "tos.expression.plato.statesman.en-perseus-tlg0059-tlg008-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:53d725d415d4160af00a477170b6f378098acf88255f3ce793e646510389ae61",
+            "id": "tos.expression.plato.statesman.en-perseus-tlg0059-tlg008-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:53d725d415d4160af00a477170b6f378098acf88255f3ce793e646510389ae61",
+            "id": "tos.expression.plato.statesman.en-perseus-tlg0059-tlg008-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:53d725d415d4160af00a477170b6f378098acf88255f3ce793e646510389ae61",
+            "id": "tos.expression.plato.statesman.en-perseus-tlg0059-tlg008-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.8d63aac594f1c504d42d233bba056e334eb1b7566f453edd22114aa365af55fe",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:53d725d415d4160af00a477170b6f378098acf88255f3ce793e646510389ae61",
+        "id": "tos.expression.plato.statesman.en-perseus-tlg0059-tlg008-perseus-eng2",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:53d725d415d4160af00a477170b6f378098acf88255f3ce793e646510389ae61",
+            "id": "tos.expression.plato.statesman.en-perseus-tlg0059-tlg008-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:53d725d415d4160af00a477170b6f378098acf88255f3ce793e646510389ae61",
+            "id": "tos.expression.plato.statesman.en-perseus-tlg0059-tlg008-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:53d725d415d4160af00a477170b6f378098acf88255f3ce793e646510389ae61",
+            "id": "tos.expression.plato.statesman.en-perseus-tlg0059-tlg008-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:53d725d415d4160af00a477170b6f378098acf88255f3ce793e646510389ae61",
+            "id": "tos.expression.plato.statesman.en-perseus-tlg0059-tlg008-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.4368e57125c81cd8eabaf842707de89aa342da997bce895b40299eb6834b56df",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:53d725d415d4160af00a477170b6f378098acf88255f3ce793e646510389ae61",
+        "id": "tos.expression.plato.statesman.en-perseus-tlg0059-tlg008-perseus-eng2",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.plato.statesman.en-perseus-tlg0059-tlg008-perseus-eng2",
+      "request_digest": "sha256:24ca879b9787ad2ea9d268d90c4e20086b700100996b434d4372134d4d74e5da",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:e4eb671f74694aa5f6f7ef8c614f46e8d7f686bb6880b275b66d3e57d310ef45",
+      "recorded_at": "2026-09-09T15:55:24.000788+00:00",
+      "source": {
+        "id": "tos.expression.plato.statesman.en-perseus-tlg0059-tlg008-perseus-eng2",
+        "version": 1,
+        "digest": "sha256:53d725d415d4160af00a477170b6f378098acf88255f3ce793e646510389ae61"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.8d63aac594f1c504d42d233bba056e334eb1b7566f453edd22114aa365af55fe",
+          "version": 1,
+          "digest": "sha256:6d3898c6c73c1869bb30674363fe657ab768c70940ed67a4d50640de69c7a2f7"
+        },
+        {
+          "id": "tos.form.metadata.4368e57125c81cd8eabaf842707de89aa342da997bce895b40299eb6834b56df",
+          "version": 1,
+          "digest": "sha256:b6f628832619d1b22d07f12058782be743063eb67dc41cb1822500acb8329433"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>    
+<title>Camillus</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Bridget Almas</name>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2009-03-16">Perseus 4.0</date>
+      		<idno type="filename">tlg0007.tlg011.perseus-eng2.xml</idno>
+      		<availability>
+      		<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+      		</availability>
+      	</publicationStmt>
+      		<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1914</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+            	<ref target="https://archive.org/details/plutarchslives02plut2/page/94/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+         	<quotation marks="none"/>
+            <correction method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section" matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter" matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="Lisa Cerrato" when="2016-12-20">review of EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+      	<change who="Lisa Cerrato" when="1998-10-01">fixed note tags</change>
+      	<change who="Lisa Cerrato" when="1998-08-01">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+	
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-eng2">
+      	
+<div n="urn:cts:greekLit:tlg0007.tlg011.perseus-eng2" type="translation" xml:lang="eng"> 
+	<head>CAMILLUS</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-eng2:1" n="1">
+<p>Turning now to Furius Camillus, among the many notable things that are told of him, this seems the most singular and strange, namely, that although in other offices of command he won many and great successes, and although he was five times chosen dictator, four times celebrated a triumph, and was styled a Second Founder of Rome, not even once was he consul.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-eng2:1" n="2">
+<p>The reason for this lay in the political conditions of his time. The common people, being at variance with the Senate, strove against the appointment of consuls, and elected military tribunes to the command instead. These, although they always acted with consular authority and power, were less obnoxious in their sway because of their number. For the fact that six men instead of two stood at the head of affairs, was some comfort to those who were bitterly set against the rule of the few.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-eng2:1" n="3">
+<p>Now it was at this period that Camillus came to the height of his achievements and fame, and he would not consent to become consul over a reluctant people, although during his career the city tolerated consular elections many times. But in the many other and varied offices which he held, he so conducted himself that even when the authority rightly belonged to him alone, it was exercised in common with others; while the glory that followed such exercise was his alone, even when he shared the command. In the first case, it was his moderation that kept his rule from exciting envy; in the second, it was his ability that gave him the first place with none to dispute it.</p></div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-eng2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-eng2:2" n="1">
+<p>At a time when the house of the Furii was not yet very conspicuous, he, by his own efforts, was the first of his clan to achieve fame. This he did in the great battle with the Aequians and Volscians, serving under Postumius Tubertus the dictator. Dashing out on his horse in front of the army, he did not abate his speed when he got a wound in the thigh, but dragging the missile along with him in its wound, he engaged the bravest of the enemy and put them to flight.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-eng2:2" n="2">
+<p>For this exploit, among other honours bestowed upon him, he was appointed censor, in those days an office of great dignity. There is on record a noble achievement of his censorship, that of bringing the unmarried men, partly by persuasion and partly by threatening them with fines, to join in wedlock with the women who were living in widowhood, and these were many because of the wars; likewise a necessary achievement, that of making the orphans, who before this had contributed nothing to the support of the state, subject to taxation.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-eng2:2" n="3">
+<p>The continuous campaigns, demanding great outlays of money, really required this. Especially burdensome was the siege of Veii (some call the people Veientani). This city was the barrier and bulwark of Tuscany, in quantity of arms and multitude of soldiery no whit inferior to Rome. Indeed, pluming herself on her wealth, and on the refinement, luxury, and sumptuousness in which her citizens lived, she had waged many noble contests 

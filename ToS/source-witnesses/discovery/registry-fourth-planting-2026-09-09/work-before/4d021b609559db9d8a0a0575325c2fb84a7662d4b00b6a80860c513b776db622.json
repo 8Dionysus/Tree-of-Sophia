@@ -1,0 +1,44 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "work",
+  "record_id": "tos.work.plato.crito",
+  "preferred_label": "Crito",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+    "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-README.md",
+    "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-license.md",
+    "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg003.perseus-grc2-header.xml",
+    "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg003-cts.xml",
+    "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "CTS",
+      "value": "urn:cts:greekLit:tlg0059.tlg003",
+      "source_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg003-cts.xml",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "expression_claim_refs": [
+    "tos.claim.topology.registry-20260908.crito.work-expression"
+  ],
+  "responsibility_claim_refs": [],
+  "notes": "Provisional work identity for the exact selected source version. The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction. A complete pinned file does not establish completeness of the critical apparatus or all recensions. Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed. Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open. No ancient author attribution is inferred from the responsibility path or modern provider.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

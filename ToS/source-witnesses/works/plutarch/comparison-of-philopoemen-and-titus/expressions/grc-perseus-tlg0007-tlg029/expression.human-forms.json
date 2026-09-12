@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.comparison-of-philopoemen-and-titus.grc-perseus-tlg0007-tlg029",
+    "version": 1,
+    "digest": "sha256:0035f0c7fb7699276f7d912fea294631bd4e44e1a203766b6f92c456ccfe5f14"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:0035f0c7fb7699276f7d912fea294631bd4e44e1a203766b6f92c456ccfe5f14",
+            "id": "tos.expression.plutarch.comparison-of-philopoemen-and-titus.grc-perseus-tlg0007-tlg029",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:0035f0c7fb7699276f7d912fea294631bd4e44e1a203766b6f92c456ccfe5f14",
+            "id": "tos.expression.plutarch.comparison-of-philopoemen-and-titus.grc-perseus-tlg0007-tlg029",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:0035f0c7fb7699276f7d912fea294631bd4e44e1a203766b6f92c456ccfe5f14",
+            "id": "tos.expression.plutarch.comparison-of-philopoemen-and-titus.grc-perseus-tlg0007-tlg029",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:0035f0c7fb7699276f7d912fea294631bd4e44e1a203766b6f92c456ccfe5f14",
+            "id": "tos.expression.plutarch.comparison-of-philopoemen-and-titus.grc-perseus-tlg0007-tlg029",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.aae1460e996e6268c8b2b01e8b8971426c5fa032a07b114763ec2645ba672b05",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:0035f0c7fb7699276f7d912fea294631bd4e44e1a203766b6f92c456ccfe5f14",
+        "id": "tos.expression.plutarch.comparison-of-philopoemen-and-titus.grc-perseus-tlg0007-tlg029",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:0035f0c7fb7699276f7d912fea294631bd4e44e1a203766b6f92c456ccfe5f14",
+            "id": "tos.expression.plutarch.comparison-of-philopoemen-and-titus.grc-perseus-tlg0007-tlg029",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:0035f0c7fb7699276f7d912fea294631bd4e44e1a203766b6f92c456ccfe5f14",
+            "id": "tos.expression.plutarch.comparison-of-philopoemen-and-titus.grc-perseus-tlg0007-tlg029",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:0035f0c7fb7699276f7d912fea294631bd4e44e1a203766b6f92c456ccfe5f14",
+            "id": "tos.expression.plutarch.comparison-of-philopoemen-and-titus.grc-perseus-tlg0007-tlg029",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:0035f0c7fb7699276f7d912fea294631bd4e44e1a203766b6f92c456ccfe5f14",
+            "id": "tos.expression.plutarch.comparison-of-philopoemen-and-titus.grc-perseus-tlg0007-tlg029",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a393c8c094979958fbbca04d8145e07751ec9e726d2f0f0396f65a69f5cc5351",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:0035f0c7fb7699276f7d912fea294631bd4e44e1a203766b6f92c456ccfe5f14",
+        "id": "tos.expression.plutarch.comparison-of-philopoemen-and-titus.grc-perseus-tlg0007-tlg029",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-tenth-source-forms:ebb175b128ff2fc2efbca4732eda21355769e3b556d27d98a3681f7c45a8de41",
+      "request_digest": "sha256:a89d112d4c8266a4726cdaf8ee3d0948c102ba6d97731e191c0f96c0b8a49f5c",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-tenth-planting",
+      "owner_configuration": "sha256:48d321bf42785b65e2d7051fd98d109d996a55664649c3f1aefc033634d1c6f8",
+      "recorded_at": "2026-09-09T19:06:33.533784+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.comparison-of-philopoemen-and-titus.grc-perseus-tlg0007-tlg029",
+        "version": 1,
+        "digest": "sha256:0035f0c7fb7699276f7d912fea294631bd4e44e1a203766b6f92c456ccfe5f14"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.aae1460e996e6268c8b2b01e8b8971426c5fa032a07b114763ec2645ba672b05",
+          "version": 1,
+          "digest": "sha256:b4ccc04efc16f6994617a6638e1adbc48290f9f23005989b1ea6a388c85ffd02"
+        },
+        {
+          "id": "tos.form.metadata.a393c8c094979958fbbca04d8145e07751ec9e726d2f0f0396f65a69f5cc5351",
+          "version": 1,
+          "digest": "sha256:39f654b04c56fc2e24ef9b047b687ec5ca72f46761cbc7c38d42932a61a6f774"
+        }
+      ]
+    }
+  ]
+}

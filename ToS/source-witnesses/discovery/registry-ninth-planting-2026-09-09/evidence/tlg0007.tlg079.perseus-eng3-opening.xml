@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>The Dinner of the Seven Wise Men</title>
+            <author>Plutarch</author>
+            <editor role="translator">Frank Cole Babbitt</editor>         	
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name> 
+         		<name>Bridget Almas</name>
+         	   
+         	</respStmt>            
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            
+            <respStmt>
+               <persName>Angelia Hanhardt</persName>
+               <orgName>Center for Hellenic Studies</orgName>        
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg079.perseus-eng3.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title xml:lang="lat">Moralia</title>
+                  <editor role="translator">Frank Cole Babbitt</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1928</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+            	<ref target="https://archive.org/details/moraliainfifteen02plutuoft/page/344">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl><quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+         	<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p>
+         	</cRefPattern>
+         </refsDecl>
+      	<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2010-05" who="RS">tagged and parsed</change>
+      	<change when="2019-06-26" who="Angelia Hanhardt">EpiDoc and CTS conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng"> <body xml:base="urn:cts:greekLit:tlg0007.tlg079.perseus-eng3"> 
+<div n="urn:cts:greekLit:tlg0007.tlg079.perseus-eng3" type="translation" xml:lang="eng"><pb xml:id="v.2.p.346"/> 
+	<head>THE DINNER OF THE SEVEN WISE MEN (<foreign xml:lang="lat">SEPTEM SAPIENTIUM CONVIVIUM</foreign>)</head> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg079.perseus-eng3" n="intro"> <head>INTRODUCTION</head><p rend="indent">Plutarch’s account of the dinner of the seven wise men is a literary tour de force. Both Plato and Xenophon had composed similar accounts of such gatherings in their own time, and Plutarch himself has recorded in detail in his Symposiacs (or TableTalks) much of the conversation which was heard at such gatherings in his day. This is comparatively an easy task, but in the account of the dinner of the seven wise men Plutarch, who lived several centuries after Plato and Xenophon, deliberately set himself to compose an account of a meeting of people who lived a couple of centuries before Plato and Xenophon—at the dawn, almost, of authentic Greek history. There was a tradition, recorded by Plato in the Protagoras (p. 343 a) and by other writers, that the seven wise men had met at Delphi in connexion with the dedication of the two famous inscriptions on the temple of Apollo there, and there was an added tradition that they had later been entertained by Periander at Corinth. Besides this, many sayings of the wise men were traditionally current. With this material at hand, Plutarch composed his imaginative account of the dinner, adding other characters such as Neiloxenus and Aesop, and giving it a more intimate touch by introducing the feminine element in the persons of Melissa and <pb xml:id="v.2.p.347"/> Eumetis; and at the end, for good measure, he added an elaboration of the familiar story of Arion’s rescue by dolphins, already well known from the account of Herodotus (i. 24) and of other writers; and this is capped by a few more dolphins. </p>
+<p rend="indent">The title (<foreign xml:lang="grc">Συμπόσιον τῶν ἐπτὰ σοφῶν</foreign>) stands as No. 110 in the catalogue of Lamprias, and the essay is occasionally quoted or referred to by later Greek writers. </p>
+<p rend="indent">Plutarch names, as the seven wise men, Thales, Bias, Pittacus, Solon, Chilon, Cleobulus, and Anacharsis. Plato (Protagoras, 343 a) puts Myson in place of Anacharsis, and in other lists Periander is found in his stead. Pherecydes, Epimenides, and Peisistratus are the other candidates for a place in the list. </p> </div><pb xml:id="v.2.p.349"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg079.perseus-eng3" n="1"><p rend="indent">It seems fairly certain, Nicarchus, that the lapse of time will bring about much obscurity and complete uncertainty regarding actual events, if at the present time, in the case of events so fresh and recent, false accounts that have been concocted obtain credence. For, in the first place, the dinner was not a dinner of the Seven alone, as you and your friends have been told, but of more than twice that number, including myself; for I was on intimate terms with Periander by virtue of my profession,<note resp="editor" place="inline" anchored="true">He was apparently a seer versed in ritual purification; see <foreign xml:lang="lat">infra</foreign>, 149 D.</note> and I was also the host of Thales, for he stayed at my house by command of Periander. In the second place, your informant, whoever he was, did not report the conversation correctly; apparently he was not one of those at the dinner. However, since there is nothing that demands my attention just now, and old age is too untrustworthy to warrant postponing the narration, I will begin at the beginning, and tell you, without any omissions, the story which you all seem eager to hear. </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg079.perseus-eng3" n="2"><p rend="indent">Periander had arranged for the entertainment, not in the

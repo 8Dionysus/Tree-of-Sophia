@@ -1,0 +1,158 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">De Senectute</title>
+            
+            <author>M. Tullius Cicero</author>
+            <editor>William Armistead Falconer</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+                 <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         <extent>About 100Kb</extent>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+             <date type="release" when="2009-10-07">Perseus 4.0</date>
+         </publicationStmt>
+         <sourceDesc xmlns="http://www.tei-c.org/ns/1.0">
+            <biblStruct >
+               <monogr>
+                  <author>Cicero: De Senectute De Amicitia De Divinatione</author>
+                  <title>With An English Translation</title>
+                  <editor>William Armistead Falconer</editor>
+                  <imprint>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Harvard University Press; Cambridge, Mass., London, England</publisher>
+                     <date>1923</date>
+                  </imprint>
+               </monogr>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts section</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+              <citeStructure match="/TEI/text/body" use="@xml:base">
+                <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+              </citeStructure>
+            </refsDecl>
+</encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="eng">English</language>
+            <language ident="grc">Ancient Greek</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="lat">
+      <body xml:base="urn:cts:latinLit:phi0474.phi051.perseus-lat1">
+         <div xml:lang="lat"
+              type="edition">
+            <head >Cato Maior: de Senectute</head>
+            <pb n="p.8"/>
+            <div type="textpart" n="1" subtype="section">
+               <p >
+                  <milestone unit="chapter" n="1"/>
+                  <quote rend="blockquote">
+                     <l>O Tite, si quid ego adiuero curamve levasso</l>
+                     <l>quae nunc te coquit et versat in pectore fixa,</l>
+                     <l part="I">ecquid erit praemi?</l>
+                  </quote>
+
+                  <reg>licet</reg> enim mihi versibus isdem affari te, Attice,
+quibus affatur Flamininum
+
+<quote rend="blockquote">
+                     <l>ille vir haud magna cum re, sed plenus fidei,</l>
+                  </quote>
+
+quamquam certo scio non, ut Flamininum,
+
+<quote rend="blockquote">
+                     <l>sollicitari te, Tite, sic noctesque diesque,</l>
+                  </quote>
+
+novi enim moderationem animi tui et aequitatem,
+teque non cognomen solum Athenis deportasse, sed
+humanitatem et prudentiam intellego. <reg>et</reg> tamen
+te suspicor isdem rebus quibus me ipsum interdum
+gravius commoveri, quarum consolatio et maior est
+et in aliud tempus differenda.</p>
+               <pb n="p.10"/>
+               <p >
+                  <reg>nunc</reg> autem visum est mihi de senectute aliquid
+ad te conscribere,</p>
+            </div>
+            <div type="textpart" n="2" subtype="section">
+               <p > hoc enim onere, quod mihi
+commune tecum est, aut iam urgentis aut certe
+adventantis senectutis et te et me ipsum levari
+volo; etsi te quidem id modice ac sapienter, sicut
+omnia, et ferre et laturum esse certo scio. <reg>sed</reg>
+mihi, cum de senectute vellem aliquid scribere, tu
+occurrebas dignus eo munere, quo uterque nostrum
+communiter uteretur. <reg>mihi</reg> quidem ita iucunda
+huius libri confectio fuit, ut non modo omnis absterserit senectutis molestias, sed effecerit mollem etiam
+et iucundam senectutem. <reg>numquam</reg> igitur laudari
+satis digne philosophia poterit, cui qui pareat omne
+tempus aetatis sine molestia possit degere.</p>
+            </div>
+            <div type="textpart" n="3" subtype="section">
+               <p >
+                  <reg>sed</reg> de ceteris et diximus multa et saepe dicemus:
+hunc librum ad te de senectute misimus. <reg>omnem</reg>
+autem sermonem tribuimus non Tithono, ut Aristo
+Cius, parum enim esset auctoritatis in fabula, sed
+M. Catoni seni, quo maiorem auctoritatem haberet
+oratio; apud quem Laelium et Scipionem facimus
+admirantis, quod is tam facile senectutem ferat,
+eisque eum respondentem; qui si eruditius videbitur disputare quam consuevit ipse in suis libris,
+attribuito litteris Graecis, quarum constat eum perstudiosum fuisse in senectute. <reg>sed</reg> quid opus est
+plura? <reg>iam</reg> enim ipsius Catonis sermo explicabit
+nostram omnem de senectute sententiam.</p>
+               <pb n="p.12"/>
+            </div>
+            <div type="textpart" n="4" subtype="section">
+               <p >
+                  <milestone unit="chapter" n="2"/>SCIPIO. Saepe numero admirari soleo cum hoc
+C. Laelio cum ceterarum rerum tuam excellentem,
+M. Cato, perfectamque sapientiam, tum vel maxime
+quod numquam tibi senectutem gravem esse senserim, quae plerisque senibus sic odiosa est, ut onus
+se Aetna gravius dicant sustinere.</p>
+               <p >CATO. Rem haud sane, Scipio et Laeli, difficilem
+admirari videmini. <reg>quibus</reg> enim nihil est in ipsis
+opis ad bene beateque vivendum, eis omnis aetas
+gravis est; qui autem omnia bona a se ipsi petunt,
+eis nihil potest malum videri quod naturae necessitas
+afferat. <reg>quo</reg> in genere est in primis senectus, quam
+ut adipiscantur omnes optant, eandem accusant
+adeptam<note>adeptam <hi rend="italics">other MSS.</hi>; adepti <hi rend="italics">LE, Bait., Müller.</hi>
+                  </note> ; tanta est stultitiae inconstantia atque
+perversitas. <reg>obrepere</reg> aiunt eam citius quam putas

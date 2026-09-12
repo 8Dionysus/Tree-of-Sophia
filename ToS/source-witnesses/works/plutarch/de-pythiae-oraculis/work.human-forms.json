@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:64db9b1dcc01a49d068c9b1a675d31a58b1a76452fad519de986db705202a0c8",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:64db9b1dcc01a49d068c9b1a675d31a58b1a76452fad519de986db705202a0c8",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:64db9b1dcc01a49d068c9b1a675d31a58b1a76452fad519de986db705202a0c8",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:64db9b1dcc01a49d068c9b1a675d31a58b1a76452fad519de986db705202a0c8",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.4c66109ee0c8a125759dd5dce1657f559438a2c2a21694b838ce3257e883d3a2",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:301b1250194dee08f02e9975a6b3a6dd109f79cbf38ae02780f9ceaa62ebb811",
+        "id": "tos.form.metadata.4c66109ee0c8a125759dd5dce1657f559438a2c2a21694b838ce3257e883d3a2",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:64db9b1dcc01a49d068c9b1a675d31a58b1a76452fad519de986db705202a0c8",
+        "id": "tos.work.plutarch.de-pythiae-oraculis",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:64db9b1dcc01a49d068c9b1a675d31a58b1a76452fad519de986db705202a0c8",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:64db9b1dcc01a49d068c9b1a675d31a58b1a76452fad519de986db705202a0c8",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:64db9b1dcc01a49d068c9b1a675d31a58b1a76452fad519de986db705202a0c8",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:64db9b1dcc01a49d068c9b1a675d31a58b1a76452fad519de986db705202a0c8",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.6c33aa3c755a1249e5ad93991d8ba7b97f5f70886129c14450c2e22196d64c74",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:3ea6a8b012cf633476cd49a1fd5986e43dda77915963b3770236ff5873effa25",
+        "id": "tos.form.metadata.6c33aa3c755a1249e5ad93991d8ba7b97f5f70886129c14450c2e22196d64c74",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:64db9b1dcc01a49d068c9b1a675d31a58b1a76452fad519de986db705202a0c8",
+        "id": "tos.work.plutarch.de-pythiae-oraculis",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:3925ea1297944aaf85739206220d3edb63c09af43e4da04054854c882d639c55",
+      "owner_configuration": "sha256:701334ae21585448903380e16a8396bdcd346cba327aa72a81ff8cede9482f5d",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:38.368073+00:00",
+      "request_digest": "sha256:728fa0962d00e10be32a5c0c3fdf20c17a4cec3f93e6994d8f2660cd33c76367",
+      "results": [
+        {
+          "digest": "sha256:301b1250194dee08f02e9975a6b3a6dd109f79cbf38ae02780f9ceaa62ebb811",
+          "id": "tos.form.metadata.4c66109ee0c8a125759dd5dce1657f559438a2c2a21694b838ce3257e883d3a2",
+          "version": 1
+        },
+        {
+          "digest": "sha256:3ea6a8b012cf633476cd49a1fd5986e43dda77915963b3770236ff5873effa25",
+          "id": "tos.form.metadata.6c33aa3c755a1249e5ad93991d8ba7b97f5f70886129c14450c2e22196d64c74",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:e5675b42be2c41890e97b4023e32547ebfcf378db3303b812eff8c4b6e7eef9c",
+        "id": "tos.work.plutarch.de-pythiae-oraculis",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:3925ea1297944aaf85739206220d3edb63c09af43e4da04054854c882d639c55",
+      "request_digest": "sha256:ef61c502b90b7571abc54ea9e7c871c4cc6d379447fbce179692b54892e232c5",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:9431c8de2a7ff7d359632d227f25578a271754cdf4aca63e5c3f1a963a3c13f1",
+      "recorded_at": "2026-09-09T18:35:27.851400+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-pythiae-oraculis",
+        "version": 2,
+        "digest": "sha256:64db9b1dcc01a49d068c9b1a675d31a58b1a76452fad519de986db705202a0c8"
+      },
+      "previous_revision": "sha256:983202669a8874c586d9285504695dc36685c4de83e3fa5ae0d7c0440b86db2f",
+      "results": [
+        {
+          "id": "tos.form.metadata.4c66109ee0c8a125759dd5dce1657f559438a2c2a21694b838ce3257e883d3a2",
+          "version": 2,
+          "digest": "sha256:cd0cc53b85e57874587294b96950010fe802355a210f971585acbf46b5c90a77"
+        },
+        {
+          "id": "tos.form.metadata.6c33aa3c755a1249e5ad93991d8ba7b97f5f70886129c14450c2e22196d64c74",
+          "version": 2,
+          "digest": "sha256:97e0a2aab6b739885cfe437bc3de8743d8ce1a0c021500af6797e426df51d493"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e5675b42be2c41890e97b4023e32547ebfcf378db3303b812eff8c4b6e7eef9c",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e5675b42be2c41890e97b4023e32547ebfcf378db3303b812eff8c4b6e7eef9c",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:e5675b42be2c41890e97b4023e32547ebfcf378db3303b812eff8c4b6e7eef9c",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:e5675b42be2c41890e97b4023e32547ebfcf378db3303b812eff8c4b6e7eef9c",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.4c66109ee0c8a125759dd5dce1657f559438a2c2a21694b838ce3257e883d3a2",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:e5675b42be2c41890e97b4023e32547ebfcf378db3303b812eff8c4b6e7eef9c",
+        "id": "tos.work.plutarch.de-pythiae-oraculis",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e5675b42be2c41890e97b4023e32547ebfcf378db3303b812eff8c4b6e7eef9c",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e5675b42be2c41890e97b4023e32547ebfcf378db3303b812eff8c4b6e7eef9c",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:e5675b42be2c41890e97b4023e32547ebfcf378db3303b812eff8c4b6e7eef9c",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:e5675b42be2c41890e97b4023e32547ebfcf378db3303b812eff8c4b6e7eef9c",
+            "id": "tos.work.plutarch.de-pythiae-oraculis",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.6c33aa3c755a1249e5ad93991d8ba7b97f5f70886129c14450c2e22196d64c74",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:e5675b42be2c41890e97b4023e32547ebfcf378db3303b812eff8c4b6e7eef9c",
+        "id": "tos.work.plutarch.de-pythiae-oraculis",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-pythiae-oraculis",
+    "version": 2,
+    "digest": "sha256:64db9b1dcc01a49d068c9b1a675d31a58b1a76452fad519de986db705202a0c8"
+  }
+}

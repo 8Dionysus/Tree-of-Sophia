@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+        <fileDesc>
+            <titleStmt>                
+                <title xml:lang="grc">Θησεύς</title>
+                <author>Plutarch</author>
+                <editor>Bernadotte Perrin</editor>
+                <sponsor>Perseus Project, Tufts University</sponsor>
+                <principal>Gregory Crane</principal>
+                <respStmt>
+                    <resp>Prepared under the supervision of</resp>
+                    <name>Lisa Cerrato</name>
+                    <name>William Merrill</name>
+                    <name>Elli Mylonas</name>
+                    <name>David Smith</name>
+                </respStmt>
+                <funder n="org:AnnCPB">The Annenberg CPB/Project</funder>
+            </titleStmt>
+            
+            <publicationStmt>
+                <publisher>Trustees of Tufts University</publisher>
+                <pubPlace>Medford, MA</pubPlace>
+                <authority>Perseus Project</authority>
+                <date type="release" when="1992">Perseus 1.0</date>
+                <idno type="filename">tlg0007.tlg001.perseus-grc2.xml</idno>
+                <availability>
+                    <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+                </availability>
+            </publicationStmt>
+            <sourceDesc>
+                <biblStruct>
+                    
+                    <monogr>
+                        <author>Plutarch</author>
+                        <title>Plutarch's Lives</title>
+                        <editor>Bernadotte Perrin</editor> 
+                        <imprint>
+                            <pubPlace>Cambridge, MA</pubPlace>
+                            <publisher>Harvard University Press</publisher>
+                            <pubPlace>London</pubPlace>
+                            <publisher>William Heinemann Ltd.</publisher>
+                            <date>1914</date>
+                        </imprint>
+                        <biblScope unit="volume">1</biblScope>
+                    </monogr>
+                    <series>
+                        <title>Loeb Classical Library</title>
+                    </series>
+                    <ref target="https://archive.org/details/plutarchslives01plut2/page/n25/mode/2up">Internet Archive</ref>
+                </biblStruct>
+            </sourceDesc>
+        </fileDesc>
+        <encodingDesc>
+            <refsDecl n="CTS">
+                <cRefPattern n="section"
+                         matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+                    <p>This pointer pattern extracts chapter and section.</p>
+                </cRefPattern>
+                <cRefPattern n="chapter"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+                    <p>This pointer pattern extracts chapter.</p>
+                </cRefPattern>
+            </refsDecl>
+            
+            <refsDecl>
+                <refState delim="." unit="chapter"/>
+                <refState unit="section"/>
+            </refsDecl>
+            
+            <editorialDecl>
+                <quotation marks="none"/>
+            </editorialDecl>
+                <refsDecl xml:id="CTS">
+          <citeStructure match="/TEI/text/body" use="@xml:base">
+            <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+              <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+            </citeStructure>
+          </citeStructure>
+        </refsDecl>
+</encodingDesc>
+        <profileDesc>
+            <langUsage>
+                <language ident="grc">Greek</language>
+                <language ident="eng">English</language>
+            </langUsage>
+        </profileDesc>
+        <revisionDesc>
+          <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+            <change who="Lisa Cerrato" when="2016-12-07">review of EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+            <change who="Stella Dee" when="2015">converted to CTS EpiDoc</change>
+            <change who="EM" when="1992-10-22">Glued all Plutarch files together, put in HEAD tags to title them.</change>
+            <change who="David Smith" when="1992-05-20">uncapitalized non-proper nouns at the beginnings of paragraphs and verse lines</change>
+            <change who="EM" when="1991-08-01">Revise DTDs and recheck texts.</change>
+            <change who="Scott Ettinger and Roger Travis">Text keyboarded in the Philippines. Basic SGML tagging.</change>
+</revisionDesc>
+    </teiHeader>
+    
+    <text xml:lang="grc"> 
+        <body xml:base="urn:cts:greekLit:tlg0007.tlg001.perseus-grc2">
+        <div n="urn:cts:greekLit:tlg0007.tlg001.perseus-grc2" type="edition" xml:lang="grc"> 
+            <head>Θησεύς</head> 
+            
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg001.perseus-grc2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg001.perseus-grc2:1" n="1"> 
+<p> ὥσπερ ἐν ταῖς γεωγραφίαις, ὦ Σόσσιε Σενεκίων, οἱ ἱστορικοὶ τὰ διαφεύγοντα τὴν γνῶσιν αὐτῶν τοῖς ἐσχάτοις μέρεσι τῶν πινάκων πιεζοῦντες, αἰτίας<note anchored="true" place="inline" resp="editor" xml:lang="eng"> <foreign xml:lang="grc">αἰτίας</foreign> Amyot, Stephanus, Coraës, Sintenis<hi rend="superscript">2</hi> with C; Bekker and Sintenis<hi rend="superscript">1</hi> have <foreign xml:lang="grc">ἐνίοις</foreign> (<gloss>explaining some by saying</gloss>).</note> παραγράφουσιν ὅτι <q>τὰ δʼ ἐπέκεινα θῖνες ἄνυδροι καὶ θηριώδεις</q> ἢ <q>πηλὸς ἀϊδνὴς</q> ἢ <q>σκυθικὸν κρύος</q> ἢ <q>πέλαγος πεπηγός,</q> οὕτως ἐμοὶ περὶ τὴν τῶν βίων τῶν παραλλήλων γραφήν, τὸν ἐφικτὸν εἰκότι λόγῳ καὶ βάσιμον ἱστορίᾳ πραγμάτων ἐχομένῃ χρόνον διελθόντι, περὶ τῶν ἀνωτέρω καλῶς εἶχεν εἰπεῖν· <q>τὰ δʼ ἐπέκεινα τερατώδη καὶ τραγικὰ ποιηταὶ καὶ μυθογράφοι νέμονται, καὶ οὐκέτʼ ἔχει πίστιν οὐδὲ σαφήνειαν.</q> </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg001.perseus-grc2:1" n="2"> 
+    <p>ἐπεὶ δὲ τὸν περὶ Λυκούργου τοῦ νομοθέτου καὶ Νομᾶ τοῦ βασιλέως λόγον ἐκδόντες, ἐδοκοῦμεν οὐκ ἂν ἀλόγως τῷ Ῥωμύλῳ προσαναβῆναι, πλησίον τῶν χρόνων αὐτοῦ τῇ ἱστορίᾳ γεγονότες, σκοποῦντι δέ μοι <cit> <quote rend="blockquote" type="drama"> <l met="iamb">τοιῷδε<note anchored="true" place="inline" resp="editor" xml:lang="eng"> <title>Seven against Thebes</title>, 435, <foreign xml:lang="grc">τοιῷδε φωτὶ πέμπε τίς ξυστήσεται</foreign>;</note> φωτί (κατʼ Αἰσχύλον) τίς ξυμβήσεται;</l> </quote> <bibl xml:lang="eng">Aesch. Seven 435</bibl> </cit> <cit> <quote rend="blockquote" type="drama"> <l met="iamb">τίνʼ ἀντιτάξω τῷδε; τίς φερέγγυος;<note anchored="true" place="inline" resp="editor" xml:lang="eng"> <gloss>Ibid.</gloss> 395 f. <foreign xml:lang="grc">τίν’ ἀντιτάξεις τῷδε; τίς Προίτου πυλῶν κλῄθρων λυθέντων προστατεῖν φερέγγους</foreign>;</note> </l> </quote> <bibl xml:lang="eng">Aesch. Seven 395 f.</bibl> </cit>ἐφαίνετο τὸν τῶν καλῶν καὶ ἀοιδίμων οἰκιστὴν Ἀθηνῶν ἀντιστῆσαι καὶ παραβαλεῖν τῷ πατρὶ τῆς ἀνικήτου καὶ μεγαλοδόξου Ῥώμης, </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg001.perseus-grc2:1" n="3"> 
+<p>εἴη μὲν οὖν ἡμῖν ἐκκαθαιρόμενον λόγῳ τὸ μυθῶδες ὑπακοῦσαι καὶ λαβεῖν ἱστορίας ὄψιν, ὅπου δʼ ἂν αὐθαδῶς τοῦ πιθανοῦ περιφρονῇ καὶ μὴ δέχηται τὴν πρὸς τὸ εἰκὸς μῖξιν, εὐγνωμόνων ἀκροατῶν δεησόμεθα καὶ πρᾴως τὴν ἀρχαιολογίαν προσδ

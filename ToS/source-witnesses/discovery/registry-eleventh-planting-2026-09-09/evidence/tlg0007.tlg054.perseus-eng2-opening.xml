@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>            
+            <title>Demosthenes</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+				   <name>Bridget Almas</name>
+				   <name>Lisa Cerrato</name>
+				   <name>Rashmi Singhal</name>
+				</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+			   <date type="release" when="2009-03-16">Perseus 4.0</date>
+			   <idno type="filename">tlg0007.tlg054.perseus-eng2.xml</idno>
+			   <availability>
+			      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+			   </availability>
+			</publicationStmt>
+			<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1919</date>
+                  </imprint>
+                  <biblScope unit="volume">7</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives07plut/page/2/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-03-07" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+      	<change when="2000-08-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+	
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-eng2"> 
+      	<div n="urn:cts:greekLit:tlg0007.tlg054.perseus-eng2" type="translation" xml:lang="eng"> 
+      		<pb n="p.2"/> 
+      		<head>DEMOSTHENES</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-eng2:1" n="1"><p>THE author of the encomium upon Alcibiades for his victory in the chariot-race at Olympia,<note anchored="true" place="inline" resp="editor">See the <bibl n="Plut. Alc. 11.1"> <title>Alcibiades</title>, chapter xi</bibl>.</note> whether he was Euripides, as the prevailing report has it, or some other, says, Sosius,<note anchored="true" place="inline" resp="editor">One of Plutarch’s Roman friends. See the note on the <bibl n="Plut. Thes. 1.1"> <title>Theseus</title>, i. 1</bibl>.</note> that the first requisite to a man’s happiness is birth in <q type="spoken">a famous city</q>; but in my opinion, for a man who would enjoy true happiness, which depends for the most part on character and disposition, it is no disadvantage to belong to an obscure and mean city, any more than it is to be born of a mother who is of little stature and without beauty. </p></div>
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-eng2:1" n="2"><p>For it were laughable to suppose that Iulis, which is a little part of the small island of Ceos, and Aegina, which a certain Athenian was urgent to have removed as an eye-sore of the Piraeus,<note anchored="true" place="inline" resp="editor">See the <bibl n="Plut. Per. 8.5"> <title>Pericles</title>, viii. 5</bibl>.</note> should breed good actors and poets,<note anchored="true" place="inline" resp="editor">The great poet Simonides was of Ceos, and the great actor Polus of Aegina.</note> but should never be able to produce a man who is just, independent, wise, and magnanimous. </p></div>
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-eng2:1" n="3"><p>The arts, indeed, since their object is to bring business or fame, naturally pine away in obscure and mean cities; but virtue, like a strong and hardy plant, takes root in any place, if she finds there a generous nature and a spirit that shuns no labour. Wherefore we also, if we fail to live and think as we ought, will justly attribute this, not to the smallness of our native city, but to ourselves. </p></div></div> 
+
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-eng2" n="2">
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-eng2:2" n="1"><p>However, when one has undertaken to compose a history based upon readings which are not readily accessible or even found at home, but in foreign countries, for the most part, and scattered about among different owners, for him it is really necessary, first and above all things, that he should live in a city which is famous, friendly to the liberal arts, and populous, in order that he may have all sorts of books in plenty, and may by hearsay and enquiry come into possession of all those details which elude writers and are preserved with more conspicuous fidelity in the memories of men. He will thus be prevented from publishing a work which is deficient in many, and even in essential things. </p></div>
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-eng2:2" n="2"><p>But as for me, I live in a small city, and I prefer to dwell there that it may not become smaller still; and during the time when I was in Rome and various parts of Italy I had no leisure to practise myself in the Roman language, owing to my public duties and the number of my pupils in philosophy. It was therefore late and when I was well on in years that I began to study Roman literature. </p></div>
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg054.perseus-eng2:2" n="3">

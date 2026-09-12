@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8199cc83eabd523ef8e2ada6398f7c62304edfee97918e8296286c850942e485",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8199cc83eabd523ef8e2ada6398f7c62304edfee97918e8296286c850942e485",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:8199cc83eabd523ef8e2ada6398f7c62304edfee97918e8296286c850942e485",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:8199cc83eabd523ef8e2ada6398f7c62304edfee97918e8296286c850942e485",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.fda5babc6c5f111afbf3e43daa370d57f345d486526d7b76d248f57a9131f23b",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:3c15b96d52d69372e1a90515d2fec03f9d8040c29d57be3ee7ea8dbf6d3343da",
+        "id": "tos.form.metadata.fda5babc6c5f111afbf3e43daa370d57f345d486526d7b76d248f57a9131f23b",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:8199cc83eabd523ef8e2ada6398f7c62304edfee97918e8296286c850942e485",
+        "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8199cc83eabd523ef8e2ada6398f7c62304edfee97918e8296286c850942e485",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8199cc83eabd523ef8e2ada6398f7c62304edfee97918e8296286c850942e485",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:8199cc83eabd523ef8e2ada6398f7c62304edfee97918e8296286c850942e485",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:8199cc83eabd523ef8e2ada6398f7c62304edfee97918e8296286c850942e485",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.b2f0cdcfd24081cd70ace306b62f24029ed6d161be3b79ee0317da9fd0ba4c90",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:d8e8e4070599b46c8191958b85db2a9734c8637b470f1ebb8391adcaecae76bb",
+        "id": "tos.form.metadata.b2f0cdcfd24081cd70ace306b62f24029ed6d161be3b79ee0317da9fd0ba4c90",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:8199cc83eabd523ef8e2ada6398f7c62304edfee97918e8296286c850942e485",
+        "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:bb1d86ff88871e42ce0c1e4b8b0be51d72222874bcfa76d039be2228bd009fd5",
+      "owner_configuration": "sha256:96f6ff9a7ed779287e95c9150e8e46b46ebbf09869947c40c1772bc684570373",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:39.073555+00:00",
+      "request_digest": "sha256:5e0c75ef5a9aa62c347a9e62cb4a136f06dd15ffe33522c0aaa095a29cffe3cb",
+      "results": [
+        {
+          "digest": "sha256:3c15b96d52d69372e1a90515d2fec03f9d8040c29d57be3ee7ea8dbf6d3343da",
+          "id": "tos.form.metadata.fda5babc6c5f111afbf3e43daa370d57f345d486526d7b76d248f57a9131f23b",
+          "version": 1
+        },
+        {
+          "digest": "sha256:d8e8e4070599b46c8191958b85db2a9734c8637b470f1ebb8391adcaecae76bb",
+          "id": "tos.form.metadata.b2f0cdcfd24081cd70ace306b62f24029ed6d161be3b79ee0317da9fd0ba4c90",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:37168e49961c9f1753a22645fb10bd37452fe2531924371f2e2aae69ac38ac6c",
+        "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:bb1d86ff88871e42ce0c1e4b8b0be51d72222874bcfa76d039be2228bd009fd5",
+      "request_digest": "sha256:35ad440cfee14732f12cae77c5e9b97459a98332c9f0aa4c06cd11f5fd849b0a",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:f21148a93bd563019524edc813024ab3691504c642eb0eb3ab5a0c346da844d8",
+      "recorded_at": "2026-09-09T18:35:28.500258+00:00",
+      "source": {
+        "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+        "version": 2,
+        "digest": "sha256:8199cc83eabd523ef8e2ada6398f7c62304edfee97918e8296286c850942e485"
+      },
+      "previous_revision": "sha256:a86dc0f63ee8c9ca496d58db76aa7193bb12569c07500051477f6064d6e30b97",
+      "results": [
+        {
+          "id": "tos.form.metadata.fda5babc6c5f111afbf3e43daa370d57f345d486526d7b76d248f57a9131f23b",
+          "version": 2,
+          "digest": "sha256:136af8499d4afc24948996af1d3e6596bf73c2fd7b51737f4fbc1c428792dd9a"
+        },
+        {
+          "id": "tos.form.metadata.b2f0cdcfd24081cd70ace306b62f24029ed6d161be3b79ee0317da9fd0ba4c90",
+          "version": 2,
+          "digest": "sha256:21984bc95b2597a74dba5b93f30d687c85ad14080187fdd3f343d4e30a13b94b"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:37168e49961c9f1753a22645fb10bd37452fe2531924371f2e2aae69ac38ac6c",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:37168e49961c9f1753a22645fb10bd37452fe2531924371f2e2aae69ac38ac6c",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:37168e49961c9f1753a22645fb10bd37452fe2531924371f2e2aae69ac38ac6c",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:37168e49961c9f1753a22645fb10bd37452fe2531924371f2e2aae69ac38ac6c",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.fda5babc6c5f111afbf3e43daa370d57f345d486526d7b76d248f57a9131f23b",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:37168e49961c9f1753a22645fb10bd37452fe2531924371f2e2aae69ac38ac6c",
+        "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:37168e49961c9f1753a22645fb10bd37452fe2531924371f2e2aae69ac38ac6c",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:37168e49961c9f1753a22645fb10bd37452fe2531924371f2e2aae69ac38ac6c",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:37168e49961c9f1753a22645fb10bd37452fe2531924371f2e2aae69ac38ac6c",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:37168e49961c9f1753a22645fb10bd37452fe2531924371f2e2aae69ac38ac6c",
+            "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.b2f0cdcfd24081cd70ace306b62f24029ed6d161be3b79ee0317da9fd0ba4c90",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:37168e49961c9f1753a22645fb10bd37452fe2531924371f2e2aae69ac38ac6c",
+        "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.an-vitiositas-ad-infelicitatem-sufficia",
+    "version": 2,
+    "digest": "sha256:8199cc83eabd523ef8e2ada6398f7c62304edfee97918e8296286c850942e485"
+  }
+}

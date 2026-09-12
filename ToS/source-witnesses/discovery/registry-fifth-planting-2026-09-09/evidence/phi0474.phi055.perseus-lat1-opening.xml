@@ -1,0 +1,117 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">De Officiis</title>            
+            <author>M. Tullius Cicero</author>
+            <editor>Walter Miller</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         <extent>About 100Kb</extent>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+             <date type="release" when="2009-10-07">Perseus 4.0</date>
+         </publicationStmt>
+         <sourceDesc xmlns="http://www.tei-c.org/ns/1.0">
+            <biblStruct >
+               <monogr>
+                  <author xml:lang="lat">M. Tullius Cicero</author>
+                  <title xml:lang="lat">De Officiis</title>
+                  <editor>Walter Miller</editor>
+                  <imprint>
+                     <pubPlace>London</pubPlace>
+                     <pubPlace>New York</pubPlace>
+                     <publisher>William Heinemann</publisher>
+                     <publisher>G.P. Putham's Sons</publisher>
+                     <date>1913</date>
+                  </imprint>
+               </monogr>
+               <series>Loeb Classical Library</series>
+               <ref target="https://archive.org/details/deofficiiswithen00ciceuoft">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts section</p>
+            </cRefPattern>
+            <cRefPattern n="book"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts book</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="book"/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+              <citeStructure match="/TEI/text/body" use="@xml:base">
+                <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+                  <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+                </citeStructure>
+              </citeStructure>
+            </refsDecl>
+</encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Ancient Greek</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+         <change when="2022-11-03" who="Alison Babeu">Updated header and metadata</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="lat">
+      <body xml:base="urn:cts:latinLit:phi0474.phi055.perseus-lat1">
+         <div xml:lang="lat"
+              type="edition">
+            <pb n="p.2"/>
+            <div type="textpart" n="1" subtype="book">
+               <head >Liber Primus</head>
+               <div type="textpart" n="1" subtype="section">
+                  <p >
+                     <milestone unit="chapter" n="1"/> Quamquam te, Marce fili, annum iam audientem Cratippum, idque Athenis, abundare oportet praeceptis institutisque philosophiae propter summam et doctoris auctoritatem et urbis, quorum alter te scientia augere potest, altera exemplis, tamen, ut ipse ad meam utilitatem semper cum Graecis Latina coniunxi neque id in philosophia solum, sed etiam in dicendi exercitatione feci, idem tibi censeo faciendum, ut par sis in utriusque orationis facultate. Quam quidem ad rem nos, ut videmur, magnum attulimus adiumentum hominibus nostris, ut non modo Graecarum litterarum rudes, sed etiam docti aliquantum se arbitrentur adeptos et ad dicendum et ad iudicandum.</p>
+                  <p >
+</p>
+               </div>
+               <div type="textpart" n="2" subtype="section">
+                  <p > Quam ob rem disces tu quidem a principe huius aetatis philosophorum, et disces, quam diu voles; tam diu autem velle debebis, quoad te, quantum proficias, non paenitebit; sed tamen nostra legens non multum a Peripateticis dissidentia, quoniam utrique Socratici et Platonici volumus esse, de rebus ipsis utere tuo iudicio (nihil enim impedio), orationem autem Latinam <pb n="p.4"/> efficies profecto legendis nostris pleniorem. Nec vero hoc arroganter dictum existimari velim. Nam philosophandi scientiam concedens multis, quod est oratoris proprium, apte, distincte, ornate dicere, quoniam in eo studio aetatem consumpsi, si id mihi assumo, videor id meo iure quodam modo vindicare.</p>
+                  <p >
+</p>
+               </div>
+               <div type="textpart" n="3" subtype="section">
+                  <p > Quam ob rem magnopere te hortor, mi Cicero, ut non solum orationes meas, sed hos etiam de philosophia libros, qui iam illis fere se aequarunt, studiose legas; vis enim maior in illis dicendi, sed hoc quoque colendum est aequabile et temperatum orationis genus. Et id quidem nemini video Graecorum adhuc contigisse, ut idem utroque in genere elaboraret sequereturque et illud forense dicendi et hoc quietum disputandi genus, nisi forte Demetrius Phalereus in hoc numero haberi potest, disputator subtilis, orator parum vehemens, dulcis tamen, ut Theophrasti discipulum possis agnoscere. Nos autem quantum in utroque profecerimus, aliorum sit iudicium, utrumque certe secuti sumus.</p>
+                  <p >
+</p>
+               </div>
+               <div type="textpart" n="4" subtype="section">
+                  <p > Equidem et Platonem existimo, si genus forense dicendi tractare voluisset, gravissime et copiosissime potuisse dicere, et Demosthenem, si illa, quae a Platone didicerat, tenuisset et pronuntiare voluisset, ornate splendideque facere potuisse; eodemque modo de Aristotele et Isocrate iudico, quorum uterque suo studio delectatus contempsit alterum.</p>
+                  <pb n="p.6"/>
+                  <p >
+                     <milestone unit="chapter" n="2"/> Sed cum statuissem scribere ad te aliquid hoc tempore, multa posthac, ab eo ordiri maxime volui, quod et aetati tuae esset aptissimum et auctoritati meae. Nam cum multa sint in philosophia et gravia et utilia accurate copioseque a philosophis disputata, latissime patere videntur ea, quae de officiis tradita ab illis et praecepta sunt. Nulla enim vitae pars neque publicis neque privatis neque forensibus neque domesticis in rebus, neque si tecum agas quid, neque si cum altero contrahas, vacare officio potest, in eoque et colendo sita vitae est honestas omnis et neglegendo turpitudo.</p>
+                  <p >
+</p>
+               </div>
+               <div type="textpart" n="5" subtype="section">
+                  <p > Atque haec quidem quaestio communis est omnium philosophorum; q

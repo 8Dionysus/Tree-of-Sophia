@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-recta-ratione-audiendi",
+    "version": 1,
+    "digest": "sha256:200d69abcb7b170bcbe06120c220d154a4481db0d7f3850da59d1cfa05623377"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:200d69abcb7b170bcbe06120c220d154a4481db0d7f3850da59d1cfa05623377",
+            "id": "tos.work.plutarch.de-recta-ratione-audiendi",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:200d69abcb7b170bcbe06120c220d154a4481db0d7f3850da59d1cfa05623377",
+            "id": "tos.work.plutarch.de-recta-ratione-audiendi",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:200d69abcb7b170bcbe06120c220d154a4481db0d7f3850da59d1cfa05623377",
+            "id": "tos.work.plutarch.de-recta-ratione-audiendi",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:200d69abcb7b170bcbe06120c220d154a4481db0d7f3850da59d1cfa05623377",
+            "id": "tos.work.plutarch.de-recta-ratione-audiendi",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.25208d64dc3841fe6d268b6f851c2e4275cf2fbd1df06617791df6cae7d8d29b",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:200d69abcb7b170bcbe06120c220d154a4481db0d7f3850da59d1cfa05623377",
+        "id": "tos.work.plutarch.de-recta-ratione-audiendi",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:200d69abcb7b170bcbe06120c220d154a4481db0d7f3850da59d1cfa05623377",
+            "id": "tos.work.plutarch.de-recta-ratione-audiendi",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:200d69abcb7b170bcbe06120c220d154a4481db0d7f3850da59d1cfa05623377",
+            "id": "tos.work.plutarch.de-recta-ratione-audiendi",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:200d69abcb7b170bcbe06120c220d154a4481db0d7f3850da59d1cfa05623377",
+            "id": "tos.work.plutarch.de-recta-ratione-audiendi",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:200d69abcb7b170bcbe06120c220d154a4481db0d7f3850da59d1cfa05623377",
+            "id": "tos.work.plutarch.de-recta-ratione-audiendi",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.f2995979cbbe682b007b0ae0a2195de8dd41e1e918612891c83ab593502fef6d",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:200d69abcb7b170bcbe06120c220d154a4481db0d7f3850da59d1cfa05623377",
+        "id": "tos.work.plutarch.de-recta-ratione-audiendi",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:397e676e41cb8f6d3561d8f944c434a27476e83b75f4440cbcfe8101cb794193",
+      "request_digest": "sha256:5ce529cb68ec6f7e6d783d6ebc9dcb98b4998bf6deb3a64bdc72964aa02c03ff",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:8e4484ce93d65965a12ad7f5bfe1c321fa8a957669635255f577e50135678e53",
+      "recorded_at": "2026-09-09T16:45:37.120756+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-recta-ratione-audiendi",
+        "version": 1,
+        "digest": "sha256:200d69abcb7b170bcbe06120c220d154a4481db0d7f3850da59d1cfa05623377"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.25208d64dc3841fe6d268b6f851c2e4275cf2fbd1df06617791df6cae7d8d29b",
+          "version": 1,
+          "digest": "sha256:8a62f8aa552cbac1b292e62d4b6e860584ee5932b8475e766e85de5cbd99c925"
+        },
+        {
+          "id": "tos.form.metadata.f2995979cbbe682b007b0ae0a2195de8dd41e1e918612891c83ab593502fef6d",
+          "version": 1,
+          "digest": "sha256:d559431add9253d4f795feb86511beff4493ac5b0cd1757c1ebec63b425e6d34"
+        }
+      ]
+    }
+  ]
+}

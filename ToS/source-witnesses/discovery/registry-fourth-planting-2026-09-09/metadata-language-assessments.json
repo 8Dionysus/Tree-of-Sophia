@@ -1,0 +1,18 @@
+{
+  "reviewer_ref": "model:codex/session/01a08281-293a-7ff0-927a-0fd73dfacf7d",
+  "reviewed_at": "2026-09-09T06:04:09.551119+00:00",
+  "assessments": [
+    {
+      "translation_urn": "urn:cts:greekLit:tlg0086.tlg029.perseus-eng2",
+      "reported_cts_language": "grc",
+      "cts_ref": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/evidence/tlg0086.tlg029-cts.xml",
+      "body_prefix_ref": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/evidence/tlg0086.tlg029.perseus-eng2-body-prefix.xml",
+      "body_prefix_sha256": "0ba951eebd00a361a3382423dc3a7d7075cad122263f4c013c0b46843b114e12",
+      "observed_body_xml_language": "eng",
+      "assessed_expression_language": "en",
+      "status": "source-visible-language-reviewed",
+      "finding": "The CTS language attribute conflicts with its translation description and actual source. Both text and translation div declare eng, and the preserved opening contains English prose. Prefer the actual source declaration for this Expression while retaining the contradiction.",
+      "limits": "Language/source representation assessment only; no translation quality, exact source-edition dependence, semantics or canon acceptance."
+    }
+  ]
+}

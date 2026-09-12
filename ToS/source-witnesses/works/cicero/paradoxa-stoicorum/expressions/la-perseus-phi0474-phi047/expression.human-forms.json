@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047",
+    "version": 1,
+    "digest": "sha256:5eb8b7c42ce1b99286f609bfd037faa8469e4e4a939d2c1edccecfb562e3603d"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5eb8b7c42ce1b99286f609bfd037faa8469e4e4a939d2c1edccecfb562e3603d",
+            "id": "tos.expression.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5eb8b7c42ce1b99286f609bfd037faa8469e4e4a939d2c1edccecfb562e3603d",
+            "id": "tos.expression.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:5eb8b7c42ce1b99286f609bfd037faa8469e4e4a939d2c1edccecfb562e3603d",
+            "id": "tos.expression.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:5eb8b7c42ce1b99286f609bfd037faa8469e4e4a939d2c1edccecfb562e3603d",
+            "id": "tos.expression.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.560cd5a524bda20b6714c2c898d7acc7b523fc29ea47598fd8e4066f70a86a8a",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:5eb8b7c42ce1b99286f609bfd037faa8469e4e4a939d2c1edccecfb562e3603d",
+        "id": "tos.expression.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5eb8b7c42ce1b99286f609bfd037faa8469e4e4a939d2c1edccecfb562e3603d",
+            "id": "tos.expression.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5eb8b7c42ce1b99286f609bfd037faa8469e4e4a939d2c1edccecfb562e3603d",
+            "id": "tos.expression.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:5eb8b7c42ce1b99286f609bfd037faa8469e4e4a939d2c1edccecfb562e3603d",
+            "id": "tos.expression.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:5eb8b7c42ce1b99286f609bfd037faa8469e4e4a939d2c1edccecfb562e3603d",
+            "id": "tos.expression.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.816f1cc21a39c3dc51e23bc0913ed8685d470a0a977bb7050f37473f83ad99db",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:5eb8b7c42ce1b99286f609bfd037faa8469e4e4a939d2c1edccecfb562e3603d",
+        "id": "tos.expression.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047",
+      "request_digest": "sha256:08d8a491d24465313242a63b8b609fde3b1093ef861015e659239a150d7d0ab1",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:511cc7a33c64b3b668bc816e29e64fe900c3a2ee1489d42f1c7f4d5e2e19c233",
+      "recorded_at": "2026-09-09T15:55:22.076018+00:00",
+      "source": {
+        "id": "tos.expression.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047",
+        "version": 1,
+        "digest": "sha256:5eb8b7c42ce1b99286f609bfd037faa8469e4e4a939d2c1edccecfb562e3603d"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.560cd5a524bda20b6714c2c898d7acc7b523fc29ea47598fd8e4066f70a86a8a",
+          "version": 1,
+          "digest": "sha256:0ea42d6f9e16c237c104c9d0298086c23f53314d22f6dca71c81aa26fa12c2ff"
+        },
+        {
+          "id": "tos.form.metadata.816f1cc21a39c3dc51e23bc0913ed8685d470a0a977bb7050f37473f83ad99db",
+          "version": 1,
+          "digest": "sha256:6e96254ceaaa448d7f4494188a955ebfb730d7ff3fb3d19c1f9e6f6c7d26185f"
+        }
+      ]
+    }
+  ]
+}

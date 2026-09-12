@@ -1,0 +1,42 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "item",
+  "record_id": "tos.item.plutarch.fabius-maximus.grc-perseus-tlg0007-tlg013.perseus-341e309c821d.git-tei-xml",
+  "preferred_label": "Fabius Maximus — exact local git-tei-xml copy",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/manifest.json",
+    "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007.tlg013-cts.xml",
+    "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007.tlg013.perseus-grc2-header.xml",
+    "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007-cts.xml",
+    "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/perseus-README.md",
+    "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/perseus-license.md",
+    "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "CTS",
+      "value": "urn:cts:greekLit:tlg0007.tlg013.perseus-grc2",
+      "source_ref": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007.tlg013-cts.xml",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "item_manifest_ref": "ToS/source-witnesses/works/plutarch/fabius-maximus/expressions/grc-perseus-tlg0007-tlg013/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+  "notes": "The Item identifies one acquired immutable digital file set from the pinned provider version. Its individual Files have content-addressed SHA-256 identities. The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction. Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted. Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations. Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools. Lives, narratorial judgments and separately identified comparisons remain transmitted literary and historical testimony, not accepted biography or philosophical doctrine; distinct CTS comparisons are not merged into their paired Lives. The supplied CTS title and language are retained literally; title normalization and person-name equivalence remain unreviewed. Unresolved supplied printing-date discrepancy: CTS edition description states 1914, TEI sourceDesc states 1916, both volume III/3. Exact CTS and Git identity is retained without adjudicating the print date.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

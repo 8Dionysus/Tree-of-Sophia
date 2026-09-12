@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+
+<title xml:lang="grc">Νικίου καὶ Κράσσου σύγκρισις</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg040.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>  
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1916</date>
+</imprint>
+<biblScope unit="volume">3</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/liveswithenglish03plutuoft/page/424/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+        
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+        
+        <revisionDesc>
+          <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+            <change when="2018-02-14" who="Lisa Cerrato">EpiDoc and CTS file conversion</change>
+            <change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+    
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-grc2">
+    <div n="urn:cts:greekLit:tlg0007.tlg040.perseus-grc2" type="edition" xml:lang="grc"> 
+        <head>Νικίου καὶ Κράσσου σύγκρισις</head>
+        <pb n="p.424"/> 
+        <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-grc2" n="1"> 
+    
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-grc2:1" n="1"><p>ἐν δὲ τῇ συγκρίσει πρῶτον ὁ Νικίου πλοῦτος τῷ Κράσσου παραβαλλόμενος ἀμεμπτοτέραν ἔχει τὴν κτῆσιν. ἄλλως μὲν γὰρ οὐκ ἄν τις δοκιμάσειε τὴν ἀπὸ μετάλλων ἐργασίαν, ἧς τὰ πλεῖστα περαίνεται διὰ κακούργων ἢ βαρβάρων, ἐνίων δεδεμένων καὶ φθειρομένων ἐν τόποις ὑπούλοις καὶ νοσεροῖς· παραβαλλομένη δὲ πρὸς τὰ Σύλλα δημιόπρατα καὶ τὰς περὶ τὸ πῦρ ἐργολαβίας, ἐπιεικεστέρα φανεῖται.</p></div> 
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-grc2:1" n="2"><p>ταύταις γὰρ ὁ Κράσσος ἀναφανδὸν ὡς τῷ γεωργεῖν ἐχρῆτο καὶ τῷ δανείζειν· ἃ δὲ ἔξαρνος ἦν ἐλεγχόμενος, ἐπὶ κέρδεσιν ἐν βουλῇ λέγειν καὶ τοὺς συμμάχους ἀδικεῖν καὶ γύναια περιιὼν κολακεύειν καὶ συνεπικρύπτειν τοὺς πονηρούς, τούτων αἰτίαν οὐδὲ ψευδῆ ποτε Νικίας ἔλαβεν, ἄλλως δὲ διδοὺς καὶ προϊέμενος ἀργύριον ὑπὸ δειλίας τοῖς συκοφάνταις ἐχλευάζετο, πρᾶγμα ποιῶν Περικλεῖ μὲν ἴσως καὶ Ἀριστείδῃ μὴ πρέπον, αὐτῷ δʼ ἀναγκαῖον οὐκ εὖ πεφυκότι πρὸς τὸ θαρρεῖν.</p></div> 
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-grc2:1" n="3"><p>ᾧ καὶ Λυκοῦργος ὕστερον ὁ ῥήτωρ ἐπαρρησιάσατο πρὸς τὸν δῆμον, αἰτίαν ἔχων ἐξωνήσασθαί τινα τῶν συκοφαντῶν· <q>ἥδομαι γάρ,</q> εἶπεν, <q>εἰ τοσοῦτον χρόνον πεπολιτευμένος παρʼ ὑμῖν διδοὺς πεφώραμαι πρότερον ἢ λαμβάνων.</q></p></div> 
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-grc2:1" n="4"><p>τὴν δὲ ταῖς δαπάναις πολιτικώτερος μὲν ὁ Νικίας ἀναθήμασι καὶ γυμνασιαρχίαις καὶ <pb n="p.426"/> διδασκαλίαις χορῶν φιλοτιμούμενος, ὧν δʼ ὁ Κράσσος ἀνάλωσεν ἑστιάσας ἅμα τοσαύτας μυριάδας ἀνθρώπων, εἶτα θρέψας πάλιν, οὐδὲν ἦν μέρος ἃ Νικίας ἐκέκτητο σὺν οἷς ἀνάλωσεν, ὥστε θαυμάζειν, εἴ τινα λέληθε τὸ τὴν κακίαν ἀνωμαλίαν εἶναί τινα τρόπου καὶ ἀνομολογίαν, ὁρῶντα τοὺς αἰσχρῶς συλλέγοντας εἶτʼ ἀχρήστως ἐκχέοντας.</p></div></div> 
+        <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-grc2" n="2"> 
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-grc2:2" n="1"><p>περὶ μὲν τοῦ πλούτου τοσαῦτα· τοῖς δὲ πολιτεύμασι τοῦ μὲν Ν�

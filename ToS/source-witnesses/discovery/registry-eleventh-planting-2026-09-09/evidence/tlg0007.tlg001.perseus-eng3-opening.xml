@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+  <teiHeader xml:lang="eng">
+      <fileDesc>
+<titleStmt>   
+   <title>Theseus</title>
+   <author>Plutarch</author>
+   <editor role="translator">Bernadotte Perrin</editor>
+   <sponsor>Perseus Project, Tufts University</sponsor>
+   <principal>Gregory Crane</principal>
+   <respStmt>
+      <resp>Prepared under the supervision of</resp>
+      <name>Lisa Cerrato</name>
+      <name>William Merrill</name>
+      <name>Elli Mylonas</name>
+      <name>David Smith</name>
+   </respStmt>
+   <funder n="org:AnnCPB">The Annenberg CPB/Project</funder>
+   <respStmt>
+      <persName>Allison Dempsey</persName>
+      <orgName>Tufts University</orgName>
+      <resp>Digital editing</resp>
+   </respStmt>
+</titleStmt>
+
+<publicationStmt>
+   <publisher>Trustees of Tufts University</publisher>
+   <pubPlace>Medford, MA</pubPlace>
+   <authority>Perseus Project</authority>
+   <date type="release" when="1992">Perseus 1.0</date>
+   <idno type="filename">tlg0007.tlg001.perseus-eng3.xml</idno>
+   <availability>
+      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+   </availability>
+</publicationStmt>
+
+<sourceDesc>
+   <biblStruct>
+      
+      <monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+<editor role="translator">Bernadotte Perrin</editor>      
+<imprint>
+   <pubPlace>Cambridge, MA</pubPlace>
+   <publisher>Harvard University Press</publisher>
+   <pubPlace>London</pubPlace>
+   <publisher>William Heinemann Ltd.</publisher>
+   <date>1914</date>
+</imprint>        
+<biblScope unit="volume">1</biblScope>
+      </monogr>
+      <series>
+<title>Loeb Classical Library</title>
+      </series>
+      <ref target="https://archive.org/details/plutarchslives01plut2/page/n25/mode/2up">Internet Archive</ref>
+   </biblStruct>
+</sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+<refsDecl n="CTS">
+   <cRefPattern n="section"
+       matchPattern="(\w+).(\w+)"
+       replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+       <p>This pointer pattern extracts chapter and section.</p>
+   </cRefPattern>
+   <cRefPattern n="chapter"
+       matchPattern="(\w+)"
+       replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+       <p>This pointer pattern extracts chapter.</p>
+   </cRefPattern>
+        </refsDecl>
+<p>optical character recognition</p>
+<refsDecl>
+   <refState unit="chapter" delim="."/>
+   <refState unit="section"/>
+</refsDecl>
+<editorialDecl>
+   <quotation marks="none"/>
+</editorialDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+<langUsage>
+   <language ident="eng">English</language>
+   <language ident="grc">Greek</language>
+</langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change when="2016-12-07" who="Lisa Cerrato">review of EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+<change when="2013-09-13" who="balmas01">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+   <change when="2013-06-29" who="gcrane">chapters are now divs</change> 
+<change when="2010-11-30" who="balmas01">getting rid of angle brackets in commit comments</change>  
+   <change when="2010-11-19" who="balmas01">Normalizing quote, q, and lb</change>
+<change when="2009-12-15" who="rsingh04">converted demetrius, antony and comparison from sgml to xml and added to hopper. also replaced xml snippets in other plutarch files with their respective entities.</change> 
+   <change when="2009-12-07" who="rsingh04">moved more xml files around based on copyright status. split up Plutarch/plut_gk.xml into separate files and gave them their own doc ids.</change> 
+<change when="2009-06-11" who="student AD">fixing citations</change>
+   <change when="2009-05-20" who="lcerrato">fixing bad bibls</change> 
+      <change when="2009-04-29" who="lcerrato">fixed bad bibls</change> 
+<change when="2009-01-23" who="rsingh04">small fixes</change> 
+<change when="2009-01-23" who="rsingh04">now validates and entities fixed</change> 
+  <change when="2001-09-28" who="lcerrato">cleaned up quotes, bibls and notes</change>
+<change when="2001-09-01" who="LMC">removed from group file, retagged and parsed</change>
+<change when="2001-09-27" who="lcerrato">adding new tags for DE, ISBN, etc.</change>
+   <change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change> 
+      <change when="1999-07-28" who="dasmith">Added text to REFSDECL.</change>
+<change when="1999-07-09" who="textgod">Converted to TEI-conformant SGML.</change>
+<change when="1997-09-12" who="David Smith">Made conformant with TEI P3.</change>
+<change when="1992-10-22" who="EM">Glued all Plutarch files together, put in HEAD tags to title them.</change>
+<change when="1992-08-01" who="DAS">Removed highlighted text, cleaned up notes and citations, and changed chapters to
+   div's.</change>
+<change when="1991-08-01" who="EM">Revise DTDs and recheck texts.</change> 
+<change when="1990-08-01" who="EM">Proofread by Ted Armstrong.</change>    
+      </revisionDesc>
+   </teiHeader>
+   
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg001.perseus-eng3"> 
+<div n="urn:cts:greekLit:tlg0007.tlg001.perseus-eng3" type="translation" xml:lang="eng"> 
+<head>THESEUS</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg001.perseus-eng3" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg001.perseus-eng3:1" n="1"> 
+<p>Just as geographers, O Socius Senecio,<note resp="editor" place="inline" anchored="true">One of the many friends whom Plutarch made during his residence at Rome. He was four times consul between the years 98 and 107 A.D. Plutarch addresses him also at the opening of the <title>Demosthenes</title> and the <title>Dion</title>, thus dedicating to him these <q type="emph">books.</q> </note> crowd on to the outer edges of their maps the parts of the earth which elude their knowledge, with explanatory notes that <q type="written">What lies beyond is sandy desert without water and full of wild beasts,</q> or <q type="written">blind marsh,</q> or <q type="written">Scythian cold,</q> or <q type="written">frozen sea,</q> so in the writing of my Parallel Lives, now that I have traversed those periods of time which are accessible to probable reasoning and which afford basis for a history dealing with facts, I might well say of the earlier periods <q type="emph">What lies beyond is full of marvels and unreality, a land of poets and fabulists, of doubt and obscurity.</q> </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg001.perseus-eng3:1" n="2"> 
+<p> But after publishing my account of Lycurgus the lawgiver and Numa the king, I thought I might not unreasonably go back still farther to Romulus, now that my history had brought me near his times. And as I asked myself, <quote rend="blockquote"> <l> <q type="written">With such a warrior</q> (as Aeschylus says) <q type="written">who will dare to fight?</q> </l> </quote> <note place="inline" anchored="true">The actual text in <bibl n="Aesch. Seven 435">Aeschylus</bibl>:<quote xml:lang="grc">τοιῷδε φωτὶ πέμπε—τίς ξυστήσεται;</quote> </note> <quote rend="blockquote"> <l>Whom shall I set against him? Who is competent?</l> </quote> <note place="inline" anchored="true">The actual text in <bibl n="Aesch. Seven 395">Aechylus</bibl>:<quote xml:lang="grc">τίνʼ ἀντιτάξεις τῷδε; τίς Προίτου πυλῶν | κλῄθρων λυθέντων προστατεῖν φερέγγυος·</quote> </note> it seemed to me that I must make the founder of lovely and famous Athens the counterpart and parallel to the father of invincible and glorious Rome.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg001.perseus-eng3:1" n="3"> 
+<p>May I therefore succeed in purifying Fable, making her submit to reason and take on the semblance of History. But where she obstinately disdains to make herself credible, and refuses to admit any element of probability, I shall pray for kindly readers, and such as receive with indulgence the tales of antiquity. </p> </div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg001.perseus-eng3" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg001.perseus-eng3:2" n="1"> 
+<p>It seemed to me, then, that many resemblances made Theseus a fit parallel to Romulus. For both were of uncertain and obscure parentage, and got the reputation of descent from gods; <quote rend="blockquote"> <l>Both were also warriors, as surely the whole world knoweth,</l> </quote> <note resp="editor" place="inline" anchored="true"> <bibl n="Hom. Il. 7.281"> <title>Iliad</title>, vii. 281,</bibl> of Aias Telemon and Hector.</note> and with their strength, combined sagacity. Of the world’s two most illustrious cities, moreover, Rome and Athens, Romulus founded the one, and Theseus made a metropolis of the other, and each resorted to the rape of women.</p> </div> 
+<div type="textpart" subtype="secti

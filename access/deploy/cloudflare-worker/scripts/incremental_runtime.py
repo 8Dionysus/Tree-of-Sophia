@@ -19,7 +19,15 @@ PRIMARY_KEYS = {
     'philosophy_cluster_edges': ('cluster_id', 'member_ord'),
     'philosophy_review_packets': ('view_id',), 'corpus_items': ('collection', 'ord'),
     'corpus_edges': ('ord',), 'corpus_packs': ('id',), 'knowledge_nodes': ('id',),
-    'knowledge_relations': ('id',),
+    'knowledge_node_payload': ('id', 'part'), 'knowledge_node_search_chunks': ('id', 'part'),
+    'knowledge_relations': ('id',), 'knowledge_relation_payload': ('id', 'part'),
+    'knowledge_relation_search_chunks': ('id', 'part'),
+    'source_navigation_nodes': ('node_id',),
+    'source_navigation_node_payload': ('id', 'part'),
+    'source_navigation_edges': ('edge_id',),
+    'source_navigation_edge_payload': ('id', 'part'),
+    'source_navigation_rights': ('rights_id',),
+    'source_navigation_rights_payload': ('id', 'part'),
 }
 INSERT = re.compile(r'^INSERT INTO (\w+)_next \(([^)]+)\) VALUES \((.*)\);$', re.S)
 

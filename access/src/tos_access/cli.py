@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .core import ToSAccessCore
 from .doctor import doctor_report, render_doctor
+from .query_store import QueryStoreRequired
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -78,49 +79,55 @@ def main(argv: list[str] | None = None) -> None:
         _run_server(build_server(tos_root=core.tos_root))
         return
     if args.command == "knowledge":
-        if args.knowledge_command == "catalog":
-            packet = core.knowledge_catalog()
-        elif args.knowledge_command == "contracts":
-            packet = core.knowledge_contracts()
-        elif args.knowledge_command == "search":
-            packet = core.knowledge_search(
-                args.query,
-                sources=args.sources,
-                kind_ids=args.kind_ids,
-                predicate_ids=args.predicate_ids,
-                offset=args.offset,
-                limit=args.limit,
-            )
-        elif args.knowledge_command == "node":
-            packet = core.knowledge_node(args.node_id, args.relation_limit)
-        elif args.knowledge_command == "relation":
-            packet = core.knowledge_relation(args.relation_id)
-        elif args.knowledge_command == "focus":
-            packet = core.knowledge_focus(
-                args.node_id,
-                sources=args.sources,
-                depth=args.depth,
-                direction=args.direction,
-                predicate_ids=args.predicate_ids,
-                node_limit=args.node_limit,
-                relation_limit=args.relation_limit,
-                profile=args.profile,
-            )
-        else:  # pragma: no cover - argparse owns this branch
-            raise SystemExit(f"unknown knowledge command: {args.knowledge_command}")
+        try:
+            if args.knowledge_command == "catalog":
+                packet = core.knowledge_catalog()
+            elif args.knowledge_command == "contracts":
+                packet = core.knowledge_contracts()
+            elif args.knowledge_command == "search":
+                packet = core.knowledge_search(
+                    args.query,
+                    sources=args.sources,
+                    kind_ids=args.kind_ids,
+                    predicate_ids=args.predicate_ids,
+                    offset=args.offset,
+                    limit=args.limit,
+                )
+            elif args.knowledge_command == "node":
+                packet = core.knowledge_node(args.node_id, args.relation_limit)
+            elif args.knowledge_command == "relation":
+                packet = core.knowledge_relation(args.relation_id)
+            elif args.knowledge_command == "focus":
+                packet = core.knowledge_focus(
+                    args.node_id,
+                    sources=args.sources,
+                    depth=args.depth,
+                    direction=args.direction,
+                    predicate_ids=args.predicate_ids,
+                    node_limit=args.node_limit,
+                    relation_limit=args.relation_limit,
+                    profile=args.profile,
+                )
+            else:  # pragma: no cover - argparse owns this branch
+                raise SystemExit(f"unknown knowledge command: {args.knowledge_command}")
+        except QueryStoreRequired as exc:
+            raise SystemExit(str(exc)) from exc
         print(json.dumps(packet, ensure_ascii=False, indent=2))
         return
     if args.command == "lens":
-        if args.lens_command == "open":
-            packet = core.stored_knowledge_lens(args.lens_id)
-        elif args.lens_command == "compile":
-            raw = sys.stdin.read() if args.spec == "-" else Path(args.spec).read_text(encoding="utf-8")
-            spec = json.loads(raw)
-            if not isinstance(spec, dict):
-                raise SystemExit("LensSpec JSON must be an object")
-            packet = core.compile_knowledge_lens(spec)
-        else:  # pragma: no cover - argparse owns this branch
-            raise SystemExit(f"unknown lens command: {args.lens_command}")
+        try:
+            if args.lens_command == "open":
+                packet = core.stored_knowledge_lens(args.lens_id)
+            elif args.lens_command == "compile":
+                raw = sys.stdin.read() if args.spec == "-" else Path(args.spec).read_text(encoding="utf-8")
+                spec = json.loads(raw)
+                if not isinstance(spec, dict):
+                    raise SystemExit("LensSpec JSON must be an object")
+                packet = core.compile_knowledge_lens(spec)
+            else:  # pragma: no cover - argparse owns this branch
+                raise SystemExit(f"unknown lens command: {args.lens_command}")
+        except QueryStoreRequired as exc:
+            raise SystemExit(str(exc)) from exc
         print(json.dumps(packet, ensure_ascii=False, indent=2))
         return
     raise SystemExit(f"unknown command: {args.command}")

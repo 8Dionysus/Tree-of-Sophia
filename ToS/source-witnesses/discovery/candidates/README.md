@@ -38,7 +38,7 @@ byte format. An explicit, read-only readiness view adds a second selection
 route without rewriting reviewed candidates or previous iterations:
 
 ```sh
-python scripts/build_open_work_candidate_queue.py --selection-mode readiness --readiness-plan ToS/source-witnesses/discovery/readiness/first-wave.json --dry-run
+python scripts/build_open_work_candidate_queue.py --selection-mode readiness --readiness-plan ToS/source-witnesses/discovery/readiness/cross-branch-source-anchors.json --dry-run
 ```
 
 The optional input follows `ToS/contracts/open-work-readiness-plan.schema.json`.

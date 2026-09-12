@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>Which are the most crafty, water-animals or those creatures that breed upon the land?</title>
+				<author>Plutarch</author>
+				<editor>William W. Goodwin</editor>
+				<editor role="translator">John Philips></editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+					<name>Michael Konieczny</name>
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Lucy Parr</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg129.perseus-eng4.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>Plutarch</author>
+						<title>Plutarch's Morals.</title>
+						<respStmt>
+							<resp>Translated from the Greek by several hands. Corrected and revised by</resp>
+							<name>William W. Goodwin, PH. D.</name>
+						</respStmt>
+						<imprint>
+							<pubPlace>Boston</pubPlace>
+							<publisher>Little, Brown, and Company</publisher>
+							<pubPlace>Cambridge</pubPlace>
+							<publisher>Press of John Wilson and Son</publisher>
+							<date>1874</date>
+						</imprint>
+						<biblScope unit="volume">5</biblScope>
+					</monogr>
+					<ref target="https://archive.org/details/plutarchsmoralst05plutuoft/page/156">The Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+
+				<!-- <refsDecl doctype="TEI.2">
+				<state unit="section"/> -->
+			</refsDecl>
+			<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+				<language ident="lat">Latin</language>
+			</langUsage>
+			<particDesc>
+				<person>
+					<persName>Autobulus</persName>
+				</person>
+				<person>
+					<persName>Soclarus</persName>
+				</person>
+				<person>
+					<persName>Optatus</persName>
+				</person>
+				<person>
+					<persName>Aristotimus</persName>
+				</person>
+				<person>
+					<persName>Phaedimus</persName>
+				</person>
+				<person>
+					<persName>Heracleo</persName>
+				</person>
+			</particDesc>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="GRC" when="2006">tagging</change>
+			<change who="Lucy Parr" when="2019-07-22">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg129.perseus-eng4">
+			
+<div n="urn:cts:greekLit:tlg0007.tlg129.perseus-eng4" type="translation" xml:lang="eng"> 
+<head>Which are the most crafty, water-animals or those creatures that breed upon the land?</head> 
+				
+<pb xml:id="v.5.p.157"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg129.perseus-eng4" n="1"> <head> Autobulus, Soclarus, Optatus, Phaedimus, Aristotimus, Heracleo.</head> 
+<p rend="indent"><said who="#Autobulus"><label>AUTOBULUS.</label> Leonidas, being asked the question what he thought of Tyrtaeus, made answer, that he was a good poet to whet minds of young men; as a person who, by the vigor and spirit of his poetical raptures, kindled that wrathful indignation and ambition of honor, which emboldened them in combat to the contempt of death and danger. Which makes me afraid, my dearest friends, lest the encomium of hunting yesterday recited may have inflamed our young gentlemen beyond the bounds of moderation, so as to deem all other things fruitless and of little worth, while they rendezvous from all parts to this exercise. So much the rather, because I myself, when I was but very young, even beyond the strength of my age, seemed to be more than became me addicted to this sport, and to be over desirous with Phaedra in Euripides, <quote rend="blockquote"> <lg> <l>With hounds and horn and merry hollow, </l> <l>The spotted hart and hind to follow.</l> </lg> </quote>   So did that discourse affect me, fortified with many and probable arguments.</said> </p> 
+<p rend="indent"><said who="#Soclarus"><label>SOCLARUS.</label> You say very truly, Autobulus. For that same poet seems to me to have awakened the force of rhetoric, for a long time lulled asleep, to gratify the inclinations 
+<pb xml:id="v.5.p.158"/> of the youthful gentry, and to make himself their spring companion. But I am most pleased with him for introducing the example of single combatants, from whence he takes occasion to praise the sport of hunting, as being that which for the most part draws to itself whatever is natural in us, or what we have by use acquired, of that delight which men take in fighting with single weapons one against another, thus affording an evident prospect of artifice and daring courage, endued with understanding, encountering brutish force and strength, and applauding that of Euripides: <quote rend="blockquote"> <lg> <l>Small is the nerveless strength of feeble man, </l> <l>Yet through the cunning of his reaching brain, </l> <l>By various slights and sundry stratagems, </l> <l>Whatever land or th’ Ocean breeds he tames.</l> <note resp="editor" place="inline" anchored="true">Eurip. <title>Hippol</title>. 218.</note> </lg> </quote></said> </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg129.perseus-eng4" n="2"> 
+<p rend="indent"><said who="#Autobulus"><label>AUTOBULUS.</label> And hence it was, as they say, my dearest Soclarus, that men at first became insensible and inhuman, having once tasted of murder, and being all accustomed, by hunting and following the chase, not only to behold without remorse the wounds and blood of wild beasts, but to rejoice at their being killed and slaughtered. Afterwards, as at Athens, some sycophant was by the Thirty Tyrants set apart for death, as a proper object of capital punishment, then a second, and a third; till, proceeding by degrees, they seized upon good men, and at length spared not the best and most worthy citizens. In like manner the first that slew a bear or a wolf obtained applause, then the ox and hog were appointed to be killed, under pretence of having tasted the sacred things that lay before them. Next to them deer, hares, and goats were made use of for food, and in some places the flesh of sheep, dogs, and horses grew familiar to human taste. The tame goose also and pigeon, man’s familiar domestic, according to Sophocles,—not for nourishment or to assuage hunger, 
+<pb xml:id="v.5.p.159"/> as cats and weasels do, but to indulge v

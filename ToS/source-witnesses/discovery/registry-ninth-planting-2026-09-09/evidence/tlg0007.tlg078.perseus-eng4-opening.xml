@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>Conjugal Precepts</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">John Philips</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name> 
+         		<name>Bridget Almas</name>
+         	   <name>Angelia Hanhardt</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg078.perseus-eng4.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst02plutuoft/page/486">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl><quotation marks="none"/></editorialDecl>
+         <refsDecl n="CTS">
+         	<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p></cRefPattern>
+         </refsDecl>
+      	<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Sophia Elzie" when="2019-06-26">EpiDoc and CTS Conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg078.perseus-eng4"> 
+<div n="urn:cts:greekLit:tlg0007.tlg078.perseus-eng4" type="translation" xml:lang="grc"> 
+	<head>Conjugal precepts.</head><lb/> <pb xml:id="v.2.p.486"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg078.perseus-eng4" n="0"> 
+	<head>Plutarch to Pollianus and Eurydice sendeth greeting</head> 
+	<p rend="indent">Now that the nuptial ceremonies are over, and that the priestess of Ceres has joined you both together in the bands of matrimony according to the custom of the country, I thought a short discourse of this nature might not be either unacceptable or unseasonable, but rather serve as a kind epithalamium to congratulate your happy conjunction; more especially, since there can be nothing more useful in conjugal society than the observance of wise and wholesome precepts, suitable to the harmony of matrimonial converse. For among the variety of musical moods and measures there is one which is called Hippothoros, a sort of composition to the flute and hautboy, made use of to encourage and provoke stallions to cover mares. But philosophy being furnished with many noble and profitable discourses, there is not any one subject that deserves a more serious study than that of wedlock, whereby they who are engaged in a long community of bed and board are more steadfastly united in affection, and made more pliable one to another in humor and condition. To this purpose, having reduced under several short heads and similes some certain instructions and admonitions which you, as tutored up in philosophy, have frequently already heard, I send you the collection as a present, beseeching the Muses so with their presence to assist the Goddess Venus, that the harmony of your mutual society and complacency in domestic diligences may <pb xml:id="v.2.p.487"/> outcry the melodious concords of lute or harp, while you live united together by reason and philosophy. Therefore it was that the ancients placed the statue of Venus by that of Mercury, to signify that the pleasures of matrimony chiefly consist in the sweetness of conversation. They also set the Graces and Suadela, the Goddess of Eloquence, together, to show that the married couple were to act only by persuasion, and not to use the violences of wrangling and contention.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg078.perseus-eng4" n="1"> <p rend="indent">Solon advised that the bride should eat a quince before she entered the nuptial sheets; intimating thereby, in my opinion, that the man was to expect his first pleasures from the breath and speech of his new-married bed-fellow.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg078.perseus-eng4" n="2"> <p rend="indent">In Boeotia it is the custom, when they veil the virgin bride, to set upon her head a chaplet of wild asparagus, which from a thorny stalk affords a most delicious fruit, to let us understand that a new-married woman, discreetly brooking at the beginning the first distastes of marriage restraints, grows yieldingly complaisant at length, and makes conforming wedlock a happiness to each. And indeed such husbands who cannot bear with the little disdains and first froppishness of imprudent youth are like to those that choose the sour grapes and leave to others the ripe delicious clusters. On the other side, those young ladies that take a disdain to their husbands by reason of their first debates and encounters may be well compared to those that patiently endure the sting but fling away the honey.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg078.perseus-eng4" n="3"> <p rend="indent">It especially behooves those people who are newly married to avoid the first occasions of discord and dissension; considering that vessels newly formed are subject to be bruised and put out of shape by many slight accidents, but when the materials come once to be settled and hardened by time, nor fire

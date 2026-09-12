@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:25f57ad55e7434f6d94098681aeaa61b916288394cb1ec15fe8e718bdf2b1b02",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:25f57ad55e7434f6d94098681aeaa61b916288394cb1ec15fe8e718bdf2b1b02",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:25f57ad55e7434f6d94098681aeaa61b916288394cb1ec15fe8e718bdf2b1b02",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:25f57ad55e7434f6d94098681aeaa61b916288394cb1ec15fe8e718bdf2b1b02",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.2cfdd9d3953834cb92fc9da80bb5284e3ecad35a0ea467d5d312a484ed74e002",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:187e9df62b7b036d7b4891951f8821a9260f35d90e7952db3baca5a9b7c42def",
+        "id": "tos.form.metadata.2cfdd9d3953834cb92fc9da80bb5284e3ecad35a0ea467d5d312a484ed74e002",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:25f57ad55e7434f6d94098681aeaa61b916288394cb1ec15fe8e718bdf2b1b02",
+        "id": "tos.work.plutarch.de-superstitione",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:25f57ad55e7434f6d94098681aeaa61b916288394cb1ec15fe8e718bdf2b1b02",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:25f57ad55e7434f6d94098681aeaa61b916288394cb1ec15fe8e718bdf2b1b02",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:25f57ad55e7434f6d94098681aeaa61b916288394cb1ec15fe8e718bdf2b1b02",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:25f57ad55e7434f6d94098681aeaa61b916288394cb1ec15fe8e718bdf2b1b02",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.5c089460a0505f119cf5c83639fa9c96780a0abf432f019adcb466c66c0558d7",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:6ba6b1de361d0b7c1b42cd5ff0710c85e179aa6a2855776e516ac7af89a44c32",
+        "id": "tos.form.metadata.5c089460a0505f119cf5c83639fa9c96780a0abf432f019adcb466c66c0558d7",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:25f57ad55e7434f6d94098681aeaa61b916288394cb1ec15fe8e718bdf2b1b02",
+        "id": "tos.work.plutarch.de-superstitione",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:ad8169187e9bdc580da475477756e382214acab0628c3df0ba8137a5bf8fa12a",
+      "owner_configuration": "sha256:e894fc70b2357e1a80e62d89a0bf84404ccb575e586bfb87046ea37bde8100dd",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:38.242072+00:00",
+      "request_digest": "sha256:be26de79343af114c246c3c353272ee637999429ecdfd41956c9ec105983c667",
+      "results": [
+        {
+          "digest": "sha256:187e9df62b7b036d7b4891951f8821a9260f35d90e7952db3baca5a9b7c42def",
+          "id": "tos.form.metadata.2cfdd9d3953834cb92fc9da80bb5284e3ecad35a0ea467d5d312a484ed74e002",
+          "version": 1
+        },
+        {
+          "digest": "sha256:6ba6b1de361d0b7c1b42cd5ff0710c85e179aa6a2855776e516ac7af89a44c32",
+          "id": "tos.form.metadata.5c089460a0505f119cf5c83639fa9c96780a0abf432f019adcb466c66c0558d7",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:1ddec91302e62576bbff23586b6cafaf1c5fdddc7567ffc55f014e108285b4ab",
+        "id": "tos.work.plutarch.de-superstitione",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:ad8169187e9bdc580da475477756e382214acab0628c3df0ba8137a5bf8fa12a",
+      "request_digest": "sha256:c3c0804b93632acc815cc990cc4c01c74407a46c83897306d75c512c839f5252",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:44f4f20509caa4040684c1aa2afebde225d043328b84c23b8c4b0d4d7878a7bd",
+      "recorded_at": "2026-09-09T18:35:27.733666+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-superstitione",
+        "version": 2,
+        "digest": "sha256:25f57ad55e7434f6d94098681aeaa61b916288394cb1ec15fe8e718bdf2b1b02"
+      },
+      "previous_revision": "sha256:6a769d7b6f0fc59d0bf67c29189320e5b7aa48d66f713e2b896d1c8e8c71d3d6",
+      "results": [
+        {
+          "id": "tos.form.metadata.2cfdd9d3953834cb92fc9da80bb5284e3ecad35a0ea467d5d312a484ed74e002",
+          "version": 2,
+          "digest": "sha256:9ee25bccdfd04923207b16a1e1b7c61ea3b65714a26fb445bcd8182c92d6e441"
+        },
+        {
+          "id": "tos.form.metadata.5c089460a0505f119cf5c83639fa9c96780a0abf432f019adcb466c66c0558d7",
+          "version": 2,
+          "digest": "sha256:d61513b13ecb1d6128de0a66c98b48060f5edc1ea41e6df7b316c0dc3b6ac0a3"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:1ddec91302e62576bbff23586b6cafaf1c5fdddc7567ffc55f014e108285b4ab",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:1ddec91302e62576bbff23586b6cafaf1c5fdddc7567ffc55f014e108285b4ab",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:1ddec91302e62576bbff23586b6cafaf1c5fdddc7567ffc55f014e108285b4ab",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:1ddec91302e62576bbff23586b6cafaf1c5fdddc7567ffc55f014e108285b4ab",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.2cfdd9d3953834cb92fc9da80bb5284e3ecad35a0ea467d5d312a484ed74e002",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:1ddec91302e62576bbff23586b6cafaf1c5fdddc7567ffc55f014e108285b4ab",
+        "id": "tos.work.plutarch.de-superstitione",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:1ddec91302e62576bbff23586b6cafaf1c5fdddc7567ffc55f014e108285b4ab",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:1ddec91302e62576bbff23586b6cafaf1c5fdddc7567ffc55f014e108285b4ab",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:1ddec91302e62576bbff23586b6cafaf1c5fdddc7567ffc55f014e108285b4ab",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:1ddec91302e62576bbff23586b6cafaf1c5fdddc7567ffc55f014e108285b4ab",
+            "id": "tos.work.plutarch.de-superstitione",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.5c089460a0505f119cf5c83639fa9c96780a0abf432f019adcb466c66c0558d7",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:1ddec91302e62576bbff23586b6cafaf1c5fdddc7567ffc55f014e108285b4ab",
+        "id": "tos.work.plutarch.de-superstitione",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-superstitione",
+    "version": 2,
+    "digest": "sha256:25f57ad55e7434f6d94098681aeaa61b916288394cb1ec15fe8e718bdf2b1b02"
+  }
+}

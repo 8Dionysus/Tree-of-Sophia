@@ -48,6 +48,7 @@
 ## contract
 
 - [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
+- [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 
 ## contracts
 
@@ -80,6 +81,7 @@
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
 - [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
+- [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 
 ## derived-exports
 
@@ -140,6 +142,7 @@
 - [TOS-D-0040 - File-Backed Scholarly Composite Representations](../TOS-D-0040-file-backed-scholarly-composite-representations.md) (`docs/decisions/TOS-D-0040-file-backed-scholarly-composite-representations.md`)
 - [TOS-D-0041 - TOS-D-0041 Prompt-light agent routes and on-demand validation](../TOS-D-0041-prompt-light-agent-routes-and-on-demand-validation.md) (`docs/decisions/TOS-D-0041-prompt-light-agent-routes-and-on-demand-validation.md`)
 - [TOS-D-0042 - TOS-D-0042 Repository-driven Cloudflare edge](../TOS-D-0042-repository-driven-cloudflare-edge.md) (`docs/decisions/TOS-D-0042-repository-driven-cloudflare-edge.md`)
+- [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 
 ## doctrine
 
@@ -337,6 +340,7 @@
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
 - [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
 - [TOS-D-0041 - TOS-D-0041 Prompt-light agent routes and on-demand validation](../TOS-D-0041-prompt-light-agent-routes-and-on-demand-validation.md) (`docs/decisions/TOS-D-0041-prompt-light-agent-routes-and-on-demand-validation.md`)
+- [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 
 ## zarathustra
 

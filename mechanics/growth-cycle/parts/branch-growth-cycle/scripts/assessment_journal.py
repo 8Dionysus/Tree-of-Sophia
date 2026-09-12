@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import fcntl
 import hashlib
-import io
 import json
 import os
 from pathlib import Path
@@ -443,7 +442,6 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
             if not all(isinstance(value, str) for value in key) or key not in claim_profiles.schema_routes:
                 return None
             claim_profiles.validate(row)
-            declared_claims.add(row['claim_id'])
             return 'claim_id', 'claim_version'
         kind = row.get('record_type')
         if isinstance(kind, str) and path.name == kind + '.json':
@@ -473,49 +471,91 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
                 or path.suffix not in ('.json', '.jsonl')):
             raise PermissionError('source binding must name an explicit source-witness metadata file')
         if relative not in files:
-            descriptor = _owned_path(root / path)
-            with os.fdopen(descriptor, 'rb') as stream:
-                before = os.fstat(stream.fileno())
-                raw = stream.read(8 * MAX_RECORD_BYTES - total + 1)
-                after = os.fstat(stream.fileno())
-            if (before.st_size, before.st_mtime_ns, before.st_ctime_ns) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns):
-                raise JournalConflict('source file changed during read')
-            total += len(raw)
-            if total > 8 * MAX_RECORD_BYTES:
-                raise ValueError('source files exceed the shared 8 MiB read budget')
+            requested = {row['record_id'] for row in bindings
+                         if isinstance(row, dict) and row.get('path') == relative
+                         and isinstance(row.get('record_id'), str)}
+            indexed = {}
             if path.suffix == '.jsonl':
-                rows = []
-                for line in io.BytesIO(raw):
-                    if not line.strip():
-                        continue
-                    if len(rows) == MAX_ASSESSMENTS:
-                        raise ValueError('source file exceeds bounded record selection')
-                    rows.append(_json_object(line))
+                # A large carrier may contain many more rows than this bounded
+                # assessment snapshot selects. Stream and hash the full source,
+                # while retaining only the explicitly requested identities.
+                digest = hashlib.sha256()
+                seen_ids = set()  # Bounded by the shared carrier byte budget.
+                descriptor = _owned_path(root / path)
+                with os.fdopen(descriptor, 'rb') as stream:
+                    before = os.fstat(stream.fileno())
+                    while True:
+                        line = stream.readline(MAX_RECORD_BYTES + 1)
+                        if not line:
+                            break
+                        if len(line) > MAX_RECORD_BYTES:
+                            raise ValueError('source record exceeds bounded record size')
+                        total += len(line)
+                        if total > 8 * MAX_RECORD_BYTES:
+                            raise ValueError('source files exceed the shared 8 MiB read budget')
+                        digest.update(line)
+                        if not line.strip():
+                            continue
+                        row = _json_object(line)
+                        family = families.get(row.get('schema_version'))
+                        if (family is None or path.name in {SOURCE_CLAIM_BASENAME, 'composite.json', 'composite-witness.json', 'artifact-witness.json'}
+                                or (isinstance(row.get('record_type'), str) and path.suffix == '.json'
+                                    and path.name not in RESERVED_BASENAMES)):
+                            family = declared_family(row, path)
+                        if family is None:
+                            continue  # Opaque neighboring records are neither dropped from source nor interpreted.
+                        identity, version = family
+                        # Validate known identity envelopes and duplicates
+                        # throughout the bounded carrier, without retaining
+                        # neighboring payloads in the selected snapshot.
+                        item = Record.from_payload(row[identity], row[version], row)
+                        if item.id in seen_ids:
+                            raise ValueError('source file repeats a current record identity')
+                        seen_ids.add(item.id)
+                        if item.id not in requested:
+                            continue
+                        if path.name == SOURCE_CLAIM_BASENAME and identity == 'claim_id':
+                            declared_claims.add(item.id)
+                        indexed[item.id] = item
+                    after = os.fstat(stream.fileno())
+                if (before.st_size, before.st_mtime_ns, before.st_ctime_ns) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+                    raise JournalConflict('source file changed during read')
+                raw_digest = digest.hexdigest()
             else:
+                descriptor = _owned_path(root / path)
+                with os.fdopen(descriptor, 'rb') as stream:
+                    before = os.fstat(stream.fileno())
+                    raw = stream.read(8 * MAX_RECORD_BYTES - total + 1)
+                    after = os.fstat(stream.fileno())
+                if (before.st_size, before.st_mtime_ns, before.st_ctime_ns) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+                    raise JournalConflict('source file changed during read')
+                total += len(raw)
+                if total > 8 * MAX_RECORD_BYTES:
+                    raise ValueError('source files exceed the shared 8 MiB read budget')
                 payload = _json_object(raw)
                 rows = payload.get('forms') if payload.get('schema_version') == 'tos_human_form_set_v1' else [payload]
                 if form_sets is not None and payload.get('schema_version') == 'tos_human_form_set_v1':
                     form_sets[relative] = payload
-            if not isinstance(rows, list) or len(rows) > MAX_ASSESSMENTS:
-                raise ValueError('source file exceeds bounded record selection')
-            indexed = {}
-            for row in rows:
-                if not isinstance(row, dict):
-                    raise ValueError('source records must be JSON objects')
-                family = families.get(row.get('schema_version'))
-                if (family is None or path.name in {SOURCE_CLAIM_BASENAME, 'composite.json', 'composite-witness.json', 'artifact-witness.json'}
-                        or (isinstance(row.get('record_type'), str) and path.suffix == '.json'
-                            and path.name not in RESERVED_BASENAMES)):
-                    family = declared_family(row, path)
-                if family is None:
-                    continue  # Opaque neighboring records are neither dropped from source nor interpreted.
-                identity, version = family
-                item = Record.from_payload(row[identity], row[version], row)
-                if item.id in indexed:
-                    raise ValueError('source file repeats a current record identity')
-                indexed[item.id] = item
+                if not isinstance(rows, list) or len(rows) > MAX_ASSESSMENTS:
+                    raise ValueError('source file exceeds bounded record selection')
+                for row in rows:
+                    if not isinstance(row, dict):
+                        raise ValueError('source records must be JSON objects')
+                    family = families.get(row.get('schema_version'))
+                    if (family is None or path.name in {SOURCE_CLAIM_BASENAME, 'composite.json', 'composite-witness.json', 'artifact-witness.json'}
+                            or (isinstance(row.get('record_type'), str) and path.suffix == '.json'
+                                and path.name not in RESERVED_BASENAMES)):
+                        family = declared_family(row, path)
+                    if family is None:
+                        continue  # Opaque neighboring records are neither dropped from source nor interpreted.
+                    identity, version = family
+                    item = Record.from_payload(row[identity], row[version], row)
+                    if item.id in indexed:
+                        raise ValueError('source file repeats a current record identity')
+                    indexed[item.id] = item
+                raw_digest = hashlib.sha256(raw).hexdigest()
             files[relative] = indexed
-            fixity.append({'path': relative, 'digest': 'sha256:' + hashlib.sha256(raw).hexdigest()})
+            fixity.append({'path': relative, 'digest': 'sha256:' + raw_digest})
         if identifier not in files[relative]:
             raise ValueError('source record is missing or has an unsupported identity family')
         record = files[relative][identifier]

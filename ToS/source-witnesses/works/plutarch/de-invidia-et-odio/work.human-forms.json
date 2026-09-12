@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8f9348c3a7aecfbf863ea922ea6d8bb37a81e50c0d96b1df7158855b194282c4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8f9348c3a7aecfbf863ea922ea6d8bb37a81e50c0d96b1df7158855b194282c4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:8f9348c3a7aecfbf863ea922ea6d8bb37a81e50c0d96b1df7158855b194282c4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:8f9348c3a7aecfbf863ea922ea6d8bb37a81e50c0d96b1df7158855b194282c4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.e381cb0d77c45073d12612bf3b1dc10cffbd26bb2b1f4a6a74e040cd77aef41c",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:a5cf7077e420ef0e871e78b848a91089e5358a967968285346f90da0202d3c3f",
+        "id": "tos.form.metadata.e381cb0d77c45073d12612bf3b1dc10cffbd26bb2b1f4a6a74e040cd77aef41c",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:8f9348c3a7aecfbf863ea922ea6d8bb37a81e50c0d96b1df7158855b194282c4",
+        "id": "tos.work.plutarch.de-invidia-et-odio",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8f9348c3a7aecfbf863ea922ea6d8bb37a81e50c0d96b1df7158855b194282c4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8f9348c3a7aecfbf863ea922ea6d8bb37a81e50c0d96b1df7158855b194282c4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:8f9348c3a7aecfbf863ea922ea6d8bb37a81e50c0d96b1df7158855b194282c4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:8f9348c3a7aecfbf863ea922ea6d8bb37a81e50c0d96b1df7158855b194282c4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.4aa8a4e02e3f04d15416b0076e58605d3ba0a08b56cf85ff2d9d3e7a28325d4f",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:4ff09962ae3d6436f5ed9f738643e61917fecc68852f0671fed24771e3e7a140",
+        "id": "tos.form.metadata.4aa8a4e02e3f04d15416b0076e58605d3ba0a08b56cf85ff2d9d3e7a28325d4f",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:8f9348c3a7aecfbf863ea922ea6d8bb37a81e50c0d96b1df7158855b194282c4",
+        "id": "tos.work.plutarch.de-invidia-et-odio",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:03a1c12238dc406b5267a6db2ae39af71a1be57218143c36f5408a59e63a063a",
+      "owner_configuration": "sha256:5a6cce1313f4f1ad1ee72ad0daefc8095f46456b41af6ce38b7b59c8b6713181",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:39.637544+00:00",
+      "request_digest": "sha256:d87a07ab9bdc59526864669ddbe54e1ea48112f638994db9c4df8734b76bf495",
+      "results": [
+        {
+          "digest": "sha256:a5cf7077e420ef0e871e78b848a91089e5358a967968285346f90da0202d3c3f",
+          "id": "tos.form.metadata.e381cb0d77c45073d12612bf3b1dc10cffbd26bb2b1f4a6a74e040cd77aef41c",
+          "version": 1
+        },
+        {
+          "digest": "sha256:4ff09962ae3d6436f5ed9f738643e61917fecc68852f0671fed24771e3e7a140",
+          "id": "tos.form.metadata.4aa8a4e02e3f04d15416b0076e58605d3ba0a08b56cf85ff2d9d3e7a28325d4f",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:baa280778aa6757b66d967191cdb47bce4aeddf98fe13eb403b6d56f851937a4",
+        "id": "tos.work.plutarch.de-invidia-et-odio",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:03a1c12238dc406b5267a6db2ae39af71a1be57218143c36f5408a59e63a063a",
+      "request_digest": "sha256:3d3b7b7c29830851dbea99ee00ce21ad91f95ebeea47c0bf5f1d702e47b25c14",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:c62288208551f3ffa5d9599aa5b8e431b8096d0a5b3981f426145bf7cb4b6d3f",
+      "recorded_at": "2026-09-09T18:35:29.059138+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-invidia-et-odio",
+        "version": 2,
+        "digest": "sha256:8f9348c3a7aecfbf863ea922ea6d8bb37a81e50c0d96b1df7158855b194282c4"
+      },
+      "previous_revision": "sha256:d9054247de926564a9c55a1fe73cdeb6554b74f68a74a6846d7957a43ec5e2b7",
+      "results": [
+        {
+          "id": "tos.form.metadata.e381cb0d77c45073d12612bf3b1dc10cffbd26bb2b1f4a6a74e040cd77aef41c",
+          "version": 2,
+          "digest": "sha256:fc4cf974b06fcf8acf214be1cb6f7ddae6eeaed7a061f91838b17e34d7447a5e"
+        },
+        {
+          "id": "tos.form.metadata.4aa8a4e02e3f04d15416b0076e58605d3ba0a08b56cf85ff2d9d3e7a28325d4f",
+          "version": 2,
+          "digest": "sha256:5d4e6962a5473dc325de8195b34cb018181b6245f84232f46f67848ac3ab2692"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:baa280778aa6757b66d967191cdb47bce4aeddf98fe13eb403b6d56f851937a4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:baa280778aa6757b66d967191cdb47bce4aeddf98fe13eb403b6d56f851937a4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:baa280778aa6757b66d967191cdb47bce4aeddf98fe13eb403b6d56f851937a4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:baa280778aa6757b66d967191cdb47bce4aeddf98fe13eb403b6d56f851937a4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.e381cb0d77c45073d12612bf3b1dc10cffbd26bb2b1f4a6a74e040cd77aef41c",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:baa280778aa6757b66d967191cdb47bce4aeddf98fe13eb403b6d56f851937a4",
+        "id": "tos.work.plutarch.de-invidia-et-odio",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:baa280778aa6757b66d967191cdb47bce4aeddf98fe13eb403b6d56f851937a4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:baa280778aa6757b66d967191cdb47bce4aeddf98fe13eb403b6d56f851937a4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:baa280778aa6757b66d967191cdb47bce4aeddf98fe13eb403b6d56f851937a4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:baa280778aa6757b66d967191cdb47bce4aeddf98fe13eb403b6d56f851937a4",
+            "id": "tos.work.plutarch.de-invidia-et-odio",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.4aa8a4e02e3f04d15416b0076e58605d3ba0a08b56cf85ff2d9d3e7a28325d4f",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:baa280778aa6757b66d967191cdb47bce4aeddf98fe13eb403b6d56f851937a4",
+        "id": "tos.work.plutarch.de-invidia-et-odio",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-invidia-et-odio",
+    "version": 2,
+    "digest": "sha256:8f9348c3a7aecfbf863ea922ea6d8bb37a81e50c0d96b1df7158855b194282c4"
+  }
+}

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>Beasts are rational</title>
+                 <author>Plutarch</author>
+				<editor role="translator">Harold Cherniss</editor>
+				<editor role="translator">William C. Helmbold</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+					
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Ethan Della Rocca</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg130.perseus-eng3.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title xml:lang="lat">Moralia</title>
+               	<editor role="translator">Harold Cherniss</editor>
+               	<editor role="translator">William C. Helmbold</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1957</date>
+                  </imprint>
+                  <biblScope unit="volume">12</biblScope>
+               </monogr>
+            	<series>
+            		<title>Loeb Classical Library</title>
+            	</series>
+            	<ref target="https://archive.org/details/moraliainfifteen12plutuoft/page/487">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+				<!-- <state unit="section"/> -->
+			</refsDecl>
+			<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+				<language ident="lat">Latin</language>
+				<language ident="deu">German</language>
+				<language ident="fre">French</language>
+			</langUsage>
+			<particDesc>
+			<person><persName>Odysseus</persName></person>
+			<person><persName>Circe</persName></person>
+			<person><persName>Gryllus</persName></person>
+			</particDesc>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="RS" when="2010-05">tagged and parsed</change>
+			<change who="Ethan Della Rocca" when="2019-07-24">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+	<body xml:base="urn:cts:greekLit:tlg0007.tlg130.perseus-eng3">
+	<div n="urn:cts:greekLit:tlg0007.tlg130.perseus-eng3" type="translation" xml:lang="eng">
+             <head>BEASTS ARE RATIONAL (<foreign xml:lang="lat">BRUTA ANIMALIA RATIONE UTI</foreign>)</head>
+            <pb xml:id="v.12.p.489"/> 
+	<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg130.perseus-eng3" n="intro"> <head>INTRODUCTION</head> 
+		<p>Many will find this little <foreign xml:lang="fre">jeu d’esprit</foreign> as pleasant reading as anything in Plutarch. In part, this may be due to its (perhaps accidental) brevity; but its originality and freshness are undeniable. These qualities have, to be sure, puzzled a number of scholars who are still disputing whether the sources are principally Epicurean or Peripatetic or Cynic. Nothing quite like it is known elsewhere,<note resp="editor" place="inline" anchored="true">But talking animals were not new (Hirzel, <title xml:lang="deu" rend="italic">Der Dialog</title>, i, p. 338 f.).</note> which sad lack baffles the <foreign xml:lang="deu">Quellenforscher</foreign>. So, rather than allow a touch of spontaneous imagination to Plutarch, it has been confidently asserted that the dialogue must come from the school of Menippus, or be an attempt to turn the tables on Polystratus, and so on. </p> 
+		<p rend="indent">Everything must have a source (if only the author’s ingenuity) and the source here, so far as it can be predicated with any certainty, is the tenth book of the <title rend="italic">Odyssey</title> seen through the humorous eyes of a young Boeotian.<note resp="editor" place="inline" anchored="true">So the sensible Hirzel (<foreign xml:lang="lat">op. cit.</foreign> ii, p. 131); see also Hartman, <title xml:lang="lat" rend="italic">De Plutarcho</title>, p. 576. Stylometry, however, does not encourage the view that this is an early work (Sandbach, <title rend="italic">Class. Quart.</title> xxxiii, p. 196).</note> We have here, then, a Boeotian <pb xml:id="v.12.p.490"/> pig instructing the favourite of Athena.<note resp="editor" place="inline" anchored="true">Plutarch actually quotes the proverb in his <title rend="italic">Life of Demosthenes</title>, xi. 5 (851 b) and <title xml:lang="lat" rend="italic">Mor.</title> 803 d, but does not seem to realize its possible application here. See the note on 995 f <foreign xml:lang="lat">infra</foreign>.</note> It was once fashionable to assert, or imply, that since Plutarch was once a young Boeotian himself, matters could not be so simple, nor could he be the author. But the climate of scholarship is, perhaps, changing. There are few of Plutarch’s admirers who will not claim this lively work for one of his more admirable achievements, written, perhaps, when he was quite young. </p> <p rend="indent">Even if the authorship is accepted without hesitation, there is little else that is certain except that the Stoics are constantly under attack, though rather less directly than in the preceding dialogue. There is grave doubt about the title: is it no. 127 or no. 135 in the Lamprias Catalogue? Or, as it has become popular to call it, is it really the <title rend="italic">Gryllus</title>?<note resp="editor" place="inline" anchored="true">Ziegler (<title rend="italic">RE</title>, <foreign xml:lang="lat">s.v.</foreign> <q>Plutarchos,</q> 743) says that <title rend="italic">Gryllus</title> is impossible in spite of the Platonic examples, but appears to admit <title rend="italic">Ammonius</title> (no. 84 in the Lamprias Catalogue).</note> There are a number of troublesome lacunae; the work, as it stands, ends suddenly with a gay witticism instead of being continued to a more conventional termination.<note resp="editor" place="inline" anchored="true">See the last note on 992 e <foreign xml:lang="lat">infra</foreign>.</note> It is only too likely that the more mature Plutarch would have gone on and on; but what would the clever young man who concocted this conceit have done?<note resp="editor" place="inline" anchored="true">Cur

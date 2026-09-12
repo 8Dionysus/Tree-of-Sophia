@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+
+    <title xml:lang="grc">Πομπήϊος</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg045.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1917</date>
+</imprint>
+<biblScope unit="volume">5</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives05plut/page/116/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change when="2018-02-21" who="Lisa Cerrato">EpiDoc and CTS file conversion work</change>
+<change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+    
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-grc2">
+    
+<div n="urn:cts:greekLit:tlg0007.tlg045.perseus-grc2" type="edition" xml:lang="grc">
+        <head>Πομπήϊος</head>
+<pb n="p.116"/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-grc2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-grc2:1" n="1"><p>πρὸς Πομπήϊον ἔοικε τοῦτο παθεῖν ὁ Ῥωμαίων δῆμος εὐθὺς ἐξ ἀρχῆς, ὅπερ ὁ Αἰσχύλου Προμηθεὺς πρὸς τὸν Ἡρακλέα σωθεὶς ὑπʼ αὐτοῦ καὶ λέγων <quote rend="blockquote">ἐχθροῦ πατρός μοι τοῦτο φίλτατον τέκνον</quote>. οὔτε γὰρ μῖσος οὕτως ἰσχυρὸν καὶ ἄγριον ἐπεδείξαντο Ῥωμαῖοι πρὸς ἕτερον στρατηγὸν ὡς τὸν Πομπηΐου πατέρα Στράβωνα, ζῶντος μὲν αὐτοῦ φοβούμενοι τὴν ἐν τοῖς ὅπλοις δύναμιν (ἦν γὰρ ἀνὴρ πολεμικώτατος), </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-grc2:1" n="2"><p>ἐπεὶ δὲ ἀπέθανε κεραυνωθείς, ἐκκομιζόμενον τὸ σῶμα κατασπάσαντες ἀπὸ τοῦ λέχους καὶ καθυβρίσαντες, οὔτε μὴν εὔνοιαν αὖ πάλιν σφοδροτέραν ἢ θᾶσσον ἀρξαμένην ἢ μᾶλλον εὐτυχοῦντι συνακμάσασαν ἢ πταίσαντι παραμείνασαν βεβαιότερον ἄλλος ἔσχε Ῥωμαίων ἢ Πομπήϊος.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-grc2:1" n="3"><p>αἰτία δὲ τοῦ μὲν μίσους ἐκείνῳ μία, χρημάτων ἄπληστος ἐπιθυμία, τούτῳ δὲ πολλαὶ τοῦ ἀγαπᾶσθαι, σωφροσύνη περὶ δίαιταν, ἄσκησις ἐν ὅπλοις, πιθανότης λόγου, πίστις ἤθους, εὐαρμοστία πρὸς ἔντευξιν, ὡς <pb n="p.118"/> μηδενὸς ἀλυπότερον δεηθῆναι μηδὲ ἥδιον ὑπουργῆσαι δεομένῳ. προσῆν γὰρ αὐτοῦ ταῖς χάρισι καὶ τὸ ἀνεπαχθὲς διδόντος καὶ τὸ σεμνὸν λαμβάνοντος.</p></div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-grc2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-grc2:2" n="1"><p>ἐν ἀρχῇ δὲ καὶ τὴν ὄψιν ἔσχεν οὐ μετρίως συνδημαγωγοῦσαν καὶ προεντυγχάνουσαν αὑτοῦ τῆς φωνῆς, τὸ γὰρ ἐράσμιον ἀξιωματικὸν ἦν φιλανθρώπως, καὶ ἐν τῷ νεαρῷ καὶ ἀνθοῦντι διέφαινεν εὐθὺς ἡ ἀκμὴ τὸ γεραρὸν καὶ τὸ βασιλικὸν τοῦ ἤθους, ἦν δέ τις καὶ ἀναστολὴ τῆς κόμης ἀτρέμα καὶ τῶν περὶ τὰ ὄμματα ῥυθμῶν ὑγρότης τοῦ προσώπου, ποιοῦσα μᾶλλον λεγομένην ἢ φαινομένην ὁμοιότητα πρὸς τὰς Ἀλεξάνδρου τοῦ βασιλέως εἰκόνας.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-grc2:2" n="2"><p>ᾗ καὶ τοὔνομα πολλῶν ἐν ἀρχῇ συνεπιφερόντων οὐκ ἔφευγεν ὁ Πομπήϊος, ὥστε καὶ χλευάζοντας αὐτὸν ἐνίους ἤδη καλεῖν Ἀλέξανδρον. διὸ καὶ Λεύκιος Φίλιππος, ἀνὴ

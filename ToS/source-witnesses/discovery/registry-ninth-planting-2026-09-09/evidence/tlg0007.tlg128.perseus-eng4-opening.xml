@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>Whether water or fire be most useful</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">F. Fetherston</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         		<name>Angelia Hanhardt</name>
+         		<name>Michael Konieczny</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Karina Cooper</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg128.perseus-eng4.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch’s Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">5</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst05plutuoft/page/330">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	<editorialDecl>
+      		<quotation marks="none"/>
+      		<normalization>
+      			<p>Notes are not included.</p>
+      		</normalization>
+      		<correction method="silent">
+      			<p>optical character recognition</p>
+      		</correction>
+      	</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+      	<refsDecl n="CTS">
+      		<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts section.</p></cRefPattern>
+            
+         </refsDecl><!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>--><refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Karina Cooper" when="2019-07-22">EpiDoc and CTS conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg128.perseus-eng4">
+      	<div n="urn:cts:greekLit:tlg0007.tlg128.perseus-eng4" type="translation" xml:lang="eng">
+         <head>Whether water or fire be most
+				useful.</head>
+         <pb xml:id="v.5.p.331"/>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg128.perseus-eng4" n="1"><p rend="indent"> <q>Water is the best of things, but gold is like burning fire,</q> says Pindar.<note resp="editor" place="inline" anchored="true">Pindar, <title>Olymp.</title> I. 1.</note> Therefore he positively assigns the second place to fire; with whom Hesiod agrees, where he says, <quote rend="blockquote"> <lg> <l>First of all Chaos being had.</l> <note resp="editor" place="inline" anchored="true">Hesiod, <title>Theog.</title> 116.</note> </lg> </quote>  For most believe that by the word chaos he meant water, from <foreign xml:lang="grc">χύσις,</foreign> signifying <emph>diffusion.</emph> But the balance of argument as to this point seems to be equal. For there are some who will have it that fire is the principle of all things, and that like sperm it begets all things out of itself, and resolves all things again by conflagration. Therefore, not to mention the persons, let us consider the arguments on both sides, which are to us the most convincing.</p> </div>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg128.perseus-eng4" n="2"><p rend="indent">Now then, is not that the most useful to us, which in all places and always and most of all we stand in need of, — like a piece of household-stuff or a tool, nay, like a friend that is ready at all hours and seasons? But fire is not always useful; for sometimes it is a prejudice to us and we avoid it if we can. But water is useful, winter and summer, to the healthy and sick, night and day; neither indeed is there any time but that a man has need of it. Therefore it is that the dead are called <emph>alibantes,</emph> as being without moisture (<foreign xml:lang="grc">λιβάς</foreign>) and by that means deprived of life; and man may be without fire, but never <pb xml:id="v.5.p.332"/> was any man without water. Besides, that which was existent from the beginning and with the first creation of man must be thought more useful than what was afterwards invented. From whence it is apparent, that Nature bestowed the one upon us as a thing absolutely necessary, the other fortune and art found out for superfluity of uses. Nor was the time ever known when man lived without water, nor was it an invention of any of the Gods or heroes; for it was present almost at their generation, and it made their creation possible. But the use of fire was a late invention of Prometheus, at what time life was without fire, but not without water. And that this is no poetical fiction is demonstrable from this, that there are many sorts of people that live without fire, without houses, and without hearths, in the open air. And Diogenes the Cynic made no use of fire; so that after he had swallowed a raw fish, <q>This hazard,</q> said he, <q>do I run for your sakes.</q> But without water no man ever thought it convenient or possible to live.</p> </div>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg128.perseus-eng4" n="3"><p rend="indent">But why do I so meanly confine my discourse to the nature of men, seeing there are many, nay, infinite sorts of creatures? The race of man is almost the only one that knows the use of fire; the others live and feed without fire. Indeed, beasts, birds, and creeping things live upon roots, fruits, and raw flesh, without fire; but without water neither fish nor fowl nor land animals can subsist. For all beasts that feed upon flesh, of which there are some (as Aristotle reports) that never drink, nevertheless support life and being merely by moisture. So that of necessity that must be most profitable without which no sort of life can subsist or endure.</p> </div>
+         <div type="textpart" subty

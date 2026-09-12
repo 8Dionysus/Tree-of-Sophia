@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">Pro L. Murena</title>				
+				<author>M. Tullius Cicero</author>
+				<editor>Albert Curtis Clark</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				<respStmt>
+					<persName>Zach Himes</persName>
+					<orgName>Tufts University</orgName>
+					<resp>CTS and EpiDoc conversion</resp>
+				</respStmt>
+				<funder n="org:NEH">National Endowment For The Humanities (NEH)</funder> 
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1997-10-28">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi014.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt> 
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>Albert Curtis Clark</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon</publisher>
+							<date>1908</date>
+						</imprint>
+						<biblScope unit="volume">1</biblScope>
+						<biblScope n="contents">Pro Sex. Roscio; De imperio Cn. Pompei; Pro Cluentio; In Catilinam; Pro Murena; Pro Caelio</biblScope>
+					</monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+					<ref target="https://archive.org/details/orationesrecogno01ciceuoft/page/n267/mode/2up">Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		
+		<encodingDesc>
+		<refsDecl n="CTS">
+		<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+			<p>This pointer pattern extracts section.</p>
+		</cRefPattern>
+			</refsDecl>
+			<refsDecl>
+				<refState unit="section"/>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+		
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+		
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+			<change when="2016-04-20" who="Lisa Cerrato">Minor edits and review of CTS and EpiDoc work.</change>
+			<change when="2016-03-15" who="Zach Himes">Changed section milestones to dis.</change>
+			<change when="2015-12-17" who="Zach Himes">Cleaned up teiHeader.</change>
+			<change when="2014-08-01" who="Stella Dee">edited markup</change>
+			<change when="2014-07-01" who="Stella Dee">split composite text and converted to unicode</change>
+			<change when="2013-09-13" who="balmas01">reverting texts back to pre_cts_reorg tagged version</change>
+			<change when="2011-07-19" who="gcrane">removed the earlier persName/placeName tags</change>
+			<change when="2011-01-15" who="gcrane">base SDL file</change>
+			<change when="2009-10-09" who="rsingh04">more reorganizing of texts module by collection</change>
+			<change when="2006-11-03" who="gcrane">typo</change>
+			<change when="2006-08-21" who="gcrane">small fixes</change>
+			<change when="2006-08-17" who="gcrane">typo fixed</change>
+			<change when="2006-04-02" who="gcrane">mainly fixes to the words lower cased at the start of sentences: found that we had always had</change>
+			<change when="1996-03-26" who="DAS">ed.</change></revisionDesc>
+	</teiHeader>

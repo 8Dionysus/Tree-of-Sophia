@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.platonicae-quaestiones",
+    "version": 2,
+    "digest": "sha256:e64485e2c5a0179b8666dd5a1badfa88e47ec3658a4615d277827fbe975f4125"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e64485e2c5a0179b8666dd5a1badfa88e47ec3658a4615d277827fbe975f4125",
+            "id": "tos.work.plutarch.platonicae-quaestiones",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e64485e2c5a0179b8666dd5a1badfa88e47ec3658a4615d277827fbe975f4125",
+            "id": "tos.work.plutarch.platonicae-quaestiones",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:e64485e2c5a0179b8666dd5a1badfa88e47ec3658a4615d277827fbe975f4125",
+            "id": "tos.work.plutarch.platonicae-quaestiones",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:e64485e2c5a0179b8666dd5a1badfa88e47ec3658a4615d277827fbe975f4125",
+            "id": "tos.work.plutarch.platonicae-quaestiones",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.61615e1af6c5127a9dc7f88614b292a80671b9ab615208f82d9602e003c53a8a",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:e64485e2c5a0179b8666dd5a1badfa88e47ec3658a4615d277827fbe975f4125",
+        "id": "tos.work.plutarch.platonicae-quaestiones",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e64485e2c5a0179b8666dd5a1badfa88e47ec3658a4615d277827fbe975f4125",
+            "id": "tos.work.plutarch.platonicae-quaestiones",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e64485e2c5a0179b8666dd5a1badfa88e47ec3658a4615d277827fbe975f4125",
+            "id": "tos.work.plutarch.platonicae-quaestiones",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:e64485e2c5a0179b8666dd5a1badfa88e47ec3658a4615d277827fbe975f4125",
+            "id": "tos.work.plutarch.platonicae-quaestiones",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:e64485e2c5a0179b8666dd5a1badfa88e47ec3658a4615d277827fbe975f4125",
+            "id": "tos.work.plutarch.platonicae-quaestiones",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.64303960eabde7663a76b35f4a047bde7a0585c1066cc1fe2153d8cd77f6b1f7",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:e64485e2c5a0179b8666dd5a1badfa88e47ec3658a4615d277827fbe975f4125",
+        "id": "tos.work.plutarch.platonicae-quaestiones",
+        "version": 2
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.work.plutarch.platonicae-quaestiones",
+      "request_digest": "sha256:d3bb8d837ad30b4326239a23d8c078d2ecb3a960044040d3e1a8f5f28a720792",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:fc221386eb0adc0ba57799660ef371e83a105aff151f46cfda782343d8de9f97",
+      "recorded_at": "2026-09-09T15:55:21.271419+00:00",
+      "source": {
+        "id": "tos.work.plutarch.platonicae-quaestiones",
+        "version": 2,
+        "digest": "sha256:e64485e2c5a0179b8666dd5a1badfa88e47ec3658a4615d277827fbe975f4125"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.61615e1af6c5127a9dc7f88614b292a80671b9ab615208f82d9602e003c53a8a",
+          "version": 1,
+          "digest": "sha256:e0bfb363129ec783be1160f7cd63a72a9cf413dc925928865083294676300d93"
+        },
+        {
+          "id": "tos.form.metadata.64303960eabde7663a76b35f4a047bde7a0585c1066cc1fe2153d8cd77f6b1f7",
+          "version": 1,
+          "digest": "sha256:52f945e764052df9f7fdc38459d0f849787efa67e8294af24725336454e35844"
+        }
+      ]
+    }
+  ]
+}

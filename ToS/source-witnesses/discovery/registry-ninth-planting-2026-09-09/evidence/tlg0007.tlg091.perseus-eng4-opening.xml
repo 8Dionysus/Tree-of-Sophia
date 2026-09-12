@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>Wherefore the Pythian Priestess Now Ceases to Deliver her Oracles in Verse</title>
+				<author>Plutarch</author>
+				<editor>William W. Goodwin</editor>
+				<editor role="translator">John Philips</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Ethan Della Rocca</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg091.perseus-eng4.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">3</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmorals03plut/page/69">The Internet Archive</ref>
+            </biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+				<!-- <refsDecl doctype="TEI.2">
+				<state unit="section"/> -->
+			</refsDecl>
+			<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+				<language ident="lat">Latin</language>
+			</langUsage>
+			<particDesc>
+				<person><persName>Basilocles</persName></person>
+				<person><persName>Philinus</persName></person>
+			</particDesc>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="GRC" when="2006">tagging</change>
+			<change who="Ethan Della Rocca" when="2017-07-17">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg091.perseus-eng4"> 
+<div n="urn:cts:greekLit:tlg0007.tlg091.perseus-eng4" type="translation" xml:lang="eng"> <head>Wherefore the Pythian priestess now ceases to deliver her oracles in verse. <lb/> I. Basilocles, Philinus. <lb/> II. Philinus, Diogenianus, Theo, Serapio, Boethus, Interpreters.</head> <pb xml:id="v.3.p.69"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg091.perseus-eng4" n="1"> <p rend="indent"><said who="#Basilocles"><label>BASILOCLES.</label> You have spun out the time, Philinus, till it is late in the evening, in giving the strangers a full sight of all the consecrated rarities; so that I am quite tired with waiting longer for your society.</said></p> <p rend="indent"><said who="#Philinus"><label>PHILINUS.</label> Therefore we walked slowly along, talking and discoursing, O Basilocles, sowing and reaping by the way such sharp and hot disputes as offered themselves, which sprung up anew and grew about us as we walked, like the armed men from the Dragon’s teeth of Cadmus.</said></p> <p rend="indent"><said who="#Basilocles"><label>BASILOCLES.</label> Shall we then call some of those that were present; or wilt thou be so kind as to tell us what were the discourses and who were the disputants?</said></p> <p rend="indent"><said who="#Philinus"><label>PHILINUS.</label> That, Basilocles, it must be my business to do. For thou wilt hardly meet with any one else in the city able to serve thee; for we saw most of the rest ascending with the stranger up to the Corycian cave and to Lycorea.</said></p> <p rend="indent"><said who="#Basilocles"><label>BASILOCLES.</label> This same stranger is not only covetous of seeing what may be seen, but wonderfully civil and genteel.</said></p> <p rend="indent"><said who="#Philinus"><label>PHILINUS.</label> He is besides a great lover of science, and studious to learn. But these are not the only exercises which are to be admired in him. He is a person modest, yet facetious, smart and prudent in dispute, void of all passion and contumacies in his answers; in short, you will say of him at first sight that he is the son of a virtuous father. <pb xml:id="v.3.p.70"/> For dost thou not know Diogenianus, a most excellent person</said>?</p> <p rend="indent"><said who="#Basilocles"><label>BASILOCLES.</label> I have not seen him, Philinus, but many report several things of the young gentleman, much like what you say. But, pray now, what was the beginning of these discourses? Upon what occasion did they arise?</said></p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg091.perseus-eng4" n="2"> <p rend="indent"><said who="#Philinus"><label>PHILINUS.</label> The interpreters of the sacred mysteries acted without any regard to us, who desired them to contract their relation into as few words as might be, and to pass by the most part of the inscriptions. But the stranger was but indifferently taken with the form and workmanship of the statues, being one, as it appeared, who had already been a spectator of many rare pieces of curiosity. He admired the beautiful color of the brass, not foul and rusty, but shining with a tincture of blue. What, said he, was it any certain mixture and composition of the ancient artists in brass, like the famous art of giving a keen edge to swords, without which brass could not be used in war? For Corinthian brass received its lustre not from art, but by chance, when a fire had devoured some house wherein there was both gold and silver, but of brass the greater plenty; which, being intermixed and melted into one mass, derives its name from the brass, of which there was the greater quantity. Then Theo interposing said: But we have heard another more remarkable reason than this; how an artist in brass at Corinth, happening upon a chest full of gold, and fearing to have it divulged, cut the gold into small pieces, and mixed it by degrees with the brass, till he found the more noble metal gave a more than usual lustre to the baser, an

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    
+<teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+<title xml:lang="grc">Τιμολέων</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+    <resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+    <funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+    
+    <publicationStmt>
+        <publisher>Trustees of Tufts University</publisher>
+        <pubPlace>Medford, MA</pubPlace>
+        <authority>Perseus Project</authority>
+        <date type="release" when="2010-10-22">Perseus 4.0</date>
+        <idno type="filename">tlg0007.tlg018.perseus-grc2.xml</idno>
+        <availability>
+            <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+        </availability>
+    </publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor> 
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1918</date>
+</imprint>
+<biblScope unit="volume">6</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives06plut/page/260/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+    <quotation marks="none"/>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+<refsDecl>
+<refState unit="chapter" delim="."/>
+<refState unit="section"/>
+</refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2017-01-09" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+<change who="RS" when="2010-03-01">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+    
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-grc2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg018.perseus-grc2" type="edition" xml:lang="grc"> 
+    <head>Τιμολέων</head> 
+    <pb n="p.260"/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-grc2" n="0"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-grc2:0" n="1"><p>ἐμοὶ<note anchored="true" place="inline" resp="editor"> <foreign xml:lang="grc">ἐμοὶ</foreign> with Bekker, after Stephanus and Reiske: <foreign xml:lang="grc">ἐμοὶ μὲν</foreign>.</note> τῆς τῶν βίων ἅψασθαι μὲν γραφῆς <pb n="paris.1624.235"/> συνέβη διʼ ἑτέρους, ἐπιμένειν δὲ καὶ φιλοχωρεῖν ἤδη καὶ διʼ ἐμαυτόν, ὥσπερ ἐν ἐσόπτρῳ τῇ ἱστορίᾳ πειρώμενον ἁμῶς γέ πως κοσμεῖν καὶ ἀφομοιοῦν πρὸς τὰς ἐκείνων ἀρετὰς τὸν βίον.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-grc2:0" n="2"><p>οὐδὲν γὰρ ἀλλʼ ἢ συνδιαιτήσει καὶ συμβιώσει τὸ γινόμενον ἔοικεν, ὅταν ὥσπερ ἐπιξενούμενον ἕκαστον αὐτῶν ἐν μέρει διὰ τῆς ἱστορίας ὑποδεχόμενοι καὶ παραλαμβάνοντες ἀναθεωρῶμεν <q>ὅσσος ἔην οἷός τε,</q> τὰ κυριώτατα καὶ κάλλιστα πρὸς γνῶσιν ἀπὸ τῶν πράξεων λαμβάνοντες.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-grc2:0" n="3"> <p> <quote rend="blockquote">φεῦ, φεῦ· τί τούτου χάρμα μεῖζον ἂν λάβοις,</quote> καὶ<note anchored="true" place="inline" resp="editor"> <foreign xml:lang="grc">καὶ</foreign> supplied by Sintenis, after Schaefer; Bekker supplies <foreign xml:lang="grc">ἢ</foreign>.</note> πρὸς ἐπανόρθωσιν ἠθῶν ἐνεργότερον;</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-grc2:0" n="4"><p>Δημόκριτος μὲν γὰρ εὔχεσθαί φησι δεῖν ὅπως εὐλόγχων εἰδώλων τυγχάνωμεν καὶ τὰ σύμφυλα καὶ τὰ χρηστὰ μᾶλλον ἡμῖν ἐκ τοῦ περιέχοντος ἢ τὰ φαῦλα καὶ τὰ σκαιὰ συμφέρηται, λόγον οὔτʼ ἀληθῆ καὶ πρὸς ἀπεράντους ἐκφέροντα δεισιδαιμονίας εἰς φιλοσοφίαν καταβάλλων· </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-grc2:0" n="5"><p>ἡμεῖς δὲ τῇ περὶ τὴν ἱστορίαν διατριβῇ καὶ τῆς γραφῆς τῇ <pb n="p.262"/> συνηθείᾳ παρασκευάζομεν ἑαυτούς, τὰς τῶν ἀρίστων καὶ δοκιμωτάτων μνήμας ὑποδεχομένους ἀεὶ ταῖς ψυχαῖς, εἴ τι φαῦλον ἢ κακόηθες ἢ ἀγεννὲς αἱ τῶν συνόντων ἐξ ἀνάγκης ὁμιλίαι προσβάλλουσιν, ἐκκρούειν καὶ διωθεῖσθαι, πρὸς τὰ κάλλιστα τῶν παραδειγμάτων ἵλεω καὶ πρᾳεῖαν ἀποστρέφοντες τὴν διάνοιαν.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-grc2:0" n="6"> <p>ὧν ἐν τῷ παρόντι προκεχειρίσμεθά σοι τὸν Τιμολέοντος τοῦ Κορινθίου καὶ τὸν Αἰμιλίου Παύλου βίον, </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-grc2:0" n="7"><p>

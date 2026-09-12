@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">De haruspicum responso in P. Clodium in Senatu Habita</title>
+				<author>M. Tullius Cicero</author>
+				<editor>William Peterson</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				<respStmt>
+					<persName>Michael Konieczny</persName>
+					<orgName/>
+					<resp>Digital editor</resp>
+				</respStmt>
+				<funder n="org:NEH">National Endowment For The Humanities (NEH)</funder>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1997-10-28">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi021.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>William Peterson</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon Press</publisher>
+							<date>1909</date>
+						</imprint>
+						<biblScope unit="volume">5</biblScope>
+						<biblScope n="contents">Cum Senatui Gratias Egit; Cum Populo Gratias Egit; De Domo Sua; De Haruspicum Responso; Pro Sestio; In Vatinium; De Provinciis Consularibus; Pro Balbo</biblScope>
+					</monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+					<ref target="https://archive.org/details/orationesrecogno05ciceuoft/page/89/mode/2up">Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<refsDecl n="CTS">
+				<cRefPattern matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])" n="section">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+			<change who="Michael Konieczny" when="2021-01-27">Revisions for EpiDoc + CTS compliance</change>
+			<change who="Thibault Clérice" when="2021-01-20">Capitains + Epidoc</change>
+			<change who="Stella Dee" when="2014-08-01">edited markup</change>
+			<change who="Stella Dee" when="2014-07-01">split composite text and converted to unicode</change>
+			<change who="balmas01" when="2013-09-13">reverting texts back to pre_cts_reorg tagged version</change>
+			<change who="gcrane" when="2011-07-19">removed the earlier persName/placeName tags</change>
+			<change who="gcrane" when="2011-07-09">fixed problems with capitalization</change>
+			<change who="gcrane" when="2011-01-15">base SDL file</change>
+			<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+			<change who="gcrane" when="2006-04-21">these now have the app crit entered as notes</change>
+			<change who="packel" when="2005-08-01">removed stray item tags</change>
+			<change who="packel" when="2005-07-25">Converted to XML</change>
+			<change who="mimno" when="2005-04-08">added default chunks</change>
+			<change who="mimno" when="2004-12-23">typo: cDe harus... -> De harus</change>
+			<change who="yorkc" when="2003-07-01">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change>
+			<change who="amahoney" when="2002-12-02">correct spelling of Quirites, improperly 'regularized'</change>
+			<change who="dasmith" when="2000-03-04">Added separate funder entity to TEI header.</change>
+			<change who="dasmith" when="1999-10-14">Added explanatory subtitles to titleStmt</change>
+			<change who="dasmith" when="1999-08-12">Fixed refsDecl</change>
+			<change who="textgod" when="1999-08-04">Random changes over a period of months.</change>
+			<change who="textgod" when="1997-10-31">Added QUOTE tags to verse.</change>
+			<change who="cjsu" when="1997-05-13">passed SGML validation</change>
+		</revisionDesc>
+	</teiHeader>
+
+<text xml:lang="lat">
+<body xml:base="urn:cts:latinLit:phi0474.phi021.perseus-lat2">
+<div xml:lang="lat" type="edition">
+<head rend="align(center)">ORATIO DE HARVSPICVM RESPONSO<note>responso <hi rend="italic">Ascon.</hi>: responsis <hi rend="italic">codd., Quint.</hi> v. 11,42</note> IN P. CLODIVM IN SENATV HABITA</head>
+				
+<div subtype="section" xml:base="urn:cts:latinLit:phi0474.phi021.perseus-lat2" type="textpart" n="1"> <p rend="align(indent)"><milestone resp="editor" unit="chapter" n="1"/> <reg>hesterno</reg> die, patres conscripti, cum me et vestra dignitas et frequentia equitum Romanorum praesentium<note>praesentium <hi rend="italic">om. HEMb<foreign xml:lang="grc">ς</foreign></hi></note>, quibus senatus dabatur, magno opere commosset, putavi mihi reprimendam esse P. Clodi impudicam impudentiam, cum is publicanorum causam stultissimis interrogationibus impediret, P. Tullioni Syro navaret operam atque ei se<note>sese <hi rend="italic">EMc</hi></note>, cui totus venierat, etiam vobis inspectantibus venditaret. <reg>itaque</reg> hominem furentem exsultantemque continui simul ac periculum iudici intendi: duobus inceptis verbis omnem impetum gladiatoris ferociamque compressi. </p> </div> 
+<div subtype="section" xml:base="urn:cts:latinLit:phi0474.phi021.perseus-lat2" type="textpart" n="2"> <p><reg>ac</reg> tamen<note>Attamen <hi rend="italic">GMb<foreign xml:lang="grc">ς</foreign>t</hi></note> ignarus ille qui consules essent, exsanguis atque aestuans se ex curia repente proripuit, cum quibusdam fractis iam atque inanibus minis et cum illius Pisoniani temporis Gabinianique terroribus: quem cum egredientem insequi coepissem, cepi equidem fructum maximum et<note>et <hi rend="italic">om. GE</hi></note> ex consurrectione omnium vestrum et ex comitatu publicanorum. <reg>sed</reg> vaecors repente sine suo vultu, sine colore, sine voce constitit; deinde respexit et, simul atque<note>simul atque <hi rend="italic">Bait.</hi>: simul ad <hi rend="italic">codd. praeter Gk</hi> (simul ac) <hi rend="italic">et t</hi> (simulat.)</note> Cn. Lentulum consulem aspexit, concidit in curiae paene limine; recordatione, credo, Gabini sui desiderioque Pisonis. <reg>cuius</reg> ego de ecfrenato<note>ecfren. <hi rend="italic">PG</hi>: effren. <hi rend="italic">BH<foreign xml:lang="grc">ς</foreign>t. Cf.</hi> § 52</note> et praecipiti furore quid dicam? <add><reg>an</reg></add><note>An <hi rend="italic">scripsi</hi> (<hi rend="italic">post</hi> dicam): aut <hi rend="italic">codd. pler.</hi> (haud <hi rend="italic">k</hi>): <hi rend="italic">om. PB</hi></note> potest gravioribus a me verbis vulnerari quam est statim in facto ipso a gravissimo viro, P. Servilio, confectus ac trucidatus? cuius si iam vim et gravitatem illam singularem ac paene divinam adsequi possem, tamen non dubito quin ea tela quae coniecerit inimicus quam ea quae conlega patris emisit leviora atque hebetiora esse videantur. </p> </div> 
+<div subtype="section" xml:base="urn:cts:latinLit:phi0474.phi021.perseus-lat2" type="textpart" n="3"> <p rend="align(indent)"><milestone resp="editor" unit="chapter" n="2"/> <reg>sed</reg> tamen mei facti rationem exponere illis volo qui hesterno die dolore me elatum et iracundia longius prope progressum arbitrabantur quam sapientis hominis cogitata ratio postulasset. <reg>nihil</reg> feci iratus, nihil impotenti animo, nihil non diu consideratum ac multo ante meditatum. <reg>ego</reg> enim me, patres conscripti, inimicum semper esse professus sum duobus, qui me, qui rem publicam<note>rem p. <hi rend="italic">GEt</hi>: rem <hi rend="italic">PB</hi>: rem meam <hi rend="italic">HM<foreign xml:lang="grc">ς</foreign></hi></note> cum defendere deberent, servare possent, cumque ad consulare officium ipsis insignibus illius imperi, ad meam salutem non solum auctoritate sed etiam precibus vestris vocarentur, primo reliquerunt, deinde prodiderunt, postremo oppugnarunt, praemiisque nefariae pactionis<note>pactionis <hi rend="italic">Naugerius</hi> (1): factionis <hi rend="italic">P rell.</hi></note> funditus una cum re publica oppressum exstinctu

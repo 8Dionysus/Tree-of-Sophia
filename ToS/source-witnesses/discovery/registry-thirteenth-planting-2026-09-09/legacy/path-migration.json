@@ -1,0 +1,64 @@
+{
+  "schema_version": "tos_source_witness_path_migration_legacy_v1",
+  "status": "historical-provenance",
+  "migration_id": "tos.source-witnesses.registry-thirteenth.navigation-2026-09-09",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "historical_paths": [
+    {
+      "role": "pali-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/thirteenth-pali-wave-20260909.json",
+      "sha256": "6d6988b5fc9760072a64541ccae58d5a72c9a851a1af87ad62ad49c42348b830",
+      "byte_size": 671723
+    },
+    {
+      "role": "english-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/thirteenth-translations-wave-20260909.json",
+      "sha256": "732d0bb7b8fd39b8ed8bb634df958d29d07889bcd0c5ad1ca24b5606664a3fc6",
+      "byte_size": 775927
+    },
+    {
+      "role": "historical-engine-snapshot",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/execution/engine-history/prepare_registry_sources.py",
+      "sha256": "9eb8a6716795b3cf2af58183d287ca1582c0a01a382592133199bb5aa9d61c60",
+      "byte_size": 32628
+    }
+  ],
+  "current_paths": [
+    {
+      "role": "pali-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/early-buddhist-nikaya-pali-20260909.json",
+      "sha256": "6d6988b5fc9760072a64541ccae58d5a72c9a851a1af87ad62ad49c42348b830"
+    },
+    {
+      "role": "english-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/early-buddhist-nikaya-english-sujato-20260909.json",
+      "sha256": "732d0bb7b8fd39b8ed8bb634df958d29d07889bcd0c5ad1ca24b5606664a3fc6"
+    },
+    {
+      "role": "historical-engine-snapshot",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/legacy/engine-history/prepare_registry_sources.py",
+      "sha256": "9eb8a6716795b3cf2af58183d287ca1582c0a01a382592133199bb5aa9d61c60"
+    }
+  ],
+  "retained_inputs": [
+    {
+      "stage": "pali",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/legacy/preparation-inputs/9fe93a20d1bc10a458209ef4f8ea75e330d056a500549e519343fa2b1c5cc4de.pali-manifest.json",
+      "manifest_sha256": "9fe93a20d1bc10a458209ef4f8ea75e330d056a500549e519343fa2b1c5cc4de",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/legacy/preparation-inputs/61dad67fb3531ec61c850ecf8200b2c3a4e5d181b0b7ac1618cba54cadf52a11.pali-receipt.json",
+      "receipt_sha256": "61dad67fb3531ec61c850ecf8200b2c3a4e5d181b0b7ac1618cba54cadf52a11",
+      "preparation_commit": "e6c7429056c3bc6a7563d4bea9d110c8f92f621b",
+      "checkpoint_review_ref": "agent-review:e6c742905:20260909T221054Z"
+    },
+    {
+      "stage": "english",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/legacy/preparation-inputs/646a8c0236b0b88e614db62f852d37083ada1ad5667c0478659c8ec86b3d48e1.english-manifest.json",
+      "manifest_sha256": "646a8c0236b0b88e614db62f852d37083ada1ad5667c0478659c8ec86b3d48e1",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/legacy/preparation-inputs/363a1da939160acae912e70e834ed5de3a59a7b479d6d437815d622723560bae.english-receipt.json",
+      "receipt_sha256": "363a1da939160acae912e70e834ed5de3a59a7b479d6d437815d622723560bae",
+      "preparation_commit": "f3255e9b7606c9e51e5a2c84f0ab8e24b0401fe7",
+      "checkpoint_review_ref": "agent-review:f3255e9b7:20260909T223318Z"
+    }
+  ],
+  "authority_boundary": "Historical provenance only. This record preserves exact prior bytes, paths, receipts and preparation commits; it does not restamp the current route or establish acquisition, rights, semantic admission, publication or canon."
+}

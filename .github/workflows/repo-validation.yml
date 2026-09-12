@@ -98,6 +98,7 @@ jobs:
 
       - name: Validate the Product Shell in Chromium
         run: |
+          PYTHONPATH=access/src python -m tos_access.knowledge_compile --root .
           python -m playwright install --with-deps chromium
           PYTHONPATH=access/src pytest -q access/tests/test_http_security.py access/e2e/test_webmcp.py
 
@@ -116,6 +117,9 @@ jobs:
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: "3.12"
+
+      - name: Install standalone candidate validation dependencies
+        run: python -m pip install -r requirements-dev.txt
 
       - name: Build and validate standalone product candidate
         run: |

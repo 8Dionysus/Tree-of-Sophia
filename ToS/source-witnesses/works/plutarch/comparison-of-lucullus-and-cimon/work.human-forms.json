@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6cdd2814c04fc08385133ff7eed28fca4a253233e277e41c79f46f78112e7d51",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6cdd2814c04fc08385133ff7eed28fca4a253233e277e41c79f46f78112e7d51",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:6cdd2814c04fc08385133ff7eed28fca4a253233e277e41c79f46f78112e7d51",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:6cdd2814c04fc08385133ff7eed28fca4a253233e277e41c79f46f78112e7d51",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.7214cddba1aa540e9e0ce9bdbd98d8fe6d01d8928e1ad221236a5a40d3ea5fcc",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:5d92772581c277b7d7f6e76793de913956b8e447c3e9021ae647e54e53015c45",
+        "id": "tos.form.metadata.7214cddba1aa540e9e0ce9bdbd98d8fe6d01d8928e1ad221236a5a40d3ea5fcc",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6cdd2814c04fc08385133ff7eed28fca4a253233e277e41c79f46f78112e7d51",
+        "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6cdd2814c04fc08385133ff7eed28fca4a253233e277e41c79f46f78112e7d51",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6cdd2814c04fc08385133ff7eed28fca4a253233e277e41c79f46f78112e7d51",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:6cdd2814c04fc08385133ff7eed28fca4a253233e277e41c79f46f78112e7d51",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:6cdd2814c04fc08385133ff7eed28fca4a253233e277e41c79f46f78112e7d51",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.54c7c92b6de5a8d9c4e97c702f9a01a1cb45233ea796aa72531fb050061dc73f",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:98ac1ed1d2dd33aa1e50e017c062e4962bd2fd8e53cf8897aa6df2db411b8855",
+        "id": "tos.form.metadata.54c7c92b6de5a8d9c4e97c702f9a01a1cb45233ea796aa72531fb050061dc73f",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6cdd2814c04fc08385133ff7eed28fca4a253233e277e41c79f46f78112e7d51",
+        "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-tenth-planting",
+      "command_id": "registry-tenth-source-forms:b66688ca302fc21808b04c30bb5a4c10b340c5216dbbe45a90f683d814b488a1",
+      "owner_configuration": "sha256:8bf94347bad7a5aeb64da0f6376a09105821df2acbd11225ae19a767a85bfc61",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T19:06:34.209048+00:00",
+      "request_digest": "sha256:40d7a0de1594d47f40b75038792b73b436a4975b0e0e161c7aec2a472f90ada2",
+      "results": [
+        {
+          "digest": "sha256:5d92772581c277b7d7f6e76793de913956b8e447c3e9021ae647e54e53015c45",
+          "id": "tos.form.metadata.7214cddba1aa540e9e0ce9bdbd98d8fe6d01d8928e1ad221236a5a40d3ea5fcc",
+          "version": 1
+        },
+        {
+          "digest": "sha256:98ac1ed1d2dd33aa1e50e017c062e4962bd2fd8e53cf8897aa6df2db411b8855",
+          "id": "tos.form.metadata.54c7c92b6de5a8d9c4e97c702f9a01a1cb45233ea796aa72531fb050061dc73f",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:0848f7dd2b2b99a24b1de41f129bcec916c7caf485776e1c5b2a714ded420c05",
+        "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-eleventh-source-forms:b66688ca302fc21808b04c30bb5a4c10b340c5216dbbe45a90f683d814b488a1",
+      "request_digest": "sha256:05b0cb118d48f31f235f9ccd10440edfb52b1c73b538dab19f8c718c0b94ec2d",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eleventh-planting",
+      "owner_configuration": "sha256:e1fa0e4388f229f403660d00b40ba6d8756833cdc36b3432d56cd9c454098cc7",
+      "recorded_at": "2026-09-09T19:35:41.515116+00:00",
+      "source": {
+        "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+        "version": 2,
+        "digest": "sha256:6cdd2814c04fc08385133ff7eed28fca4a253233e277e41c79f46f78112e7d51"
+      },
+      "previous_revision": "sha256:1cd74ab8287ab76d14f710b483c297b7b5b1896203853c0843dd7c8ff85395af",
+      "results": [
+        {
+          "id": "tos.form.metadata.7214cddba1aa540e9e0ce9bdbd98d8fe6d01d8928e1ad221236a5a40d3ea5fcc",
+          "version": 2,
+          "digest": "sha256:95d0f923bcd44f5ffe1d87cd65d98bdfdf9909317549c9581239f98a5f5b0517"
+        },
+        {
+          "id": "tos.form.metadata.54c7c92b6de5a8d9c4e97c702f9a01a1cb45233ea796aa72531fb050061dc73f",
+          "version": 2,
+          "digest": "sha256:4a9f2cd523d86e351d8bf2327dd91f56db7d57d5cdca6994f2e3bb8209fc0114"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:0848f7dd2b2b99a24b1de41f129bcec916c7caf485776e1c5b2a714ded420c05",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:0848f7dd2b2b99a24b1de41f129bcec916c7caf485776e1c5b2a714ded420c05",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:0848f7dd2b2b99a24b1de41f129bcec916c7caf485776e1c5b2a714ded420c05",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:0848f7dd2b2b99a24b1de41f129bcec916c7caf485776e1c5b2a714ded420c05",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.7214cddba1aa540e9e0ce9bdbd98d8fe6d01d8928e1ad221236a5a40d3ea5fcc",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:0848f7dd2b2b99a24b1de41f129bcec916c7caf485776e1c5b2a714ded420c05",
+        "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:0848f7dd2b2b99a24b1de41f129bcec916c7caf485776e1c5b2a714ded420c05",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:0848f7dd2b2b99a24b1de41f129bcec916c7caf485776e1c5b2a714ded420c05",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:0848f7dd2b2b99a24b1de41f129bcec916c7caf485776e1c5b2a714ded420c05",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:0848f7dd2b2b99a24b1de41f129bcec916c7caf485776e1c5b2a714ded420c05",
+            "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.54c7c92b6de5a8d9c4e97c702f9a01a1cb45233ea796aa72531fb050061dc73f",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:0848f7dd2b2b99a24b1de41f129bcec916c7caf485776e1c5b2a714ded420c05",
+        "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.comparison-of-lucullus-and-cimon",
+    "version": 2,
+    "digest": "sha256:6cdd2814c04fc08385133ff7eed28fca4a253233e277e41c79f46f78112e7d51"
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-amore-prolis.grc-perseus-tlg0007-tlg098",
+    "version": 1,
+    "digest": "sha256:3c17949c5e6adbde800017cf5733164f5b740e8bde565888252b5ab9d9eda737"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:3c17949c5e6adbde800017cf5733164f5b740e8bde565888252b5ab9d9eda737",
+            "id": "tos.expression.plutarch.de-amore-prolis.grc-perseus-tlg0007-tlg098",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:3c17949c5e6adbde800017cf5733164f5b740e8bde565888252b5ab9d9eda737",
+            "id": "tos.expression.plutarch.de-amore-prolis.grc-perseus-tlg0007-tlg098",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:3c17949c5e6adbde800017cf5733164f5b740e8bde565888252b5ab9d9eda737",
+            "id": "tos.expression.plutarch.de-amore-prolis.grc-perseus-tlg0007-tlg098",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:3c17949c5e6adbde800017cf5733164f5b740e8bde565888252b5ab9d9eda737",
+            "id": "tos.expression.plutarch.de-amore-prolis.grc-perseus-tlg0007-tlg098",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.2207b322a399795b3c5c31ff19328ccfc0b0e5ebab9821c212510c1cc77123a2",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:3c17949c5e6adbde800017cf5733164f5b740e8bde565888252b5ab9d9eda737",
+        "id": "tos.expression.plutarch.de-amore-prolis.grc-perseus-tlg0007-tlg098",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:3c17949c5e6adbde800017cf5733164f5b740e8bde565888252b5ab9d9eda737",
+            "id": "tos.expression.plutarch.de-amore-prolis.grc-perseus-tlg0007-tlg098",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:3c17949c5e6adbde800017cf5733164f5b740e8bde565888252b5ab9d9eda737",
+            "id": "tos.expression.plutarch.de-amore-prolis.grc-perseus-tlg0007-tlg098",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:3c17949c5e6adbde800017cf5733164f5b740e8bde565888252b5ab9d9eda737",
+            "id": "tos.expression.plutarch.de-amore-prolis.grc-perseus-tlg0007-tlg098",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:3c17949c5e6adbde800017cf5733164f5b740e8bde565888252b5ab9d9eda737",
+            "id": "tos.expression.plutarch.de-amore-prolis.grc-perseus-tlg0007-tlg098",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.d66922eb3e8390a322e4cb57421219759021f844fb415ad283d728bc27091f6f",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:3c17949c5e6adbde800017cf5733164f5b740e8bde565888252b5ab9d9eda737",
+        "id": "tos.expression.plutarch.de-amore-prolis.grc-perseus-tlg0007-tlg098",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:ea5f30c5dc77fd18b89932bd36798253c0558c9e32b803ea1cb36e2fc6a7b601",
+      "request_digest": "sha256:d1b7cc2db020c3eca5de802e3b1da3c35d6eccd4e06c720fccef25d01b0f5b0e",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:cb5642e6b37101be8650d1da9a2409ec9e9194559cc1b615d0d451ebb7cf7aee",
+      "recorded_at": "2026-09-09T16:45:39.001831+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-amore-prolis.grc-perseus-tlg0007-tlg098",
+        "version": 1,
+        "digest": "sha256:3c17949c5e6adbde800017cf5733164f5b740e8bde565888252b5ab9d9eda737"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.2207b322a399795b3c5c31ff19328ccfc0b0e5ebab9821c212510c1cc77123a2",
+          "version": 1,
+          "digest": "sha256:acb0f966f40b67ffea6349ab527529bd132efd54f24a7b63a0a01fa9c54f8a27"
+        },
+        {
+          "id": "tos.form.metadata.d66922eb3e8390a322e4cb57421219759021f844fb415ad283d728bc27091f6f",
+          "version": 1,
+          "digest": "sha256:c97ceedbcb05e0acb69b84a32bd0e89f218c0cbfcf83ba3b57424b381782a0d1"
+        }
+      ]
+    }
+  ]
+}

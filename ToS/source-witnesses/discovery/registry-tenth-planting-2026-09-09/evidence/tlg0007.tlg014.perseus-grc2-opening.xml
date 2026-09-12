@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+
+<title xml:lang="grc">Περικλέους καὶ Φαβίου σύγκρισις</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg014.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor> 
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1916</date>
+</imprint>
+<biblScope unit="volume">3</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/liveswithenglish03plutuoft/page/198/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+    <quotation marks="none"/>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+<refsDecl>
+<refState unit="chapter" delim="."/>
+<refState unit="section"/>
+</refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change who="Lisa Cerrato" when="2017-01-09">EpiDoc and CTS file conversion</change>
+<change who="RS" when="2010-03-01">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg014.perseus-grc2">
+<div n="urn:cts:greekLit:tlg0007.tlg014.perseus-grc2" type="edition" xml:lang="grc">
+<pb n="p.198"/>
+   <head>Περικλέους καὶ Φαβίου σύγκρισις.</head>
+    <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg014.perseus-grc2" n="1">
+        <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg014.perseus-grc2:1" n="1">
+<p> οἱ μὲν οὖν βίοι τῶν ἀνδρῶν τοιαύτην ἔχουσιν ἱστορίαν. ἐπεὶ δὲ καὶ πολιτικῆς καὶ πολεμικῆς ἀρετῆς πολλὰ καὶ καλὰ παραδείγματα καταλελοίπασιν ἀμφότεροι, φέρε τῶν πολεμικῶν ἐκεῖνο πρῶτον λάβωμεν, ὅτι Περικλῆς μὲν ἄριστα πράττοντι τῷ δήμῳ καὶ μεγίστῳ καθʼ αὑτὸν ὄντι καὶ μάλιστα πρὸς δύναμιν ἀκμάζοντι χρώμενος ὑπὸ κοινῆς ἂν δόξειεν εὐτυχίας καὶ ῥώμης πραγμάτων ἀσφαλὴς διαγενέσθαι καὶ ἄπταιστος, </p>
+</div>
+        <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg014.perseus-grc2:1" n="2">
+<p> αἱ δὲ Φαβίου πράξεις ἐν αἰσχίστοις καὶ δυσποτμοτάτοις καιροῖς ἀναδεξαμένου τὴν πόλιν, οὐκ ἐπʼ ἀγαθοῖς ἀσφαλῆ διετήρησαν, ἀλλʼ ἐκ κακῶν εἰς βελτίω μετέστησαν. καὶ Περικλεῖ μὲν αἱ Κίμωνος εὐπραξίαι καὶ τὰ Μυρωνίδου καὶ τὰ Λεωκράτους τρόπαια καὶ πολλὰ καὶ μεγάλα Τολμίδης κατορθῶν ἐνεορτάσαι μᾶλλον καὶ ἐμπανηγυρίσαι στρατηγοῦντι τὴν πόλιν ἢ κτήσασθαι πολέμῳ καὶ φυλάξαι παρέδωκαν· </p>
+</div>
+        <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg014.perseus-grc2:1" n="3">
+<p>Φάβιος δʼ ὁρῶν πολλὰς μὲν φυγὰς καὶ ἥττας, πολλοὺς δὲ θανάτους καὶ σφαγὰς αὐτοκρατόρων καὶ στρατηγῶν, λίμνας δὲ καὶ πεδία καὶ δρυμοὺς νεκρῶν στρατοπέδων πλήθοντας, αἵματι δὲ καὶ φόνῳ ποταμοὺς ἄχρι θαλάττης ῥέοντας, ἐν τῷ καθʼ ἑαυτὸν ὁρμωμένῳ<note place="inline" anchored="true" resp="editor" xml:lang="eng"> <foreign xml:lang="grc">ὁρμωμένῳ</foreign> Bekker corrects to <foreign xml:lang="grc">ἡπμοσμένῳ</foreign> (<gloss>attempered</gloss>), after Coraës.</note> καὶ βεβηκότι τὴν πόλιν ἀντιλαμβανόμενος καὶ ὑπερείδων, οὐκ εἴασε τοῖς <pb n="p.200"/> ἐκείνων ὑποφερομένην πταίσμασι τελέως ἐκχυθῆναι. </p>
+</div>
+        <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg014.perseus-grc2:1" n="4">
+<p> καίτοι δόξειεν ἂν οὐχ οὕτω χαλεπὸν εἶναι πόλιν ἐν συμφοραῖς μεταχειρίσασθαι ταπεινὴν καὶ τοῦ φρονοῦντος ὑπʼ ἀνάγκης κατήκοον γενομένην, ὡς διʼ εὐτυχίαν ἐπηρμένῳ καὶ σπαργῶντι τῷ δήμῳ χαλινὸν ἐμβαλεῖν ὕβρεως καὶ θρασύτητος· ᾧ δὴ μάλιστα φαίνεται τρόπῳ Περικλῆς Ἀθηναίων περιγενόμενος. ἀλλὰ τῶν Ῥωμαίοις συμπεσόντων τότε κακῶν τὸ μέγεθος καὶ τὸ πλῆθος ἰσχυρόν τινα τὴν γνώμην<note place=

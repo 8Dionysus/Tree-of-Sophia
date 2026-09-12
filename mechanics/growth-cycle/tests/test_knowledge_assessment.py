@@ -1245,6 +1245,19 @@ class AssessmentPolicyTests(unittest.TestCase):
             target.write_text(raw * (2 if mutation == 'duplicate' else 1), encoding='utf-8')
             with self.subTest(mutation=mutation), self.assertRaises((ValueError, PermissionError)):
                 _source_records(copy_root, [binding])
+        # Full carrier identity guards also cover known but unselected rows.
+        neighbor_path = 'ToS/source-witnesses/fixture-records.jsonl'
+        selected = {'schema_version': 'tos_historical_record_v1',
+                    'record_id': 'tos.fixture.selected', 'record_version': 1,
+                    'visibility': 'public'}
+        neighbor = {**selected, 'record_id': 'tos.fixture.neighbor'}
+        selection = {'path': neighbor_path, 'record_id': selected['record_id'], 'origin_id': None}
+        for neighbors, error in (([neighbor, neighbor], 'repeats a current record identity'),
+                                 ([{**neighbor, 'record_version': 0}], 'version')):
+            (copy_root / neighbor_path).write_text(
+                ''.join(json.dumps(row) + '\n' for row in [selected, *neighbors]), encoding='utf-8')
+            with self.subTest(neighbors=neighbors), self.assertRaisesRegex(ValueError, error):
+                _source_records(copy_root, [selection])
         for location in ('../outside.json', 'ToS/source-witnesses/../secret.json',
                          'ToS/source-witnesses/payload/private.json', '/absolute/file.json'):
             with self.subTest(location=location), self.assertRaises(PermissionError):

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>Nicias</title>
+				<author>Plutarch</author>
+				<editor role="translator">Bernadotte Perrin</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>Elli Mylonas</name>
+					<name>David Smith</name>
+				</respStmt>
+				<funder n="org:AnnCPB">The Annenberg CPB/Project</funder>
+				<respStmt>
+					<persName>Allison Dempsey</persName>
+					<orgName>Tufts University</orgName>
+					<resp>Digital editing</resp>
+				</respStmt>
+			</titleStmt>
+			
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1992">Perseus 1.0</date>
+				<idno type="filename">tlg0007.tlg038.perseus-eng2.xml</idno>
+				<availability>
+					<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+				</availability>
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					
+					<monogr>
+						<author>Plutarch</author>
+						<title>Plutarch's Lives</title>
+						<editor role="translator">Bernadotte Perrin</editor>
+						<imprint>
+							<pubPlace>Cambridge, MA</pubPlace>
+							<publisher>Harvard University Press</publisher>
+							<pubPlace>London</pubPlace>
+							<publisher>William Heinemann Ltd.</publisher>
+							<date>1916</date></imprint>
+						<biblScope unit="volume">3</biblScope>
+					</monogr>
+					<series>
+						<title>Loeb Classical Library</title>
+					</series>
+					<ref target="https://archive.org/details/liveswithenglish03plutuoft/page/208/mode/2up">Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl>
+			<refsDecl n="CTS">
+				<cRefPattern n="section"
+					matchPattern="(\w+).(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+					<p>This pointer pattern extracts chapter and section.</p>
+				</cRefPattern>
+				<cRefPattern n="chapter"
+					matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts chapter.</p>
+				</cRefPattern>
+			</refsDecl>
+			<refsDecl>
+				<refState unit="chapter" delim="."/>
+				<refState unit="section"/>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+		      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+		    </citeStructure>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change> 
+			<change when="2018-02-07" who="Lisa Cerrato">EpiDoc and CTS file conversion</change>
+			<change when="2013-09-13" who="balmas01">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change> 
+			<change when="2013-06-29" who="gcrane">chapters are now divs</change> 
+			<change when="2010-11-19" who="balmas01">normalizing quote and q tags</change> 
+			<change when="2009-12-15" who="rsingh04">converted demetrius, antony and comparison from sgml to xml and added to hopper. also replaced xml snippets in other plutarch files with their respective entities.</change> 
+			<change when="2009-12-07" who="rsingh04">moved more xml files around based on copyright status. split up Plutarch/plut_gk.xml into separate files and gave them their own doc ids.</change> 
+			<change when="2009-06-19" who="lcerrato">fixed bad bibls</change> 
+			<change when="2009-06-11" who="student">fixing citations - ad</change> 
+			<change when="2009-04-03" who="lcerrato">fixing bad bibl refs</change> 
+			<change when="2009-01-23" who="rsingh04">small fixes</change> 
+			<change when="2009-01-22" who="rsingh04">now validates and entities fixed</change> 
+			<change when="2001-09-28" who="lcerrato">fixed entity typo</change> 
+			<change when="2001-09-28" who="lcerrato">cleaned up quotes, bibls and notes</change> 
+			<change when="2001-09-27" who="lcerrato">adding new tags for DE, ISBN, etc.</change> 
+			<change when="2001-09-01" who="LMC">removed from group file, retagged and parsed</change> 
+			<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change> 
+			<change when="1999-07-28" who="dasmith">Added text to REFSDECL.</change> 
+			<change when="1999-07-09" who="textgod">Converted to TEI-conformant SGML.</change> 
+			<change when="1997-09-12" who="David Smith">Made conformant with TEI P3.</change> 
+			<change when="1992-10-22" who="EM">Glued all Plutarch files together, put in HEAD tags to title them.</change> 
+			<change when="1992-08-01" who="DAS">Removed highlighted text, cleaned up notes and citations, and changed chapters to DIV2's.</change> 
+			<change when="1991-08-01" who="EM">Revise DTDs and recheck texts.</change>
+			<change when="1990-08-01" who="EM">Proofread by Ted Armstrong.</change> 
+		</revisionDesc>
+	</teiHeader>

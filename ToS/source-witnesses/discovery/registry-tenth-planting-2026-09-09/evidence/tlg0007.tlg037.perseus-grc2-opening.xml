@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+    <title xml:lang="grc">Κίμωνος καὶ Λουκούλλος σύγκρισις</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+    <respStmt>
+        <resp>Prepared under the supervision of</resp>
+        <name>Lisa Cerrato</name>
+        <name>Rashmi Singhal</name>
+        <name>Bridget Almas</name>
+    </respStmt>
+    
+    <funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+    
+    <publicationStmt>
+        <publisher>Trustees of Tufts University</publisher>
+        <pubPlace>Medford, MA</pubPlace>
+        <authority>Perseus Project</authority>
+        <date type="release" when="2010-10-22">Perseus 4.0</date>
+        <idno type="filename">tlg0007.tlg037.perseus-grc2.xml</idno>
+        <availability>
+            <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+        </availability>
+    </publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1914</date>
+</imprint>
+<biblScope unit="volume">2</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives02plut2/page/610/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+    <language ident="eng">English</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2018-02-05" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+    <change when="2018-02-01" who="Lisa Cerrato">bumped URN</change>
+    <change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-grc2"> 
+    <div n="urn:cts:greekLit:tlg0007.tlg037.perseus-grc2" type="edition" xml:lang="grc"> 
+        <pb n="p.610"/> 
+        <head>Κίμωνος καὶ Λουκούλλος σύγκρισις</head> 
+        <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-grc2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-grc2:1" n="1"><p>μάλιστα δʼ ἄν τις εὐδαιμονίσειε τοῦ τέλους <pb n="paris.1624.521"/> Λεύκουλλον, ὅτι πρὸ τῆς μεταβολῆς, ἣν ἤδη κατὰ τῆς πολιτείας ἐτεκταίνετο τοῖς ἐμφυλίοις πολέμοις τὸ πεπρωμένον, ἔφθη προαποθανὼν καὶ καταλύσας ἐν νοσούσῃ μέν, ἔτι δʼ ἐλευθέρᾳ τῇ πατρίδι τὸν βίον. καὶ τοῦτό γε πάντων αὐτῷ πρὸς Κίμωνα κοινότατόν ἐστι.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-grc2:1" n="2"><p> καὶ γὰρ ἐκεῖνος οὔπω συντεταραγμένων τῶν Ἑλληνικῶν, ἀλλʼ ἀκμὴν ἐχόντων ἐτελεύτησεν, ἐπὶ στρατοπέδου μέντοι καὶ στρατηγῶν, οὐκ ἀπειρηκὼς οὐδʼ ἀλύων, οὐδέ τῶν ὅπλων καὶ τῶν στρατηγιῶν καὶ τῶν <pb n="p.612"/> τροπαίων ἔπαθλον ποιούμενος εὐωχίας καὶ πότους, ὥσπερ Πλάτων ἐπισκώπτει τοὺς περὶ τὸν Ὀρφέα, τοῖς εὖ βεβιωκόσι φάσκοντας ἀποκεῖσθαι γέρας ἐν ?δου μέθην αἰώνιον.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-grc2:1" n="3"><p> σχολὴ μὲν οὖν καὶ ἡσυχία καὶ διατριβὴ περὶ λόγους ἡδονήν τινα καὶ θεωρίαν ἔχοντας εὐπρεπέστατον ἀνδρὶ πρεσβύτῃ καὶ πεπαυμένῳ πολέμων καὶ πολιτείας παραμύθιον τὸ δʼ ἐφʼ ἡδονὴν, ὡς τέλος, καταστρέψαντα τὰς καλὰς πράξεις ἤδη λοιπὸν Ἀφροδίσια τῶν πολέμων καὶ στρατηγιῶν ἄγοντα παίζειν καὶ τρυφᾶν οὐκ ἄξια τῆς καλῆς Ἀκαδημείας, οὐδέ τὸν Ξενοκράτη ζηλοῦντος, ἀλλʼ ἐγκεκλικότος πρὸς τὸν Ἐπίκουρον.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-grc2:1" n="4"><p> ὃ καὶ θαυμαστόν ἐστιν ὑπεναντίως γὰρ ἡ νεότης τοῦ μὲν ἐπίψογος καὶ ἀκόλαστος γεγονέναι δοκεῖ, τοῦ δὲ πεπαιδευμένη καὶ σώφρων, βελτίων οὖν ᾧ πρὸς τὸ βέλτιον ἡ μεταβολή· χρηστοτέρα γὰρ ἡ φύσις, ἐν ᾗ γηρᾷ μὲν τὸ χεῖρον, ἐπακμάζει δὲ τὸ ἄμεινον. 
+<milestone unit="para" resp="editor"/>καὶ μὴν ὁμοίως γε πλουτήσαντες οὐχ ὁμοίως διέθεντο τὸν πλοῦτον.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-grc2:1" n="5"><p> οὐ γὰρ ἄξιον ὁμοιῶσαι τῷ νοτίῳ τείχει τῆς ἀκροπόλεως, ὃ τοῖς ὑπὸ Κίμωνος κομισθεῖσιν ἐτελέσθη χρήμασι, τοὺς ἐν Νέᾳ πόλει θαλάμους καὶ τὰς περικλύστους ἀπόψεις, ἃς Λούκουλλος ἀπὸ τῶν βαρβαρικῶν ἐξῳκοδόμει λαφύρων οὐδέ γε �

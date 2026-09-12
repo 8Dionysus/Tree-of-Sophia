@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:bf182a72d11c5ea3285eda0873364e8950e7fc3cee5bb6086f9a525f1c565d99",
+            "id": "tos.work.epictetus.discourses",
+            "version": 3
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:bf182a72d11c5ea3285eda0873364e8950e7fc3cee5bb6086f9a525f1c565d99",
+            "id": "tos.work.epictetus.discourses",
+            "version": 3
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:bf182a72d11c5ea3285eda0873364e8950e7fc3cee5bb6086f9a525f1c565d99",
+            "id": "tos.work.epictetus.discourses",
+            "version": 3
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:bf182a72d11c5ea3285eda0873364e8950e7fc3cee5bb6086f9a525f1c565d99",
+            "id": "tos.work.epictetus.discourses",
+            "version": 3
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.c6a735cad26bcdb9e7e433ec5b1454b2451562e9779fd2d5dca919889916e19a",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:ef9e60a4aa9e7e7fc914e697ece4df31fe849a93f0d8ae06122c91bf96812332",
+        "id": "tos.form.metadata.c6a735cad26bcdb9e7e433ec5b1454b2451562e9779fd2d5dca919889916e19a",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:bf182a72d11c5ea3285eda0873364e8950e7fc3cee5bb6086f9a525f1c565d99",
+        "id": "tos.work.epictetus.discourses",
+        "version": 3
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:bf182a72d11c5ea3285eda0873364e8950e7fc3cee5bb6086f9a525f1c565d99",
+            "id": "tos.work.epictetus.discourses",
+            "version": 3
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:bf182a72d11c5ea3285eda0873364e8950e7fc3cee5bb6086f9a525f1c565d99",
+            "id": "tos.work.epictetus.discourses",
+            "version": 3
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:bf182a72d11c5ea3285eda0873364e8950e7fc3cee5bb6086f9a525f1c565d99",
+            "id": "tos.work.epictetus.discourses",
+            "version": 3
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:bf182a72d11c5ea3285eda0873364e8950e7fc3cee5bb6086f9a525f1c565d99",
+            "id": "tos.work.epictetus.discourses",
+            "version": 3
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.8be872a0b219865f00c4a0f18ab2c20f3e9b1bcbdda6876797c0f5d90417a442",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:22e9a9f99664973d3a169fa2339beb4a6d944312821ed8af2f535210489bfb4f",
+        "id": "tos.form.metadata.8be872a0b219865f00c4a0f18ab2c20f3e9b1bcbdda6876797c0f5d90417a442",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:bf182a72d11c5ea3285eda0873364e8950e7fc3cee5bb6086f9a525f1c565d99",
+        "id": "tos.work.epictetus.discourses",
+        "version": 3
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "command_id": "foundation-source-forms-v1:tos.work.epictetus.discourses",
+      "owner_configuration": "sha256:f16d91be4ea21c30e2c9f2fc8dcea50ee5bad8685736e6c6f33bd022873c30cd",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T15:55:19.977553+00:00",
+      "request_digest": "sha256:466f05d862827e613e5b251a1599b2c075fbb649ad07ae2f10893c776dc1f1cd",
+      "results": [
+        {
+          "digest": "sha256:ef9e60a4aa9e7e7fc914e697ece4df31fe849a93f0d8ae06122c91bf96812332",
+          "id": "tos.form.metadata.c6a735cad26bcdb9e7e433ec5b1454b2451562e9779fd2d5dca919889916e19a",
+          "version": 1
+        },
+        {
+          "digest": "sha256:22e9a9f99664973d3a169fa2339beb4a6d944312821ed8af2f535210489bfb4f",
+          "id": "tos.form.metadata.8be872a0b219865f00c4a0f18ab2c20f3e9b1bcbdda6876797c0f5d90417a442",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:89666f9fb072cca352ed3f28ecb7800c3006f2f9b01b13d44083fe16e77f562b",
+        "id": "tos.work.epictetus.discourses",
+        "version": 2
+      }
+    },
+    {
+      "command_id": "registry-seventh-source-forms:1432c7f412b8cf686936e53883fb1361ef6dad0f929847754dbafafebe3453fd",
+      "request_digest": "sha256:ea0cbc25a971640be475d30e65939ddba4cc4bc8c40b4b64b8ebc91858a57002",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:987e977f28f35111f2cc580e4bcaa1378ec285d7f10373820d056f31caee8bba",
+      "recorded_at": "2026-09-09T19:51:54.144823+00:00",
+      "source": {
+        "id": "tos.work.epictetus.discourses",
+        "version": 3,
+        "digest": "sha256:bf182a72d11c5ea3285eda0873364e8950e7fc3cee5bb6086f9a525f1c565d99"
+      },
+      "previous_revision": "sha256:62c4e66ae3257348cfdbbc466049523df313cf98d31e150b53002201f9fa9419",
+      "results": [
+        {
+          "id": "tos.form.metadata.c6a735cad26bcdb9e7e433ec5b1454b2451562e9779fd2d5dca919889916e19a",
+          "version": 2,
+          "digest": "sha256:973881526e6c069969b57553bfda55c2ca0379ef081bb7f93dc17125ba2978e8"
+        },
+        {
+          "id": "tos.form.metadata.8be872a0b219865f00c4a0f18ab2c20f3e9b1bcbdda6876797c0f5d90417a442",
+          "version": 2,
+          "digest": "sha256:d93212636fd9b35a7126cc2c7736a451ed1ba9f4975b11855c89faf077b76639"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:89666f9fb072cca352ed3f28ecb7800c3006f2f9b01b13d44083fe16e77f562b",
+            "id": "tos.work.epictetus.discourses",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:89666f9fb072cca352ed3f28ecb7800c3006f2f9b01b13d44083fe16e77f562b",
+            "id": "tos.work.epictetus.discourses",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:89666f9fb072cca352ed3f28ecb7800c3006f2f9b01b13d44083fe16e77f562b",
+            "id": "tos.work.epictetus.discourses",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:89666f9fb072cca352ed3f28ecb7800c3006f2f9b01b13d44083fe16e77f562b",
+            "id": "tos.work.epictetus.discourses",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.c6a735cad26bcdb9e7e433ec5b1454b2451562e9779fd2d5dca919889916e19a",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:89666f9fb072cca352ed3f28ecb7800c3006f2f9b01b13d44083fe16e77f562b",
+        "id": "tos.work.epictetus.discourses",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:89666f9fb072cca352ed3f28ecb7800c3006f2f9b01b13d44083fe16e77f562b",
+            "id": "tos.work.epictetus.discourses",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:89666f9fb072cca352ed3f28ecb7800c3006f2f9b01b13d44083fe16e77f562b",
+            "id": "tos.work.epictetus.discourses",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:89666f9fb072cca352ed3f28ecb7800c3006f2f9b01b13d44083fe16e77f562b",
+            "id": "tos.work.epictetus.discourses",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:89666f9fb072cca352ed3f28ecb7800c3006f2f9b01b13d44083fe16e77f562b",
+            "id": "tos.work.epictetus.discourses",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.8be872a0b219865f00c4a0f18ab2c20f3e9b1bcbdda6876797c0f5d90417a442",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:89666f9fb072cca352ed3f28ecb7800c3006f2f9b01b13d44083fe16e77f562b",
+        "id": "tos.work.epictetus.discourses",
+        "version": 2
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.epictetus.discourses",
+    "version": 3,
+    "digest": "sha256:bf182a72d11c5ea3285eda0873364e8950e7fc3cee5bb6086f9a525f1c565d99"
+  }
+}

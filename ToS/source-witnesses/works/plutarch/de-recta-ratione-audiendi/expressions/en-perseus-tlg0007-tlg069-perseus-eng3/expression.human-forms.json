@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-recta-ratione-audiendi.en-perseus-tlg0007-tlg069-perseus-eng3",
+    "version": 1,
+    "digest": "sha256:b3693c02ff43029cc2b7348c4908a145cbcb9fcba0480bc25886392d607f9e12"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b3693c02ff43029cc2b7348c4908a145cbcb9fcba0480bc25886392d607f9e12",
+            "id": "tos.expression.plutarch.de-recta-ratione-audiendi.en-perseus-tlg0007-tlg069-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b3693c02ff43029cc2b7348c4908a145cbcb9fcba0480bc25886392d607f9e12",
+            "id": "tos.expression.plutarch.de-recta-ratione-audiendi.en-perseus-tlg0007-tlg069-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:b3693c02ff43029cc2b7348c4908a145cbcb9fcba0480bc25886392d607f9e12",
+            "id": "tos.expression.plutarch.de-recta-ratione-audiendi.en-perseus-tlg0007-tlg069-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:b3693c02ff43029cc2b7348c4908a145cbcb9fcba0480bc25886392d607f9e12",
+            "id": "tos.expression.plutarch.de-recta-ratione-audiendi.en-perseus-tlg0007-tlg069-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.d88e41de4d88e08711b958cf0386910a2077c4f66e6f3a5dcc21bc4e0d7282bc",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:b3693c02ff43029cc2b7348c4908a145cbcb9fcba0480bc25886392d607f9e12",
+        "id": "tos.expression.plutarch.de-recta-ratione-audiendi.en-perseus-tlg0007-tlg069-perseus-eng3",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b3693c02ff43029cc2b7348c4908a145cbcb9fcba0480bc25886392d607f9e12",
+            "id": "tos.expression.plutarch.de-recta-ratione-audiendi.en-perseus-tlg0007-tlg069-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b3693c02ff43029cc2b7348c4908a145cbcb9fcba0480bc25886392d607f9e12",
+            "id": "tos.expression.plutarch.de-recta-ratione-audiendi.en-perseus-tlg0007-tlg069-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:b3693c02ff43029cc2b7348c4908a145cbcb9fcba0480bc25886392d607f9e12",
+            "id": "tos.expression.plutarch.de-recta-ratione-audiendi.en-perseus-tlg0007-tlg069-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:b3693c02ff43029cc2b7348c4908a145cbcb9fcba0480bc25886392d607f9e12",
+            "id": "tos.expression.plutarch.de-recta-ratione-audiendi.en-perseus-tlg0007-tlg069-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.c56db33d13708d5773b9affceae6044e22aabf0fe1f0bd964f089d95b5587403",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:b3693c02ff43029cc2b7348c4908a145cbcb9fcba0480bc25886392d607f9e12",
+        "id": "tos.expression.plutarch.de-recta-ratione-audiendi.en-perseus-tlg0007-tlg069-perseus-eng3",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-ninth-source-forms:0daa1909880cb157285571d2f5686063d9bfa76dabaf3200d5df2edc4f14040d",
+      "request_digest": "sha256:bc85108ec4cfa34ed386c33bdbba87a75080374fb28deb0097db71922fdc1fe3",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:c6e44de5e92f2f8e0be3708aba9714b3ed75548c9f641826e012c9e222a37ea8",
+      "recorded_at": "2026-09-09T18:35:26.723713+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-recta-ratione-audiendi.en-perseus-tlg0007-tlg069-perseus-eng3",
+        "version": 1,
+        "digest": "sha256:b3693c02ff43029cc2b7348c4908a145cbcb9fcba0480bc25886392d607f9e12"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.d88e41de4d88e08711b958cf0386910a2077c4f66e6f3a5dcc21bc4e0d7282bc",
+          "version": 1,
+          "digest": "sha256:3ecf603ef90fc60c4beaf41b6231e3e0e2576693f718d1d12f4d67564f54501a"
+        },
+        {
+          "id": "tos.form.metadata.c56db33d13708d5773b9affceae6044e22aabf0fe1f0bd964f089d95b5587403",
+          "version": 1,
+          "digest": "sha256:fa1232fb5199abd3d04ddb7757927f126d41b44f31567ae0c3d896750f4dd50d"
+        }
+      ]
+    }
+  ]
+}

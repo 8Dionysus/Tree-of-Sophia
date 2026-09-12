@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>The Oracle at Delphie no Longer Given in Verse</title>
+				<author>Plutarch</author>
+				<editor role="translator">Frank Cole Babbitt</editor>		
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Ethan Della Rocca</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg091.perseus-eng3.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>Plutarch</author>
+						<title xml:lang="lat">Moralia</title>
+						<editor role="translator">Frank Cole Babbitt</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date n="printing">1936</date>
+                  </imprint>
+                  <biblScope unit="volume">5</biblScope>
+               </monogr>
+					<series>
+						<title>Loeb Classical Library</title>
+					</series>					
+					<ref target="https://archive.org/details/moraliainfiftee05plut/page/256">The Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+				<language ident="lat">Latin</language>
+				<language ident="deu">German</language>
+				<language ident="fre">French</language>
+			</langUsage>
+			<particDesc>
+				<person><persName>Basilocles</persName></person>
+				<person><persName>Philinus</persName></person>
+			</particDesc>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="RS" when="2010-05">tagged and parsed</change>
+			<change who="Ethan Della Rocca" when="2019-07-16">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng"> <body xml:base="urn:cts:greekLit:tlg0007.tlg091.perseus-eng3"> 
+<div n="urn:cts:greekLit:tlg0007.tlg091.perseus-eng3" type="translation" xml:lang="eng"> <pb xml:id="v.5.p.256"/> <head>THE ORACLES AT DELPHI NO LONGER GIVEN IN VERSE (<foreign xml:lang="lat">DE PYTHIAE ORACULA</foreign>)</head> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg091.perseus-eng3" n="intro"> <head>INTRODUCTION</head> 
+	<p rend="indent">Plutarch’s essay on the changed custom at Delphi is quite as interesting for its digressions as for its treatment of the main topic. Portents, coincidences, history, a little philosophy, stories of persons like Croesus, Battus, Lysander, Rhodope, finally lead up to the statement that many oracles used to be delivered in prose, although still more in early times were delivered in verse; but the present age calls for simplicity and directness instead of the ancient obscurity and grandiloquence. </p> <p rend="indent"> We possess a considerable body of Delphic oracles preserved in Greek literature, as, for example, the famous oracle of the <q>wooden wall</q> (Herodotus, vii. 141). Practically all of these are in hexameter verse. Many more records of oracles merely state that someone consulted the oracle and was told to perform a certain deed, or was told that something would or might happen, often with certain limitations. We have, therefore, no means of determining the truth of Plutarch’s statement, but there is little doubt that he is right. If we possessed his lost work, <foreign xml:lang="grc">Χρησμῶν συναγωγή</foreign> (no. 171 in Lamprias’s list), we should have more abundant data on which to base our decision. </p> <p rend="indent"> The essay often exhibits Plutarch at his best. Hartman thinks that Plutarch hoped that the.work <pb xml:id="v.5.p.257"/> would be read at Rome, and therefore inserted the encomium of Roman rule near the end. </p> <p rend="indent"> The essay stands as no. 116 in Lamprias’s catalogue. It is found in only two mss. and in a few places the tradition leaves us in doubt, but, for the most part, the text is fairly clear. </p> <p rend="indent"> The references to the topography and monuments of Delphi have become more intelligible since the site was excavated by the French. Pomtow, in the <title xml:lang="deu" rend="italic">Berliner Pkilologische Wochenschrift</title>, 1912, p. 1170, gives an account of the monuments visited by the company in this essay. </p> </div> <pb xml:id="v.5.p.259"/> 
+        <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg091.perseus-eng3" n="1"><p rend="center"><label>(The persons who take part in the dialogue are Basilocles and Philinus, who serve to introduce the later speakers; Diogenianus, Theon, Sarapion, Boethus, as well as Philinus himself and some professional guides.)</label></p> 
+       <p rend="indent"><said who="#Basilocles"><label>BASILOCLES.</label> You people have kept it up till well into the evening, Philinus, escorting the foreign visitor around among the statues and votive offerings. For my part, I had almost given up waiting for you.</said> </p> <p rend="indent"> <said who="#Philinus"><label>PHILINUS.</label> The fact is, Basilocles, that wre went slowly, sowing words, and reaping them straightway with strife, like the men sprung from the Dragon’s teeth, words with meanings behind them of the contentious sort, which sprang up and flourished along our way.</said> </p> <p rend="indent"> <said who="#Basilocles"><label>BASILOCLES.</label> Will it be necessary to call in someone else of those who were with you; or are you willing, as a favour, to relate in full what your conversation was and who took part in it?</said> </p> <p rend="indent"> <said who="#Philinus"><label>PHILINUS.</label> It looks, Basilocles, as if I shall have that to do. In fact, it would not be easy for you to find anyone of the others in the town, for I saw most of them once more on their way up to the Cory ei an cave and Lycoreia<note resp="editor" place="inline" anchored="

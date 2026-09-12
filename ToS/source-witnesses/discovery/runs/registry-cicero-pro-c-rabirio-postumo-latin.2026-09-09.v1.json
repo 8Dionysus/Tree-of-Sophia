@@ -1,0 +1,486 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.registry-cicero-pro-c-rabirio-postumo-latin.2026-09-09.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "expression",
+    "known_tos_refs": [
+      "tos.work.cicero.pro-c-rabirio-postumo",
+      "tos.expression.cicero.pro-c-rabirio-postumo.la-perseus-phi0474-phi030",
+      "tos.edition.cicero.pro-c-rabirio-postumo.la-perseus-phi0474-phi030.perseus-8668397510ca",
+      "tos.item.cicero.pro-c-rabirio-postumo.la-perseus-phi0474-phi030.perseus-8668397510ca.git-tei-xml"
+    ],
+    "description": "Perseus Latin digital edition urn:cts:latinLit:phi0474.phi030.perseus-lat2, Git 8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: M. Tullius Cicero Orationes Albert Curtis Clark Oxford Clarendon Press 1909 4 Pro P. Quinctio; Pro Q. Roscio comoedo; Pro A. Caecina; De lege agraria contra Rullum; Pro C. Rabirio perduellionis reo; Pro L. Flacco; In L. Pisonem; Pro C. Rabirio Postumo Scriptorum Classicorum Bibliotheca Oxoniensis Oxford Classical Texts The Internet Archive",
+    "required_properties": [
+      "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+      "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+      "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+      "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+      "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+      "Forensic advocacy, accusations, praise and political argument remain the speech witness, not accepted historical fact or author doctrine.",
+      "exact pinned provider version and immutable local file identity"
+    ],
+    "acceptable_substitutions": [],
+    "languages": [
+      "la"
+    ],
+    "formats": [
+      "application/tei+xml"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/manifest.json"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-cicero-pro-c-rabirio-postumo-latin-metadata-1",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-latinLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/README.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/README.md",
+      "queried_at": "2026-09-09T21:16:08.260953+00:00",
+      "elapsed_seconds": 0.285335,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-cicero-pro-c-rabirio-postumo-latin-metadata-1",
+          "rank": 1,
+          "title_as_displayed": "perseus-README.md",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/README.md",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/README.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/README.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "7ea684aea5b084c38fc919da2adf0df8339490243a43bf744fb8e27384d82623",
+            "reason": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/perseus-README.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cicero-pro-c-rabirio-postumo-latin-metadata-2",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-latinLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/license.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/license.md",
+      "queried_at": "2026-09-09T21:16:08.262160+00:00",
+      "elapsed_seconds": 0.450053,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-cicero-pro-c-rabirio-postumo-latin-metadata-2",
+          "rank": 1,
+          "title_as_displayed": "perseus-license.md",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/license.md",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/license.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/license.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "ccf0e8ce183761bf82700126cc45a4e907b2cede024e65e3fef5c2338b9b7063",
+            "reason": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/perseus-license.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cicero-pro-c-rabirio-postumo-latin-metadata-3",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-latinLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/__cts__.xml",
+      "queried_at": "2026-09-09T21:16:08.432661+00:00",
+      "elapsed_seconds": 0.359394,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-cicero-pro-c-rabirio-postumo-latin-metadata-3",
+          "rank": 1,
+          "title_as_displayed": "phi0474-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "f0e273baaf73cd27829165f141d5ad5bb7087dbf5d56c95842e7e2467bacabec",
+            "reason": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cicero-pro-c-rabirio-postumo-latin-metadata-4",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-latinLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/__cts__.xml",
+      "queried_at": "2026-09-09T21:16:13.496925+00:00",
+      "elapsed_seconds": 0.283138,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-cicero-pro-c-rabirio-postumo-latin-metadata-4",
+          "rank": 1,
+          "title_as_displayed": "phi0474.phi030-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "ee4506079dcb1f32d764b9e218bb5cb3424c4d83e7e2c5d1033977c9aab1aac9",
+            "reason": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi030-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cicero-pro-c-rabirio-postumo-latin-metadata-5",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-latinLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/phi0474.phi030.perseus-lat2.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/phi0474.phi030.perseus-lat2.xml",
+      "queried_at": "2026-09-09T21:16:13.486222+00:00",
+      "elapsed_seconds": 0.267061,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-cicero-pro-c-rabirio-postumo-latin-metadata-5",
+          "rank": 1,
+          "title_as_displayed": "phi0474.phi030.perseus-lat2-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/phi0474.phi030.perseus-lat2.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/phi0474.phi030.perseus-lat2.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/phi0474.phi030.perseus-lat2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "49c2c541994b235db54066bf0b6fb0fe643ba809852b412ce3101250adb2668b",
+            "reason": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi030.perseus-lat2-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cicero-pro-c-rabirio-postumo-latin-metadata-6",
+      "sequence": 6,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-latinLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/phi0474.phi030.perseus-lat2.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/phi0474.phi030.perseus-lat2.xml",
+      "queried_at": "2026-09-09T21:16:52.876937+00:00",
+      "elapsed_seconds": 0.158714,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-cicero-pro-c-rabirio-postumo-latin-metadata-6",
+          "rank": 1,
+          "title_as_displayed": "phi0474.phi030.perseus-lat2-opening.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/phi0474.phi030.perseus-lat2.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/phi0474.phi030.perseus-lat2.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/phi0474.phi030.perseus-lat2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "d06fb896af389b790731a902334ffd4e7b11bb6a6c2e53a1ef722cd3b0fa7d2e",
+            "reason": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi030.perseus-lat2-opening.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cicero-pro-c-rabirio-postumo-latin-file-7",
+      "sequence": 7,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "PerseusDL/canonical-latinLit",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/phi0474.phi030.perseus-lat2.xml",
+      "interface_type": "bulk",
+      "interface_version": "8668397510ca77fec6406f7d48f405e50d296764",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/phi0474.phi030.perseus-lat2.xml",
+      "queried_at": "2026-09-09T21:34:18.959921+00:00",
+      "elapsed_seconds": 0.2729210989928106,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-cicero-pro-c-rabirio-postumo-latin-file-7",
+          "rank": 1,
+          "title_as_displayed": "phi0474.phi030.perseus-lat2.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/phi0474.phi030.perseus-lat2.xml",
+          "originating_record_url": "https://github.com/PerseusDL/canonical-latinLit/tree/8668397510ca77fec6406f7d48f405e50d296764",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "8668397510ca77fec6406f7d48f405e50d296764"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "ea51944cce049da28c8ee443940f19668c80833d"
+            }
+          ],
+          "available_formats": [
+            "application/tei+xml"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi030/phi0474.phi030.perseus-lat2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-09T21:34:19.232830+00:00",
+            "byte_size": 43483,
+            "sha256": "c4e148be165c093a5f920487bf11098cc8b5cf38ee9062b73271cbed83f5c896",
+            "event_ref": "tos.event.acquisition.registry-20260909.cicero-pro-c-rabirio-postumo-latin"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-cicero-pro-c-rabirio-postumo-latin-metadata-1",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.285335,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-cicero-pro-c-rabirio-postumo-latin-metadata-2",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.450053,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-cicero-pro-c-rabirio-postumo-latin-metadata-3",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.359394,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-cicero-pro-c-rabirio-postumo-latin-metadata-4",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.283138,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-cicero-pro-c-rabirio-postumo-latin-metadata-5",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.267061,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-cicero-pro-c-rabirio-postumo-latin-metadata-6",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.158714,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-cicero-pro-c-rabirio-postumo-latin-file-7",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2729210989928106,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.registry-cicero-pro-c-rabirio-postumo-latin-file-7"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-09-09T21:16:08.260953+00:00",
+  "ended_at": "2026-09-09T21:34:19.232830+00:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.registry-20260909.cicero-pro-c-rabirio-postumo-latin",
+    "tos.event.acquisition.registry-20260909.cicero-pro-c-rabirio-postumo-latin"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

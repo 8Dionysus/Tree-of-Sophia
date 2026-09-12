@@ -6,6 +6,9 @@ on:
       - ".github/workflows/cloudflare-edge.yml"
       - "access/**"
       - "ToS/derived-exports/tos_corpus_index.min.json"
+      - "ToS/derived-exports/tos_corpus_index.min.parts/**"
+      - "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json"
+      - "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.parts/**"
       - "ToS/derived-exports/philosophy_graph_projection.min.json"
       - "ToS/derived-exports/epistemic_evidence_projection.min.json"
       - "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json"
@@ -15,6 +18,9 @@ on:
       - ".github/workflows/cloudflare-edge.yml"
       - "access/**"
       - "ToS/derived-exports/tos_corpus_index.min.json"
+      - "ToS/derived-exports/tos_corpus_index.min.parts/**"
+      - "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json"
+      - "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.parts/**"
       - "ToS/derived-exports/philosophy_graph_projection.min.json"
       - "ToS/derived-exports/epistemic_evidence_projection.min.json"
       - "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json"
@@ -31,7 +37,10 @@ jobs:
   contract:
     name: Source-to-edge contract
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Full-corpus cold compilation and D1 export exceeded the 30-minute
+    # runner limit. Budget the complete build, import, parity and dry-run;
+    # every validation step remains required.
+    timeout-minutes: 60
     defaults:
       run:
         working-directory: access/deploy/cloudflare-worker

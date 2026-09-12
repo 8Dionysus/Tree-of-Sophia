@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-cohibenda-ira.en-perseus-tlg0007-tlg095-perseus-eng3",
+    "version": 1,
+    "digest": "sha256:9fbd37491a2554846f0382bd95140c665e0885b0888f47d89f8b636b62c0bc25"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:9fbd37491a2554846f0382bd95140c665e0885b0888f47d89f8b636b62c0bc25",
+            "id": "tos.expression.plutarch.de-cohibenda-ira.en-perseus-tlg0007-tlg095-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:9fbd37491a2554846f0382bd95140c665e0885b0888f47d89f8b636b62c0bc25",
+            "id": "tos.expression.plutarch.de-cohibenda-ira.en-perseus-tlg0007-tlg095-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:9fbd37491a2554846f0382bd95140c665e0885b0888f47d89f8b636b62c0bc25",
+            "id": "tos.expression.plutarch.de-cohibenda-ira.en-perseus-tlg0007-tlg095-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:9fbd37491a2554846f0382bd95140c665e0885b0888f47d89f8b636b62c0bc25",
+            "id": "tos.expression.plutarch.de-cohibenda-ira.en-perseus-tlg0007-tlg095-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.fcbc9663a06cee9d5d46b7376a534197c023ed38e4cc64db3724ae86c8002987",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:9fbd37491a2554846f0382bd95140c665e0885b0888f47d89f8b636b62c0bc25",
+        "id": "tos.expression.plutarch.de-cohibenda-ira.en-perseus-tlg0007-tlg095-perseus-eng3",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:9fbd37491a2554846f0382bd95140c665e0885b0888f47d89f8b636b62c0bc25",
+            "id": "tos.expression.plutarch.de-cohibenda-ira.en-perseus-tlg0007-tlg095-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:9fbd37491a2554846f0382bd95140c665e0885b0888f47d89f8b636b62c0bc25",
+            "id": "tos.expression.plutarch.de-cohibenda-ira.en-perseus-tlg0007-tlg095-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:9fbd37491a2554846f0382bd95140c665e0885b0888f47d89f8b636b62c0bc25",
+            "id": "tos.expression.plutarch.de-cohibenda-ira.en-perseus-tlg0007-tlg095-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:9fbd37491a2554846f0382bd95140c665e0885b0888f47d89f8b636b62c0bc25",
+            "id": "tos.expression.plutarch.de-cohibenda-ira.en-perseus-tlg0007-tlg095-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.c6b087fb11087332e7402fb1d588779cc4d375fa4fee06bb61780336c45af054",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:9fbd37491a2554846f0382bd95140c665e0885b0888f47d89f8b636b62c0bc25",
+        "id": "tos.expression.plutarch.de-cohibenda-ira.en-perseus-tlg0007-tlg095-perseus-eng3",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-ninth-source-forms:a592b4b53aecc72d1c0152a34c3e4f49bfaedc6926f5e693c0e7a42f2da4bb38",
+      "request_digest": "sha256:7c7f9d2fd1b1a271b6e3acdfb99b9b814e1accce04249a6f8c18fea32184c7d2",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:f949c75a8ed49d9545a365cbb89faf8bb43af8684ceff3dedf7fa110308eff0b",
+      "recorded_at": "2026-09-09T18:35:28.072606+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-cohibenda-ira.en-perseus-tlg0007-tlg095-perseus-eng3",
+        "version": 1,
+        "digest": "sha256:9fbd37491a2554846f0382bd95140c665e0885b0888f47d89f8b636b62c0bc25"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.fcbc9663a06cee9d5d46b7376a534197c023ed38e4cc64db3724ae86c8002987",
+          "version": 1,
+          "digest": "sha256:65a5f4645d4178e9bc6b743f5ead1ede48d7240626791d659d85a2358e4f95ef"
+        },
+        {
+          "id": "tos.form.metadata.c6b087fb11087332e7402fb1d588779cc4d375fa4fee06bb61780336c45af054",
+          "version": 1,
+          "digest": "sha256:60f916ae9f898eec90faaa602e54840d8029db6c464a919f83f9a350257b7e2c"
+        }
+      ]
+    }
+  ]
+}

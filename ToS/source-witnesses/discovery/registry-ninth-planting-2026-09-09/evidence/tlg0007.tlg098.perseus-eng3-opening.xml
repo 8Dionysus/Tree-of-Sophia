@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>On Affection for Offspring</title>
+            <author>Plutarch</author>
+            <editor role="translator">William Clark Helmbold</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         	   <name>Angelia Hanhardt</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg098.perseus-eng3.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title xml:lang="lat">Moralia</title>
+                  <editor role="translator">William Clark Helmbold</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1939</date>
+                  </imprint>
+                  <biblScope unit="volume">6</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/moraliainfifteen06plutuoft/page/330">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+         	<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p>
+         	</cRefPattern>
+            
+         </refsDecl><!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+            <language ident="lat">Latin</language>
+         	<language ident="deu">German</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="RS" when="2010-05">tagged and parsed</change>
+      	<change who="Sophia Elzie" when="2019-07-15">EpiDoc and CTS Conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg098.perseus-eng3"> 
+<div n="urn:cts:greekLit:tlg0007.tlg098.perseus-eng3" type="translation" xml:lang="eng"> <head>ON AFFECTION FOR OFFSPRING (<foreign xml:lang="lat">DE AMORE PROLIS</foreign>)</head><lb/> 
+<div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg098.perseus-eng3" type="textpart" n="intro"><pb xml:id="v.6.p.328"/> <head>INTRODUCTION</head> 
+   <p rend="indent">This essay, or declamation, is clearly in an unfinished state throughout and a good deal is doubtless lost at the end, for the author has done little more with his subject than to show that <foreign xml:lang="grc">φιλοστοργία</foreign> <note resp="editor" place="inline" anchored="true">Volkmann reminds us that <title rend="italic" xml:lang="lat">De Amore Prolis</title> is a bad Latin translation for the title, but that there is no better: <foreign xml:lang="lat">cf.</foreign> Fronto, i. p. 280, ii. p. 154 ed. Haines (L.C.L.) for the statement that there is no such quality as <foreign xml:lang="grc">τὸ φιλόστοργον</foreign> at Rome and consequently no name for it. See also Marcus Aurelius, i. 11.</note> is more complete in man than in beasts.<note resp="editor" place="inline" anchored="true">Volkmann, <title rend="italic">Leben, Scriften, u. Philos, Plutarchs</title>, ii. pp. 165-167, attempts to complete the thought of this treatise.</note> The efforts of Döhner<note resp="editor" place="inline" anchored="true"> <title rend="italic" xml:lang="lat">Quaest. Plut.</title>, iii. pp. 26 ff.</note> and Weissenberger<note resp="editor" place="inline" anchored="true"> <title rend="italic" xml:lang="deu">Die Sprache Plutarchs</title>, ii. pp. 31-33. When Weissenberger attempts to find discrepancies between Plutarch’s thought here and elsewhere, he chooses examples in which he either misinterprets the meaning or else forgets that Plutarch is ironical and intends the opposite of what he says.</note> to prove that the essay is not genuine have not been successful. Dohner is, further, quite wrong, as Patzig<note resp="editor" place="inline" anchored="true"> <title rend="italic" xml:lang="lat">Quaest. Plut.</title>, pp. 3-21: by far the most complete discussion of the vocabulary and syntax of this strange work. Patzig’s conclusion is that we have here a <emph>finished</emph> essay of Plutarch; this is untenable, but his arguments for genuineness are quite conclusive. None of his successors, not even Pohlenz, shows any knowledge of his valuable work.</note> and Weissenberger have shown, in assuming the work to be an epitome. <pb xml:id="v.6.p.329"/> It is best regarded as an unfinished fragment, containing, so far as it goes, the rough and unrevised hand of Plutarch. </p> 
+   <p rend="indent">Dyroff’s<note resp="editor" place="inline" anchored="true">Program Würzburg, 1896/7.</note> attempt to show that this work was composed before <title rend="italic" xml:lang="lat">De Esu Carnium</title>, <title rend="italic" xml:lang="lat">De Sollertia Animalium</title>, and <title rend="italic">Gryllus</title> is not to be taken seriously: the grounds are too slight.</p>
+   <p rend="indent">The text is very corrupt. The work is not listed in the Lamprias catalogue. </p> </div> <pb xml:id="v.6.p.331"/> 
+<div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg098.perseus-eng3" type="textpart" n="1"><p rend="indent">Trials of cases on appeal<note resp="editor" place="inline" anchored="true">Plutarch is probably referring to the common practice of small states appealing to the greater, Athens or Rhodes, to arbitrate in disputes; the distrust was thus not of all other Greeks but of fellow-citizens. <foreign xml:lang="lat">cf.</foreign> Schwyzer, <title rend="italic" xml:lang="lat">Dial. Gr. Exempla</title>, 83 for an inscription in which Argos regulates the relations between Cnossus and Tylissus <foreign xml:lang="lat">circa</foreign> 450 b.c.; see also M. N. Tod, <title rend="italic">International Arbitration among the Greeks</title> (Oxford, 1913).</note> before

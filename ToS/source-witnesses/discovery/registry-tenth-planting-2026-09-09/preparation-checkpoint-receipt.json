@@ -1,0 +1,25 @@
+{
+  "schema_version": "tos_registry_preparation_migration_receipt_v1",
+  "status": "passed",
+  "receipt_role": "current-navigation-migration",
+  "stage": "registry-preparation",
+  "manifest_sha256": "28e3a3acd6b938f2b5953fd05b85e71cd33a7933196c2217c2cc7d627cebf1b4",
+  "commit": "d5c034871722b041f9966d5857f12703994ed23e",
+  "runtime_session_id": "tos-path-migration:registry-tenth:2026-09-10",
+  "checkpoint_review_ref": "agent-review:24b1b271b:20260909T190443Z",
+  "migration_ref": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/path-migration.current.json",
+  "migration_review_ref": "ToS/review-ledger/2026-09-10-registry-tenth-path-migration.md",
+  "historical_receipt_ref": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/preparation-inputs/50c34d318c86eea79f76352823b966f6bcfa668188f2e796ad76efd3ac9df2fa.preparation-receipt.json",
+  "historical_receipt_sha256": "50c34d318c86eea79f76352823b966f6bcfa668188f2e796ad76efd3ac9df2fa",
+  "historical_manifest_sha256": "9be466b5d0f44d9b1a3d2525b3486b7f7f70a9a7cb03ce0b0c91f7e14631e419",
+  "historical_preparation_ref": "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/legacy/preparation-inputs/4674256ee9f9587fd3180d1e7d72a5296ef31fc9ffad2d23829b959e3d748f93.source-preparation.json",
+  "historical_preparation_sha256": "4674256ee9f9587fd3180d1e7d72a5296ef31fc9ffad2d23829b959e3d748f93",
+  "historical_preparation_commit": "24b1b271b1ba1c83027414f7599b8b751d649361",
+  "passed_checks": [
+    "current manifest digest is recorded in this migration receipt",
+    "historical preparation, manifest and receipt bytes remain at the migration record references",
+    "current route names resolve to the same stable source records and payload identity",
+    "migration changes navigation and generated references only; no source, rights, semantic, publication or canon admission is made"
+  ],
+  "authority_boundary": "This receipt closes the reviewed navigation migration. It is not an acquisition-preparation receipt and must not be used to authorize a new source transfer."
+}

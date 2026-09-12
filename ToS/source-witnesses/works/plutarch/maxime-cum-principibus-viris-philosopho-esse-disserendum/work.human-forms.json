@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:00e29834e24e9317381970b91b3d293a1ffe2b1f95f766b65fefacadc21d1740",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:00e29834e24e9317381970b91b3d293a1ffe2b1f95f766b65fefacadc21d1740",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:00e29834e24e9317381970b91b3d293a1ffe2b1f95f766b65fefacadc21d1740",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:00e29834e24e9317381970b91b3d293a1ffe2b1f95f766b65fefacadc21d1740",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.83536444b5d27c710ba49cfb1316d80d30fc3536126a13c3f8aaced131a4c628",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:b3d3743545141c7868a4e25b33b54997477b2ab11f214bc02560f16d935aaf27",
+        "id": "tos.form.metadata.83536444b5d27c710ba49cfb1316d80d30fc3536126a13c3f8aaced131a4c628",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:00e29834e24e9317381970b91b3d293a1ffe2b1f95f766b65fefacadc21d1740",
+        "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:00e29834e24e9317381970b91b3d293a1ffe2b1f95f766b65fefacadc21d1740",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:00e29834e24e9317381970b91b3d293a1ffe2b1f95f766b65fefacadc21d1740",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:00e29834e24e9317381970b91b3d293a1ffe2b1f95f766b65fefacadc21d1740",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:00e29834e24e9317381970b91b3d293a1ffe2b1f95f766b65fefacadc21d1740",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.0379f40e5d23d2e4230d1f04953a0d666ed838cd90ec084c15dc0ed990581456",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:bae2ebd7134eceb70d0ccff2180bf2282b48f38d610a111bc1dc6594b77c8616",
+        "id": "tos.form.metadata.0379f40e5d23d2e4230d1f04953a0d666ed838cd90ec084c15dc0ed990581456",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:00e29834e24e9317381970b91b3d293a1ffe2b1f95f766b65fefacadc21d1740",
+        "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:7005896b242291299337e4fae28903af3e34c0d29613297eb1738c4a39a7b52e",
+      "owner_configuration": "sha256:3474a15c5802c5c70fb13f11ac5c72835af8010838a1ad02783cb6903fc9d755",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:40.344822+00:00",
+      "request_digest": "sha256:b1456d0be801b4af70ed6cfa27d016efae46461627336244c2b62200929c38a3",
+      "results": [
+        {
+          "digest": "sha256:b3d3743545141c7868a4e25b33b54997477b2ab11f214bc02560f16d935aaf27",
+          "id": "tos.form.metadata.83536444b5d27c710ba49cfb1316d80d30fc3536126a13c3f8aaced131a4c628",
+          "version": 1
+        },
+        {
+          "digest": "sha256:bae2ebd7134eceb70d0ccff2180bf2282b48f38d610a111bc1dc6594b77c8616",
+          "id": "tos.form.metadata.0379f40e5d23d2e4230d1f04953a0d666ed838cd90ec084c15dc0ed990581456",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:ab056b29505b17dcd0fd699e57767793c9c14d6ac92a5f5949afb08d7c76ee9d",
+        "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:7005896b242291299337e4fae28903af3e34c0d29613297eb1738c4a39a7b52e",
+      "request_digest": "sha256:e9de579403f4de8d9006f4666ab57a1a2ad4771cc3d7beeeafa2b5d2ebcd5461",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:8fee5e108f79b10ef95821ffa4dfa9c257a231aafb65d59263ee6a6e5687b15a",
+      "recorded_at": "2026-09-09T18:35:29.825261+00:00",
+      "source": {
+        "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+        "version": 2,
+        "digest": "sha256:00e29834e24e9317381970b91b3d293a1ffe2b1f95f766b65fefacadc21d1740"
+      },
+      "previous_revision": "sha256:7cd22b8b42ce405e708cb88115ab63b4732f3aef93a8dd087ff532412cca865f",
+      "results": [
+        {
+          "id": "tos.form.metadata.83536444b5d27c710ba49cfb1316d80d30fc3536126a13c3f8aaced131a4c628",
+          "version": 2,
+          "digest": "sha256:ec83c0ef03ea9bb4be0bfcd9f57269c68ab222cf6efe0a09f695abc54591ea6b"
+        },
+        {
+          "id": "tos.form.metadata.0379f40e5d23d2e4230d1f04953a0d666ed838cd90ec084c15dc0ed990581456",
+          "version": 2,
+          "digest": "sha256:5eb4d5335fbae9150d1ddce582ee0bf5fc738d660d1fe7bbfecf1f47c5c2822f"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:ab056b29505b17dcd0fd699e57767793c9c14d6ac92a5f5949afb08d7c76ee9d",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:ab056b29505b17dcd0fd699e57767793c9c14d6ac92a5f5949afb08d7c76ee9d",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:ab056b29505b17dcd0fd699e57767793c9c14d6ac92a5f5949afb08d7c76ee9d",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:ab056b29505b17dcd0fd699e57767793c9c14d6ac92a5f5949afb08d7c76ee9d",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.83536444b5d27c710ba49cfb1316d80d30fc3536126a13c3f8aaced131a4c628",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:ab056b29505b17dcd0fd699e57767793c9c14d6ac92a5f5949afb08d7c76ee9d",
+        "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:ab056b29505b17dcd0fd699e57767793c9c14d6ac92a5f5949afb08d7c76ee9d",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:ab056b29505b17dcd0fd699e57767793c9c14d6ac92a5f5949afb08d7c76ee9d",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:ab056b29505b17dcd0fd699e57767793c9c14d6ac92a5f5949afb08d7c76ee9d",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:ab056b29505b17dcd0fd699e57767793c9c14d6ac92a5f5949afb08d7c76ee9d",
+            "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.0379f40e5d23d2e4230d1f04953a0d666ed838cd90ec084c15dc0ed990581456",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:ab056b29505b17dcd0fd699e57767793c9c14d6ac92a5f5949afb08d7c76ee9d",
+        "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.maxime-cum-principibus-viris-philosopho-esse-disserendum",
+    "version": 2,
+    "digest": "sha256:00e29834e24e9317381970b91b3d293a1ffe2b1f95f766b65fefacadc21d1740"
+  }
+}

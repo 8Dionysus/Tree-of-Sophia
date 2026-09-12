@@ -1,0 +1,2575 @@
+{
+  "schema_version": "tos_source_planting_preparation_batch_v1",
+  "status": "prepared-not-planted",
+  "review_scope": "Exact supplied edition, attribution limits and existing A25/A26/A29 corpus anchors",
+  "reviewer_ref": "model:codex",
+  "targets": [
+    {
+      "target_slug": "de-liberis-educandis",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De liberis educandis Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "quomodo-adolescens-poetas-audire-debeat",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Quomodo adolescens poetas audire debeat Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-recta-ratione-audiendi",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De recta ratione audiendi Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "quomodo-adulator-ab-amico-internoscatur",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Quomodo adulator ab amico internoscatur Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "quomodo-quis-suos-in-virtute-sentiat-profectus",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Quomodo quis suos in virtute sentiat profectus Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-capienda-ex-inimicis-utilitate",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De capienda ex inimicis utilitate Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-amicorum-multitudine",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De amicorum multitudine Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-virtute-et-vitio",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De virtute et vitio Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "consolatio-ad-apollonium",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Consolatio ad Apollonium Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-tuenda-sanitate-praecepta",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De tuenda sanitate praecepta Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "conjugalia-praecepta",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Conjugalia Praecepta Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "septem-sapientium-convivium",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Septem sapientium convivium Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-superstitione",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Superstitione Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-pythiae-oraculis",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Pythiae oraculis Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed.",
+        "Supplied print-volume discrepancy unresolved: CTS description says Moralia Vol II, while TEI sourceDesc says volume 3, both 1891. Exact digital CTS/Git identity is fixed; neither print-volume statement is adjudicated."
+      ]
+    },
+    {
+      "target_slug": "an-virtus-doceri-possit",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact An Virtus Doceri Possit Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-cohibenda-ira",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De cohibenda ira Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-tranquillitate-animi",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Tranquillitate Animi Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-fraterno-amore",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De fraterno amore Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-amore-prolis",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Amore Prolis Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "an-vitiositas-ad-infelicitatem-sufficia",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact An vitiositas ad infelicitatem sufficia Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "animine-an-corporis-affectiones-sint-peiores",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Animine an corporis affectiones sint peiores Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-garrulitate",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Garrulitate Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-cupiditate-divitiarum",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Cupiditate Divitiarum Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-vitioso-pudore",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Vitioso Pudore Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-invidia-et-odio",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Invidia et Odio Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-se-ipsum-citra-invidiam-laudando",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Se Ipsum Citra Invidiam Laudando Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-fato",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Fato Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-genio-socratis",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Genio Socratis Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-exilio",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De exilio Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "consolatio-ad-uxorem",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Consolatio Ad Uxorem Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "amatorius",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Amatorius Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "maxime-cum-principibus-viris-philosopho-esse-disserendum",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Maxime Cum Principibus Viris Philosopho Esse Disserendum Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "ad-principem-ineruditum",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Ad principem ineruditum Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "an-seni-respublica-gerenda-sit",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact An seni respublica gerenda sit Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "praecepta-gerendae-reipublicae",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Praecepta gerendae reipublicae Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De unius in republica dominatione, populari statu, et paucorum imperio Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-vitando-aere-alieno",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De vitando aere alieno Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "comparationis-aristophanis-et-menandri-compendium",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Comparationis Aristophanis et Menandri compendium Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed.",
+        "This transmitted Compendium is a distinct epitome witness; it is not the lost longer comparison and does not establish the wording or completeness of that earlier work."
+      ]
+    },
+    {
+      "target_slug": "de-heroditi-malignate",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Heroditi malignate Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "quaestiones-naturales",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Quaestiones Naturales Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-primo-frigido",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De primo frigido Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "aquane-an-ignis-sit-utilior",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Aquane an ignis sit utilior Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "de-sollertia-animalium",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De sollertia animalium Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "bruta-animalia-ratione-uti",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Bruta animalia ratione uti Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    },
+    {
+      "target_slug": "an-recte-dictum-sit-latenter-esse-vivendum",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact An Recte Dictum Sit Latenter Esse Vivendum Greek edition within the reviewed Плутарх source need; the broader corpus and other versions stay open.",
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+        "The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed."
+      ]
+    }
+  ]
+}

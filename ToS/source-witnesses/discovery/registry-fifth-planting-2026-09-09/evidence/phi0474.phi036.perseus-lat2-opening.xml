@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title xml:lang="lat">De Inventione</title>
+            <author>M. Tullius Cicero</author>
+            <editor>Eduard Stroebel</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:Mellon">The Mellon Foundation</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2011-09-12">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi036.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+         
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <title xml:lang="lat">Rhetorici libri duo qui vocantur de inventione</title>
+                  <author>M. Tullius Cicero</author>
+                  <editor>Eduard Stroebel</editor>
+                  <imprint>
+                     <publisher>Teubner</publisher>
+                     <pubPlace>Leipzig</pubPlace>
+                     <date>1915</date>
+                  </imprint>
+                  <biblScope/>
+               </monogr>
+               <series>
+                  <title xml:lang="lat">M. Tulli Ciceronis Scripta Quae Manserunt Omnia</title>
+                  <biblScope>2</biblScope>
+               </series>
+               <series>
+                  <title>Bibliotheca Teubneriana</title>
+               </series>
+               <ref target="https://babel.hathitrust.org/cgi/pt?id=mdp.39015065485552&amp;seq=28">The Internet Archive</ref>
+            </biblStruct>
+            <list>
+               <item>OCR cleanup</item>
+            </list>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+           <cRefPattern n="chapter" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter.</p>
+            </cRefPattern>
+         </refsDecl>
+         
+         <refsDecl n="TEI.2">
+            <refState unit="book" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+         <change when="2026-07" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN.</change>
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   
+   <text xml:lang="lat">
+      <body>
+       <div xml:lang="lat" type="edition" n="urn:cts:latinLit:phi0474.phi036.perseus-lat2">
+<head rend="align(center)">De Inventione</head>
+            
+<div type="textpart" subtype="book" xml:base="urn:cts:latinLit:phi0474.phi036.perseus-lat2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi036.perseus-lat2:1" n ="1"> <p rend="align(indent)"> Saepe et multum hoc mecum cogitavi, bonine an mali plus attulerit hominibus et civitatibus copia dicendi ac summum eloquentiae studium. nam cum et nostrae rei publicae detrimenta considero et maximarum civitatum veteres animo calamitates colligo, non minimam video per disertissimos homines invectam partem incommodorum; cum autem res ab nostra memoria propter vetustatem remotas ex litterarum monumentis repetere instituo, multas urbes constitutas, plurima bella restincta, firmissimas societates, sanctissimas amicitias intellego cum animi ratione tum facilius eloquentia comparatas. ac me <pb/> quidem diu cogitantem ratio ipsa in hanc potissimum sententiam ducit, ut existimem sapientiam sine eloquentia parum prodesse civitatibus, eloquentiam vero sine sapientia nimium obesse plerumque, prodesse numquam. quare si quis omissis rectissimis atque honestissimis studiis rationis et officii consumit omnem operam in exercitatione dicendi, is inutilis sibi, perniciosus patriae civis alitur; qui vero ita sese armat eloquentia, ut non oppugnare commoda patriae, sed pro his propugnare possit, is mihi vir et suis et publicis rationibus utilissimus atque amicissimus civis fore videtur. </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi036.perseus-lat2:1" n ="2"> <p rend="align(indent)"> Ac si volumus huius rei, quae vocatur eloquentia, sive artis sive studii sive exercitationis cuiusdam sive facultatis ab natura profectae considerare principium, reperiemus id ex honestissimis causis natum atque optimis rationibus profectum. nam fuit quoddam tempus, cum in agris homines passim bestiarum modo vagabantur et sibi victu fero vitam propagabant nec ratione animi quicquam, sed pleraque viribus corporis administrabant, nondum divinae religionis, non humani officii ratio colebatur, nemo nuptias viderat legitimas, non certos quisquam aspexerat liberos, non, ius aequabile quid utilitatis haberet, acceperat. ita propter errorem atque inscientiam caeca ac temeraria dominatrix animi cupiditas ad se explendam viribus corporis abutebatur, perniciosissimis satellitibus. quo tempore quidam magnus videlicet vir et sapiens cognovit, quae materia esset et quanta ad maximas res opportunitas <pb/> in animis inesset hominum, si quis eam posset elicere et praecipiendo meliorem reddere; qui dispersos homines in agros et in tectis silvestribus abditos ratione quadam conpulit unum in locum et congregavit et eos in unam quamque rem inducens utilem atque honestam primo propter insolentiam reclamantes, deinde propter rationem atque orationem studiosius audientes ex feris et inmanibus mites reddidit et mansuetos. </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi036.perseus-lat2:1" n ="3"> <p>ac mihi quidem hoc nec tacita videtur nec inops dicendi sapientia perficere potuisse, ut homines a consuetudine subito converteret et ad diversas rationes vitae traduceret. age vero urbibus constitutis, ut fidem colere et iustitiam retinere discerent et aliis parere sua voluntate consuescerent ac non modo labores excipiendos communis commodi causa, sed etiam vitam amittendam existimarent, qui tandem fieri potuit, nisi homines ea, quae ratione invenissent, eloquentia persuadere potuissent? profecto nemo nisi gravi ac suavi commotus oratione, cum viribus plurimum posset, ad ius voluisset sine vi descendere, ut inter quos posset excellere, cum iis se pateretur aequari et sua voluntate a iucundissima consuetudine recederet, quae praesertim iam naturae vim optineret propter vetustatem. ac primo quidem sic et nata et progressa longius eloquentia videtur et item postea maximis in rebus pacis e

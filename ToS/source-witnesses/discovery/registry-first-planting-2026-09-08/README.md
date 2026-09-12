@@ -40,6 +40,8 @@ remain outside this operation. Modern provider responsibility is retained in
 the version and rights evidence and does not become ancient authorship.
 
 The associated branch preparation is
-`ToS/philosophy/source-planting-preparation/first-wave-20260908.json`.
+`ToS/philosophy/source-planting-preparation/cross-branch-source-anchors-20260908.json`.
 Its source anchors and remaining controls govern later planting; this directory
 does not amend those anchors or mark them planted.
+
+The current preparation and execution routes use source branch, corpus, and language/version identity; the reviewed navigation migration and exact historical evidence are recorded in [the current migration record](path-migration.current.json).

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">De Domo Sua Ad Pontifices</title>
+				<author>M. Tullius Cicero</author>
+				<editor>William Peterson</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<funder n="org:NEH">National Endowment For The Humanities (NEH)</funder>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				
+				<respStmt>
+					<persName>Michael Konieczny</persName>
+					<orgName/>
+					<resp>Digital editor</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1997-10-28">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi020.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt>
+
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>William Peterson</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon Press</publisher>
+							<date>1909</date>
+						</imprint>
+						<biblScope unit="volume">5</biblScope>
+						<biblScope n="contents">Cum Senatui Gratias Egit; Cum Populo Gratias Egit; De Domo Sua; De Haruspicum Responso; Pro Sestio; In Vatinium; De Provinciis Consularibus; Pro Balbo</biblScope>
+					</monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+					<ref target="https://archive.org/details/orationesrecogno05ciceuoft/page/25/mode/2up">HathiTrust</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+
+		<encodingDesc>
+			<editorialDecl>
+				<p>Notes may contain errors</p>
+			</editorialDecl>
+			<refsDecl n="CTS">
+				<cRefPattern matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])" n="section">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+<change who="Michael Konieczny" when="2021-01-19">Additional revisions for EpiDoc compliance</change> 
+<change who="Thibault Clérice" when="2021-01-19">Capitains + Epidoc markup</change> 
+<change who="Stella Dee" when="2014-08-01">edited markup</change> 
+<change who="Stella Dee" when="2014-07">split composite text and converted to unicode</change> 
+<change who="balmas01" when="2013-09-13">reverting texts back to pre_cts_reorg tagged version</change> 
+<change who="gcrane" when="2011-07-19">removed tHe earlier persname/placeName tags</change> 
+<change who="gcrane" when="2011-07-09">fixed problems with capitalization</change> 
+<change who="Gcrane" when="2011-01-15">base SDL file</change> 
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change> 
+<change who="gcrane" when="2006-04-21">these now have the app crit entered as notes</change> 
+<change who="packel" when="2005-08-01">removed stray item tags</change> 
+<change who="packel" when="2005-07-25">Converted to XML</change> 
+<change who="mimno" when="2005-04-08">added default chunks</change> 
+<change who="mimno" when="2004-12-23">typo: `cDE harus` to `De harus`</change> 
+<change who="yorkc" when="2003-07-01">upDATeD texts to tei P4 and perseus p4 extensions; minor cleanup (esp. character encodings and typos.)</change> 
+<change who="amahoney" when="2002-12-02">correCt spelling of quirites, improperly 'regularized'</change> 
+<change who="dasmith" when="2000-03-04">added separate fuNDEr entity to TEI header.</change> 
+<change who="dasmith" when="1999-10-14">added explanatory subTitles to titleStmt</change> 
+<change who="dasmIth" when="1999-08-12">Fixed refsDecl</change> 
+<change who="textgod" when="1999-08-04">random changes over a period of months.</change> 
+<change who="TEXTGod" when="1997-10-31">added quotE tags to verse.</change> 
+<change who="CJsu" when="1997-05-13">passed SGML validation</change>
+		</revisionDesc>
+	</teiHeader>
+
+	<text xml:lang="lat"> 
+	<body xml:base="urn:cts:latinLit:phi0474.phi020.perseus-lat2"> 
+	
+
+<div xml:lang="lat" type="edition"> 
+	<head rend="align(center)">DE DOMO SVA AD PONTIFICES ORATIO</head> 
+	
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi020.perseus-lat2" n="1"><p rend="align(indent)"> 
+<milestone unit="chapter" n="1" resp="editor"/> Cum multa divinitus, pontifices, a<note>a <hi rend="italic">om. PB</hi></note> maioribus nostris inventa atque instituta sunt, tum nihil praeclarius quam quod<note><w type="lemma">quod</w> quod vos <hi rend="italic">c</hi></note> eosdem et religionibus deorum immortalium et summae rei publicae praeesse voluerunt, ut amplissimi et clarissimi cives rem publicam bene gerendo<note>re p. bene gerenda <hi rend="italic">Muell.</hi> (<hi rend="italic">ut ad Quir.</hi> § 21)</note> religiones<note>religiones <hi rend="italic">scripsi ante</hi> sapienter: religionibus <hi rend="italic">codd.</hi> (<hi rend="italic">ut pro</hi> omnis <hi rend="italic">l.</hi> 8 <hi rend="italic">habent PB</hi> omnibus): religionum ius <hi rend="italic">Halm</hi>: religionibus sap. interpretandis <hi rend="italic">ut Lange ita k</hi></note>, religiones sapienter interpretando rem publicam conservarent. <reg>quod</reg> si ullo tempore magna causa in<note>in <hi rend="italic">ut Baiter ita k</hi>: <hi rend="italic">ante</hi> iudicio <hi rend="italic">conl. Lange</hi></note> sacerdotum populi Romani iudicio ac potestate versata est, haec profecto tanta est ut omnis rei publicae dignitas, omnium civium salus, vita, libertas, arae, foci, di penates, bona, fortunae, domicilia vestrae sapientiae, fidei, potestati commissa creditaque esse videantur.</p>  </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi020.perseus-lat2" n="2"> <p><reg>vobis</reg> hodierno die constituendum est utrum posthac amentis ac perditos magistratus improborum ac sceleratorum civium praesidio nudare, an etiam deorum immortalium religione armare malitis. <reg>nam</reg> si illa labes ac flamma rei publicae suum illum pestiferum et funestum tribunatum, quem aequitate humana tueri non potest, divina religione defenderit, aliae caerimoniae nobis erunt, alii antistites deorum immortalium, alii interpretes religionum requirendi; sin autem vestra auctoritate sapientiaque, pontifices, ea quae furore improborum<note><hi rend="italic">post</hi> improborum <hi rend="italic">habent PB<foreign xml:lang="grc">ς</foreign></hi> amore bonorum (timore bonorum <hi rend="italic">M</hi>): <hi rend="italic">om. Hbk</hi></note> in re publica<note>in re p. <hi rend="italic">ut Orelli ita Hbc</hi>: rei p. <hi rend="italic">P et pler.</hi>: re p. <hi rend="italic">GMK</hi></note> ab aliis oppressa, ab aliis deserta, ab aliis prodita gesta sunt rescinduntur<note>rescidentur <hi rend="italic">Rueck</hi>: -antur <hi rend="italic">Ernesti</hi></note>, erit causa cur consilium maiorum in amplissimis viris ad sacerdotia deligendis iure ac merito laudare possimus. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi020.perseus-lat2" n="3"> <p><reg>sed</reg> quoniam ille demens, si ea quae per hos dies ego in senatu de re publica<note>pub. <hi rend="italic">om. PB<foreign xml:lang="grc">ς</foreign></hi></note> sensi vituperasset, aliquem se aditum ad auris vestras esse habiturum putavit, omittam ordinem dicendi meum: respondebo hominis furiosi non orationi, qua ille uti non potest, sed convicio, cuius exercitationem cum intolerabili petulantia tum etiam diuturna impunitate munivit. </p> 
+<p rend="align(indent)"><milestone unit="chapter" n="2" resp="editor"/><reg>ac</reg> primum illud a te, homine vesano ac furioso, requiro, quae te tanta poena tuorum scelerum flagitiorumque vexet ut hos talis viros,—qui non solum consiliis suis sed etiam specie ipsa dignitatem rei publicae<note>dignitatem rei p. <hi rend="italic">P rell. praeter M</hi> (et dignitate rem publicam)</note> sustinent,—quod ego in sententia dicenda salutem civium cum honore Cn. Pompei coniunxerim mihi ess

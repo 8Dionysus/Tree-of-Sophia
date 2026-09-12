@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>Of Fate</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">A. G.</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         	   <name>Angelia Hanhardt</name>
+         	   <name>Michael Konieczny</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Karina Cooper</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg108.perseus-eng2.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch’s Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">5</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst05plutuoft/page/292">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	
+      	<p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+         	<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p>
+         	</cRefPattern>
+            
+         </refsDecl>
+      	<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Karina Cooper" when="2019-07-17">EpiDoc and CTS conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg108.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg108.perseus-eng2" type="translation" xml:lang="eng">
+         <head>Of fate.<note resp="editor" place="inline" anchored="true">
+              <q>This little Treatise is so pitiously torne, maimed, and dismembred thorowout, that a man may sooner divine and guess thereat (as I have done) than translate it. I beseech the readers therefore, to hold me excused, in case I neither please my selfe, nor content them, in that which I have written.</q> — HOLLAND.</note> </head>
+         <pb xml:id="v.5.p.293"/>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg108.perseus-eng2" n="0"><p rend="indent">I will endeavor, my dearest Piso, to send you my opinion concerning Fate, written with all the clearness and compendiousness I am capable of; since you, who are not ignorant how cautious I am of writing, have thought fit to make it the subject of your request.</p> </div>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg108.perseus-eng2" n="1"><p rend="indent">You are first then to know that this word Fate is spoken and understood two manner of ways; the one as it is an energy, the other as it is a substance. First therefore, as it is an action, Plato<note resp="editor" place="inline" anchored="true">See Plato, <title>Phaedrus</title>, p. 248 C; <title>Timaeus</title>, p. 41 E; <title>Republic</title>, X. p. 617 D.</note> has under a type described it, saying thus in his dialogue entitled Phaedrus: <q>And this is a sanction of Adrastea (or an inevitable ordinance), that whatever soul being an attendant on God,</q> etc. And in his treatise called Timaeus: <q>The laws which God in the nature of the universe has established for immortal souls.</q> And in his book of a Commonweal he calls Fate <q>the speech of the virgin Lachesis, who is the daughter of Necessity.</q> By which sentences he not tragically but theologically shows us what his sentiments are in this matter. Now if any one, translating the fore-cited passages, would have them expressed in more familiar terms, the description in Phaedrus may be thus explained: That Fate is a divine sentence, intransgressible because its cause <pb xml:id="v.5.p.294"/> cannot be divested or hindered. And according to what he has said in his Timaeus, it is a law ensuing on the nature of the universe, according to which all things that are done are transacted. For this does Lachesis effect, who is indeed the daughter of Necessity, — as we have both already related, and shall yet better understand by that which will be said in the progress of our discourse. Thus you see what Fate is, when it is taken for an action.</p> </div>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg108.perseus-eng2" n="2"><p rend="indent">But as it is a substance, it seems to be the universal soul of the world, and admits of a threefold distribution; the first destiny being that which errs not; the second, that which is thought to err; and the third that which, being under the heaven, is conversant about the earth. Of these, the highest is called Clotho, the next Atropos, and the lowest, Lachesis; who, receiving the celestial influences and efficacies of her sisters, transmits and fastens them to the terrestrial things which are under her government. Thus have we declared briefly what is to be said of Fate, taken as a substance; what it is, what are its parts, after what manner it is, how it is ordained, and how it stands, both in respect to itself and to us. But as to the particularities of these things, there is another fable in his Commonweal, by which they are in some measure covertly insinuated, and we ourselves have, in the best manner we can, endeavored to explain them to you.</p> </div>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg108.perseus-eng2" n="3"><p rend="indent">But we now once again turn our discourse to Fate, as it is a

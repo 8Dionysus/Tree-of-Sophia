@@ -1,0 +1,69 @@
+{
+  "schema_version": "tos_source_witness_path_migration_legacy_v1",
+  "status": "historical-provenance",
+  "migration_id": "tos.source-witnesses.registry-ninth.navigation-2026-09-09",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "historical_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/ninth-wave-20260909.json",
+      "sha256": "ab13199220d190b6396360a72b0ecc49a7e6e9ebbc61a63c78b27e91c0c67ea5",
+      "byte_size": 215227
+    },
+    {
+      "role": "historical-planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/execution/plant_ninth_wave.py",
+      "sha256": "d7ec3d21be4af68a7f9f303f96ac3166135af81e9b305804a5e7c174e766bdb1",
+      "byte_size": 5788
+    },
+    {
+      "role": "historical-report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/execution/report_ninth_wave.py",
+      "sha256": "6e785e5ad6c6ca3bf29b0e92a17eab2373c031e693123322114fc51610462fc6",
+      "byte_size": 12584
+    },
+    {
+      "role": "historical-manifest",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/preparation-inputs/264ad6901ebed243b10d949b3f8d7c0c7b9e783df12e371d6ebca9344f4234e3.manifest.json",
+      "sha256": "264ad6901ebed243b10d949b3f8d7c0c7b9e783df12e371d6ebca9344f4234e3",
+      "byte_size": 579230
+    },
+    {
+      "role": "historical-preparation-receipt",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/preparation-inputs/55e52a245791f7428b81ac6481a03d6c8e4d6d1d8abddc8b4529c24dc5be2bb7.preparation-receipt.json",
+      "sha256": "55e52a245791f7428b81ac6481a03d6c8e4d6d1d8abddc8b4529c24dc5be2bb7",
+      "byte_size": 600
+    }
+  ],
+  "current_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/plutarch-moralia-english-20260909.json",
+      "sha256": "ab13199220d190b6396360a72b0ecc49a7e6e9ebbc61a63c78b27e91c0c67ea5"
+    },
+    {
+      "role": "planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/plant_plutarch_moralia_english.py",
+      "sha256": "e791633091893a95a16eaa4cd5fb29ec46b9bfbc92086d8459a637504b8f058e"
+    },
+    {
+      "role": "report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/report_plutarch_moralia_english.py",
+      "sha256": "f9fd3475a8c2e888b077d3e6a9f1557f471d2bf1085da076c0d4b1080cd94b65"
+    }
+  ],
+  "retained_inputs": [
+    {
+      "stage": "registry-preparation",
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/preparation-inputs/ab13199220d190b6396360a72b0ecc49a7e6e9ebbc61a63c78b27e91c0c67ea5.source-preparation.json",
+      "preparation_sha256": "ab13199220d190b6396360a72b0ecc49a7e6e9ebbc61a63c78b27e91c0c67ea5",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/preparation-inputs/264ad6901ebed243b10d949b3f8d7c0c7b9e783df12e371d6ebca9344f4234e3.manifest.json",
+      "manifest_sha256": "264ad6901ebed243b10d949b3f8d7c0c7b9e783df12e371d6ebca9344f4234e3",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/legacy/preparation-inputs/55e52a245791f7428b81ac6481a03d6c8e4d6d1d8abddc8b4529c24dc5be2bb7.preparation-receipt.json",
+      "receipt_sha256": "55e52a245791f7428b81ac6481a03d6c8e4d6d1d8abddc8b4529c24dc5be2bb7",
+      "preparation_commit": "8d74dda190a6bc69844a61377dd6f4f287503833",
+      "checkpoint_review_ref": "agent-review:8d74dda19:20260909T183346Z"
+    }
+  ],
+  "authority_boundary": "Historical provenance only. This record preserves exact prior bytes, paths, receipts and preparation commits; it does not restamp the current route or establish acquisition, rights, semantic admission, publication or canon."
+}

@@ -1,0 +1,136 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.registry-cicero-cum-senatui-gratias-egit-latin",
+  "item_ref": "tos.item.cicero.cum-senatui-gratias-egit.la-perseus-phi0474-phi019.perseus-8668397510ca.git-tei-xml",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/cicero/cum-senatui-gratias-egit/expressions/la-perseus-phi0474-phi019/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+    "sha256": "2fdb4bc7fc38ccbeb66730256427426bf6789e323da34587ad9ddf518bb72a29",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.8743c180be6f2cadd41a90377092aa915b493268545a32a0998cfad6f58f5183",
+      "relative_path": "payload/phi0474.phi019.perseus-lat2.xml",
+      "byte_size": 58308,
+      "sha256": "8743c180be6f2cadd41a90377092aa915b493268545a32a0998cfad6f58f5183",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/cicero/cum-senatui-gratias-egit/expressions/la-perseus-phi0474-phi019/editions/perseus-8668397510ca/items/git-tei-xml/rights.json",
+    "rights_record_sha256": "a54c1c74c15d03f480262fef5cb435dfab26525ca85671315564db233455fce2",
+    "assessment_status": "open-licensed",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [
+      "MX"
+    ],
+    "permission_or_license_refs": [
+      "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/manifest.json",
+      "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+      "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi019-cts.xml",
+      "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi019.perseus-lat2-header.xml",
+      "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi019.perseus-lat2-opening.xml",
+      "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474-cts.xml",
+      "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/perseus-README.md",
+      "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/perseus-license.md",
+      "https://github.com/PerseusDL/canonical-latinLit/tree/8668397510ca77fec6406f7d48f405e50d296764",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "lexical_index": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "search_projection": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "graph_projection": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "not-evaluated",
+  "publication_status": "not-published",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-09-09T21:35:21.067576+00:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.registry-20260909.cicero-cum-senatui-gratias-egit-latin"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 1,
+  "supersedes_server_import_ref": null
+}

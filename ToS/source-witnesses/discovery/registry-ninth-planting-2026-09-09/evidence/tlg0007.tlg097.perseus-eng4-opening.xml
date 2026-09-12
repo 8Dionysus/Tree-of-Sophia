@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>Of Brotherly Love</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">John Thomson</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name> 
+         		<name>Bridget Almas</name>
+         		
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+         	<respStmt>
+         		<persName>Angelia Hanhardt</persName>
+         		<orgName>Center for Hellenic Studies</orgName>        
+         		<resp>CTS conversion</resp>
+         	</respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      		<idno type="filename">tlg0007.tlg097.perseus-eng4.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals</title>
+               	<editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">3</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmorals03plut/page/36">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	<editorialDecl><quotation marks="none"/></editorialDecl>
+      	
+         <!--<refsDecl doctype="TEI.2">
+            <state unit="section"/>
+         </refsDecl><refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+      	<p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts section.</p>
+      		</cRefPattern>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         	<language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2006" who="GRC">tagging</change>
+      	<change when="2019-07-16" who="Angelia Hanhardt">EpiDoc and CTS conversion</change>
+      </revisionDesc>
+   </teiHeader>
+	<text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg097.perseus-eng4">
+      	<div n="urn:cts:greekLit:tlg0007.tlg097.perseus-eng4" type="translation" xml:lang="eng">
+         <head>Of Brotherly Love.</head>
+         <pb xml:id="v.3.p.36"/>
+      		<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg097.perseus-eng4" n="1">
+            <p rend="indent">THE ancient statues of Castor and Pollux are called
+				by the Spartans Docana; and they are two pieces of wood
+				one over against the other joined with two other cross
+				ends, and the community and undividedness of this consecrated representation seems to resemble the fraternal
+				love of these two Gods. In like manner do I devote this
+				discourse of Brotherly Love to you, Nigrinus and Quintus,
+				as a gift in common betwixt you both, who well deserve
+				it. For as to the things it advises to, you will, while you
+				already practise them, seem rather to give your testimonies
+				to them than to be exhorted by them. And the satisfaction you have from well-doing will give the more firm durance to your judgment, when you shall find yourselves approved by wise and judicious spectators. Aristarchus the
+				father of Theodectes said indeed once, by way of flout
+				of the Sophists, that formerly there were scarce seven
+				Sophists to be found, but that in his time there could
+				hardly be found so many who were not Sophists. But I
+				see brotherly love is as scarce in our days as brotherly
+				hatred was in ancient times, the instances of which have
+				been publicly exposed in tragedies and public shows for
+				their strangeness. But all in our times, when they have
+				fortuned to have good brothers, do no less admire them
+				than the famed Molionidae, that are supposed to have been
+				born with their bodies joined with each other. And to
+				enjoy in common their fathers’ wealth, friends, and slaves
+				
+				<pb xml:id="v.3.p.37"/>
+				
+				is looked upon as incredible and prodigious, as if one soul
+				should make use of the hands, feet, and eyes of two
+				bodies.</p>
+         </div>
+      		<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg097.perseus-eng4" n="2">
+            <p rend="indent">And Nature hath given us very near examples of the
+				use of brothers, by contriving most of the necessary parts
+				of our bodies double, as it were, brothers and twins,—as hands, feet, eyes, ears, nostrils,—thereby telling us
+				that all these were thus distinguished for mutual benefit
+				and assistance, and not for variance and discord. And
+				when she parted the very hands into many and unequal
+				fingers, she made them thereby the most curious and artificial of all our members; insomuch that the ancient philosopher Anaxagoras assigned the hands for the reason of
+				all human knowledge and discretion. But the contrary to
+				this seems the truth. For it is not man’s having hands
+				that makes him the wisest animal, but his being naturally
+				reasonable and capable of art was the reason why such
+				organs were conferred upon him. And this also is most
+				manifest to every one, that the reason why Nature out of
+				one seed and source formed two, three, and more breth
+				ren was not for difference and opposition, but that their
+				being apart might render them the more capable of assisting one another. For those that were treble-bodied and
+				hundred-handed, if any such there were, while they had
+				all their members joined to each other, could do nothing
+				without them or apart, as brothers can who can live together and travel, undertake public employments and practise husbandry, by one another’s help, if they preserve
+				but that principle of benevolence and concord that Nature
+				hath bestowed upon them. But if they do not, they will
+				not at all differ in my opinion from feet that trip up one
+				another, and fingers that are unnaturally writhen and distorted by one another. Yea, rather, as things moist and
+				dry, cold and hot, partake of one nature in the sa

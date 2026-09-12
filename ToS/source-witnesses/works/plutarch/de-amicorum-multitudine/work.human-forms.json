@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:a833c5eb51aff6c1cb2cf707d6e930eb0b39c83eedfab034c234f381be61b71c",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:a833c5eb51aff6c1cb2cf707d6e930eb0b39c83eedfab034c234f381be61b71c",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:a833c5eb51aff6c1cb2cf707d6e930eb0b39c83eedfab034c234f381be61b71c",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:a833c5eb51aff6c1cb2cf707d6e930eb0b39c83eedfab034c234f381be61b71c",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a6f4057b7fcb3633b7d359f70e3c5d3e6eefd2e0b8f3293a222968e9820ecf11",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:5c628138d05c5f3613cd9e2ce9c6c1d7944330127578831cfbd7e3f371ea794f",
+        "id": "tos.form.metadata.a6f4057b7fcb3633b7d359f70e3c5d3e6eefd2e0b8f3293a222968e9820ecf11",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:a833c5eb51aff6c1cb2cf707d6e930eb0b39c83eedfab034c234f381be61b71c",
+        "id": "tos.work.plutarch.de-amicorum-multitudine",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:a833c5eb51aff6c1cb2cf707d6e930eb0b39c83eedfab034c234f381be61b71c",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:a833c5eb51aff6c1cb2cf707d6e930eb0b39c83eedfab034c234f381be61b71c",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:a833c5eb51aff6c1cb2cf707d6e930eb0b39c83eedfab034c234f381be61b71c",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:a833c5eb51aff6c1cb2cf707d6e930eb0b39c83eedfab034c234f381be61b71c",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.e7eefff88db191e9fd0d54eb95ef87b764ea9a80f01de223ff91ffdec2bd42a0",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:a4f7785245854c1d6a8333bc6cc070abc7ad7306ac52924d8f9b4b320922a5ee",
+        "id": "tos.form.metadata.e7eefff88db191e9fd0d54eb95ef87b764ea9a80f01de223ff91ffdec2bd42a0",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:a833c5eb51aff6c1cb2cf707d6e930eb0b39c83eedfab034c234f381be61b71c",
+        "id": "tos.work.plutarch.de-amicorum-multitudine",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:294ef5e49429e0921650bb904701753722a9a089d00bb6c5258d804a7bf36766",
+      "owner_configuration": "sha256:e1c4c2b0ba37ff532f8683875b415290cb33b20032b03370889355fe6cdb2e01",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:37.533164+00:00",
+      "request_digest": "sha256:6f49d5090e4da7629a2f82fa848927be0140a09d004fb6d89d9a6937352e1d09",
+      "results": [
+        {
+          "digest": "sha256:5c628138d05c5f3613cd9e2ce9c6c1d7944330127578831cfbd7e3f371ea794f",
+          "id": "tos.form.metadata.a6f4057b7fcb3633b7d359f70e3c5d3e6eefd2e0b8f3293a222968e9820ecf11",
+          "version": 1
+        },
+        {
+          "digest": "sha256:a4f7785245854c1d6a8333bc6cc070abc7ad7306ac52924d8f9b4b320922a5ee",
+          "id": "tos.form.metadata.e7eefff88db191e9fd0d54eb95ef87b764ea9a80f01de223ff91ffdec2bd42a0",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:33056f5e30d3d447235ef009f218bbc642847755274ea2b89aedefc1e87391e6",
+        "id": "tos.work.plutarch.de-amicorum-multitudine",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:294ef5e49429e0921650bb904701753722a9a089d00bb6c5258d804a7bf36766",
+      "request_digest": "sha256:4d1bb5be370de6a939abc99eb967c098574c8c53018c8cbb67d88fac75812099",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:7f1fd4460284cdcd9458214585f343d916f630be7ef9b40283703c56a94cfa2b",
+      "recorded_at": "2026-09-09T18:35:27.122060+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-amicorum-multitudine",
+        "version": 2,
+        "digest": "sha256:a833c5eb51aff6c1cb2cf707d6e930eb0b39c83eedfab034c234f381be61b71c"
+      },
+      "previous_revision": "sha256:420632b1b19975e86e55935855c57c978d33646e57461f49344326903af948b8",
+      "results": [
+        {
+          "id": "tos.form.metadata.a6f4057b7fcb3633b7d359f70e3c5d3e6eefd2e0b8f3293a222968e9820ecf11",
+          "version": 2,
+          "digest": "sha256:a535c569c6fbb51e4013852bc70d3fc71ccc27d02f86a71ce6cb6d339652ed50"
+        },
+        {
+          "id": "tos.form.metadata.e7eefff88db191e9fd0d54eb95ef87b764ea9a80f01de223ff91ffdec2bd42a0",
+          "version": 2,
+          "digest": "sha256:2fca2f2c50e275061e13bbe05d5b63a2e5762f5699c9393fbfebf67b9f4613ea"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:33056f5e30d3d447235ef009f218bbc642847755274ea2b89aedefc1e87391e6",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:33056f5e30d3d447235ef009f218bbc642847755274ea2b89aedefc1e87391e6",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:33056f5e30d3d447235ef009f218bbc642847755274ea2b89aedefc1e87391e6",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:33056f5e30d3d447235ef009f218bbc642847755274ea2b89aedefc1e87391e6",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a6f4057b7fcb3633b7d359f70e3c5d3e6eefd2e0b8f3293a222968e9820ecf11",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:33056f5e30d3d447235ef009f218bbc642847755274ea2b89aedefc1e87391e6",
+        "id": "tos.work.plutarch.de-amicorum-multitudine",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:33056f5e30d3d447235ef009f218bbc642847755274ea2b89aedefc1e87391e6",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:33056f5e30d3d447235ef009f218bbc642847755274ea2b89aedefc1e87391e6",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:33056f5e30d3d447235ef009f218bbc642847755274ea2b89aedefc1e87391e6",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:33056f5e30d3d447235ef009f218bbc642847755274ea2b89aedefc1e87391e6",
+            "id": "tos.work.plutarch.de-amicorum-multitudine",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.e7eefff88db191e9fd0d54eb95ef87b764ea9a80f01de223ff91ffdec2bd42a0",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:33056f5e30d3d447235ef009f218bbc642847755274ea2b89aedefc1e87391e6",
+        "id": "tos.work.plutarch.de-amicorum-multitudine",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-amicorum-multitudine",
+    "version": 2,
+    "digest": "sha256:a833c5eb51aff6c1cb2cf707d6e930eb0b39c83eedfab034c234f381be61b71c"
+  }
+}

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Phocion</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Bridget Almas</name>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2009-03-16">Perseus 4.0</date> 
+      		<idno type="filename">tlg0007.tlg049.perseus-eng2.xml</idno>
+      		<availability>
+      		<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      		</availability>
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+               	<editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1919</date>
+                  </imprint>
+                  <biblScope unit="volume">8</biblScope>
+               </monogr>
+            	<series>
+            		<title>Loeb Classical Library</title>
+            	</series>
+            	<ref target="https://archive.org/details/plutarchslives08plut/page/144/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-03-26" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+      	<change when="2009" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg049.perseus-eng2" type="translation" xml:lang="eng"> 
+	<head>PHOCION</head>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-eng2:1" n="1"><p> Demades the orator, who was powerful at Athens because he conducted affairs so as to please Antipater and the Macedonians, and was forced to propose and favour many measures which were at variance with the dignity and character of the city, used to say that he was excusable because he was in command of a shipwrecked state. This may have been too hardy an utterance for the orator, but it would seem to be true when transferred to the administration of Phocion.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-eng2:1" n="2"><p>Demades, indeed, was himself but wreckage of the state, since his life and administration were so outrageous that Antipater said of him, when he was now grown old, that he was like a victim when the sacrifice was over—nothing left but tongue and guts. But the fame of Phocion’s virtue, which may be said to have found an antagonist in a grievous and violent time, the fortunes of Greece rendered obscure and dim.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-eng2:1" n="3"><p>Surely we must not follow Sophocles in making virtue weak, as when he says:— <quote rend="blockquote"> <l>Indeed, O King, what reason nature may have given</l> <l>Abides not with the unfortunate, but goes astray;</l> </quote> yet thus much power must be granted to Fortune in her conflicts with good men: instead of the honour and gratitude which are their due, she brings base censure and calumny upon some, and so weakens the world’s confidence in their virtue. </p> </div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-eng2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-eng2:2" n="1"><p> And yet it is commonly held that a people is more apt to wreak its insolence upon good men when it is prosperous, being then lifted up by grandeur and power; but the reverse is often the case. For calamities make men’s dispositions bitter, irritable, and prone to wrath, so that no one can say anything to please or soften them, but they are annoyed by every speech or word that has vigour. He who censures them for their transgressions is thought to abuse them for their misfortunes, and he who is outspoken with them, to despise them.</p></div> 
+	<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-eng2:2" n="2"><p>And just as honey irritates wounded and ulcerated parts of the body, so often words of truth and soberness sting and exasperate those who are in an evil plight, unless uttered with kindness and complaisance; and therefore, doubtless, the poet calls that which is pleasant <q type="emph">menoeikes,</q> on the ground that it <emph>yields</emph> to that part of the soul which experiences pleasure, and does not fight with it or resist it.<note resp="editor" place="inline" anchored="true">As often, Plutarch’s etymology is amiably wrong. Homer uses <q type="foreign" xml:lang="grc">μενοεικές</q> as a stock epithet of good things in such abundance as to be <gloss>spirit-suiting</gloss>, or <gloss>satisfying</gloss>.</note> </p></div> 
+	<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-eng2:2" n="3"><p>An eye that is inflamed dwells most gratefully on colours which are dark and lustreless, but shuns those which are radiant and bright; and so a city that has fallen on unfavourable fortunes is made by its weakness too sensitive and delicate to endure frank speaking, and that at a time when it needs it most of all, since the situation allows no chance of

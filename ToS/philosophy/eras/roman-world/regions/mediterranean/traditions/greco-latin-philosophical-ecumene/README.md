@@ -26,3 +26,39 @@ Global proposed node and relation rows for this branch are aggregated in `ToS/ph
 ## Registry planting: third wave (2026-09-08)
 
 18 exact Greek versions with verified local files. [Batch evidence and limits](../../../../../../../source-witnesses/discovery/registry-third-planting-2026-09-08/RESULTS.md).
+
+## Registry planting: fourth wave (2026-09-09)
+
+16 English versions alongside existing Greek texts. [Batch reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-fourth-planting-2026-09-09/RESULTS.md).
+
+## Registry planting: fifth wave (2026-09-09)
+
+21 exact Latin versions with verified local files. [Batch evidence and limits](../../../../../../../source-witnesses/discovery/registry-fifth-planting-2026-09-09/RESULTS.md).
+
+## Registry planting: sixth wave (2026-09-09)
+
+5 English versions alongside existing Latin texts. [Batch reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-sixth-planting-2026-09-09/RESULTS.md).
+
+## Registry planting: seventh wave (2026-09-09)
+
+9 English versions alongside existing Greek texts. [Batch reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-seventh-planting-2026-09-09/RESULTS.md).
+
+## Registry planting: eighth wave (2026-09-09)
+
+45 exact Greek versions. [Batch reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-eighth-planting-2026-09-09/RESULTS.md).
+
+## Registry planting: ninth wave (2026-09-09)
+
+44 English versions alongside existing Greek texts. [Reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-ninth-planting-2026-09-09/RESULTS.md).
+
+## Registry planting: tenth wave (2026-09-09)
+
+64 exact Greek versions. [Batch reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-tenth-planting-2026-09-09/RESULTS.md).
+
+## Registry planting: eleventh wave (2026-09-09)
+
+64 English versions alongside existing Greek texts. [Reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-eleventh-planting-2026-09-09/RESULTS.md).
+
+## Registry planting: twelfth wave (2026-09-09)
+
+31 exact Latin versions. [Batch reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-twelfth-planting-2026-09-09/RESULTS.md).

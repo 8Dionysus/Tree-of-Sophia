@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8023204025dc81eb000ecaed343fab205715b2109e93a94fe6809581efaf0002",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8023204025dc81eb000ecaed343fab205715b2109e93a94fe6809581efaf0002",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:8023204025dc81eb000ecaed343fab205715b2109e93a94fe6809581efaf0002",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:8023204025dc81eb000ecaed343fab205715b2109e93a94fe6809581efaf0002",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.6dac2bbf8b268d466f8f1134bb3abdfc54f2f28cd409676a04180a7e9ea0f608",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:ccbf3b1d2b37471cc2a4579f6388b3e4417384cedec18af2078763e8a6d41380",
+        "id": "tos.form.metadata.6dac2bbf8b268d466f8f1134bb3abdfc54f2f28cd409676a04180a7e9ea0f608",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:8023204025dc81eb000ecaed343fab205715b2109e93a94fe6809581efaf0002",
+        "id": "tos.work.plutarch.de-garrulitate",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8023204025dc81eb000ecaed343fab205715b2109e93a94fe6809581efaf0002",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8023204025dc81eb000ecaed343fab205715b2109e93a94fe6809581efaf0002",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:8023204025dc81eb000ecaed343fab205715b2109e93a94fe6809581efaf0002",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:8023204025dc81eb000ecaed343fab205715b2109e93a94fe6809581efaf0002",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a4949aba05cc620614df2c226e111b4dc9dbf8ec874cfe5cc059840298e21ebf",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:7b3d8a5697ff693a53fc65793c0a3855c68a0c103a306fd4135e77b28788a5d8",
+        "id": "tos.form.metadata.a4949aba05cc620614df2c226e111b4dc9dbf8ec874cfe5cc059840298e21ebf",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:8023204025dc81eb000ecaed343fab205715b2109e93a94fe6809581efaf0002",
+        "id": "tos.work.plutarch.de-garrulitate",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:30a2f6dbe1596854226dce5e7ad74a5289bd3e42e200cdfea0fc6c99ddd61ac2",
+      "owner_configuration": "sha256:3baf20f3a288fb447b2c0c77eca36098bebab266d846839b96b5b71ea53a0442",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:39.315847+00:00",
+      "request_digest": "sha256:0c99af12934347ade541825e52f20f39919a3a8af5cff85b21e60a5a13f1acbe",
+      "results": [
+        {
+          "digest": "sha256:ccbf3b1d2b37471cc2a4579f6388b3e4417384cedec18af2078763e8a6d41380",
+          "id": "tos.form.metadata.6dac2bbf8b268d466f8f1134bb3abdfc54f2f28cd409676a04180a7e9ea0f608",
+          "version": 1
+        },
+        {
+          "digest": "sha256:7b3d8a5697ff693a53fc65793c0a3855c68a0c103a306fd4135e77b28788a5d8",
+          "id": "tos.form.metadata.a4949aba05cc620614df2c226e111b4dc9dbf8ec874cfe5cc059840298e21ebf",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:d0ac1e1d21f4404b82bfe104ee81089e379bfe338ef17cc012e4236f0eeee261",
+        "id": "tos.work.plutarch.de-garrulitate",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:30a2f6dbe1596854226dce5e7ad74a5289bd3e42e200cdfea0fc6c99ddd61ac2",
+      "request_digest": "sha256:2a42bc7980ee3b2a5cf15330aa5588ccecf7885c464cbcae21f110d262771252",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:7307beb8cc03c050213094473a52125f529fb5296a5d03c02ba154359013cf70",
+      "recorded_at": "2026-09-09T18:35:28.700975+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-garrulitate",
+        "version": 2,
+        "digest": "sha256:8023204025dc81eb000ecaed343fab205715b2109e93a94fe6809581efaf0002"
+      },
+      "previous_revision": "sha256:8aec69121fae09f7b9c9da8b4f161a46239ef0047b0d93eb4fc25001b71320d6",
+      "results": [
+        {
+          "id": "tos.form.metadata.6dac2bbf8b268d466f8f1134bb3abdfc54f2f28cd409676a04180a7e9ea0f608",
+          "version": 2,
+          "digest": "sha256:d900fb07f4cb7912f8c823713f5c7bb2cd62e849e0440712ac023a62f35093a3"
+        },
+        {
+          "id": "tos.form.metadata.a4949aba05cc620614df2c226e111b4dc9dbf8ec874cfe5cc059840298e21ebf",
+          "version": 2,
+          "digest": "sha256:c7ea7e9c6990dd7feab9931b80ff767e1f9efff8c00ddb053e2cfd097a78d1bf"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:d0ac1e1d21f4404b82bfe104ee81089e379bfe338ef17cc012e4236f0eeee261",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:d0ac1e1d21f4404b82bfe104ee81089e379bfe338ef17cc012e4236f0eeee261",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:d0ac1e1d21f4404b82bfe104ee81089e379bfe338ef17cc012e4236f0eeee261",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:d0ac1e1d21f4404b82bfe104ee81089e379bfe338ef17cc012e4236f0eeee261",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.6dac2bbf8b268d466f8f1134bb3abdfc54f2f28cd409676a04180a7e9ea0f608",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:d0ac1e1d21f4404b82bfe104ee81089e379bfe338ef17cc012e4236f0eeee261",
+        "id": "tos.work.plutarch.de-garrulitate",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:d0ac1e1d21f4404b82bfe104ee81089e379bfe338ef17cc012e4236f0eeee261",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:d0ac1e1d21f4404b82bfe104ee81089e379bfe338ef17cc012e4236f0eeee261",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:d0ac1e1d21f4404b82bfe104ee81089e379bfe338ef17cc012e4236f0eeee261",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:d0ac1e1d21f4404b82bfe104ee81089e379bfe338ef17cc012e4236f0eeee261",
+            "id": "tos.work.plutarch.de-garrulitate",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a4949aba05cc620614df2c226e111b4dc9dbf8ec874cfe5cc059840298e21ebf",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:d0ac1e1d21f4404b82bfe104ee81089e379bfe338ef17cc012e4236f0eeee261",
+        "id": "tos.work.plutarch.de-garrulitate",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-garrulitate",
+    "version": 2,
+    "digest": "sha256:8023204025dc81eb000ecaed343fab205715b2109e93a94fe6809581efaf0002"
+  }
+}

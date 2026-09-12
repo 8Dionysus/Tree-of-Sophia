@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+            <title>That brute beasts make use of reason</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+				<editor role="translator">Sir A. J.</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+					
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Ethan Della Rocca</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg130.perseus-eng4.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+               	<editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">5</biblScope>
+               </monogr>            	
+            	<ref target="https://archive.org/details/plutarchsmoralst05plutuoft/page/218">The Internet Archive</ref>
+            </biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+				<!-- <refsDecl doctype="TEI.2">
+				<state unit="section"/> -->
+			</refsDecl>
+			<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+			<particDesc>
+				<person><persName>Ulysses</persName></person>
+				<person><persName>Circe</persName></person>
+				<person><persName>Gryllus</persName></person>
+			</particDesc>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="GRC" when="2006">tagging</change>
+			<change who="Ethan Della Rocca" when="2019-07-25">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg130.perseus-eng4">
+      <div n="urn:cts:greekLit:tlg0007.tlg130.perseus-eng4" type="translation" xml:lang="eng">
+         <head>That brute beasts make use of reason <lb/> Ulysses, Circe, Gryllus.</head>
+         
+<pb xml:id="v.5.p.218"/>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg130.perseus-eng4" n="1"> 
+<p rend="indent"><said who="#Ulysses"><label>ULYSSES.</label> All these things, Circe, I believe that I have learned and well remember. But I would willingly ask thee, whether thou hast any Grecians here, which being men thou hast transformed into wolves and lions.</said></p> 
+<p rend="indent"><said who="#Circe"><label>CIRCE.</label> Very many, dearest Ulysses, but wherefore do you ask the question?</said></p> 
+<p rend="indent"><said who="#Ulysses"><label>ULYSSES.</label> Because in good truth I am of opinion I should gain a high reputation among the Greeks, if by thy favor I could restore these men to human shape again, and not suffer them through any negligence of mine to wax old in the bodies of beasts, where they lead a miserable and ignominious life.</said></p> 
+<p rend="indent"><said who="#Circe"><label>CIRCE.</label> Surely, this man, fool as he is, believes it requisite that his ambition should be unfortunate not only to himself and his friends, but to those that nothing belong to him.</said></p> 
+<p rend="indent"><said who="#Ulysses"><label>ULYSSES.</label> Thou art now jumbling and mixing another villanous potion of twittle twattle, and wouldst plainly turn me into a beast too, if thou couldst make me believe that it were a misfortune to be transformed from a beast to a man.</said></p> 
+<p rend="indent"><said who="#Circe"><label>CIRCE.</label> What hast thou made thyself better than a beast, who, forsaking an immortal life, free from the miseries of old age, with me, art making such haste through 
+<pb xml:id="v.5.p.219"/> a thousand threatening calamities to a mortal and (as I may say) old wife, pursuing an empty good and a shadow instead of real truth, and all this, thinking to be more conspicuous and famous than thou art.</said></p> 
+<p rend="indent"><said who="#Ulysses"><label>ULYSSES.</label> Well, Circe, let it be as thou sayest; for why should we be always contending about the same thing? However, do me the favor to restore these men, and give them into my custody.</said></p> 
+<p rend="indent"><said who="#Circe"><label>CIRCE.</label> By Hecate, not so fast neither; these are no ordinary fellows. But ask them first whether they are willing. If they refuse, do you, being such an eloquent gentleman, discourse them and persuade them; if you cannot persuade them, being too hard for ye at your own weapon, then let it suffice ye that you have ill consulted your own and the good of your friends.</said></p> 
+<p rend="indent"><said who="#Ulysses"><label>ULYSSES.</label> Blessed woman, wherefore dost thou mock me thus? For how can they either talk or hear reason, so long as they are asses, hogs, and lions?</said></p> 
+<p rend="indent"><said who="#Circe"><label>CIRCE.</label> Be of good comfort, most ambitious of men; I will so order the business, that they shall both understand and discourse; or rather, let one suffice to hear and return answers instead of all the rest. Look ye, here is one at hand; pray talk to him.</said></p> 
+<p rend="indent"><said who="#Ulysses"><label>ULYSSES.</label> Prithee, Circe, by what name shall we call him? Who is this fellow of all the men in the world?</said></p> 
+<p rend="indent"><said who="#Circe"><label>CIRCE.</label> What’s this to the purpose? Call him Gryllus, if you please; and for my part, I’ll leave ye together, that ye may not suspect him for speaking contrary to his mind to please me.</said></p> </div>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg130.perseus-eng4" n="2"> 
+<p rend="indent"><said who="#Gryllus"><label>GRYLLUS.</label> Save ye, Mr. Ulysses.</said></p> 
+<p rend="indent"><said who="#Ulysses"><label>ULYSSE

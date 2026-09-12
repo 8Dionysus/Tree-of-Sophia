@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>How to Profit By One's Enemies</title>
+				<author>Plutarch</author>
+				<editor role="translator">Frank Cole Babbitt</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Lucy Parr</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg072.perseus-eng3.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>Plutarch</author>
+						<title xml:lang="lat">Moralia</title>
+						<editor role="translator">Frank Cole Babbitt</editor>
+						<imprint>
+							<pubPlace>Cambridge, MA</pubPlace>
+							<publisher>Harvard University Press</publisher>
+							<pubPlace>London</pubPlace>
+							<publisher>William Heinemann Ltd.</publisher>
+							<date type="printing">1928</date>
+						</imprint>
+						<biblScope unit="volume">2</biblScope>
+					</monogr>
+					<series>
+						<title>Loeb Classical Library</title>
+					</series>
+					<ref target="https://archive.org/details/moraliainfifteen02plutuoft/page/4">The
+						Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+				<!-- <state unit="section"/> -->
+			</refsDecl>
+			<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+				<language ident="lat">Latin</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="RS" when="2010-05">tagged and parsed</change>
+			<change who="Lucy Parr" when="2019-06-26">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg072.perseus-eng3">
+			
+<div n="urn:cts:greekLit:tlg0007.tlg072.perseus-eng3" type="translation" xml:lang="eng"> 
+	<head>HOW TO PROFIT BY ONE’s ENEMIES (<foreign xml:lang="lat">De capienda ex inimicis utilitate</foreign>)</head> 
+	<pb xml:id="v.2.p.3"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg072.perseus-eng3" n="intro"><head>INTRODUCTION</head>
+	<p rend="indent">The essay on turning even one’s enemies to some profitable use was an extempore address which was afterwards reduced to writing. It still retains, however, some of the marks of its extempore character in an occasional asyndeton or anacoluthon, in a few repetitions, and in such little slips as reversing the positions of Domitius and Scaurus (91 d). But minor matters of this sort cannot obscure the excellence of the essay as a whole, which contains much good advice, many wholesome truths, and much common sense. To cite but one example, the statement (91 b) that many things which are necessary in time of war, but bad under other conditions, acquire the sanction of custom and law, and cannot be easily abolished, even though the people are being injured by them, will appeal to everybody except the confirmed militarist. The essay was written some time after the essay entitled Advice to Statesmen, which in turn must be placed shortly after the death of Domitian (a.d. 96).</p> 
+<p rend="indent">This is one of the <q>moral</q> essays of Plutarch which so impressed Christians that they were translated into Syriac in the sixth or seventh centuries. The translation of this essay is rather an adaptation, many details being omitted as unessential, but even so it gives light on the Greek text in a few places. The Syriac translation is published in Studia Sinaitica, No. IV (London 1894) </p> </div> <pb xml:id="v.2.p.5"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg072.perseus-eng3" n="1"><p rend="indent">I observe, my dear Cornelius Pulcher,<note place="inline" anchored="true">Presumably Cn. Cornelius Pulcher, who was procurator in Achaea towards the close of Plutarch’s life. He also held various other offices. <foreign xml:lang="lat">Cf.</foreign><title rend="italic" xml:lang="lat">Corpus Inscr. Graec.</title> i. 1186.</note> that you have chosen the mildest form of official administration, in which you are as helpful as possible to the public interests while at the same time you show yourself to be very amiable in private to those who have audience with you. Now it may be possible to find a country, in which, as it is recorded of Crete,<note place="inline" anchored="true">This tradition in regard to Crete is found in several ancient writers. <foreign xml:lang="lat">Cf.</foreign> for example Pliny, <title rend="italic">Nat. Hist.</title> viii. 83.</note> there are no wild animals, but a government which has not had to bear with envy or jealous rivalry or contention—emotions most productive of enmity—has not hitherto existed. For our very friendships, if nothing else, involve us in enmities. This is what the wise Chilon <note place="inline" anchored="true">The same remark is quoted by Plutarch in <title rend="italic" xml:lang="lat" >Moralia</title> 96 A. <foreign xml:lang="lat">Cf.</foreign> also Aulus Gellius, i. 3.</note> had in mind, when he asked the man who boasted that he had no enemy whether he had no friend either. Therefore it seems to me to be the duty of a statesman not only to have thoroughly investigated the subject of enemies in general, but also in his reading of Xenophon <note place="inline" anchored="true">In <title rend="italic" >Oeconomicus</title> 1. 15.</note> to have given more than passing attention to the remark that it is a trait of the man of sense <q>to derive profit even from his enemies.</q> Some thoughts, therefore, on this subject, which I recently had occasion to express, I have put together in practically the same words, and now send them to you, with the omission, so far <pb xml:id="v.2.p.7"/> as

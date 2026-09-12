@@ -1,0 +1,774 @@
+{
+  "observed_at": "2026-09-09T19:29:42.748395+00:00",
+  "scope": "this checkout before eleventh acquisition",
+  "targets": [
+    {
+      "target_slug": "plutarch-theseus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/theseus/expressions/en-perseus-tlg0007-tlg001-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg001.perseus-eng3.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/theseus/work.json",
+        "sha256": "8c1ced489899fb10bacd28edececfd370ba59d8a3e0ed970a2a3f1e6d91659ef"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-romulus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/romulus/expressions/en-perseus-tlg0007-tlg002-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg002.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/romulus/work.json",
+        "sha256": "08808ae13feb8c6180feeb5a6894b55afba30f43a38b4e1b0abc40fc01c49cdb"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-theseus-and-romulus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-theseus-and-romulus/expressions/en-perseus-tlg0007-tlg003-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg003.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-theseus-and-romulus/work.json",
+        "sha256": "fb76b1b1823c4b24d41a06acb13b2ae6cb4ff3191ed76e578f005906791dfea6"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-lycurgus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/lycurgus/expressions/en-perseus-tlg0007-tlg004-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg004.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/lycurgus/work.json",
+        "sha256": "ad58ff911703e5e701afbd6231ff7e9df0697af242eb39192a64a58526b35fb1"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-numa-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/numa/expressions/en-perseus-tlg0007-tlg005-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg005.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/numa/work.json",
+        "sha256": "4beaf2f4daf831ed8751aba9be6dab2c367d70e3e4d64a7f267b5af3cab7e8bc"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-lycurgus-and-numa-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-lycurgus-and-numa/expressions/en-perseus-tlg0007-tlg006-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg006.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-lycurgus-and-numa/work.json",
+        "sha256": "8a4d39583ed228b91e3cb1414747787dfb96833426c27b510a7246e5f0ffb55e"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-solon-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/solon/expressions/en-perseus-tlg0007-tlg007-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg007.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/solon/work.json",
+        "sha256": "eccafee94cd0736a6b07025d2ae60e1e4e299005b6b8b5502f53c0fc57376424"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-publicola-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/publicola/expressions/en-perseus-tlg0007-tlg008-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg008.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/publicola/work.json",
+        "sha256": "a4eb3f29e3191ed55d35f8c2ddcbf0ff53601c842255c1bf6db1532b47e70a10"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-solon-and-publicola-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-solon-and-publicola/expressions/en-perseus-tlg0007-tlg009-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg009.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-solon-and-publicola/work.json",
+        "sha256": "3a790b71fd051c9eeae248d7bbdbbefd2d9275b92915132f35860d7dc2f046b2"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-themistocles-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/themistocles/expressions/en-perseus-tlg0007-tlg010-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg010.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/themistocles/work.json",
+        "sha256": "e82cd97ec1e4abaf1ab84e195e101564f1436298c4b8dcc64d1131d2894ca077"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-camillus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/camillus/expressions/en-perseus-tlg0007-tlg011-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg011.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/camillus/work.json",
+        "sha256": "54a54f82e0d20929cc820fff2efb401317f7574c32e83d7105bef6aa3f150811"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-pericles-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/pericles/expressions/en-perseus-tlg0007-tlg012-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg012.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/pericles/work.json",
+        "sha256": "0e51f0026df1fd402155114f8e13fb0b743824326a06bc5f05fbb10baaebee99"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-fabius-maximus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/fabius-maximus/expressions/en-perseus-tlg0007-tlg013-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg013.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/fabius-maximus/work.json",
+        "sha256": "c7cd957467b094ef0435c391b73cc67065816d94326ae53fdd1cd0d9783aff49"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-pericles-and-fabius-maximus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-pericles-and-fabius-maximus/expressions/en-perseus-tlg0007-tlg014-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg014.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-pericles-and-fabius-maximus/work.json",
+        "sha256": "8d2dc290629c8605f1ce193844a48e11f0a64996783c52514fd2477ed4f90b4c"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-alcibiades-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/alcibiades/expressions/en-perseus-tlg0007-tlg015-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg015.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/alcibiades/work.json",
+        "sha256": "f676b3e4aac54fb452fc0449ea1d905846ddca2c4cf1e16bca271d083ec2330e"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-caius-marcius-coriolanus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/caius-marcius-coriolanus/expressions/en-perseus-tlg0007-tlg016-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg016.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/caius-marcius-coriolanus/work.json",
+        "sha256": "2e891317767999d20bfb370fe0ef9dd1d62a7739e256f507f1e2e2e7d5a9f129"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-alcibiades-and-coriolanus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-alcibiades-and-coriolanus/expressions/en-perseus-tlg0007-tlg017-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg017.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-alcibiades-and-coriolanus/work.json",
+        "sha256": "fa3b9bf845728095b6bb476f6631d46cc07952816664bbd7843480083abf5ca3"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-timoleon-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/timoleon/expressions/en-perseus-tlg0007-tlg018-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg018.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/timoleon/work.json",
+        "sha256": "2dfa08303a69fd15e92939f9df9598a9a4dd3a8f3fc4fd9ddc42ce9ae8390824"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-aemilius-paulus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/aemilius-paulus/expressions/en-perseus-tlg0007-tlg019-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg019.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/aemilius-paulus/work.json",
+        "sha256": "5e3151b01c8d23631ef82837962edf03269b13692a3d217d7863af10b6b95199"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-timoleon-and-aemilius-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-timoleon-and-aemilius/expressions/en-perseus-tlg0007-tlg020-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg020.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-timoleon-and-aemilius/work.json",
+        "sha256": "539add6c47a2aee153d2cb69f9d5fe37a3bb9c39b5abaa33ab122f3be3ddf58f"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-pelopidas-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/pelopidas/expressions/en-perseus-tlg0007-tlg021-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg021.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/pelopidas/work.json",
+        "sha256": "962a11bff87790c7143da989fc5bacb97fdc3d0b8574903af39e0a6b5412c465"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-marcellus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/marcellus/expressions/en-perseus-tlg0007-tlg022-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg022.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/marcellus/work.json",
+        "sha256": "9fbc7b7c5c2a513c66b70e65ca358cabd448271e308bb8324ebcc4464b9fa645"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-pelopidas-and-marcellus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-pelopidas-and-marcellus/expressions/en-perseus-tlg0007-tlg023-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg023.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-pelopidas-and-marcellus/work.json",
+        "sha256": "e33e45bb0b05a7b94f95cb9bb62e567ebe61038bf17721b6c83031ca4e1ed689"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-aristides-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/aristides/expressions/en-perseus-tlg0007-tlg024-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg024.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/aristides/work.json",
+        "sha256": "eedceb14fff9282b306539996032c4c74df8c810a6cc3d9ec60aab630b6b9175"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-marcus-cato-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/marcus-cato/expressions/en-perseus-tlg0007-tlg025-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg025.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/marcus-cato/work.json",
+        "sha256": "75e99e96ae213726fa7559db56c55644b73a3016f58863afd8b998e966468081"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-aristides-and-marcus-cato-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-aristides-and-marcus-cato/expressions/en-perseus-tlg0007-tlg026-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg026.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-aristides-and-marcus-cato/work.json",
+        "sha256": "5f030a254e808820052ce712f945ba65142596e0bdbd2f220605ee471c3127fd"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-philopoemen-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/philopoemen/expressions/en-perseus-tlg0007-tlg027-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg027.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/philopoemen/work.json",
+        "sha256": "8d5b6d19c619ee7d2cb97fabed3da63821817c5c976948ff0d0fb4fdc9bd3e96"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-titus-flamininus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/titus-flamininus/expressions/en-perseus-tlg0007-tlg028-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg028.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/titus-flamininus/work.json",
+        "sha256": "8e06152e0effdf6b50ec1f13e34383036fdd465b4c0e0c00d0dc6786c4a7c452"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-philopoemen-and-titus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-philopoemen-and-titus/expressions/en-perseus-tlg0007-tlg029-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg029.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-philopoemen-and-titus/work.json",
+        "sha256": "352cf813e432d11647004cce66fdf5c29db665c8d0748848323848e3f2e7abf9"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-pyrrhus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/pyrrhus/expressions/en-perseus-tlg0007-tlg030-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg030.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/pyrrhus/work.json",
+        "sha256": "13eb5941bb06e21dd23df889cace4e302ee37b276b9699ea61821cbeece31249"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-caius-marius-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/caius-marius/expressions/en-perseus-tlg0007-tlg031-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg031.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/caius-marius/work.json",
+        "sha256": "78c30081145fb8ced5356c7b35d21956151b6bfffb223adec6950f313b3d7fba"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-lysander-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/lysander/expressions/en-perseus-tlg0007-tlg032-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg032.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/lysander/work.json",
+        "sha256": "ef505aa4bdcffa5e60ccb9572fefb06182ae36322b21d68ea5b5c3fa4c2b7e65"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-sulla-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/sulla/expressions/en-perseus-tlg0007-tlg033-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg033.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/sulla/work.json",
+        "sha256": "b653f246e9f8aed35743c48742efbbb91f45f804747879cbc58b5c573e4f4624"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-lysander-and-sulla-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-lysander-and-sulla/expressions/en-perseus-tlg0007-tlg034-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg034.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-lysander-and-sulla/work.json",
+        "sha256": "0d36bc3a41497432f336269891afd81654a3e8f92e83f43a65bdd2292280e46a"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-cimon-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/cimon/expressions/en-perseus-tlg0007-tlg035-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg035.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/cimon/work.json",
+        "sha256": "6d73c2de6a2d5f3352434a787f681b5801ef87c90cba1691639137cc0338dad4"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-lucullus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/lucullus/expressions/en-perseus-tlg0007-tlg036-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg036.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/lucullus/work.json",
+        "sha256": "4526e97361e47a78f96602f17ac7cc724a4e52c503592a95f099249105bf3847"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-lucullus-and-cimon-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-lucullus-and-cimon/expressions/en-perseus-tlg0007-tlg037-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg037.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-lucullus-and-cimon/work.json",
+        "sha256": "7f7195673a5c5978257a4b119d325e55de79d1ad52a360d3af23b6a8efa25672"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-nicias-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/nicias/expressions/en-perseus-tlg0007-tlg038-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg038.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/nicias/work.json",
+        "sha256": "95cff5018a24b1e4fe6fb1a69c664ceb50e04c09179c9e380f19a1a524452d5e"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-crassus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/crassus/expressions/en-perseus-tlg0007-tlg039-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg039.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/crassus/work.json",
+        "sha256": "ac52b7a21428889a754c30ea7cc85abbf8f67a03dc5220f078947ad66ec4d36a"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-nicias-and-crassus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-nicias-and-crassus/expressions/en-perseus-tlg0007-tlg040-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg040.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-nicias-and-crassus/work.json",
+        "sha256": "dd3e4c210ca89149f1851bac07da0abaa3d59b398a12d32893588c0d455a88f7"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-eumenes-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/eumenes/expressions/en-perseus-tlg0007-tlg041-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg041.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/eumenes/work.json",
+        "sha256": "4562cd0355c510fca1aa18be7e9fe70d1d083a383077e5df99b8fb6c8980d8ef"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-sertorius-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/sertorius/expressions/en-perseus-tlg0007-tlg042-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg042.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/sertorius/work.json",
+        "sha256": "5ccf4639641a49e015e7f659c1af3f24b82c164cd3b19228b4b2d3b112df70c4"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-sertorius-and-eumenes-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-sertorius-and-eumenes/expressions/en-perseus-tlg0007-tlg043-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg043.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-sertorius-and-eumenes/work.json",
+        "sha256": "f6c703d14669ed596b8240e548e704f17531c403633a32cf693736890dacb333"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-agesilaus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/agesilaus/expressions/en-perseus-tlg0007-tlg044-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg044.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/agesilaus/work.json",
+        "sha256": "fbf69a73bbef6c1a1b36f2588ebc0518926f408f04f5f0d9d4e9273cfa1da1bd"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-pompey-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/pompey/expressions/en-perseus-tlg0007-tlg045-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg045.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/pompey/work.json",
+        "sha256": "7459417ad872da15ede0f0c1f921d28704fcd73125e101090744f2a6b51cfdd3"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-agesilaus-and-pompey-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-agesilaus-and-pompey/expressions/en-perseus-tlg0007-tlg046-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg046.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-agesilaus-and-pompey/work.json",
+        "sha256": "e3a420f978125f825f14ea7e77e000ade147a8819794c490717888433f001fb1"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-alexander-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/alexander/expressions/en-perseus-tlg0007-tlg047-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg047.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/alexander/work.json",
+        "sha256": "cd5e64fd8b1e0d3ebcdaf9ce6dc4bae95fce5d2109ffc66678e0e93831dd532e"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-caesar-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/caesar/expressions/en-perseus-tlg0007-tlg048-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg048.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/caesar/work.json",
+        "sha256": "f8a2339d4a5dd9e61b0cc6afe680af75e8a8256979f8682180932023a23d7a1d"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-phocion-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/phocion/expressions/en-perseus-tlg0007-tlg049-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg049.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/phocion/work.json",
+        "sha256": "e99fe4b1e25776c2af8f220bfbfb3eda961b463298454a37a4c1ab9705599c87"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-cato-the-younger-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/cato-the-younger/expressions/en-perseus-tlg0007-tlg050-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg050.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/cato-the-younger/work.json",
+        "sha256": "fac463e3824c71d6d7026328d4780b1718e6d7a747a0f618134ec6d7d651afc0"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-agis-and-cleomenes-and-the-gracchi-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-agis-and-cleomenes-and-the-gracchi/expressions/en-perseus-tlg0007-tlg053-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg053.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-agis-and-cleomenes-and-the-gracchi/work.json",
+        "sha256": "b1dd65f4020cae21cd8a9beab7e14b1f0d1dca50b420cbd6bf72e010a20feb8c"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-demosthenes-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/demosthenes/expressions/en-perseus-tlg0007-tlg054-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg054.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/demosthenes/work.json",
+        "sha256": "46053f70268353628e1d55c5ffd72984fdc88f1333060790b86f4b330eb004fa"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-cicero-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/cicero/expressions/en-perseus-tlg0007-tlg055-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg055.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/cicero/work.json",
+        "sha256": "3dcad58c1922b8bd1520062e1ac230f89ea60b6036b3c00714801b029e82bcc4"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-demosthenes-and-cicero-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-demosthenes-and-cicero/expressions/en-perseus-tlg0007-tlg056-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg056.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-demosthenes-and-cicero/work.json",
+        "sha256": "b33df735c43081129147bcf85594e8dbb094466d32c31471594868850e8c4526"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-demetrius-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/demetrius/expressions/en-perseus-tlg0007-tlg057-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg057.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/demetrius/work.json",
+        "sha256": "f1421c8c874c4ea263f6106e4bb617e239e23838437190aaadf8a82e3eeab9b5"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-antony-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/antony/expressions/en-perseus-tlg0007-tlg058-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg058.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/antony/work.json",
+        "sha256": "2760cf563e966073354def194c5224f2343f21e1f1d413f3eac9289f8b821b24"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-demetrius-and-antony-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-demetrius-and-antony/expressions/en-perseus-tlg0007-tlg059-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg059.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-demetrius-and-antony/work.json",
+        "sha256": "aaf1e180673028d3e71d83f5c7f2edc7ed392ebf9674a94808117d1c4c4e4b1b"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-dion-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/dion/expressions/en-perseus-tlg0007-tlg060-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg060.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/dion/work.json",
+        "sha256": "52ba63ea1708deb89906a4e91296126f4a19830fc73540f5438557c473e9e71e"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-brutus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/brutus/expressions/en-perseus-tlg0007-tlg061-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg061.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/brutus/work.json",
+        "sha256": "6ab5535b370a67160c82d287777c1376348464d42425f9d5c763be6dec21e492"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-comparison-of-dion-and-brutus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/comparison-of-dion-and-brutus/expressions/en-perseus-tlg0007-tlg062-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg062.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-dion-and-brutus/work.json",
+        "sha256": "44cfe895355696b1cc31cd00e87d33202da927f39f693db222571480582069ab"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-aratus-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/aratus/expressions/en-perseus-tlg0007-tlg063-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg063.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/aratus/work.json",
+        "sha256": "ab784e5fcff0e198c3d860a64ea7143ceff00bc87ebe9418a44fffccfe362501"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-artaxerxes-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/artaxerxes/expressions/en-perseus-tlg0007-tlg064-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg064.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/artaxerxes/work.json",
+        "sha256": "5fd1af1cd3079ab0265656b540836344e659ebc6dbb09740b465b48df94fe630"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-galba-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/galba/expressions/en-perseus-tlg0007-tlg065-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg065.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/galba/work.json",
+        "sha256": "de0ff6c1236afb59df2a258a836c41a2358ac2572b2d2ab523937edf843e1d5d"
+      },
+      "parallel_Greek_payloads_present": true
+    },
+    {
+      "target_slug": "plutarch-otho-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/plutarch/otho/expressions/en-perseus-tlg0007-tlg066-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg066.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/plutarch/otho/work.json",
+        "sha256": "a326ad4af237092b7dec29db2361b94918709134741429bb44aceaaca8732ad6"
+      },
+      "parallel_Greek_payloads_present": true
+    }
+  ]
+}

@@ -26,3 +26,11 @@ Exact The Handbook Greek edition within the reviewed Эпиктет source need;
 - Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.
 - Arrian recording/editing/epitomizing and the earlier oral teaching remain distinct transmission layers.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## English translation added 2026-09-09
+
+[English version and source file](../registry-the-handbook-english/README.md). Shared Work identity does not establish edition dependence or alignment.
+
+## Additional English version: the-handbook-english-1890
+
+[English version and source file](../registry-the-handbook-english-1890/README.md). Shared Work identity does not establish edition dependence or alignment.

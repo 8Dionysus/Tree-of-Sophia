@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>Of the Three Sorts of Government, Monarchy, Democracy, and Oligarchy.</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">R. Smith</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         		<name>Angelia Hanhardt</name>
+         		<name>Michael Konieczny</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Karina Cooper</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg119.perseus-eng4.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch’s Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">5</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst05plutuoft/page/394">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	<editorialDecl>
+      		<quotation marks="none"/>
+      		<correction status="high" method="silent">
+      			<p>optical character recognition</p>
+      		</correction>
+      	</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+      	<refsDecl n="CTS">
+      		<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts section.</p>
+      		</cRefPattern>
+            
+         </refsDecl>
+      	<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Karina Cooper" when="2019-07-19">EpiDoc and CTS conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg119.perseus-eng4">
+      	<div n="urn:cts:greekLit:tlg0007.tlg119.perseus-eng4" type="translation" xml:lang="eng">
+         <head>Of the three sorts of government, monarchy, democracy, and oligarchy.</head>
+         <pb xml:id="v.5.p.395"/>
+      	 <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg119.perseus-eng4" n="1"><p rend="indent">As I was considering with myself to bring forth and propose to the judgment of this worthy company the discourse I held yesterday in your presence, methought I heard political virtue — not in the illusion of a dream, but in a true and real vision — say thus to me: <quote rend="blockquote"> <lg> <l>A golden ground is laid for sacred songs.</l> </lg> </quote> We have already laid the foundation of the discourse by persuading and exhorting persons to concern themselves in managing the affairs of the commonweal, and now we proceed to build upon it the doctrine which is due after such an exhortation. For after a man has received an admonition and exhortation to deal in the affairs of the state, there ought consequently to be given him the precepts of government, following and observing which, he may, as much as it is possible for a man to do, profit the public, and in the mean time honestly prosecute his own affairs with such safety and honor as shall be meet for him.</p> 
+      	    <p rend="indent">There is first then one point to be discoursed, which, as it is precedent to what we have hereafter to say, so depends on what we have said before. Now this is, what sort of policy and government is best? For as there are many sorts of lives in particular men, so also are there in people and states; and the life of a people or state is its policy and government. It is therefore necessary to declare which <pb xml:id="v.5.p.396"/> is the best, that a statesman may choose it from among the rest, or, if that is not possible for him to do, he may at least take that which has the nearest resemblance to the best.</p> </div>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg119.perseus-eng4" n="2"><p rend="indent">Now there is one signification of this word policy (<foreign xml:lang="grc">πολιτεία</foreign>) which imports as much as <emph>burgess-ship,</emph> that is, a participation in the rights and privileges belonging to a town, city, or borough; as when we say that the Megarians, by an edict of their city, presented Alexander the Great with their <emph>policy,</emph> that is, their <emph>burgess-ship,</emph> and that, Alexander laughing at the offer they made him of it, they answered him, that they had never decreed that honor to any but Hercules and now to himself. This he wondering to hear accepted their present, thinking it honorable inasmuch as it was rare. The life also of a political person, who is concerned in the government of the commonweal, is called policy, as when we praise the policy of Pericles or Bias, that is, the manner of their government, and on the contrary, blame that of Hyperbolus and Cleon. Some moreover there are, who call a great and memorable action performed in the administration of a commonweal a policy, such as is the distribution of money, the suppressing of a war, the introduction of some notable decree worthy to be kept in perpetual memory. In which signification it is a common manner of speaking to say, This man to-day has done a policy, if he has peradventure effected some remarkable matter in the government of the state.</p> </div>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg119.perseus-eng4" n="3"><p rend="indent">Besides all these significations there is yet another, that is, the order and state by which a commonweal is governed, and by which affairs are managed and administered. According to which we say that there are three sorts of policy or public government, — to wit, Monarchy, which is regality or kingship, Oligarchy, which is the government by peers and nobles, and

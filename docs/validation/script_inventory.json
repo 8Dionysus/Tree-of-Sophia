@@ -245,7 +245,7 @@
       "owner_surface": "ToS/philosophy/README.md",
       "source_truth": [
         "ToS/contracts/philosophy-source-planting.schema.json",
-        "ToS/philosophy/source-planting-preparation/first-wave-20260908.json"
+        "ToS/philosophy/source-planting-preparation/cross-branch-source-anchors-20260908.json"
       ],
       "reads": [
         "current atlas rows, branch metadata and source backlog anchors"
@@ -262,9 +262,16 @@
       "family": "projection_validator",
       "organ_lane": "projection/generated",
       "owner_surface": "access/AGENTS.md",
-      "source_truth": ["access/src/tos_access/knowledge.py", "access/src/tos_access/normalization_cache.py"],
-      "reads": ["five knowledge inputs and the current normalization processor"],
-      "writes": ["explicit new scratch SQLite cache and adjacent diagnostic JSONL outside the repository"],
+      "source_truth": [
+        "access/src/tos_access/knowledge.py",
+        "access/src/tos_access/normalization_cache.py"
+      ],
+      "reads": [
+        "five knowledge inputs and the current normalization processor"
+      ],
+      "writes": [
+        "explicit new scratch SQLite cache and adjacent diagnostic JSONL outside the repository"
+      ],
       "side_effects": "opt-in resource-admitted corpus benchmark; in-memory variants only; no source changes or imports",
       "validation_lane": "standalone_access",
       "ci_inclusion": "inventory-only",
@@ -276,9 +283,16 @@
       "family": "projection_validator",
       "organ_lane": "public-compatibility",
       "owner_surface": "access/AGENTS.md",
-      "source_truth": ["access/contracts/knowledge-api.v1.json", "access/src/tos_access/core.py"],
-      "reads": ["knowledge inputs, explicit UI client module and built HTML"],
-      "writes": ["optional new diagnostic JSONL outside the repository"],
+      "source_truth": [
+        "access/contracts/knowledge-api.v1.json",
+        "access/src/tos_access/core.py"
+      ],
+      "reads": [
+        "knowledge inputs, explicit UI client module and built HTML"
+      ],
+      "writes": [
+        "optional new diagnostic JSONL outside the repository"
+      ],
       "side_effects": "opt-in local measurement; starts and closes its own loopback server; no UI edits or deployment",
       "validation_lane": "standalone_access",
       "ci_inclusion": "inventory-only",
@@ -290,9 +304,15 @@
       "family": "projection_helper",
       "organ_lane": "shared-library",
       "owner_surface": "access/AGENTS.md",
-      "source_truth": ["access/deploy/cloudflare-worker/scripts/build_runtime.py"],
-      "reads": ["exact stage input and output bytes and checkpoint manifest"],
-      "writes": ["caller-owned ignored checkpoint manifest and build lock"],
+      "source_truth": [
+        "access/deploy/cloudflare-worker/scripts/build_runtime.py"
+      ],
+      "reads": [
+        "exact stage input and output bytes and checkpoint manifest"
+      ],
+      "writes": [
+        "caller-owned ignored checkpoint manifest and build lock"
+      ],
       "side_effects": "local build-stage reuse with content verification; no publication or source mutation",
       "validation_lane": "standalone_access",
       "ci_inclusion": "focused-tests",
@@ -304,9 +324,15 @@
       "family": "projection_helper",
       "organ_lane": "shared-library",
       "owner_surface": "access/AGENTS.md",
-      "source_truth": ["access/deploy/cloudflare-worker/scripts/build_runtime.py"],
-      "reads": ["deterministic producer SQL and exact prior row index"],
-      "writes": ["caller-selected delta SQL and row index"],
+      "source_truth": [
+        "access/deploy/cloudflare-worker/scripts/build_runtime.py"
+      ],
+      "reads": [
+        "deterministic producer SQL and exact prior row index"
+      ],
+      "writes": [
+        "caller-selected delta SQL and row index"
+      ],
       "side_effects": "generates bounded SQL statements for later guarded publication; does not import or deploy",
       "validation_lane": "standalone_access",
       "ci_inclusion": "focused-tests",
@@ -318,9 +344,15 @@
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "access/AGENTS.md",
-      "source_truth": ["access/deploy/cloudflare-worker/scripts/build_runtime.py"],
-      "reads": ["producer SQL and exact serving baseline in an explicitly selected offline SQLite store"],
-      "writes": ["the existing explicit local SQLite store in one transaction"],
+      "source_truth": [
+        "access/deploy/cloudflare-worker/scripts/build_runtime.py"
+      ],
+      "reads": [
+        "producer SQL and exact serving baseline in an explicitly selected offline SQLite store"
+      ],
+      "writes": [
+        "the existing explicit local SQLite store in one transaction"
+      ],
       "side_effects": "local bootstrap only while workerd is stopped; guarded base/target revisions; no remote import or source mutation",
       "validation_lane": "standalone_access",
       "ci_inclusion": "focused-tests",
@@ -332,9 +364,15 @@
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "access/AGENTS.md",
-      "source_truth": ["access/deploy/cloudflare-worker/scripts/build_runtime.py"],
-      "reads": ["bounded producer SQL records from an explicit source byte offset"],
-      "writes": ["one exclusively created caller-selected temporary SQL chunk"],
+      "source_truth": [
+        "access/deploy/cloudflare-worker/scripts/build_runtime.py"
+      ],
+      "reads": [
+        "bounded producer SQL records from an explicit source byte offset"
+      ],
+      "writes": [
+        "one exclusively created caller-selected temporary SQL chunk"
+      ],
       "side_effects": "byte-preserving SQLite statement framing shared by local bootstrap and Wrangler chunk preparation; no database access, import, deployment or source mutation",
       "validation_lane": "standalone_access",
       "ci_inclusion": "focused-tests",
@@ -362,6 +400,28 @@
       "validation_lane": "standalone_access",
       "ci_inclusion": "release",
       "test_target": "access/tests/test_access_contract.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "access/packaging/tos_build_backend.py",
+      "family": "standalone_bundle_builder",
+      "organ_lane": "release",
+      "owner_surface": "access/AGENTS.md",
+      "source_truth": [
+        "access/pyproject.toml",
+        "access/contracts/runtime-data.v1.json"
+      ],
+      "reads": [
+        "access/pyproject.toml",
+        "access/src/tos_access/"
+      ],
+      "writes": [
+        "wheel and source archives selected by the PEP 517 frontend"
+      ],
+      "side_effects": "creates setuptools build metadata and build trees plus requested wheel or source archives; streams existing runtime bytes without compiling or publishing",
+      "validation_lane": "standalone_access",
+      "ci_inclusion": "release",
+      "test_target": "access/tests/test_streaming_wheel.py",
       "disposition": "keep"
     },
     {
@@ -472,9 +532,21 @@
       "family": "knowledge_assessment_journal",
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "source_truth": ["ToS/doctrine/KNOWLEDGE_ASSESSMENT.md", "ToS/contracts/knowledge-assessment-batch.schema.json", "ToS/contracts/native-text-unit-assessment-subject.schema.json"],
-      "reads": ["configured source-owner assessment hash chain and trusted engine/context/authenticated submissions", "local CLI: independently selected protected owner snapshot, explicit bounded source-witness corpus/claim/historical/form and declared metadata/Claim files, exact selected endpoint closure and registry/schema digests, and bounded JSON request on stdin", "declared metadata profiles: bounded native semantic identity inventory with protected byte/membership recheck; only its opaque hash joins owner_snapshot, not native paths in public source_contracts", "v3: explicit native TextUnit bindings, protected metadata closure and optional exact public or owner-local UTF-8 representation; raw configuration and consumed dependencies rechecked under journal lock and before head publication", "v4: independently selected confidential context, exact private semantic records/current forms and native text through owner_local_assessment_sources.py; confidential journal and raw configuration snapshots, currentness and source-language scope; public graph entry refuses v4 before private IO"],
-      "writes": ["immutable assessment batches and atomic per-subject head in the explicitly configured owner directory"],
+      "source_truth": [
+        "ToS/doctrine/KNOWLEDGE_ASSESSMENT.md",
+        "ToS/contracts/knowledge-assessment-batch.schema.json",
+        "ToS/contracts/native-text-unit-assessment-subject.schema.json"
+      ],
+      "reads": [
+        "configured source-owner assessment hash chain and trusted engine/context/authenticated submissions",
+        "local CLI: independently selected protected owner snapshot, explicit bounded source-witness corpus/claim/historical/form and declared metadata/Claim files, exact selected endpoint closure and registry/schema digests, and bounded JSON request on stdin",
+        "declared metadata profiles: bounded native semantic identity inventory with protected byte/membership recheck; only its opaque hash joins owner_snapshot, not native paths in public source_contracts",
+        "v3: explicit native TextUnit bindings, protected metadata closure and optional exact public or owner-local UTF-8 representation; raw configuration and consumed dependencies rechecked under journal lock and before head publication",
+        "v4: independently selected confidential context, exact private semantic records/current forms and native text through owner_local_assessment_sources.py; confidential journal and raw configuration snapshots, currentness and source-language scope; public graph entry refuses v4 before private IO"
+      ],
+      "writes": [
+        "immutable assessment batches and atomic per-subject head in the explicitly configured owner directory"
+      ],
       "side_effects": "Unix UID/path checks, file locking and fsync; appends qualified assessment history, not source assertions, model attestation, canon, public API authorization or publication",
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
@@ -486,8 +558,18 @@
       "family": "source_assessment_selection",
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "source_truth": ["ToS/doctrine/KNOWLEDGE_ASSESSMENT.md", "ToS/contracts/owner-local-source-context.schema.json", "ToS/contracts/human-form-set.schema.json", "scripts/source_owner_record_profiles.py", "scripts/source_owner_claim_profiles.py"],
-      "reads": ["independently configured owner-local context and bounded exact semantic source records/current adjacent forms", "optional exact private Claims and independently selected typed source/native grounding; required current assessment evidence and source-language closure", "public registry/profile grammar, source-context form schemas and explicitly scoped native closure; opaque snapshot rechecks"],
+      "source_truth": [
+        "ToS/doctrine/KNOWLEDGE_ASSESSMENT.md",
+        "ToS/contracts/owner-local-source-context.schema.json",
+        "ToS/contracts/human-form-set.schema.json",
+        "scripts/source_owner_record_profiles.py",
+        "scripts/source_owner_claim_profiles.py"
+      ],
+      "reads": [
+        "independently configured owner-local context and bounded exact semantic source records/current adjacent forms",
+        "optional exact private Claims and independently selected typed source/native grounding; required current assessment evidence and source-language closure",
+        "public registry/profile grammar, source-context form schemas and explicitly scoped native closure; opaque snapshot rechecks"
+      ],
       "writes": [],
       "side_effects": "read-only protected owner-local source selection and shared form-lineage validation; source-required Claim/form evidence remains distinct from optional engine records and same-origin native evidence from independent corroboration; no source mutation, corpus scan, model calls, independent assessment, admission, projection or publication",
       "validation_lane": "mechanics_local",
@@ -500,9 +582,33 @@
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "source_truth": ["ToS/doctrine/HUMAN_FORMS.md", "ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/contracts/human-form.schema.json", "ToS/contracts/human-form-set.schema.json", "ToS/contracts/historical-record.schema.json", "ToS/contracts/historical-claim.schema.json", "ToS/contracts/provenance-event-v2.schema.json", "ToS/contracts/sign-description-record.schema.json", "ToS/doctrine/KNOWLEDGE_ASSESSMENT.md", "ToS/doctrine/semantic-interchange/assessment-policy.v2.json"],
-      "reads": ["independently selected protected local owner delegation, explicit corpus/historical/profile record or one selected declared Claim and adjacent source form set", "bounded JSON command on stdin and the shared metadata/Claim field catalog; Claim form scope binds exact source-profile/schema inputs", "source creation and profile forms: bounded native semantic identity inventory, protected membership/byte recheck and opaque fingerprint separate from public profile inputs", "source creation: authored records, claims, metadata and Claim form histories, provenance, anchors, referenced metadata and schema/registry contracts for identity and dependency closure", "v2/profile/native creation: executing script and Python executable bytes, runtime/Unicode versions and process argv digest; no environment variables or private configuration disclosure", "Sign promotion: exact public source-bound candidate, complete native grounding, separately selected protected assessment owner and current journal/policy/competence result", "creation retry: bounded exact package and receipt bindings; existing source-revision archive reader for legitimate historical corrections, retained initial forms for later form versions"],
-      "writes": ["one adjacent source form set with current forms, retained predecessors and command receipts; sibling writer lock and invocation-local publication staging file", "separately delegated historical creation: new subject directory containing record, claims, forms and creation receipt; v2 adds canonical request, environment description and serialization provenance; global create lock and staging outside source-witnesses", "declared-profile or standalone native Agent/Place/Organization creation: existing source record, exact forms, request, environment, provenance and receipt; no new claims or schema registration", "separately delegated Sign issuance: same atomic subject package with exact historical promotion basis; selected candidate journal writer lock held from final check through publication"],
+      "source_truth": [
+        "ToS/doctrine/HUMAN_FORMS.md",
+        "ToS/doctrine/CORPUS_FOUNDATION.md",
+        "ToS/contracts/human-form.schema.json",
+        "ToS/contracts/human-form-set.schema.json",
+        "ToS/contracts/historical-record.schema.json",
+        "ToS/contracts/historical-claim.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json",
+        "ToS/contracts/sign-description-record.schema.json",
+        "ToS/doctrine/KNOWLEDGE_ASSESSMENT.md",
+        "ToS/doctrine/semantic-interchange/assessment-policy.v2.json"
+      ],
+      "reads": [
+        "independently selected protected local owner delegation, explicit corpus/historical/profile record or one selected declared Claim and adjacent source form set",
+        "bounded JSON command on stdin and the shared metadata/Claim field catalog; Claim form scope binds exact source-profile/schema inputs",
+        "source creation and profile forms: bounded native semantic identity inventory, protected membership/byte recheck and opaque fingerprint separate from public profile inputs",
+        "source creation: authored records, claims, metadata and Claim form histories, provenance, anchors, referenced metadata and schema/registry contracts for identity and dependency closure",
+        "v2/profile/native creation: executing script and Python executable bytes, runtime/Unicode versions and process argv digest; no environment variables or private configuration disclosure",
+        "Sign promotion: exact public source-bound candidate, complete native grounding, separately selected protected assessment owner and current journal/policy/competence result",
+        "creation retry: bounded exact package and receipt bindings; existing source-revision archive reader for legitimate historical corrections, retained initial forms for later form versions"
+      ],
+      "writes": [
+        "one adjacent source form set with current forms, retained predecessors and command receipts; sibling writer lock and invocation-local publication staging file",
+        "separately delegated historical creation: new subject directory containing record, claims, forms and creation receipt; v2 adds canonical request, environment description and serialization provenance; global create lock and staging outside source-witnesses",
+        "declared-profile or standalone native Agent/Place/Organization creation: existing source record, exact forms, request, environment, provenance and receipt; no new claims or schema registration",
+        "separately delegated Sign issuance: same atomic subject package with exact historical promotion basis; selected candidate journal writer lock held from final check through publication"
+      ],
       "side_effects": "Unix account/path checks, bounded shared locking, fsync and atomic form-set or no-replace new-subject publication; separately delegates metadata correction to source_revisions.py, declared Claim correction to claim_revisions.py, confidential native TextUnit creation to source_text_unit_commands.py and explicitly private profile/Claim transactions to source_owner_profile_commands.py/source_owner_claim_commands.py; internal provenance modes preserve local-only disclosure; no payload/graph writes, model calls, semantic assessment, new current-use grant or deployment",
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
@@ -514,9 +620,24 @@
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/doctrine/HUMAN_FORMS.md", "ToS/doctrine/semantic-interchange/relation-types.v1.json", "ToS/contracts/source-claim-record.schema.json", "ToS/contracts/owner-local-source-context.schema.json", "ToS/contracts/human-form-set.schema.json", "ToS/contracts/provenance-event-v2.schema.json"],
-      "reads": ["independently protected Claim/write/read scopes and exact private source context", "existing typed endpoint/native grounding through frozen candidate readers, source-copy forms and fresh shared grammar", "bounded public/private identity-only metadata scan; exact initial creation evidence, typed Claim history and protected archives"],
-      "writes": ["new or atomically exchanged protected private Claim stream package with source-copy/current/prior forms, retained request/configuration, common receipts and annotation-serialization provenance", "common byte-bound private predecessor archives, shared/private writer locks and invocation-local protected staging"],
+      "source_truth": [
+        "ToS/doctrine/CORPUS_FOUNDATION.md",
+        "ToS/doctrine/HUMAN_FORMS.md",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "ToS/contracts/source-claim-record.schema.json",
+        "ToS/contracts/owner-local-source-context.schema.json",
+        "ToS/contracts/human-form-set.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json"
+      ],
+      "reads": [
+        "independently protected Claim/write/read scopes and exact private source context",
+        "existing typed endpoint/native grounding through frozen candidate readers, source-copy forms and fresh shared grammar",
+        "bounded public/private identity-only metadata scan; exact initial creation evidence, typed Claim history and protected archives"
+      ],
+      "writes": [
+        "new or atomically exchanged protected private Claim stream package with source-copy/current/prior forms, retained request/configuration, common receipts and annotation-serialization provenance",
+        "common byte-bound private predecessor archives, shared/private writer locks and invocation-local protected staging"
+      ],
       "side_effects": "explicit claims.create, claim.revise and form changes; source/rights/scope/currentness checks, original-receipt replay and typed archived-version inspection; no private registry, public projection, payload mutation, model invocation, semantic assessment, admission or deployment",
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
@@ -528,9 +649,24 @@
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/doctrine/HUMAN_FORMS.md", "ToS/doctrine/semantic-interchange/entity-types.v1.json", "ToS/contracts/owner-local-source-context.schema.json", "ToS/contracts/native-text-unit-binding.schema.json", "ToS/contracts/human-form-set.schema.json", "ToS/contracts/provenance-event-v2.schema.json"],
-      "reads": ["independently protected owner-local write/access delegation and bounded common source requests", "unchanged public profile grammar, explicit private records/form sets, native source metadata and separately authorized exact content after current rights checks", "bounded public and selected private identity inputs, exact package archives and implementation dependencies"],
-      "writes": ["new or atomically exchanged mode-0700 private source package with mode-0600 source, forms, retained creation inputs and common receipts", "byte-bound previous record package archives under the selected private logical prefix, shared/private locks and invocation-local private staging"],
+      "source_truth": [
+        "ToS/doctrine/CORPUS_FOUNDATION.md",
+        "ToS/doctrine/HUMAN_FORMS.md",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/contracts/owner-local-source-context.schema.json",
+        "ToS/contracts/native-text-unit-binding.schema.json",
+        "ToS/contracts/human-form-set.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json"
+      ],
+      "reads": [
+        "independently protected owner-local write/access delegation and bounded common source requests",
+        "unchanged public profile grammar, explicit private records/form sets, native source metadata and separately authorized exact content after current rights checks",
+        "bounded public and selected private identity inputs, exact package archives and implementation dependencies"
+      ],
+      "writes": [
+        "new or atomically exchanged mode-0700 private source package with mode-0600 source, forms, retained creation inputs and common receipts",
+        "byte-bound previous record package archives under the selected private logical prefix, shared/private locks and invocation-local private staging"
+      ],
       "side_effects": "explicit source.create, record.revise and form create/revise using common grammar; exact replay, archived-version inspection and fresh source/context/rights checks; no public catalog, payload mutation, Claim writer, assessment, admission or publication",
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
@@ -542,9 +678,23 @@
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/contracts/source-text-unit-packet-v1.schema.json", "ToS/contracts/native-text-unit-binding.schema.json", "ToS/contracts/owner-local-source-context.schema.json", "ToS/contracts/rights-record.schema.json", "ToS/contracts/provenance-event-v2.schema.json"],
-      "reads": ["protected independently selected write delegation and source context; bounded spans/gaps request", "exact native metadata closure and only separately permitted UTF-8 representation after recorded local-derivation rights checks", "bounded public and selected private native identity metadata inventory, no payload/catalog/local-content scan; implementation dependencies and exact retry package bytes"],
-      "writes": ["one new mode-0700 private source package with mode-0600 native packet, retained configuration/request/environment, provenance and existing source-create receipt", "existing shared source lock, private store writer lock and invocation-local private staging outside source discovery"],
+      "source_truth": [
+        "ToS/doctrine/CORPUS_FOUNDATION.md",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/contracts/native-text-unit-binding.schema.json",
+        "ToS/contracts/owner-local-source-context.schema.json",
+        "ToS/contracts/rights-record.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json"
+      ],
+      "reads": [
+        "protected independently selected write delegation and source context; bounded spans/gaps request",
+        "exact native metadata closure and only separately permitted UTF-8 representation after recorded local-derivation rights checks",
+        "bounded public and selected private native identity metadata inventory, no payload/catalog/local-content scan; implementation dependencies and exact retry package bytes"
+      ],
+      "writes": [
+        "one new mode-0700 private source package with mode-0600 native packet, retained configuration/request/environment, provenance and existing source-create receipt",
+        "existing shared source lock, private store writer lock and invocation-local private staging outside source discovery"
+      ],
       "side_effects": "local-account explicit text-unit.create and exact retry, bounded atomic no-replace publication, unchanged source bytes and native IDs, fresh rights/dependency and staged-byte checks; no implicit private adapter, source-layer bootstrap, correction, linguistic assessment, admission, public collector or deployment",
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
@@ -556,9 +706,22 @@
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/doctrine/semantic-interchange/relation-types.v1.json", "ToS/contracts/source-claim-record.schema.json", "ToS/contracts/source-relation-claim.schema.json", "ToS/contracts/provenance-event-v2.schema.json"],
-      "reads": ["independently protected Claim creation delegation and bounded request", "existing source objects/claims, selected metadata evidence, anchors, provenance, exact profile/schema and implementation dependencies; grounding is also used by separately authorized correction", "replay: original-ID adjacent Claim forms, retained lineage and empty writer locks; exact initial bytes through the declared Claim revision archive when current Claims have corrections"],
-      "writes": ["one new flat source relation package: initial Claim stream, canonical request, environment, serialization provenance and receipt", "shared source writer lock and invocation-local staging outside source-witnesses"],
+      "source_truth": [
+        "ToS/doctrine/CORPUS_FOUNDATION.md",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "ToS/contracts/source-claim-record.schema.json",
+        "ToS/contracts/source-relation-claim.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json"
+      ],
+      "reads": [
+        "independently protected Claim creation delegation and bounded request",
+        "existing source objects/claims, selected metadata evidence, anchors, provenance, exact profile/schema and implementation dependencies; grounding is also used by separately authorized correction",
+        "replay: original-ID adjacent Claim forms, retained lineage and empty writer locks; exact initial bytes through the declared Claim revision archive when current Claims have corrections"
+      ],
+      "writes": [
+        "one new flat source relation package: initial Claim stream, canonical request, environment, serialization provenance and receipt",
+        "shared source writer lock and invocation-local staging outside source-witnesses"
+      ],
       "side_effects": "bounded local-account atomic no-replace Claim package publication; exact replay, current-scope and input checks; no existing source overwrite, semantic assessment, admission, model invocation, graph publication or deployment",
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
@@ -570,8 +733,15 @@
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/contracts/record-version-view.schema.json", "ToS/contracts/source-claim-record.schema.json"],
-      "reads": ["bounded public Claim catalog, current flat metadata package and complete shared retained correction chain", "exact original stream, manifest/blob/package fixity, source visibility and catalog identity/version/digest/line; invocation-local snapshots rechecked before return/publication"],
+      "source_truth": [
+        "ToS/doctrine/CORPUS_FOUNDATION.md",
+        "ToS/contracts/record-version-view.schema.json",
+        "ToS/contracts/source-claim-record.schema.json"
+      ],
+      "reads": [
+        "bounded public Claim catalog, current flat metadata package and complete shared retained correction chain",
+        "exact original stream, manifest/blob/package fixity, source visibility and catalog identity/version/digest/line; invocation-local snapshots rechecked before return/publication"
+      ],
       "writes": [],
       "side_effects": "pure public exact-version reader; no command config, journal, models, private payloads, assessment, admission or source writes; explicit unavailable statuses never substitute the latest record",
       "validation_lane": "mechanics_local",
@@ -584,9 +754,22 @@
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/doctrine/HUMAN_FORMS.md", "ToS/doctrine/semantic-interchange/relation-types.v1.json", "ToS/contracts/source-claim-record.schema.json", "ToS/contracts/human-form.schema.json", "ToS/contracts/human-form-set.schema.json"],
-      "reads": ["exact protected correction grant, one selected declared Claim in a bounded shared stream, adjacent forms and complete shared correction history; layer correction requires its separate exact transition grant and request", "byte-bound predecessor archives, source endpoint/evidence bindings and shared profile/schema/implementation dependencies"],
-      "writes": ["exact prior flat-package archive and manifest through source_revisions helpers", "one atomic stream, selected source-copy forms and shared claim-revision-history.json package; stable source writer lock and invocation-local staging"],
+      "source_truth": [
+        "ToS/doctrine/CORPUS_FOUNDATION.md",
+        "ToS/doctrine/HUMAN_FORMS.md",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "ToS/contracts/source-claim-record.schema.json",
+        "ToS/contracts/human-form.schema.json",
+        "ToS/contracts/human-form-set.schema.json"
+      ],
+      "reads": [
+        "exact protected correction grant, one selected declared Claim in a bounded shared stream, adjacent forms and complete shared correction history; layer correction requires its separate exact transition grant and request",
+        "byte-bound predecessor archives, source endpoint/evidence bindings and shared profile/schema/implementation dependencies"
+      ],
+      "writes": [
+        "exact prior flat-package archive and manifest through source_revisions helpers",
+        "one atomic stream, selected source-copy forms and shared claim-revision-history.json package; stable source writer lock and invocation-local staging"
+      ],
       "side_effects": "local-account scoped correction with fsync and Linux directory exchange; preserves other rows, companions, origin maker/provenance and old versions; no assessment, admission, identity change, model call, access-policy change or publication; abandoned staging is not deleted on retry",
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
@@ -598,9 +781,22 @@
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/doctrine/HUMAN_FORMS.md", "ToS/contracts/historical-record.schema.json", "ToS/contracts/human-form.schema.json", "ToS/contracts/human-form-set.schema.json"],
-      "reads": ["explicit delegated historical or declared-profile subject flat package and exact retained source-version archive", "bounded revision request, record and form contracts, implementation dependency bytes", "profile correction: protected native semantic identity closure fingerprint, without exporting native packet paths or rewriting historical receipts"],
-      "writes": ["tracked exact prior-package blob archive and manifest under source-witnesses/.record-revisions", "atomic current record/form/history package through source-root writer lock and staging outside source scanners"],
+      "source_truth": [
+        "ToS/doctrine/CORPUS_FOUNDATION.md",
+        "ToS/doctrine/HUMAN_FORMS.md",
+        "ToS/contracts/historical-record.schema.json",
+        "ToS/contracts/human-form.schema.json",
+        "ToS/contracts/human-form-set.schema.json"
+      ],
+      "reads": [
+        "explicit delegated historical or declared-profile subject flat package and exact retained source-version archive",
+        "bounded revision request, record and form contracts, implementation dependency bytes",
+        "profile correction: protected native semantic identity closure fingerprint, without exporting native packet paths or rewriting historical receipts"
+      ],
+      "writes": [
+        "tracked exact prior-package blob archive and manifest under source-witnesses/.record-revisions",
+        "atomic current record/form/history package through source-root writer lock and staging outside source scanners"
+      ],
       "side_effects": "protected local-account metadata writes, bounded fsync/archive verification and Linux directory exchange; removes only own unpublished staging or verified duplicate old staging; does not revise claims, grant admission, publish, invoke models or delete committed history",
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
@@ -612,8 +808,18 @@
       "family": "knowledge_assessment_policy",
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "source_truth": ["ToS/doctrine/KNOWLEDGE_ASSESSMENT.md", "ToS/doctrine/semantic-interchange/assessment-policy.v1.json", "ToS/contracts/knowledge-assessment.schema.json", "ToS/contracts/knowledge-assessment-policy.schema.json", "ToS/contracts/knowledge-assessment-authority.schema.json", "ToS/contracts/knowledge-assessment-competence.schema.json", "ToS/contracts/knowledge-assessment-batch.schema.json"],
-      "reads": ["assessment schemas and caller-supplied trusted snapshot, policy, authority, competence and authenticated assessment bindings"],
+      "source_truth": [
+        "ToS/doctrine/KNOWLEDGE_ASSESSMENT.md",
+        "ToS/doctrine/semantic-interchange/assessment-policy.v1.json",
+        "ToS/contracts/knowledge-assessment.schema.json",
+        "ToS/contracts/knowledge-assessment-policy.schema.json",
+        "ToS/contracts/knowledge-assessment-authority.schema.json",
+        "ToS/contracts/knowledge-assessment-competence.schema.json",
+        "ToS/contracts/knowledge-assessment-batch.schema.json"
+      ],
+      "reads": [
+        "assessment schemas and caller-supplied trusted snapshot, policy, authority, competence and authenticated assessment bindings"
+      ],
       "writes": [],
       "side_effects": "none; pure policy application, not semantic assessment or remote authentication",
       "validation_lane": "mechanics_local",
@@ -626,8 +832,14 @@
       "family": "human_form_materialization",
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "source_truth": ["ToS/doctrine/HUMAN_FORMS.md", "ToS/contracts/human-form.schema.json", "ToS/contracts/human-form-template.schema.json"],
-      "reads": ["source form schemas and caller-supplied exact source records, mandatory context, admitted templates and current assessment inputs"],
+      "source_truth": [
+        "ToS/doctrine/HUMAN_FORMS.md",
+        "ToS/contracts/human-form.schema.json",
+        "ToS/contracts/human-form-template.schema.json"
+      ],
+      "reads": [
+        "source form schemas and caller-supplied exact source records, mandatory context, admitted templates and current assessment inputs"
+      ],
       "writes": [],
       "side_effects": "none; bounded pure rendering with current freeform policy application, not source judgment or runtime authentication",
       "validation_lane": "mechanics_local",
@@ -879,8 +1091,14 @@
       "family": "projection_helper",
       "organ_lane": "shared-library",
       "owner_surface": "ToS/contracts/source-text-unit-packet-v1.schema.json",
-      "source_truth": ["ToS/contracts/source-text-unit-packet-v1.schema.json", "ToS/contracts/source-text-layer.schema.json", "ToS/doctrine/CORPUS_FOUNDATION.md"],
-      "reads": ["in-memory verified native packet/layer, exact text, delegated identities, scope, spans/gaps and method; no file or schema I/O inside construction"],
+      "source_truth": [
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/contracts/source-text-layer.schema.json",
+        "ToS/doctrine/CORPUS_FOUNDATION.md"
+      ],
+      "reads": [
+        "in-memory verified native packet/layer, exact text, delegated identities, scope, spans/gaps and method; no file or schema I/O inside construction"
+      ],
       "writes": [],
       "side_effects": "pure confidential native packet proposal with computed anchors, explicit partition, stable delegated IDs and preserved restrictions; no source mutation, identity admission, assessment or publication",
       "validation_lane": "source_witness_foundation",
@@ -893,8 +1111,14 @@
       "family": "projection_helper",
       "organ_lane": "shared-library",
       "owner_surface": "ToS/doctrine/CORPUS_FOUNDATION.md",
-      "source_truth": ["ToS/contracts/owner-local-source-context.schema.json", "ToS/doctrine/CORPUS_FOUNDATION.md"],
-      "reads": ["independently selected protected local context and public source-owned schema", "explicit logical refs partitioned between source/contract checkout and dedicated confidential store, never fallback or corpus discovery"],
+      "source_truth": [
+        "ToS/contracts/owner-local-source-context.schema.json",
+        "ToS/doctrine/CORPUS_FOUNDATION.md"
+      ],
+      "reads": [
+        "independently selected protected local context and public source-owned schema",
+        "explicit logical refs partitioned between source/contract checkout and dedicated confidential store, never fallback or corpus discovery"
+      ],
       "writes": [],
       "side_effects": "read-only owner/permission/transport verification and opaque dependency identity; no context discovery, source write, native read permission, publication or admission",
       "validation_lane": "source_witness_foundation",
@@ -907,8 +1131,22 @@
       "family": "projection_helper",
       "organ_lane": "shared-library",
       "owner_surface": "ToS/doctrine/CORPUS_FOUNDATION.md",
-      "source_truth": ["ToS/contracts/native-text-unit-binding.schema.json", "ToS/contracts/native-text-unit-assessment-subject.schema.json", "ToS/contracts/source-text-unit-packet-v1.schema.json", "ToS/contracts/source-text-layer.schema.json", "ToS/contracts/source-anchor-v2.schema.json", "ToS/contracts/corpus-record.schema.json", "ToS/contracts/source-item-manifest.schema.json", "ToS/contracts/rights-record.schema.json", "ToS/contracts/owner-local-source-context.schema.json"],
-      "reads": ["bounded explicit native packet/layer/anchor/rights, source-scope records, Item manifest, layer predecessors and fixed policy/configuration/publication support bytes", "exact mode only: one frozen UTF-8 text representation; no original Item payload, network or corpus scan", "optional explicitly selected protected owner-local context partitions private refs; default public resolver refuses its reserved namespace"],
+      "source_truth": [
+        "ToS/contracts/native-text-unit-binding.schema.json",
+        "ToS/contracts/native-text-unit-assessment-subject.schema.json",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/contracts/source-text-layer.schema.json",
+        "ToS/contracts/source-anchor-v2.schema.json",
+        "ToS/contracts/corpus-record.schema.json",
+        "ToS/contracts/source-item-manifest.schema.json",
+        "ToS/contracts/rights-record.schema.json",
+        "ToS/contracts/owner-local-source-context.schema.json"
+      ],
+      "reads": [
+        "bounded explicit native packet/layer/anchor/rights, source-scope records, Item manifest, layer predecessors and fixed policy/configuration/publication support bytes",
+        "exact mode only: one frozen UTF-8 text representation; no original Item payload, network or corpus scan",
+        "optional explicitly selected protected owner-local context partitions private refs; default public resolver refuses its reserved namespace"
+      ],
       "writes": [],
       "side_effects": "read-only metadata or explicitly authorized exact-byte return and versioned local assessment view; private dependency fixity is opaque, no source rewrite, linguistic acceptance, review fabrication, publication or public projection",
       "validation_lane": "source_witness_foundation",
@@ -921,8 +1159,19 @@
       "family": "projection_helper",
       "organ_lane": "shared-library",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "source_truth": ["ToS/contracts/owner-local-source-context.schema.json", "ToS/doctrine/semantic-interchange/entity-types.v1.json", "ToS/doctrine/semantic-interchange/relation-types.v1.json", "ToS/contracts/source-claim-record.schema.json", "ToS/contracts/native-text-unit-binding.schema.json", "explicit source schema routes declared by each profile"],
-      "reads": ["one explicitly selected private Claim stream, or a frozen no-file writer candidate, and independently scoped actual public/private source records through their existing profiles", "full separately selected native metadata and optionally authorized exact text; rights checked before exact content", "consumed source, context, grammar, native identity and dependency snapshots with finite byte/file/record bounds; candidate mode and canonical body are separately frozen"],
+      "source_truth": [
+        "ToS/contracts/owner-local-source-context.schema.json",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "ToS/contracts/source-claim-record.schema.json",
+        "ToS/contracts/native-text-unit-binding.schema.json",
+        "explicit source schema routes declared by each profile"
+      ],
+      "reads": [
+        "one explicitly selected private Claim stream, or a frozen no-file writer candidate, and independently scoped actual public/private source records through their existing profiles",
+        "full separately selected native metadata and optionally authorized exact text; rights checked before exact content",
+        "consumed source, context, grammar, native identity and dependency snapshots with finite byte/file/record bounds; candidate mode and canonical body are separately frozen"
+      ],
       "writes": [],
       "side_effects": "read-only common Claim grammar and typed endpoint/evidence closure; local-only envelopes and opaque fixity, not a public projection; no corpus scan, arbitrary citation/path following, inference, model call, assessment, admission or publication",
       "validation_lane": "source_witness_foundation",
@@ -935,8 +1184,18 @@
       "family": "projection_helper",
       "organ_lane": "shared-library",
       "owner_surface": "ToS/doctrine/CORPUS_FOUNDATION.md",
-      "source_truth": ["ToS/contracts/owner-local-source-context.schema.json", "ToS/doctrine/semantic-interchange/entity-types.v1.json", "ToS/contracts/source-metadata-record.schema.json", "ToS/contracts/native-text-unit-binding.schema.json", "explicit source schema routes declared by each profile"],
-      "reads": ["explicit protected source context and separately supplied metadata/exact-native access scope", "public registry and shared exact schemas; selected local-only semantic records and frozen complete Occurrence binding", "separate metadata-only and explicitly exact native dependency snapshots; previously consumed record/configuration/contract bytes"],
+      "source_truth": [
+        "ToS/contracts/owner-local-source-context.schema.json",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/contracts/source-metadata-record.schema.json",
+        "ToS/contracts/native-text-unit-binding.schema.json",
+        "explicit source schema routes declared by each profile"
+      ],
+      "reads": [
+        "explicit protected source context and separately supplied metadata/exact-native access scope",
+        "public registry and shared exact schemas; selected local-only semantic records and frozen complete Occurrence binding",
+        "separate metadata-only and explicitly exact native dependency snapshots; previously consumed record/configuration/contract bytes"
+      ],
       "writes": [],
       "side_effects": "read-only composition over common profile grammar with private storage and no catalog/export methods; bounded opaque currentness without implicit content reads, identity reservation, derivation permission, assessment or admission",
       "validation_lane": "source_witness_foundation",
@@ -949,8 +1208,20 @@
       "family": "projection_helper",
       "organ_lane": "shared-library",
       "owner_surface": "ToS/doctrine/semantic-interchange/README.md",
-      "source_truth": ["ToS/doctrine/semantic-interchange/entity-types.v1.json", "ToS/doctrine/semantic-interchange/relation-types.v1.json", "ToS/contracts/semantic-entity-type-registry.schema.json", "ToS/contracts/semantic-relation-type-registry.schema.json", "ToS/contracts/corpus-record.schema.json", "ToS/contracts/source-claim-record.schema.json", "explicit source schema routes declared by each profile"],
-      "reads": ["bounded exact local source metadata/claims and source-owned profile/schema bytes", "source-witnesses/semantic-annotation*.json metadata discovered recursively outside payload/local-content/catalog, and semantic-annotation-packet-v2.schema.json, only for native identity reservation; restricted bodies and locators are not projected", "explicit native-binding profiles: bounded native metadata closure through native_text_binding; initial source creation additionally verifies exact separately public text, never private content"],
+      "source_truth": [
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "ToS/contracts/semantic-entity-type-registry.schema.json",
+        "ToS/contracts/semantic-relation-type-registry.schema.json",
+        "ToS/contracts/corpus-record.schema.json",
+        "ToS/contracts/source-claim-record.schema.json",
+        "explicit source schema routes declared by each profile"
+      ],
+      "reads": [
+        "bounded exact local source metadata/claims and source-owned profile/schema bytes",
+        "source-witnesses/semantic-annotation*.json metadata discovered recursively outside payload/local-content/catalog, and semantic-annotation-packet-v2.schema.json, only for native identity reservation; restricted bodies and locators are not projected",
+        "explicit native-binding profiles: bounded native metadata closure through native_text_binding; initial source creation additionally verifies exact separately public text, never private content"
+      ],
       "writes": [],
       "side_effects": "none; shared source-profile validation and lossless catalog binding, no code execution, remote retrieval, growth, assessment or publication authority",
       "validation_lane": "graph_exports",
@@ -963,9 +1234,20 @@
       "family": "projection_helper",
       "organ_lane": "shared-library",
       "owner_surface": "ToS/doctrine/HUMAN_FORMS.md",
-      "source_truth": ["ToS/contracts/corpus-record.schema.json", "ToS/contracts/historical-record.schema.json", "ToS/contracts/human-form-set.schema.json", "ToS/contracts/human-form.schema.json", "ToS/source-witnesses/**/*.human-forms.json"],
-      "reads": ["exact current bibliographic/historical/native-witness metadata or a validated declared Claim, source-declared field language/script, and adjacent bounded human-form set; Claim statement reading binds the entire Claim as mandatory context", "optional independently selected protected source-bound assessment configuration and committed journal through the owner command; current admission is recomputed without model calls"],
-      "writes": ["only when explicitly called by a local assessed builder: one separate new mode-0600 candidate using exclusive staging, fsync and atomic no-replace link"],
+      "source_truth": [
+        "ToS/contracts/corpus-record.schema.json",
+        "ToS/contracts/historical-record.schema.json",
+        "ToS/contracts/human-form-set.schema.json",
+        "ToS/contracts/human-form.schema.json",
+        "ToS/source-witnesses/**/*.human-forms.json"
+      ],
+      "reads": [
+        "exact current bibliographic/historical/native-witness metadata or a validated declared Claim, source-declared field language/script, and adjacent bounded human-form set; Claim statement reading binds the entire Claim as mandatory context",
+        "optional independently selected protected source-bound assessment configuration and committed journal through the owner command; current admission is recomputed without model calls"
+      ],
+      "writes": [
+        "only when explicitly called by a local assessed builder: one separate new mode-0600 candidate using exclusive staging, fsync and atomic no-replace link"
+      ],
       "side_effects": "default read-only metadata adapter; optional local research assembly checks exact source/form paths, config/journal drift and output bounds; no source/journal mutation, substantive assessment, template admission, public-safety clearance or runtime grant",
       "validation_lane": "graph_exports",
       "ci_inclusion": "focused-tests",
@@ -3604,6 +3886,50 @@
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_zarathustra_concept_workbench_v1.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/partitioned_projection_common.py",
+      "family": "projection_helper",
+      "organ_lane": "shared-library",
+      "owner_surface": "ToS/derived-exports/PARTITIONED_PROJECTIONS.md",
+      "source_truth": [
+        "ToS/contracts/partitioned-projection.schema.json",
+        "ToS/derived-exports/PARTITIONED_PROJECTIONS.md"
+      ],
+      "reads": [
+        "logical corpus and bibliographic builder collections",
+        "partitioned manifests and their validated closure"
+      ],
+      "writes": [
+        "caller-selected partitioned projection and content-addressed parts"
+      ],
+      "side_effects": "explicit build/check disk staging; writes only when called by builder",
+      "validation_lane": "graph_exports",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_partitioned_projections.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "access/src/tos_access/knowledge_compile.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "access/AGENTS.md",
+      "source_truth": [
+        "ToS/derived-exports/PARTITIONED_PROJECTIONS.md",
+        "access/contracts/runtime-data.v1.json",
+        "access/src/tos_access/knowledge.py"
+      ],
+      "reads": [
+        "verified projection closures and semantic registries"
+      ],
+      "writes": [
+        "explicit compiled SQLite query snapshot; default ToS/derived-exports/runtime/knowledge.sqlite3"
+      ],
+      "side_effects": "offline disk staging and atomic query artifact replacement; no authored source mutation, serving, publication or admission",
+      "validation_lane": "standalone_access",
+      "ci_inclusion": "release",
+      "test_target": "access/tests/test_knowledge_compile.py",
       "disposition": "keep"
     }
   ]

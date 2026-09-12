@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title xml:lang="lat">Partitiones Oratoriae</title>
+            
+            <author>M. Tullius Cicero</author>
+            <editor>Augustus Samuel Wilkins</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:Google">Google Digital Humanities Awards Program</funder>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2011-04-14">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi038.perseus-lat2.xml</idno>
+            <availability>
+            <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+         
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>M. Tullius Cicero</author>
+                  <title xml:lang="lat">Rhetorica</title>
+                  <editor>Augustus Samuel Wilkins</editor>
+                  <imprint>
+                     <pubPlace>Oxford</pubPlace>
+                     <publisher>Clarendon Press</publisher>
+                     <date>1902</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+                  <biblScope n="contents"/>
+               </monogr>
+               <series>
+                  <title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+                  <title type="alternative">Oxford Classical Texts</title>
+               </series>
+               <ref target="https://archive.org/details/rhetoricarecogno02ciceuoft/page/200/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState delim="." n="chunk" unit="chapter"/>
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+         <change when="2026-07" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN.</change>
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   
+<text xml:lang="lat">
+ <body> 
+<pb n="p.3001"/>
+<div xml:lang="lat" type="edition" n="urn:cts:latinLit:phi0474.phi038.perseus-lat2"> 
+<head rend="align(center)"> <abbr>M.<expan> <ex>Marci</ex> </expan> </abbr> Tvlli Ciceronis Partitiones Oratoriae</head> 
+
+ <div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi038.perseus-lat2" n="sigla" >
+ <head rend="align(center)">SIGLA</head> 
+ <p> <hi rend="italic">P=</hi> cod. Paris. 7231, saec. x</p> 
+ <p> <hi rend="italic">p=</hi> cod. Paris. 7696, saec. x</p> 
+ <p>codd. dett. = codices, saec. xv exscripti</p> </div>
+   
+<pb n="p.3002"/>
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi038.perseus-lat2" n="1"> <p rend="align(indent)"> <milestone n="1" unit="chapter"/><label type="speaker" rend="smallcaps" n="Cicero">Cicero.</label> Studeo, mi pater, Latine ex te audire ea quae mihi tu de ratione dicendi Graece tradidisti, si modo<note>si modo <hi rend="italic">vulg.</hi>: modo <hi rend="italic">Pp</hi> </note> tibi est otium et si vis. <label type="speaker" rend="smallcaps" n="Pater">Pater.</label> An est, mi Cicero, quod ego malim quam te quam doctissimum esse? Otium autem primum est summum, quoniam aliquando Roma exeundi potestas data est; deinde ista tua studia vel maximis occupationibus meis anteferrem libenter. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi038.perseus-lat2" n="2"> <p><label type="speaker" rend="smallcaps" n="Cicero">C.</label> Visne igitur, ut tu me Graece soles ordine interrogare, sic ego te vicissim isdem de rebus Latine interrogem? <label type="speaker" rend="smallcaps" n="Pater">P.</label> Sane, si placet. Sic enim et ego te meminisse intellegam quae accepisti, et tu ordine audies quae requires. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi038.perseus-lat2" n="3"> <p><label type="speaker" rend="smallcaps" n="Cicero">C.</label> Quot in partis tribuenda est omnis doctrina dicendi? <label type="speaker" rend="smallcaps" n="Pater">P.</label> Tris. <label type="speaker" rend="smallcaps" n="Cicero">C.</label> Cedo quas? <label type="speaker" rend="smallcaps" n="Pater">P.</label> Primum in ipsam vim oratoris, deinde in orationem, tum in quaestionem. <label type="speaker" rend="smallcaps" n="Cicero">C.</label> In quo est ipsa vis? <label type="speaker" rend="smallcaps" n="Pater">P.</label> In rebus et in verbis. Sed et res et verba invenienda sunt et conlocanda<note>collocanda <hi rend="italic">vulg.</hi>: locanda <hi rend="italic">Pp</hi> invenire <hi rend="italic">vulg.</hi>: inveniri <hi rend="italic">P</hi> </note>. Proprie autem in rebus invenire, in verbis eloqui dicitur. Conlocare autem, etsi est commune, tamen ad inveniendum refertur. Vox motus vultus atque omnis actio eloquendi comes est; earum<note>est; earum <hi rend="italic">vulg.</hi>: si earum <hi rend="italic">P</hi>: est: sed earum <hi rend="italic">ed. Rom.</hi>: sed rerum <hi rend="italic">Orelli</hi> </note> rerum omnium custos memoria. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi038.perseus-lat2" n="4"> <p><label type="speaker" rend="smallcaps" n="Cicero">C.</label> Quid? orationis quot sunt partes? <label type="speaker" rend="smallcaps" n="Pater">P.</label> Quattuor. Earum duae valent ad rem docendam, narratio et confirmatio; ad impellendos<note>pellendos <hi rend="italic">p</hi> </note> animos duae, principium <pb n="p.3003"/> et peroratio. <label type="speaker" rend="smallcaps" n="Cicero">C.</label> Quid? Quaestio quasnam habet partis? <label type="speaker" rend="smallcaps" n="Pater">P.</label> Infinitam, quam consultationem appello, et definitam, quam causam nomino. </p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi038.perseus-lat2" n="5"><p><milestone n="2" unit="chapter"/><label type="speaker" rend="smallcaps" n="Cicero">C.</label> Quoniam igitur invenire primum est oratoris, quid quaeret? <label type="speaker" rend="smallcaps" n="Pater">P.</label> Vt inven

@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:bb1cbf2f42c754c1cbac4c07605486b0544ef373744286436998c1d7a4146f7c",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:bb1cbf2f42c754c1cbac4c07605486b0544ef373744286436998c1d7a4146f7c",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:bb1cbf2f42c754c1cbac4c07605486b0544ef373744286436998c1d7a4146f7c",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:bb1cbf2f42c754c1cbac4c07605486b0544ef373744286436998c1d7a4146f7c",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.4c2b83577f5ad6c311a16e77b0c1bae9f8397421330aebda67190dd25364ad0c",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:c5b0cc3a1ec3541aa20d94113f2317d1260667d475dde8d6052f9a51784247fc",
+        "id": "tos.form.metadata.4c2b83577f5ad6c311a16e77b0c1bae9f8397421330aebda67190dd25364ad0c",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:bb1cbf2f42c754c1cbac4c07605486b0544ef373744286436998c1d7a4146f7c",
+        "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:bb1cbf2f42c754c1cbac4c07605486b0544ef373744286436998c1d7a4146f7c",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:bb1cbf2f42c754c1cbac4c07605486b0544ef373744286436998c1d7a4146f7c",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:bb1cbf2f42c754c1cbac4c07605486b0544ef373744286436998c1d7a4146f7c",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:bb1cbf2f42c754c1cbac4c07605486b0544ef373744286436998c1d7a4146f7c",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.52616043011f0b97c815ca7ad483113b5b2cb2531b14dded15f114c18f2cb4df",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:fe30104dcabcb686ada699cb84af7b79096291e59a372e0448f2b90586f7d8f3",
+        "id": "tos.form.metadata.52616043011f0b97c815ca7ad483113b5b2cb2531b14dded15f114c18f2cb4df",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:bb1cbf2f42c754c1cbac4c07605486b0544ef373744286436998c1d7a4146f7c",
+        "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:694918a08310a2583520835d3994a28ee8b23b97eae7bb836d79872a98154578",
+      "owner_configuration": "sha256:591f7a3ab94d67cdc8b9fd632b100bbe6d914d844475b05a2e1e27ef38b620a6",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:37.224242+00:00",
+      "request_digest": "sha256:2c7e0c0bf6a58345654d5f257197fc68493da35d97ebaf68717c2615b9e87dd9",
+      "results": [
+        {
+          "digest": "sha256:c5b0cc3a1ec3541aa20d94113f2317d1260667d475dde8d6052f9a51784247fc",
+          "id": "tos.form.metadata.4c2b83577f5ad6c311a16e77b0c1bae9f8397421330aebda67190dd25364ad0c",
+          "version": 1
+        },
+        {
+          "digest": "sha256:fe30104dcabcb686ada699cb84af7b79096291e59a372e0448f2b90586f7d8f3",
+          "id": "tos.form.metadata.52616043011f0b97c815ca7ad483113b5b2cb2531b14dded15f114c18f2cb4df",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:495bbd29cdf80a52a0fe083282da230b12ddaeda42cdae822c727318f5ad7b54",
+        "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:694918a08310a2583520835d3994a28ee8b23b97eae7bb836d79872a98154578",
+      "request_digest": "sha256:6e75b9d7c22fdcd3fd41e708e4db0066b2f690605bb22d652d2170648bb68fd1",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:bc57bb5bab4379096e100bb740ae89b15ccad326ca3b46c5b0fd9c9d93768545",
+      "recorded_at": "2026-09-09T18:35:26.795732+00:00",
+      "source": {
+        "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+        "version": 2,
+        "digest": "sha256:bb1cbf2f42c754c1cbac4c07605486b0544ef373744286436998c1d7a4146f7c"
+      },
+      "previous_revision": "sha256:6c4d42edda04ad482351b6428af5504960ac9933c7ccf41a929ce24562fdbb5b",
+      "results": [
+        {
+          "id": "tos.form.metadata.4c2b83577f5ad6c311a16e77b0c1bae9f8397421330aebda67190dd25364ad0c",
+          "version": 2,
+          "digest": "sha256:9cd7c88a1589aca43d6fa90cd184dc01c5fb77b4dc6f129c6311bba49db90f40"
+        },
+        {
+          "id": "tos.form.metadata.52616043011f0b97c815ca7ad483113b5b2cb2531b14dded15f114c18f2cb4df",
+          "version": 2,
+          "digest": "sha256:04d168775803711869da4110319001af864c478c5440aebf0e6895271f997013"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:495bbd29cdf80a52a0fe083282da230b12ddaeda42cdae822c727318f5ad7b54",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:495bbd29cdf80a52a0fe083282da230b12ddaeda42cdae822c727318f5ad7b54",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:495bbd29cdf80a52a0fe083282da230b12ddaeda42cdae822c727318f5ad7b54",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:495bbd29cdf80a52a0fe083282da230b12ddaeda42cdae822c727318f5ad7b54",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.4c2b83577f5ad6c311a16e77b0c1bae9f8397421330aebda67190dd25364ad0c",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:495bbd29cdf80a52a0fe083282da230b12ddaeda42cdae822c727318f5ad7b54",
+        "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:495bbd29cdf80a52a0fe083282da230b12ddaeda42cdae822c727318f5ad7b54",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:495bbd29cdf80a52a0fe083282da230b12ddaeda42cdae822c727318f5ad7b54",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:495bbd29cdf80a52a0fe083282da230b12ddaeda42cdae822c727318f5ad7b54",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:495bbd29cdf80a52a0fe083282da230b12ddaeda42cdae822c727318f5ad7b54",
+            "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.52616043011f0b97c815ca7ad483113b5b2cb2531b14dded15f114c18f2cb4df",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:495bbd29cdf80a52a0fe083282da230b12ddaeda42cdae822c727318f5ad7b54",
+        "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.quomodo-adulator-ab-amico-internoscatur",
+    "version": 2,
+    "digest": "sha256:bb1cbf2f42c754c1cbac4c07605486b0544ef373744286436998c1d7a4146f7c"
+  }
+}

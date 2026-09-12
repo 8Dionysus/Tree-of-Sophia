@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>Whether an Aged Man Ought to Meddle in State Affairs</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">F. Fetherston</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         		
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            
+            <respStmt>
+               <persName>Angelia Hanhardt</persName>
+               <orgName>Center for Hellenic Studies</orgName>        
+               <resp>CTS conversion</resp>
+            </respStmt>
+            
+            <respStmt>
+               <persName>Michael Konieczny</persName>
+               <orgName>Center for Hellenic Studies</orgName>        
+               <resp>CTS conversion</resp>
+            </respStmt>
+            
+         	</titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg117.perseus-eng4.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">5</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmorals51883plut/page/64">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	<editorialDecl>
+      		<quotation marks="none"/>
+      		<correction status="high" method="silent">
+      			<p>optical character recognition</p>
+      		</correction>
+      	</editorialDecl>
+         <!--<refsDecl doctype="TEI.2">
+            <state unit="section"/>
+         </refsDecl><refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+      	<p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts section.</p>
+      		</cRefPattern>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         	<language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2006" who="GRC">tagging</change>
+      	<change when="2019-07-26" who="Angelia Hanhardt">Angelia Hanhardt</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg117.perseus-eng4">
+      	<div n="urn:cts:greekLit:tlg0007.tlg117.perseus-eng4" type="translation" xml:lang="eng">
+         <head>Whether an aged man ought to meddle in
+				state affairs.</head>
+         <pb xml:id="v.5.p.64"/>
+      		<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg117.perseus-eng4" n="1"><p rend="indent">We are not ignorant, O Euphanes, that you, being an extoller of Pindar, have often in your mouth this saying of his, as a thing well and to the purpose spoken by him: <quote rend="blockquote"> <lg> <l>When as the combat’s once agreed, </l> <l>Who by pretence seeks to be freed </l> <l>Obscures his virtue quite.</l> </lg> </quote> But since sloth and effeminacy towards civil affairs, having many pretences, do for the last, as if it were drawn from the sacred line, tender to us old age, and thinking by this chiefly to abate and cool our honorable desire, allege that there is a certain decent dissolution, not only of the athletical, but also of the political period, or that there is in the revolution of our years a certain set and limited time, after which it is no more proper for us to employ ourselves in the conduct of the state than in the corporeal and robust exercises of youth; I esteem myself obliged to communicate also to you those sentiments of mine concerning old men’s intermeddling with public matters, which I am ever and anon ruminating on by myself; so that neither of us may desert that long course we have to this day held together, nor rejecting the political life, which has been (as it were) an intimate friend of our own years, change it for another to which we are absolute strangers, and with which we have not time to become acquainted and familiar, but that we may persist in what we had chosen and have been inured to from the beginning, putting the same <pb xml:id="v.5.p.65"/> conclusion to our life and our living honorably; unless we would, by the short space of life we have remaining, disgrace that longer time we have already lived, as having been spent idly and in nothing that is commendable. For tyranny is not an honorable sepulchre, as one told Dionysius, whose monarchy, obtained by and administered with injustice, did by its long continuance bring on him but a more perfect calamity; as Diogenes afterwards let his son know, when, seeing him at Corinth, of a tyrant become a private person, he said to him: <q>How unworthy of thyself, Dionysius, thou actest! For thou oughtest not to live here at liberty and fearless with us, but to spend thy life, as thy father did, even to old age, immured within a tyrannical fortress.</q> But the popular and legal government of a man accustomed to show himself no less profitable in obeying than in commanding is an honorable monument, which really adds to death the glory accruing from life. For this thing, as Simonides says, <q>goes last under the ground;</q> unless it be in those in whom humanity and the love of honor die first, and whose zeal for goodness sooner decays than their covetousness after temporal necessaries; as if the soul had its active and divine parts weaker than those that are passive and corporeal; which it were neither honest to say, nor yet to admit from those who affirm that only of gaining we are never weary. But we ought to turn to a better purpose the saying of Thucydides, and believe that it is not the desire of honor only that never grows old,<note resp="editor" place="inline" anchored="true">Thuc. <title rend="italic">II.</title> 44.</note> but much more also the inclinations to society and affection to the state, which continue even in ants and bees to the very last. For never did any one know a bee to become by age a drone, as some think it requisite of statesmen, of whom they expect that, when the vigor of their youth is past, they should retire and sit mouldy at home, suffering their active virtue to be consumed by idleness, <pb xml:id="v.5.p.66"/> as iron is by rust. For Cato excellently well said, that we ought no

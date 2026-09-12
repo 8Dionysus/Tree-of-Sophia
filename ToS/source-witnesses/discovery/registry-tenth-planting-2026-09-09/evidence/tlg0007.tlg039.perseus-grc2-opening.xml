@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+        <fileDesc>
+            <titleStmt>
+                <title xml:lang="grc">Κράσσος</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg039.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1916</date>
+</imprint>
+<biblScope unit="volume">3</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/liveswithenglish03plutuoft/page/314/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+    <cRefPattern n="section"
+        matchPattern="(\w+).(\w+)"
+        replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+        <p>This pointer pattern extracts chapter and section.</p>
+    </cRefPattern>
+    <cRefPattern n="chapter"
+        matchPattern="(\w+)"
+        replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+        <p>This pointer pattern extracts chapter.</p>
+    </cRefPattern>
+</refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+    <language ident="eng">English</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2018-02-09" who="Lisa Cerrato">EpiDoc and CTS file conversion</change>
+    <change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+    
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-grc2"> 
+    <div n="urn:cts:greekLit:tlg0007.tlg039.perseus-grc2" type="edition" xml:lang="grc"> 
+        <pb n="p.314"/> 
+        <head>Κράσσος</head>
+        
+
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-grc2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-grc2:1" n="1"><p>Μᾶρκος δὲ Κράσσος ἦν τιμητικοῦ καὶ θριαμβικοῦ <pb n="paris.1624.543"/> πατρός, ἐτράφη δʼ ἐν οἰκίᾳ μικρᾷ μετὰ δυοῖν ἀδελφῶν. καὶ τοῖς ἀδελφοῖς αὐτοῦ γυναῖκες ἦσαν ἔτι τῶν γονέων ζώντων, καὶ πάντες ἐπὶ τὴν αὐτὴν ἐφοίτων τράπεζαν, ὅθεν οὐχ ἥκιστα δοκεῖ καὶ διὰ τοῦτο σώφρων καὶ μέτριος γενέσθαι περὶ τὴν δίαιταν. ἀποθανόντος δὲ τοῦ ἑτέρου τῶν ἀδελφῶν τῇ γυναικὶ συνῴκησε καὶ τοὺς παῖδας ἐξ ἐκείνης ἔσχεν, οὐδενὸς ἧττον καὶ περὶ ταῦτα Ῥωμαίων εὔτακτος γενόμενος.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-grc2:1" n="2"><p>καίτοι προϊὼν καθʼ ἡλικίαν αἰτίαν ἔσχε Λικιννίᾳ συνιέναι τῶν Ἑστιάδων μιᾷ παρθένων· καὶ δίκην ἔφυγεν ἡ Λικιννία Πλωτίου τινὸς διώκοντος. ἦν δὲ προάστειον αὐτῇ καλόν, ὃ βουλόμενος λαβεῖν ὀλίγης τιμῆς ὁ Κράσσος καὶ διὰ τοῦτο προσκείμενος ἀεὶ τῇ γυναικὶ καὶ θεραπεύων, εἰς τὴν ὑποψίαν ἐκείνην ἐνέπεσε καὶ τρόπον τινὰ τῇ φιλοπλουτίᾳ τὴν αἰτίαν τῆς φθορᾶς ἀπολυσάμενος ὑπὸ τῶν δικαστῶν ἀφείθη, τὴν δὲ Λικιννίαν οὐκ ἀνῆκε πρότερον ἢ τοῦ κτήματος κρατῆσαι.</p></div> </div> 
+
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-grc2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-grc2:2" n="1"><p>Ῥωμαῖοι μὲν οὖν λέγουσι πολλαῖς ἀρεταῖς τοῦ Κράσσου κακίαν μόνην ἐπισκοτῆσαι τὴν φιλοπλουτίαν· ἔοικε δὲ μία πασῶν ἐρρωμενεστέρα <pb n="p.316"/> τῶν ἐν αὐτῷ κακιῶν γενομένη τὰς ἄλλας ἀμαυρῶσαι. τεκμήρια δὲ τῆς φιλοπλουτίας αὑτοῦ μέγιστα ποιοῦνται τόν τε τρόπον τοῦ πορισμοῦ καὶ τῆς οὐσίας τὸ μέγεθος.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-grc2:2" n="2"><p>τριακοσίων γὰρ οὐ πλείω κεκτημένος ἐν ἀρχῇ ταλάντων, εἶτα παρὰ τὴν ὑπατείαν ἀποθύσας μὲν τῷ Ἡρακλεῖ τὴν δεκάτην καὶ τόν δῆμον ἑστιάσας, τρεῖς δὲ μῆνας ἑκάστῳ Ῥωμαίων σιτηρέσιον ἐκ τῶν αὑτοῦ παρασχών, ὅμως πρὸ τῆς ἐπὶ Πάρθους στρατείας αὐτὸς αὐτῷ θέμενος ἐκλογισμὸν τῆς οὐσίας εὗρεν ἑκατὸν ταλάντων τίμημα πρὸς ἑπτακισχιλίοις.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-grc2:2" n="3"><p>τὰ δὲ πλεῖστα τούτων, εἰ δεῖ μετὰ βλασφ

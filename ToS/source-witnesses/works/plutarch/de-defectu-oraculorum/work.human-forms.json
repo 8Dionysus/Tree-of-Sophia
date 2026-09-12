@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:9aac7184b98f1d528a9f1d6a3024cde2fc7b68c3883eba484dd9c88d7352fba1",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 3
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:9aac7184b98f1d528a9f1d6a3024cde2fc7b68c3883eba484dd9c88d7352fba1",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 3
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:9aac7184b98f1d528a9f1d6a3024cde2fc7b68c3883eba484dd9c88d7352fba1",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 3
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:9aac7184b98f1d528a9f1d6a3024cde2fc7b68c3883eba484dd9c88d7352fba1",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 3
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.b45df62b9bae8a99027a85b86dd405855e9476f6c01a8bf5a7a8f1aae169861f",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:5818a8e78afd306ba9741eef913a00a4e1cd48135230ce83608aa6577707d849",
+        "id": "tos.form.metadata.b45df62b9bae8a99027a85b86dd405855e9476f6c01a8bf5a7a8f1aae169861f",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:9aac7184b98f1d528a9f1d6a3024cde2fc7b68c3883eba484dd9c88d7352fba1",
+        "id": "tos.work.plutarch.de-defectu-oraculorum",
+        "version": 3
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:9aac7184b98f1d528a9f1d6a3024cde2fc7b68c3883eba484dd9c88d7352fba1",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 3
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:9aac7184b98f1d528a9f1d6a3024cde2fc7b68c3883eba484dd9c88d7352fba1",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 3
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:9aac7184b98f1d528a9f1d6a3024cde2fc7b68c3883eba484dd9c88d7352fba1",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 3
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:9aac7184b98f1d528a9f1d6a3024cde2fc7b68c3883eba484dd9c88d7352fba1",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 3
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.d4dd06e80a6d1bf365b79731037011a03e0bc6e8fe11a447215d911af87a7184",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:e7a3292b9b0d6c7906232c175b60bdf9af53ca953293657823961e4794bd2a73",
+        "id": "tos.form.metadata.d4dd06e80a6d1bf365b79731037011a03e0bc6e8fe11a447215d911af87a7184",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:9aac7184b98f1d528a9f1d6a3024cde2fc7b68c3883eba484dd9c88d7352fba1",
+        "id": "tos.work.plutarch.de-defectu-oraculorum",
+        "version": 3
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "command_id": "foundation-source-forms-v1:tos.work.plutarch.de-defectu-oraculorum",
+      "owner_configuration": "sha256:0461b488baae023e599de86681df03bf2cdd27ac29684602951dbe4538577e85",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T15:55:21.062743+00:00",
+      "request_digest": "sha256:0eb71debe21729c5d1eddb139f1ee91d86021a23cd637187f399af54a8e5799b",
+      "results": [
+        {
+          "digest": "sha256:5818a8e78afd306ba9741eef913a00a4e1cd48135230ce83608aa6577707d849",
+          "id": "tos.form.metadata.b45df62b9bae8a99027a85b86dd405855e9476f6c01a8bf5a7a8f1aae169861f",
+          "version": 1
+        },
+        {
+          "digest": "sha256:e7a3292b9b0d6c7906232c175b60bdf9af53ca953293657823961e4794bd2a73",
+          "id": "tos.form.metadata.d4dd06e80a6d1bf365b79731037011a03e0bc6e8fe11a447215d911af87a7184",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:3a8b0b7a339fb9d785df3bb2eaace7e63887cae7df05ed398e319474e86ce7df",
+        "id": "tos.work.plutarch.de-defectu-oraculorum",
+        "version": 2
+      }
+    },
+    {
+      "command_id": "registry-seventh-source-forms:8ba9d6e2da8ab140bf2bebdecc304689850fc23a10dcc581461f1747e2e6bb51",
+      "request_digest": "sha256:3acade978eb5a0b85808b68fa8c6efbb3dbaf63cdbfe14d2086dbfa70d9d71eb",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:ce9d890298f261aa26c6cae81f52543f5c951504983c2a7dbcdbd976fc261f6c",
+      "recorded_at": "2026-09-09T19:51:53.196604+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-defectu-oraculorum",
+        "version": 3,
+        "digest": "sha256:9aac7184b98f1d528a9f1d6a3024cde2fc7b68c3883eba484dd9c88d7352fba1"
+      },
+      "previous_revision": "sha256:7a9aa5467635983ad25c4459d2d5b0c38514eead38179fcf8c15ac731719a0f0",
+      "results": [
+        {
+          "id": "tos.form.metadata.b45df62b9bae8a99027a85b86dd405855e9476f6c01a8bf5a7a8f1aae169861f",
+          "version": 2,
+          "digest": "sha256:b490b353c5e9db966057c2a9eef2f58f9fc9a1f4e49c240f93f4605cd6162d83"
+        },
+        {
+          "id": "tos.form.metadata.d4dd06e80a6d1bf365b79731037011a03e0bc6e8fe11a447215d911af87a7184",
+          "version": 2,
+          "digest": "sha256:b461482ac817cadd1436c9bd31faf301a53c4cefeff31093531899dae5f0eb98"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:3a8b0b7a339fb9d785df3bb2eaace7e63887cae7df05ed398e319474e86ce7df",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:3a8b0b7a339fb9d785df3bb2eaace7e63887cae7df05ed398e319474e86ce7df",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:3a8b0b7a339fb9d785df3bb2eaace7e63887cae7df05ed398e319474e86ce7df",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:3a8b0b7a339fb9d785df3bb2eaace7e63887cae7df05ed398e319474e86ce7df",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.b45df62b9bae8a99027a85b86dd405855e9476f6c01a8bf5a7a8f1aae169861f",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:3a8b0b7a339fb9d785df3bb2eaace7e63887cae7df05ed398e319474e86ce7df",
+        "id": "tos.work.plutarch.de-defectu-oraculorum",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:3a8b0b7a339fb9d785df3bb2eaace7e63887cae7df05ed398e319474e86ce7df",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:3a8b0b7a339fb9d785df3bb2eaace7e63887cae7df05ed398e319474e86ce7df",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:3a8b0b7a339fb9d785df3bb2eaace7e63887cae7df05ed398e319474e86ce7df",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:3a8b0b7a339fb9d785df3bb2eaace7e63887cae7df05ed398e319474e86ce7df",
+            "id": "tos.work.plutarch.de-defectu-oraculorum",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.d4dd06e80a6d1bf365b79731037011a03e0bc6e8fe11a447215d911af87a7184",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:3a8b0b7a339fb9d785df3bb2eaace7e63887cae7df05ed398e319474e86ce7df",
+        "id": "tos.work.plutarch.de-defectu-oraculorum",
+        "version": 2
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-defectu-oraculorum",
+    "version": 3,
+    "digest": "sha256:9aac7184b98f1d528a9f1d6a3024cde2fc7b68c3883eba484dd9c88d7352fba1"
+  }
+}

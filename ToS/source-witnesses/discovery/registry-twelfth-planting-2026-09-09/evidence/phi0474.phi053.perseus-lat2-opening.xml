@@ -1,0 +1,153 @@
+<?xml version="1.0"?>
+<!DOCTYPE TEI.2 PUBLIC "-//TEI P4//DTD Main DTD Driver File//EN" "http://www.tei-c.org/Guidelines/DTD/tei2.dtd" [
+<!ENTITY % TEI.XML "INCLUDE">
+<!ENTITY % PersProse PUBLIC "-//Perseus P4//DTD Perseus Prose//EN" "http://www.perseus.tufts.edu/DTD/1.0/PersProse.dtd" >
+%PersProse;
+]>
+<TEI.2>
+<teiHeader xml:lang="eng" type="text" status="new">
+<fileDesc>
+<titleStmt>
+	<title>De Divinatione</title>
+	<author>M. Tullius Cicero</author>
+<editor>William Armistead Falconer</editor>
+	<respStmt>
+		<resp>Prepared under the supervision of</resp>
+		<name>Bridget Almas</name>
+		<name>Lisa Cerrato</name>
+		<name>Rashmi Singhal</name>
+	</respStmt>
+	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+	<extent>About 100Kb</extent>
+	<publicationStmt>
+		<publisher>Trustees of Tufts University</publisher>
+		<pubPlace>Medford, MA</pubPlace>
+		<authority>Perseus Project</authority>
+		 <date type="release" when="2009-10-07">Perseus 4.0</date>
+	</publicationStmt><sourceDesc>
+<biblStruct>
+<monogr>
+<author>Cicero: De Senectute De Amicitia De Divinatione</author>
+<title>With An English Translation</title>
+    <editor>William Armistead Falconer</editor>
+<imprint>
+<pubPlace>Cambridge</pubPlace>
+<publisher>Harvard University Press; Cambridge, Mass., London, England</publisher>
+<date>1923</date>
+</imprint>
+</monogr>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+
+<encodingDesc>
+	<refsDecl doctype="TEI.2">
+		<state unit="book"/>
+		<state unit="section"/>
+	</refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure match="div1[@type='book']" use="@n" unit="book" delim=":">
+      <citeStructure match="div2[@type='section']" use="@n" unit="section" delim="." n="chunk"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+
+<profileDesc>
+<langUsage>
+	<language id="la">Latin</language>
+	<language id="en">English</language>
+<language id="greek">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change><date>2006</date>
+<respStmt><name>GRC</name><resp>tagging</resp></respStmt>
+<item></item>
+</change>
+
+</revisionDesc>
+</teiHeader>
+
+
+	<text xml:lang="lat" n="urn:cts:latinLit:phi0474.phi053.perseus-lat2"><body xml:base="urn:cts:latinLit:phi0474.phi053.perseus-lat2"><head>De Divinatione</head>
+<div1 type="book" n="1"><head>Liber Primus</head>
+	<pb id="p.222"/>
+	
+<div2 type="section" n="1"><p><milestone unit="chapter" n="1"/><reg>vetus</reg> opinio est iam usque ab heroicis ducta
+temporibus, eaque et populi Romani et omnium
+gentium firmata consensu, versari quandam inter
+homines divinationem, quam Graeci <foreign lang="greek">mantikh/n</foreign> appellant, id est praesensionem et scientiam rerum
+futurarum. <reg>magnifica</reg> quaedam res et salutaris, si
+modo est ulla, quaque proxime ad deorum vim natura
+mortalis possit accedere. <reg>itaque</reg> ut alia nos melius
+multa quam Graeci, sic huic praestantissimae rei
+nomen nostri a divis, Graeci, ut Plato interpretatur,
+a furore duxerunt.</p>
+</div2>
+
+<div2 type="section" n="2"><p><reg>gentem</reg> quidem nullam video neque tam humanam
+atque doctam neque tam immanem atque barbaram,
+quae non significari futura et a quibusdam intellegi
+praedicique posse censeat. <reg>principio</reg> Assyrii, ut
+ab ultimis auctoritatem repetam, propter planitiem
+magnitudinemque regionum, quas incolebant, cum
+caelum ex omni parte patens atque apertum intue-
+
+<pb id="p.224"/>
+
+rentur, traiectiones motusque stellarum observitaverunt, quibus notatis, quid cuique significaretur
+memoriae prodiderunt. <reg>qua</reg> in natione Chaldaei,
+non ex artis sed ex gentis vocabulo nominati,
+diuturna observatione siderum scientiam putantur
+effecisse, ut praedici posset quid cuique eventurum
+et quo quisque fato natus esset.</p>
+<p><reg>eandem</reg> artem etiam Aegyptii longinquitate temporum innumerabilibus paene saeculis consecuti
+putantur. Cilicum autem et Pisidarum gens et his
+finitima Pamphylia, quibus nationibus praefuimus
+ipsi, volatibus avium cantibusque certissimis signis
+declarari res futuras putant.</p></div2>
+
+<div2 type="section" n="3"><p> <reg>quam</reg> vero Graecia
+coloniam misit in Aeoliam, Ioniam, Asiam, Siciliam,
+Ital&iacute;am sine Pythio aut Dodonaeo aut Hammonis
+oraculo? aut quod bellum susceptum ab ea sine
+consilio deorum est?</p>
+<p><milestone unit="chapter" n="2"/><reg>nec</reg> unum genus est divinationis publice privatimque celebratum. <reg>nam</reg>, ut omittam ceteros
+populos, noster quam multa genera complexus est!
+<reg>principio</reg> huius urbis parens Romulus non solum
+auspicato urbem condidisse, sed ipse etiam optimus
+augur fuisse traditur. <reg>deinde</reg> auguribus et reliqui
+reges usi, et exactis regibus, nihil publice sine
+auspiciis nec domi nec militiae gerebatur. <reg>cumque</reg>
+
+<pb id="p.226"/>
+
+magna vis videretur esse et inpetriendis<note>inpetriendis <hi rend="italics">Manutius;</hi> impetrandis <hi rend="italics">MSS.</hi></note> consulendisque rebus et monstris interpretandis ac procurandis in haruspicum disciplina, omnem hanc ex
+Etruria scientiam adhibebant, ne genus esset ullum
+divinationis, quod neglectum ab eis videretur.</p>
+</div2>
+
+<div2 type="section" n="4"><p><reg>et</reg> cum duobus modis animi sine ratione et scientia
+motu ipsi suo soluto et libero incitarentur, uno furente,
+altero somniante, furoris divinationem Sibyllinis
+maxime versibus contineri arbitrati eorum decem
+interpretes delectos e civitate esse voluerunt. <reg>ex</reg>
+quo genere saepe hariolorum etiam et vatum furibundas praedictiones, ut Octaviano bello Cornelii
+Culleoli, audiendas putaverunt. <reg>nec</reg> vero somnia
+graviora, si quae ad rem publicam pertinere visa sunt,
+a summo consilio neglecta sunt. <reg>quin</reg> etiam memoria nostra templum Iunonis Sospitae L. Iulius, qui
+cum P. Rutilio consul fuit, de senatus sententia
+refecit ex Caeciliae, Baliarici filiae, somnio.</p>
+</div2>
+
+<div2 type="section" n="5"><p><milestone unit="chapter" n="3"/><reg>atque</reg> haec, ut ego arbitror, veteres rerum
+magis eventis moniti quam ratione docti probaverunt.
+<reg>philosophorum</reg> vero exquisita quaedam argumenta,
+cur esset vera divinatio, collecta sunt. E quibus,
+ut de antiquissimis loquar, Colophonius Xenophanes
+
+<

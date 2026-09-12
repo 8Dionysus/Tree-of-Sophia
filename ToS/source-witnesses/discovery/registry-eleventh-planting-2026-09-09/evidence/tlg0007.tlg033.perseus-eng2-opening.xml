@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Sulla</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         	<resp>Prepared under the supervision of</resp>
+         	   <name>Bridget Almas</name>
+         	   <name>Lisa Cerrato</name>
+         	   <name>Rashmi Singhal</name>
+         	</respStmt> 
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg033.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      	   </availability>
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+						<author>Plutarch</author>
+						<title>Plutarch’s Lives</title>
+                    <editor role="translator">Bernadotte Perrin</editor>
+						<imprint>
+							<pubPlace>Cambridge, MA</pubPlace>
+							<publisher>Harvard University Press</publisher>
+							<pubPlace>London</pubPlace>
+							<publisher>William Heinemann Ltd.</publisher>
+							<date>1916</date>
+						</imprint>
+						<biblScope unit="volume">4</biblScope>
+					</monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives04plut/page/324/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+         	<language ident="eng">English</language>
+         	<language ident="grc">Greek</language>
+         	<language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-02-16" who="Lisa Cerrato">EpiDoc and CTS file conversion</change>
+      	<change when="1998-12-01" who="Lisa Cerrato">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+	<text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-eng2">
+      	
+<div n="urn:cts:greekLit:tlg0007.tlg033.perseus-eng2" type="translation" xml:lang="eng"> 
+   <head>SULLA</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-eng2" n="1">  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-eng2:1" n="1"><p>Lucius Cornelius Sulla belonged to a patrician, or noble, family, and one of his ancestors, Rufinus, is said to have been consul, although he was not so conspicuous for this honour as for the dishonour which he incurred. For he was found to be possessed of more than ten pounds of silver plate, contrary to the law, and was for this reason expelled from the senate. His posterity became at once obscure, and continued so, nor did Sulla himself enjoy a wealthy parentage. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-eng2:1" n="2"><p>When he was a youth, he lived in lodgings, at a low price, and this was afterwards cast in his teeth when men thought him unduly prosperous. For instance, we are told that when he was putting on boastful airs after his campaign in Libya, a certain nobleman said to him: <q type="spoken">How canst thou be an honest man, when thy father left thee nothing, and yet thou art so rich?</q> </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-eng2:1" n="3"><p>For although the Romans of that time no longer retained their ancient purity and uprightness of life, but had degenerated, and yielded to the appetite for luxury and extravagance, they nevertheless held in equal opprobrium those who lost an inherited wealth and those who forsook an ancestral poverty. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-eng2:1" n="4"><p>And afterwards, when he had at last become absolute in power, and was putting many to death, a freedman, who was thought to be concealing one of the proscribed, and was therefore to be thrown down the Tarpeian rock, cast it in his teeth that they had long lived together in one lodging house, himself renting the upper rooms at two thousand sesterces, and Sulla the lower rooms at three thousand. The difference in their fortunes, therefore, was only a thousand sesterces,<note resp="editor" place="inline" anchored="true">In Sulla’s time the <foreign xml:lang="lat">sestertius</foreign> was a silver coin worth between two and three pence, or about five cents. The Attic drachma was a silver coin worth about eight pence, or twenty cents.</note> which are equivalent to two hundred and fifty Attic drachmas. Such, then, is the account we find of Sulla’s earlier fortune.</p></div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-eng2" n="2">  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-eng2:2" n="1"><p>His personal appearance, in general, is given by his statues; but the gleam of his gray eyes, which was terribly sharp and powerful, was rendered even more fearful by the complexion of his face. This was covered with coarse blotches of red, interspersed with white. For this reason, they say, his surname was given him because of his complexion, and it was in allusion to this that a scurrilous jester at Athens made the verse:—<quote rend="blockquote"><l>Sulla is a mulberry sprinkled o’er with meal.</l> </quote></p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-eng2:2" n="2"><p>Nor is it out of place to mention such testimonies in the case of a man said to have been by nature so fond of raillery, that when he was still young and obscure he spent much time with actors and buffoons and shared their dissolute life; and when he had made himself supreme master, he would daily assemble the most reckless stage and theatre folk to drink and bandy jests with them, although men thought that he disgrac

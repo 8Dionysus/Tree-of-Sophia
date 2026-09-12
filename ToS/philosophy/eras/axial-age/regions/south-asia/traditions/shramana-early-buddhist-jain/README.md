@@ -24,3 +24,27 @@ This branch is the ToS philosophy home for the prepared dossier's first tree-sha
 | `graph-workbench/pre-canon-summary.json` | local summary of proposed graph rows before canon review |
 
 Global proposed node and relation rows for this branch are aggregated in `ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl` and `ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl`.
+
+## Registry planting: thirteenth Pali stage (2026-09-09)
+
+183 exact versions. [Reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/PALI_RESULTS.md).
+
+## Registry planting: thirteenth English stage (2026-09-09)
+
+186 exact versions. [Reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/RESULTS.md).
+
+## Registry planting: fourteenth Pali stage (2026-09-09)
+
+271 exact versions. [Reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-fourteenth-planting-2026-09-09/PALI_RESULTS.md).
+
+## Registry planting: fourteenth English stage (2026-09-09)
+
+271 exact versions. [Reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-fourteenth-planting-2026-09-09/translations/RESULTS.md).
+
+## Registry planting: fifteenth Pali stage (2026-09-09)
+
+401 exact versions. [Reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-fifteenth-planting-2026-09-09/PALI_RESULTS.md).
+
+## Registry planting: fifteenth English stage (2026-09-09)
+
+401 exact versions. [Reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-fifteenth-planting-2026-09-09/translations/RESULTS.md).

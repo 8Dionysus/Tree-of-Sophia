@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.an-virtus-doceri-possit.en-perseus-tlg0007-tlg093-perseus-eng3",
+    "version": 1,
+    "digest": "sha256:f742fa3ccae403e432c7dd0f8d09565c0442e0d481e020bd3fdf56858da9eed2"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:f742fa3ccae403e432c7dd0f8d09565c0442e0d481e020bd3fdf56858da9eed2",
+            "id": "tos.expression.plutarch.an-virtus-doceri-possit.en-perseus-tlg0007-tlg093-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:f742fa3ccae403e432c7dd0f8d09565c0442e0d481e020bd3fdf56858da9eed2",
+            "id": "tos.expression.plutarch.an-virtus-doceri-possit.en-perseus-tlg0007-tlg093-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:f742fa3ccae403e432c7dd0f8d09565c0442e0d481e020bd3fdf56858da9eed2",
+            "id": "tos.expression.plutarch.an-virtus-doceri-possit.en-perseus-tlg0007-tlg093-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:f742fa3ccae403e432c7dd0f8d09565c0442e0d481e020bd3fdf56858da9eed2",
+            "id": "tos.expression.plutarch.an-virtus-doceri-possit.en-perseus-tlg0007-tlg093-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.8cf68b8af30c08c004efa78257c8b1234f639362fd605c989ae4465d7342d42c",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:f742fa3ccae403e432c7dd0f8d09565c0442e0d481e020bd3fdf56858da9eed2",
+        "id": "tos.expression.plutarch.an-virtus-doceri-possit.en-perseus-tlg0007-tlg093-perseus-eng3",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:f742fa3ccae403e432c7dd0f8d09565c0442e0d481e020bd3fdf56858da9eed2",
+            "id": "tos.expression.plutarch.an-virtus-doceri-possit.en-perseus-tlg0007-tlg093-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:f742fa3ccae403e432c7dd0f8d09565c0442e0d481e020bd3fdf56858da9eed2",
+            "id": "tos.expression.plutarch.an-virtus-doceri-possit.en-perseus-tlg0007-tlg093-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:f742fa3ccae403e432c7dd0f8d09565c0442e0d481e020bd3fdf56858da9eed2",
+            "id": "tos.expression.plutarch.an-virtus-doceri-possit.en-perseus-tlg0007-tlg093-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:f742fa3ccae403e432c7dd0f8d09565c0442e0d481e020bd3fdf56858da9eed2",
+            "id": "tos.expression.plutarch.an-virtus-doceri-possit.en-perseus-tlg0007-tlg093-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.0304e8fe6d58c143f6378c18b8ed4554b2ce21a5fd8260bc4fd7209835a85343",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:f742fa3ccae403e432c7dd0f8d09565c0442e0d481e020bd3fdf56858da9eed2",
+        "id": "tos.expression.plutarch.an-virtus-doceri-possit.en-perseus-tlg0007-tlg093-perseus-eng3",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-ninth-source-forms:03a43d503ee311fb45bc38d696e1a4f9079e86968fb6cb4cc58ee2f09d1149f5",
+      "request_digest": "sha256:5cd7ccbb7ef5b1343a24c27c3bcef5e3608681ca44cb5b5b56520a162dbff049",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:1c4663d6dff368a049d52e5b08f2184fd8161fd4ee4e91b3b224837a8582ebe8",
+      "recorded_at": "2026-09-09T18:35:27.973106+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.an-virtus-doceri-possit.en-perseus-tlg0007-tlg093-perseus-eng3",
+        "version": 1,
+        "digest": "sha256:f742fa3ccae403e432c7dd0f8d09565c0442e0d481e020bd3fdf56858da9eed2"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.8cf68b8af30c08c004efa78257c8b1234f639362fd605c989ae4465d7342d42c",
+          "version": 1,
+          "digest": "sha256:8f31d7ca5ea4425d714409f351b3ccad49de7f58df341cd1a5eb8ae99e599da0"
+        },
+        {
+          "id": "tos.form.metadata.0304e8fe6d58c143f6378c18b8ed4554b2ce21a5fd8260bc4fd7209835a85343",
+          "version": 1,
+          "digest": "sha256:6038d29003f4eef46c079e1719193c067893311228644b8e34c749a2d6a554d1"
+        }
+      ]
+    }
+  ]
+}

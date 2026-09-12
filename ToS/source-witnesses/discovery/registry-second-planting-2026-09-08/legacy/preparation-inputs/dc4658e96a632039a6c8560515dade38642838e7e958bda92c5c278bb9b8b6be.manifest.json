@@ -1,0 +1,1236 @@
+{
+  "schema_version": "tos_registry_first_planting_preparation_v1",
+  "status": "prepared-not-acquired",
+  "source_registry_snapshot_ref": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json",
+  "source_registry_snapshot_sha256": "9468e2d27ac55066c87eb20a2e6c79be22ea5ee2a036d044ee7d252f4911cd5a",
+  "branch_preparation_ref": "ToS/philosophy/source-planting-preparation/second-wave-20260908.json",
+  "provider_pins": {
+    "perseus": "341e309c821d5eca8c976bebca77c28b10bad58f"
+  },
+  "metadata_observations": [
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:11.265093+00:00",
+      "ended_at": "2026-09-08T22:45:11.680763+00:00",
+      "elapsed_seconds": 0.41567590400154586,
+      "retained_sha256": "9733e53be0cb9adf77c1e3359fffc81911bbf0dc17b9095b3912768b1a663275",
+      "retained_byte_size": 2356,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-README.md",
+      "response_sha256": "9733e53be0cb9adf77c1e3359fffc81911bbf0dc17b9095b3912768b1a663275",
+      "received_bytes": 2356,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:11.681252+00:00",
+      "ended_at": "2026-09-08T22:45:11.994659+00:00",
+      "elapsed_seconds": 0.313423570998566,
+      "retained_sha256": "ccf0e8ce183761bf82700126cc45a4e907b2cede024e65e3fef5c2338b9b7063",
+      "retained_byte_size": 18625,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-license.md",
+      "response_sha256": "ccf0e8ce183761bf82700126cc45a4e907b2cede024e65e3fef5c2338b9b7063",
+      "received_bytes": 18625,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:14.355473+00:00",
+      "ended_at": "2026-09-08T22:45:14.618077+00:00",
+      "elapsed_seconds": 0.262621889996808,
+      "retained_sha256": "715736d5653bf168a7003124c6ad01920ea2b833b2ce0c0fa5f2cd3437fda8dc",
+      "retained_byte_size": 1053,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg001-cts.xml",
+      "response_sha256": "715736d5653bf168a7003124c6ad01920ea2b833b2ce0c0fa5f2cd3437fda8dc",
+      "received_bytes": 1053,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:14.821863+00:00",
+      "ended_at": "2026-09-08T22:45:15.090580+00:00",
+      "elapsed_seconds": 0.2687265999993542,
+      "retained_sha256": "34f912178d36a6beaf581bf562cd745d8d8f00271deef4ac2d433676e7d7a654",
+      "retained_byte_size": 1056,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg002-cts.xml",
+      "response_sha256": "34f912178d36a6beaf581bf562cd745d8d8f00271deef4ac2d433676e7d7a654",
+      "received_bytes": 1056,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:15.449654+00:00",
+      "ended_at": "2026-09-08T22:45:15.858156+00:00",
+      "elapsed_seconds": 0.4085134039996774,
+      "retained_sha256": "57d8a4820124c748a05f40130d96714b3c935387aa6457213d0665b68656c20a",
+      "retained_byte_size": 1090,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg003-cts.xml",
+      "response_sha256": "57d8a4820124c748a05f40130d96714b3c935387aa6457213d0665b68656c20a",
+      "received_bytes": 1090,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:16.217679+00:00",
+      "ended_at": "2026-09-08T22:45:16.477580+00:00",
+      "elapsed_seconds": 0.2599161069992988,
+      "retained_sha256": "05b2bc8cbaee24a41719d704e9b49fc512898b36e891f40d639cbbecdadc2e5e",
+      "retained_byte_size": 1081,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg004-cts.xml",
+      "response_sha256": "05b2bc8cbaee24a41719d704e9b49fc512898b36e891f40d639cbbecdadc2e5e",
+      "received_bytes": 1081,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:16.782714+00:00",
+      "ended_at": "2026-09-08T22:45:17.050198+00:00",
+      "elapsed_seconds": 0.2674935259965423,
+      "retained_sha256": "40ed161b2a20fe6d91d1705f3260a226b8be03e03cd8db8c1deb41db7360fd1a",
+      "retained_byte_size": 1098,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg005-cts.xml",
+      "response_sha256": "40ed161b2a20fe6d91d1705f3260a226b8be03e03cd8db8c1deb41db7360fd1a",
+      "received_bytes": 1098,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/tlg0059.tlg001.perseus-grc1.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/tlg0059.tlg001.perseus-grc1.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:14.618684+00:00",
+      "ended_at": "2026-09-08T22:45:14.821232+00:00",
+      "elapsed_seconds": 0.20256271699690842,
+      "retained_sha256": "ec895270ecc41ca44edb998684851a399053026ac1ff9bc5eb80d188c7bb19ff",
+      "retained_byte_size": 3729,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg001.perseus-grc1-header.xml",
+      "response_sha256": "ec895270ecc41ca44edb998684851a399053026ac1ff9bc5eb80d188c7bb19ff",
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "metadata prefix only; complete corpus file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/tlg0059.tlg002.perseus-grc2.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/tlg0059.tlg002.perseus-grc2.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:15.091122+00:00",
+      "ended_at": "2026-09-08T22:45:15.449109+00:00",
+      "elapsed_seconds": 0.35799865200169734,
+      "retained_sha256": "b07c5f0e91cf19f5191af12ae6a816c3a23bf7fad589706906c2eb1afc55b06b",
+      "retained_byte_size": 3614,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg002.perseus-grc2-header.xml",
+      "response_sha256": "b07c5f0e91cf19f5191af12ae6a816c3a23bf7fad589706906c2eb1afc55b06b",
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "metadata prefix only; complete corpus file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/tlg0059.tlg003.perseus-grc2.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/tlg0059.tlg003.perseus-grc2.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:15.858669+00:00",
+      "ended_at": "2026-09-08T22:45:16.217202+00:00",
+      "elapsed_seconds": 0.3585446880024392,
+      "retained_sha256": "1b6454071b43b3f4d39a1f017b9590fa9f982baebdc8fb2ca1ece0feb8d74b2e",
+      "retained_byte_size": 3983,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg003.perseus-grc2-header.xml",
+      "response_sha256": "1b6454071b43b3f4d39a1f017b9590fa9f982baebdc8fb2ca1ece0feb8d74b2e",
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "metadata prefix only; complete corpus file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-grc2.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-grc2.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:16.478075+00:00",
+      "ended_at": "2026-09-08T22:45:16.782196+00:00",
+      "elapsed_seconds": 0.3041382250012248,
+      "retained_sha256": "66f4d3f0cd3bb2fdf5fd79af0da2fccb9a50af4f099092850a94049a385f839f",
+      "retained_byte_size": 4011,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg004.perseus-grc2-header.xml",
+      "response_sha256": "66f4d3f0cd3bb2fdf5fd79af0da2fccb9a50af4f099092850a94049a385f839f",
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "metadata prefix only; complete corpus file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/tlg0059.tlg005.perseus-grc2.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/tlg0059.tlg005.perseus-grc2.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:17.050670+00:00",
+      "ended_at": "2026-09-08T22:45:17.352042+00:00",
+      "elapsed_seconds": 0.3013856300021871,
+      "retained_sha256": "9bd04d21614e734b4315059c527eccab6183bbc9ec638eb7fb692ed8740672cd",
+      "retained_byte_size": 3184,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg005.perseus-grc2-header.xml",
+      "response_sha256": "9bd04d21614e734b4315059c527eccab6183bbc9ec638eb7fb692ed8740672cd",
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "metadata prefix only; complete corpus file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/tlg0059.tlg006.perseus-grc2.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/tlg0059.tlg006.perseus-grc2.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:17.626159+00:00",
+      "ended_at": "2026-09-08T22:45:17.961941+00:00",
+      "elapsed_seconds": 0.33579017000010936,
+      "retained_sha256": "f0632ee4eeafce70c490a1a43ece2bb07e8b5e3904c79497c9f669ea7a594098",
+      "retained_byte_size": 4199,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg006.perseus-grc2-header.xml",
+      "response_sha256": "f0632ee4eeafce70c490a1a43ece2bb07e8b5e3904c79497c9f669ea7a594098",
+      "received_bytes": 8192,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "metadata prefix only; complete corpus file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/tlg0059.tlg007.perseus-grc2.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/tlg0059.tlg007.perseus-grc2.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:18.238444+00:00",
+      "ended_at": "2026-09-08T22:45:18.523692+00:00",
+      "elapsed_seconds": 0.28525865300252917,
+      "retained_sha256": "2c1277ebdd0e985ef0a441f0289e771fe6d06b8781606f683e47260e2147d5c1",
+      "retained_byte_size": 3015,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg007.perseus-grc2-header.xml",
+      "response_sha256": "2c1277ebdd0e985ef0a441f0289e771fe6d06b8781606f683e47260e2147d5c1",
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "metadata prefix only; complete corpus file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/tlg0059.tlg008.perseus-grc2.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/tlg0059.tlg008.perseus-grc2.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:18.777138+00:00",
+      "ended_at": "2026-09-08T22:45:19.079544+00:00",
+      "elapsed_seconds": 0.3024125180018018,
+      "retained_sha256": "d50e47f06d0d4569f070466954d87ba2221d56a56dc8be489df5c939c05cac91",
+      "retained_byte_size": 3051,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg008.perseus-grc2-header.xml",
+      "response_sha256": "d50e47f06d0d4569f070466954d87ba2221d56a56dc8be489df5c939c05cac91",
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "metadata prefix only; complete corpus file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/tlg0059.tlg009.perseus-grc2.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/tlg0059.tlg009.perseus-grc2.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:19.335374+00:00",
+      "ended_at": "2026-09-08T22:45:19.602226+00:00",
+      "elapsed_seconds": 0.26686178800082416,
+      "retained_sha256": "c9211c050fe1cbd195c39dc96487c5b533203ad7c08a92c37594f2e56ddd8aae",
+      "retained_byte_size": 2860,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg009.perseus-grc2-header.xml",
+      "response_sha256": "c9211c050fe1cbd195c39dc96487c5b533203ad7c08a92c37594f2e56ddd8aae",
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "metadata prefix only; complete corpus file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/tlg0059.tlg010.perseus-grc2.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/tlg0059.tlg010.perseus-grc2.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:19.871491+00:00",
+      "ended_at": "2026-09-08T22:45:20.140362+00:00",
+      "elapsed_seconds": 0.2688796340007684,
+      "retained_sha256": "0ebed4dcd30016f076bf9be044f144046dff5aac48e97285ce8047a06bf2d693",
+      "retained_byte_size": 4056,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg010.perseus-grc2-header.xml",
+      "response_sha256": "0ebed4dcd30016f076bf9be044f144046dff5aac48e97285ce8047a06bf2d693",
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "metadata prefix only; complete corpus file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/tlg0059.tlg011.perseus-grc2.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/tlg0059.tlg011.perseus-grc2.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:20.407638+00:00",
+      "ended_at": "2026-09-08T22:45:20.666905+00:00",
+      "elapsed_seconds": 0.2592768970025645,
+      "retained_sha256": "04d48bdb100340c6adffab970d207867ee833834d8bafca233fbc6a38d33d0c5",
+      "retained_byte_size": 3937,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg011.perseus-grc2-header.xml",
+      "response_sha256": "04d48bdb100340c6adffab970d207867ee833834d8bafca233fbc6a38d33d0c5",
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "metadata prefix only; complete corpus file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/tlg0059.tlg012.perseus-grc2.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/tlg0059.tlg012.perseus-grc2.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:21.028704+00:00",
+      "ended_at": "2026-09-08T22:45:21.445263+00:00",
+      "elapsed_seconds": 0.41656828000122914,
+      "retained_sha256": "ed5457d4a7292f4a1126555a1d6df3e1922712e66e0627a61b588bb54802653a",
+      "retained_byte_size": 4024,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg012.perseus-grc2-header.xml",
+      "response_sha256": "ed5457d4a7292f4a1126555a1d6df3e1922712e66e0627a61b588bb54802653a",
+      "received_bytes": 4096,
+      "corpus_payload_fetched": true,
+      "acquisition_scope": "metadata prefix only; complete corpus file not retained",
+      "response_digest_scope": "retained header prefix"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:17.352456+00:00",
+      "ended_at": "2026-09-08T22:45:17.625778+00:00",
+      "elapsed_seconds": 0.2733309610011929,
+      "retained_sha256": "c98724f98000d0a077132d5cd25beecb4b6f77fae668711bef5785212bea9417",
+      "retained_byte_size": 1080,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg006-cts.xml",
+      "response_sha256": "c98724f98000d0a077132d5cd25beecb4b6f77fae668711bef5785212bea9417",
+      "received_bytes": 1080,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:17.962339+00:00",
+      "ended_at": "2026-09-08T22:45:18.238074+00:00",
+      "elapsed_seconds": 0.2757467480005289,
+      "retained_sha256": "876f54b1cb41bf68defa886efe5dd7d18538550ba67538362f498153dc9a313b",
+      "retained_byte_size": 1072,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg007-cts.xml",
+      "response_sha256": "876f54b1cb41bf68defa886efe5dd7d18538550ba67538362f498153dc9a313b",
+      "received_bytes": 1072,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:18.524000+00:00",
+      "ended_at": "2026-09-08T22:45:18.776744+00:00",
+      "elapsed_seconds": 0.2527550480008358,
+      "retained_sha256": "95e6ef3ce34a9cab3794dca7d6cfcf3c43843725457871f209037512ec7d2a54",
+      "retained_byte_size": 1088,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg008-cts.xml",
+      "response_sha256": "95e6ef3ce34a9cab3794dca7d6cfcf3c43843725457871f209037512ec7d2a54",
+      "received_bytes": 1088,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:19.079820+00:00",
+      "ended_at": "2026-09-08T22:45:19.335055+00:00",
+      "elapsed_seconds": 0.25524493899865774,
+      "retained_sha256": "2117431a986cba543d02d128b55bdb1d4ec3dc68a927d721e703ebfeb4306d95",
+      "retained_byte_size": 1095,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg009-cts.xml",
+      "response_sha256": "2117431a986cba543d02d128b55bdb1d4ec3dc68a927d721e703ebfeb4306d95",
+      "received_bytes": 1095,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:19.602579+00:00",
+      "ended_at": "2026-09-08T22:45:19.871158+00:00",
+      "elapsed_seconds": 0.2685885030005011,
+      "retained_sha256": "ce33ece316886e506b6c65a47243673ecfc88acbe4a3a1125938274265d490bc",
+      "retained_byte_size": 1069,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg010-cts.xml",
+      "response_sha256": "ce33ece316886e506b6c65a47243673ecfc88acbe4a3a1125938274265d490bc",
+      "received_bytes": 1069,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:20.140708+00:00",
+      "ended_at": "2026-09-08T22:45:20.407289+00:00",
+      "elapsed_seconds": 0.26658887400117237,
+      "retained_sha256": "b3cc22f9fea052de306a86f1d094561bd2013abc77dad272fd6e4d52723ce2fa",
+      "retained_byte_size": 1054,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg011-cts.xml",
+      "response_sha256": "b3cc22f9fea052de306a86f1d094561bd2013abc77dad272fd6e4d52723ce2fa",
+      "received_bytes": 1054,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/__cts__.xml",
+      "final_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/__cts__.xml",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:20.667231+00:00",
+      "ended_at": "2026-09-08T22:45:21.028186+00:00",
+      "elapsed_seconds": 0.36097230299856164,
+      "retained_sha256": "15eebb1cd3b9f4f5481be0d7cf98fbbe2e663072a027bb7204e4cf801638c0f3",
+      "retained_byte_size": 1067,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg012-cts.xml",
+      "response_sha256": "15eebb1cd3b9f4f5481be0d7cf98fbbe2e663072a027bb7204e4cf801638c0f3",
+      "received_bytes": 1067,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    },
+    {
+      "url": "https://api.github.com/repos/PerseusDL/canonical-greekLit/git/trees/341e309c821d5eca8c976bebca77c28b10bad58f?recursive=1",
+      "final_url": "https://api.github.com/repos/PerseusDL/canonical-greekLit/git/trees/341e309c821d5eca8c976bebca77c28b10bad58f?recursive=1",
+      "http_status": 200,
+      "started_at": "2026-09-08T22:45:11.995209+00:00",
+      "ended_at": "2026-09-08T22:45:14.354786+00:00",
+      "elapsed_seconds": 2.359593090997805,
+      "retained_sha256": "b8628281145b74ac6d707b0de5a2712226f4d75d19eee6997fd97f80a025eb33",
+      "retained_byte_size": 7919,
+      "retained_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tree.json",
+      "response_sha256": "619fe08c7f748a53d125a256f217af13ea699b9360525c0baaf535614c3a44f8",
+      "received_bytes": 889169,
+      "corpus_payload_fetched": false,
+      "acquisition_scope": "metadata/license",
+      "response_digest_scope": "complete response"
+    }
+  ],
+  "targets": [
+    {
+      "slug": "euthyphro",
+      "title": "Euthyphro",
+      "family": "plato",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "grc",
+      "script": "Grek",
+      "expression": "grc-perseus-burnet",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A25",
+          "original_source_id": "A25-R010",
+          "entry_id": "tos-registry:table-i/A25/registry/source-cdd7023609076a8583c034ee",
+          "source_locator": {
+            "original_sha256": "4aed376f56dc2de3eb108b123ba812aa8d63adcf3d9e45d4e3cf36099f203347",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 11,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "euthyphro",
+      "ids": {
+        "work": "tos.work.plato.euthyphro",
+        "expression": "tos.expression.plato.euthyphro.grc-perseus-burnet",
+        "edition": "tos.edition.plato.euthyphro.grc-perseus-burnet.perseus-341e309c821d",
+        "item": "tos.item.plato.euthyphro.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plato/euthyphro/work.json",
+        "expression": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/expression.json",
+        "edition": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "coverage": {
+        "kind": "perseus-tei-work",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg001.perseus-grc1",
+        "header_prefix_sha256": "ec895270ecc41ca44edb998684851a399053026ac1ff9bc5eb80d188c7bb19ff"
+      },
+      "version_description": "Perseus Ancient Greek TEI/EpiDoc transcription of Euthyphro; exact CTS edition urn:cts:greekLit:tlg0059.tlg001.perseus-grc1, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+      "responsibility": "John Burnet: named print editor. Perseus Project, Tufts University: digital transcription and encoding; retain the full supplied header credits.",
+      "limits": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0059/tlg001/tlg0059.tlg001.perseus-grc1.xml",
+          "basename": "tlg0059.tlg001.perseus-grc1.xml",
+          "git_blob_sha1": "265a2e06f37cdd16a07694b8a8da1b5636b9e790",
+          "byte_size": 88140,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/tlg0059.tlg001.perseus-grc1.xml"
+        }
+      ],
+      "byte_size": 88140
+    },
+    {
+      "slug": "apology",
+      "title": "Apology",
+      "family": "plato",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "grc",
+      "script": "Grek",
+      "expression": "grc-perseus-burnet",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A25",
+          "original_source_id": "A25-R011",
+          "entry_id": "tos-registry:table-i/A25/registry/source-214cb93746b5a9ed21170731",
+          "source_locator": {
+            "original_sha256": "4aed376f56dc2de3eb108b123ba812aa8d63adcf3d9e45d4e3cf36099f203347",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 12,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "apology",
+      "ids": {
+        "work": "tos.work.plato.apology",
+        "expression": "tos.expression.plato.apology.grc-perseus-burnet",
+        "edition": "tos.edition.plato.apology.grc-perseus-burnet.perseus-341e309c821d",
+        "item": "tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plato/apology/work.json",
+        "expression": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/expression.json",
+        "edition": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "coverage": {
+        "kind": "perseus-tei-work",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg002.perseus-grc2",
+        "header_prefix_sha256": "b07c5f0e91cf19f5191af12ae6a816c3a23bf7fad589706906c2eb1afc55b06b"
+      },
+      "version_description": "Perseus Ancient Greek TEI/EpiDoc transcription of Apology; exact CTS edition urn:cts:greekLit:tlg0059.tlg002.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+      "responsibility": "John Burnet: named print editor. Perseus Project, Tufts University: digital transcription and encoding; retain the full supplied header credits.",
+      "limits": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0059/tlg002/tlg0059.tlg002.perseus-grc2.xml",
+          "basename": "tlg0059.tlg002.perseus-grc2.xml",
+          "git_blob_sha1": "2630d3b9c74653846dc81498ebafd96a568accd9",
+          "byte_size": 119991,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/tlg0059.tlg002.perseus-grc2.xml"
+        }
+      ],
+      "byte_size": 119991
+    },
+    {
+      "slug": "crito",
+      "title": "Crito",
+      "family": "plato",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "grc",
+      "script": "Grek",
+      "expression": "grc-perseus-burnet",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A25",
+          "original_source_id": "A25-R012",
+          "entry_id": "tos-registry:table-i/A25/registry/source-7641128ede45a998eb3c6887",
+          "source_locator": {
+            "original_sha256": "4aed376f56dc2de3eb108b123ba812aa8d63adcf3d9e45d4e3cf36099f203347",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 13,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "crito",
+      "ids": {
+        "work": "tos.work.plato.crito",
+        "expression": "tos.expression.plato.crito.grc-perseus-burnet",
+        "edition": "tos.edition.plato.crito.grc-perseus-burnet.perseus-341e309c821d",
+        "item": "tos.item.plato.crito.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plato/crito/work.json",
+        "expression": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/expression.json",
+        "edition": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "coverage": {
+        "kind": "perseus-tei-work",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg003.perseus-grc2",
+        "header_prefix_sha256": "1b6454071b43b3f4d39a1f017b9590fa9f982baebdc8fb2ca1ece0feb8d74b2e"
+      },
+      "version_description": "Perseus Ancient Greek TEI/EpiDoc transcription of Crito; exact CTS edition urn:cts:greekLit:tlg0059.tlg003.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+      "responsibility": "John Burnet: named print editor. Perseus Project, Tufts University: digital transcription and encoding; retain the full supplied header credits.",
+      "limits": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0059/tlg003/tlg0059.tlg003.perseus-grc2.xml",
+          "basename": "tlg0059.tlg003.perseus-grc2.xml",
+          "git_blob_sha1": "9f42765b87a90558702e2037eb99d01107d8740a",
+          "byte_size": 66147,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/tlg0059.tlg003.perseus-grc2.xml"
+        }
+      ],
+      "byte_size": 66147
+    },
+    {
+      "slug": "phaedo",
+      "title": "Phaedo",
+      "family": "plato",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "grc",
+      "script": "Grek",
+      "expression": "grc-perseus-burnet",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A25",
+          "original_source_id": "A25-R013",
+          "entry_id": "tos-registry:table-i/A25/registry/source-4f1ca690b9754c42c7794fd7",
+          "source_locator": {
+            "original_sha256": "4aed376f56dc2de3eb108b123ba812aa8d63adcf3d9e45d4e3cf36099f203347",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 14,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "phaedo",
+      "ids": {
+        "work": "tos.work.plato.phaedo",
+        "expression": "tos.expression.plato.phaedo.grc-perseus-burnet",
+        "edition": "tos.edition.plato.phaedo.grc-perseus-burnet.perseus-341e309c821d",
+        "item": "tos.item.plato.phaedo.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plato/phaedo/work.json",
+        "expression": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/expression.json",
+        "edition": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "coverage": {
+        "kind": "perseus-tei-work",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg004.perseus-grc2",
+        "header_prefix_sha256": "66f4d3f0cd3bb2fdf5fd79af0da2fccb9a50af4f099092850a94049a385f839f"
+      },
+      "version_description": "Perseus Ancient Greek TEI/EpiDoc transcription of Phaedo; exact CTS edition urn:cts:greekLit:tlg0059.tlg004.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+      "responsibility": "John Burnet: named print editor. Perseus Project, Tufts University: digital transcription and encoding; retain the full supplied header credits.",
+      "limits": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0059/tlg004/tlg0059.tlg004.perseus-grc2.xml",
+          "basename": "tlg0059.tlg004.perseus-grc2.xml",
+          "git_blob_sha1": "a24f59e880659b754d0dd182b7b065d4009fa7e8",
+          "byte_size": 466243,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-grc2.xml"
+        }
+      ],
+      "byte_size": 466243
+    },
+    {
+      "slug": "cratylus",
+      "title": "Cratylus",
+      "family": "plato",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "grc",
+      "script": "Grek",
+      "expression": "grc-perseus-burnet",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A25",
+          "original_source_id": "A25-R014",
+          "entry_id": "tos-registry:table-i/A25/registry/source-8283c72ea8b013ca0842fef5",
+          "source_locator": {
+            "original_sha256": "4aed376f56dc2de3eb108b123ba812aa8d63adcf3d9e45d4e3cf36099f203347",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 15,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "cratylus",
+      "ids": {
+        "work": "tos.work.plato.cratylus",
+        "expression": "tos.expression.plato.cratylus.grc-perseus-burnet",
+        "edition": "tos.edition.plato.cratylus.grc-perseus-burnet.perseus-341e309c821d",
+        "item": "tos.item.plato.cratylus.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plato/cratylus/work.json",
+        "expression": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/expression.json",
+        "edition": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "coverage": {
+        "kind": "perseus-tei-work",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg005.perseus-grc2",
+        "header_prefix_sha256": "9bd04d21614e734b4315059c527eccab6183bbc9ec638eb7fb692ed8740672cd"
+      },
+      "version_description": "Perseus Ancient Greek TEI/EpiDoc transcription of Cratylus; exact CTS edition urn:cts:greekLit:tlg0059.tlg005.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+      "responsibility": "John Burnet: named print editor. Perseus Project, Tufts University: digital transcription and encoding; retain the full supplied header credits.",
+      "limits": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0059/tlg005/tlg0059.tlg005.perseus-grc2.xml",
+          "basename": "tlg0059.tlg005.perseus-grc2.xml",
+          "git_blob_sha1": "28c2b7df1d4ae86cb82d00cccefd3b881aaf673a",
+          "byte_size": 293072,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/tlg0059.tlg005.perseus-grc2.xml"
+        }
+      ],
+      "byte_size": 293072
+    },
+    {
+      "slug": "theaetetus",
+      "title": "Theaetetus",
+      "family": "plato",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "grc",
+      "script": "Grek",
+      "expression": "grc-perseus-burnet",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A25",
+          "original_source_id": "A25-R015",
+          "entry_id": "tos-registry:table-i/A25/registry/source-a875c3f84e59dafa424cb6e8",
+          "source_locator": {
+            "original_sha256": "4aed376f56dc2de3eb108b123ba812aa8d63adcf3d9e45d4e3cf36099f203347",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 16,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "theaetetus",
+      "ids": {
+        "work": "tos.work.plato.theaetetus",
+        "expression": "tos.expression.plato.theaetetus.grc-perseus-burnet",
+        "edition": "tos.edition.plato.theaetetus.grc-perseus-burnet.perseus-341e309c821d",
+        "item": "tos.item.plato.theaetetus.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plato/theaetetus/work.json",
+        "expression": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/expression.json",
+        "edition": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "coverage": {
+        "kind": "perseus-tei-work",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg006.perseus-grc2",
+        "header_prefix_sha256": "f0632ee4eeafce70c490a1a43ece2bb07e8b5e3904c79497c9f669ea7a594098"
+      },
+      "version_description": "Perseus Ancient Greek TEI/EpiDoc transcription of Theaetetus; exact CTS edition urn:cts:greekLit:tlg0059.tlg006.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+      "responsibility": "John Burnet: named print editor. Perseus Project, Tufts University: digital transcription and encoding; retain the full supplied header credits.",
+      "limits": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0059/tlg006/tlg0059.tlg006.perseus-grc2.xml",
+          "basename": "tlg0059.tlg006.perseus-grc2.xml",
+          "git_blob_sha1": "a230ed7fbe8ef7c3108792dbd462401b15addd41",
+          "byte_size": 383021,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/tlg0059.tlg006.perseus-grc2.xml"
+        }
+      ],
+      "byte_size": 383021
+    },
+    {
+      "slug": "sophist",
+      "title": "Sophist",
+      "family": "plato",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "grc",
+      "script": "Grek",
+      "expression": "grc-perseus-burnet",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A25",
+          "original_source_id": "A25-R016",
+          "entry_id": "tos-registry:table-i/A25/registry/source-8e2881d9620e4e673599589f",
+          "source_locator": {
+            "original_sha256": "4aed376f56dc2de3eb108b123ba812aa8d63adcf3d9e45d4e3cf36099f203347",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 17,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "sophist",
+      "ids": {
+        "work": "tos.work.plato.sophist",
+        "expression": "tos.expression.plato.sophist.grc-perseus-burnet",
+        "edition": "tos.edition.plato.sophist.grc-perseus-burnet.perseus-341e309c821d",
+        "item": "tos.item.plato.sophist.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plato/sophist/work.json",
+        "expression": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/expression.json",
+        "edition": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "coverage": {
+        "kind": "perseus-tei-work",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg007.perseus-grc2",
+        "header_prefix_sha256": "2c1277ebdd0e985ef0a441f0289e771fe6d06b8781606f683e47260e2147d5c1"
+      },
+      "version_description": "Perseus Ancient Greek TEI/EpiDoc transcription of Sophist; exact CTS edition urn:cts:greekLit:tlg0059.tlg007.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+      "responsibility": "John Burnet: named print editor. Perseus Project, Tufts University: digital transcription and encoding; retain the full supplied header credits.",
+      "limits": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0059/tlg007/tlg0059.tlg007.perseus-grc2.xml",
+          "basename": "tlg0059.tlg007.perseus-grc2.xml",
+          "git_blob_sha1": "ed3c84bc37387808fa834d6d0c542340ad7adbf7",
+          "byte_size": 287273,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/tlg0059.tlg007.perseus-grc2.xml"
+        }
+      ],
+      "byte_size": 287273
+    },
+    {
+      "slug": "statesman",
+      "title": "Statesman",
+      "family": "plato",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "grc",
+      "script": "Grek",
+      "expression": "grc-perseus-burnet",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A25",
+          "original_source_id": "A25-R017",
+          "entry_id": "tos-registry:table-i/A25/registry/source-134f3b8425efc1d8dd5ad5e8",
+          "source_locator": {
+            "original_sha256": "4aed376f56dc2de3eb108b123ba812aa8d63adcf3d9e45d4e3cf36099f203347",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 18,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "statesman",
+      "ids": {
+        "work": "tos.work.plato.statesman",
+        "expression": "tos.expression.plato.statesman.grc-perseus-burnet",
+        "edition": "tos.edition.plato.statesman.grc-perseus-burnet.perseus-341e309c821d",
+        "item": "tos.item.plato.statesman.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plato/statesman/work.json",
+        "expression": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/expression.json",
+        "edition": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "coverage": {
+        "kind": "perseus-tei-work",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg008.perseus-grc2",
+        "header_prefix_sha256": "d50e47f06d0d4569f070466954d87ba2221d56a56dc8be489df5c939c05cac91"
+      },
+      "version_description": "Perseus Ancient Greek TEI/EpiDoc transcription of Statesman; exact CTS edition urn:cts:greekLit:tlg0059.tlg008.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+      "responsibility": "John Burnet: named print editor. Perseus Project, Tufts University: digital transcription and encoding; retain the full supplied header credits.",
+      "limits": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0059/tlg008/tlg0059.tlg008.perseus-grc2.xml",
+          "basename": "tlg0059.tlg008.perseus-grc2.xml",
+          "git_blob_sha1": "83170c235dd0a41e2f5d93e8a268ee7cce19268e",
+          "byte_size": 297969,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/tlg0059.tlg008.perseus-grc2.xml"
+        }
+      ],
+      "byte_size": 297969
+    },
+    {
+      "slug": "parmenides",
+      "title": "Parmenides",
+      "family": "plato",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "grc",
+      "script": "Grek",
+      "expression": "grc-perseus-burnet",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A25",
+          "original_source_id": "A25-R018",
+          "entry_id": "tos-registry:table-i/A25/registry/source-df350726da5e8696f1a41b68",
+          "source_locator": {
+            "original_sha256": "4aed376f56dc2de3eb108b123ba812aa8d63adcf3d9e45d4e3cf36099f203347",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 19,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "parmenides",
+      "ids": {
+        "work": "tos.work.plato.parmenides",
+        "expression": "tos.expression.plato.parmenides.grc-perseus-burnet",
+        "edition": "tos.edition.plato.parmenides.grc-perseus-burnet.perseus-341e309c821d",
+        "item": "tos.item.plato.parmenides.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plato/parmenides/work.json",
+        "expression": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/expression.json",
+        "edition": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "coverage": {
+        "kind": "perseus-tei-work",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg009.perseus-grc2",
+        "header_prefix_sha256": "c9211c050fe1cbd195c39dc96487c5b533203ad7c08a92c37594f2e56ddd8aae"
+      },
+      "version_description": "Perseus Ancient Greek TEI/EpiDoc transcription of Parmenides; exact CTS edition urn:cts:greekLit:tlg0059.tlg009.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1910 2 Internet Archive",
+      "responsibility": "John Burnet: named print editor. Perseus Project, Tufts University: digital transcription and encoding; retain the full supplied header credits.",
+      "limits": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0059/tlg009/tlg0059.tlg009.perseus-grc2.xml",
+          "basename": "tlg0059.tlg009.perseus-grc2.xml",
+          "git_blob_sha1": "c7eb1e32680c3c3c9f2e551dafbdbec6dbec9554",
+          "byte_size": 202628,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/tlg0059.tlg009.perseus-grc2.xml"
+        }
+      ],
+      "byte_size": 202628
+    },
+    {
+      "slug": "philebus",
+      "title": "Philebus",
+      "family": "plato",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "grc",
+      "script": "Grek",
+      "expression": "grc-perseus-burnet",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A25",
+          "original_source_id": "A25-R019",
+          "entry_id": "tos-registry:table-i/A25/registry/source-ba4265ee063df13e52eed832",
+          "source_locator": {
+            "original_sha256": "4aed376f56dc2de3eb108b123ba812aa8d63adcf3d9e45d4e3cf36099f203347",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 20,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "philebus",
+      "ids": {
+        "work": "tos.work.plato.philebus",
+        "expression": "tos.expression.plato.philebus.grc-perseus-burnet",
+        "edition": "tos.edition.plato.philebus.grc-perseus-burnet.perseus-341e309c821d",
+        "item": "tos.item.plato.philebus.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plato/philebus/work.json",
+        "expression": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/expression.json",
+        "edition": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "coverage": {
+        "kind": "perseus-tei-work",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg010.perseus-grc2",
+        "header_prefix_sha256": "0ebed4dcd30016f076bf9be044f144046dff5aac48e97285ce8047a06bf2d693"
+      },
+      "version_description": "Perseus Ancient Greek TEI/EpiDoc transcription of Philebus; exact CTS edition urn:cts:greekLit:tlg0059.tlg010.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1910 2 Internet Archive",
+      "responsibility": "John Burnet: named print editor. Perseus Project, Tufts University: digital transcription and encoding; retain the full supplied header credits.",
+      "limits": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0059/tlg010/tlg0059.tlg010.perseus-grc2.xml",
+          "basename": "tlg0059.tlg010.perseus-grc2.xml",
+          "git_blob_sha1": "7b1bd644029c727288769f971b6303de8fa21b02",
+          "byte_size": 323474,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/tlg0059.tlg010.perseus-grc2.xml"
+        }
+      ],
+      "byte_size": 323474
+    },
+    {
+      "slug": "symposium",
+      "title": "Symposium",
+      "family": "plato",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "grc",
+      "script": "Grek",
+      "expression": "grc-perseus-burnet",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A25",
+          "original_source_id": "A25-R020",
+          "entry_id": "tos-registry:table-i/A25/registry/source-170045bf8c5dc0dde7364968",
+          "source_locator": {
+            "original_sha256": "4aed376f56dc2de3eb108b123ba812aa8d63adcf3d9e45d4e3cf36099f203347",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 21,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "symposium",
+      "ids": {
+        "work": "tos.work.plato.symposium",
+        "expression": "tos.expression.plato.symposium.grc-perseus-burnet",
+        "edition": "tos.edition.plato.symposium.grc-perseus-burnet.perseus-341e309c821d",
+        "item": "tos.item.plato.symposium.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plato/symposium/work.json",
+        "expression": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/expression.json",
+        "edition": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "coverage": {
+        "kind": "perseus-tei-work",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg011.perseus-grc2",
+        "header_prefix_sha256": "04d48bdb100340c6adffab970d207867ee833834d8bafca233fbc6a38d33d0c5"
+      },
+      "version_description": "Perseus Ancient Greek TEI/EpiDoc transcription of Symposium; exact CTS edition urn:cts:greekLit:tlg0059.tlg011.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1910 2 Internet Archive",
+      "responsibility": "John Burnet: named print editor. Perseus Project, Tufts University: digital transcription and encoding; retain the full supplied header credits.",
+      "limits": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0059/tlg011/tlg0059.tlg011.perseus-grc2.xml",
+          "basename": "tlg0059.tlg011.perseus-grc2.xml",
+          "git_blob_sha1": "0410ab94178061c42a3ea0b77d79161bbf10dd48",
+          "byte_size": 245936,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/tlg0059.tlg011.perseus-grc2.xml"
+        }
+      ],
+      "byte_size": 245936
+    },
+    {
+      "slug": "phaedrus",
+      "title": "Phaedrus",
+      "family": "plato",
+      "provider": "perseus",
+      "repository": "PerseusDL/canonical-greekLit",
+      "pin": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "language": "grc",
+      "script": "Grek",
+      "expression": "grc-perseus-burnet",
+      "edition": "perseus-341e309c821d",
+      "item": "git-tei-xml",
+      "registry_sources": [
+        {
+          "corpus": "table-i",
+          "document_id": "A25",
+          "original_source_id": "A25-R021",
+          "entry_id": "tos-registry:table-i/A25/registry/source-004ccd298fb2ef0f0cd24a5d",
+          "source_locator": {
+            "original_sha256": "4aed376f56dc2de3eb108b123ba812aa8d63adcf3d9e45d4e3cf36099f203347",
+            "part": "xl/worksheets/sheet1.xml",
+            "row": 22,
+            "sheet": "registry"
+          }
+        }
+      ],
+      "branch_target_slug": "phaedrus",
+      "ids": {
+        "work": "tos.work.plato.phaedrus",
+        "expression": "tos.expression.plato.phaedrus.grc-perseus-burnet",
+        "edition": "tos.edition.plato.phaedrus.grc-perseus-burnet.perseus-341e309c821d",
+        "item": "tos.item.plato.phaedrus.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+      },
+      "paths": {
+        "work": "ToS/source-witnesses/works/plato/phaedrus/work.json",
+        "expression": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/expression.json",
+        "edition": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+        "item": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+        "item_root": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+      },
+      "coverage": {
+        "kind": "perseus-tei-work",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg012.perseus-grc2",
+        "header_prefix_sha256": "ed5457d4a7292f4a1126555a1d6df3e1922712e66e0627a61b588bb54802653a"
+      },
+      "version_description": "Perseus Ancient Greek TEI/EpiDoc transcription of Phaedrus; exact CTS edition urn:cts:greekLit:tlg0059.tlg012.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1910 2 Internet Archive",
+      "responsibility": "John Burnet: named print editor. Perseus Project, Tufts University: digital transcription and encoding; retain the full supplied header credits.",
+      "limits": [
+        "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+        "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+        "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+        "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+      ],
+      "files": [
+        {
+          "upstream_path": "data/tlg0059/tlg012/tlg0059.tlg012.perseus-grc2.xml",
+          "basename": "tlg0059.tlg012.perseus-grc2.xml",
+          "git_blob_sha1": "d940e7fb3a0a22cfbdec69a7c461a4907455f8be",
+          "byte_size": 256028,
+          "media_type": "application/tei+xml",
+          "url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/tlg0059.tlg012.perseus-grc2.xml"
+        }
+      ],
+      "byte_size": 256028
+    }
+  ],
+  "prepared_packages_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/prepared-source-packages.jsonl",
+  "prepared_packages_sha256": "2a61430aab64d9f247a743eee493a38d65fd3de434414ba307619ea1a6010f3a",
+  "totals": {
+    "works": 12,
+    "expressions": 12,
+    "payload_files": 12,
+    "payload_bytes": 3029922,
+    "bibliographic_claims": 36
+  },
+  "authority_boundary": "Preparation does not establish local custody, textual or semantic acceptance, canon or public release."
+}

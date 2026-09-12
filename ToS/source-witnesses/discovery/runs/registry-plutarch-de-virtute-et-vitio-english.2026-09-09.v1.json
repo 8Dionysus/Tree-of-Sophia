@@ -1,0 +1,492 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.registry-plutarch-de-virtute-et-vitio-english.2026-09-09.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "expression",
+    "known_tos_refs": [
+      "tos.work.plutarch.de-virtute-et-vitio",
+      "tos.expression.plutarch.de-virtute-et-vitio.en-perseus-tlg0007-tlg075-perseus-eng3",
+      "tos.edition.plutarch.de-virtute-et-vitio.en-perseus-tlg0007-tlg075-perseus-eng3.perseus-341e309c821d",
+      "tos.item.plutarch.de-virtute-et-vitio.en-perseus-tlg0007-tlg075-perseus-eng3.perseus-341e309c821d.git-tei-xml"
+    ],
+    "description": "English translation urn:cts:greekLit:tlg0007.tlg075.perseus-eng3. Plutarch. Moralia, Vol. II. Babbitt, Frank Cole, translator. Cambridge, MA: Harvard University Press; London: William Heinemann Ltd., 1928 (printing). Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Moralia Frank Cole Babbitt Cambridge, MA Harvard University Press London William Heinemann Ltd. 1928 2 Loeb Classical Library The Internet Archive",
+    "required_properties": [
+      "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+      "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+      "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+      "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+      "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+      "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+      "Parallel Greek edition limit: Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+      "Parallel Greek edition limit: Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+      "Parallel Greek edition limit: Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+      "Parallel Greek edition limit: Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+      "Parallel Greek edition limit: Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.",
+      "Parallel Greek edition limit: The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed.",
+      "exact pinned provider version and immutable local file identity"
+    ],
+    "acceptable_substitutions": [],
+    "languages": [
+      "en"
+    ],
+    "formats": [
+      "application/tei+xml"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/manifest.json"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-plutarch-de-virtute-et-vitio-english-metadata-1",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+      "queried_at": "2026-09-09T18:23:00.753601+00:00",
+      "elapsed_seconds": 0.31324517000757623,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-plutarch-de-virtute-et-vitio-english-metadata-1",
+          "rank": 1,
+          "title_as_displayed": "perseus-README.md",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "9733e53be0cb9adf77c1e3359fffc81911bbf0dc17b9095b3912768b1a663275",
+            "reason": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/perseus-README.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-plutarch-de-virtute-et-vitio-english-metadata-2",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+      "queried_at": "2026-09-09T18:23:00.754168+00:00",
+      "elapsed_seconds": 0.3628841229947284,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-plutarch-de-virtute-et-vitio-english-metadata-2",
+          "rank": 1,
+          "title_as_displayed": "perseus-license.md",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "ccf0e8ce183761bf82700126cc45a4e907b2cede024e65e3fef5c2338b9b7063",
+            "reason": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/perseus-license.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-plutarch-de-virtute-et-vitio-english-metadata-3",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/__cts__.xml",
+      "queried_at": "2026-09-09T18:23:01.069026+00:00",
+      "elapsed_seconds": 0.26027098500344437,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-plutarch-de-virtute-et-vitio-english-metadata-3",
+          "rank": 1,
+          "title_as_displayed": "tlg0007-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "d4740b26c8dab6833844c75e14e7b74564b5cf9df9e9235a8fd8c73003f7b65b",
+            "reason": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-plutarch-de-virtute-et-vitio-english-metadata-4",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/__cts__.xml",
+      "queried_at": "2026-09-09T18:23:02.871115+00:00",
+      "elapsed_seconds": 0.26453201100230217,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-plutarch-de-virtute-et-vitio-english-metadata-4",
+          "rank": 1,
+          "title_as_displayed": "tlg0007.tlg075-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "a337532aeca0a5e94fd37568f93040b575d9c5acd9237d4f3eb9fce43c8d3395",
+            "reason": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg075-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-plutarch-de-virtute-et-vitio-english-metadata-5",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/tlg0007.tlg075.perseus-eng3.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/tlg0007.tlg075.perseus-eng3.xml",
+      "queried_at": "2026-09-09T18:23:02.838896+00:00",
+      "elapsed_seconds": 0.3080892130092252,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-plutarch-de-virtute-et-vitio-english-metadata-5",
+          "rank": 1,
+          "title_as_displayed": "tlg0007.tlg075.perseus-eng3-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/tlg0007.tlg075.perseus-eng3.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/tlg0007.tlg075.perseus-eng3.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/tlg0007.tlg075.perseus-eng3.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "802a8f52cf317e221c37053646ef72fa1ace714e4ab595b0a4836fd2fae57486",
+            "reason": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg075.perseus-eng3-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-plutarch-de-virtute-et-vitio-english-metadata-6",
+      "sequence": 6,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/tlg0007.tlg075.perseus-eng3.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/tlg0007.tlg075.perseus-eng3.xml",
+      "queried_at": "2026-09-09T18:23:57.552314+00:00",
+      "elapsed_seconds": 0.1600325469917152,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-plutarch-de-virtute-et-vitio-english-metadata-6",
+          "rank": 1,
+          "title_as_displayed": "tlg0007.tlg075.perseus-eng3-opening.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/tlg0007.tlg075.perseus-eng3.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/tlg0007.tlg075.perseus-eng3.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/tlg0007.tlg075.perseus-eng3.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "cf3e5470927c10d94018fe0a6e88bef5ba29ceabe0abe222833a05bdf329487a",
+            "reason": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg075.perseus-eng3-opening.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-plutarch-de-virtute-et-vitio-english-file-7",
+      "sequence": 7,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "PerseusDL/canonical-greekLit",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/tlg0007.tlg075.perseus-eng3.xml",
+      "interface_type": "bulk",
+      "interface_version": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/tlg0007.tlg075.perseus-eng3.xml",
+      "queried_at": "2026-09-09T18:34:49.394486+00:00",
+      "elapsed_seconds": 0.2800182280043373,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-plutarch-de-virtute-et-vitio-english-file-7",
+          "rank": 1,
+          "title_as_displayed": "tlg0007.tlg075.perseus-eng3.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/tlg0007.tlg075.perseus-eng3.xml",
+          "originating_record_url": "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "341e309c821d5eca8c976bebca77c28b10bad58f"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "e457559438dc9d22c1be54fcb78f610057100ffa"
+            }
+          ],
+          "available_formats": [
+            "application/tei+xml"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg075/tlg0007.tlg075.perseus-eng3.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-09T18:34:49.674501+00:00",
+            "byte_size": 13254,
+            "sha256": "948e6b18ac48e51ba056670762fece03b35e3cea82ed42af5895b06b22bd5ba3",
+            "event_ref": "tos.event.acquisition.registry-20260909.plutarch-de-virtute-et-vitio-english"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-plutarch-de-virtute-et-vitio-english-metadata-1",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.31324517000757623,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-plutarch-de-virtute-et-vitio-english-metadata-2",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.3628841229947284,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-plutarch-de-virtute-et-vitio-english-metadata-3",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.26027098500344437,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-plutarch-de-virtute-et-vitio-english-metadata-4",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.26453201100230217,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-plutarch-de-virtute-et-vitio-english-metadata-5",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.3080892130092252,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-plutarch-de-virtute-et-vitio-english-metadata-6",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.1600325469917152,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-plutarch-de-virtute-et-vitio-english-file-7",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2800182280043373,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.registry-plutarch-de-virtute-et-vitio-english-file-7"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-09-09T18:23:00.753601+00:00",
+  "ended_at": "2026-09-09T18:34:49.674501+00:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.registry-20260909.plutarch-de-virtute-et-vitio-english",
+    "tos.event.acquisition.registry-20260909.plutarch-de-virtute-et-vitio-english"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

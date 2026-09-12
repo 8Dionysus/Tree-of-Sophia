@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+<title xml:lang="grc">Πραμυθητικὸς πρὸς Ἀπολλώνιον</title>
+<author>Plutarch</author>
+<editor>Grēgorios N. Vernardakēs</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+<name>Lisa Cerrato</name>
+<name>Rashmi Singhal</name>
+<name>Bridget Almas</name>
+    <name>Angelia Hanhardt</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+    <respStmt>
+        <persName>Lucy Parr</persName>
+        <orgName>Center for Hellenic Studies</orgName>
+        <resp>CTS conversion</resp>
+    </respStmt>
+</titleStmt>
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+<date type="release" when="2010-12-13">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg076.perseus-grc2.xml</idno>
+  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+<monogr>
+<author>Plutarch</author>
+<title>Moralia</title>
+<editor>Grēgorios N. Vernardakēs</editor>
+<imprint>
+<pubPlace>Leipzig</pubPlace>
+<publisher>Teubner</publisher>
+<date>1888</date>
+</imprint>
+<biblScope unit="volume">1</biblScope>
+</monogr>
+<ref target="https://archive.org/stream/moralia01plut#page/248/mode/2up">The Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+    <quotation marks="none"/>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE
+Architecture</p>
+<refsDecl n="CTS">
+<cRefPattern n="section" matchPattern="(\w+)"
+replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+<p>This pointer pattern extracts section.</p>
+</cRefPattern>
+<!-- <state unit="chapter" delim="."/>
+<state unit="section"/>
+</refsDecl>
+<refsDecl doctype="TEI.2">
+ -->
+</refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+<language ident="eng">English</language>
+<language ident="lat">Latin</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change who="RS" when="2010-05">tagged and parsed</change>
+<change who="Lucy Parr" when="2019-06-05">EpiDoc and CTS Conversion</change>
+</revisionDesc>
+</teiHeader>

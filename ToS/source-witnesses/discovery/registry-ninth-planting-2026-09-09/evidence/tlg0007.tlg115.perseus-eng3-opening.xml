@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>That a Philosopher Ought to Converse Especially with Men in Power</title>
+            <author>Plutarch</author>
+            <editor role="translator">Harold North Fowler</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         		<name>Angelia Hanhardt</name>
+         		<name>Michael Konieczny</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg115.perseus-eng3.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+        <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title xml:lang="lat">Moralia</title>
+                  <editor role="translator">Harold North Fowler</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1936</date>
+                  </imprint>
+                  <biblScope unit="volume">10</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series> 
+            	<ref target="https://archive.org/details/moraliainfifteen10plutuoft/page/24">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+         	<quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+         	<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p>
+         	</cRefPattern>
+            <!--><state unit="section"/>
+         </refsDecl><refsDecl doctype="TEI.2">
+				-->
+				</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+         	<language ident="grc">Greek</language>
+         	<language ident="eng">English</language>
+         	<language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="RS" when="2010-05">tagged and parsed</change>
+      	<change who="Sophia Elzie" when="2019-07-17">EpiDoc and CTS Conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg115.perseus-eng3">
+      	<div n="urn:cts:greekLit:tlg0007.tlg115.perseus-eng3" type="translation" xml:lang="eng">
+         <pb xml:id="v.10.p.27"/>
+      	<head>THAT A PHILOSOPHER OUGHT TO CONVERSE ESPECIALLY WITH MEN IN POWER (<foreign xml:lang="lat">MAXIME CUM PRINCIPIBUS PHILOSOPHO ESSE DISSERENDUM</foreign>)</head> 
+       <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg115.perseus-eng3" n="intro"> <head>INTRODUCTION</head> <p rend="indent">This brief essay was written in support of the contention that the philosopher should exert himself to influence the thought and conduct of men in power and should not shut himself away from the world. This view is consistent with Plutarch’s own life. The essay is less carefully written than some of the others, and the text is somewhat uncertain in a few places, among which may be mentioned the very first sentence. In this the first word, Sorcanus, appears to be a proper name, but the name does not occur elsewhere, and therefore numerous emendations have been proposed. If the reading is correct, Sorcanus was some important personage and must have been well known to the person, whoever he was, to whom the essay is addressed; for although not written exactly in the form of a letter, the essay seems to be intended primarily for some one person’s edification or entertainment.</p> </div>
+         <pb xml:id="v.10.p.29"/>
+        <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg115.perseus-eng3" n="1"> <p rend="indent">In clasping Sorcanus to your bosom, in prizing, pursuing, welcoming, and cultivating his friendship - a friendship which will prove useful and fruitful to many in private and to many in public life - you are acting like a man who loves what is noble, who is public-spirited and is a friend of mankind, not, as some people say, like one who is merely ambitious for himself. No, on the contrary, the man who is ambitious for himself and afraid of every whisper is just the one who avoids and fears being called a persistent and servile attendant on those in power. For what does a man say who is an attendant upon philosophy and stands in need of it? <q>Let me change from Pericles or Cato and become Simo the cobbler or Dionysius the schoolmaster, in order that the philosopher may converse with me and sit beside me as Socrates did with Pericles.</q> And while it is true that Ariston of Chios, when the sophists spoke ill of him for talking with all who wished it, said, <q>I wish even the beasts could understand words which incite to virtue,</q> yet as for us, shall we avoid becoming intimate with <pb xml:id="v.10.p.31"/> powerful men and rulers, as if they were wild and savage? </p> 
+        	<p rend="indent">The teaching of philosophy is not, if I may use the words of Pindar,<note resp="editor" place="inline" anchored="true">Pindar, <title rend="italic">Nem.</title> v. 1 <foreign xml:lang="grc">οὐκ ἀνδριαντοποιός εἰμ’, ὥστ’ ἐλινύσοντα ἐργάζεσθαι ἀγάλματ’ ἐπ’ αὐτᾶς βαθμίδας</foreign>, loosely quoted. The translation is adapted from that of Sir John Sandys (in L.C.L.).</note> <q>a sculptor to carve statues doomed to stand idly on their pedestals and no more</q>; no, it strives to make everything that it touches active and efficient and alive, it inspires men with impulses which urge to action, with judgements that lead them towards what is useful, with preferences for things that are honourable, with wisdom and greatness of mind joined to gentleness and conservatism, and because they possess these qualities, men of public spirit are more eager to converse with the prominent and powerful. Certainly if a physician is a man of high ideals, he will be better pleased to cure the eye which sees for many and watches over many, and a philosopher will be more eager to attend upon a soul which he sees is solicitous for many and is under obligation to be wise and self-restrained

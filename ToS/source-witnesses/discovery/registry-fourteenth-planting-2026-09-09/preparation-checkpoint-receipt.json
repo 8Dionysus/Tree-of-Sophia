@@ -1,0 +1,23 @@
+{
+  "schema_version": "tos_registry_preparation_migration_receipt_v1",
+  "status": "passed",
+  "receipt_role": "current-navigation-migration",
+  "stage": "pali",
+  "manifest_sha256": "a797312199dc385d5f4ef2a4bde87f805626954c774cb7ba244d874fa4a10efc",
+  "commit": "b65c9f816f0d66f61a357f6b1bdc7b6f38a778c2",
+  "runtime_session_id": "tos-path-migration:registry-fourteenth:2026-09-10",
+  "checkpoint_review_ref": "agent-review:e058fc6e5:20260909T230942Z",
+  "migration_ref": "ToS/source-witnesses/discovery/registry-fourteenth-planting-2026-09-09/path-migration.current.json",
+  "migration_review_ref": "ToS/review-ledger/2026-09-10-registry-fourteenth-path-migration.md",
+  "historical_receipt_ref": "ToS/source-witnesses/discovery/registry-fourteenth-planting-2026-09-09/legacy/preparation-inputs/c6fb23cad4de11a7a66994bc4f0299234a914d786b108b70bad47bab83e371c4.pali-receipt.json",
+  "historical_receipt_sha256": "c6fb23cad4de11a7a66994bc4f0299234a914d786b108b70bad47bab83e371c4",
+  "historical_manifest_sha256": "0f13562df206e483477c58b32251bafbff51d846ae6cf016b84f8b9e39794e53",
+  "historical_preparation_commit": "e058fc6e55e74c02dc909b98471f79467d942a56",
+  "passed_checks": [
+    "current manifest digest is recorded in this migration receipt",
+    "historical receipt bytes and its original manifest digest and preparation commit are retained at the migration record reference",
+    "current route names resolve to the same stable source record and payload identity",
+    "migration changes navigation and generated references only; no source, rights, semantic, publication or canon admission is made"
+  ],
+  "authority_boundary": "This receipt closes the reviewed navigation migration. It is not an acquisition-preparation receipt and must not be used to authorize a new source transfer."
+}

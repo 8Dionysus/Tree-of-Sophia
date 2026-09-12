@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-tranquillitate-animi.grc-perseus-tlg0007-tlg096",
+    "version": 1,
+    "digest": "sha256:1317eb82f64efa83ec889a54a1939778799b9f3d4aad8bff839affb593a7e8a3"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:1317eb82f64efa83ec889a54a1939778799b9f3d4aad8bff839affb593a7e8a3",
+            "id": "tos.expression.plutarch.de-tranquillitate-animi.grc-perseus-tlg0007-tlg096",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:1317eb82f64efa83ec889a54a1939778799b9f3d4aad8bff839affb593a7e8a3",
+            "id": "tos.expression.plutarch.de-tranquillitate-animi.grc-perseus-tlg0007-tlg096",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:1317eb82f64efa83ec889a54a1939778799b9f3d4aad8bff839affb593a7e8a3",
+            "id": "tos.expression.plutarch.de-tranquillitate-animi.grc-perseus-tlg0007-tlg096",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:1317eb82f64efa83ec889a54a1939778799b9f3d4aad8bff839affb593a7e8a3",
+            "id": "tos.expression.plutarch.de-tranquillitate-animi.grc-perseus-tlg0007-tlg096",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.2caf4d5d355b653c983966aa9468475ae1837ccbfa79863e5c3b5af61b9d2bc2",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:1317eb82f64efa83ec889a54a1939778799b9f3d4aad8bff839affb593a7e8a3",
+        "id": "tos.expression.plutarch.de-tranquillitate-animi.grc-perseus-tlg0007-tlg096",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:1317eb82f64efa83ec889a54a1939778799b9f3d4aad8bff839affb593a7e8a3",
+            "id": "tos.expression.plutarch.de-tranquillitate-animi.grc-perseus-tlg0007-tlg096",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:1317eb82f64efa83ec889a54a1939778799b9f3d4aad8bff839affb593a7e8a3",
+            "id": "tos.expression.plutarch.de-tranquillitate-animi.grc-perseus-tlg0007-tlg096",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:1317eb82f64efa83ec889a54a1939778799b9f3d4aad8bff839affb593a7e8a3",
+            "id": "tos.expression.plutarch.de-tranquillitate-animi.grc-perseus-tlg0007-tlg096",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:1317eb82f64efa83ec889a54a1939778799b9f3d4aad8bff839affb593a7e8a3",
+            "id": "tos.expression.plutarch.de-tranquillitate-animi.grc-perseus-tlg0007-tlg096",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.28b0a848c51cbb4406509db3bf16d039e651097a76a23551f0d2df2b7f86d3f9",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:1317eb82f64efa83ec889a54a1939778799b9f3d4aad8bff839affb593a7e8a3",
+        "id": "tos.expression.plutarch.de-tranquillitate-animi.grc-perseus-tlg0007-tlg096",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:3d96970a768eff3fb8e38c8036987a9deb9c602ca1cd188edfb0fe707f30e42c",
+      "request_digest": "sha256:824b4d7cb9ffc19f81482fe360cf158a4e83b71791a6647a0d64993c31ad4c46",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:bdf30697f0400e9e9f5196339cac7b7632392e9c1da2aa156306a12dcc1fd121",
+      "recorded_at": "2026-09-09T16:45:38.786670+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-tranquillitate-animi.grc-perseus-tlg0007-tlg096",
+        "version": 1,
+        "digest": "sha256:1317eb82f64efa83ec889a54a1939778799b9f3d4aad8bff839affb593a7e8a3"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.2caf4d5d355b653c983966aa9468475ae1837ccbfa79863e5c3b5af61b9d2bc2",
+          "version": 1,
+          "digest": "sha256:dae0e6651802aa1ef320031af4d83dd993bbea39546bb3e9bed535adaa25298d"
+        },
+        {
+          "id": "tos.form.metadata.28b0a848c51cbb4406509db3bf16d039e651097a76a23551f0d2df2b7f86d3f9",
+          "version": 1,
+          "digest": "sha256:86ca9922bd7278ecb87293ec028bf872f945ab393720cc4e95c41456afa45869"
+        }
+      ]
+    }
+  ]
+}

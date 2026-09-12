@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>A Discourse Concerning Socrates's Daemon</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">Thomas Creech</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         		<name>Angelia Hanhardt</name>
+         		<name>Michael Konieczny</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg109.perseus-eng2.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <respStmt>
+                     <resp>Translated from the Greek by several hands. Corrected and revised	by</resp>
+                     <name>William W. Goodwin, PH. D.</name>
+                  </respStmt>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst02plutuoft/page/378">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	<editorialDecl>
+      		<quotation marks="none"/>
+      		<correction method="silent">
+      			<p>optical character recognition</p>
+      		</correction>
+      	</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+         	<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p>
+         	</cRefPattern>
+            
+         </refsDecl>
+      	<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         	<language ident="eng">English</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Sophia Elzie" when="2010-07-17">EpiDoc and CTS Conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg109.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg109.perseus-eng2" type="translation" xml:lang="eng">
+         <head>A discourse concerning Socrates’s daemon. <lb/> Caphisias, Timotheus, Archidamus,
+					children of Archinus, Lysithides, other companions.</head>
+         <pb xml:id="v.2.p.378"/>
+         
+<div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg109.perseus-eng2" type="textpart" n="1"> 
+<p rend="indent">I HEARD lately, Caphisias, a neat saying of a painter, comprised in a similitude upon those that came to view his pictures. For he said, the ignorant and unskilful were like those that saluted a whole company together, but the curious and knowing like those that complimented each single person; for the former take no exact, but only one general view of the performance; but those that with judgment examine part by part take notice of every stroke that is either well or ill done in the whole picture. The duller and lazy sort are abundantly satisfied with a short account and upshot of any business. But he that is of a generous and noble temper, that is fitted to be a spectator of virtue, as of a curious piece of art, is more delighted with the particulars. For, upon a general view, much of fortune is discovered; but when the particulars are examined, then appear the art and contrivance, the boldness in conquering intervening accidents, and the reason that was mixed with and tempered the heat and fury of the undertakers. Suppose us to be of this sort, and give us an account of the whole design, how from the very beginning it was carried on, what company you kept, and what particular discourse you had that day;—a thing so much desired, that I protest I would willingly go to Thebes to be <pb xml:id="v.2.p.379"/> informed, did not the Athenians already suspect me to lean too much to the Boeotian interest.</p> 
+<p rend="indent">CAPHISIAS. Indeed Archidamus, your kind eagerness after this story is so obliging, that, putting myself above all business (as Pindar says), I should have come on purpose to give you a relation. But since I am now come upon an embassy, and have nothing to do until I receive an answer to my memorial, to be uncivil and not to satisfy the request of an obliging friend would revive the old reproach that hath been cast upon the Boeotians for morose sullenness and hating good discourse, a reproach which began to die in the time of Socrates. But as for the rest of the company, pray sir, are they at leisure to hear such a story?—for I must be very long, since you enjoin me to add the particular discourses that passed between us.</p> 
+<p rend="indent">ARCH. You do not know the men, Caphisias, though they are worthy your acquaintance; men of good families, and no enemies to you. This is Lysithides, Thrasybulus’s nephew; this Timotheus, the son of Conon; these Archinus’s sons; and all the rest my very good acquaintance, so that you need not doubt a favorable and obliging audience.</p> 
+<p rend="indent">CAPH. Very well; but where shall I begin the story? How much of these affairs are you acquainted with already?</p> 
+<p rend="indent">ARCH. We know, Caphisias, how matters stood at Thebes before the exiles returned,—how Archias, Leontidas, and their associates, having persuaded Phoebidas the Spartan in the time of peace to surprise that castle, banished some of the citizens, awed others, took the power into their own hands, and tyrannized against all equity and law. We understood Melon’s and Pelopidas’s designs, having (as you know) entertained them, and having conversed with them ever since they were banished. We knew likewise that the Spartans fined Phoebidas for taking <pb xml:id="v.2.p.380"/> the Cadmea, and in their expedition to Olynthus cashiered him; but sent a stronger garrison, under Lysinoridas and two more, to command the castle; and further, that Ismenias presently after his trial was basely murdered. For Gorgidas wrote constantly to the exiles, and sent them all the news; so that you

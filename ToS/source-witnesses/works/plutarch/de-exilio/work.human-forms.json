@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:815b1454a4dfeba4e3517d577c9fd87a36e977aa60ce972a455380e51fc63121",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:815b1454a4dfeba4e3517d577c9fd87a36e977aa60ce972a455380e51fc63121",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:815b1454a4dfeba4e3517d577c9fd87a36e977aa60ce972a455380e51fc63121",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:815b1454a4dfeba4e3517d577c9fd87a36e977aa60ce972a455380e51fc63121",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.f683f8a38d38e2b022418736e87f5fb93ea16492dee7389950effb5c900b9e21",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:a25802d83de33d8c022efc5cb6ac1589ad7828c72e9f8e17d6ab46c13d033b41",
+        "id": "tos.form.metadata.f683f8a38d38e2b022418736e87f5fb93ea16492dee7389950effb5c900b9e21",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:815b1454a4dfeba4e3517d577c9fd87a36e977aa60ce972a455380e51fc63121",
+        "id": "tos.work.plutarch.de-exilio",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:815b1454a4dfeba4e3517d577c9fd87a36e977aa60ce972a455380e51fc63121",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:815b1454a4dfeba4e3517d577c9fd87a36e977aa60ce972a455380e51fc63121",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:815b1454a4dfeba4e3517d577c9fd87a36e977aa60ce972a455380e51fc63121",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:815b1454a4dfeba4e3517d577c9fd87a36e977aa60ce972a455380e51fc63121",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.8ce4d20a9787b9990485008e72f0e12f9e7f0f39c6434496ff76201d8de153ab",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:1f73ab5bf8b2b58be5474393eea72240713849f09d7cf5d80cc0293b5e963125",
+        "id": "tos.form.metadata.8ce4d20a9787b9990485008e72f0e12f9e7f0f39c6434496ff76201d8de153ab",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:815b1454a4dfeba4e3517d577c9fd87a36e977aa60ce972a455380e51fc63121",
+        "id": "tos.work.plutarch.de-exilio",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:f8e672e6d251d99f08cb5a32f74f9baf4fe4b254c7e9c6876e5e3c6c4bcf1548",
+      "owner_configuration": "sha256:cc3f25a69e75ae08e51a5572f11df93f8283b860ec1cc9a1cbabe982d6cc076e",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:40.052314+00:00",
+      "request_digest": "sha256:71dec444c140091157c83c2449de83948095a2e68a187c922d565269ac1a2a43",
+      "results": [
+        {
+          "digest": "sha256:a25802d83de33d8c022efc5cb6ac1589ad7828c72e9f8e17d6ab46c13d033b41",
+          "id": "tos.form.metadata.f683f8a38d38e2b022418736e87f5fb93ea16492dee7389950effb5c900b9e21",
+          "version": 1
+        },
+        {
+          "digest": "sha256:1f73ab5bf8b2b58be5474393eea72240713849f09d7cf5d80cc0293b5e963125",
+          "id": "tos.form.metadata.8ce4d20a9787b9990485008e72f0e12f9e7f0f39c6434496ff76201d8de153ab",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:11cf4a8d4301e8d0062723d92943d1ca72f69bce4dba34ab7757e32dca454152",
+        "id": "tos.work.plutarch.de-exilio",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:f8e672e6d251d99f08cb5a32f74f9baf4fe4b254c7e9c6876e5e3c6c4bcf1548",
+      "request_digest": "sha256:6c1ba8aaaadb733d48bccc8d6cd742cc39c8cdc07bda7f6bb1d62fa30d311cb4",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:adb60d37ac784e4dec74df13ae791929d44514878efd07cf2a5d19d1add262d8",
+      "recorded_at": "2026-09-09T18:35:29.476586+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-exilio",
+        "version": 2,
+        "digest": "sha256:815b1454a4dfeba4e3517d577c9fd87a36e977aa60ce972a455380e51fc63121"
+      },
+      "previous_revision": "sha256:ec0addca0bd774c69201fd1e2db4bb97ee13a5693833f0c208b27f7ca6d1cdb8",
+      "results": [
+        {
+          "id": "tos.form.metadata.f683f8a38d38e2b022418736e87f5fb93ea16492dee7389950effb5c900b9e21",
+          "version": 2,
+          "digest": "sha256:38de5911d391fad1640ade5eb7040d561506c8401a4b4d6113414a8143a01177"
+        },
+        {
+          "id": "tos.form.metadata.8ce4d20a9787b9990485008e72f0e12f9e7f0f39c6434496ff76201d8de153ab",
+          "version": 2,
+          "digest": "sha256:6b14f4df9a09ed477175687a514bbe3344b2f0bae3fc89348991bd26929d9c89"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:11cf4a8d4301e8d0062723d92943d1ca72f69bce4dba34ab7757e32dca454152",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:11cf4a8d4301e8d0062723d92943d1ca72f69bce4dba34ab7757e32dca454152",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:11cf4a8d4301e8d0062723d92943d1ca72f69bce4dba34ab7757e32dca454152",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:11cf4a8d4301e8d0062723d92943d1ca72f69bce4dba34ab7757e32dca454152",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.f683f8a38d38e2b022418736e87f5fb93ea16492dee7389950effb5c900b9e21",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:11cf4a8d4301e8d0062723d92943d1ca72f69bce4dba34ab7757e32dca454152",
+        "id": "tos.work.plutarch.de-exilio",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:11cf4a8d4301e8d0062723d92943d1ca72f69bce4dba34ab7757e32dca454152",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:11cf4a8d4301e8d0062723d92943d1ca72f69bce4dba34ab7757e32dca454152",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:11cf4a8d4301e8d0062723d92943d1ca72f69bce4dba34ab7757e32dca454152",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:11cf4a8d4301e8d0062723d92943d1ca72f69bce4dba34ab7757e32dca454152",
+            "id": "tos.work.plutarch.de-exilio",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.8ce4d20a9787b9990485008e72f0e12f9e7f0f39c6434496ff76201d8de153ab",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:11cf4a8d4301e8d0062723d92943d1ca72f69bce4dba34ab7757e32dca454152",
+        "id": "tos.work.plutarch.de-exilio",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-exilio",
+    "version": 2,
+    "digest": "sha256:815b1454a4dfeba4e3517d577c9fd87a36e977aa60ce972a455380e51fc63121"
+  }
+}

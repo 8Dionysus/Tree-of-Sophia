@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">Pro C. Rabirio Perduellionis Reo Ad Quirites</title>					
+				<author>M. Tullius Cicero</author>
+				<editor>Albert Curtis Clark</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				<respStmt>
+					<persName>Zach Himes</persName>
+					<orgName>Tufts University</orgName>
+					<resp>CTS and EpiDoc conversion</resp>
+				</respStmt>
+				<funder n="org:NEH">National Endowment For The Humanities (NEH)</funder> 
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2000-03-17" cert="medium">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi012.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt> 
+			
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>Albert Curtis Clark</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon Press</publisher>
+							<date>1909</date>
+						</imprint>
+						<biblScope unit="volume">4</biblScope>
+						<biblScope n="contents">Pro P. Quinctio; Pro Q. Roscio comoedo; Pro A. Caecina; De lege agraria contra Rullum; Pro C. Rabirio perduellionis reo; Pro L. Flacco; In L. Pisonem; Pro C. Rabirio Postumo</biblScope>
+					</monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+					<ref target="https://archive.org/details/orationesrecogno04ciceuoft/page/178/mode/2up">Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		
+		<encodingDesc>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+			<refsDecl>
+				<refState unit="section"/>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+		
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+		
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+			<change when="2016-04-19" who="Lisa Cerrato">Minor changes; review of file conversion.</change>
+			<change when="2016-03-14" who="Zach Himes">Converted section milestones to divs.</change>
+			<change when="2015-12-18" who="Zach Himes">Cleaned up teiHeader. Converted to TEI P5 and EpiDoc.</change>
+			<change when="2014-08-01" who="Stella Dee">edited markup</change>
+			<change when="2014-07-01" who="Stella Dee">split composite text and converted to unicode</change>
+			<change when="2013-09-13" who="balmas01">reverting texts back to pre_cts_reorg tagged version</change>
+			<change when="2011-07-19" who="gcrane">removed the earlier persName/placeName tags</change>
+			<change when="2011-07-09" who="gcrane">fixed problems with capitalization</change>
+			<change when="2011-01-15" who="gcrane">base SDL file</change>
+			<change when="2009-10-09" who="rsingh04">more reorganizing of texts module by collection</change>
+			<change when="2005-08-01" who="packel">removed stray item tags</change>
+			<change when="2005-07-25" who="packel">Converted to XML</change>
+			<change when="2005-04-08" who="mimno">added default chunks</change>
+			<change when="2003-07-01" who="yorkc">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change>
+			<change when="2002-12-02" who="amahoney">correct spelling of Quirites, improperly 'regularized'</change>
+			<change when="2000-03-13" who="amahoney">don't put header for fragments next to header for speech:  gets into short toc</change>
+			<change when="2000-03-06" who="amahoney">add headers for groups of speeches, so they show up in the toc:  Catilines, Verrines, Philippics, and Agrarian Law</change>
+			<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change>
+			<change when="1999-10-14" who="dasmith">Added explanatory subtitles to titleStmt</change>
+			<change when="1999-08-12" who="dasmith">Fixed refsDecl</change>
+			<change when="1999-08-04" who="textgod">Random changes over a period of months.</change>
+			<change when="1997-10-17" who="textgod">Tagged Greek.</change>
+			<change when="1997-08-18" who="textgod">???</change>
+			<change when="1997-05-12" who="cjsu">making sure that the file passed the parcer</change>
+			<change when="1997-05-12" who="cjsu">Added seven works... SGML varified</change>
+			<change when="1997-04-03" who="textgod">Changed ADD tags to CORR.</change>
+			<change when="1997-03-26" who="textgod">Added to repository. Passes TEI parse.</change>
+			<change when="1997-03-26" who="DAS">ed.</change>
+		</revisionDesc>
+	</teiHeader>
+	
+	<text xml:lang="lat">
+	<body xml:base="urn:cts:latinLit:phi0474.phi012.perseus-lat2"> 
+	<div type="edition" xml:lang="lat" subtype="edition"> 
+	<head rend="align(center)">PRO C. RABIRIO PERDVELLIONIS REO AD QVIRITES ORATIO</head> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi012.perseus-lat2" n="1"><p rend="align(indent)"><milestone n="1" unit="chapter"/> <reg>etsi</reg>, Quirites, non est meae consuetudinis initio dicendi rationem reddere qua de causa quemque defendam, propterea quod cum omnibus civibus in eorum periculis semper satis iustam mihi causam necessitudinis esse duxi, tamen in hac defensione capitis, famae fortunarumque omnium C. Rabiri proponenda ratio videtur esse offici mei, propterea quod, quae iustissima mihi causa ad hunc defendendum esse visa est, eadem vobis ad absolvendum debet videri. </p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi012.perseus-lat2" n="2"><p><reg>nam</reg> me cum amicitiae vetustas, cum dignitas hominis, cum ratio humanitatis, cum meae vitae perpetua consuetudo ad C. Rabirium defendendum est adhortata, tum vero, ut id studiosissime facerem, salus rei publicae, consulare officium, consulatus denique ipse mihi una <add>a</add> vobis cum salute rei publicae commendatus coegit. <reg>non</reg> enim C. Rabirium culpa delicti, non invidia vitae, Quirites, non denique veteres iustae gravesque inimicitiae civium in discrimen capitis vocaverunt, sed ut illud summum auxilium maiestatis atque imperi quod nobis a maioribus est traditum de re publica tolleretur, ut nihil posthac auctoritas senatus, nihil consulare imperium, nihil consensio bonorum contra pestem ac perniciem civitatis valeret, idcirco in his rebus evertendis unius hominis senectus, infirmitas solitudoque temptata est. </p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi012.perseus-lat2" n="3"><p><reg>quam</reg> ob rem si est boni consulis, cum cuncta auxilia rei publicae labefactari convellique videat, ferre opem patriae, succurrere saluti fortunisque communibus, implorare civium fidem, suam salutem posteriorem salute communi ducere, est etiam bonorum et fortium civium, quales vos omnibus rei publicae temporibus exstitistis, intercludere omnis seditionum vias, munire praesidia rei publicae, summum in consulibus imperium, summum in senatu consilium putare; ea qui secutus sit, laude potius et honore quam poena et supplicio dignum iudicare. </p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi012.perseus-lat2" n="4"><p><reg>quam</reg> ob rem labor in hoc defendendo praecipue meus est, studium vero conservandi hominis commune mihi vobiscum esse debebit.</p> 
+	
+<p rend="align(indent)"><milestone n="2" unit="chapter"/> <reg>sic</reg> enim existimare debetis, Quirites, post hominum memoriam rem nullam maiorem, magis periculosam, magis ab omnibus vobis providendam neque a tribuno pl. susceptam neque a consule defensam neque ad populum Romanum esse delatam. <reg>agitur</reg> enim nihil aliud in hac causa, Quirites, <add>nisi</add> ut nullum sit posthac in re publica publicum consilium, nulla bonorum consensio contra improborum furorem et audaciam, nullum extremis rei publicae temporibus perfugium et praesidium salutis. </p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi012.perseus-lat2" n="5"><p><reg>quae</reg> cum ita sint, primum, quod in tanta dimicatione capitis, famae fortunarumque omnium fieri necesse est, ab Iove <reg>optimo</reg> <reg>maximo</reg> ceterisque dis deabusque immortalibus, quorum ope et auxilio multo magis haec res publica quam ratione hominum et consilio gubernatur, pacem ac veniam peto precorque ab eis ut hodiernum diem et ad huius salutem conservandam et ad rem publicam constituendam inluxisse patiantur. <reg>deinde</reg> vos, Quirites, quorum potestas proxime ad deorum immortalium numen accedit, oro atque obsecro, quoniam uno tempore vita C. Rabiri, hominis miserrimi atque innocentissimi, salus rei publicae vestris manibus su

@@ -1,0 +1,116 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+  <teiHeader>
+    <fileDesc>
+      <titleStmt>
+        <title>The Discourses of Epictetus</title>
+        <author>Epictetus</author>
+        <editor role="translator">Thomas Wentworth Higginson</editor>
+        <sponsor>Perseus Project, Tufts University</sponsor>
+        
+<principal>Gregory Crane</principal>
+        <respStmt>
+          <resp>Prepared under the supervision of</resp>
+          <name>Gregory Crane</name>
+          <name>Lisa Cerrato</name>
+          <name>Anne Mahoney</name>
+          <name>David Mimno</name>
+        </respStmt>
+        <funder n="org:Tufts">Tufts University</funder>
+        
+      </titleStmt>
+      
+<publicationStmt>
+        
+<publisher>Trustees of Tufts University</publisher>
+        
+<pubPlace>Medford, MA</pubPlace>
+        <authority>Perseus Project</authority>
+        <date type="release" cert="low">2004</date>
+      </publicationStmt>
+      
+      <sourceDesc>
+        <biblStruct>
+          <monogr>
+            <author>Epictetus</author>
+            <title>The Works of Epictetus, His Discourses, in Four Books, the Enchiridion, and Fragments.</title>
+            <editor role="translator">Thomas Wentworth Higginson</editor>
+            <imprint>
+              
+<pubPlace>New York</pubPlace>
+              
+<publisher>Thomas Nelson and Sons</publisher>
+              <date>1890</date>
+            </imprint>
+          </monogr>
+          <ref target="https://archive.org/details/epictetusdiscour00epicuoft/page/n23/mode/2up">The Internet Archive</ref>
+        </biblStruct>
+      </sourceDesc>
+    </fileDesc>
+    
+    <encodingDesc>
+      <editorialDecl><quotation marks="none"/>
+        <correction method="silent" status="high">
+          <p>Perseus OCR</p></correction></editorialDecl>
+      <refsDecl n="CTS">
+        <cRefPattern n="chapter"
+          matchPattern="(\w+).(\w+)"
+          replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+          <p>This pointer pattern extracts book and chapter</p>
+        </cRefPattern>
+        <cRefPattern n="book"
+          matchPattern="(\w+)"
+          replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+          <p>This pointer pattern extracts book</p>
+        </cRefPattern>
+      </refsDecl>
+        <refsDecl xml:id="CTS">
+      <citeStructure match="/TEI/text/body" use="@xml:base">
+        <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+          <citeStructure unit="chapter" delim="." match="div[@subtype='chapter']" use="@n"/>
+        </citeStructure>
+      </citeStructure>
+    </refsDecl>
+</encodingDesc>
+
+   <!--<encodingDesc>
+      <editorialDecl>
+        <correction method="silent" status="high">
+         &Perseus.OCR;
+          
+<p>Perseus OCR</p>
+        </correction>
+      </editorialDecl>
+      <refsDecl>
+        <refState unit="text"/>
+        <refState unit="book"/>
+        <refState n="chunk" unit="chapter"/>
+      </refsDecl>
+      <refsDecl>
+        <refState unit="text"/>
+        <refState n="chunk" unit="chapter"/>
+      </refsDecl>
+    </encodingDesc>-->
+
+    
+<profileDesc>
+      <langUsage>
+        <language ident="eng">English</language>
+        <language ident="grc">Greek</language>
+        <language ident="lat">Latin</language>
+      </langUsage>
+    </profileDesc>
+
+    <revisionDesc>
+      <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      <change when="2020-01-30" who="Lisa Cerrato">conversion of quotes and apostrophes; work on conversion to EpiDoc and CTS</change>
+      <change when="2020-01-21" who="Lisa Cerrato">minor revisions to header</change>
+      <change when="2020-01-18" who="Gregory Crane">initial EpiDoc and CTS conversion</change>
+      <change when="2014-08-01" who="Stella Dee">edited markup</change>
+      <change when="2014-07-01" who="Stella Dee">split composite text and converted to unicode</change>
+      <change when="2003-12-03" who="AEM">initial markup</change>
+    </revisionDesc>
+
+  </teiHeader>

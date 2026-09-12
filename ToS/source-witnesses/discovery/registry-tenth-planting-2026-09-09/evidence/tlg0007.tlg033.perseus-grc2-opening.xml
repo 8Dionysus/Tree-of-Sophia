@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+<title xml:lang="grc">Σύλλας</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg033.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1916</date>
+</imprint>
+<biblScope unit="volume">4</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives04plut/page/324/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+    <language ident="eng">English</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change when="2018-02-16" who="Lisa Cerrato">EpiDoc and CTS file conversion</change>
+<change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+    
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-grc2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg033.perseus-grc2" type="edition" xml:lang="grc"> 
+<head>Σύλλας</head> 
+    <pb n="p.324"/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-grc2" n="1">  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-grc2:1" n="1"><p>Λεύκιος δὲ Κορνήλιος Σύλλας γένει μὲν ἦν ἐκ πατρικίων, οὓς εὐπατρίδας ἄν τις εἴποι, τῶν δὲ προγόνων αὐτοῦ λέγουσι Ῥουφῖνον ὑπατεῦσαι, καὶ τούτῳ δὲ τῆς τιμῆς ἐπιφανεστέραν γενέσθαι τὴν ἀτιμίαν. εὑρέθη γὰρ ἀργυρίου κοίλου κεκτημένος ὑπὲρ δέκα λίτρας, τοῦ νόμου μὴ διδόντος· ἐπὶ τούτῳ δὲ τῆς βουλῆς ἐξέπεσεν. οἱ δὲ μετʼ ἐκεῖνον ἤδη ταπεινὰ πράττοντες διετέλεσαν, αὐτός τε Σύλλας ἐν οὐκ ἀφθόνοις ἐτράφη τοῖς πατρῴοις.</p></div>  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-grc2:1" n="2"><p>γενόμενος δὲ μειράκιον ᾤκει παρʼ ἑτέροις ἐνοίκιον οὐ πολὺ τελῶν, ὡς ὕστερον ὠνειδίζετο παρʼ ἀξίαν εὐτυχεῖν δοκῶν, σεμνυνομένῳ μὲν γὰρ αὐτῷ καὶ μεγαληγοροῦντι μετὰ τὴν ἐν Λιβύῃ στρατείαν λέγεταί τις εἰπεῖν τῶν καλῶν τε κἀγαθῶν ἀνδρῶν, <q>καὶ πῶς ἂν εἴης σὺ χρηστός, ὃς τοῦ πατρός σοι μηδὲν καταλιπόντος τοσαῦτα κέκτησαι·</q> </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-grc2:1" n="3"><p>καὶ γὰρ οὐκ ἔτι τῶν βίων ἐν ἤθεσιν ὀρθίοις καὶ καθαροῖς μενόντων, ἀλλʼ ἐγκεκλικότων καὶ παραδεδεγμένων τρυφῆς καὶ πολυτελείας ζῆλον, εἰς ἴσον ὅμως ὄνειδος ἐτίθεντο τοὺς ὑπάρχουσαν εὐπορίαν ἀπολέσαντας καὶ τοὺς πενίαν πατρῴαν μὴ διαφυλάξαντας.</p></div>  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-grc2:1" n="4"><p>ὕστερον δὲ ἤδη κρατοῦντος αὐτοῦ καὶ πολλοὺς ἀποκτιννύντος, ἀπελευθερικὸς ἄνθρωπος, δοκῶν κρύπτειν ἕνα τῶν προγεγραμμένων καὶ κατακρημνίζεσθαι διὰ τοῦτο μέλλων, ὠνείδισε <pb n="p.326"/> τὸν Σύλλαν ὅτι πολὺν χρόνον ἐν μιᾷ συνοικίᾳ διῃτῶντο, φέροντες ἐνοίκιον αὐτός μὲν τῶν ἄνω δισχιλίους νούμμους, ἐκεῖνος δὲ τῶν ὑποκάτω τρισχιλίους, ὥστε τῆς τύχης αὐτῶν τὸ μεταξὺ χιλίους εἶναι νούμμους, οἳ πεντήκοντα καὶ διακοσίας δραχμὰς Ἀττικὰς δύνανται, ταῦτα μὲν οὖν ἱστοροῦσι περὶ τῆς παλαιᾶς τοῦ Σύλλα τύχης.</p></div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-grc2" n="2">  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg033.perseus-grc2:2" n="1"><p>τοῦ δὲ σώματος αὐτοῦ τὸ μὲν ἄλλο εἶδος ἐπὶ τῶν ἀνδριάντων φαίνεται, τὴν δὲ τῶν ὀμμάτων γλαυκότητα δεινῶ

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">de Finibus Bonorum et Malorum</title>
+            <author>M. Tullius Cicero</author>
+            <editor>Theodor Schiche</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+             <date type="release" when="2009-10-07">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi048.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+         
+         <sourceDesc>
+            <biblStruct >
+               <monogr>
+                  <title xml:lang="lat">Scripta Quae Manserunt Omnia, Fasc. 43</title>
+                  <title xml:lang="lat" type="subtitle">De Finibus Bonorum et Malorum Libri Quinque</title>
+                  <author>M. Tullius Cicero</author>
+                  <editor>Theodor Schiche</editor>
+                 
+                  <imprint>
+                     <pubPlace>Leipzig</pubPlace>
+                     <publisher>Teubner</publisher>
+                     <date>1915</date>
+                     <biblScope/>
+                  </imprint>   
+               </monogr>
+               <series xml:lang="lat">Scripta Quae Manserunt Omnia</series>
+               <ref target="https://babel.hathitrust.org/cgi/pt?id=umn.31951002299499v&amp;seq=20">HathiTrust</ref>
+            </biblStruct>
+         </sourceDesc></fileDesc>
+      
+      
+      <encodingDesc>
+         <editorialDecl><p>C. 70 instances where the app crit contains abbreviations and graphic oddities trying to capture what is in the MSS. Not easily represented and not worth adding at this stage. These are for the most part just listed as illegible gaps. Front and back matter removed as this was largely uncorrected and badly captured.</p></editorialDecl>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+            <cRefPattern n="book"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts book.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="book"/>
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+<change when="2026-08" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN. Removed front and back matter for clarity.</change>        
+ <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+<change who="gcrane" when="2013-06-08">TEI XML converted to facilitate CTS compatibility</change>
+<change who="gcrane" when="2011-01-15">base SDL file</change>
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+<change who="rsingh04" when="2009-09-15">added a bunch of cicero texts, removed old cicero files that aren't used</change>
+<change who="gcrane" when="2009-09-09">base files</change>
+<change who="gcrane" when="2006-04-28">small fixes</change>
+<change who="gcrane" when="2006-04-26">added to repository</change>
+</revisionDesc>
+   </teiHeader>
+   
+   <text xml:lang="lat">
+      
+      <body>
+       <div xml:lang="lat" type="edition" n="urn:cts:latinLit:phi0474.phi048.perseus-lat2">
+            <pb n="p.1"/>
+            
+
+<div type="textpart" subtype="book" xml:base="urn:cts:latinLit:phi0474.phi048.perseus-lat2" n="1"> 
+<head rend="align(center)">LIBER PRIMUS</head> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi048.perseus-lat2:1" n="1"> 
+   <p rend="align(indent)"><milestone unit="chapter" n="1"/> Non eram nescius, Brute, cum, quae summis ingeniis exquisitaque doctrina philosophi Graeco sermone tractavissent, ea Latinis litteris mandaremus, fore ut hic noster labor in varias reprehensiones incurreret. nam quibusdam, et iis quidem non admodum indoctis, totum hoc displicet philosophari. quidam autem non tam id reprehendunt, si remissius agatur, sed tantum studium tamque multam operam ponendam in eo non arbitrantur. erunt etiam, et ii quidem eruditi Graecis litteris, contemnentes Latinas, qui se dicant in Graecis legendis operam malle consumere. postremo aliquos futuros suspicor, qui me ad alias litteras vocent, genus hoc scribendi, etsi sit elegans, personae tamen et dignitatis esse negent. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi048.perseus-lat2:1" n="2"> 
+<p>contra quos omnis dicendum breviter existimo.</p> 
+<p rend="align(indent)">Quamquam philosophiae quidem vituperatoribus satis responsum est eo libro, quo a nobis philosophia<note>philosophia a nobis BE</note> defensa et collaudata est, cum esset accusata et vituperata ab Hortensio. qui liber cum et tibi probatus videretur et iis, quos ego posse iudicare arbitrarer, plura suscepi veritus ne movere hominum studia viderer, retinere non posse. Qui autem, si maxime hoc placeat,<note>placet BEV</note> moderatius tamen id volunt fieri, difficilem quandam temperantiam postulant in eo, quod semel admissum<note>admissum <hi rend="italic">dett</hi> iam missum</note> <pb n="p.2"/> coërceri reprimique non potest, ut propemodum iustioribus utamur illis, qui omnino avocent a philosophia, quam his, qui rebus infinitis modum constituant in reque eo meliore, quo maior sit, mediocritatem desiderent. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi048.perseus-lat2:1" n="3"> 
+<p>sive enim ad sapientiam perveniri potest, non paranda nobis solum ea, sed fruenda etiam <del>sapientia<note> <hi rend="italic">om. cod. Eliens. Davisii, P. Man.</hi> </note> </del> est; sive hoc difficile est, tamen nec modus est ullus<note>ullus est BE</note> investigandi veri, nisi inveneris, et quaerendi defatigatio<note>defetigatio A<hi rend="sup">2</hi> </note> turpis est, cum id, quod quaeritur, sit pulcherrimum. etenim si delectamur, cum scribimus, quis est tam invidus, qui ab eo nos abducat? sin laboramus, quis est, qui alienae modum statuat industriae? nam ut Terentianus Chremes non inhumanus, qui novum vicinum non vult <quote rend="single">fodere aút arare aut áliquid ferre dénique</quote>— non enim illum ab industria, sed ab inliberali labore deterret—, sic isti curiosi, quos offendit noster minime nobis iniucundus labor. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi048.perseus-lat2:1" n="4"> 
+<p rend="align(indent)"> <milestone unit="chapter" n="2"/>Iis<note>iis <hi rend="italic">Man. sec. Bai.</hi>; his</note> igitur est difficilius satis facere, qui se Latina<note>latina A<hi rend="sup">1</hi>B E latinia R latine A<hi rend="sup">2</hi>NV</note> scripta dicunt contemnere. in quibus hoc primum est in quo admirer, cur in gravissimis rebus non delectet eos sermo patrius, cum idem fabellas Latinas ad verbum e Graecis expressas non inviti legant. quis enim tam inimicus paene nomini<note>nomini pene BE</note> Romano est, qui Ennii Medeam aut Antiopam Pacuvii spernat aut reiciat, quod se isdem Euripidis fabulis delectari dicat, Latinas litteras oderit? Synephebos ego, inquit, potius Caecilii aut Andriam Terentii quam utramque Menandri legam? A quibus tantum dissentio,

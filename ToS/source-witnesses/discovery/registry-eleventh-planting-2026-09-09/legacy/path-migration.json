@@ -1,0 +1,75 @@
+{
+  "schema_version": "tos_source_witness_path_migration_legacy_v1",
+  "status": "historical-provenance",
+  "migration_id": "tos.source-witnesses.registry-eleventh.navigation-2026-09-09",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "historical_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/eleventh-wave-20260909.json",
+      "sha256": "8ebea5d499e4914b472b9effe162918451fc154a2dfeec0ede857c09fb817651",
+      "byte_size": 333645
+    },
+    {
+      "role": "historical-planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/execution/plant_eleventh_wave.py",
+      "sha256": "aecc483e8a1b5927cd8a972133f06435ee644a4fdaa65c9131534be31b32c20e",
+      "byte_size": 5530
+    },
+    {
+      "role": "historical-report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/execution/report_eleventh_wave.py",
+      "sha256": "8daaa2611425571c6cd37187a4cff764a685e2f71b07ff84c48352730bebda1a",
+      "byte_size": 12715
+    },
+    {
+      "role": "historical-manifest",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/preparation-inputs/96f07e1fd54e9d69d595b79d5e47b71c84d1dc3b4cdecf26317559717d6d6758.manifest.json",
+      "sha256": "96f07e1fd54e9d69d595b79d5e47b71c84d1dc3b4cdecf26317559717d6d6758",
+      "byte_size": 740017
+    },
+    {
+      "role": "historical-preparation-receipt",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/preparation-inputs/fefcca22fd94470252101e09cc20209cadd59686a319d35de4bd63408a4b970a.preparation-receipt.json",
+      "sha256": "fefcca22fd94470252101e09cc20209cadd59686a319d35de4bd63408a4b970a",
+      "byte_size": 635
+    },
+    {
+      "role": "historical-preparation-engine",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/engine-history/prepare_registry_sources.py",
+      "sha256": "9eb8a6716795b3cf2af58183d287ca1582c0a01a382592133199bb5aa9d61c60",
+      "byte_size": 32628
+    }
+  ],
+  "current_paths": [
+    {
+      "role": "source-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/plutarch-lives-english-20260909.json",
+      "sha256": "8ebea5d499e4914b472b9effe162918451fc154a2dfeec0ede857c09fb817651"
+    },
+    {
+      "role": "planting-execution",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/execution/plant_plutarch_lives_english.py",
+      "sha256": "4e673f20ca65ab883ef2263f223bc667084042a13bb624e2b6e0de2ffce9f4f8"
+    },
+    {
+      "role": "report-execution",
+      "path": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/execution/report_plutarch_lives_english.py",
+      "sha256": "0f99524ed5923f6fe2f58d6ebd4608d3b647b45c818e43f9f33e9dbe1d09b561"
+    }
+  ],
+  "retained_inputs": [
+    {
+      "stage": "registry-preparation",
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/preparation-inputs/8ebea5d499e4914b472b9effe162918451fc154a2dfeec0ede857c09fb817651.source-preparation.json",
+      "preparation_sha256": "8ebea5d499e4914b472b9effe162918451fc154a2dfeec0ede857c09fb817651",
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/preparation-inputs/96f07e1fd54e9d69d595b79d5e47b71c84d1dc3b4cdecf26317559717d6d6758.manifest.json",
+      "manifest_sha256": "96f07e1fd54e9d69d595b79d5e47b71c84d1dc3b4cdecf26317559717d6d6758",
+      "receipt_ref": "ToS/source-witnesses/discovery/registry-eleventh-planting-2026-09-09/legacy/preparation-inputs/fefcca22fd94470252101e09cc20209cadd59686a319d35de4bd63408a4b970a.preparation-receipt.json",
+      "receipt_sha256": "fefcca22fd94470252101e09cc20209cadd59686a319d35de4bd63408a4b970a",
+      "preparation_commit": "8b610b9c55c19ba613429228d89e4c90fd1e6082",
+      "checkpoint_review_ref": "agent-review:8b610b9c5:20260909T193344Z"
+    }
+  ],
+  "authority_boundary": "Historical provenance only. This record preserves exact prior bytes, paths, receipts and preparation commits; it does not restamp the current route or establish acquisition, rights, semantic admission, publication or canon."
+}

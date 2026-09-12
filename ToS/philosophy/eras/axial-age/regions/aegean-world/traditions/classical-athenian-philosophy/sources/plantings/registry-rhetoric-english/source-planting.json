@@ -1,0 +1,62 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a25.registry-rhetoric-english",
+  "atlas_row_id": "A25",
+  "dossier_id": "A25",
+  "branch_path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/source-anchor-backlog.jsonl",
+    "line": 9,
+    "source_table_index": 14,
+    "source_row_index": 1,
+    "source_label": "Scaife Viewer / Perseus"
+  },
+  "source_witness": {
+    "work_id": "tos.work.aristotle.rhetoric",
+    "record_ref": "ToS/source-witnesses/works/aristotle/rhetoric/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/registry-rhetoric-english.2026-09-09.v1.json",
+  "provenance_event_ref": "tos.event.discovery.registry-20260909.rhetoric-english",
+  "research_ref": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+  "fulfilled_source_needs": [
+    "English reading version of Rhetoric alongside the already retained Greek version within the Scaife Viewer / Perseus source need. The corpus lead and other versions remain open.",
+    "Exact prepared version is locally retained: 1 immutable files; Item manifest fixes SHA-256 and resource inventory records observed coverage."
+  ],
+  "remaining_controls": [
+    "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+    "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+    "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+    "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+    "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+    "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+    "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+    "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+    "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+    "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation.",
+    "Local file custody and branch route do not admit text, translation, semantics or canon."
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-09-09T06:16:36.107164+00:00",
+  "record_version": 1
+}

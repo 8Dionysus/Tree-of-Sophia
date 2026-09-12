@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+<titleStmt>
+   <title>Themistocles</title>
+   <author>Plutarch</author>
+   <editor role="translator">Bernadotte Perrin</editor>
+   <sponsor>Perseus Project, Tufts University</sponsor>
+		<principal>Gregory Crane</principal>
+		<respStmt>
+		<resp>Prepared under the supervision of</resp>
+		<name>Lisa Cerrato</name>
+		<name>William Merrill</name>
+		<name>Elli Mylonas</name>
+		<name>David Smith</name>
+		</respStmt>
+   <funder n="org:AnnCPB">The Annenberg CPB/Project</funder></titleStmt>
+
+      	<publicationStmt>
+		<publisher>Trustees of Tufts University</publisher>
+		<pubPlace>Medford, MA</pubPlace>
+		<authority>Perseus Project</authority>
+	<date type="release" when="1992">Perseus 1.0</date>
+	<idno type="filename">tlg0007.tlg010.perseus-eng2.xml</idno>
+	<availability>
+	<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+	</availability>
+		</publicationStmt>
+<sourceDesc>
+   <biblStruct>
+      
+      <monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+<editor role="translator">Bernadotte Perrin</editor>
+<imprint>
+   <pubPlace>Cambridge, MA</pubPlace>
+   <publisher>Harvard University Press</publisher>
+   <pubPlace>London</pubPlace>
+   <publisher>William Heinemann Ltd.</publisher>
+   <date>1914</date>
+</imprint>
+<biblScope unit="volume">2</biblScope>
+      </monogr>
+      <series>
+<title>Loeb Classical Library</title>
+      </series>
+      <ref target="https://archive.org/details/plutarchslives02plut2/page/n15/mode/2up">Internet Archive</ref>
+   </biblStruct>
+</sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+<editorialDecl>
+	<quotation marks="none"/>
+   <correction method="silent">
+      <p>optical character recognition</p>
+   </correction>
+</editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section" matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter" matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+<langUsage>
+   <language ident="eng">English</language>
+   <language ident="grc">Greek</language>
+</langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2016-12-15" who="Lisa Cerrato">review of EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+      	<change when="2013-09-13" who="balmas01">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+      	<change when="2013-06-30" who="gcrane">file tagging modified to bring it into easier conformance with CTS</change> 
+      	<change when="2010-11-30" who="balmas01">getting rid of angle brackets in commit comments</change>  
+      	<change when="2010-11-19" who="balmas01">Normalizing quote, q, and lb</change>
+      	<change when="2009-12-15" who="rsingh04">converted demetrius, antony and comparison from sgml to xml and added to hopper. also replaced xml snippets in other plutarch files with their respective entities.</change> 
+      	<change when="2009-12-07" who="rsingh04">moved more xml files around based on copyright status. split up Plutarch/plut_gk.xml into separate files and gave them their own doc ids.</change>
+      	<change when="2009-01-23" who="rsingh04">small fixes</change> 
+      	<change when="2009-01-23" who="rsingh04">now validates and entities fixed</change>
+      	<change when="2001-09-28" who="lcerrato">cleaned up quotes, bibls and notes</change>
+      	<change when="2001-09-27" who="lcerrato">adding new tags for DE, ISBN, etc.</change>
+      	<change when="2001-09-01" who="LMC">removed from group file, retagged and parsed</change>
+      	<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change> 
+      	<change when="1999-07-28" who="dasmith">Added text to REFSDECL.</change>
+      	<change when="1999-07-09" who="textgod">Converted to TEI-conformant SGML.</change>
+      	<change when="1997-09-12" who="David Smith">Made conformant with TEI P3.</change>
+      	<change when="1992-10-22" who="EM">Glued all Plutarch files together, put in HEAD tags to title them.</change>
+      	<change when="1992-08-01" who="DAS">Removed highlighted text, cleaned up notes and citations, and changed chapters to
+      		div's.</change>
+      	<change when="1991-08-01" who="EM">Revise DTDs and recheck texts.</change> 
+      	<change when="1990-08-01" who="EM">Proofread by Ted Armstrong.</change> 
+</revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg010.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg010.perseus-eng2" type="translation" xml:lang="eng">
+<head>THEMISTOCLES</head>
+
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg010.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg010.perseus-eng2:1" n="1">
+<p> In the case of Themistocles,<note resp="editor" place="inline" anchored="true">It is probable that one or more introductory paragraphs of this biography have been lost.</note> his family was too obscure to further his reputation. His father was Neocles,—no very conspicuous man at Athens,—a Phrearrhian by deme, of the tribe Leontis; and on his mother’s side he was an alien, as her epitaph testifies:— <quote rend="blockquote"> <l>Abrotonon was I, and a woman of Thrace, yet I brought forth</l> <l>That great light of the Greeks,—know! ’twas Themistocles.</l> </quote> <note resp="editor" place="inline" anchored="true"> <bibl>Athenaeus xiii. p. 576.</bibl> </note> </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg010.perseus-eng2:1" n="2">
+<p> Phanias, however, writes that the mother of Themistocles was not a Thracian, but a Carian woman, and that her name was not Abrotonon, but Euterpe. And Neanthes actually adds the name of her city in Caria,—Halicarnassus. It was for the reason given, and because the aliens were wont to frequent Cynosarges,—this is a place outside the gates, a gymnasium of Heracles; for he too was not a legitimate god, but had something alien about him, from the fact that his mother was a mortal,—that Themistocles sought to induce certain well-born youths to go out to Cynosarges and exercise with him; and by his success in this bit of cunning he is thought to have removed the distinction between aliens and legitimates. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg010.perseus-eng2:1" n="3">
+<p> However, it is clear that he was connected with the family of the Lycomidae, for he caused the chapel shrine at Phlya, which belonged to the Lycomidae, and had been burned by the Barbarians, to be restored at his own costs and adorned with frescoes, as Simonides has stated. </p></div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg010.perseus-eng2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg010.perseus-eng2:2" n="1">
+<p> However lowly his birth, it is agreed on all hands that while yet a boy he was impetuous, by nature sagacious, and by election enterprising and prone to public life. In times of relaxation and leisure, when absolved from his lessons, he would not play nor indulge his ease, as the rest of the boys did, but would be found composing and rehearsing to himself mock speeches. These speeches would be </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg010.perseus-eng2:2" n="2">
+<p> in accusation or defence of some boy or other. Wherefore his teacher was wont to say to him: <q type="spoken">My boy, thou wilt be nothing insignificant, but something great, of a surety, either for good or evil.</q> Moreover, when he was set to study, those branches which aimed at the formation of character, or ministered to any gratification or grace of a liberal sort, he would learn reluctantly and sluggishly; and to all that was said for the cultivation of sagacity or practical efficiency, he clearly showed an indifference far beyond his years, as though he put his confidence in his natural gifts alone. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg010.perseus-eng2:2" n="3">
+<p> Thus it came about that, in after life, at entertainments of a so-called liberal and polite nature, when he was taunted by men of reputed culture, he was forced to defend himself rather rudely, saying that tuning the lyre and handling the harp were no accomplishments of his, 

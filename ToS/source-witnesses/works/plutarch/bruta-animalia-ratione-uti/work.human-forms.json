@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:f055321d38a018b887aed7c63c2ca80a97c9fb96cdcfe16bd6ae155ba4ba7594",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:f055321d38a018b887aed7c63c2ca80a97c9fb96cdcfe16bd6ae155ba4ba7594",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:f055321d38a018b887aed7c63c2ca80a97c9fb96cdcfe16bd6ae155ba4ba7594",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:f055321d38a018b887aed7c63c2ca80a97c9fb96cdcfe16bd6ae155ba4ba7594",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.089be0a5130b2355c70ccdb1451f5c80ea648b21756a59c21ac1aa6d6c4d4681",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:6843508f3df7ca94a60a5a0e1341af52d4cf853129ff8f7b2afc0e95a6e05bf9",
+        "id": "tos.form.metadata.089be0a5130b2355c70ccdb1451f5c80ea648b21756a59c21ac1aa6d6c4d4681",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:f055321d38a018b887aed7c63c2ca80a97c9fb96cdcfe16bd6ae155ba4ba7594",
+        "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:f055321d38a018b887aed7c63c2ca80a97c9fb96cdcfe16bd6ae155ba4ba7594",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:f055321d38a018b887aed7c63c2ca80a97c9fb96cdcfe16bd6ae155ba4ba7594",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:f055321d38a018b887aed7c63c2ca80a97c9fb96cdcfe16bd6ae155ba4ba7594",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:f055321d38a018b887aed7c63c2ca80a97c9fb96cdcfe16bd6ae155ba4ba7594",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.5340eebea4166f626f26ec191ea39d94ebc6635e1a6cf4bc7f3e262fdbb4c116",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:13fb16fe0f5789f84ab1d802c321cccf2f5a4cb1307da9186d3c03e48c2e2b19",
+        "id": "tos.form.metadata.5340eebea4166f626f26ec191ea39d94ebc6635e1a6cf4bc7f3e262fdbb4c116",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:f055321d38a018b887aed7c63c2ca80a97c9fb96cdcfe16bd6ae155ba4ba7594",
+        "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:4c5b93865ad2375cc26cce38450374c2ec305a8f345590e7f0827eedb85a75dd",
+      "owner_configuration": "sha256:726af899cd9143868853d3405566fb222da98aaabebf3f15c081e2533ff179a6",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:41.516345+00:00",
+      "request_digest": "sha256:dfc268ea7438c121320f60c8021b85b81b7d262542e490b0a4d541001502598b",
+      "results": [
+        {
+          "digest": "sha256:6843508f3df7ca94a60a5a0e1341af52d4cf853129ff8f7b2afc0e95a6e05bf9",
+          "id": "tos.form.metadata.089be0a5130b2355c70ccdb1451f5c80ea648b21756a59c21ac1aa6d6c4d4681",
+          "version": 1
+        },
+        {
+          "digest": "sha256:13fb16fe0f5789f84ab1d802c321cccf2f5a4cb1307da9186d3c03e48c2e2b19",
+          "id": "tos.form.metadata.5340eebea4166f626f26ec191ea39d94ebc6635e1a6cf4bc7f3e262fdbb4c116",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:291af1c1b005ae2a6d623e8a580db9404ca726fb1faf1b1e8d52fb7099723644",
+        "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:4c5b93865ad2375cc26cce38450374c2ec305a8f345590e7f0827eedb85a75dd",
+      "request_digest": "sha256:7d52f015806959ed9075aeabe4e47f7766c031bc8e4871e5fb5ed54e1bedb034",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:0cd0f13d9c3cc4eceef076200fa67314eab115a6c988cd281297a646d7e655c9",
+      "recorded_at": "2026-09-09T18:35:31.134275+00:00",
+      "source": {
+        "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+        "version": 2,
+        "digest": "sha256:f055321d38a018b887aed7c63c2ca80a97c9fb96cdcfe16bd6ae155ba4ba7594"
+      },
+      "previous_revision": "sha256:b3432898c5250f07ac622645a1fbea5fd90a0a5ee6ff8ebbd2524dd20122144a",
+      "results": [
+        {
+          "id": "tos.form.metadata.089be0a5130b2355c70ccdb1451f5c80ea648b21756a59c21ac1aa6d6c4d4681",
+          "version": 2,
+          "digest": "sha256:d297b753d21a8446ed9cbfdab100005862a9b87d8cb22d6f8de5f4cdcfa95214"
+        },
+        {
+          "id": "tos.form.metadata.5340eebea4166f626f26ec191ea39d94ebc6635e1a6cf4bc7f3e262fdbb4c116",
+          "version": 2,
+          "digest": "sha256:e7f51c536171e9114bfa8f0d600c54589da3ab005a82e9ab67db5ea8c6daaca4"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:291af1c1b005ae2a6d623e8a580db9404ca726fb1faf1b1e8d52fb7099723644",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:291af1c1b005ae2a6d623e8a580db9404ca726fb1faf1b1e8d52fb7099723644",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:291af1c1b005ae2a6d623e8a580db9404ca726fb1faf1b1e8d52fb7099723644",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:291af1c1b005ae2a6d623e8a580db9404ca726fb1faf1b1e8d52fb7099723644",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.089be0a5130b2355c70ccdb1451f5c80ea648b21756a59c21ac1aa6d6c4d4681",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:291af1c1b005ae2a6d623e8a580db9404ca726fb1faf1b1e8d52fb7099723644",
+        "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:291af1c1b005ae2a6d623e8a580db9404ca726fb1faf1b1e8d52fb7099723644",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:291af1c1b005ae2a6d623e8a580db9404ca726fb1faf1b1e8d52fb7099723644",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:291af1c1b005ae2a6d623e8a580db9404ca726fb1faf1b1e8d52fb7099723644",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:291af1c1b005ae2a6d623e8a580db9404ca726fb1faf1b1e8d52fb7099723644",
+            "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.5340eebea4166f626f26ec191ea39d94ebc6635e1a6cf4bc7f3e262fdbb4c116",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:291af1c1b005ae2a6d623e8a580db9404ca726fb1faf1b1e8d52fb7099723644",
+        "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.bruta-animalia-ratione-uti",
+    "version": 2,
+    "digest": "sha256:f055321d38a018b887aed7c63c2ca80a97c9fb96cdcfe16bd6ae155ba4ba7594"
+  }
+}

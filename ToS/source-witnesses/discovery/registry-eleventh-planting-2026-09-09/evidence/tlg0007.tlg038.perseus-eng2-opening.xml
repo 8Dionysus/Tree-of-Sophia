@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>Nicias</title>
+				<author>Plutarch</author>
+				<editor role="translator">Bernadotte Perrin</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>Elli Mylonas</name>
+					<name>David Smith</name>
+				</respStmt>
+				<funder n="org:AnnCPB">The Annenberg CPB/Project</funder>
+				<respStmt>
+					<persName>Allison Dempsey</persName>
+					<orgName>Tufts University</orgName>
+					<resp>Digital editing</resp>
+				</respStmt>
+			</titleStmt>
+			
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1992">Perseus 1.0</date>
+				<idno type="filename">tlg0007.tlg038.perseus-eng2.xml</idno>
+				<availability>
+					<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+				</availability>
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					
+					<monogr>
+						<author>Plutarch</author>
+						<title>Plutarch's Lives</title>
+						<editor role="translator">Bernadotte Perrin</editor>
+						<imprint>
+							<pubPlace>Cambridge, MA</pubPlace>
+							<publisher>Harvard University Press</publisher>
+							<pubPlace>London</pubPlace>
+							<publisher>William Heinemann Ltd.</publisher>
+							<date>1916</date></imprint>
+						<biblScope unit="volume">3</biblScope>
+					</monogr>
+					<series>
+						<title>Loeb Classical Library</title>
+					</series>
+					<ref target="https://archive.org/details/liveswithenglish03plutuoft/page/208/mode/2up">Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl>
+			<refsDecl n="CTS">
+				<cRefPattern n="section"
+					matchPattern="(\w+).(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+					<p>This pointer pattern extracts chapter and section.</p>
+				</cRefPattern>
+				<cRefPattern n="chapter"
+					matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts chapter.</p>
+				</cRefPattern>
+			</refsDecl>
+			<refsDecl>
+				<refState unit="chapter" delim="."/>
+				<refState unit="section"/>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+		      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+		    </citeStructure>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change> 
+			<change when="2018-02-07" who="Lisa Cerrato">EpiDoc and CTS file conversion</change>
+			<change when="2013-09-13" who="balmas01">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change> 
+			<change when="2013-06-29" who="gcrane">chapters are now divs</change> 
+			<change when="2010-11-19" who="balmas01">normalizing quote and q tags</change> 
+			<change when="2009-12-15" who="rsingh04">converted demetrius, antony and comparison from sgml to xml and added to hopper. also replaced xml snippets in other plutarch files with their respective entities.</change> 
+			<change when="2009-12-07" who="rsingh04">moved more xml files around based on copyright status. split up Plutarch/plut_gk.xml into separate files and gave them their own doc ids.</change> 
+			<change when="2009-06-19" who="lcerrato">fixed bad bibls</change> 
+			<change when="2009-06-11" who="student">fixing citations - ad</change> 
+			<change when="2009-04-03" who="lcerrato">fixing bad bibl refs</change> 
+			<change when="2009-01-23" who="rsingh04">small fixes</change> 
+			<change when="2009-01-22" who="rsingh04">now validates and entities fixed</change> 
+			<change when="2001-09-28" who="lcerrato">fixed entity typo</change> 
+			<change when="2001-09-28" who="lcerrato">cleaned up quotes, bibls and notes</change> 
+			<change when="2001-09-27" who="lcerrato">adding new tags for DE, ISBN, etc.</change> 
+			<change when="2001-09-01" who="LMC">removed from group file, retagged and parsed</change> 
+			<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change> 
+			<change when="1999-07-28" who="dasmith">Added text to REFSDECL.</change> 
+			<change when="1999-07-09" who="textgod">Converted to TEI-conformant SGML.</change> 
+			<change when="1997-09-12" who="David Smith">Made conformant with TEI P3.</change> 
+			<change when="1992-10-22" who="EM">Glued all Plutarch files together, put in HEAD tags to title them.</change> 
+			<change when="1992-08-01" who="DAS">Removed highlighted text, cleaned up notes and citations, and changed chapters to DIV2's.</change> 
+			<change when="1991-08-01" who="EM">Revise DTDs and recheck texts.</change>
+			<change when="1990-08-01" who="EM">Proofread by Ted Armstrong.</change> 
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg038.perseus-eng2">
+			<div n="urn:cts:greekLit:tlg0007.tlg038.perseus-eng2" type="translation" xml:lang="eng"> 
+				<head>NICIAS</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg038.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg038.perseus-eng2:1" n="1"><p>I think that Nicias is a suitable parallel to Crassus, and the Sicilian to the Parthian disaster. I must therefore at once, and in all modesty, entreat my readers not to imagine for an instant that in my narration of what Thucydides has inimitably set forth, surpassing even himself in pathos, vividness, and variety, I am so disposed as was Timaeus. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg038.perseus-eng2:1" n="2"><p>He, confidently hoping to excel Thucydides in skill, and to make Philistus seem altogether tedious and clumsy, pushes his history along through the conflicts and sea-fights and harangues which those writers had already handled with the greatest success, showing himself, in rivalry with them, not even so much as <quote rend="blockquote"> <l part="N">By Lydian car a footman slowly plodding,</l> </quote> to use Pindar’s comparison,<note resp="editor" place="inline" anchored="true">One of the <title>Fragmenta Incerta</title> <bibl>(Bergk, <title>Poet. Lyr. Graeci</title>, i(4). p. 450).</bibl></note> nay rather a perfect example of senile learning and youthful conceit, and, in the words of Diphilus, <quote rend="blockquote"> <l part="N">Obese, stuffed to the full with Sicilian grease.</l> </quote><note resp="editor" place="inline" anchored="true"><bibl>Kock, <title>Com. Att. Frag.</title> ii. p. 576.</bibl></note></p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg038.perseus-eng2:1" n="3"><p>Indeed, he often lapses unawares into the manner of Xenarchus, as, for instance, when he says he thinks it was a bad omen for the Athenians that Nicias, whose name was derived from victory, declined at first to head their expedition; also that, by the mutilation of the <q type="soCalled">Hermae,</q><note resp="editor" place="inline" anchored="true">See <bibl n="Plut. Nic. 13.2">Plut. Nic. 13.2</bibl>.</note> Heaven indicated to them in advance that by the hands of Hermocrates the son of Hermon they were to suffer most of their reverses during the war; and, further, that it was fitting that Heracles should aid the Syracusans, for the sake of their goddess Cora who delivered Cerberus into his hands, but should be angry with the Athenians because they were trying to succour the Egestaeans although they were descendants of the Trojans, whose city he had once destroyed because of the wrong done him by Laomedon their king.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg038.perseus-eng2:1" n="4"><p>As for Timaeus, he may possibly have been moved to write thus in the exercise of the same critical taste which led him to correct the language of Philistus and abuse Plato and Aristotle; but as for me, I feel that jealous rivalry with other writers in matters of diction is altogether undignified and pedantic, and if it be practised toward what is beyond all imitation, utterly silly. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg038.perseus-eng2:1" n="5"><p>At all events, those deeds which Thucydides and Philistus have set forth,—since I cannot entirely pass them by, indicating as they do the nature of my hero and the disposition which lay hidden beneath his many great sufferings,—I have run over briefly, and with no unnecessary detail, in order to escape the reputation of utter carelessness and sloth; but those details which have escaped most writers, and which others have mentioned casually, or which are found on ancient votive offerings or in public decrees, these I have tried to collect, not massing together useless material of research, but handing on such a

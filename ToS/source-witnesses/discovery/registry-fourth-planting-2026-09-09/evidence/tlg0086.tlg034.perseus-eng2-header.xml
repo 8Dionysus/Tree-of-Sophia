@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>Poetics</title>
+				<author>Aristotle</author> 
+				<editor role="translator">William Hamilton Fyfe</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>Elli Mylonas</name>
+					<name>David Smith</name>
+				</respStmt>
+				<funder n="org:AnnCPB" >The Annenberg CPB/Project</funder>
+			</titleStmt>
+			
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Digital Library Project</authority>
+				<date type="release" when="1996" cert="high">Perseus 2.0</date>
+				<idno type="filename">tlg0086.tlg034.perseus-eng2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+				</availability>
+			</publicationStmt>
+		
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>Aristotle</author>
+						<title>Aristotle, The Poetics. "Longinus," On the sublime. Demetrius, On Style</title>
+						<editor role="translator">William Hamilton Fyfe</editor>
+						<imprint>
+							<publisher>William Heinemann Ltd.</publisher>
+							<pubPlace>London</pubPlace>
+							<publisher>Harvard University Press</publisher>
+							<pubPlace>Cambridge, MA</pubPlace>
+							<date type="printing">1939</date>
+							<biblScope unit="volume"/>
+						</imprint>
+					</monogr>
+					<series>
+						<title>Loeb Classical Library</title>
+					</series>
+					<ref target="https://babel.hathitrust.org/cgi/pt?id=mdp.39015020645779&amp;seq=28">HathiTrust</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>	
+			
+				
+		<encodingDesc>
+			<refsDecl n="CTS">
+				<!--<cRefPattern n="section" matchPattern="(\w+).(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+            <p>This pointer pattern extracts book and chapter and section.</p>
+          </cRefPattern>            -->
+				<cRefPattern n="subchapter" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+					<p>This pointer pattern extracts chapter and subchapter.</p>
+				</cRefPattern>
+				<cRefPattern n="chapter" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts chapter.</p>
+				</cRefPattern>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="fre">French</language>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+		
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change when="2024-05-09" who="Lisa Cerrato">EpiDoc and CTS conversion and general header review.</change>
+			<change when="2010-12-14" who="lcerrato">fixed three typos based on user report</change> 
+			<change when="2010-06-16" who="rsingh04">cleaned up bad place tags in a few texts and cleaned up the document format</change> 
+			<change when="2009-10-09" who="rsingh04">more reorganizing of texts module by collection</change>
+			<change when="2009-10-08" who="rsingh04">began reorganizing texts module by collection.  created separate work directory in texts module to keep hopper files separate from in progress files</change>
+			<change when="2009-09-08" who="lcerrato">fixed typo</change>
+			<change when="2009-07-24" who="rsingh04">fixed cvs log keyword</change>
+			<change when="2009-07-15" who="CEH">edited entity tags CEH</change>
+			<change when="2009-06-09" who="ZR">fixed bibl errors - zr</change> 
+			<change when="2009-05-27" who="rsingh04">added cvs log keyword</change>
+			<change when="1999-01" who="lmc">Corrected two typos in 1449a.</change>
+			<change when="1993-07-27" who="EM">Put Bekker line 1 milestone tags at the beginning of each section so that the incoming list creator would work. Changed RREFDECL.</change>
+			<change when="1993-05" who="WPM">Tagged in conformance with Prose.e dtd.</change>
+			<change when="1992">Text was scanned at St. Olaf Spring, 1992.</change>
+		</revisionDesc>
+	</teiHeader>

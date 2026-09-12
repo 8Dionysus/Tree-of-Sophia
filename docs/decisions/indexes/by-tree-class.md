@@ -99,6 +99,7 @@
 - [TOS-D-0039 - Reviewed Open-Work Candidate Loop](../TOS-D-0039-reviewed-open-work-candidate-loop.md) (`docs/decisions/TOS-D-0039-reviewed-open-work-candidate-loop.md`)
 - [TOS-D-0040 - File-Backed Scholarly Composite Representations](../TOS-D-0040-file-backed-scholarly-composite-representations.md) (`docs/decisions/TOS-D-0040-file-backed-scholarly-composite-representations.md`)
 - [TOS-D-0058 - Traceable research registry imports and local source planting](../TOS-D-0058-research-registry-import-and-local-source-planting.md) (`docs/decisions/TOS-D-0058-research-registry-import-and-local-source-planting.md`)
+- [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 
 ## declarative lens
 
@@ -147,6 +148,7 @@
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
 - [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
+- [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 
 ## generated export
 
@@ -163,6 +165,7 @@
 ## graph projection
 
 - [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
+- [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 
 ## growth route
 

@@ -52,7 +52,8 @@ def build_server(
     # Other tools can rediscover source paths on each call. Exploration keeps
     # its disposable checkpoints for the lifetime of this MCP server only.
     from .exploration import ExplorationService
-    exploration = ExplorationService(lambda: current_state().knowledge_graph())
+    exploration = ExplorationService(lambda: current_state().knowledge_graph(),
+                                     query_store_provider=lambda: current_state()._query_store())
 
     @mcp.tool()
     def tos_knowledge_explore(request: dict[str, Any]) -> dict[str, Any]:

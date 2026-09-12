@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Comparison of Aristides and Marcus Cato</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2009-03-16">Perseus 4.0</date>
+            <idno type="filename">tlg0007.tlg026.perseus-eng2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+            </availability>
+         </publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1914</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives02plut2/page/384/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+               matchPattern="(\w+).(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts chapter and section.</p>
+            </cRefPattern>
+            <cRefPattern n="chapter"
+               matchPattern="(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl>
+            <refState unit="chapter" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2018-02-01" who="Lisa Cerrato">bumped URN</change>
+         <change when="1999-01-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg026.perseus-eng2">
+         <div n="urn:cts:greekLit:tlg0007.tlg026.perseus-eng2" type="translation" xml:lang="eng">
+         <head>COMPARISON OF ARISTIDES AND MARCUS CATO</head>
+         <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg026.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg026.perseus-eng2:1" n="1"><p>Now that I have recorded the most noteworthy things in the careers of these men also, if one compare the entire life of the one with that of the other, it will not be easy to mark the difference between them, obscured as it is by many great resemblances. And even if, in our comparison, we analyse each life, as we would a poem or a picture, we shall find that the rise to political power and repute in consequence of innate excellence and strength, rather than of inherited advantages, is common to both. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg026.perseus-eng2:1" n="2"><p>But in the case of Aristides, Athens was not yet great when he rose to eminence, and the leaders and generals with whom he dealt were men of moderate and uniform fortunes. The highest assessment of property in those days was five hundred bushels of grain, the second three hundred, the third and last two hundred. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg026.perseus-eng2:1" n="3"><p>Whereas Cato, coming from a little town and from ways of life deemed rustic, plunged headlong into the boundless sea of Roman politics when they were no longer conducted by such men as Curius, Fabricius, and Atilius, nor welcomed as magistrates and leaders poor men who had mounted the rostrum after working with their own hands at the plough and the mattock, but were wont to have regard rather for great families and their wealth, largesses, and solicitations, while those who sought office, such was now the power and arrogance of the people, were wantonly handled. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg026.perseus-eng2:1" n="4"><p>It was not the same thing to have Themistocles for a rival, who was of no illustrious family and had only moderate possessions (he is said to have been worth three, or, at most, five talents when he entered public life), as it was to compete for pre-eminence with such men as Scipio Africanus, Servius Galba, and Quintius Flamininus, having no other advantage than a tongue which spoke boldly for the right.</p></div></div>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg026.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg026.perseus-eng2:2" n="1"><p>Besides, at Marathon, and again at Plataea, Aristides was only one of ten generals, while Cato was elected one of two consuls out of many competitors, and one of two censors over the heads of seven of the foremost and most illustrious Romans, who stood for the office with him. Furthermore, Aristides was not the foremost man in any one of his victories, but Miltiades has the chief honour of Marathon, Themistocles of Salamis, and at Plataea, Herodotus<note resp="editor" place="inline" anchored="true"> <bibl n="Hdt. 9.64">ix. 64.</bibl> </note> says it was Pausanias who won that fairest of all victories, </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg026.perseus-eng2:2" n="2"><p>while even for second honours Aristides has such rivals as Sophanes, Ameinias, Callimachus, and Cynaegeirus, who displayed the greatest valour in those actions. Cato, on the other hand, was not only chief in the plans and actions of the Spanish war during his own consulate, but also at Thermopylae, when he was but a tribune in the army and another was consul, he got the glory of the victory, opening up great mountain passes for the Romans to rush through upon Antiochus, and swinging the war round into the king’s rear, 

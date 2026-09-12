@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import socket
 import subprocess
 import tempfile
@@ -90,6 +91,11 @@ def wait_ready(base: str, process: subprocess.Popen[str]) -> None:
 
 
 def main() -> int:
+    # The offline Worker build owns this snapshot; parity verification consumes
+    # it without requiring a second source-root compilation.
+    query_store = WORKER_ROOT / "runtime/knowledge.sqlite3"
+    if query_store.is_file():
+        os.environ.setdefault("TOS_QUERY_STORE_PATH", query_store.as_posix())
     core = ToSAccessCore.discover(REPO_ROOT)
     port = free_port()
     base = f"http://127.0.0.1:{port}"

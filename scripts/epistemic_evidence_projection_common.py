@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
+from partitioned_projection_common import ProjectionReader, is_partitioned
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -50,7 +51,16 @@ def projection_ids() -> dict[tuple[str, str], set[str]]:
                         ids.add(identity)
         philosophy_views[str(view["view_id"])] = ids
 
-    corpus = load_json("ToS/derived-exports/tos_corpus_index.min.json")
+    corpus_path = REPO_ROOT / "ToS/derived-exports/tos_corpus_index.min.json"
+    if is_partitioned(corpus_path):
+        reader = ProjectionReader(corpus_path)
+        # Only canon nodes/edges are relevant to this projection. The source
+        # navigation body is neither opened nor reconstructed.
+        corpus = {"nodes": reader.iter_collection("nodes"),
+                  "relation_edges": reader.iter_collection("relation_edges")}
+    else:
+        reader = None
+        corpus = load_json("ToS/derived-exports/tos_corpus_index.min.json")
     corpus_ids = {
         str(item.get("node_id"))
         for item in corpus.get("nodes", [])
@@ -65,6 +75,8 @@ def projection_ids() -> dict[tuple[str, str], set[str]]:
     )
     result = {("corpus", "route-graph"): corpus_ids}
     result.update({("philosophy", view_id): ids for view_id, ids in philosophy_views.items()})
+    if reader is not None:
+        reader.require_current()
     return result
 
 

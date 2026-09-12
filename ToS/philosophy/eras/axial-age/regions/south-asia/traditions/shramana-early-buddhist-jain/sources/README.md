@@ -18,3 +18,27 @@ the Nikāya corpus.
 The [source-anchor backlog](source-anchor-backlog.jsonl) retains the wider
 branch needs. Local source custody does not admit textual interpretation or
 canon.
+
+## Registry planting: thirteenth Pali stage (2026-09-09)
+
+183 exact versions. [Reading routes and evidence](../../../../../../../../source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/PALI_RESULTS.md).
+
+## Registry planting: thirteenth English stage (2026-09-09)
+
+186 exact versions. [Reading routes and evidence](../../../../../../../../source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/RESULTS.md).
+
+## Registry planting: fourteenth Pali stage (2026-09-09)
+
+271 exact versions. [Reading routes and evidence](../../../../../../../../source-witnesses/discovery/registry-fourteenth-planting-2026-09-09/PALI_RESULTS.md).
+
+## Registry planting: fourteenth English stage (2026-09-09)
+
+271 exact versions. [Reading routes and evidence](../../../../../../../../source-witnesses/discovery/registry-fourteenth-planting-2026-09-09/translations/RESULTS.md).
+
+## Registry planting: fifteenth Pali stage (2026-09-09)
+
+401 exact versions. [Reading routes and evidence](../../../../../../../../source-witnesses/discovery/registry-fifteenth-planting-2026-09-09/PALI_RESULTS.md).
+
+## Registry planting: fifteenth English stage (2026-09-09)
+
+401 exact versions. [Reading routes and evidence](../../../../../../../../source-witnesses/discovery/registry-fifteenth-planting-2026-09-09/translations/RESULTS.md).

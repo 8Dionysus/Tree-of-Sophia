@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml",
+    "version": 1,
+    "digest": "sha256:52f6c2764c70470b6214a35c7e1dc66e69c9f9e110b4ef77069a4bf225703c28"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:52f6c2764c70470b6214a35c7e1dc66e69c9f9e110b4ef77069a4bf225703c28",
+            "id": "tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:52f6c2764c70470b6214a35c7e1dc66e69c9f9e110b4ef77069a4bf225703c28",
+            "id": "tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:52f6c2764c70470b6214a35c7e1dc66e69c9f9e110b4ef77069a4bf225703c28",
+            "id": "tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:52f6c2764c70470b6214a35c7e1dc66e69c9f9e110b4ef77069a4bf225703c28",
+            "id": "tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.5327acaeb41c917aa43a62d4f8e33c3c2a6f7e19b978678276b3ff8f12027892",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:52f6c2764c70470b6214a35c7e1dc66e69c9f9e110b4ef77069a4bf225703c28",
+        "id": "tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:52f6c2764c70470b6214a35c7e1dc66e69c9f9e110b4ef77069a4bf225703c28",
+            "id": "tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:52f6c2764c70470b6214a35c7e1dc66e69c9f9e110b4ef77069a4bf225703c28",
+            "id": "tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:52f6c2764c70470b6214a35c7e1dc66e69c9f9e110b4ef77069a4bf225703c28",
+            "id": "tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:52f6c2764c70470b6214a35c7e1dc66e69c9f9e110b4ef77069a4bf225703c28",
+            "id": "tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.80f3a3d04cd2d643ff033a82ee304428282f38357452045d358a86279156e854",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:52f6c2764c70470b6214a35c7e1dc66e69c9f9e110b4ef77069a4bf225703c28",
+        "id": "tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml",
+      "request_digest": "sha256:ee8b53305aa19c77fe4d0b3f8613195d0753975944de60d4be2a04ddb25a2d69",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:76a7824c12264abef4c30b38223c38d0104a221ad4dd76ffb833e25429eb0d22",
+      "recorded_at": "2026-09-09T15:55:31.727946+00:00",
+      "source": {
+        "id": "tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml",
+        "version": 1,
+        "digest": "sha256:52f6c2764c70470b6214a35c7e1dc66e69c9f9e110b4ef77069a4bf225703c28"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.5327acaeb41c917aa43a62d4f8e33c3c2a6f7e19b978678276b3ff8f12027892",
+          "version": 1,
+          "digest": "sha256:395743f8665ba62fed77df86325c5c2f6be1175649e8dc5b370830a42f85aa3c"
+        },
+        {
+          "id": "tos.form.metadata.80f3a3d04cd2d643ff033a82ee304428282f38357452045d358a86279156e854",
+          "version": 1,
+          "digest": "sha256:850391c26fedd833b6c4e6668facfea68a83f77a740f191201620cacddc48dde"
+        }
+      ]
+    }
+  ]
+}

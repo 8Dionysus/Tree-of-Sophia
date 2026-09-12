@@ -26,3 +26,7 @@ Exact Vitae philosophorum Greek edition within the reviewed Diogenes Laertius, L
 - Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.
 - The entire ten-book supplied edition provides the selected Books 6–10 branch context; individual quotations, letters and school reports are not separately identified or admitted by this intake.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## English translation added 2026-09-09
+
+[English version and source file](../registry-vitae-philosophorum-english/README.md). Shared Work identity does not establish edition dependence or alignment.

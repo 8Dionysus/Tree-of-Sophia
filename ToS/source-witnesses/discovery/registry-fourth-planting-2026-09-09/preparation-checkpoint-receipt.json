@@ -1,0 +1,25 @@
+{
+  "schema_version": "tos_registry_preparation_migration_receipt_v1",
+  "status": "passed",
+  "receipt_role": "current-navigation-migration",
+  "stage": "registry-preparation",
+  "manifest_sha256": "4ab10dedf97a1ecfcb4505c70bf0e557383736288cf53137b8a2c8fb3dde2d52",
+  "commit": "d5c034871722b041f9966d5857f12703994ed23e",
+  "runtime_session_id": "tos-path-migration:registry-fourth:2026-09-10",
+  "checkpoint_review_ref": "agent-review:5e9980396:20260909T061453Z",
+  "migration_ref": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/path-migration.current.json",
+  "migration_review_ref": "ToS/review-ledger/2026-09-10-registry-fourth-path-migration.md",
+  "historical_receipt_ref": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/legacy/preparation-inputs/ce9ab9d7a39a2d0725b575038d7a1ab6fb5953365e0b6ab48caa5a79a2ba1504.preparation-receipt.json",
+  "historical_receipt_sha256": "ce9ab9d7a39a2d0725b575038d7a1ab6fb5953365e0b6ab48caa5a79a2ba1504",
+  "historical_manifest_sha256": "3784d04765816700e1c3c0da8e8c3c0bce5a935aec71ef7b402930fd1f351c23",
+  "historical_preparation_ref": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/legacy/preparation-inputs/270a689202f79c621abbe51760413766e7da43a22bde19f04580af780e95203d.source-preparation.json",
+  "historical_preparation_sha256": "270a689202f79c621abbe51760413766e7da43a22bde19f04580af780e95203d",
+  "historical_preparation_commit": "5e9980396565e05e1a09894a5d57edb5cde31728",
+  "passed_checks": [
+    "current manifest digest is recorded in this migration receipt",
+    "historical preparation, manifest and receipt bytes remain at the migration record references",
+    "current route names resolve to the same stable source records and payload identity",
+    "migration changes navigation and generated references only; no source, rights, semantic, publication or canon admission is made"
+  ],
+  "authority_boundary": "This receipt closes the reviewed navigation migration. It is not an acquisition-preparation receipt and must not be used to authorize a new source transfer."
+}

@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:7d1f94472c6ef76abfbb41d1d95e93b376e3397ab65dcb9f0420be0d9c1e9738",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:7d1f94472c6ef76abfbb41d1d95e93b376e3397ab65dcb9f0420be0d9c1e9738",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:7d1f94472c6ef76abfbb41d1d95e93b376e3397ab65dcb9f0420be0d9c1e9738",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:7d1f94472c6ef76abfbb41d1d95e93b376e3397ab65dcb9f0420be0d9c1e9738",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.662a69c55bfce51c4d8760837a09d00bbe298b3d1252f29700c2ec2f91463939",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:feec4d88752996f6e1ac6c3da815025f41a1fa0b0383d22e298faa2fcd6b1287",
+        "id": "tos.form.metadata.662a69c55bfce51c4d8760837a09d00bbe298b3d1252f29700c2ec2f91463939",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:7d1f94472c6ef76abfbb41d1d95e93b376e3397ab65dcb9f0420be0d9c1e9738",
+        "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:7d1f94472c6ef76abfbb41d1d95e93b376e3397ab65dcb9f0420be0d9c1e9738",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:7d1f94472c6ef76abfbb41d1d95e93b376e3397ab65dcb9f0420be0d9c1e9738",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:7d1f94472c6ef76abfbb41d1d95e93b376e3397ab65dcb9f0420be0d9c1e9738",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:7d1f94472c6ef76abfbb41d1d95e93b376e3397ab65dcb9f0420be0d9c1e9738",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.cfa87c572c6e55c63f0bec8c1e38c76adc30203a0b2321e8fdff7433f965d710",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:5efb0ce77f32abbe94408b8d22ee27b440d9634e57f441e09ef33ae9aeebe6c5",
+        "id": "tos.form.metadata.cfa87c572c6e55c63f0bec8c1e38c76adc30203a0b2321e8fdff7433f965d710",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:7d1f94472c6ef76abfbb41d1d95e93b376e3397ab65dcb9f0420be0d9c1e9738",
+        "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:077efefbfacab7fb2cc891f4dfae66fe1ca397427ef98e5b72ac1e9b1df35c7c",
+      "owner_configuration": "sha256:8060e8b8d8cc08136b2a019bd5c92f86682280daf7779e16f22d8777504358fc",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:37.430588+00:00",
+      "request_digest": "sha256:44db5883aebacbbddd41aba4c1a06d14161ed36b14b12395cb08dd0067dc4dd7",
+      "results": [
+        {
+          "digest": "sha256:feec4d88752996f6e1ac6c3da815025f41a1fa0b0383d22e298faa2fcd6b1287",
+          "id": "tos.form.metadata.662a69c55bfce51c4d8760837a09d00bbe298b3d1252f29700c2ec2f91463939",
+          "version": 1
+        },
+        {
+          "digest": "sha256:5efb0ce77f32abbe94408b8d22ee27b440d9634e57f441e09ef33ae9aeebe6c5",
+          "id": "tos.form.metadata.cfa87c572c6e55c63f0bec8c1e38c76adc30203a0b2321e8fdff7433f965d710",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:495519a4fa7c1a4054f8fa88fdccb573053008ff2ba92a9501d7edade681315f",
+        "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:077efefbfacab7fb2cc891f4dfae66fe1ca397427ef98e5b72ac1e9b1df35c7c",
+      "request_digest": "sha256:92000475b6e5ce027b78e753798ab309d78b50b12f3e2eebda55b5ed149c787f",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:36243f0b68558d95d092933d5647624ce6b4659d8efc9e16aacfa305ac2f4d39",
+      "recorded_at": "2026-09-09T18:35:27.024663+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+        "version": 2,
+        "digest": "sha256:7d1f94472c6ef76abfbb41d1d95e93b376e3397ab65dcb9f0420be0d9c1e9738"
+      },
+      "previous_revision": "sha256:6b808bdf1e8c4204b7dec36059a92c600c7689b4628aed9213fb580464eb97a2",
+      "results": [
+        {
+          "id": "tos.form.metadata.662a69c55bfce51c4d8760837a09d00bbe298b3d1252f29700c2ec2f91463939",
+          "version": 2,
+          "digest": "sha256:2483d530ac349d982c072889237050af9aba1a7f1da4e8f0a4721299ac3c2ba3"
+        },
+        {
+          "id": "tos.form.metadata.cfa87c572c6e55c63f0bec8c1e38c76adc30203a0b2321e8fdff7433f965d710",
+          "version": 2,
+          "digest": "sha256:440bfa8bf70adba0743e59461ed2bb4e4a98f82bb8bc4c772042ecbba2be778a"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:495519a4fa7c1a4054f8fa88fdccb573053008ff2ba92a9501d7edade681315f",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:495519a4fa7c1a4054f8fa88fdccb573053008ff2ba92a9501d7edade681315f",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:495519a4fa7c1a4054f8fa88fdccb573053008ff2ba92a9501d7edade681315f",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:495519a4fa7c1a4054f8fa88fdccb573053008ff2ba92a9501d7edade681315f",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.662a69c55bfce51c4d8760837a09d00bbe298b3d1252f29700c2ec2f91463939",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:495519a4fa7c1a4054f8fa88fdccb573053008ff2ba92a9501d7edade681315f",
+        "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:495519a4fa7c1a4054f8fa88fdccb573053008ff2ba92a9501d7edade681315f",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:495519a4fa7c1a4054f8fa88fdccb573053008ff2ba92a9501d7edade681315f",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:495519a4fa7c1a4054f8fa88fdccb573053008ff2ba92a9501d7edade681315f",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:495519a4fa7c1a4054f8fa88fdccb573053008ff2ba92a9501d7edade681315f",
+            "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.cfa87c572c6e55c63f0bec8c1e38c76adc30203a0b2321e8fdff7433f965d710",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:495519a4fa7c1a4054f8fa88fdccb573053008ff2ba92a9501d7edade681315f",
+        "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-capienda-ex-inimicis-utilitate",
+    "version": 2,
+    "digest": "sha256:7d1f94472c6ef76abfbb41d1d95e93b376e3397ab65dcb9f0420be0d9c1e9738"
+  }
+}

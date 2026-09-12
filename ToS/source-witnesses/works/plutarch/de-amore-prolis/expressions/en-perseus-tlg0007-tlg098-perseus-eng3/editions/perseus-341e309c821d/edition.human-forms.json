@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.plutarch.de-amore-prolis.en-perseus-tlg0007-tlg098-perseus-eng3.perseus-341e309c821d",
+    "version": 1,
+    "digest": "sha256:45420c3615a98a2184263db77764aa8db04215e28f1f81865e2c438305c2d848"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:45420c3615a98a2184263db77764aa8db04215e28f1f81865e2c438305c2d848",
+            "id": "tos.edition.plutarch.de-amore-prolis.en-perseus-tlg0007-tlg098-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:45420c3615a98a2184263db77764aa8db04215e28f1f81865e2c438305c2d848",
+            "id": "tos.edition.plutarch.de-amore-prolis.en-perseus-tlg0007-tlg098-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:45420c3615a98a2184263db77764aa8db04215e28f1f81865e2c438305c2d848",
+            "id": "tos.edition.plutarch.de-amore-prolis.en-perseus-tlg0007-tlg098-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:45420c3615a98a2184263db77764aa8db04215e28f1f81865e2c438305c2d848",
+            "id": "tos.edition.plutarch.de-amore-prolis.en-perseus-tlg0007-tlg098-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.9ea442be3b8e2ea4e336cf235c97456edbd31825e62143e86942a108bce2e2be",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:45420c3615a98a2184263db77764aa8db04215e28f1f81865e2c438305c2d848",
+        "id": "tos.edition.plutarch.de-amore-prolis.en-perseus-tlg0007-tlg098-perseus-eng3.perseus-341e309c821d",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:45420c3615a98a2184263db77764aa8db04215e28f1f81865e2c438305c2d848",
+            "id": "tos.edition.plutarch.de-amore-prolis.en-perseus-tlg0007-tlg098-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:45420c3615a98a2184263db77764aa8db04215e28f1f81865e2c438305c2d848",
+            "id": "tos.edition.plutarch.de-amore-prolis.en-perseus-tlg0007-tlg098-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:45420c3615a98a2184263db77764aa8db04215e28f1f81865e2c438305c2d848",
+            "id": "tos.edition.plutarch.de-amore-prolis.en-perseus-tlg0007-tlg098-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:45420c3615a98a2184263db77764aa8db04215e28f1f81865e2c438305c2d848",
+            "id": "tos.edition.plutarch.de-amore-prolis.en-perseus-tlg0007-tlg098-perseus-eng3.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.7e468904e7dd93a8b0d1dbcfc018eb96d5d630f8982a2085bc1ab364e95d87aa",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:45420c3615a98a2184263db77764aa8db04215e28f1f81865e2c438305c2d848",
+        "id": "tos.edition.plutarch.de-amore-prolis.en-perseus-tlg0007-tlg098-perseus-eng3.perseus-341e309c821d",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-ninth-source-forms:139d5349c162ad9bd184cc03e9e325d41df7f0f43c19c524b5c5cebbfdceea3a",
+      "request_digest": "sha256:86c695fcc420496fe7c2bacb77d098346b79ec064044e25a1bdf041cb2f79ae3",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:d5c6449e9229c3ca8942799c46a546e9bbbee7b0fa905cec1f88a4b1a96d12c5",
+      "recorded_at": "2026-09-09T18:35:28.445297+00:00",
+      "source": {
+        "id": "tos.edition.plutarch.de-amore-prolis.en-perseus-tlg0007-tlg098-perseus-eng3.perseus-341e309c821d",
+        "version": 1,
+        "digest": "sha256:45420c3615a98a2184263db77764aa8db04215e28f1f81865e2c438305c2d848"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.9ea442be3b8e2ea4e336cf235c97456edbd31825e62143e86942a108bce2e2be",
+          "version": 1,
+          "digest": "sha256:45042a6c894c3f8b10a3cbe58ed2249f9ad9ccba51235b67543fbd5c4a535f97"
+        },
+        {
+          "id": "tos.form.metadata.7e468904e7dd93a8b0d1dbcfc018eb96d5d630f8982a2085bc1ab364e95d87aa",
+          "version": 1,
+          "digest": "sha256:d36a7fa7f94ce497d62f87c5cf61dee854974243c652862d1d6a58f769532142"
+        }
+      ]
+    }
+  ]
+}

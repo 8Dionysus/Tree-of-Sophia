@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader>
+<fileDesc>
+<titleStmt>
+ <title xml:lang="grc">Γάϊος Μάρκιος</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg016.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<listBibl>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor> 
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1916</date>
+</imprint>
+<biblScope unit="volume">4</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives04plut/page/118/mode/2up">Internet Archive</ref>
+</biblStruct>
+</listBibl>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+    <quotation marks="none"/>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+<refsDecl>
+<refState unit="chapter" delim="."/>
+<refState unit="section"/>
+</refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change when="2017-01-09" who="Lisa Cerrato">review of EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+<change who="RS" when="2010-03-01">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+    
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg016.perseus-grc2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg016.perseus-grc2" type="edition" xml:lang="grc"> 
+    <head>Γάϊος Μάρκιος</head> 
+    <pb n="p.118"/> 
+
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg016.perseus-grc2" n="1">  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg016.perseus-grc2:1" n="1"> 
+<p> ὁ Μαρκίων οἶκος ἐν Ῥώμῃ τῶν πατρικίων πολλοὺς παρέσχεν ἐνδόξους ἄνδρας, ὧν καὶ Μάρκιος ἦν Ἄγκος, ὁ Νομᾶ θυγατριδοῦς καὶ μετὰ Τύλλον Ὁστίλιον βασιλεὺς γενόμενος. Μάρκιοι δʼ ἦσαν καὶ Πόπλιος καὶ Κόιντος οἱ πλεῖστον ὕδωρ καὶ κάλλιστον ἐν Ῥώμῃ καταγαγόντες, καὶ Κηνσωρῖνος, ὃν δὶς ἀπέδειξε τιμητὴν <pb n="paris.1624.214"/> ὁ Ῥωμαίων δῆμος, εἶτα ὑπʼ αὐτοῦ πεισθεὶς ἐκείνου νόμον ἔθετο καὶ ἐψηφίσατο μηδενὶ τὴν ἀρχὴν δὶς ἐξεῖναι μετελθεῖν.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg016.perseus-grc2:1" n="2"> 
+<p>Γάϊος δὲ Μάρκιος, ὑπὲρ οὗ τάδε γέγραπται, τραφεὶς ὑπὸ μητρὶ χήρᾳ πατρὸς ὀρφανός, ἀπέδειξε τὴν ὀρφανίαν ἄλλα μὲν ἔχουσαν κακά, πρὸς δὲ τὸ γενέσθαι σπουδαῖον ἄνδρα καὶ διαφέροντα τῶν πολλῶν οὐδὲν ἐμποδὼν οὖσαν, ἄλλως δὲ τοῖς φαύλοις αἰτιᾶσθαι καὶ ψέγειν παρέχουσαν αὑτὴν ὡς ἀμελείᾳ διαφθείρουσαν. ὁ δʼ αὐτὸς ἀνὴρ ἐμαρτύρησε καὶ τοῖς τὴν φύσιν ἡγουμένοις, ἐὰν οὖσα γενναία καὶ ἀγαθὴ παιδείας ἐνδεὴς γένηται, πολλὰ τοῖς χρηστοῖς ὁμοῦ φαῦλα συναποτίκτειν, ὥσπερ εὐγενῆ χώραν ἐν γεωργίᾳ θεραπείας μὴ τυχοῦσαν.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg016.perseus-grc2:1" n="3"> 
+<p> τὸ γὰρ ἰσχυρὸν αὐτοῦ πρὸς ἅπαντα τῆς γνώμης καὶ καρτερὸν ὁρμάς τε μεγάλας καὶ τελεσιουργοὺς τῶν καλῶν ἐξέφερε, <pb n="p.120"/> θυμοῖς τε αὖ πάλιν χρώμενον ἀκράτοις καὶ φιλονεικίαις ἀτρέπτοις οὐ ῥᾴδιον οὐδʼ εὐάρμοστον ἀνθρώποις συνεῖναι παρεῖχεν, ἀλλὰ τὴν ἐν ἡδοναῖς καὶ πόνοις καὶ ὑπὸ χρημάτων ἀπάθειαν αὐτοῦ θαυμάζοντες καὶ ὀνομάζοντες ἐγκράτειαν καὶ δικαιοσύνην καὶ ἀνδρείαν, ἐν ταῖς πολιτικαῖς αὖ πάλιν ὁμιλίαις ὡς ἐπαχθῆ καὶ ἄχαριν καὶ ὀλιγαρχικὴν ἐδυσχέραινον.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg016.perseus-grc2:1" n="4"> 
+<p> οὐδὲν γὰρ ἄλλο Μουσῶν εὐμενείας ἀπολαύουσιν ἄνθρωποι τοσοῦτον ὅσον ἐξημερῶσαι τὴν φύσιν ὑπὸ λόγου καὶ παιδείας, τῷ λόγῳ δεξαμένην τὸ μέτριον καὶ τὸ ἄγαν ἀποβαλοῦσαν. ὅλως μὲν οὖν ἐν τοῖς τότε χρόνοις ἡ Ῥώμη μάλιστα τῆς ἀρετῆς τὸ περὶ τὰς πολεμικὰς καὶ στρατιωτικὰς ἐκύδαινε πρά�

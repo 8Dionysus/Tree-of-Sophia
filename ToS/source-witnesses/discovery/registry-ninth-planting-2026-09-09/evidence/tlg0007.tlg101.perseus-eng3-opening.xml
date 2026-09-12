@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>Concerning Talkativeness</title>
+            <author>Plutarch</author>
+            <editor role="translator">William Clark Helmbold</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         	   <name>Angelia Hanhardt</name>
+         	   <name>Michael Konieczny</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg101.perseus-eng3.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+       <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title xml:lang="lat">Moralia</title>
+                  <editor role="translator">William Clark Helmbold</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1939</date>
+                  </imprint>
+                  <biblScope unit="volume">6</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series> 
+            	<ref target="https://archive.org/details/moraliainfifteen06plutuoft/page/392">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+         	<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p>
+         	</cRefPattern>
+         </refsDecl>
+            <!--<state unit="section"/>
+         </refsDecl><refsDecl doctype="TEI.2">
+				
+				</refsDecl>--><refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+         	<language ident="grc">Greek</language>
+         	<language ident="eng">English</language>
+         	<language ident="lat">Latin</language>
+         	<language ident="deu">German</language>
+         	<language ident="fre">French</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="RS" when="2010-05">tagged and parsed</change>
+      	<change who="Sophia Elzie" when="2019-07-16">EpiDoc and CTS Conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg101.perseus-eng3">
+      	<div n="urn:cts:greekLit:tlg0007.tlg101.perseus-eng3" type="translation" xml:lang="eng">
+      		<head>CONCERNING TALKATIVENESS (<foreign xml:lang="lat">DE GARRULITATE</foreign>)</head>
+         <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg101.perseus-eng3" type="textpart" n="intro"><pb xml:id="v.6.p.395"/> 
+          <head>INTRODUCTION</head> <p rend="indent"> This charming essay, by far the best in the volume, suffers from only one defect, its length. Though Plutarch again and again, by his narrative skill and naïve or unconscious humour, will delight even those who have hardened their hearts against him (I mean his editors), he cannot at last resist the temptation to indulge in what he considered scientific analysis and enlightened exhortation. He is then merely dull. But, taken as a whole, the essay is surely a success, and as organic and skilful a performance as any in the <title rend="italic" xml:lang="lat">Moralia</title>.</p>
+
+<p rend="indent">The work was written after <title rend="italic" xml:lang="lat">De Curiositate</title> and before <title rend="italic" xml:lang="lat">De Tranquillitate</title>, <title rend="italic">De Capienda ex Inimicis Utilitate</title>, and <title rend="italic" xml:lang="lat">De Laude Ipsius</title>.<note resp="editor" place="inline" anchored="true">I have thus combined the conclusions of Pohlenz, Brokate, and Hein.</note> It stands in the Lamprias catalogue as No. 92.<note resp="editor" place="inline" anchored="true">Mr C. B. Robinson’s translation, or paraphrase, of this and several other essays in this volume, arrived too late to be of service (see <title rend="italic">Plutarch, Selected Essays</title>, Putnam, New York, 1937).</note></p></div><pb xml:id="v.6.p.397"/>
+
+<div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg101.perseus-eng3" type="textpart" n="1"><p rend="indent">It is a troublesome and difficult task that philosophy has in hand when it undertakes to cure garrulousness. For the remedy, words of reason, requires listeners; but the garrulous listen to nobody, for they are always talking. And this is the first symptom of their ailment: looseness of the tongue becomes impotence of the ears.<note resp="editor" place="inline" anchored="true">It suits Plutarch’s humour in this passage, in which he speaks of garrulity as a disease, to invent one, and possibly two, pseudo-medical terms, <foreign xml:lang="grc">ἀσιγησία</foreign>, <q>inability to keep silent,</q> and <foreign xml:lang="grc">ἀνηκοΐα</foreign>, <q>inability to listen.</q> The figure is maintained in <foreign xml:lang="grc">διαρρέουσι</foreign> at the end of section d. Rouse suggests: <q>And here is the first bad symptom in diarrhoea of the tongue - constipation of the ears.</q></note> For it is a deliberate deafness, that of men who, I take it, blame Nature because they have only one tongue, but two ears.b If, then, Euripides<note resp="editor" place="inline" anchored="true"><foreign xml:lang="lat">Cf.</foreign><title rend="italic" xml:lang="lat">Moralia</title>, 39 b; von Arnim, <title rend="italic" xml:lang="lat">Stoic. Vet. Frag.</title>, i. p. 68, Zeno, Frag. 310.</note> was right when he said with reference to the unintelligent hearer, <quote rend="blockquote"><l>I could not fill a man who will not hold </l> <l>My wise words flooding into unwise ears,</l></quote> it would be more just to say to the garrulous man, or rather about the garrulous man, <quote rend="blockquote"><l>I could not fill a man who will not take </l> <l>My wise words flooding into unwise ears,</l></quote> or rather submerging, a man who talks to those <pb xml:id="v.6.p.399"/> who will not listen, and will not listen when others talk. For even if he does listen for a moment, when his loquacity is, as it were, at ebb, the rising tide immediately makes up for it many times over.</p>
+
+<p rend="indent">They give the name of Seven-voiced<note resp="editor" place="inline" anchored="true">A po

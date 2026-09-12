@@ -113,6 +113,11 @@ _TEMPORAL_CLAIM_PREDICATES = {
 
 
 def _objects(value: Any) -> list[dict[str, Any]]:
+    # Explicit build-owned row stores are validated on insertion, not a public
+    # relaxation of the array/object contracts. Query JSON remains ordinary.
+    from .disk_collections import DiskSequence, GroupRows
+    if isinstance(value, (DiskSequence, GroupRows)):
+        return value
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, dict)]
@@ -1778,15 +1783,16 @@ def _normalize_relation(
 
 
 def _validate_reference_claim_carriers(bibliographic, raw_nodes, nodes_by_id,
-                                       entity_entries, relation_entries, relation_mappings):
+                                       entity_entries, relation_entries, relation_mappings, *, _storage=None):
     """Check the declared fixed-slot ABI without IO or inferred references.
 
     Access consumes exported JSON, not the source validator's rebuild. A
     missing derived carrier cannot weaken the retained source Claim. Ordinary
     structured values and their opaque extensions keep their existing reader.
     """
-    by_native = {row.get('node_id'): row for row in raw_nodes if isinstance(row.get('node_id'), str)}
-    traces, members_from, members_for = defaultdict(list), defaultdict(list), defaultdict(list)
+    sequence, mapping, groups = _build_collections(_storage)
+    by_native = mapping((row.get('node_id'), row) for row in raw_nodes if isinstance(row.get('node_id'), str))
+    traces, members_from, members_for = groups(), groups(), groups()
     for trace in _objects(bibliographic.get('claim_traces')):
         if isinstance(trace.get('claim_node_id'), str):
             traces[trace['claim_node_id']].append(trace)
@@ -1967,8 +1973,9 @@ def _expected_claim_navigation(
         'mapping_sha256': _validation_digest(mapping)}}
 
 
-def _validate_claim_navigation_carriers(bibliographic_nodes, registry, entity_entries, entity_mappings):
-    by_identity = defaultdict(list)
+def _validate_claim_navigation_carriers(bibliographic_nodes, registry, entity_entries, entity_mappings, *, _storage=None):
+    sequence, mapping, groups = _build_collections(_storage)
+    by_identity = groups()
     for node in bibliographic_nodes:
         properties = node.get('properties') or {}
         if node.get('node_kind') == 'identity' and isinstance(properties.get('identity_ref'), str):
@@ -2000,13 +2007,22 @@ def _validate_claim_navigation_carriers(bibliographic_nodes, registry, entity_en
             raise ValueError(f"claim navigation carrier differs from source-bound syntax: {claim['claim_id']}")
 
 
+def _build_collections(storage):
+    """Keep one semantic algorithm with explicit offline disk intermediates."""
+    if storage is None:
+        return list, dict, lambda: defaultdict(list)
+    return storage.sequence, storage.mapping, storage.groups
+
+
 def build_knowledge_graph(
     corpus: dict[str, Any],
     philosophy: dict[str, Any],
     bibliographic_claims: dict[str, Any] | None = None,
     entity_type_registry: dict[str, Any] | None = None,
     relation_type_registry: dict[str, Any] | None = None,
+    *, _storage=None, _source_revision=None,
 ) -> dict[str, Any]:
+    sequence, mapping, groups = _build_collections(_storage)
     bibliographic = bibliographic_claims if isinstance(bibliographic_claims, dict) else {}
     entity_registry = entity_type_registry if isinstance(entity_type_registry, dict) else {}
     relation_registry = relation_type_registry if isinstance(relation_type_registry, dict) else {}
@@ -2019,7 +2035,7 @@ def build_knowledge_graph(
             raise ValueError("invalid semantic registry: " + "; ".join(registry_report["violations"]))
     entity_entries, entity_mappings, fallback_type_id = _entity_registry_indexes(entity_registry)
     relation_entries, relation_mappings, fallback_relation_type_id = _relation_registry_indexes(relation_registry)
-    source_revision = _stable_digest(
+    source_revision = _source_revision or _stable_digest(
         {
             "corpus": corpus,
             "philosophy": philosophy,
@@ -2028,7 +2044,7 @@ def build_knowledge_graph(
             "relation_type_registry": relation_registry,
         }
     )
-    nodes: list[dict[str, Any]] = []
+    nodes = sequence()
     for item in _objects(philosophy.get("nodes")):
         nodes.append(
             _normalize_node(
@@ -2060,26 +2076,26 @@ def build_knowledge_graph(
                 fallback_type_id=fallback_type_id,
             )
         )
-    claim_traces = {
-        str(item.get("claim_ref")): item
+    claim_traces = mapping(
+        (str(item.get("claim_ref")), item)
         for item in _objects(bibliographic.get("claim_traces"))
         if _string(item.get("claim_ref"))
-    }
+    )
     if active_cache.get():
         for claim_ref, trace in claim_traces.items():
             active_cache.get().scheduler.evaluate(Input('source-claim-trace:' + claim_ref, trace))
-    claim_predicates_by_object = {
-        str(item.get("object_node_id")): str(item.get("predicate"))
+    claim_predicates_by_object = mapping(
+        (str(item.get("object_node_id")), str(item.get("predicate")))
         for item in claim_traces.values()
         if _string(item.get("object_node_id")) and _string(item.get("predicate"))
-    }
+    )
     bibliographic_nodes = _objects(bibliographic.get("nodes"))
-    bibliographic_nodes_by_native = {
-        str(item.get("node_id")): item
+    bibliographic_nodes_by_native = mapping(
+        (str(item.get("node_id")), item)
         for item in bibliographic_nodes
         if _string(item.get("node_id"))
-    }
-    _validate_claim_navigation_carriers(bibliographic_nodes, relation_registry, entity_entries, entity_mappings)
+    )
+    _validate_claim_navigation_carriers(bibliographic_nodes, relation_registry, entity_entries, entity_mappings, _storage=_storage)
     for item in bibliographic_nodes:
         native = _string(item.get("node_id")) or "unnamed"
         predicate = claim_predicates_by_object.get(native)
@@ -2097,6 +2113,10 @@ def build_knowledge_graph(
                 fallback_type_id=fallback_type_id,
             )
         )
+    # The object-to-predicate adapter has served the claim-node normalization
+    # pass.  It is a build-owned disk map; keep the source projection itself
+    # alive, but release this redundant index before relation materialization.
+    del claim_predicates_by_object
     repository_root = _normalize_node(
         {
             "node_id": "tree-of-sophia",
@@ -2114,7 +2134,7 @@ def build_knowledge_graph(
         fallback_type_id=fallback_type_id,
     )
     nodes.append(repository_root)
-    repository_items: list[tuple[str, int, dict[str, Any], str, str]] = []
+    repository_items = sequence()
     for collection, kind in (("branches", "repository-branch"), ("manifests", "repository-manifest"), ("resources", "repository-resource")):
         for order, item in enumerate(_objects(corpus.get(collection))):
             native = _string(item.get("id")) or _string(item.get("path")) or f"{collection}:{order}"
@@ -2137,16 +2157,20 @@ def build_knowledge_graph(
             )
             repository_items.append((collection, order, material, native, identity))
 
-    nodes_by_id = {node["id"]: node for node in nodes}
+    nodes_by_id = mapping((node["id"], node) for node in nodes)
     _validate_reference_claim_carriers(bibliographic, bibliographic_nodes, nodes_by_id,
-                                       entity_entries, relation_entries, relation_mappings)
-    relation_sources: list[tuple[str, dict[str, Any], str | None]] = []
+                                       entity_entries, relation_entries, relation_mappings, _storage=_storage)
+    # The first endpoint index exists only for the carrier check.  Releasing
+    # it here matters for large snapshots because the next phase allocates a
+    # second index over the same normalized node set.
+    del nodes_by_id
+    relation_sources = sequence()
     relation_sources.extend(("philosophy", item, None) for item in _objects(philosophy.get("edges")))
-    pack_paths = {
-        str(item.get("pack_id")): str(item.get("path"))
+    pack_paths = mapping(
+        (str(item.get("pack_id")), str(item.get("path")))
         for item in _objects(corpus.get("relation_packs"))
         if _string(item.get("pack_id")) and _string(item.get("path"))
-    }
+    )
     for item in _objects(corpus.get("relation_edges")):
         material = dict(item)
         pack_path = pack_paths.get(str(item.get("pack_id") or ""))
@@ -2163,12 +2187,13 @@ def build_knowledge_graph(
         identity = f"{pack_id}:{edge_native}" if pack_id and edge_native else None
         relation_source = "canon" if material.get("owner_branch") == "ToS/canon" else "candidate-intake"
         relation_sources.append((relation_source, material, identity))
+    del pack_paths
 
     # Canon node-local relations are authored semantic assertions too.  The
     # compact corpus index preserves the complete node contract in
     # ``properties``; materialize those relations instead of making consumers
     # reverse-engineer them from an opaque payload.
-    canon_nodes_by_source_path: dict[str, str] = {}
+    canon_nodes_by_source_path = mapping()
     for item in _objects(corpus.get("nodes")):
         source_path = _string(item.get("source_path"))
         node_id = _string(item.get("node_id"))
@@ -2263,11 +2288,11 @@ def build_knowledge_graph(
         relation_sources.append(("source-claims", material, None))
 
     branch_items = _objects(corpus.get("branches"))
-    branch_by_path = {
-        str(item.get("path")): str(item.get("id"))
+    branch_by_path = mapping(
+        (str(item.get("path")), str(item.get("id")))
         for item in branch_items
         if _string(item.get("path")) and _string(item.get("id"))
-    }
+    )
 
     def owning_branch_id(item: dict[str, Any]) -> str | None:
         owner = _string(item.get("owner_branch")) or _string(item.get("declared_path")) or _string(item.get("path"))
@@ -2330,20 +2355,25 @@ def build_knowledge_graph(
                 None,
             )
         )
+    # These indexes and adapter records are consumed by relation construction;
+    # their serialized rows should not survive into endpoint normalization.
+    del owning_branch_id, branch_by_path, repository_items
 
-    nodes_by_id = {node["id"]: node for node in nodes}
-    representations_by_entity: dict[str, dict[str, list[dict[str, Any]]]] = {}
+    nodes_by_id = mapping((node["id"], node) for node in nodes)
+    representations = groups()
+    entity_ids = mapping()
     for node in nodes:
         entity_id = _string(node.get("entity_id"))
-        if not entity_id or not entity_id.startswith("tos."):
-            continue
-        representations_by_entity.setdefault(entity_id, {}).setdefault(str(node["source_graph"]), []).append(node)
-    representation_pairs = [
-        (entity_id, claim, navigation)
-        for entity_id, representations in sorted(representations_by_entity.items())
-        for claim in representations.get("source-claims", [])
-        for navigation in representations.get("source-navigation", [])
-    ]
+        if entity_id and entity_id.startswith("tos."):
+            representations[(entity_id, node['source_graph'])].append(node)
+            entity_ids[entity_id] = True
+    def pairs():
+        identities = entity_ids.sorted_keys() if _storage else sorted(entity_ids)
+        for entity_id in identities:
+            for claim in representations.get((entity_id, 'source-claims'), []):
+                for navigation_node in representations.get((entity_id, 'source-navigation'), []):
+                    yield entity_id, claim, navigation_node
+    representation_pairs = pairs()
     for entity_id, claim_representation, navigation_representation in representation_pairs:
         _require_assessed_carrier_parity(claim_representation, navigation_representation)
         relation_sources.append(
@@ -2374,6 +2404,7 @@ def build_knowledge_graph(
                 None,
             )
         )
+    del representation_pairs, pairs, representations, entity_ids
 
     # A source-witness record can explicitly cite an authored canon node.  An
     # exact path match is strong enough to expose a grounding route, but not to
@@ -2428,6 +2459,7 @@ def build_knowledge_graph(
                     None,
                 )
             )
+    del canon_nodes_by_source_path
 
     # Relation endpoints are part of the public graph even when the compact
     # corpus index has no full node payload for them.
@@ -2456,7 +2488,7 @@ def build_knowledge_graph(
             nodes.append(placeholder)
             nodes_by_id[identifier] = placeholder
 
-    claim_context_index: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    claim_context_index = groups()
     for node in nodes:
         # A review/evidence/value node may cite a claim without being its
         # assertion. Only reified claim carriers can supply the governing body.
@@ -2478,13 +2510,18 @@ def build_knowledge_graph(
         claim_ref = item.get('claim_ref')
         # An unknown extension shape remains in the source record. It is not
         # a valid join key and must not crash or be coerced into a reference.
-        return claim_context_index.get((source_graph, claim_ref)) if isinstance(claim_ref, str) else None
+        return list(claim_context_index.get((source_graph, claim_ref), [])) if isinstance(claim_ref, str) else None
 
-    relations = [
+    # Relation display reads endpoint titles only. Keep that index separate
+    # from lossless records so a high-degree provenance event is not decoded
+    # in full for every incident relation during the offline build.
+    display_nodes = mapping((node['id'], {'display': {'title': node['display']['title']}})
+                            for node in nodes) if _storage else nodes_by_id
+    relations = sequence(
         _normalize_relation(
             item,
             source_graph,
-            nodes_by_id,
+            display_nodes,
             claim_contexts=referenced_contexts(source_graph, item),
             identity_id=identity,
             relation_type_entries=relation_entries,
@@ -2492,9 +2529,12 @@ def build_knowledge_graph(
             fallback_relation_type_id=fallback_relation_type_id,
         )
         for source_graph, item, identity in relation_sources
-    ]
+    )
+    # Relation normalization has fully consumed both the raw relation adapter
+    # and the title-only endpoint index.
+    del relation_sources, display_nodes, referenced_contexts
 
-    claim_updates, literal_contexts = {}, {}
+    claim_updates, literal_contexts = mapping(), groups()
     for claim_ref, trace in claim_traces.items():
         claim_node_id = f"source-claims:{trace.get('claim_node_id')}"
         claim_node = nodes_by_id.get(claim_node_id)
@@ -2538,16 +2578,24 @@ def build_knowledge_graph(
             "review_status": trace.get("review_status"),
             "epistemic_status": trace.get("epistemic_status"),
         }, dict(trace))
-    inherited_views = {}
+    # Claim updates contain the exact fields needed by finalization.  The raw
+    # trace/native adapters and endpoint map no longer contribute after this
+    # pass, so drop their disk collections before the final node projection.
+    del claim_traces, bibliographic_nodes_by_native, nodes_by_id, claim_context_index
+    inherited_views = groups() if _storage else {}
     for relation in relations:
         view_ids = set(_strings(relation.get("view_ids")))
         if not view_ids:
             continue
         for endpoint in (str(relation["from_id"]), str(relation["to_id"])):
             inherited_views.setdefault(endpoint, set()).update(view_ids)
-    nodes = [_finalize_knowledge_node(node, claim_updates.get(node['id']),
+    nodes = sequence(_finalize_knowledge_node(node, claim_updates.get(node['id']),
                                       sorted(inherited_views.get(node['id'], set())),
-                                      literal_contexts.get(node['id'])) for node in nodes]
+                                      list(literal_contexts.get(node['id'], []))) for node in nodes)
+    # The generator above has consumed the prior node sequence.  Its source
+    # collection and finalization indexes are now safe to release while the
+    # newly built node sequence remains the graph carrier.
+    del claim_updates, literal_contexts, inherited_views
     nodes.sort(key=lambda item: (str(item["source_graph"]), str(item["id"])))
     relations.sort(key=lambda item: (str(item["source_graph"]), str(item["id"])))
     source_counts = Counter(str(item["source_graph"]) for item in nodes)
@@ -2601,7 +2649,7 @@ def build_knowledge_graph(
         },
     }
     if entity_registry and relation_registry:
-        semantic_report = validate_knowledge_semantics(graph, entity_registry, relation_registry)
+        semantic_report = validate_knowledge_semantics(graph, entity_registry, relation_registry, _storage=_storage)
         if not semantic_report["valid"]:
             raise ValueError("knowledge semantic invariant violation: " + "; ".join(semantic_report["violations"][:20]))
         graph["counts"]["semantic_validation"] = semantic_report
@@ -2681,20 +2729,36 @@ def _validation_digest(value: Any) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+class _BoundedBuildDiagnostics(list):
+    """Fail explicitly if an offline snapshot cannot keep its report bounded."""
+    limit = 1000
+
+    def append(self, value):
+        if len(self) >= self.limit:
+            raise ValueError("offline semantic diagnostics exceed 1000 entries; resolve source violations before compilation")
+        super().append(value)
+
+    def extend(self, values):
+        for value in values:
+            self.append(value)
+
+
 def validate_knowledge_semantics(
     graph: Any,
     entity_registry: Any,
     relation_registry: Any,
+    *, _storage=None,
 ) -> dict[str, Any]:
     """Check registry binding and endpoint contracts for the complete read model."""
 
+    sequence, mapping, groups = _build_collections(_storage)
     registry_report = validate_semantic_registries(entity_registry, relation_registry)
-    violations = list(registry_report["violations"])
+    violations = (_BoundedBuildDiagnostics if _storage else list)(registry_report["violations"])
     entity_entries, _entity_mappings, fallback_type_id = _entity_registry_indexes(entity_registry)
     relation_entries, _relation_mappings, fallback_relation_type_id = _relation_registry_indexes(relation_registry)
     nodes = _objects(graph.get("nodes")) if isinstance(graph, dict) else []
     relations = _objects(graph.get("relations")) if isinstance(graph, dict) else []
-    nodes_by_id: dict[str, dict[str, Any]] = {}
+    nodes_by_id = mapping()
     properties_by_type: dict[str | None, list[dict[str, Any]]] = {}
 
     def applicable_properties(type_id):
@@ -2765,7 +2829,7 @@ def validate_knowledge_semantics(
                 violations.append(f"navigation Region {node_id} is missing its non-Place marker")
         return violations
 
-    node_occurrences = Counter(str(n.get('id')) for n in nodes)
+    node_occurrences = (_storage.counts if _storage else Counter)(str(n.get('id')) for n in nodes)
     incremental = active_cache.get() is not None
     node_digests = {str(n.get('id')): _validation_digest(n) for n in nodes} if incremental else {}
     registry_digest = _validation_digest([entity_registry, relation_registry]) if incremental else None
@@ -2787,7 +2851,25 @@ def validate_knowledge_semantics(
         if identifier:
             if identifier in nodes_by_id:
                 violations.append(f"duplicate knowledge node id {identifier}")
-            nodes_by_id[identifier] = node
+            if _storage:
+                # Endpoint validation consumes identity/type plus these exact
+                # review and promotion fields. validate_node still sees the
+                # complete record, and the published record remains lossless.
+                attrs = node.get('attributes') or {}
+                record = attrs.get('source_record')
+                reference_attrs = {key: attrs[key] for key in
+                                   ('claim_ref', 'claim_version', 'decision') if key in attrs}
+                if isinstance(record, dict):
+                    reference_attrs['source_record'] = {
+                        'promotion_basis': record.get('promotion_basis')}
+                reference_semantics = node.get('semantics') or {}
+                nodes_by_id[identifier] = {
+                    'id': node.get('id'), 'type_id': node.get('type_id'),
+                    'entity_id': node.get('entity_id'), 'attributes': reference_attrs,
+                    'semantics': {'record_version': reference_semantics.get('record_version')},
+                }
+            else:
+                nodes_by_id[identifier] = node
         violations.extend(checked('node', identifier or '<missing>', node_digests.get(identifier),
                                   lambda node=node: validate_node(node),
                                   unique=bool(identifier) and node_occurrences[identifier] == 1))
@@ -2817,11 +2899,10 @@ def validate_knowledge_semantics(
                 f"{owner_id} range {_string(to_node.get('type_id'))!r} is outside {entry.get('range_type_ids')}"
             )
 
-    relation_ids: set[str] = set()
-    outgoing: dict[tuple[str, str], list[dict[str, Any]]] = {}
-    incoming: dict[tuple[str, str], list[dict[str, Any]]] = {}
-    claims_by_entity = {str(n.get("entity_id")): n for n in nodes if n.get("type_id") == "tos.entity.claim"}
-    gaps: list[dict[str, str]] = []
+    relation_ids = mapping() if _storage else set()
+    outgoing, incoming = groups(), groups()
+    claims_by_entity = mapping((str(n.get("entity_id")), n) for n in nodes if n.get("type_id") == "tos.entity.claim")
+    gaps = sequence()
     def validate_relation(relation):
         violations, gaps = [], []
         relation_id = _string(relation.get("id")) or "<missing relation id>"
@@ -2902,7 +2983,7 @@ def validate_knowledge_semantics(
                 violations.append(f"same_as relation {relation_id} lacks resolved evidence and exact-version review")
         return violations, gaps
 
-    relation_occurrences = Counter(str(r.get('id')) for r in relations)
+    relation_occurrences = (_storage.counts if _storage else Counter)(str(r.get('id')) for r in relations)
     relation_digests = {str(r.get('id')): _validation_digest(r) for r in relations} if incremental else {}
     for relation in relations:
         identifier = _string(relation.get('id')) or '<missing relation id>'
@@ -2910,9 +2991,18 @@ def validate_knowledge_semantics(
         if relation_type in relation_entries:
             if identifier in relation_ids or identifier == '<missing relation id>':
                 violations.append(f"duplicate or missing relation id {identifier}")
-            relation_ids.add(identifier)
-            outgoing.setdefault((str(relation.get('from_id')), relation_type), []).append(relation)
-            incoming.setdefault((str(relation.get('to_id')), relation_type), []).append(relation)
+            if _storage:
+                relation_ids[identifier] = True
+            else:
+                relation_ids.add(identifier)
+            # Offline incidence checks consume only the target and assertion
+            # scope. Retaining full display/source bodies twice per relation
+            # amplifies the scratch store without strengthening validation.
+            incidence = ({'to_id': relation.get('to_id'),
+                          'attributes': {'claim_ref': (relation.get('attributes') or {}).get('claim_ref')}}
+                         if _storage and not incremental else relation)
+            outgoing.setdefault((str(relation.get('from_id')), relation_type), []).append(incidence)
+            incoming.setdefault((str(relation.get('to_id')), relation_type), []).append(incidence)
         attrs = relation.get('attributes') or {}
         supporting = claims_by_entity.get(str(attrs.get('claim_ref'))) or {}
         evidence = supporting.get('semantics', {}).get('claim', {}).get('evidence_node_ids', [])
@@ -2930,7 +3020,7 @@ def validate_knowledge_semantics(
             maximum = relation_entries[relation_type].get("cardinality", {}).get(maximum_key)
             # Semantic cardinality constrains one assertion context. Distinct
             # conflicting claims are preserved, not forced into one global fact.
-            scoped_counts = Counter((e.get('attributes') or {}).get('claim_ref') if relation_entries[relation_type].get('assertion_mode') == 'reified-claim' else None for e in edges)
+            scoped_counts = (_storage.counts if _storage else Counter)((e.get('attributes') or {}).get('claim_ref') if relation_entries[relation_type].get('assertion_mode') == 'reified-claim' else None for e in edges)
             if maximum is not None and max(scoped_counts.values()) > maximum:
                 violations.append(f"{endpoint} violates {relation_type} {maximum_key}={maximum}")
 
@@ -3483,6 +3573,7 @@ def _short_digest_string(value: str) -> bytes:
 
 
 def _stable_digest(value: Any) -> str:
+    from .disk_collections import DiskSequence
     digest = hashlib.sha256()
     write = digest.update
 
@@ -3512,7 +3603,7 @@ def _stable_digest(value: Any) -> str:
             write(b"d")
             write(struct.pack(">d", number).hex().encode("ascii"))
             write(b";")
-        elif isinstance(item, list):
+        elif isinstance(item, (list, DiskSequence)):
             write(b"a")
             write(str(len(item)).encode("ascii"))
             write(b"[")
@@ -4240,18 +4331,19 @@ def _display_field_catalog(items: list[dict[str, Any]], kind: str) -> list[dict[
 
 
 def _facet_catalog(items: list[dict[str, Any]], fields: Iterable[str]) -> dict[str, list[dict[str, Any]]]:
-    result: dict[str, list[dict[str, Any]]] = {}
-    for field in fields:
-        counts: Counter[str] = Counter()
-        for item in items:
+    # Decode each source record once, preserving per-field encounter order for
+    # the existing stable casefold sort and exact list-value multiplicities.
+    field_counts = {field: Counter() for field in fields}
+    for item in items:
+        for field, counts in field_counts.items():
             raw = _field(item, field)
             values = raw if isinstance(raw, list) else [raw]
             counts.update(str(value) for value in values if value is not None and str(value))
-        result[field] = [
-            {"value": value, "count": count}
-            for value, count in sorted(counts.items(), key=lambda pair: pair[0].casefold())
-        ]
-    return result
+    return {
+        field: [{"value": value, "count": count}
+                for value, count in sorted(counts.items(), key=lambda pair: pair[0].casefold())]
+        for field, counts in field_counts.items()
+    }
 
 
 def knowledge_catalog(
@@ -4260,13 +4352,73 @@ def knowledge_catalog(
     philosophy: dict[str, Any],
     entity_type_registry: Any = None,
     relation_type_registry: Any = None,
+    *, _storage=None,
 ) -> dict[str, Any]:
+    sequence, mapping, _groups = _build_collections(_storage)
     nodes = _objects(graph.get("nodes"))
     relations = _objects(graph.get("relations"))
-    kind_counts = Counter(str(item["kind_id"]) for item in nodes)
-    predicate_counts = Counter(str(item["predicate_id"]) for item in relations)
-    type_counts = Counter(str(item["type_id"]) for item in nodes)
-    relation_type_counts = Counter(str(item["relation_type_id"]) for item in relations)
+    # Keep catalog aggregation bounded by the row shape it needs.  The graph
+    # carriers can retain large lossless source records; route/readiness
+    # summaries need only these compact fields and the first display value for
+    # each ordered group.
+    node_summaries = sequence()
+    relation_summaries = sequence()
+    node_kind_by_id = mapping()
+    kind_groups: dict[str, dict[str, Any]] = {}
+    predicate_groups: dict[str, dict[str, Any]] = {}
+    kind_counts: Counter[str] = Counter()
+    predicate_counts: Counter[str] = Counter()
+    type_counts: Counter[str] = Counter()
+    relation_type_counts: Counter[str] = Counter()
+    claim_relation_type_counts: Counter[str] = Counter()
+    for node in nodes:
+        kind_id = str(node["kind_id"])
+        type_id = str(node["type_id"])
+        mapping_status = str((node.get("type_mapping") or {}).get("status"))
+        kind_counts[kind_id] += 1
+        type_counts[type_id] += 1
+        group = kind_groups.setdefault(
+            kind_id,
+            {
+                "display": copy.deepcopy(node["display"]["kind_label"]),
+                "type_ids": set(),
+                "mapping_statuses": set(),
+            },
+        )
+        group["type_ids"].add(type_id)
+        group["mapping_statuses"].add(mapping_status)
+        node_id = str(node["id"])
+        node_kind_by_id[node_id] = kind_id
+        node_summaries.append({"id": node_id, "kind_id": kind_id, "type_id": type_id})
+        semantics = node.get("semantics") if isinstance(node.get("semantics"), dict) else {}
+        claim = semantics.get("claim") if isinstance(semantics.get("claim"), dict) else {}
+        claim_relation_type_id = _string(claim.get("relation_type_id"))
+        if claim_relation_type_id:
+            claim_relation_type_counts[claim_relation_type_id] += 1
+    for relation in relations:
+        predicate_id = str(relation["predicate_id"])
+        relation_type_id = str(relation["relation_type_id"])
+        mapping_status = str((relation.get("predicate_mapping") or {}).get("status"))
+        predicate_counts[predicate_id] += 1
+        relation_type_counts[relation_type_id] += 1
+        group = predicate_groups.setdefault(
+            predicate_id,
+            {
+                "display": copy.deepcopy(relation["display"]["label"]),
+                "relation_type_ids": set(),
+                "mapping_statuses": set(),
+            },
+        )
+        group["relation_type_ids"].add(relation_type_id)
+        group["mapping_statuses"].add(mapping_status)
+        relation_summaries.append(
+            {
+                "predicate_id": predicate_id,
+                "relation_type_id": relation_type_id,
+                "from_id": str(relation.get("from_id")),
+                "to_id": str(relation.get("to_id")),
+            }
+        )
     entity_entries, _entity_mappings, fallback_type_id = _entity_registry_indexes(
         entity_type_registry
     )
@@ -4274,42 +4426,28 @@ def knowledge_catalog(
         _relation_registry_indexes(relation_type_registry)
     )
     kinds = []
-    for kind_id in sorted(kind_counts):
-        instances = [item for item in nodes if item["kind_id"] == kind_id]
-        example = instances[0]
+    for kind_id in sorted(kind_groups):
+        group = kind_groups[kind_id]
         kinds.append(
             {
                 "kind_id": kind_id,
-                "display": example["display"]["kind_label"],
+                "display": group["display"],
                 "count": kind_counts[kind_id],
-                "type_ids": sorted({str(item["type_id"]) for item in instances}),
-                "mapping_statuses": sorted(
-                    {
-                        str((item.get("type_mapping") or {}).get("status"))
-                        for item in instances
-                    }
-                ),
+                "type_ids": sorted(group["type_ids"]),
+                "mapping_statuses": sorted(group["mapping_statuses"]),
             }
         )
     predicates = []
-    for predicate_id in sorted(predicate_counts):
-        instances = [item for item in relations if item["predicate_id"] == predicate_id]
-        example = instances[0]
-        relation_type_ids = sorted(
-            {str(item["relation_type_id"]) for item in instances}
-        )
+    for predicate_id in sorted(predicate_groups):
+        group = predicate_groups[predicate_id]
+        relation_type_ids = sorted(group["relation_type_ids"])
         predicates.append(
             {
                 "predicate_id": predicate_id,
-                "display": example["display"]["label"],
+                "display": group["display"],
                 "count": predicate_counts[predicate_id],
                 "relation_type_ids": relation_type_ids,
-                "mapping_statuses": sorted(
-                    {
-                        str((item.get("predicate_mapping") or {}).get("status"))
-                        for item in instances
-                    }
-                ),
+                "mapping_statuses": sorted(group["mapping_statuses"]),
                 "semantic_definitions": [
                     {
                         "relation_type_id": relation_type_id,
@@ -4327,13 +4465,6 @@ def knowledge_catalog(
                 ],
             }
         )
-    claim_relation_type_counts: Counter[str] = Counter()
-    for node in nodes:
-        semantics = node.get("semantics") if isinstance(node.get("semantics"), dict) else {}
-        claim = semantics.get("claim") if isinstance(semantics.get("claim"), dict) else {}
-        relation_type_id = _string(claim.get("relation_type_id"))
-        if relation_type_id:
-            claim_relation_type_counts[relation_type_id] += 1
 
     entity_registry_entries = []
     for type_id, entry in sorted(entity_entries.items()):
@@ -4411,8 +4542,7 @@ def knowledge_catalog(
             (),
         ),
     )
-    nodes_by_id = {str(item["id"]): item for item in nodes}
-    entity_routes = []
+    route_states = []
     for (
         route_id,
         candidate_kinds,
@@ -4420,46 +4550,77 @@ def knowledge_catalog(
         candidate_types,
         confirming_relation_types,
     ) in entity_route_defs:
-        available_kinds = [kind for kind in candidate_kinds if kind in kind_counts]
-        candidate_kind_set = set(candidate_kinds)
-        confirming_relations = [
-            relation
-            for relation in relations
-            if relation.get("predicate_id") in confirming_predicates
-            and any(
-                (nodes_by_id.get(str(endpoint)) or {}).get("kind_id") in candidate_kind_set
-                for endpoint in (relation.get("from_id"), relation.get("to_id"))
-            )
-        ]
-        available_predicates = sorted({str(relation["predicate_id"]) for relation in confirming_relations})
-        typed_nodes = [
-            node
-            for node in nodes
-            if candidate_types
-            and _type_is_a(str(node.get("type_id") or ""), candidate_types, entity_entries)
-        ]
-        typed_node_ids = {str(node["id"]) for node in typed_nodes}
-        typed_relations = [
-            relation
-            for relation in relations
-            if relation.get("relation_type_id") in confirming_relation_types
-            and any(
-                str(endpoint) in typed_node_ids
-                for endpoint in (relation.get("from_id"), relation.get("to_id"))
-            )
-        ]
-        available_types = sorted({str(node["type_id"]) for node in typed_nodes})
-        available_relation_types = sorted(
-            {str(relation["relation_type_id"]) for relation in typed_relations}
+        route_states.append(
+            {
+                "route_id": route_id,
+                "candidate_kinds": candidate_kinds,
+                "candidate_kind_set": set(candidate_kinds),
+                "confirming_predicates": confirming_predicates,
+                "candidate_types": candidate_types,
+                "confirming_relation_types": confirming_relation_types,
+                "semantic_mode": bool(entity_entries and candidate_types),
+                "available_predicates": set(),
+                "confirming_relation_count": 0,
+                "typed_node_count": 0,
+                "typed_node_ids": set(),
+                "available_types": set(),
+                "available_relation_types": set(),
+                "semantic_confirming_relation_count": 0,
+            }
         )
-        semantic_mode = bool(entity_entries and candidate_types)
+
+    # These passes decode each large graph carrier once.  Every later route
+    # calculation operates on compact summaries, so adding a route no longer
+    # causes a full node/relation payload scan and rewrite.
+    for summary in node_summaries:
+        node_id = summary["id"]
+        node_type_id = str(summary.get("type_id") or "")
+        for state in route_states:
+            if not state["semantic_mode"]:
+                continue
+            if _type_is_a(node_type_id, state["candidate_types"], entity_entries):
+                state["typed_node_count"] += 1
+                state["typed_node_ids"].add(node_id)
+                state["available_types"].add(node_type_id)
+
+    for summary in relation_summaries:
+        predicate_id = summary.get("predicate_id")
+        relation_type_id = summary.get("relation_type_id")
+        left_kind = node_kind_by_id.get(summary["from_id"])
+        right_kind = node_kind_by_id.get(summary["to_id"])
+        for state in route_states:
+            if (predicate_id in state["confirming_predicates"]
+                    and (left_kind in state["candidate_kind_set"]
+                         or right_kind in state["candidate_kind_set"])):
+                state["confirming_relation_count"] += 1
+                state["available_predicates"].add(str(predicate_id))
+            if (state["semantic_mode"]
+                    and relation_type_id in state["confirming_relation_types"]
+                    and (summary["from_id"] in state["typed_node_ids"]
+                         or summary["to_id"] in state["typed_node_ids"])):
+                state["semantic_confirming_relation_count"] += 1
+                state["available_relation_types"].add(str(relation_type_id))
+
+    entity_routes = []
+    for state in route_states:
+        candidate_kinds = state["candidate_kinds"]
+        confirming_predicates = state["confirming_predicates"]
+        candidate_types = state["candidate_types"]
+        confirming_relation_types = state["confirming_relation_types"]
+        available_kinds = [kind for kind in candidate_kinds if kind in kind_counts]
+        available_predicates = sorted(state["available_predicates"])
+        available_types = sorted(state["available_types"])
+        available_relation_types = sorted(state["available_relation_types"])
+        semantic_mode = state["semantic_mode"]
         availability = (
             "available"
-            if (typed_nodes if semantic_mode else available_kinds)
+            if (state["typed_node_count"] if semantic_mode else available_kinds)
             else "not_projected"
         )
         has_confirming_relation = bool(
-            typed_relations if semantic_mode else confirming_relations
+            state["semantic_confirming_relation_count"]
+            if semantic_mode
+            else state["confirming_relation_count"]
         )
         expects_confirmation = bool(
             confirming_relation_types if semantic_mode else confirming_predicates
@@ -4473,18 +4634,18 @@ def knowledge_catalog(
         )
         entity_routes.append(
             {
-                "route_id": route_id,
+                "route_id": state["route_id"],
                 "candidate_kind_ids": list(candidate_kinds),
                 "available_kind_ids": available_kinds,
                 "confirming_predicate_ids": list(confirming_predicates),
                 "available_confirming_predicate_ids": available_predicates,
-                "confirming_relation_count": len(confirming_relations),
+                "confirming_relation_count": state["confirming_relation_count"],
                 "candidate_type_ids": list(candidate_types),
                 "available_type_ids": available_types,
                 "confirming_relation_type_ids": list(confirming_relation_types),
                 "available_confirming_relation_type_ids": available_relation_types,
-                "semantic_confirming_relation_count": len(typed_relations),
-                "node_count": len(typed_nodes) if semantic_mode else sum(
+                "semantic_confirming_relation_count": state["semantic_confirming_relation_count"],
+                "node_count": state["typed_node_count"] if semantic_mode else sum(
                     kind_counts[kind] for kind in available_kinds
                 ),
                 "availability": availability,
@@ -4500,6 +4661,10 @@ def knowledge_catalog(
                 ),
             }
         )
+    # The compact aggregation carriers have completed their only purpose.  The
+    # catalog body below scans the graph for independent field/facet metadata;
+    # retaining these route summaries would keep needless scratch rows alive.
+    del node_summaries, relation_summaries, node_kind_by_id, route_states
     return {
         "schema": "tos_knowledge_catalog_v1",
         "source_revision": graph.get("source_revision"),

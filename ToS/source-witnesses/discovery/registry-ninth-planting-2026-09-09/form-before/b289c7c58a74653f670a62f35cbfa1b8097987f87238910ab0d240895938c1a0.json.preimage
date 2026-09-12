@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio",
+    "version": 1,
+    "digest": "sha256:4f70dae1b4a047392567fed6cb47a59621a39abecdedf448398f855bd5694136"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4f70dae1b4a047392567fed6cb47a59621a39abecdedf448398f855bd5694136",
+            "id": "tos.work.plutarch.de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4f70dae1b4a047392567fed6cb47a59621a39abecdedf448398f855bd5694136",
+            "id": "tos.work.plutarch.de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:4f70dae1b4a047392567fed6cb47a59621a39abecdedf448398f855bd5694136",
+            "id": "tos.work.plutarch.de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:4f70dae1b4a047392567fed6cb47a59621a39abecdedf448398f855bd5694136",
+            "id": "tos.work.plutarch.de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.9ddc6b099dfd3e505ea2f0a3cd43e8b2488e755c3337bd220710dc592591674d",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4f70dae1b4a047392567fed6cb47a59621a39abecdedf448398f855bd5694136",
+        "id": "tos.work.plutarch.de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4f70dae1b4a047392567fed6cb47a59621a39abecdedf448398f855bd5694136",
+            "id": "tos.work.plutarch.de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4f70dae1b4a047392567fed6cb47a59621a39abecdedf448398f855bd5694136",
+            "id": "tos.work.plutarch.de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:4f70dae1b4a047392567fed6cb47a59621a39abecdedf448398f855bd5694136",
+            "id": "tos.work.plutarch.de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:4f70dae1b4a047392567fed6cb47a59621a39abecdedf448398f855bd5694136",
+            "id": "tos.work.plutarch.de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.53b23ba3102762e8ec7264ebb504551dceb10f03570ddfedef20b1704497ff90",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4f70dae1b4a047392567fed6cb47a59621a39abecdedf448398f855bd5694136",
+        "id": "tos.work.plutarch.de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:6d0ba0268ad6906e924c8b2f5eae779fc3098e19b410292bdbf41466abc76914",
+      "request_digest": "sha256:79eac983d8a31c5f13595826f1fc31bf6357110edd4e396ac594d5f6b11f5cef",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:922b9cde466bd4c811a26b18047136db948479066033a3cfbec975ed996c1538",
+      "recorded_at": "2026-09-09T16:45:40.724944+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio",
+        "version": 1,
+        "digest": "sha256:4f70dae1b4a047392567fed6cb47a59621a39abecdedf448398f855bd5694136"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.9ddc6b099dfd3e505ea2f0a3cd43e8b2488e755c3337bd220710dc592591674d",
+          "version": 1,
+          "digest": "sha256:72b2b788296cc75823f74f6faeb19b25681df6fe79ecb52888c5569f700e1620"
+        },
+        {
+          "id": "tos.form.metadata.53b23ba3102762e8ec7264ebb504551dceb10f03570ddfedef20b1704497ff90",
+          "version": 1,
+          "digest": "sha256:ee71f1c84adbe429315dd492461decd2b2496ed9c65abb392e4e72aca18b28c6"
+        }
+      ]
+    }
+  ]
+}

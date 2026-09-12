@@ -20,7 +20,7 @@ BILARA = "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
 SC_DATA = "36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae"
 SC_LICENSE = "5c7470b58bcc0bb50887d3a6ed54f4687703f176"
 TOPOLOGY_EVENT = "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31"
-BRANCH_PREPARATION = "ToS/philosophy/source-planting-preparation/first-wave-20260908.json"
+BRANCH_PREPARATION = "ToS/philosophy/source-planting-preparation/cross-branch-source-anchors-20260908.json"
 HEADERS = {"User-Agent": "Tree-of-Sophia-source-preparation", "Accept": "application/vnd.github+json"}
 BY = "https://creativecommons.org/licenses/by/4.0/"
 BYSA = "https://creativecommons.org/licenses/by-sa/4.0/"
@@ -304,12 +304,13 @@ def rights_record(target: dict, assessed_at: str) -> dict:
 def prepare_package(target: dict, assessed_at: str, *, evidence_refs: list[str] | None = None, rights_assessment: dict | None = None) -> dict:
     ids, paths, title = target["ids"], target["paths"], target["title"]
     refs = source_refs(target) if evidence_refs is None else evidence_refs
-    claim_ids = {"work_expression": f"tos.claim.topology.registry-20260908.{target['slug']}.work-expression",
-                 "expression_edition": f"tos.claim.topology.registry-20260908.{target['slug']}.expression-edition",
-                 "edition_item": f"tos.claim.topology.registry-20260908.{target['slug']}.edition-item"}
+    operation_day = target.get("operation_date", "2026-09-08").replace("-", "")
+    claim_ids = {"work_expression": f"tos.claim.topology.registry-{operation_day}.{target['slug']}.work-expression",
+                 "expression_edition": f"tos.claim.topology.registry-{operation_day}.{target['slug']}.expression-edition",
+                 "edition_item": f"tos.claim.topology.registry-{operation_day}.{target['slug']}.edition-item"}
     if "translation_expression" in ids:
-        claim_ids.update({"work_translation": f"tos.claim.topology.registry-20260908.{target['slug']}.work-translation",
-                          "translation_edition": f"tos.claim.topology.registry-20260908.{target['slug']}.translation-edition"})
+        claim_ids.update({"work_translation": f"tos.claim.topology.registry-{operation_day}.{target['slug']}.work-translation",
+                          "translation_edition": f"tos.claim.topology.registry-{operation_day}.{target['slug']}.translation-edition"})
     def record(kind: str, label: str, **fields: object) -> dict:
         return {"schema_version": "tos_corpus_record_v1", "record_type": "expression" if kind == "translation_expression" else kind,
             "record_id": ids[kind], "preferred_label": label, "field_languages": {"preferred_label": {"language": "en", "script": "Latn"}, "notes": {"language": "en", "script": "Latn"}},
@@ -324,8 +325,8 @@ def prepare_package(target: dict, assessed_at: str, *, evidence_refs: list[str] 
     records = {
         paths["work"]: record("work", title, expression_claim_refs=work_claim_refs,
             responsibility_claim_refs=[], notes="Provisional work identity for the exact selected source version. " + " ".join(target["limits"]) + " No ancient author attribution is inferred from the responsibility path or modern provider."),
-        paths["expression"]: record("expression", f"{title} — {target['language']} source-language layer",
-            work_ref=ids["work"], language=target["language"], expression_role="source_language",
+        paths["expression"]: record("expression", f"{title} — {target['language']} " + ("translation" if target.get("expression_role") == "translation" else "source-language layer"),
+            work_ref=ids["work"], language=target["language"], expression_role=target.get("expression_role", "source_language"),
             responsibility_claim_refs=[], embodiment_claim_refs=[claim_ids["expression_edition"]],
             notes=target["version_description"] + " " + target["responsibility"] +
                 (" This identity denotes only the Egyptian written-form/transliteration component within the shared mixed JSON Item. German translation/glosses have a separate Expression; exact source fields are recorded by post-acquisition forensic inspection." if target["provider"] == "oraec" else " Supplied annotation or punctuation does not establish ToS source-text acceptance.")),
@@ -360,7 +361,7 @@ def prepare_package(target: dict, assessed_at: str, *, evidence_refs: list[str] 
     manifest_fields = {"$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
         "schema_version": "tos_source_item_manifest_v1", "item_id": ids["item"], "item_kind": "born_digital",
         "embodiment_ref": ids["edition"], "storage_posture": "local_gitignored_payload",
-        "acquisition_event_ref": f"tos.event.acquisition.registry-20260908.{target['slug']}",
+        "acquisition_event_ref": f"tos.event.acquisition.registry-{operation_day}.{target['slug']}",
         "rights_ref": f"{item_root}/rights.json", "provenance_ref": f"{item_root}/provenance.jsonl",
         "forensic_report_ref": f"{item_root}/forensic-report.md", "resource_inventory_ref": f"{item_root}/resource-inventory.json",
         "source_record_refs": refs, "visibility": "local_only", "manifest_version": 1, "supersedes_manifest_ref": None}
