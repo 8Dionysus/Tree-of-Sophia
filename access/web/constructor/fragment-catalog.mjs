@@ -20,12 +20,18 @@ export async function bindFragmentCatalog(data,materialIds){
    require(passage.complete===true,'Only a complete declared source unit can be displayed');
    bi(passage.boundary,'Source unit boundary');
    require(isRecord(passage.versions),'Missing bilingual versions');
-   for(const code of ['ru','en']){
+   for(const code of ['ru','en'])require(isRecord(passage.versions[code]),`Missing ${code} version`);
+   const original=passage.originalLanguage,codes=Object.keys(passage.versions);
+   if(original!==undefined)require(typeof original==='string'&&/^[a-z]{2,3}$/.test(original)&&isRecord(passage.versions[original]),'Missing or invalid original-language version');
+   require(codes.every(code=>code==='ru'||code==='en'||code===original),'An additional version must declare its original language');
+   for(const code of codes){
     const version=passage.versions[code];require(isRecord(version),`Missing ${code} version`);
     require(Array.isArray(version.paragraphs)&&version.paragraphs.length>0&&version.paragraphs.length<=1000&&version.paragraphs.every(p=>typeof p==='string'&&p.trim()),'A fragment must contain complete nonempty paragraphs');
     const text=fragmentText(version);require(text.length<=150_000,'Fragment is too large');
     require(await textDigest(text)===version.textSha256,'Fragment text digest mismatch');
     bi(version.translator,'Translator');bi(version.edition,'Edition');bi(version.editorialNote,'Text preparation');
+    if(version.locator!==undefined)bi(version.locator,'Version locator');
+    if(version.title!==undefined)require(typeof version.title==='string'&&version.title.trim()&&version.title.length<=500,'Invalid version title');
     require(web(version.sourceUrl),'Missing source URL');
     require(typeof version.sourceRevision==='string'&&version.sourceRevision.trim(),'Missing exact source revision');
     const rights=version.rights;

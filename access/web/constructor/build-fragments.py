@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 
 SOURCE_IDS = ['work', 'chapter-p3.r2', 'moment', 'chapter-p3.r13', 'all-things', 'same-life', 'dossier']
@@ -41,8 +42,14 @@ def assemble(source, passages, bindings):
             raise ValueError('Unresolved passage binding: ' + binding['nodeId'])
     for passage in passages:
         if passage['status'] == 'available':
-            if passage.get('complete') is not True or set(passage.get('versions', {})) != {'ru', 'en'}:
+            versions = passage.get('versions', {})
+            if passage.get('complete') is not True or not isinstance(versions, dict) or not {'ru', 'en'} <= set(versions):
                 raise ValueError('A displayed source unit must be complete and bilingual')
+            original = passage.get('originalLanguage')
+            if 'originalLanguage' in passage and (not isinstance(original, str) or not re.fullmatch('[a-z]{2,3}', original) or original not in versions):
+                raise ValueError('Missing or invalid original-language version')
+            if set(versions) - {'ru', 'en', original}:
+                raise ValueError('An additional version must declare its original language')
             for code, version in passage['versions'].items():
                 text = '\n\n'.join(version['paragraphs'])
                 if not text.strip() or digest(text.encode()) != version['textSha256']:
@@ -77,8 +84,11 @@ def assemble(source, passages, bindings):
             for passage_id in binding['passageIds']:
                 passage = by_id[passage_id]
                 if passage['status'] == 'available':
-                    for code, version in passage['versions'].items():
-                        source_refs.append({'label': passage['title'][code] + ' · ' + code.upper(), 'ref': version['sourceUrl']})
+                    codes = ['ru', 'en'] + [code for code in passage['versions'] if code not in {'ru', 'en'}]
+                    for code in codes:
+                        version = passage['versions'][code]
+                        title = passage['title'].get(code) or passage['title']['en']
+                        source_refs.append({'label': title + ' · ' + code.upper(), 'ref': version['sourceUrl']})
                 else:
                     source_refs.extend({'label': link['label'], 'ref': link['url']} for link in passage['links'])
         # Strict field selection: exact/quote/speaker/private paths cannot leak from
@@ -86,8 +96,8 @@ def assemble(source, passages, bindings):
         nodes.append({'id': identity, 'kind': original['kind'], 'parentId': original['parentId'],
             'title': original['title'], 'body': binding['context'] if binding else bi('Часть III книги.', 'Part III of the book.'),
             'sourceRefs': source_refs, 'sourceNote': bi(
-                'Полные разделы в читалке подписаны именами переводчиков и точными изданиями. Русская и английская версии сохраняют собственные границы абзацев.',
-                'The reader credits each complete section to its translator and specific edition. Russian and English retain their own paragraph divisions.')})
+                'Полные разделы в читалке подписаны именами авторов и переводчиков и точными изданиями. Оригинал и переводы сохраняют собственные границы абзацев.',
+                'The reader credits each complete section to its author, translator and specific edition. Original texts and translations retain their own paragraph divisions.')})
     library = {'schema': 'tos_constructor_library_v1', 'rootId': source['rootId'], 'nodes': nodes,
         'fragmentCatalog': catalog_ref, 'displayProfile': 'recorded-demo-selected-editions-v1'}
     library['fingerprint'] = digest(encode(library))

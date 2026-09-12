@@ -33,6 +33,16 @@ test('malformed saved state stays byte-for-byte untouched while new user work re
   }
 });
 
+test('an original language has its own notes and positions without migrating translation anchors',()=>{
+ const {book,disk}=create();book.saveNote(anchor(),'Existing Russian note');book.savePosition(anchor(),.25);
+ const before=book.getState(),original=anchor({version:'grc',sourceRevision:'Schenkl-1916',textSha256:'c'.repeat(64),paragraph:0});
+ book.saveNote(original,'Greek observation');book.savePosition(original,.5);book.setActive({documentId:original.documentId,version:'grc'});
+ const restored=createReaderNotebook({storage:disk});
+ expect(restored.getState().notes[0]).toEqual(before.notes[0]);expect(restored.positionFor(anchor())).toEqual(before.positions[0]);
+ expect(restored.positionFor(original)).toEqual({anchor:original,fraction:.5});expect(restored.getState().active.version).toBe('grc');
+ expect(restored.getState().notes).toHaveLength(2);
+});
+
 test('an external tab change blocks overwrites and retains the new local note for export',()=>{
   const disk=storage(),first=createReaderNotebook({storage:disk}),second=createReaderNotebook({storage:disk});
   first.saveNote(anchor(),'First tab');const remote=disk.text;

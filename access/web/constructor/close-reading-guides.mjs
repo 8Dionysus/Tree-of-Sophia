@@ -1,5 +1,5 @@
 // Local reading prompts. Paragraph positions belong only to this exact catalog.
-export const GUIDE_CATALOG_SHA256='4f86e249ea18c581302a732cc9b17ed1ca878cac1c2acfc320ace4859371f8b1';
+export const GUIDE_CATALOG_SHA256='6dc0e18c0cc4faa6630872e01a283877eecf4f2d5fb012e637e2ed6317613ba0';
 const bi=(ru,en)=>({ru,en});
 const move=(ruTitle,enTitle,ru,en,ruAt,enAt=ruAt)=>({title:bi(ruTitle,enTitle),body:bi(ru,en),paragraphs:{ru:ruAt,en:enAt}});
 export const CLOSE_READING_GUIDES={
@@ -47,7 +47,7 @@ export const CLOSE_READING_GUIDES={
   question:bi('Как отличить новое основание жизни от реакции, всё ещё зависящей от отвергнутого приказа?','How can a new ground for life be distinguished from a reaction still dependent on the rejected command?'),
   limit:bi('Последовательность образов не задаёт календарной модели взросления и не доказывает, что человек раз и навсегда покидает прежние способности.','The sequence of images supplies no chronological model of maturation and does not prove that a person leaves earlier capacities behind once and for all.')},
  'epictetus-control':{
-  orientation:bi('Первое различение касается того, что является нашим действием, и того, что от нас не зависит. Второй абзац превращает различение в работу с впечатлением. Проверьте, как классификация должна изменить суждение, не подменяя описание внешнего события.','The first distinction concerns what is our own act and what does not depend on us. The second paragraph turns it into work on an impression. Examine how classification is meant to change judgment without replacing description of the external event.'),
+  orientation:bi('Первое различение касается того, что является нашим действием, и того, что от нас не зависит. Заключительная часть раздела превращает различение в работу с впечатлением. Проверьте, как классификация должна изменить суждение, не подменяя описание внешнего события.','The first distinction concerns what is our own act and what does not depend on us. The closing part of the section turns it into work on an impression. Examine how classification is meant to change judgment without replacing description of the external event.'),
   moves:[
    move('Власть над чем именно','Power over what exactly','Тело и репутация помещены среди внешнего, а мнение и стремление — среди нашего. Затем Эпиктет обещает отсутствие принуждения, обвинения и вреда тому, кто удерживает эту границу. Какой смысл «вреда» позволяет связать столь сильное обещание с исходным перечислением?','Body and reputation are placed among externals, opinion and impulse among our own acts. Epictetus then promises freedom from constraint, accusation and harm to one who keeps this boundary. What sense of “harm” connects such a strong promise with the opening list?',0),
    move('Проверка впечатления','Examining an impression','Перед проверкой впечатления Эпиктет предупреждает о желании одновременно получить свободу, власть и богатство. Сопоставьте то, от чего предлагается отказаться, с правилом различения своего и внешнего. Почему эту работу нельзя выполнить одним признанием формулы?','Before examining an impression, Epictetus warns against wanting freedom together with power and wealth. Compare what is to be relinquished with the rule distinguishing one’s own from the external. Why can this work not be accomplished merely by accepting a formula?',1)
@@ -98,6 +98,27 @@ export const CLOSE_READING_GUIDES={
   question:bi('Как описать порядок, который существует через превращения, а не за их пределами?','How can an order be described that exists through transformations rather than outside them?'),
   limit:bi('Сопоставление с вечным возвращением — вопрос стенда; данный фрагмент сам не устанавливает тождество двух учений.','Comparison with eternal recurrence is this stand’s question; the fragment itself establishes no identity between the two teachings.')}
 };
+
+// Original positions were reviewed in their own editions, independently of RU/EN.
+const originalPositions={
+ 'z-vision':['de',[30,39,48]],
+ 'z-convalescent':['de',[24,43,63]],
+ 'z-redemption':['de',[21,39,48]],
+ 'z-prologue':['de',[1,9]],
+ 'z-metamorphoses':['de',[18,22]],
+ 'epictetus-control':['grc',[0,3]],
+ 'marcus-fate':['grc',[1]],
+ 'heraclitus-river':['grc',[0]],
+ 'heraclitus-cosmos':['grc',[0]],
+ 'spinoza-freedom':['la',[0]],
+ 'spinoza-conatus':['la',[0,1]],
+ 'leibniz-worlds':['fr',[0,2]],
+ 'kierkegaard-repetition':['da',[0,0]],
+};
+for(const [id,[code,positions]]of Object.entries(originalPositions)){
+ if(positions.length!==CLOSE_READING_GUIDES[id].moves.length)throw Error('Incomplete original guide: '+id);
+ positions.forEach((paragraph,index)=>{CLOSE_READING_GUIDES[id].moves[index].paragraphs[code]=paragraph;});
+}
 
 /** A changed catalog gets no old positional guidance. Reading itself stays available. */
 export function bindCloseReadingGuides(catalog,sha256){

@@ -1,11 +1,14 @@
 import './reader.css';
 import {readerAnchorKey,readerVersionKey} from './notebook.mjs';
 import {findInParagraphs} from './search.mjs';
+import {readerVersionCodes,readerComparisonVersion,readerDisplayVersions} from './version-options.mjs';
 
 const wording={
  ru:{reader:'Чтение',library:'Доступные фрагменты',filter:'Найти фрагмент',close:'Вернуться к Древу',sidebar:'Библиотека',research:'Исследование',single:'Один текст',parallel:'Рядом',settings:'Вид текста',search:'Найти в тексте',previous:'Предыдущее совпадение',next:'Следующее совпадение',emptySearch:'Совпадений нет',searchHint:'Поиск в открытой версии',context:'Связи',notes:'Блокнот',source:'Источник',bookmark:'Закладка',removeBookmark:'Снять закладку',note:'Мысль на полях',noteHint:'Что здесь открылось? Вопрос, возражение, связь…',saved:'Сохранено на этом устройстве',session:'Сохранение недоступно. Скачайте блокнот, чтобы не потерять записи.',conflict:'Блокнот изменён в другом окне. Ваши новые записи доступны для скачивания.',invalid:'Сохранённый блокнот не удалось прочитать. Исходная запись сохранена; новые записи можно скачать.',copy:'Скопировать цитату',copied:'Цитата и источник скопированы',copyManual:'Скопируйте текст из поля',delete:'Удалить заметку',toTree:'Развить в Древе',export:'Скачать блокнот · JSON',markdown:'Скачать заметки · Markdown',import:'Импортировать и заменить блокнот',imported:'Блокнот загружен',allNotes:'Все записи',noNotes:'Выберите номер абзаца, чтобы оставить мысль или закладку.',select:'Выберите абзац в тексте',paragraph:'Абзац',end:'Конец фрагмента',of:'из',boundary:'Границы текста',provenance:'Подготовка текста',rights:'Перевод и права',original:'Открыть источник',credit:'Атрибуция для записи видео',parallelHint:'Колонки прокручиваются независимо; абзацы переводов не выровнены.',night:'Ночь',paper:'Бумага',size:'Размер букв',line:'Межстрочный интервал',width:'Ширина строки',comfortable:'Книжная',wide:'Широкая',related:'Рядом в Древе',contextEmpty:'У этого текста пока нет связей в открытом Древе.',unavailable:'Полный текст пока недоступен',stale:'Версия текста изменилась или недоступна. Запись сохранена в блокноте.',limit:'Достигнут предел блокнота или записи.',error:'Не удалось выполнить действие',local:'Личный блокнот · хранится в этом браузере',go:'Перейти к абзацу',added:'Мысль добавлена в Древо',unsaved:'Сохранение…',bookmarkList:'Закладки',noteList:'Заметки',version:'Версия текста'},
  en:{reader:'Reading',library:'Available passages',filter:'Find a passage',close:'Return to the tree',sidebar:'Library',research:'Research',single:'One text',parallel:'Side by side',settings:'Text appearance',search:'Find in the text',previous:'Previous match',next:'Next match',emptySearch:'No matches',searchHint:'Search the open version',context:'Relations',notes:'Notebook',source:'Source',bookmark:'Bookmark',removeBookmark:'Remove bookmark',note:'A thought in the margin',noteHint:'What opened here? A question, objection, connection…',saved:'Saved on this device',session:'Saving is unavailable. Download the notebook to keep your writing.',conflict:'The notebook changed in another window. Download this window’s new writing to keep it.',invalid:'The stored notebook could not be read. The original is preserved; download new writing to keep it.',copy:'Copy quotation',copied:'Quotation and source copied',copyManual:'Copy the text from this field',delete:'Delete note',toTree:'Develop in the tree',export:'Download notebook · JSON',markdown:'Download notes · Markdown',import:'Import and replace notebook',imported:'Notebook imported',allNotes:'All entries',noNotes:'Choose a paragraph number to leave a thought or bookmark.',select:'Choose a paragraph in the text',paragraph:'Paragraph',end:'End of passage',of:'of',boundary:'Text boundaries',provenance:'Text preparation',rights:'Translation and rights',original:'Open the source',credit:'Attribution for a video',parallelHint:'Columns scroll independently; translation paragraphs are not aligned.',night:'Night',paper:'Paper',size:'Type size',line:'Line spacing',width:'Line width',comfortable:'Book',wide:'Wide',related:'Nearby in the tree',contextEmpty:'This text has no relations in the open tree yet.',unavailable:'Full text is not yet available',stale:'This text version has changed or is unavailable. The entry is preserved in your notebook.',limit:'The notebook or entry limit has been reached.',error:'Could not complete the action',local:'Personal notebook · saved in this browser',go:'Go to paragraph',added:'Thought added to the tree',unsaved:'Saving…',bookmarkList:'Bookmarks',noteList:'Notes',version:'Text version'}
 };
+Object.assign(wording.ru,{originalVersion:'Оригинал',compareWith:'Рядом с',rights:'Текст и права',parallelHint:'Колонки прокручиваются независимо; абзацы версий не выровнены.'});
+Object.assign(wording.en,{originalVersion:'Original',compareWith:'Compare with',rights:'Text and rights',parallelHint:'Columns scroll independently; paragraphs across versions are not aligned.'});
 const element=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
 const button=(text,action,cls='')=>{const b=element('button',cls,text);b.type='button';b.onclick=action;return b;};
 function link(text,url){const a=element('a','rr-link',text);const parsed=new URL(url);if(!['https:','http:'].includes(parsed.protocol))throw Error('Invalid source URL');a.href=url;a.target='_blank';a.rel='noopener noreferrer';return a;}
@@ -16,7 +19,7 @@ function download(name,text,type){const a=element('a');const url=URL.createObjec
  * See README.md for the adapter contract and the limits of local anchors. */
 export function createResearchReader({host=document.body,documents,notebook,locale=()=> 'ru',related=()=>[],context=()=>'',guide=()=>null,onReveal,onDevelop}={}){
  const docs=new Map(documents.map(item=>[item.id,item]));
- const versionCodes=item=>Object.keys(item.versions??{}).sort((a,b)=>a===b?0:a==='ru'?-1:b==='ru'?1:a.localeCompare(b));
+ const versionCodes=readerVersionCodes,comparisonVersions=new Map(),activeVersions=new Map();
  const versionText=(value,code)=>typeof value==='string'?value:value?.[code]??local(value);
  const dialog=element('dialog','tos-reader');host.append(dialog);
  dialog.setAttribute('aria-label','Tree of Sophia · Reading');
@@ -25,6 +28,13 @@ export function createResearchReader({host=document.body,documents,notebook,loca
  const openGuideSteps=new Set();
  let searchBox,searchCount,message,saveState;
  const t=key=>wording[ui][key]??key,local=value=>typeof value==='string'?value:value?.[ui]??value?.ru??value?.en??'';
+ const versionLabel=(code,item=doc)=>code===item.originalLanguage?`${t('originalVersion')} · ${code.toUpperCase()}`:code.toUpperCase();
+ const comparison=()=>readerComparisonVersion(doc,version,comparisonVersions.get(doc.id));
+ function activateVersion(code){
+  const active=activeVersions.get(doc.id)??(doc.versions?.[version]?version:versionCodes(doc)[0]);
+  if(code!==active&&code===readerComparisonVersion(doc,active,comparisonVersions.get(doc.id)))comparisonVersions.set(doc.id,active);
+  version=code;activeVersions.set(doc.id,version);act(()=>notebook.setActive({documentId:doc.id,version}));
+ }
  const identity=(code=version,item=doc)=>({documentId:item.id,version:code,sourceRevision:item.versions[code].sourceRevision,textSha256:item.versions[code].textSha256});
  const anchor=(paragraph,code=version)=>({...identity(code),paragraph});
  function say(text){if(message){message.textContent=text;message.hidden=!text;}}
@@ -55,25 +65,28 @@ export function createResearchReader({host=document.body,documents,notebook,loca
  function switchDocument(id,code=null,keepContext=false){
   if(!docs.has(id)||!flushNote())return;capturePositions();if(!keepContext&&doc.id!==id)contextId=null;doc=docs.get(id);
   const codes=versionCodes(doc),active=notebook.getState().active;
-  version=codes.includes(code)?code:active?.documentId===id&&codes.includes(active.version)?active.version:codes.includes(ui)?ui:codes[0]??ui;
+  version=codes.includes(code)?code:codes.includes(activeVersions.get(id))?activeVersions.get(id):active?.documentId===id&&codes.includes(active.version)?active.version:codes.includes(ui)?ui:codes[0]??ui;
+  activeVersions.set(doc.id,version);
   act(()=>notebook.setActive({documentId:doc.id,version}));selected=null;query='';matchIndex=-1;render();
  }
- function switchVersion(code){if(!flushNote())return;capturePositions();version=code;selected=null;query='';matchIndex=-1;act(()=>notebook.setActive({documentId:doc.id,version}));render();}
+ function switchVersion(code){if(!versionCodes(doc).includes(code)||!flushNote())return;capturePositions();activateVersion(code);selected=null;query='';matchIndex=-1;render();}
  function close(){if(!flushNote())return;capturePositions();dialog.close();}
  function selectParagraph(value,{focus=false}={}){
-  if(!flushNote())return;capturePositions();selected=value;version=value.version;tab='notes';act(()=>{notebook.setActive({documentId:doc.id,version});notebook.setPreferences({inspector:true});});render();
+  if(!flushNote())return;capturePositions();selected=value;activateVersion(value.version);tab='notes';act(()=>notebook.setPreferences({inspector:true}));render();
   if(focus)editor?.focus();
  }
  function jump(value){
   const target=docs.get(value.documentId),supplied=target?.versions?.[value.version];
   if(!supplied||readerVersionKey({...value})!==readerVersionKey(identity(value.version,target))||value.paragraph>=supplied.paragraphs.length){say(t('stale'));return;}
-  if(!flushNote())return;capturePositions();if(doc.id!==target.id)contextId=null;doc=target;version=value.version;selected=value;query='';tab='notes';
+  if(!flushNote())return;capturePositions();
+  if(doc.id!==target.id)contextId=null;doc=target;activateVersion(value.version);
+  selected=value;query='';tab='notes';
   act(()=>{notebook.setActive({documentId:doc.id,version});notebook.setPreferences({inspector:true});notebook.savePosition(value,0);});render();
  }
  function citation(value,{quote=false}={}){
   const item=docs.get(value.documentId),v=item?.versions?.[value.version];
   if(!v||readerVersionKey(value)!==readerVersionKey(identity(value.version,item)))return `${value.documentId} · ${value.version} · ${t('paragraph')} ${value.paragraph+1}\n${value.sourceRevision}\nSHA-256 ${value.textSha256}`;
-  return `${quote?'«'+v.paragraphs[value.paragraph]+'»\n\n':''}${local(item.author)} — ${local(item.work)}. ${local(item.locator)}. ${value.version.toUpperCase()} · ${t('paragraph')} ${value.paragraph+1}\n${local(v.translator)}. ${local(v.edition)}\n${v.sourceUrl}\n${local(v.rights.credit)}\n${v.rights.url}\n${local(v.editorialNote)}`;
+  return `${quote?'«'+v.paragraphs[value.paragraph]+'»\n\n':''}${local(item.author)} — ${local(item.work)}. ${local(v.locator??item.locator)}. ${versionLabel(value.version,item)} · ${t('paragraph')} ${value.paragraph+1}\n${local(v.translator)}. ${local(v.edition)}\n${v.sourceUrl}\n${local(v.rights.credit)}\n${v.rights.url}\n${local(v.editorialNote)}`;
  }
  async function copyCitation(value){
   const text=citation(value,{quote:true});try{await navigator.clipboard.writeText(text);say(t('copied'));}
@@ -106,7 +119,7 @@ export function createResearchReader({host=document.body,documents,notebook,loca
  function renderSource(body){
   body.append(element('h2','',t('boundary')),element('p','',local(doc.boundary??doc.reason)));
   for(const [code,v]of Object.entries(doc.versions??{})){
-   const section=element('section','rr-source-section');section.append(element('h3','',code.toUpperCase()+' · '+local(v.translator)),element('p','',local(v.edition)),link(t('original'),v.sourceUrl),element('h4','',t('provenance')),element('p','',local(v.editorialNote)),element('h4','',t('rights')),element('p','',local(v.rights.basis)),link(v.rights.label,v.rights.url));
+   const section=element('section','rr-source-section');section.append(element('h3','',versionLabel(code)+' · '+local(v.translator)),element('p','',local(v.edition)));if(v.locator)section.append(element('p','',local(v.locator)));section.append(link(t('original'),v.sourceUrl),element('h4','',t('provenance')),element('p','',local(v.editorialNote)),element('h4','',t('rights')),element('p','',local(v.rights.basis)),link(v.rights.label,v.rights.url));
    const credit=element('details');credit.append(element('summary','',t('credit')),element('p','',local(v.rights.credit)));section.append(credit);
    const exact=element('details');exact.append(element('summary','','Source revision · SHA-256'),element('code','',v.sourceRevision+'\n'+v.textSha256));section.append(exact);body.append(section);
   }
@@ -147,7 +160,7 @@ export function createResearchReader({host=document.body,documents,notebook,loca
   const all=element('details','rr-all-notes');all.open=true;body.append(all,element('p','rr-muted',t('local')));refreshEntries(all);
   const exports=element('div','rr-export-tools');exports.append(button(t('export'),()=>{if(flushNote())download('sophia-notebook.json',notebook.exportData(),'application/json');}),button(t('markdown'),exportMarkdown));
   const input=element('input');input.type='file';input.accept='.json,application/json';input.hidden=true;
-  input.onchange=async()=>{const file=input.files[0];if(!file)return;if(file.size>1_500_000){say(t('limit'));return;}const text=await file.text();if(!flushNote())return;const ok=act(()=>{notebook.importData(text);return true;});if(ok){selected=null;const active=notebook.getState().active;if(active&&docs.has(active.documentId)){doc=docs.get(active.documentId);version=doc.versions?.[active.version]?active.version:versionCodes(doc)[0]??ui;}render();say(t('imported'));}};
+  input.onchange=async()=>{const file=input.files[0];if(!file)return;if(file.size>1_500_000){say(t('limit'));return;}const text=await file.text();if(!flushNote())return;const ok=act(()=>{notebook.importData(text);return true;});if(ok){selected=null;activeVersions.clear();comparisonVersions.clear();const active=notebook.getState().active;if(active&&docs.has(active.documentId)){doc=docs.get(active.documentId);version=doc.versions?.[active.version]?active.version:versionCodes(doc)[0]??ui;}activeVersions.set(doc.id,version);render();say(t('imported'));}};
   exports.append(button(t('import'),()=>input.click()),input);body.append(exports);
  }
  function refreshEntries(all=dialog.querySelector('.rr-all-notes')){
@@ -186,8 +199,13 @@ export function createResearchReader({host=document.body,documents,notebook,loca
   head.append(button('☰',()=>{const library=dialog.querySelector('.rr-library'),visible=library&&getComputedStyle(library).display!=='none';preferences({sidebar:!visible,...(!visible?{inspector:false}:{})});},'rr-icon'),title);head.firstChild.setAttribute('aria-label',t('sidebar'));head.firstChild.setAttribute('aria-expanded',String(prefs.sidebar));
   const back=button('↗ '+t('close'),close,'rr-return');head.append(back);dialog.append(head);
   const toolbar=element('nav','rr-toolbar');toolbar.setAttribute('aria-label',t('version'));
-  for(const code of versionCodes(doc)){const b=button(code.toUpperCase(),()=>switchVersion(code));b.setAttribute('aria-pressed',String(version===code));toolbar.append(b);}
+  for(const code of versionCodes(doc)){const b=button(versionLabel(code),()=>switchVersion(code));b.dataset.version=code;b.setAttribute('aria-pressed',String(version===code));toolbar.append(b);}
   if(versionCodes(doc).length>1){const b=button(prefs.mode==='parallel'?t('single'):t('parallel'),()=>preferences({mode:prefs.mode==='single'?'parallel':'single'}));b.setAttribute('aria-pressed',String(prefs.mode==='parallel'));toolbar.append(b);}
+  if(prefs.mode==='parallel'&&versionCodes(doc).length>2){
+   const label=element('label','rr-comparison-picker'),select=element('select');label.append(element('span','',t('compareWith')),select);select.setAttribute('aria-label',t('compareWith'));
+   for(const code of versionCodes(doc).filter(code=>code!==version)){const option=element('option','',versionLabel(code));option.value=code;select.append(option);}select.value=comparison();
+   select.onchange=()=>{if(!flushNote()){select.value=comparison();return;}capturePositions();comparisonVersions.set(doc.id,select.value);render();};toolbar.append(label);
+  }
   const spacer=element('span','rr-toolbar-space');toolbar.append(spacer);
   toolbar.append(button('⌕ '+t('search'),()=>{capturePositions();searchOpen=!searchOpen;render();if(searchOpen)searchBox?.focus();}),button('Aa',()=>{capturePositions();settingsOpen=!settingsOpen;render();}),button('✧ '+t('research'),()=>preferences({inspector:!prefs.inspector})));
   toolbar.children[toolbar.children.length-2].setAttribute('aria-label',t('settings'));toolbar.lastChild.setAttribute('aria-expanded',String(prefs.inspector));dialog.append(toolbar);
@@ -199,10 +217,10 @@ export function createResearchReader({host=document.body,documents,notebook,loca
   const layout=element('div','rr-layout');if(prefs.sidebar)layout.append(renderLibrary());const center=element('main','rr-center');layout.append(center);
   if(doc.status==='available'){
    if(prefs.mode==='parallel')center.append(element('p','rr-parallel-hint',t('parallelHint')));
-   const columns=element('div','rr-columns');center.append(columns);const codes=prefs.mode==='parallel'?versionCodes(doc):[version];
+   const columns=element('div','rr-columns');center.append(columns);const codes=readerDisplayVersions(doc,version,prefs.mode,comparisonVersions.get(doc.id));
    for(const code of codes){
     const v=doc.versions[code],pane=element('section','rr-pane');pane.dataset.version=code;pane.lang=code;pane.tabIndex=0;pane.setAttribute('aria-label',local(doc.title)+' · '+code.toUpperCase());panels.push(pane);
-    const page=element('article','rr-page'),heading=element('header','rr-book-heading');heading.append(element('p','rr-eyebrow',code.toUpperCase()+' · '+versionText(v.translator,code)),element('h1','',versionText(doc.title,code)),element('p','rr-locator',versionText(doc.locator,code)));page.append(heading);
+    const page=element('article','rr-page'),heading=element('header','rr-book-heading');heading.append(element('p','rr-eyebrow',versionLabel(code)+' · '+versionText(v.translator,code)),element('h1','',v.title??versionText(doc.title,code)),element('p','rr-locator',versionText(v.locator??doc.locator,code)));page.append(heading);
     v.paragraphs.forEach((text,index)=>{const row=element('div','rr-row');row.dataset.ordinal=String(index);const number=button(String(index+1),()=>selectParagraph(anchor(index,code),{focus:true}),'rr-number');row.append(number,element('p','rr-text',text));page.append(row);});
     page.append(element('p','rr-end','✧ '+t('end')));pane.append(page);columns.append(pane);
     pane.onscroll=()=>{clearTimeout(scrollTimer);scrollTimer=setTimeout(capturePositions,350);updateProgress();};
@@ -222,7 +240,8 @@ export function createResearchReader({host=document.body,documents,notebook,loca
  return {open({documentId,contextId:entry=null}={}){
   if(!documents.length)throw Error('No reader documents available');ui=locale()==='en'?'en':'ru';opener=document.activeElement;contextId=entry;
   const remembered=notebook.getState().active;doc=docs.get(documentId)??docs.get(remembered?.documentId)??documents.find(item=>item.status==='available')??documents[0];
-  version=doc.versions?.[remembered?.version]&&remembered?.documentId===doc.id?remembered.version:doc.versions?.[ui]?ui:versionCodes(doc)[0]??ui;
+  version=doc.versions?.[activeVersions.get(doc.id)]?activeVersions.get(doc.id):doc.versions?.[remembered?.version]&&remembered?.documentId===doc.id?remembered.version:doc.versions?.[ui]?ui:versionCodes(doc)[0]??ui;
+  activeVersions.set(doc.id,version);
   selected=null;query='';libraryQuery='';matchIndex=-1;tab=entry||guide(doc.id)?'context':'notes';act(()=>notebook.setActive({documentId:doc.id,version}));if(!dialog.open)dialog.showModal();render();dialog.querySelector('.rr-pane')?.focus();
  },close,isOpen:()=>dialog.open,destroy(){unload();dialog.remove();window.removeEventListener('pagehide',unload);document.removeEventListener('visibilitychange',visibility);}};
 }

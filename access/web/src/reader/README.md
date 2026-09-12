@@ -12,7 +12,7 @@ into a local graph node linked to the passage's prepared material. This action
 does not edit a corpus source or submit anything for review.
 
 The reader supports literal search within the selected version (`Ctrl/Cmd+F`,
-Enter / Shift+Enter), separate scroll positions for each translation,
+Enter / Shift+Enter), separate scroll positions for each version,
 independent columns, type size, line spacing, page width and night/paper themes.
 Side-by-side mode makes no paragraph-alignment claim. The original strings are
 inserted with `textContent`; search marks preserve every original character.
@@ -26,6 +26,13 @@ Import `reader.mjs` and create a notebook from `notebook.mjs`. Pass:
 - `notebook`: the `createReaderNotebook` instance.
 - `locale()`: the interface language (`ru` or `en`). Text versions remain
   independently selectable.
+  When the document declares `originalLanguage`, its matching version is marked
+  **Original** with its actual language code. Russian, English and the original
+  are individually readable. Side-by-side mode shows two versions, with an
+  explicit comparison selector when more than two are supplied. It initially
+  pairs a translation with the original; the chosen pair stays with that
+  document during the current reader session. Positions and notes remain
+  independently persistent for every version in the existing notebook schema.
 - `related(documentId)`: optional `{id,title,context}` entries in the host tree.
 - `context(contextId, documentId)`: optional wording for the entry context.
 - `guide(documentId)`: optional host-authored close-reading guidance with
@@ -110,3 +117,9 @@ constructor and check actual browser behavior: entry from a star, search,
 reload, RU/EN restoration, parallel columns, keyboard focus, source details
 and an undoable personal-node handoff. These checks establish the local access
 behavior, not CI, corpus admission, release publication or backend integration.
+
+A version may provide its own bilingual `locator` for the reading header and
+citation, and an original-language `title` for the header. Thus the original
+never borrows a translation edition’s pagination. Different historical
+witnesses remain separately credited; comparison does not establish that one
+was the translation’s source edition.

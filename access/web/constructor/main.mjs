@@ -7,6 +7,7 @@ import {bindResearchRoutes,routeGraphInput,routePath,createJourneyNavigator} fro
 import {bindFragmentCatalog,textDigest} from './fragment-catalog.mjs';
 import {createResearchReader} from '../src/reader/reader.mjs';
 import {createReaderNotebook} from '../src/reader/notebook.mjs';
+import {readerVersionCodes} from '../src/reader/version-options.mjs';
 import {INQUIRY_FOUNDATION,LENS_INQUIRY} from './inquiry-foundation.mjs';
 import {bindCloseReadingGuides} from './close-reading-guides.mjs';
 import {checkInquiryTextReferences,inquiryReadingContexts,routeGroundContext} from './inquiry-layer.mjs';
@@ -154,7 +155,7 @@ try{
     const endpoints=el('div','edge-endpoints');endpoints.append(btn(label(node(edge.from)),()=>choose(edge.from)),el('span','','↓ '+t(edge.kind)),btn(label(node(edge.to)),()=>choose(edge.to)));reading.append(endpoints,p(t('relationDemo'),'posture'),btn(t('remove'),()=>attempt(()=>{model.removeEdge(edge.id);selectedEdge=null;reflect();}),'remove-button'));return;}
   const n=node(selected);if(!n)return;const m=material(n),top=el('div','reading-top');top.append(el('span','eyebrow',t(n.kind)),btn('×',closeReading,'icon'));top.lastChild.setAttribute('aria-label',t('close'));reading.append(top,el('h1','',label(n)));
   const fragmentBinding=fragments?.forMaterial(m?.id);
-  if(fragmentBinding){const count=fragmentBinding.passages.filter(passage=>passage.status==='available').length,entry=btn('▤ '+t(count?'readFragment':'sourceAccess'),()=>fragmentDialog(m),'fragment-entry');entry.dataset.fragmentEntry=m.id;entry.append(el('span','',count>1?`${count} · RU / EN`:count?'RU / EN':t('sourceLink')));reading.append(entry);}
+  if(fragmentBinding){const available=fragmentBinding.passages.filter(passage=>passage.status==='available'),count=available.length,codes=readerVersionCodes({versions:Object.assign({},...available.map(passage=>passage.versions))}).map(code=>code.toUpperCase()).join(' / '),entry=btn('▤ '+t(count?'readFragment':'sourceAccess'),()=>fragmentDialog(m),'fragment-entry');entry.dataset.fragmentEntry=m.id;entry.append(el('span','',count>1?`${count} · ${codes}`:count?codes:t('sourceLink')));reading.append(entry);}
   else if(fragmentError&&m)reading.append(p(t('fragmentLoadError'),'muted'));
   const active=journey.currentRoute(),point=journey.getState();if(active&&active.steps[point.index].graphNodeId===n.id){const step=active.steps[point.index],lead=el('section','step-lead');lead.append(el('span','eyebrow',`${t('step')} ${point.index+1} ${t('of')} ${active.steps.length}`),el('h2','',tr(step.title)),p(tr(step.body),'step-guidance'));if(point.finished)lead.append(el('h2','',t('routeEnd')),p(tr(active.conclusion),'route-conclusion'),btn(t('routes')+' →',showRoutes,'text-button'));else if(step.question)lead.append(p(tr(step.question),'step-question'));appendGrounds(lead,point.finished?active.grounds:step.grounds,m?.id);reading.append(lead);}
   const tabs=el('nav','reading-tabs');for(const k of ['meaning','connections','source']){const b=btn(t(k),()=>{readingTab=k;renderReading();});b.setAttribute('aria-pressed',String(readingTab===k));tabs.append(b);}reading.append(tabs);

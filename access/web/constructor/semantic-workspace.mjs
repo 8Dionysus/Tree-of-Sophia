@@ -1,12 +1,12 @@
 import {createConstructorModel,CONSTRUCTOR_LIMITS} from './model.mjs';
 import {createJourneyNavigator} from './journey-state.mjs';
 
-// These exact editions are admitted only after reviewing identical source bytes,
+// These exact editions are admitted only after reviewing retained RU/EN bytes,
 // material identities, hierarchy, edge topology and route stops. New editions
 // need their own compatibility review.
 export const SEMANTIC_WORKSPACE_CARRY=Object.freeze({
- from:['4137a5a6723e063394b98077a38ca9ea7a4303932b2ebeabd4cf249ec5cb7bb7','bee55dc3b8b786fa77811eeb9356da303c1e2d7e06e43b95e6e5e9e9fb9d5157'],
- to:'cc53c03033b11ffcabb9d650f9c7832dd8b56136892a70e92d736173e1527edf',
+ from:['cc53c03033b11ffcabb9d650f9c7832dd8b56136892a70e92d736173e1527edf','4137a5a6723e063394b98077a38ca9ea7a4303932b2ebeabd4cf249ec5cb7bb7','bee55dc3b8b786fa77811eeb9356da303c1e2d7e06e43b95e6e5e9e9fb9d5157'],
+ to:'c72ad73270875f7196ef5544aba23f7ada2e16aaf3eb796b75cfebf68235655f',
 });
 
 /** Copy a validated personal workspace once; never alter the earlier edition. */

@@ -38,4 +38,25 @@ class RecordingLibraryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Video display'):
             builder.assemble(source, passages, bindings)
 
+    def test_original_is_explicit_integrity_checked_and_added_to_source_navigation(self):
+        from copy import deepcopy
+        source, passages, bindings = self.fixture()
+        passage = passages[0]
+        translations = deepcopy(passage['versions'])
+        original = deepcopy(passage['versions']['en'])
+        original['paragraphs'] = ['Original source unit.']
+        original['textSha256'] = hashlib.sha256(b'Original source unit.').hexdigest()
+        original['sourceUrl'] = 'https://example.org/original'
+        passage['versions']['la'] = original
+        with self.assertRaisesRegex(ValueError, 'declare its original'):
+            builder.assemble(source, passages, bindings)
+        passage['originalLanguage'] = 'la'
+        catalog, _, library = builder.assemble(source, passages, bindings)
+        self.assertEqual(catalog['passages'][0]['versions']['la'], original)
+        self.assertEqual({code: passage['versions'][code] for code in ['ru', 'en']}, translations)
+        self.assertTrue(any(ref['ref'] == original['sourceUrl'] for node in library['nodes'] for ref in node['sourceRefs']))
+        original['paragraphs'].append('Unreviewed extra text.')
+        with self.assertRaisesRegex(ValueError, 'Text digest mismatch'):
+            builder.assemble(source, passages, bindings)
+
 if __name__ == '__main__': unittest.main()

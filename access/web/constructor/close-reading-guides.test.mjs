@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest';
 import {bindCloseReadingGuides,CLOSE_READING_GUIDES,GUIDE_CATALOG_SHA256} from './close-reading-guides.mjs';
 
 // No source text is copied into the repository to test positional safety.
-const catalog=()=>({passages:Object.keys(CLOSE_READING_GUIDES).map(id=>({id,status:'available',versions:{ru:{paragraphs:Array(80).fill('Текст')},en:{paragraphs:Array(80).fill('Text')}}}))});
+const catalog=()=>({passages:Object.keys(CLOSE_READING_GUIDES).map(id=>({id,status:'available',versions:Object.fromEntries(Object.keys(CLOSE_READING_GUIDES[id].moves[0].paragraphs).map(code=>[code,{paragraphs:Array(80).fill('Text')}]))}))});
 describe('edition-bound reading positions',()=>{
  it('withholds old guidance for a changed edition while allowing its reader to continue',()=>{
   expect(bindCloseReadingGuides({passages:[]},'b'.repeat(64)).size).toBe(0);
@@ -12,8 +12,8 @@ describe('edition-bound reading positions',()=>{
   expect(guides.size).toBe(13);expect(supplied).toEqual(before);
   expect(guides.has('camus-sisyphus')).toBe(false);expect(guides.has('deleuze-repetition')).toBe(false);
  });
- it('refuses a jump outside either translation instead of applying the other version’s position',()=>{
-  const supplied=catalog();supplied.passages.find(item=>item.id==='z-vision').versions.en.paragraphs.length=40;
+ it('refuses a jump outside any version instead of applying the other version’s position',()=>{
+  const supplied=catalog();supplied.passages.find(item=>item.id==='z-vision').versions.de.paragraphs.length=40;
   expect(()=>bindCloseReadingGuides(supplied,GUIDE_CATALOG_SHA256)).toThrow(/outside its version/);
  });
  it('refuses guidance for missing or link-only text even if a caller supplies the expected digest',()=>{
