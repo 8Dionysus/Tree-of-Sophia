@@ -27,6 +27,15 @@ decode a separately bounded logical selection before consuming its packets.
 An expanded v2 selection is not a new v1 wire payload subject to the v1 16 KiB
 wire test. Do not replace the source materialization with its encoded delta.
 
+The observatory browser consumer imports that same TypeScript codec through
+Vite, validates the reconstructed logical selection, and retains the original
+wire envelope. Its pre-existing v1 compatibility guard remains 16,384 actual
+UTF-8 JSON bytes; v2 uses the codec's conservative wire and expansion bounds.
+This consumer migration does not tighten legacy v1 admission or change the
+producer's conservative allocation contract. A malformed declared mandatory
+carrier context rejects form delivery rather than leaving ready wording next
+to an unavailable-context notice.
+
 The dependency-free browser/Worker codec is
 [`access/shared/human-form-selection-codec.ts`](../shared/human-form-selection-codec.ts);
 the Python port is

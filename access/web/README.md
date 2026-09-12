@@ -508,6 +508,26 @@ not select among candidates, materialize source forms or perform assessment.
 The canonical ToS human-form materialization and access selection contracts
 remain the owners; this isolated UI branch does not copy their implementation.
 
+The consumer accepts both selection versions. V2 imports the existing
+`access/shared/human-form-selection-codec.ts` through Vite and reconstructs
+complete packets before applying the same logical validation as v1. The raw
+envelope remains unchanged in page-memory snapshots. V2 uses the codec's
+16 KiB conservative wire bound, 64 KiB packet bound and 512 KiB expanded bound;
+the legacy v1 browser keeps its existing 16 KiB actual UTF-8 wire check.
+Expanded v2 selections are not retested as v1 wire payloads. Unknown versions,
+corrupt reconstruction or unresolved declared mandatory carrier context reject
+the whole form delivery before wording appears. When the full carrier supplies
+an exact source subject, its version and digest must also match the packet.
+
+Compact Claim reading supports the existing `claim-with-shared-form-context-v2`
+mode: its raw `/human_form_selection/roles/<role>` reference is decoded through
+the enclosing v2 selection, never read as a standalone delta. The legacy
+`.../<role>/packet` path remains specific to v1. Display-field fallback retains
+its v1 reading mode even on a v2 carrier. Semantic, epistemic and relation context
+remain mandatory; generic carrier-context pointers still resolve the exact raw
+response. Labels and hover retain their navigation role, and stored reading
+identities and positions do not change merely because the wire encoding does.
+
 Inspector and pinned reading share `human-forms-view.mjs`. All seven roles are
 available: name, caption, hover, statement, grounds, history and technical.
 Ready wording and every mandatory context value are one complete scrolling

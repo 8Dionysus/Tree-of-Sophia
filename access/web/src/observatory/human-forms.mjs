@@ -1,4 +1,6 @@
 import {t} from './ui-i18n.mjs';
+import {decodeHumanFormSelection,FORM_WIRE_BUDGET} from '../../../shared/human-form-selection-codec.ts';
+import {essentialContext} from './record-context.mjs';
 
 // Delivery validation only. ToS/contracts/human-form.schema.json owns the
 // materialization; access/contracts/knowledge-graph.v1.schema.json owns selection.
@@ -43,6 +45,8 @@ function validatePacket(packet,role,ref,raw){
     &&strings(packet.issues)&&packet.issues.length===0&&own(packet,'admission')&&(packet.admission===null||object(packet.admission))
     &&packet.performs_semantic_assessment===false&&typeof packet.standalone_reading==='boolean'
     &&Array.isArray(packet.context)&&packet.context.length<=256&&(!packet.context.length||packet.standalone_reading===false));
+  const subject=sourceSubject(raw);
+  if(subject)requireForm(sameFormRef(packet.subject,subject));
   for(const entry of packet.context)requireForm(object(entry)&&typeof entry.slot==='string'&&binding(entry.binding)&&own(entry,'value'));
   if(own(packet,'language_context')){
     const context=packet.language_context,value=context?.value;
@@ -81,7 +85,10 @@ function sourceSubject(raw){
 // represented there only by an exact ref. Keep this inspection separate from
 // the bounded reader copy and never manufacture a shortened wording.
 export function inspectExactHumanForm(raw,role){
-  const selection=validateHumanForms(raw),selected=selection?.roles?.[role];
+  return inspectSelectedHumanForm(raw,role,validateHumanForms(raw));
+}
+function inspectSelectedHumanForm(raw,role,selection){
+  const selected=selection?.roles?.[role];
   if(!selected||selected.state!=='over-budget'||selected.reason!=='inspect-exact-form'||!selected.form)return null;
   const candidate=selection.candidates.find(value=>value.role===role&&value.state==='ready'&&sameFormRef(value.form,selected.form));
   const index=packetPointer(candidate?.source_pointer);
@@ -97,14 +104,28 @@ export function inspectExactHumanForms(raw){
   const selection=validateHumanForms(raw);if(!selection)return null;
   const inspected={};
   for(const role of FORM_ROLES){
-    const value=inspectExactHumanForm(raw,role);if(value)inspected[role]=value;
+    const value=inspectSelectedHumanForm(raw,role,selection);if(value)inspected[role]=value;
   }
   return Object.keys(inspected).length?inspected:null;
 }
 
 export function validateHumanForms(raw,requested){
   if(!own(raw,'human_form_selection'))return null;
-  const selection=raw.human_form_selection;boundedJSON(selection,16384);
+  // The received envelope owns the wire budget and transport pointers. A v2
+  // reconstruction is a separately bounded logical selection, never new v1
+  // wire data. Keep raw untouched for history, restoration and exact context.
+  const wire=raw.human_form_selection;let selection;
+  try{
+    requireForm(object(wire));
+    if(wire.schema_version==='tos_human_form_selection_v2')selection=decodeHumanFormSelection(wire);
+    else{
+      requireForm(wire.schema_version==='tos_human_form_selection_v1'&&!own(wire,'packet_base')&&!own(wire,'shared_limits'));
+      // Retain the existing v1 browser UTF-8 admission boundary. Tightening
+      // legacy wire acceptance is separate from the lossless v2 migration.
+      boundedJSON(wire,FORM_WIRE_BUDGET);
+      selection=wire;
+    }
+  }catch{throw new FormContractError();}
   requireForm(object(selection)&&selection.schema_version==='tos_human_form_selection_v1'&&hash(selection.content_revision)
     &&selection.content_revision===raw.content_revision&&contentLanguage(selection.requested_language)
     &&(requested===undefined||selection.requested_language===requested)
@@ -134,6 +155,10 @@ export function validateHumanForms(raw,requested){
       if(selected.reason==='automatic')requireForm(selection.requested_language==='auto');
     }else requireForm(selected.packet===null&&(selected.state==='over-budget'?exactFormRef(selected.form):selected.form===null));
   }
+  // Do not render ready wording next to a silently unavailable mandatory
+  // carrier context. Generic context resolution keeps exact raw pointers;
+  // only the explicit compact-Claim mode below decodes a v2 role reference.
+  requireForm(['available','not-declared'].includes(essentialContext(raw).state));
   return selection;
 }
 export function formIdentity(raw){
@@ -161,7 +186,7 @@ export function formView(raw){
 // A compact Claim's wording pointer names an entire packet. Context pointers
 // and explicit relation identities remain part of that same reading unit.
 function claimContext(packet,reading){
-  requireForm(object(reading)&&reading.mode==='claim-with-mandatory-context'&&reading.standalone===false
+  requireForm(object(reading)&&['claim-with-mandatory-context','claim-with-shared-form-context-v2'].includes(reading.mode)&&reading.standalone===false
     &&['available','missing'].includes(reading.wording_state)
     &&JSON.stringify(reading.context_pointers)===JSON.stringify(['/semantics','/epistemic'])
     &&strings(reading.relation_context_ids)&&new Set(reading.relation_context_ids).size===reading.relation_context_ids.length);
@@ -220,8 +245,14 @@ export function claimPathClosure(packet,path){
 export function resolveClaimReading(packet,reading){
   const {node,relations}=claimContext(packet,reading);
   const forms=validateHumanForms(node),path=reading.wording_pointer;let wording=null;
+  const shared=reading.mode==='claim-with-shared-form-context-v2';
+  if(shared)requireForm(node.human_form_selection?.schema_version==='tos_human_form_selection_v2');
   if(reading.wording_state==='missing')requireForm(path===null);
-  else if(typeof path==='string'&&/^\/human_form_selection\/roles\/(caption|statement|hover)\/packet$/.test(path)){
+  else if(shared){
+    requireForm(typeof path==='string'&&/^\/human_form_selection\/roles\/(caption|statement|hover)$/.test(path));
+    const role=path.split('/')[3];requireForm(forms?.roles[role]?.state==='ready');wording=forms.roles[role].packet;
+  }else if(typeof path==='string'&&/^\/human_form_selection\/roles\/(caption|statement|hover)\/packet$/.test(path)){
+    requireForm(node.human_form_selection?.schema_version==='tos_human_form_selection_v1');
     const role=path.split('/')[3];requireForm(forms?.roles[role]?.state==='ready');wording=forms.roles[role].packet;
   }else{
     requireForm(['/display_selection/fields/summary','/display_selection/fields/title'].includes(path));
