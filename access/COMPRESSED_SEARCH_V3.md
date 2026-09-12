@@ -267,6 +267,82 @@ fresh random cursor secrets), paged results, flush failures and write counters
 against that original writer. Its synthetic reduction in block rewrites is
 not a full-corpus timing or storage claim.
 
+### Explicit scratch-backed bulk bootstrap
+
+`initialize_transaction` remains the buffered initializer above. The separate
+`SearchStore.initialize_bulk_transaction` is an explicit empty-store alternative,
+never an automatic fallback or retry after refusal:
+
+```python
+from tos_access.compressed_search_bootstrap import BulkBootstrapLimits
+
+# The owner already holds connection's transaction and reserves both stores.
+report = SearchStore.initialize_bulk_transaction(
+    connection, binding=final_binding, documents=exact_documents,
+    scratch_path=exclusive_scratch_path,
+    scratch_limits=BulkBootstrapLimits(
+        max_bytes=32 * 1024 * 1024, max_mutations=2_000_000),
+    max_bytes=64 * 1024 * 1024, max_mutations=2_000_000,
+)
+```
+
+These example caps are explicit refusal bounds, not a full-corpus sizing claim.
+The bulk loader reuses exact document preparation, all serialized-object terms,
+identity constraints, chunking and ordering. First it writes documents, values,
+the term dictionary and reverse memberships without incremental posting-block
+maintenance. A bounded dictionary cache has at most 8192 entries and 8 MiB of
+accounted retained payload by default; this is not an RSS bound. Existing
+per-document term/value/text bounds still apply, and insert batches contain at
+most 1024 integer rows.
+
+It then traverses the existing `(kind, sort_key)` index and each document's
+reverse-membership primary key. A temporary integer rank expresses that exact
+order, without replacing source-order tokens or persistent addresses. Compact
+`(term_id, rank, doc_id)` memberships are written to the scratch primary key and
+read in index order. No source text or long sort key is duplicated per scratch
+membership. A temporary-sort query plan is refused before its scan. Packing
+retains at most 256 addresses, obtains each later block fence from the first
+document's original sort key, and writes each term's final count once. The
+main header follows all stages and contains the unchanged algorithm, Unicode
+binding and storage version.
+
+Logical memberships/counts and the concatenated query result stream match the
+buffered initializer. SQLite bytes, block/fence boundaries, write counts, work
+measurements and budget-limited page boundaries need not match. The first block
+uses the empty fence, subsequent blocks their first key; existing bounded delta
+split/deletion rules and cursor ABI apply unchanged. The tiny bulk tests compare
+full exact-object search and later deltas, not a byte-identical block history.
+
+Scratch is a separate connection and an exclusively created 0600 file at the
+explicit path. No directories are created, existing files are never adopted,
+and symlink parents or existing SQLite sidecars are refused. Only this
+disposable database uses
+`journal_mode=OFF`; it is never a publication, recovery input or reusable cache.
+It is removed on success and failure after checking its original inode. A
+replacement inode is left intact and causes refusal. No `ATTACH`, main commit,
+main rollback, main close or process-global temporary-directory change occurs.
+After **any** exception the owner must abort the main publication; SQLite may
+itself abort a failed transaction. An interrupted process may leave only an
+owner-disposable scratch candidate, not a resumable or admitted store.
+
+The scratch page cap is independent of the whole-main-database cap; its write
+cap is also explicit. The overall `max_mutations` additionally charges both
+main and scratch DML (affected rows, with at least one per write statement).
+The report separates `main_mutations`, `scratch_mutations`, their sum
+`mutations`, batch/write-call counts, cache peaks, stage durations, main page
+bytes and peak scratch page bytes. DDL/index maintenance is not a DML row
+count; page caps cover their allocated storage. Disk reservation must cover
+main plus scratch and the main owner's rollback journal/headroom, not just
+the final file. Main `max_page_count` alone cannot cap SQLite TEMP spills.
+
+An offline prepared owner may explicitly call this initializer at its existing
+search insertion seam, passing the same final binding and document generator.
+That owner must include `report["scratch_mutations"]` alongside its main
+connection's `total_changes` in the whole-publication budget (do not add
+`report["main_mutations"]` again). Existing prepared/offline entry points are
+not switched by this API introduction. Full-corpus feasibility and activation
+remain separate owner decisions after measurement and review.
+
 Initial limits: 8 MiB per searchable/value stream, 32 MiB aggregate prepared
 text, 8192 rank values, 200000 distinct terms per document and 1900000 bytes of
 document metadata. Over-limit material is refused at offline publication;

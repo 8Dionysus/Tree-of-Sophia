@@ -579,6 +579,20 @@ class SearchStore:
         return result
 
     @classmethod
+    def initialize_bulk_transaction(cls, connection: sqlite3.Connection, *, binding,
+                                    documents, scratch_path, scratch_limits,
+                                    max_mutations=2_000_000,
+                                    max_bytes=64 * 1024 * 1024):
+        """Explicit scratch-backed bootstrap; see compressed_search_bootstrap.
+
+        No automatic fallback, publication, or caller transaction management.
+        """
+        from .compressed_search_bootstrap import initialize_bulk_transaction
+        return initialize_bulk_transaction(connection, binding=binding,
+            documents=documents, scratch_path=scratch_path, scratch_limits=scratch_limits,
+            max_mutations=max_mutations, max_bytes=max_bytes)
+
+    @classmethod
     @_typed_errors
     def publish_initial(cls, path: str | Path, *, binding: dict[str, Any], documents: Iterable[PreparedSearchDocument], max_mutations: int = 2_000_000, max_bytes: int = 64 * 1024 * 1024) -> dict[str, int]:
         path = Path(path)
