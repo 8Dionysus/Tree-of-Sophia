@@ -97,6 +97,44 @@ prepared snapshot, certify global semantic invariants, or confer acceptance.
 partial-update API. Source change detection, dependency completion, normalization,
 validation and publication remain separate obligations.
 
+## Bounded direct-carrier computation
+
+`tos_access.addressed_replacement.replace_direct_carrier_candidate` accepts one
+exact prior normalized direct carrier, its complete replacement source record,
+supplied incident relation rows, all their other endpoint rows, and the exact
+normalization binding and registries. It uses the same local implementation as
+`addressed_update_knowledge_graph`: direct-source/claim/dossier/reference-context
+guards, endpoint statements, inherited views, readable context and content
+revisions remain shared. It does not discover source records or relations.
+
+The candidate entry checks normalized identities, source-envelope digests and
+content revisions. These are self-consistency checks, not independently admitted
+baseline provenance. Endpoints exclude the prior carrier; missing required
+endpoints, duplicate rows and nonincident supplied relations fail. Empty supplied
+incidence is permitted but **never verified complete**. Identity/type changes
+retain the local computation's previous behavior; a candidate cannot authorize
+them or replace the full wrapper's global semantic validation.
+
+`ReplacementLimits` defaults to 1024 relations, 2048 other endpoints, 16 MiB of
+compact UTF-8 JSON input (including both registries and binding), and 16 MiB of
+output rows. Counts and input bytes are checked before cloning or normalization;
+output bytes are checked after each computed row before it joins the result.
+Only exact JSON types, finite numbers and at most 64 container levels qualify.
+Limits refuse work; they are not a process RSS bound. No partial result escapes.
+
+The result contains detached candidate node/relation rows, accounting and an
+explicit `supplied-neighborhood-local-only` scope. It provides no source revision,
+catalog, global semantic validation, incidence completeness or current publication
+claim. Ambient normalization-cache writes are disabled and restored on exit; no
+partial processing run is published. The full wrapper still extracts incidence
+from complete arrays and performs its original global scans/validation, without
+acquiring this new public entry's refusal caps. It shares the computation, not
+the narrower admission profile. Source-owner paired before/after membership and
+source-to-COW-to-prepared publication remain unimplemented.
+
+Focused tiny-fixture checks: `PYTHONPATH=access/src:access/tests python -m unittest
+test_addressed_replacement test_processing test_builder_ownership`.
+
 Focused checks: `PYTHONPATH=access/src:access/tests python -m unittest
 test_processing_closure`. Existing processing tests retain ownership of full-run
 evaluation, cache reuse, failure recovery and publication conflict behavior.

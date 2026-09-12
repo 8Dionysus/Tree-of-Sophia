@@ -261,6 +261,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_addressed_replacement.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/addressed_replacement.py",
+      "protects": "bounded direct-carrier candidate and full-wrapper computation parity, exact row revisions and readable context, supplied endpoint closure and digest checks, refusal budgets, detached inputs and no inferred incidence or ambient processing publication",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_addressed_replacement.py",
+      "failure_route": "Fix local replacement computation without weakening full-snapshot validation or treating supplied incidence as source-owner completeness.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_builder_ownership.py",
       "home": "access",
       "home_scope": "product-local",

@@ -3417,6 +3417,142 @@ def _addressed_structural_report(
     }
 
 
+def _replace_direct_carrier_rows(
+    old_node, source_graph, source_record, incident_relations, endpoint_nodes,
+    entity_registry, relation_registry, previous_binding, *, check_input_revisions=False,
+    on_output=None,
+):
+    """Shared local computation; supplied incidence is never proved complete.
+
+    The bounded public adapter validates budgets before entering. The legacy
+    full-snapshot wrapper extracts complete incidence itself and retains its
+    original unrestricted snapshot/global-validation contract.
+    """
+    if source_graph not in ADDRESS_UPDATE_SOURCE_GRAPHS:
+        raise AddressedUpdateError("addressed update supports only direct source carriers")
+    if not isinstance(old_node, dict) or old_node.get('source_graph') != source_graph:
+        raise AddressedUpdateError("prior carrier has a different source graph")
+    if not isinstance(source_record, dict):
+        raise AddressedUpdateError("source_record must be the exact replacement object")
+    old_node_id = _string(old_node.get('id'))
+    old_native_id = _string(old_node.get('native_id'))
+    if not old_node_id or not old_native_id:
+        raise AddressedUpdateError("addressed source carrier has no stable normalized/native id")
+    if old_native_id not in _addressed_record_ids(source_record):
+        raise AddressedUpdateError(
+            f"replacement source record does not carry the addressed native id {old_native_id}")
+    if source_graph in {'source-navigation', 'source-claims'}:
+        if _source_dossier_candidate(source_record, source_graph) != old_node.get('source_dossier_ref'):
+            raise AddressedUpdateError(
+                "source dossier binding changed; rerun complete source-navigation/claim assembly")
+        if (_string(source_record.get('node_kind')) in {'claim', 'record-version'}
+                or old_node.get('kind_id') in {'claim', 'record-version'}):
+            raise AddressedUpdateError(
+                "claim and record-version carriers require complete source claim/view assembly")
+    if not isinstance(old_node.get('semantics'), dict):
+        raise AddressedUpdateError("prior carrier has malformed semantics")
+    if old_node['semantics'].get('claim'):
+        raise AddressedUpdateError("claim-enriched carriers require complete claim-trace assembly")
+    expected_binding = _normalization_binding(entity_registry, relation_registry)
+    if previous_binding != expected_binding:
+        if not isinstance(previous_binding, dict):
+            raise AddressedUpdateError("previous snapshot lacks an exact normalization dependency binding")
+        raise AddressedUpdateError("normalization dependency binding changed; run a complete graph build")
+    nodes_by_id = {old_node_id: old_node}
+    for endpoint in endpoint_nodes:
+        if not isinstance(endpoint, dict) or not _string(endpoint.get('id')):
+            raise AddressedUpdateError("endpoint row lacks a normalized id")
+        if endpoint['id'] in nodes_by_id:
+            raise AddressedUpdateError("duplicate supplied endpoint row")
+        nodes_by_id[endpoint['id']] = endpoint
+    seen_relations = set()
+    for relation in incident_relations:
+        if not isinstance(relation, dict):
+            raise AddressedUpdateError("snapshot contains a non-object relation")
+        identifier = _string(relation.get('id'))
+        envelope = relation.get('source_record')
+        if (not identifier or not _string(relation.get('source_graph'))
+                or not _string(relation.get('native_id'))
+                or not isinstance(envelope, dict) or not isinstance(envelope.get('payload'), dict)):
+            raise AddressedUpdateError(f"incident relation {identifier or '<missing>'} lacks an exact source payload")
+        if identifier in seen_relations:
+            raise AddressedUpdateError("duplicate supplied incident relation row")
+        seen_relations.add(identifier)
+        if old_node_id not in (relation.get('from_id'), relation.get('to_id')):
+            raise AddressedUpdateError(f"supplied relation {identifier} is not incident to the carrier")
+        if any(relation.get(field) not in nodes_by_id for field in ('from_id', 'to_id')):
+            raise AddressedUpdateError(f"incident relation {identifier} lacks a required endpoint row")
+    if check_input_revisions:
+        for position, row in enumerate((*nodes_by_id.values(), *incident_relations)):
+            envelope = row.get('source_record')
+            if not isinstance(envelope, dict) or not isinstance(envelope.get('payload'), dict):
+                raise AddressedUpdateError(f"supplied row {row.get('id')} lacks an exact source payload")
+            if envelope.get('digest') != _stable_digest(envelope['payload']):
+                raise AddressedUpdateError(f"supplied row {row.get('id')} has a corrupt source digest")
+            if row.get('content_revision') != _content_revision(row):
+                raise AddressedUpdateError(f"supplied row {row.get('id')} has a corrupt content revision")
+            raw = envelope['payload']
+            native_ids = ({_string(raw.get('edge_id')), _string(raw.get('id'))}
+                          if position >= len(nodes_by_id)
+                          else _addressed_record_ids(raw))
+            if row.get('native_id') not in native_ids:
+                raise AddressedUpdateError(f"supplied row {row.get('id')} native identity differs from source payload")
+    entity_entries, entity_mappings, fallback_type_id = _entity_registry_indexes(entity_registry)
+    relation_entries, relation_mappings, fallback_relation_type_id = _relation_registry_indexes(relation_registry)
+    identity_tail = old_node_id[len(source_graph) + 1:] if old_node_id.startswith(source_graph + ':') else None
+    identity_id = None if identity_tail in {None, old_native_id} else identity_tail
+    replacement_material = copy.deepcopy(source_record)
+    if source_graph == 'source-claims':
+        replacement_material['graph_layers'] = sorted({
+            *_strings(replacement_material.get('graph_layers')), 'bibliographic-claim'})
+    replacement_base = _normalize_node(
+        replacement_material, source_graph, native_id=old_native_id, identity_id=identity_id,
+        source_dossier_ref=old_node.get('source_dossier_ref'), entity_type_entries=entity_entries,
+        entity_type_mappings=entity_mappings, fallback_type_id=fallback_type_id)
+    if replacement_base.get('id') != old_node_id:
+        raise AddressedUpdateError("replacement changed the normalized address; use a source-owner revision/full rebuild")
+    nodes_by_id[old_node_id] = replacement_base
+    context_compiler = ReadableContextCompiler(entity_registry, digest=_stable_digest)
+    updated_relations = []
+    for old_relation in incident_relations:
+        relation_id = old_relation['id']
+        raw_relation = old_relation['source_record']['payload']
+        old_contexts = (old_relation.get('semantics') or {}).get('assertion_contexts')
+        if old_contexts is not None and not isinstance(old_contexts, list):
+            raise AddressedUpdateError(f"incident relation {relation_id} has malformed assertion contexts")
+        direct_context = _assertion_context(raw_relation)
+        if any(not isinstance(direct_context, dict)
+               or _validation_digest(context) != _validation_digest(direct_context)
+               for context in (old_contexts or [])):
+            raise AddressedUpdateError(
+                f"incident relation {relation_id} has referenced claim context outside addressed scope")
+        replacement_relation = _normalize_relation(
+            copy.deepcopy(raw_relation), old_relation['source_graph'], nodes_by_id,
+            native_id=old_relation['native_id'], identity_id=_addressed_relation_identity(old_relation),
+            relation_type_entries=relation_entries, relation_type_mappings=relation_mappings,
+            fallback_relation_type_id=fallback_relation_type_id)
+        if replacement_relation.get('id') != relation_id:
+            raise AddressedUpdateError(f"incident relation {relation_id} changed its normalized address")
+        if any(replacement_relation.get(field) != old_relation.get(field) for field in ('from_id', 'to_id')):
+            raise AddressedUpdateError(
+                f"incident relation {relation_id} changed endpoints; rerun complete relation assembly")
+        replacement_relation = _attach_readable_context(replacement_relation, context_compiler, 'relation')
+        if on_output is not None:
+            on_output(replacement_relation)
+        updated_relations.append(replacement_relation)
+    inherited_views = sorted({view for relation in updated_relations for view in _strings(relation.get('view_ids'))})
+    replacement_node = _attach_readable_context(
+        _finalize_knowledge_node(replacement_base, None, inherited_views), context_compiler, 'node')
+    if replacement_node.get('id') != old_node_id:
+        raise AddressedUpdateError("finalized addressed node changed its normalized address")
+    if on_output is not None:
+        on_output(replacement_node)
+    for row in (replacement_node, *updated_relations):
+        if row.get('content_revision') != _content_revision(row):
+            raise AddressedUpdateError(f"addressed row {row.get('id')} content revision is not self-consistent")
+    return replacement_node, updated_relations
+
+
 def addressed_update_knowledge_graph(
     previous_graph: dict[str, Any],
     source_graph: str,
@@ -3507,147 +3643,33 @@ def addressed_update_knowledge_graph(
         )
     node_position, old_node = matches[0]
     old_node_id = _string(old_node.get("id"))
-    old_native_id = _string(old_node.get("native_id"))
-    if not old_node_id or not old_native_id:
-        raise AddressedUpdateError("addressed source carrier has no stable normalized/native id")
-    if old_native_id not in _addressed_record_ids(source_record):
-        raise AddressedUpdateError(
-            f"replacement source record does not carry the addressed native id {old_native_id}"
-        )
-    if source_graph in {"source-navigation", "source-claims"}:
-        candidate = _source_dossier_candidate(source_record, source_graph)
-        if candidate != old_node.get("source_dossier_ref"):
-            raise AddressedUpdateError(
-                "source dossier binding changed; rerun complete source-navigation/claim assembly"
-            )
-        semantic_kind = _string(source_record.get("node_kind"))
-        if semantic_kind in {"claim", "record-version"} or old_node.get("kind_id") in {"claim", "record-version"}:
-            raise AddressedUpdateError(
-                "claim and record-version carriers require complete source claim/view assembly"
-            )
-    if old_node.get("semantics", {}).get("claim"):
-        raise AddressedUpdateError("claim-enriched carriers require complete claim-trace assembly")
-
-    entity_entries, entity_mappings, fallback_type_id = _entity_registry_indexes(entity_registry)
-    relation_entries, relation_mappings, fallback_relation_type_id = _relation_registry_indexes(relation_registry)
-    expected_binding = _normalization_binding(entity_registry, relation_registry)
-    previous_binding = previous_graph.get("normalization_binding")
-    if previous_binding != expected_binding:
-        if not isinstance(previous_binding, dict):
-            raise AddressedUpdateError(
-                "previous snapshot lacks an exact normalization dependency binding; "
-                "run a complete graph build"
-            )
-        changed = sorted(
-            key for key in set(previous_binding) | set(expected_binding)
-            if previous_binding.get(key) != expected_binding.get(key)
-        )
-        raise AddressedUpdateError(
-            "normalization dependency binding changed; run a complete graph build "
-            "instead of mixing registry/processor state (fields: " + ", ".join(changed) + ")"
-        )
     old_semantic_report = (previous_graph.get("counts") or {}).get("semantic_validation")
     if old_semantic_report is not None and not (entity_registry and relation_registry):
         raise AddressedUpdateError(
-            "a semantically validated snapshot requires both exact registries for addressed revalidation"
-        )
-    identity_tail = old_node_id[len(source_graph) + 1:] if old_node_id.startswith(source_graph + ":") else None
-    identity_id = None if identity_tail in {None, old_native_id} else identity_tail
-    replacement_material = copy.deepcopy(source_record)
-    if source_graph == "source-claims":
-        # build_knowledge_graph marks every bibliographic carrier with the
-        # projection layer before normalization.  Keep that owned derivation
-        # local to this addressed path; callers still provide the exact raw
-        # source carrier, never a pre-normalized node.
-        replacement_material["graph_layers"] = sorted({
-            *_strings(replacement_material.get("graph_layers")),
-            "bibliographic-claim",
-        })
-    replacement_base = _normalize_node(
-        replacement_material,
-        source_graph,
-        native_id=old_native_id,
-        identity_id=identity_id,
-        source_dossier_ref=old_node.get("source_dossier_ref"),
-        entity_type_entries=entity_entries,
-        entity_type_mappings=entity_mappings,
-        fallback_type_id=fallback_type_id,
-    )
-    if replacement_base.get("id") != old_node_id:
-        raise AddressedUpdateError(
-            "replacement changed the normalized address; use a source-owner revision/full rebuild"
-        )
-
+            "a semantically validated snapshot requires both exact registries for addressed revalidation")
+    # Only this full wrapper discovers complete incidence. The shared local
+    # kernel receives it without claiming that a supplied neighborhood is full.
+    incident_positions = []
+    endpoint_ids = set()
+    for position, relation in enumerate(old_relations):
+        if not isinstance(relation, dict):
+            raise AddressedUpdateError("snapshot contains a non-object relation")
+        if old_node_id in (relation.get("from_id"), relation.get("to_id")):
+            incident_positions.append(position)
+            endpoint_ids.update((relation.get("from_id"), relation.get("to_id")))
+    endpoint_ids.discard(old_node_id)
+    endpoint_nodes = [node for node in old_nodes
+                      if isinstance(node, dict) and node.get("id") in endpoint_ids]
+    replacement_node, replacement_relations = _replace_direct_carrier_rows(
+        old_node, source_graph, source_record,
+        [old_relations[position] for position in incident_positions], endpoint_nodes,
+        entity_registry, relation_registry, previous_graph.get("normalization_binding"))
     updated_nodes = copy.deepcopy(old_nodes)
     updated_relations = copy.deepcopy(old_relations)
-    nodes_by_id = {str(node.get("id")): node for node in updated_nodes if isinstance(node, dict)}
-    context_compiler = ReadableContextCompiler(entity_registry, digest=_stable_digest)
-    # Use the replacement's display title while rebuilding incident relation
-    # statements. Finalization adds only claim/views, not endpoint identity.
-    nodes_by_id[old_node_id] = replacement_base
-    incident_relation_ids: list[str] = []
-    for position, old_relation in enumerate(old_relations):
-        if not isinstance(old_relation, dict):
-            raise AddressedUpdateError("snapshot contains a non-object relation")
-        if old_node_id not in {old_relation.get("from_id"), old_relation.get("to_id")}:
-            continue
-        relation_id = _string(old_relation.get("id"))
-        raw_envelope = old_relation.get("source_record")
-        raw_relation = raw_envelope.get("payload") if isinstance(raw_envelope, dict) else None
-        relation_source = _string(old_relation.get("source_graph"))
-        native_relation = _string(old_relation.get("native_id"))
-        if not relation_id or not relation_source or not native_relation or not isinstance(raw_relation, dict):
-            raise AddressedUpdateError(
-                f"incident relation {relation_id or '<missing>'} lacks an exact source payload"
-            )
-        old_contexts = (old_relation.get("semantics") or {}).get("assertion_contexts")
-        if old_contexts is not None and not isinstance(old_contexts, list):
-            raise AddressedUpdateError(f"incident relation {relation_id} has malformed assertion contexts")
-        direct_context = _assertion_context(raw_relation)
-        residual_contexts = [
-            context for context in (old_contexts or [])
-            if not isinstance(direct_context, dict)
-            or _validation_digest(context) != _validation_digest(direct_context)
-        ]
-        if residual_contexts:
-            raise AddressedUpdateError(
-                f"incident relation {relation_id} has referenced claim context outside addressed scope"
-            )
-        replacement_relation = _normalize_relation(
-            copy.deepcopy(raw_relation),
-            relation_source,
-            nodes_by_id,
-            native_id=native_relation,
-            identity_id=_addressed_relation_identity(old_relation),
-            relation_type_entries=relation_entries,
-            relation_type_mappings=relation_mappings,
-            fallback_relation_type_id=fallback_relation_type_id,
-        )
-        if replacement_relation.get("id") != relation_id:
-            raise AddressedUpdateError(f"incident relation {relation_id} changed its normalized address")
-        if (replacement_relation.get("from_id"), replacement_relation.get("to_id")) != (
-            old_relation.get("from_id"), old_relation.get("to_id")
-        ):
-            raise AddressedUpdateError(
-                f"incident relation {relation_id} changed endpoints; rerun complete relation assembly"
-            )
-        updated_relations[position] = _attach_readable_context(
-            replacement_relation, context_compiler, "relation"
-        )
-        incident_relation_ids.append(relation_id)
-
-    inherited_views = sorted({
-        view_id
-        for relation in updated_relations
-        if isinstance(relation, dict)
-        and old_node_id in {relation.get("from_id"), relation.get("to_id")}
-        for view_id in _strings(relation.get("view_ids"))
-    })
-    replacement_node = _finalize_knowledge_node(replacement_base, None, inherited_views)
-    replacement_node = _attach_readable_context(replacement_node, context_compiler, "node")
-    if replacement_node.get("id") != old_node_id:
-        raise AddressedUpdateError("finalized addressed node changed its normalized address")
     updated_nodes[node_position] = replacement_node
+    for position, relation in zip(incident_positions, replacement_relations):
+        updated_relations[position] = relation
+    incident_relation_ids = [relation["id"] for relation in replacement_relations]
 
     structural = _addressed_structural_report(updated_nodes, updated_relations)
     if not structural["valid"]:
