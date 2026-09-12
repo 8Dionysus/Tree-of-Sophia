@@ -319,6 +319,15 @@ unknown fields and typed false/zero values. No compact response substitutes for
 the full inspected record. Checksums detect accidental byte drift; they do not
 authenticate a writer holding the same producer/filesystem authority.
 
+Prepared temporal comparison uses the same transport-neutral computation as
+the source-backed reader, over at most six exact Claim/value/document-subject
+lookups in one selected read snapshot. It has no identifier-alias fallback.
+Selected full rows retain `source_canonical_json` and Python JSON number types;
+source/content revision conflicts, missing Claims, damaged carriers and read
+budgets remain explicit refusals. Missing or unsupported date evidence retains
+the shared `undetermined` or `unsupported` states. Comparison does not adjudicate dates or
+establish new source, review, rights or canon authority.
+
 Publication must include the prepared metadata and row digests through the
 normal producer and apply the existing exploration-clock/seek-index migration.
 Missing, corrupt, stale or concurrently replaced publications refuse explicitly;

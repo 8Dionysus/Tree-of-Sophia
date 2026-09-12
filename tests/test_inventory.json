@@ -366,6 +366,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_published_temporal.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/published_read_model.py",
+      "protects": "one-snapshot exact temporal operand reads from actual prepared SQLite, native documentary canonical-number parity, explicit corruption and budget refusals, and source-free CLI HTTP MCP routing",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_published_temporal.py",
+      "failure_route": "Fix selected prepared operand reads or shared temporal routing without alias fallback, weakened canonical bindings or hidden source construction.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_published_exploration.py",
       "home": "access",
       "home_scope": "product-local",

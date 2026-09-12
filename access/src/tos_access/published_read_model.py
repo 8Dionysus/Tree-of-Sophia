@@ -301,6 +301,19 @@ class PublishedKnowledgeReadModel:
             "verifies_all_rows": False, "writes_to_tree": False,
         })
 
+    def temporal_compare(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Compare exact Claim/value/subject rows in one selected snapshot."""
+        from .temporal_comparison import compare_temporal_operands
+
+        def operation(read, top):
+            # The shared evaluator needs at most two Claims, two values and
+            # two documentary subjects. Never use inspect's alias fallback.
+            return compare_temporal_operands(
+                top["source_revision"], request,
+                lambda identifier: read.items("node", "id=?", (identifier,), 1),
+            )
+        return self._read(operation)
+
     @staticmethod
     def _identifier(value):
         identifier = str(value).strip()

@@ -1829,6 +1829,8 @@ class ToSAccessCore:
 
     def knowledge_temporal_compare(self, request: dict[str, Any]) -> dict[str, Any]:
         """Compare the date envelopes of two exact Claims, without adjudication."""
+        if self._prepared_reader is not None:
+            return self._prepared_reader.temporal_compare(request)
         graph = self.knowledge_graph()
         return compare_temporal_claims(graph, request, graph_index=self._current_graph_index(graph))
 
