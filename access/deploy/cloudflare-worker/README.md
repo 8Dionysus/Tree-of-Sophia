@@ -142,19 +142,45 @@ declared `catalogue-assigned-document-date` role. The latter requires the exact
 Document subject, current source profile, full Claim/value hashes and literal
 identity. A bounded `semantics.claim.source_canonical_json` companion preserves
 source canonical bytes (262144 UTF-8 bytes maximum); a missing or inconsistent
-companion refuses comparison as `undetermined`. The temporal D1 adapter checks
-the actual row JSON number tokens, including floats and large integers, without
-reconstructing source hashes through JavaScript numbers. Escaped JSON member
-names retain their decoded identity; duplicate selected names refuse binding.
+companion refuses comparison as `undetermined`. The temporal D1 adapter retains
+native references for complete Claim, value and normalized-time carriers through
+the first HTTP serialization. Large integers, float kinds, negative zero,
+unknown fields and source object-member order are not round-tripped through
+plain JavaScript packets. Escaped JSON member names retain decoded identity;
+duplicate source names are damaged publication (503), not an alternate binding.
+
+Source-binding JSON equality distinguishes booleans from numbers while comparing
+integer/float values exactly. Documentary hashes use Python's sorted canonical
+JSON and numeric spelling, separately from unchanged returned source carriers:
+equivalent float spellings do not invent a different source digest. The Claim's
+source line must have integer JSON kind; a positive unsafe integer is not rounded
+or rejected merely because it exceeds JavaScript's safe integer range. Source
+references use Python code-point ordering, and accepted request selection member
+order is retained. This changes no temporal request/result schema or comparison
+role.
 Full inspection retains the companion, while compact carriers omit only this
 field from Claim semantics. Original metadata and
 its roles remain unchanged. Unknown calendars stay unknown; two different
 otherwise-comparable roles are `unsupported`.
 
-This route still uses exact indexed node lookups only: at most six node reads
+This route uses exact indexed node identities only: at most six logical lookups
 for a documentary pair (the two Document-subject checks included), versus four
-for a historical pair, plus the existing snapshot metadata checks. The native
-source-builder fixtures exercise Python, D1 and Worker HTTP together. These
+for a historical pair. Each unique payload is fetched once; header, index,
+identity and emitted-digest queries are additional bounded SQL work. There is
+no alias fallback, inspection execution, lens histogram scan or full graph load.
+The existing v8/v9 published header/index admission and pre/post publication
+clock guard apply, including A -> B -> A refusal. SQL masks oversized payload,
+identity and metadata text before delivery. The 1 MiB source-row and 16 MiB
+delivery/response ceilings return 413; invalid source/header/digest is 503,
+unknown selected Claim is 404, and stale selection/publication is 409. Structural
+source limits remain depth 64 and 300000 values per row; the native response
+writer also has depth/visit budgets. D1's 200000 rows-read guard is not Python's
+SQLite VM-step interrupt and does not prove an identical exhaustion domain.
+
+Tests compare complete raw Worker responses against the current
+`PublishedKnowledgeReadModel.temporal_compare` on the same SQLite publication,
+including every ordered key, number kind and float representation. A real
+Miniflare D1 HTTP/ABA smoke complements the synchronous SQLite facade. These
 checks do not import the corpus or deploy the Worker. A row-changing normalizer
 update requires the matching read-model rebuild under the normal publication
 route; old document rows without the companion fail closed until then.

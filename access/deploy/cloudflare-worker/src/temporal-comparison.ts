@@ -1,6 +1,10 @@
 /** Compare exact source date envelopes, without parsing or historical judgment. */
 import { HttpError, stringArray, type Item } from './common.ts';
 import { KnowledgeRevisionConflict } from './lens-pagination.ts';
+import {NativeBudgetExceeded, nativeNumberInfo, pythonEquals, pythonMember, pythonStr, codePointCompare} from '../../../shared/native-semantics.ts';
+import {nativeStrip} from '../../../shared/native-unicode.ts';
+import {nativeChild, nativeField, nativeKeys, parseNativeJson, nativePacketObject, derived,
+  type NativeRef, type NativePacket} from './native-lens.ts';
 
 type Selection = { node_id: string; content_revision: string };
 export type TemporalRequest = {
@@ -8,18 +12,18 @@ export type TemporalRequest = {
   left: Selection; right: Selection;
 };
 type Status = 'comparable' | 'undetermined' | 'unsupported';
-type Operand = { claim: Item; value: Item | null; normalized_time: Item | null };
+type Operand = { claim: NativeRef; value: NativeRef | null; normalized_time: NativeRef | null };
 type CheckedOperand = { packet: Operand; status: Status; issues: string[] };
-type Lookup = (identifier: string) => Promise<Item[]>;
+type Lookup = (identifier: string) => Promise<NativeRef[]>;
 type Reason = { side: 'left' | 'right' | 'pair'; code: string };
-const SOURCE_JSON = Symbol('temporal exact row JSON');
 const MAX_SOURCE_BYTES = 262144;
 
-export function temporalNodeFromJson(text: string): Item {
-  const node = object(JSON.parse(text));
-  if (!node) throw new HttpError(503, 'selected normalized carrier is not an object');
-  Object.defineProperty(node, SOURCE_JSON, { value: text });
-  return node;
+export function temporalNodeFromJson(text: string): NativeRef {
+  try {
+    const ref = parseNativeJson(text);
+    if (!object(ref.value)) throw new Error('selected normalized carrier is not an object');
+    return ref;
+  } catch {throw new HttpError(503, 'selected normalized carrier is invalid');}
 }
 
 function object(value: unknown): Item | null {
@@ -54,100 +58,64 @@ export function normalizeTemporalComparisonRequest(value: unknown): TemporalRequ
     if (!ref || !exactKeys(ref, ['node_id', 'content_revision'])) throw new HttpError(400, `${side} requires node_id and content_revision only`);
     const id = ref.node_id;
     // Count Unicode code points, as the public schema/Python reader do.
-    if (typeof id !== 'string' || [...id].length < 1 || [...id].length > 1024 || id.trim() !== id) {
+    if (typeof id !== 'string' || [...id].length < 1 || [...id].length > 1024 || nativeStrip(id) !== id) {
       throw new HttpError(400, `${side}.node_id must be a nonempty exact normalized ID of at most 1024 characters`);
     }
     if (!revision(ref.content_revision)) throw new HttpError(400, `${side}.content_revision must be an exact carrier revision`);
-    return { node_id: id, content_revision: ref.content_revision };
+    // Python dict(ref) retains the accepted selection's member order.
+    return Object.keys(ref)[0] === 'node_id'
+      ? {node_id:id,content_revision:ref.content_revision}
+      : {content_revision:ref.content_revision,node_id:id};
   }
   return { schema_version: 'tos_temporal_comparison_request_v1', source_revision: request.source_revision,
     left: selection('left'), right: selection('right') };
 }
 
-function sameJson(left: unknown, right: unknown): boolean {
-  if (typeof left !== typeof right) return false;
-  if (Array.isArray(left) || Array.isArray(right)) {
-    return Array.isArray(left) && Array.isArray(right) && left.length === right.length && left.every((item, index) => sameJson(item, right[index]));
+/** Temporal JSON equality deliberately excludes Python's bool/int alias. */
+function sameJson(left: NativeRef, right: NativeRef): boolean {
+  let visits = 300000;
+  function equal(a: NativeRef, b: NativeRef): boolean {
+    if (--visits < 0) throw new NativeBudgetExceeded('temporal equality visit budget');
+    if (typeof a.value === 'boolean' || typeof b.value === 'boolean') return a.value === b.value;
+    if (typeof a.value === 'number' && typeof b.value === 'number') return pythonEquals(a,b);
+    if (typeof a.value !== typeof b.value || (a.value === null) !== (b.value === null)) return false;
+    if (!a.value || typeof a.value !== 'object') return a.value === b.value;
+    if (Array.isArray(a.value) !== Array.isArray(b.value)) return false;
+    const keys = nativeKeys(a), other = new Set(nativeKeys(b));
+    return keys.length === other.size && keys.every(key => other.has(key) && equal(nativeChild(a,key),nativeChild(b,key)));
   }
-  const a = object(left), b = object(right);
-  if (a || b) return Boolean(a && b && exactKeys(a, Object.keys(b)) && Object.keys(a).every(key => sameJson(a[key], b[key])));
-  return left === right;
+  return equal(left,right);
 }
 
-// Retain producer JSON number spelling (1.0 and large integers included).
-// JSON.parse validates the whole document first; this scanner only finds exact
-// top-level member spans, without reparsing or inventing canonical bytes.
-function memberText(text: string, selected: string): string | null {
-  text = text.trim();
-  if (!text.startsWith('{')) return null;
-  let start = 1, depth = 0, quoted = false, escaped = false;
-  const parts: string[] = [];
-  for (let pos = 1; pos < text.length; pos++) {
-    const char = text[pos];
-    if (quoted) {
-      if (escaped) escaped = false;
-      else if (char === '\\') escaped = true;
-      else if (char === '"') quoted = false;
-    } else if (char === '"') quoted = true;
-    else if (char === '[' || char === '{') depth++;
-    else if (char === ']' || (char === '}' && depth > 0)) depth--;
-    else if ((char === ',' || char === '}') && depth === 0) {
-      parts.push(text.slice(start, pos)); start = pos + 1;
-    }
+/** Python json.dumps(sort_keys=True, ensure_ascii=False, allow_nan=False).
+ * Numeric kind is retained; token spelling is normalized only for this digest,
+ * never substituted into source carriers delivered to the caller. */
+function canonical(ref: NativeRef): string {
+  // Short legal float tokens (1e15 -> 1000000000000000.0) can expand
+  // during Python canonicalization. This work allowance is independent of
+  // the 262144-byte accepted source companion and 1 MiB input-row bounds.
+  let remaining = 8 * 1024 * 1024;
+  const emit = (text: string) => {
+    remaining -= text.length;
+    if (remaining < 0) throw new NativeBudgetExceeded('temporal canonical character-work budget');
+    return text;
+  };
+  function visit(value: NativeRef): string {
+    if (typeof value.value === 'number') return emit(pythonStr(value));
+    if (typeof value.value === 'string' && !value.value.isWellFormed()) throw new HttpError(503,'prepared response contains invalid JSON values');
+    if (value.value === null || typeof value.value === 'boolean' || typeof value.value === 'string') return emit(JSON.stringify(value.value));
+    const array = Array.isArray(value.value);
+    const keys = array ? nativeKeys(value) : [...nativeKeys(value)].sort(codePointCompare);
+    return emit(array ? '[' : '{') + keys.map((key,index) => {
+      if (!key.isWellFormed()) throw new HttpError(503,'prepared response contains invalid JSON values');
+      return (index ? emit(',') : '') + (array ? '' : emit(JSON.stringify(key)+':')) + visit(nativeChild(value,key));
+    }).join('') + emit(array ? ']' : '}');
   }
-  const found: string[] = [];
-  for (const part of parts) {
-    const member = part.trim().match(/^("(?:[^"\\]|\\.)*")\s*:\s*([\s\S]*)$/);
-    // JSON string escapes affect key identity, never the retained number
-    // tokens. Escaped aliases must not hide a duplicate selected member.
-    if (member && JSON.parse(member[1]!) === selected) found.push(member[2]!);
-  }
-  return found.length === 1 ? found[0]! : null;
+  return visit(ref);
 }
 
-// Canonicalize already validated JSON while preserving every number token.
-// This is not numeric coercion: the Python producer owns canonical spelling.
-function canonicalText(text: string): string {
-  const tokens = text.match(/"(?:[^"\\]|\\.)*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\]:,]/g) ?? [];
-  let index = 0;
-  function read(): string {
-    const token = tokens[index++];
-    if (token === '{') {
-      const members = new Map<string, string>();
-      while (tokens[index] !== '}') {
-        const key = JSON.parse(tokens[index++]!) as string;
-        if (typeof key !== 'string' || tokens[index++] !== ':' || members.has(key)) throw new Error('invalid object');
-        members.set(key, read());
-        if (tokens[index] !== ',') break;
-        index++;
-      }
-      if (tokens[index++] !== '}') throw new Error('invalid object');
-      const order = (a: string, b: string): number => {
-        const left = [...a].map(c => c.codePointAt(0)!), right = [...b].map(c => c.codePointAt(0)!);
-        for (let i = 0; i < Math.min(left.length, right.length); i++) if (left[i] !== right[i]) return left[i]! - right[i]!;
-        return left.length - right.length;
-      };
-      return '{' + [...members.keys()].sort(order).map(key => JSON.stringify(key) + ':' + members.get(key)).join(',') + '}';
-    }
-    if (token === '[') {
-      const values: string[] = [];
-      while (tokens[index] !== ']') { values.push(read()); if (tokens[index] !== ',') break; index++; }
-      if (tokens[index++] !== ']') throw new Error('invalid array');
-      return '[' + values.join(',') + ']';
-    }
-    if (!token) throw new Error('missing value');
-    return token.startsWith('"') ? JSON.stringify(JSON.parse(token)) : token;
-  }
-  const result = read();
-  if (index !== tokens.length) throw new Error('trailing values');
-  return result;
-}
-
-function exactNodeMember(node: Item, path: string[]): string | null {
-  let text = (node as Item & { [SOURCE_JSON]?: string })[SOURCE_JSON];
-  if (text === undefined) return null;
-  for (const part of path) { text = memberText(text, part) ?? undefined; if (text === undefined) return null; }
-  try { return canonicalText(text); } catch { return null; }
+function safeInteger(ref: NativeRef): boolean {
+  return typeof ref.value === 'number' && Number.isSafeInteger(ref.value);
 }
 
 async function hashText(text: string): Promise<string> {
@@ -155,87 +123,89 @@ async function hashText(text: string): Promise<string> {
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
-async function documentCatalogueBinding(claim: Item, value: Item, source: Item,
-  semantics: Item, time: Item, lookup: Lookup): Promise<string | null> {
+async function documentCatalogueBinding(claimRef: NativeRef, valueRef: NativeRef, lookup: Lookup): Promise<string | null> {
+  const claim = fields(claimRef.value), value = fields(valueRef.value);
+  const sourceRef = nativeField(claimRef,'attributes.source_claim'), source = fields(sourceRef.value);
+  const semanticsRef = nativeField(claimRef,'semantics.claim'), semantics = fields(semanticsRef.value);
+  const timeRef = nativeField(valueRef,'semantics.time'), time = fields(timeRef.value);
   const profile = fields(semantics.source_claim_profile), schemas = profile.schemas;
-  const attribution = fields(fields(source.qualifiers).catalogue_attribution), raw = fields(source.object);
+  const attributionRef = nativeField(sourceRef,'qualifiers.catalogue_attribution');
+  const attribution = fields(attributionRef.value), rawRef = nativeField(sourceRef,'object'), raw = fields(rawRef.value);
   if (source.predicate !== 'document_catalogue_date' || source.schema_version !== 'tos_document_catalogue_claim_v1'
       || source.assertion_layer !== 'bibliographic_assertion' || semantics.relation_type_id !== 'tos.relation.document-catalogue-date'
-      || profile.reader !== 'document-catalogue-temporal-v1' || !sameJson(profile.assertion_layers, ['bibliographic_assertion'])
+      || profile.reader !== 'document-catalogue-temporal-v1'
+      || !sameJson(nativeField(semanticsRef,'source_claim_profile.assertion_layers'),parseNativeJson('["bibliographic_assertion"]'))
       || !Array.isArray(schemas) || schemas.length !== 1 || !object(schemas[0])
       || schemas[0].schema_version !== source.schema_version || schemas[0].schema_ref !== 'ToS/contracts/document-catalogue-claim.schema.json'
       || raw.role !== 'catalogue-assigned-document-date' || time.role !== raw.role
       || typeof raw.kind !== 'string' || !['date-assertion', 'interval-assertion', 'unknown-date'].includes(raw.kind)
-      || attribution.field_role !== 'assigned-date' || typeof attribution.source_field !== 'string' || !attribution.source_field.trim()
-      || !Array.isArray(source.evidence_refs) || !source.evidence_refs.includes(attribution.evidence_ref)
-      || !sameJson(attribution.source_wording, raw.source_wording)) return 'document-catalogue-profile-binding-inconsistent';
+      || attribution.field_role !== 'assigned-date' || typeof attribution.source_field !== 'string' || !nativeStrip(attribution.source_field)
+      || !Array.isArray(source.evidence_refs) || !pythonMember(nativeField(attributionRef,'evidence_ref'),nativeField(sourceRef,'evidence_refs'))
+      || !sameJson(nativeField(attributionRef,'source_wording'),nativeField(rawRef,'source_wording'))) return 'document-catalogue-profile-binding-inconsistent';
   const subjects = typeof semantics.subject_node_id === 'string' ? await lookup(semantics.subject_node_id) : [];
-  if (subjects.length !== 1 || subjects[0]!.entity_id !== source.subject_ref || subjects[0]!.source_graph !== 'source-claims'
-      || fields(subjects[0]!.type_mapping).status !== 'mapped'
-      || !stringArray(fields(subjects[0]!.semantics).type_ancestors).includes('tos.entity.document')) {
+  const subject = subjects.length === 1 ? fields(subjects[0]!.value) : {};
+  if (subjects.length !== 1 || subject.entity_id !== source.subject_ref || subject.source_graph !== 'source-claims'
+      || fields(subject.type_mapping).status !== 'mapped'
+      || !stringArray(fields(subject.semantics).type_ancestors).includes('tos.entity.document')) {
     return 'document-catalogue-subject-binding-inconsistent';
   }
   const inconsistent = 'document-catalogue-exact-source-binding-inconsistent';
-  const canonical = semantics.source_canonical_json;
-  if (typeof canonical !== 'string' || new TextEncoder().encode(canonical).length > MAX_SOURCE_BYTES) return inconsistent;
-  let parsed: unknown;
-  try { parsed = JSON.parse(canonical); } catch { return inconsistent; }
-  if (!object(parsed) || !sameJson(parsed, source)) return inconsistent;
-  const rawText = memberText(canonical, 'object');
-  const claimIdText = memberText(canonical, 'claim_id');
-  if (rawText === null || claimIdText === null) return inconsistent;
-  if (exactNodeMember(claim, ['attributes', 'source_claim']) !== canonical
-      || exactNodeMember(value, ['attributes', 'value']) !== rawText
-      || exactNodeMember(value, ['semantics', 'time', 'raw']) !== rawText) return inconsistent;
-  const digest = await hashText(canonical), valueDigest = await hashText(rawText);
-  const literalDigest = await hashText('{"claim_ref":' + claimIdText + ',"value":' + rawText + '}');
+  const sourceText = canonical(sourceRef), rawText = canonical(rawRef);
+  if (new TextEncoder().encode(sourceText).length > MAX_SOURCE_BYTES || semantics.source_canonical_json !== sourceText) return inconsistent;
+  const digest = await hashText(sourceText), valueDigest = await hashText(rawText);
+  const literalDigest = await hashText('{"claim_ref":' + canonical(nativeField(sourceRef,'claim_id')) + ',"value":' + rawText + '}');
   const left = fields(claim.attributes), right = fields(value.attributes);
+  const sourceLine = nativeField(claimRef,'attributes.source_line');
   if (left.source_sha256 !== digest || right.source_sha256 !== digest || right.value_sha256 !== valueDigest
-      || !sameJson(JSON.parse(rawText), right.value) || !sameJson(JSON.parse(rawText), time.raw)
+      || await hashText(canonical(nativeField(valueRef,'attributes.value'))) !== valueDigest
+      || await hashText(canonical(nativeField(timeRef,'raw'))) !== valueDigest
       || value.native_id !== 'literal:sha256:' + literalDigest
-      || !Number.isSafeInteger(left.source_line) || Number(left.source_line) < 1 || right.source_line !== left.source_line
-      || !sameJson(claim.source_refs, value.source_refs)) return inconsistent;
+      || typeof sourceLine.value !== 'number' || nativeNumberInfo(sourceLine).kind !== 'int'
+      || BigInt(nativeNumberInfo(sourceLine).lexeme) < 1n
+      || !pythonEquals(sourceLine,nativeField(valueRef,'attributes.source_line'))
+      || !pythonEquals(nativeField(claimRef,'source_refs'),nativeField(valueRef,'source_refs'))) return inconsistent;
   return null;
 }
 
 async function operand(ref: Selection, lookup: Lookup): Promise<CheckedOperand> {
   const matches = await lookup(ref.node_id);
   if (matches.length !== 1) throw new HttpError(404, `expected one exact knowledge node: ${ref.node_id}`);
-  const claim = matches[0]!;
+  const claimRef = matches[0]!, claim = fields(claimRef.value);
   if (claim.content_revision !== ref.content_revision) throw new KnowledgeRevisionConflict('selected Claim content changed; select again from the current snapshot');
   requireOperandContainers(claim);
-  const packet: Operand = { claim: structuredClone(claim), value: null, normalized_time: null };
+  const packet: Operand = { claim: claimRef, value: null, normalized_time: null };
   const stop = (status: Status, issues: string[]): CheckedOperand => ({ packet, status, issues });
   if (claim.source_graph !== 'source-claims' || claim.kind_id !== 'claim' || claim.type_id !== 'tos.entity.claim'
       || fields(claim.type_mapping).status !== 'mapped') return stop('unsupported', ['selected-node-is-not-a-source-claim']);
   const semantics = fields(fields(claim.semantics).claim);
-  const source = object(fields(claim.attributes).source_claim);
+  const sourceRef = nativeField(claimRef,'attributes.source_claim');
+  const source = object(sourceRef.value);
   if (!source || typeof source.claim_id !== 'string' || source.claim_id !== semantics.claim_id
-      || !Number.isSafeInteger(source.claim_version) || Number(source.claim_version) < 1
-      || !Number.isSafeInteger(semantics.claim_version) || source.claim_version !== semantics.claim_version
-      || source.predicate !== semantics.source_predicate_id || semantics.predicate_mapping_status !== 'mapped') {
+      || !safeInteger(nativeField(sourceRef,'claim_version')) || Number(source.claim_version) < 1
+      || !safeInteger(nativeField(claimRef,'semantics.claim.claim_version')) || source.claim_version !== semantics.claim_version
+      || !pythonEquals(nativeField(sourceRef,'predicate'),nativeField(claimRef,'semantics.claim.source_predicate_id')) || semantics.predicate_mapping_status !== 'mapped') {
     return stop('undetermined', ['claim-source-binding-inconsistent']);
   }
   if (typeof semantics.object_node_id !== 'string') return stop('undetermined', ['claim-object-binding-unavailable']);
   const values = await lookup(semantics.object_node_id);
   if (values.length !== 1) return stop('undetermined', ['claim-object-unavailable-or-ambiguous']);
-  const value = values[0]!;
+  const valueRef = values[0]!, value = fields(valueRef.value);
   requireOperandContainers(value);
-  packet.value = structuredClone(value);
+  packet.value = valueRef;
   if (value.source_graph !== 'source-claims' || value.type_id !== 'tos.entity.temporal-assertion'
       || fields(value.type_mapping).status !== 'mapped') return stop('unsupported', ['claim-object-is-not-a-declared-temporal-assertion']);
   const attributes = fields(value.attributes);
   const documentary = source.predicate === 'document_catalogue_date' || source.schema_version === 'tos_document_catalogue_claim_v1'
     || fields(fields(value.semantics).time).role === 'catalogue-assigned-document-date';
-  if (attributes.claim_ref !== source.claim_id || !Object.hasOwn(attributes, 'value') || (!documentary && !sameJson(attributes.value, source.object))) {
+  if (attributes.claim_ref !== source.claim_id || !Object.hasOwn(attributes, 'value') || (!documentary && !sameJson(nativeField(valueRef,'attributes.value'),nativeField(sourceRef,'object')))) {
     return stop('undetermined', ['temporal-object-source-binding-inconsistent']);
   }
   const time = object(fields(value.semantics).time);
   if (!time) return stop('undetermined', ['temporal-normalization-unavailable']);
-  packet.normalized_time = structuredClone(time);
-  if (!Object.hasOwn(time, 'raw') || (!documentary && !sameJson(time.raw, attributes.value))) return stop('undetermined', ['temporal-normalization-source-binding-inconsistent']);
+  packet.normalized_time = nativeField(valueRef,'semantics.time');
+  if (!Object.hasOwn(time, 'raw') || (!documentary && !sameJson(nativeField(valueRef,'semantics.time.raw'),nativeField(valueRef,'attributes.value')))) return stop('undetermined', ['temporal-normalization-source-binding-inconsistent']);
   if (documentary) {
-    const issue = await documentCatalogueBinding(claim, value, source, semantics, time, lookup);
+    const issue = await documentCatalogueBinding(claimRef, valueRef, lookup);
     if (issue) return stop('undetermined', [issue]);
   }
   const rawIssues = time.issues ?? [];
@@ -272,7 +242,7 @@ function envelopeRelation(left: Item, right: Item): string {
   return 'overlaps';
 }
 
-export async function compareTemporalOperands(sourceRevision: unknown, requestValue: unknown, lookup: Lookup): Promise<Item> {
+export async function compareTemporalOperands(sourceRevision: unknown, requestValue: unknown, lookup: Lookup): Promise<NativePacket> {
   const request = normalizeTemporalComparisonRequest(requestValue);
   if (request.source_revision !== sourceRevision) throw new KnowledgeRevisionConflict('knowledge snapshot changed; select both Claims again');
   const left = await operand(request.left, lookup), right = await operand(request.right, lookup);
@@ -281,7 +251,7 @@ export async function compareTemporalOperands(sourceRevision: unknown, requestVa
   const reasons: Reason[] = [...left.issues.map(code => ({ side: 'left' as const, code })), ...right.issues.map(code => ({ side: 'right' as const, code }))];
   let relation: string | null = null;
   if (status === 'comparable') {
-    const leftTime = left.packet.normalized_time!, rightTime = right.packet.normalized_time!;
+    const leftTime = fields(left.packet.normalized_time!.value), rightTime = fields(right.packet.normalized_time!.value);
     if (typeof leftTime.role !== 'string' || !leftTime.role || typeof rightTime.role !== 'string' || !rightTime.role) {
       status = 'undetermined'; reasons.push({ side: 'pair', code: 'time-role-unavailable' });
     } else if (leftTime.role !== rightTime.role) {
@@ -291,11 +261,33 @@ export async function compareTemporalOperands(sourceRevision: unknown, requestVa
     } else relation = envelopeRelation(leftTime, rightTime);
   }
   const refs = [...new Set([left.packet.claim, left.packet.value, right.packet.claim, right.packet.value]
-    .flatMap(item => stringArray(item?.source_refs)))].sort();
-  return { schema_version: 'tos_temporal_comparison_result_v1', source_revision: sourceRevision, request,
-    comparison: { status, relation, reasons, basis: 'normalized-source-date-envelopes' },
-    left: left.packet, right: right.packet, source_refs: refs,
-    authority_boundary: { is_source: false, writes_to_tree: false, performs_assessment: false,
-      creates_inferred_claim: false, comparison_basis: 'normalized-source-date-envelopes',
-      note: 'Relations describe date envelopes only. They do not establish event simultaneity, duration, causality, identity or the truth/admission of either Claim. Numeric keys are ordering keys, not timestamps or elapsed-time quantities.' } };
+    .flatMap(item => {
+      const values = item ? fields(item.value).source_refs : undefined;
+      return Array.isArray(values) ? values.filter((value): value is string => typeof value === 'string') : [];
+    }))].sort(codePointCompare);
+  // Python's final ensure_ascii=False UTF-8 response rejects escaped lone
+  // surrogates too. Validate only returned source carriers, not an unreturned
+  // documentary subject's unrelated fields. No source values are rewritten.
+  const seen = new WeakSet<object>();
+  function validUtf8(ref: NativeRef): void {
+    if (typeof ref.value === 'string' && !ref.value.isWellFormed()) throw new HttpError(503,'prepared response contains invalid JSON values');
+    if (!ref.value || typeof ref.value !== 'object' || seen.has(ref.value)) return;
+    seen.add(ref.value);
+    for (const key of nativeKeys(ref)) {
+      if (!key.isWellFormed()) throw new HttpError(503,'prepared response contains invalid JSON values');
+      validUtf8(nativeChild(ref,key));
+    }
+  }
+  for (const value of [left.packet.claim,left.packet.value,right.packet.claim,right.packet.value]) if (value) validUtf8(value);
+  const packet = (operand: Operand) => nativePacketObject([
+    ['claim',operand.claim],['value',operand.value],['normalized_time',operand.normalized_time],
+  ]);
+  return nativePacketObject([
+    ['schema_version','tos_temporal_comparison_result_v1'], ['source_revision',request.source_revision], ['request',derived(request)],
+    ['comparison',derived({status,relation,reasons,basis:'normalized-source-date-envelopes'})],
+    ['left',packet(left.packet)], ['right',packet(right.packet)], ['source_refs',derived(refs)],
+    ['authority_boundary',derived({is_source:false,writes_to_tree:false,performs_assessment:false,
+      creates_inferred_claim:false,comparison_basis:'normalized-source-date-envelopes',
+      note:'Relations describe date envelopes only. They do not establish event simultaneity, duration, causality, identity or the truth/admission of either Claim. Numeric keys are ordering keys, not timestamps or elapsed-time quantities.'})],
+  ]);
 }

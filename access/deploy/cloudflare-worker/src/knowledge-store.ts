@@ -9,7 +9,7 @@ import { jsonRows, meta, rows } from "./store.ts";
 import {executeNativeLensD1} from './native-lens-store.ts';
 import {inspectNativeD1} from './native-inspection-store.ts';
 import {parseNativeJson, type NativeRef, type NativeLensResult, type NativePacket} from './native-lens.ts';
-import { compareTemporalOperands, normalizeTemporalComparisonRequest, temporalNodeFromJson } from './temporal-comparison.ts';
+import {compareNativeTemporalD1} from './native-temporal-store.ts';
 
 const KNOWLEDGE_SOURCES = new Set(["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"]);
 const PAGE_SIZE = 2000;
@@ -154,14 +154,8 @@ export async function knowledgeRelationD1(db: D1Database, id: string): Promise<N
   return consistentRead(db, snapshot => inspectNativeD1(db, 'relation', id, 200, snapshot.revision));
 }
 
-export async function knowledgeTemporalCompareD1(db: D1Database, request: unknown): Promise<Item> {
-  const normalized = normalizeTemporalComparisonRequest(request);
-  return consistentRead(db, async () => {
-    const top = await meta<Item>(db, 'knowledge_top');
-    return compareTemporalOperands(top.source_revision, normalized, async identifier =>
-      (await rows<{ json: string }>(db, 'SELECT json FROM knowledge_nodes WHERE id = ? LIMIT 2', identifier))
-        .map(row => temporalNodeFromJson(row.json)));
-  });
+export async function knowledgeTemporalCompareD1(db: D1Database, request: unknown): Promise<NativePacket> {
+  return consistentRead(db, snapshot => compareNativeTemporalD1(db,request,snapshot.revision));
 }
 
 type SqlFragment = { sql: string; bindings: unknown[] };

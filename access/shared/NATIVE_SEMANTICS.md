@@ -3,8 +3,8 @@
 The shared helpers preserve Python values independently of a runtime. The
 Worker's lens/focus route uses them from raw request and D1 row text through
 bounded selection, grouping, pagination and the first wire serialization.
-Node/relation inspection separately retains full raw rows through its first
-wire serialization. Search, exploration and temporal comparison are unchanged.
+Node/relation inspection and temporal comparison separately retain full raw
+rows through their first wire serialization. Search and exploration are unchanged.
 
 ## Entry and reference API
 
@@ -42,6 +42,43 @@ reference context throws `NativeContextLost`; it is not a fallback to JS
 semantics. Self-bound non-enumerable reference markers reject spread/clone
 copies, including primitive references. These are correctness boundaries inside
 trusted application code, not a sandbox against hostile JavaScript reflection.
+
+## Temporal comparison boundary
+
+`native-temporal-store.ts` uses the same bounded published header, emitted-row
+digest and identity checks as inspection, but executes no inspection or lens.
+Only the exact selected Claim IDs and their declared value/Document-subject IDs
+are read. Four historical or six documentary lookup calls are sufficient; a
+request-local cache avoids fetching a repeated full operand. No schema, generated
+scalar index, historical assertion or inferred Claim is introduced.
+
+`temporal-comparison.ts` carries original `NativeRef`s into `NativePacket` result
+fragments. Its `_same_json` equivalent adds the temporal contract's boolean/type
+distinction to exact native numeric equality. Documentary canonical digests sort
+keys by code point and use Python numeric representations, not original token
+spelling or rounded `.value` numbers. Returned source references keep original
+numeric kinds/lexemes and member order independently of that canonical digest.
+Canonicalization has a separate 8 MiB character-work allowance: a short float
+token can expand in Python's representation. The accepted canonical source
+companion still has the owner's 262144 UTF-8-byte limit; exceeding that limit
+is an inconsistent binding, not a hidden smaller input-row budget.
+The existing source profile, role, source-line kind, exact raw binding and
+date-envelope rules remain the Python owner's computation.
+
+HTTP request decoding is bounded to 64 KiB and rejects invalid UTF-8/BOM; request
+selection member order and Python whitespace semantics survive normalization.
+Source JSON is strict (duplicate/nonfinite/over-complex rows fail 503), including
+Python's refusal to encode returned escaped lone surrogates as UTF-8. Explicit
+native execution/response budgets are 413, missing selected Claims 404 and
+stale source/content/publication revisions 409. Binding inconsistencies remain
+ordinary `undetermined`/`unsupported` comparison packets rather than errors.
+
+The actual published Python reader and raw Worker HTTP differential cover the
+same selected SQLite rows. The D1 plan's post-statement rows-read guard, native
+aggregate writer depth/visit limits and SQL pre-delivery byte checks remain
+explicit bounds, not a universal equivalence claim for Python VM exhaustion or
+arbitrarily large/corrupt publications. Local prepared runtime, corpus readiness,
+production deployment and search/exploration parity are separate claims.
 
 ## Explicit packet composition
 

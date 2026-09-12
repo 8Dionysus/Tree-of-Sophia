@@ -14,7 +14,7 @@ const V9_INDEXES = ['knowledge_nodes_identity_seek','knowledge_lens_order_sort',
   'knowledge_lens_order_to','knowledge_lens_order_pair'];
 const compact = (value: unknown) => JSON.stringify(value);
 
-function requireEmittedHeader(raw: string, ref: NativeRef): void {
+export function requireEmittedHeader(raw: string, ref: NativeRef): void {
   // Published Python binds compact emitted header bytes, not arbitrary JSON
   // spelling of the same values. This check does not rewrite any source row.
   if (nativePacketJson(ref,{maxBytes:65536}) !== raw) nativeUnavailable('prepared header is not in its declared emitted JSON framing');
@@ -105,16 +105,22 @@ export async function inspectNativeD1(db: D1Database, kind: NativeKind, requeste
   if (!Number.isSafeInteger(relationLimit) || relationLimit < 0 || relationLimit > 1000) throw new HttpError(400, 'relation_limit must be an integer between 0 and 1000');
   try {
     const read = new NativeD1Read(db, nativeD1Limits, true);
-    const top = await readNativePublication(read, expectedRevision, 'inspection');
-    requireEmittedHeader(top.raw,top.ref);
-    const required = [...INDEXES, ...(nativeField(top.ref,'read_model_schema').value === 'tos_cloudflare_edge_read_model_v9' ? V9_INDEXES : [])];
-    const found = await read.textRows<{name: string}>(['name'], ['name'],
-      "SELECT name FROM sqlite_master WHERE type='index' AND name IN (SELECT value FROM json_each(?))", compact(required));
-    if (found.length !== required.length || found.some(row => !required.includes(row.name))) nativeUnavailable('prepared reader adjacency/identity migration is unavailable');
+    const top = await readNativeInspectionPublication(read, expectedRevision);
     const inspector = new Inspection(read);
     return kind === 'node' ? await inspector.node(id, relationLimit, top.ref) : await inspector.relation(id, top.ref);
   } catch (error) {
     if (error instanceof HttpError || error instanceof NativeBudgetExceeded) throw error;
     return nativeUnavailable('prepared inspection publication unavailable or invalid');
   }
+}
+
+/** Common published read header/index admission, without inspection or lenses. */
+export async function readNativeInspectionPublication(read: NativeD1Read, expectedRevision?: string): Promise<{raw:string;ref:NativeRef}> {
+  const top = await readNativePublication(read, expectedRevision, 'inspection');
+  requireEmittedHeader(top.raw,top.ref);
+  const required = [...INDEXES, ...(nativeField(top.ref,'read_model_schema').value === 'tos_cloudflare_edge_read_model_v9' ? V9_INDEXES : [])];
+  const found = await read.textRows<{name:string}>(['name'],['name'],
+    "SELECT name FROM sqlite_master WHERE type='index' AND name IN (SELECT value FROM json_each(?))",compact(required));
+  if (found.length !== required.length || found.some(row => !required.includes(row.name))) nativeUnavailable('prepared reader adjacency/identity migration is unavailable');
+  return top;
 }
