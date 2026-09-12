@@ -20,8 +20,6 @@ and time while preserving uncertainty and competing readings.
   Your browser does not support embedded video.
 </video>
 
-[Download the full demo video (MP4)](assets/tree-of-sophia-demo-2026-09-10.mp4)
-
 ## Quick start
 
 With Python 3.11+, run

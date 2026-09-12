@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 550,
     "human_scope": {
-      "bytes": 4394726,
+      "bytes": 4394645,
       "count": 804,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -91,9 +91,9 @@
           "lines": 202
         },
         "root": {
-          "bytes": 175486,
+          "bytes": 175405,
           "count": 14,
-          "lines": 3031
+          "lines": 3029
         },
         "scripts": {
           "bytes": 10577,
@@ -116,7 +116,7 @@
           "lines": 60739
         }
       },
-      "lines": 76816
+      "lines": 76814
     },
     "surface_kind_counts": {
       "executable": 200,
@@ -134,7 +134,7 @@
       "surface_kind_counts": {
         "human": 14
       },
-      "tracked_surface_bytes": 175486,
+      "tracked_surface_bytes": 175405,
       "tracked_surface_count": 14
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "51043284ed763f0ed2b9dba8297b0cb627d5ff3c4a518b512a9ce8882b4d8c41",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "f020c9665e21d7d8feda9c69da733abe6d0831312f497ba1a34ec4119387ea89",
+  "tracked_surface_digest": "4580d0c4f137eb3d298a9806fd78b9f4b5d988521ab1f9b1bf78964fb62ce967",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -323,7 +323,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "b686dd2911e48842a23207fa15a646899cb55b2cba8cf0f34e620ae5db955aad",
+      "sha256": "a0902dfaf5d35d386bdefb6b7920935a4c75549964e09820a023ce6602e770b5",
       "surface_kind": "structured"
     },
     {
@@ -439,11 +439,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5487,
+      "bytes": 5406,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "README.md",
-      "sha256": "a0c0d09123f2600cc121ae00532fd8139c68137415f55839a056e01cb1239fed",
+      "sha256": "be052cbe0d89b030a3d85c211543c30381287fbdb207da8750cc4cd5f137bd32",
       "surface_kind": "human"
     },
     {
