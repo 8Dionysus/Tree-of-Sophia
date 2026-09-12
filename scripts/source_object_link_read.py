@@ -33,6 +33,42 @@ def canonical_digest(value):
         separators=(',', ':'), allow_nan=False).encode('utf-8')).hexdigest()
 
 
+def legacy_object_link_validator(schema):
+    """Compile the retained owner schema without reading a source stream."""
+    if schema.get('$id') != 'https://tree-of-sophia.local/' + SCHEMA_REF:
+        raise LegacyObjectLinkError('legacy object-Link schema identity differs from its owner path')
+    Draft202012Validator.check_schema(schema)
+    registry = Registry().with_resource(schema['$id'], Resource.from_contents(schema))
+    return Draft202012Validator(schema, registry=registry)
+
+
+def validate_legacy_object_link(claim, validator, objects=None):
+    """Shared exact grammar/domain checks; caller verifies the source row."""
+    try:
+        valid = validator.is_valid(claim)
+    except Unresolvable as error:
+        raise LegacyObjectLinkError('legacy object-Link schema has an undeclared dependency') from error
+    if (not isinstance(claim, dict) or claim.get('schema_version') != SCHEMA_VERSION
+            or not valid or claim.get('predicate') not in PREDICATES):
+        raise LegacyObjectLinkError('retained object-Link Claim violates its exact legacy contract')
+    if claim['subject_ref'].split('.')[1] not in SUBJECT_KINDS:
+        raise LegacyObjectLinkError('legacy object-Link subject is outside its five-kind domain')
+    if objects is not None:
+        subject, target = objects.get(claim['subject_ref']), objects.get(claim['object'])
+        if (not isinstance(subject, dict) or subject.get('record_type') not in SUBJECT_KINDS
+                or not isinstance(target, dict) or target.get('record_type') != 'link'):
+            raise LegacyObjectLinkError('legacy object-Link endpoints do not resolve in their exact domains')
+
+
+def render_legacy_object_link_context(line, claim):
+    """Pure retained context; a supplied line is not source verification."""
+    if type(line) is not int or line < 1:
+        raise LegacyObjectLinkError('legacy object-Link context requires a positive source line')
+    return {'source_claim': copy.deepcopy(claim), 'source_claim_file_ref': SOURCE_REF,
+            'source_claim_line': line, 'source_sha256': canonical_digest(claim),
+            'source_schema_ref': SCHEMA_REF, 'source_adapter': 'retained-object-link-v1'}
+
+
 class LegacyObjectLinkReader:
     """One strict source/schema snapshot, shared by both derived carriers."""
 
@@ -40,11 +76,7 @@ class LegacyObjectLinkReader:
         self.root = Path(root)
         self.input_digests = {}
         schema = _read_json(self.root, SCHEMA_REF, self.input_digests)
-        if schema.get('$id') != 'https://tree-of-sophia.local/' + SCHEMA_REF:
-            raise LegacyObjectLinkError('legacy object-Link schema identity differs from its owner path')
-        Draft202012Validator.check_schema(schema)
-        registry = Registry().with_resource(schema['$id'], Resource.from_contents(schema))
-        self.validator = Draft202012Validator(schema, registry=registry)
+        self.validator = legacy_object_link_validator(schema)
         target = self.root / SOURCE_REF
         if target.is_symlink() or not target.is_file() or target.resolve() != target.absolute():
             raise LegacyObjectLinkError('legacy object-Link stream must be its exact regular source file')
@@ -70,20 +102,7 @@ class LegacyObjectLinkReader:
             self._rows[number] = claim
 
     def validate(self, claim, objects=None):
-        try:
-            valid = self.validator.is_valid(claim)
-        except Unresolvable as error:
-            raise LegacyObjectLinkError('legacy object-Link schema has an undeclared dependency') from error
-        if (not isinstance(claim, dict) or claim.get('schema_version') != SCHEMA_VERSION
-                or not valid or claim.get('predicate') not in PREDICATES):
-            raise LegacyObjectLinkError('retained object-Link Claim violates its exact legacy contract')
-        if claim['subject_ref'].split('.')[1] not in SUBJECT_KINDS:
-            raise LegacyObjectLinkError('legacy object-Link subject is outside its five-kind domain')
-        if objects is not None:
-            subject, target = objects.get(claim['subject_ref']), objects.get(claim['object'])
-            if (not isinstance(subject, dict) or subject.get('record_type') not in SUBJECT_KINDS
-                    or not isinstance(target, dict) or target.get('record_type') != 'link'):
-                raise LegacyObjectLinkError('legacy object-Link endpoints do not resolve in their exact domains')
+        validate_legacy_object_link(claim, self.validator, objects)
 
     def rows(self):
         return [(line, copy.deepcopy(claim)) for line, claim in self._rows.items()]
@@ -102,9 +121,7 @@ class LegacyObjectLinkReader:
     def context(self, line, claim):
         if type(line) is not int or self._rows.get(line) != claim:
             raise LegacyObjectLinkError('legacy object-Link context is not the selected retained row')
-        return {'source_claim': copy.deepcopy(claim), 'source_claim_file_ref': SOURCE_REF,
-                'source_claim_line': line, 'source_sha256': canonical_digest(claim),
-                'source_schema_ref': SCHEMA_REF, 'source_adapter': 'retained-object-link-v1'}
+        return render_legacy_object_link_context(line, claim)
 
     def verify_current(self):
         for ref, digest in self.input_digests.items():

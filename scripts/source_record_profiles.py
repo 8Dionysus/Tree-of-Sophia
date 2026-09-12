@@ -526,14 +526,16 @@ class SourceClaimProfiles:
     bibliographic/historical files retain their existing adapters and schemas.
     """
 
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, *, read_json=None):
         self.root, self.input_digests = root, {}
-        self.registry = _read_json(root, CLAIM_REGISTRY_REF, self.input_digests)
-        contract = _read_json(root, CLAIM_CONTRACT_REF, self.input_digests)
+        self.read_json = read_json
+        read = read_json if read_json is not None else lambda ref, digests: _read_json(root, ref, digests)
+        self.registry = read(CLAIM_REGISTRY_REF, self.input_digests)
+        contract = read(CLAIM_CONTRACT_REF, self.input_digests)
         if not Draft202012Validator(contract).is_valid(self.registry):
             raise SourceProfileError('relation registry violates its source contract')
-        entity_registry = _read_json(root, REGISTRY_REF, self.input_digests)
-        entity_contract = _read_json(root, CONTRACT_REF, self.input_digests)
+        entity_registry = read(REGISTRY_REF, self.input_digests)
+        entity_contract = read(CONTRACT_REF, self.input_digests)
         if not Draft202012Validator(entity_contract).is_valid(entity_registry):
             raise SourceProfileError('entity registry violates its source contract')
         self.entities = {entry['type_id']: entry for entry in entity_registry['types']}
@@ -710,7 +712,7 @@ class SourceClaimProfiles:
             if structured_members:
                 shared_refs = (*shared_refs, MEMBER_STRUCTURE_REF)
             self.validators[key], registry = _schema_route(self.root, self.schema_routes[key], self.input_digests,
-                                                           self.schemas, shared_refs)
+                                                           self.schemas, shared_refs, read_json=self.read_json)
             self.base_validators[key] = Draft202012Validator(self.schemas[CLAIM_BASE_REF], registry=registry,
                                                              format_checker=FormatChecker())
             if self.is_temporal(claim):
@@ -740,7 +742,7 @@ class SourceClaimProfiles:
             if self.claim_display_validator is None:
                 self.claim_display_validator, _ = _schema_route(self.root, {
                     'schema_ref': 'ToS/contracts/claim-display-fields.schema.json',
-                    'schema_dependencies': [CORPUS_REF]}, self.input_digests, self.schemas)
+                    'schema_dependencies': [CORPUS_REF]}, self.input_digests, self.schemas, read_json=self.read_json)
             if not self.claim_display_validator.is_valid(claim['qualifiers']):
                 raise SourceProfileError('source Claim display fields violate their explicit contract')
         if predicate in document_catalogue.FIELDS:

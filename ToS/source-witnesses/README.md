@@ -239,6 +239,50 @@ transition reuses Claim/slot descriptors without changing their local addresses.
 General Claim mutation/history transport is unsupported by this current-slot
 reader; a historical Claim cannot be silently rebound to its current row.
 
+### Concrete selected source assembly
+
+[`BibliographicClaimAssembler`](../../scripts/bibliographic_claim_assembler.py)
+joins one explicit `SourceCatalogSnapshot` to the real current-slot reader and
+one concrete `MetadataVersionReader` using that same catalog/publication.
+`assemble(claim_id, expected_row_sha256=...)` returns detached
+`BibliographicClaimInput`, the shared forward dependency rows and observed
+source/catalog/file bindings. `project()` uses the full builder's pure renderer
+for all raw nodes, edges and the Claim trace. Exact source line, raw versus
+canonical digests, unknown Claim/review/provenance fields, ordered duplicate
+evidence, typed members, normalized provision/date references, alternative and
+superseded Claims, current adjacent Forms and address-only external citations
+retain their source roles. No network address is opened. Unknown strings in
+literal values are not mined for identities.
+
+`assemble_record(record_id, expected_row_sha256=...)` currently accepts only a
+native Agent. It returns detached `SourceNavigationRecordInput` (current record,
+Forms, exact retained history and every ordered version resolution) plus
+`BibliographicIdentityInput`, using the same metadata reader and Forms as Claim
+endpoints. `project_navigation()` and `project_bibliographic()` share the full
+owner renderers. Historical metadata remains an exact version return with its
+actual retained source/archive provenance, never current-use permission.
+
+`ClaimAssemblyLimits` bound selected Claim/metadata counts, addressed lookups,
+protected adjacent/schema/evidence files, bytes read and complete returned
+inputs plus expanded projection bytes. The catalog's explicit `MutationLimits`,
+source reader's `SourceSlotLimits`, and metadata reader's existing 64 MiB
+aggregate/per-record/history limits remain separate owner bounds. A limit
+refusal returns no partial cohort. There is no source discovery, whole JSONL
+lookup, caller-supplied node/verification flag, implicit bootstrap or remote
+schema fetch. Unsupported metadata transport, historical Claim versions and
+collection-order version-basis profiles fail closed without latest fallback.
+
+The assembler takes no writer lock. `verify_current()` rechecks the cooperating
+source publication, observed protected metadata and source-slot inputs, plus
+adjacent-form absence. The calling source/prepared owner must maintain its
+guarded publication boundary. A before cohort must be captured before a real
+source revision; an old catalog after revision is rejected, not dressed up as
+a historical current-source snapshot. Assembly neither mutates source nor
+selects roots, proves reverse incidence, normalizes neighborhoods, authorizes
+new membership, admits Claims or establishes a prepared epoch. A result's
+detached public fields may be modified by its caller without changing the
+assembler's private snapshot; such edits are not source verification.
+
 Complete source-reference dependency closure remains an integration gap:
 an Agent may supply maker/evidence labels and digests without a direct identity
 graph edge. Graph incidence alone cannot prove that no dependent row exists.

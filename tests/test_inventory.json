@@ -108,6 +108,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_bibliographic_claim_assembler.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "protects": "concrete same-catalog current Claim and Agent cohort assembly, exact raw full-builder parity, retained metadata versions and Forms, typed forward dependencies, bounded addressed source reads and refusal of row/raw/publication drift without reverse closure or historical Claim fallback",
+      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_bibliographic_claim_assembler.py",
+      "failure_route": "Fix source-bound selected assembly or the shared owner renderer; never replace real source reads with caller-trusted nodes or fabricate current source history, closure or admission.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_source_catalog_slots.py",
       "home": "tests",
       "home_scope": "root",

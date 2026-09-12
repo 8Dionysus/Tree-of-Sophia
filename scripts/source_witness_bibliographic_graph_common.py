@@ -108,15 +108,16 @@ def canonical_digest(value: Any) -> str:
     return hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
 
 
-def load_claim_navigation_registry(repo_root: Path) -> dict[str, Any]:
+def load_claim_navigation_registry(repo_root: Path, *, read_json=None) -> dict[str, Any]:
     """Read the declared syntax contract even when every Claim is legacy.
 
     The template is source-owned finite text. Schema and semantic checks are
     independent of source-profile presence and cannot select executable code.
     """
     try:
-        registry = _read_profile_json(repo_root, CLAIM_REGISTRY_REF)
-        contract = _read_profile_json(repo_root, CLAIM_CONTRACT_REF)
+        read = read_json if read_json is not None else lambda ref: _read_profile_json(repo_root, ref)
+        registry = read(CLAIM_REGISTRY_REF)
+        contract = read(CLAIM_CONTRACT_REF)
     except SourceProfileError as exc:
         raise BibliographicGraphBuildError(str(exc)) from exc
     if not Draft202012Validator(contract).is_valid(registry):
@@ -873,11 +874,12 @@ def _claim_node(entry: dict[str, Any], claim: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _event_node(indexed: dict[str, Any], *, repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+def _event_node(indexed: dict[str, Any], *, repo_root: Path = REPO_ROOT, read_json=None) -> dict[str, Any]:
     event = indexed["payload"]
     if event.get('schema_version') == 'tos_provenance_event_v2':
         from validate_source_witness_foundation import _provenance_v2_semantic_issues
-        schema = load_json(repo_root / 'ToS/contracts/provenance-event-v2.schema.json')
+        ref = 'ToS/contracts/provenance-event-v2.schema.json'
+        schema = load_json(repo_root / ref) if read_json is None else read_json(ref)
         if not Draft202012Validator(schema).is_valid(event):
             raise BibliographicGraphBuildError('invalid provenance v2 source event')
         if _provenance_v2_semantic_issues(event):
@@ -956,7 +958,7 @@ def validate_external_citation_address(address: str) -> None:
         raise BibliographicGraphBuildError('external citation requires a credential-free HTTP(S) address') from error
 
 
-def _public_evidence_title(repo_root, evidence_ref, claim=None, entry=None):
+def _public_evidence_title(repo_root, evidence_ref, claim=None, entry=None, *, read_bytes=None):
     """Read one public review/research-note H1, not a general path resolver.
 
     The existing verified public Claim catalog selects the exact reference.
@@ -977,7 +979,8 @@ def _public_evidence_title(repo_root, evidence_ref, claim=None, entry=None):
             or evidence_ref not in [*claim.get('evidence_refs', []), *claim.get('counterevidence_refs', [])]):
         return None
     try:
-        raw = _read_owned(repo_root / evidence_ref, 1_048_576)
+        raw = (_read_owned(repo_root / evidence_ref, 1_048_576) if read_bytes is None
+               else read_bytes(evidence_ref, 1_048_576))
     except PublicationChanged:
         raise
     except PublicationStateError:
@@ -1065,6 +1068,7 @@ def _evidence_node(
     events: dict[str, dict[str, Any]],
     citing_claim: dict[str, Any] | None = None,
     claim_entry: dict[str, Any] | None = None,
+    read_bytes=None,
 ) -> dict[str, Any]:
     node_id = _node_id("evidence", evidence_ref)
     if evidence_ref.startswith("ToS/"):
@@ -1073,12 +1077,14 @@ def _evidence_node(
             raise BibliographicGraphBuildError(
                 f"{evidence_ref}: claim evidence path does not exist"
             )
-        review_title = _public_evidence_title(repo_root, evidence_ref, citing_claim, claim_entry)
+        review_title = _public_evidence_title(repo_root, evidence_ref, citing_claim, claim_entry,
+                                            read_bytes=read_bytes)
         return {
             "node_id": node_id,
             "node_kind": "evidence",
             "source_ref": evidence_ref,
-            "source_sha256": review_title[0] if review_title is not None else file_digest(path),
+            "source_sha256": (review_title[0] if review_title is not None else file_digest(path)
+                              if read_bytes is None else hashlib.sha256(read_bytes(evidence_ref)).hexdigest()),
             "display": _evidence_display(evidence_ref, 'repo_path', evidence_ref,
                 source_label=review_title[1] if review_title is not None else None,
                 source_title_origin=review_title[2] if review_title is not None else 'source-metadata-label'),

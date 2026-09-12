@@ -254,6 +254,9 @@ constructor and source-byte route remain unchanged. Catalog traversal uses the
 supplied snapshot's `MutationLimits` separately from the source reader's existing
 limits; either budget can refuse without partial evidence. An immutable catalog
 alone grants no source currentness, reference closure, admission or publication.
+The read-only `accounting` property exposes actual read bytes, the aggregate
+byte ceiling and observed file/directory/record/contract counts. Counters are
+work accounting, not availability, source completeness or admission evidence.
 
 `resolve_typed` returns the same envelope plus `descriptor`: the validated
 owner `adapter`, `record_kind` (`subject`), `record_type`, `identity_field`,

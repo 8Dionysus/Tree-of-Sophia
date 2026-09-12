@@ -127,6 +127,14 @@ class MetadataVersionReader:
         self._verify_publication()
         self._snapshot.verify()
 
+    @property
+    def accounting(self):
+        """Read-only bounded work counters, not availability or admission."""
+        return {'read_bytes': self._snapshot.bytes, 'max_read_bytes': MAX_TOTAL_BYTES,
+                'contracts': len(self._contracts), 'records': len(self._records),
+                'observed_files': sum(not directory for _path, directory in self._snapshot.observed),
+                'observed_directories': sum(directory for _path, directory in self._snapshot.observed)}
+
     def _verify_publication(self):
         if self._publication_error is not None:
             raise self._publication_error
