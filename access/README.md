@@ -290,6 +290,11 @@ performance or remove the compatibility reader's initial graph construction.
 
 ## Explicit prepared local reader
 
+To build a fresh snapshot from an explicitly selected source tree, use the
+[offline prepared bootstrap](OFFLINE_PREPARED_BOOTSTRAP.md). It assembles the
+whole source graph; it neither switches consumers nor performs an incremental
+source update.
+
 The [local prepared publisher](LOCAL_PREPARED_PUBLICATION.md) also provides an
 explicit offline, one-file full-row/catalog/lens/compressed-search profile and
 addressed storage deltas. It accepts normalized owner inputs, has its own local
