@@ -33,6 +33,21 @@
   ],
   "tests": [
     {
+      "path": "access/tests/test_prepared_neighborhood.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/prepared_neighborhood.py",
+      "protects": "one selected snapshot of complete bounded existing seed incidence and endpoint rows, exact representations, source order, physical seek indexes, digest and epoch checks, refusal rather than partial closure",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_prepared_neighborhood.py",
+      "failure_route": "Fix the indexed neighborhood reader without introducing full scans, merging representations, returning partial incidence or claiming new source membership and semantic authority.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_prepared_semantics.py",
       "home": "access",
       "home_scope": "product-local",

@@ -8,6 +8,33 @@ On **any** exception, the caller must roll back the entire transaction.
 
 ## Explicit bootstrap and addressed changes
 
+Before source-to-normalized assembly, an owner may capture the existing
+neighborhood from an explicitly selected local prepared reader:
+
+```python
+from tos_access.prepared_neighborhood import capture_prepared_neighborhood
+existing = capture_prepared_neighborhood(reader, entity_id="tos.agent.example")
+# Alternatively: node_ids=[exact_normalized_id, ...], not aliases.
+```
+
+One read transaction selects all representations of that exact entity, all
+their incoming and outgoing relations, and all opposite endpoint full rows.
+Self-loops and shared edges appear once. Exact emitted row digests, indexed
+identity fields, source-order tokens, physical index layouts and the selected
+publication are checked. Existing reader row/byte/VM limits and post-read
+concurrency/ABA checks apply. `NeighborhoodLimits` additionally caps seed,
+node and relation counts; refusal returns no partial neighborhood. No full
+graph load, missing-index repair, normalization or source write is performed.
+
+This verifies existing seed incidence in an owner-produced prepared snapshot,
+not new source membership, source authority, or claim/reducer dependencies.
+Opposite endpoints are returned but their other relations are not expanded.
+Checksums detect drift in selected rows, not a malicious/coordinated rewrite
+of the store and its digests; producer integrity remains a precondition.
+The subsequent writer must compare the captured binding again. A source
+command may introduce new versions and memberships absent from this snapshot;
+the source owner must assemble and verify them separately.
+
 ```python
 from tos_access.prepared_semantics import (
     bootstrap_prepared_maintenance_transaction,
