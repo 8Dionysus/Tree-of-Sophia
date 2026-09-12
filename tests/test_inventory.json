@@ -231,6 +231,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_builder_ownership.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/knowledge.py",
+      "protects": "uncached builder-owned finalization with full graph and catalog value parity, exact revisions, detached raw input and registry values, single owned source envelope, and unchanged cached and addressed snapshot isolation",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_builder_ownership.py",
+      "failure_route": "Fix builder lifetime and mutable ownership without dropping source envelopes or governing contexts, weakening copy isolation, or inferring full-corpus resource acceptance from tiny fixtures.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_processing.py",
       "home": "access",
       "home_scope": "product-local",
