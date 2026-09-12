@@ -72,3 +72,8 @@ the addressed source-catalog migration, Claim/trace normalization closure or
 end-to-end source command publication.
 Focused tests cover concurrent visibility, retained root-file bytes, exact
 predecessor checks, malformed state, combined limits and late-write rollback.
+
+The separate [selected Agent composition](source-agent-publication.v1.md) now
+connects those primitives to real source readers and selected-command evidence
+for one explicitly bootstrapped descriptive profile. It does not expand the
+authority or completeness guarantees of this storage-only pairing layer.

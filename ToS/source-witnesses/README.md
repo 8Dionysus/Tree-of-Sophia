@@ -283,11 +283,19 @@ new membership, admits Claims or establishes a prepared epoch. A result's
 detached public fields may be modified by its caller without changing the
 assembler's private snapshot; such edits are not source verification.
 
-Complete source-reference dependency closure remains an integration gap:
-an Agent may supply maker/evidence labels and digests without a direct identity
-graph edge. Graph incidence alone cannot prove that no dependent row exists.
-A separate reverse reference route and downstream owner validation are required
-before a catalog transition can justify a complete normalized/prepared delta.
+Graph incidence alone cannot prove source-reference dependency closure: an
+Agent may supply maker/evidence labels and digests without a direct identity
+graph edge. The separate offline
+[selected Agent publication profile](../../access/contracts/source-agent-publication.v1.md)
+joins real reverse Claim declarations, current source/history readers, COW raw
+roots and shared normalization to one guarded prepared transaction. It requires
+an explicit root-vector/WAL bootstrap and verifies the old prepared cohort;
+it does not silently adopt the legacy global-catalog-provenance profile.
+`build_source_navigation(..., catalog_snapshot=...)` provides the full new-profile
+bootstrap/oracle using the same actual addressed metadata reader; its legacy
+default is unchanged. General source membership, historical Claim transport,
+collection-order and non-descriptive transitions remain outside this bounded
+profile, not implicitly covered by a green Agent correction.
 
 Evidence nodes carry a bounded readable `display` from owner metadata.
 An identity can reuse its catalog `preferred_label`. Direct Markdown

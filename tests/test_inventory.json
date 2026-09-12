@@ -63,6 +63,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_source_agent_publication.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "access/contracts/source-agent-publication.v1.md",
+      "protects": "real tiny selected Agent revision through reverse Claims and COW roots into all prepared lanes, explicit root-vector/WAL profile, full new-profile oracle parity, independent predecessor reader visibility, unchanged neighboring provenance, stale/declaration/budget refusal and all-lane rollback while source remains committed",
+      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_source_agent_publication.py",
+      "failure_route": "Fix the real bounded owner composition without faking provenance, silently adopting legacy snapshots, dropping context or source history, or invoking a full build during correction.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_source_assembly_normalization.py",
       "home": "access",
       "home_scope": "product-local",

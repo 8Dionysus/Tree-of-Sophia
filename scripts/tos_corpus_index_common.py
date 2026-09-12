@@ -778,14 +778,22 @@ def project_source_navigation_record(inputs: SourceNavigationRecordInput) -> Sou
 
 
 def build_source_navigation(diagnostics: list[dict[str, str]], *,
-                            assessed_forms: AssessedFormSnapshot | None = None) -> dict[str, Any]:
+                            assessed_forms: AssessedFormSnapshot | None = None,
+                            catalog_snapshot=None) -> dict[str, Any]:
+    """Full source projection; addressed provenance is an explicit new profile.
+
+    The legacy default remains unchanged. An explicit source-catalog snapshot
+    selects the real per-record metadata reader, not a rewritten provenance
+    dictionary; it must bind the same live participating publication.
+    """
     snapshot = PublicationSnapshot(REPO_ROOT)
-    result = _build_source_navigation(diagnostics, assessed_forms=assessed_forms, publication=snapshot)
+    result = _build_source_navigation(diagnostics, assessed_forms=assessed_forms, publication=snapshot,
+                                      catalog_snapshot=catalog_snapshot)
     snapshot.verify_current()
     return result
 
 
-def _build_source_navigation(diagnostics, *, assessed_forms, publication):
+def _build_source_navigation(diagnostics, *, assessed_forms, publication, catalog_snapshot=None):
     """Join authored topology and source records into a read-only descent graph."""
 
     nodes: dict[str, dict[str, Any]] = {}
@@ -902,7 +910,8 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication):
         raise PublicationChanged('initialized source publication requires its catalog manifest')
     if catalog_manifest_path.is_file():
         from metadata_version_reader import MetadataVersionReader
-        metadata_reader = MetadataVersionReader(REPO_ROOT)
+        metadata_reader = (MetadataVersionReader(REPO_ROOT) if catalog_snapshot is None
+                           else MetadataVersionReader(REPO_ROOT, catalog_snapshot=catalog_snapshot))
         catalog_manifest_raw = catalog_manifest_path.read_bytes()
         catalog_manifest = json.loads(catalog_manifest_raw)
         artifact_validators = {}
