@@ -3884,21 +3884,12 @@ def _validation_digest(value: Any) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def validate_knowledge_semantics(
-    graph: Any,
-    entity_registry: Any,
-    relation_registry: Any,
-) -> dict[str, Any]:
-    """Check registry binding and endpoint contracts for the complete read model."""
-
-    registry_report = validate_semantic_registries(entity_registry, relation_registry)
-    violations = list(registry_report["violations"])
+def _semantic_validation_kernels(entity_registry, relation_registry, nodes_by_id, claims_by_entity, outgoing,
+                                 diagnostic_list=list):
+    """Shared pure kernels; lookup mappings may be bounded lazy adapters."""
     entity_entries, _entity_mappings, fallback_type_id = _entity_registry_indexes(entity_registry)
     relation_entries, _relation_mappings, fallback_relation_type_id = _relation_registry_indexes(relation_registry)
-    nodes = _objects(graph.get("nodes")) if isinstance(graph, dict) else []
-    relations = _objects(graph.get("relations")) if isinstance(graph, dict) else []
-    nodes_by_id: dict[str, dict[str, Any]] = {}
-    properties_by_type: dict[str | None, list[dict[str, Any]]] = {}
+    properties_by_type = {}
 
     def applicable_properties(type_id):
         # Applicability depends on this invocation's registry and type, not on
@@ -3913,7 +3904,7 @@ def validate_knowledge_semantics(
         return properties_by_type[type_id]
 
     def validate_node(node):
-        violations = []
+        violations = diagnostic_list()
         node_id = _string(node.get("id"))
         type_id = _string(node.get("type_id"))
         mapping = node.get("type_mapping") if isinstance(node.get("type_mapping"), dict) else {}
@@ -3968,33 +3959,6 @@ def validate_knowledge_semantics(
                 violations.append(f"navigation Region {node_id} is missing its non-Place marker")
         return violations
 
-    node_occurrences = Counter(str(n.get('id')) for n in nodes)
-    incremental = active_cache.get() is not None
-    node_digests = {str(n.get('id')): _validation_digest(n) for n in nodes} if incremental else {}
-    registry_digest = _validation_digest([entity_registry, relation_registry]) if incremental else None
-
-    def checked(kind, identifier, context, compute, *, unique=True):
-        cache = active_cache.get()
-        if cache is None or not unique:
-            return compute()
-        return cache.memo('validate-' + kind, identifier, [
-            Input('validation-registry', registry_digest),
-            Input('validation-context:' + kind + ':' + identifier, context),
-        ], compute)
-
-    def references(ids):
-        return [[str(identifier), node_digests.get(str(identifier))] for identifier in ids]
-
-    for node in nodes:
-        identifier = _string(node.get('id'))
-        if identifier:
-            if identifier in nodes_by_id:
-                violations.append(f"duplicate knowledge node id {identifier}")
-            nodes_by_id[identifier] = node
-        violations.extend(checked('node', identifier or '<missing>', node_digests.get(identifier),
-                                  lambda node=node: validate_node(node),
-                                  unique=bool(identifier) and node_occurrences[identifier] == 1))
-
     def validate_endpoints(
         owner_id: str,
         relation_type_id: str,
@@ -4020,13 +3984,8 @@ def validate_knowledge_semantics(
                 f"{owner_id} range {_string(to_node.get('type_id'))!r} is outside {entry.get('range_type_ids')}"
             )
 
-    relation_ids: set[str] = set()
-    outgoing: dict[tuple[str, str], list[dict[str, Any]]] = {}
-    incoming: dict[tuple[str, str], list[dict[str, Any]]] = {}
-    claims_by_entity = {str(n.get("entity_id")): n for n in nodes if n.get("type_id") == "tos.entity.claim"}
-    gaps: list[dict[str, str]] = []
     def validate_relation(relation):
-        violations, gaps = [], []
+        violations, gaps = diagnostic_list(), diagnostic_list()
         relation_id = _string(relation.get("id")) or "<missing relation id>"
         relation_type_id = _string(relation.get("relation_type_id"))
         mapping = relation.get("predicate_mapping") if isinstance(relation.get("predicate_mapping"), dict) else {}
@@ -4113,40 +4072,8 @@ def validate_knowledge_semantics(
                 violations.append(f"same_as relation {relation_id} lacks resolved evidence and exact-version review")
         return violations, gaps
 
-    relation_occurrences = Counter(str(r.get('id')) for r in relations)
-    relation_digests = {str(r.get('id')): _validation_digest(r) for r in relations} if incremental else {}
-    for relation in relations:
-        identifier = _string(relation.get('id')) or '<missing relation id>'
-        relation_type = _string(relation.get('relation_type_id'))
-        if relation_type in relation_entries:
-            if identifier in relation_ids or identifier == '<missing relation id>':
-                violations.append(f"duplicate or missing relation id {identifier}")
-            relation_ids.add(identifier)
-            outgoing.setdefault((str(relation.get('from_id')), relation_type), []).append(relation)
-            incoming.setdefault((str(relation.get('to_id')), relation_type), []).append(relation)
-        attrs = relation.get('attributes') or {}
-        supporting = claims_by_entity.get(str(attrs.get('claim_ref'))) or {}
-        evidence = supporting.get('semantics', {}).get('claim', {}).get('evidence_node_ids', [])
-        context = [relation_digests.get(identifier),
-                   references([relation.get('from_id'), relation.get('to_id'), attrs.get('review_node_id'), *evidence]),
-                   _validation_digest(supporting)] if incremental else None
-        errors, missing = checked('relation', identifier, context,
-                                  lambda relation=relation: validate_relation(relation),
-                                  unique=relation_occurrences[identifier] == 1)
-        violations.extend(errors)
-        gaps.extend(missing)
-
-    for table, maximum_key in ((outgoing, "per_subject_max"), (incoming, "per_object_max")):
-        for (endpoint, relation_type), edges in table.items():
-            maximum = relation_entries[relation_type].get("cardinality", {}).get(maximum_key)
-            # Semantic cardinality constrains one assertion context. Distinct
-            # conflicting claims are preserved, not forced into one global fact.
-            scoped_counts = Counter((e.get('attributes') or {}).get('claim_ref') if relation_entries[relation_type].get('assertion_mode') == 'reified-claim' else None for e in edges)
-            if maximum is not None and max(scoped_counts.values()) > maximum:
-                violations.append(f"{endpoint} violates {relation_type} {maximum_key}={maximum}")
-
     def validate_claim(node):
-        violations, gaps = [], []
+        violations, gaps = diagnostic_list(), diagnostic_list()
         claim_count = 0
         semantics = node.get("semantics") if isinstance(node.get("semantics"), dict) else {}
         claim = semantics.get("claim") if isinstance(semantics.get("claim"), dict) else None
@@ -4172,6 +4099,101 @@ def validate_knowledge_semantics(
             violations,
         )
         return violations, gaps, claim_count
+
+    return validate_node, validate_relation, validate_claim
+
+
+def _semantic_cardinality_violation(endpoint, relation_type, maximum_key, peak, relation_entries):
+    """One exact assertion-scoped maximum, shared by full and addressed paths."""
+    maximum = relation_entries[relation_type].get("cardinality", {}).get(maximum_key)
+    if maximum is not None and peak > maximum:
+        return f"{endpoint} violates {relation_type} {maximum_key}={maximum}"
+    return None
+
+
+def validate_knowledge_semantics(
+    graph: Any,
+    entity_registry: Any,
+    relation_registry: Any,
+) -> dict[str, Any]:
+    """Check registry binding and endpoint contracts for the complete read model."""
+
+    registry_report = validate_semantic_registries(entity_registry, relation_registry)
+    violations = list(registry_report["violations"])
+    entity_entries, _entity_mappings, fallback_type_id = _entity_registry_indexes(entity_registry)
+    relation_entries, _relation_mappings, fallback_relation_type_id = _relation_registry_indexes(relation_registry)
+    nodes = _objects(graph.get("nodes")) if isinstance(graph, dict) else []
+    relations = _objects(graph.get("relations")) if isinstance(graph, dict) else []
+    nodes_by_id: dict[str, dict[str, Any]] = {}
+    outgoing: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    claims_by_entity = {}
+    validate_node, validate_relation, validate_claim = _semantic_validation_kernels(
+        entity_registry, relation_registry, nodes_by_id, claims_by_entity, outgoing)
+
+    node_occurrences = Counter(str(n.get('id')) for n in nodes)
+    incremental = active_cache.get() is not None
+    node_digests = {str(n.get('id')): _validation_digest(n) for n in nodes} if incremental else {}
+    registry_digest = _validation_digest([entity_registry, relation_registry]) if incremental else None
+
+    def checked(kind, identifier, context, compute, *, unique=True):
+        cache = active_cache.get()
+        if cache is None or not unique:
+            return compute()
+        return cache.memo('validate-' + kind, identifier, [
+            Input('validation-registry', registry_digest),
+            Input('validation-context:' + kind + ':' + identifier, context),
+        ], compute)
+
+    def references(ids):
+        return [[str(identifier), node_digests.get(str(identifier))] for identifier in ids]
+
+    for node in nodes:
+        identifier = _string(node.get('id'))
+        if identifier:
+            if identifier in nodes_by_id:
+                violations.append(f"duplicate knowledge node id {identifier}")
+            nodes_by_id[identifier] = node
+        violations.extend(checked('node', identifier or '<missing>', node_digests.get(identifier),
+                                  lambda node=node: validate_node(node),
+                                  unique=bool(identifier) and node_occurrences[identifier] == 1))
+
+    relation_ids: set[str] = set()
+    incoming: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    claims_by_entity.update({str(n.get("entity_id")): n for n in nodes if n.get("type_id") == "tos.entity.claim"})
+    gaps: list[dict[str, str]] = []
+
+    relation_occurrences = Counter(str(r.get('id')) for r in relations)
+    relation_digests = {str(r.get('id')): _validation_digest(r) for r in relations} if incremental else {}
+    for relation in relations:
+        identifier = _string(relation.get('id')) or '<missing relation id>'
+        relation_type = _string(relation.get('relation_type_id'))
+        if relation_type in relation_entries:
+            if identifier in relation_ids or identifier == '<missing relation id>':
+                violations.append(f"duplicate or missing relation id {identifier}")
+            relation_ids.add(identifier)
+            outgoing.setdefault((str(relation.get('from_id')), relation_type), []).append(relation)
+            incoming.setdefault((str(relation.get('to_id')), relation_type), []).append(relation)
+        attrs = relation.get('attributes') or {}
+        supporting = claims_by_entity.get(str(attrs.get('claim_ref'))) or {}
+        evidence = supporting.get('semantics', {}).get('claim', {}).get('evidence_node_ids', [])
+        context = [relation_digests.get(identifier),
+                   references([relation.get('from_id'), relation.get('to_id'), attrs.get('review_node_id'), *evidence]),
+                   _validation_digest(supporting)] if incremental else None
+        errors, missing = checked('relation', identifier, context,
+                                  lambda relation=relation: validate_relation(relation),
+                                  unique=relation_occurrences[identifier] == 1)
+        violations.extend(errors)
+        gaps.extend(missing)
+
+    for table, maximum_key in ((outgoing, "per_subject_max"), (incoming, "per_object_max")):
+        for (endpoint, relation_type), edges in table.items():
+            # Semantic cardinality constrains one assertion context. Distinct
+            # conflicting claims are preserved, not forced into one global fact.
+            scoped_counts = Counter((e.get('attributes') or {}).get('claim_ref') if relation_entries[relation_type].get('assertion_mode') == 'reified-claim' else None for e in edges)
+            error = _semantic_cardinality_violation(endpoint, relation_type, maximum_key,
+                                                    max(scoped_counts.values()), relation_entries)
+            if error is not None:
+                violations.append(error)
 
     claim_count = 0
     for node in nodes:
