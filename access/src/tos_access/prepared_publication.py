@@ -16,7 +16,7 @@ import stat
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable
 
-from .compressed_search_store import ALGORITHM, MAX_ADDRESS, PreparedSearchDocument, SearchChange, SearchStore
+from .compressed_search_store import ALGORITHM, STORAGE_VERSION, MAX_ADDRESS, PreparedSearchDocument, SearchChange, SearchStore
 from .compressed_search_bootstrap import BulkBootstrapLimits
 from .published_read_metadata import (
     CATALOG_KEY, LENS_META_KEY, TOP_KEY, _compact, emitted_row_digest,
@@ -25,7 +25,7 @@ from .published_read_metadata import (
 )
 
 SCHEMA = "tos_local_prepared_read_model_v1"
-DESCRIPTOR_SCHEMA = "tos_local_prepared_revision_v1"
+DESCRIPTOR_SCHEMA = "tos_local_prepared_revision_v2"
 SOURCE_ORDER_STRIDE = 2**32
 CAPABILITIES = {"full_rows": True, "catalog": True, "lens": True,
                 "compressed_search_v3": True, "legacy_search": False,
@@ -242,7 +242,7 @@ def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dic
                 raise ValueError("source order capacity exhausted")
             digest.update((_compact([kind, item["id"], count, token, emitted_row_digest(raw)["sha256"]]) + "\n").encode("utf-8"))
     descriptor = {"schema": DESCRIPTOR_SCHEMA, "mode": "bootstrap", "profile": SCHEMA,
-                  "algorithm": ALGORITHM, "capabilities": CAPABILITIES,
+                  "algorithm": ALGORITHM, "search_storage_version": STORAGE_VERSION, "capabilities": CAPABILITIES,
                   "header": header, "catalog_sha256": _hash(catalog), "rows_sha256": digest.hexdigest()}
     lens = published_lens_metadata(header)
     for kind in _COLUMNS:
@@ -348,7 +348,23 @@ def apply_prepared_delta_transaction(db: sqlite3.Connection, *, expected_binding
         raise ValueError("normalization drift requires explicit bootstrap")
     if epoch >= MAX_ADDRESS:
         raise ValueError("publication epoch exhausted")
-    high_water, retained, _ = db.execute("SELECT high_water,max_pages,descriptor FROM prepared_state WHERE singleton=1").fetchone()
+    state = db.execute("SELECT high_water,max_pages,CASE WHEN length(CAST(descriptor AS BLOB))<=? "
+                       "THEN descriptor ELSE NULL END FROM prepared_state WHERE singleton=1",
+                       (limits.max_metadata_bytes,)).fetchone()
+    if state is None or not isinstance(state[2], str):
+        raise ValueError("prepared descriptor absent or over byte budget")
+    high_water, retained, raw_descriptor = state
+    descriptor_before = json.loads(raw_descriptor)
+    if (not isinstance(descriptor_before, dict) or _compact(descriptor_before) != raw_descriptor
+            or _hash(descriptor_before) != top["data_revision"]):
+        raise ValueError("prepared descriptor framing or digest differs")
+    if (descriptor_before.get("schema") != DESCRIPTOR_SCHEMA
+            or descriptor_before.get("profile") != SCHEMA
+            or descriptor_before.get("algorithm") != ALGORITHM
+            or type(descriptor_before.get("search_storage_version")) is not int
+            or descriptor_before["search_storage_version"] != STORAGE_VERSION
+            or descriptor_before.get("capabilities") != CAPABILITIES):
+        raise ValueError("prepared storage/descriptor drift requires explicit bootstrap")
     if db.execute("SELECT high_water FROM search_header WHERE singleton=1").fetchone()[0] != high_water:
         raise ValueError("prepared/search address high-water differs")
     maximum = _cap(db, limits, retained)
@@ -433,7 +449,7 @@ def apply_prepared_delta_transaction(db: sqlite3.Connection, *, expected_binding
         lens[kind + "_counts"] = [[*cell, count] for cell, count in sorted(histogram.items())]
     lens.update(source_revision=header["source_revision"], query_properties=copy.deepcopy(header.get("query_properties", [])))
     descriptor = {"schema": DESCRIPTOR_SCHEMA, "mode": "delta-history", "profile": SCHEMA,
-                  "algorithm": ALGORITHM, "capabilities": CAPABILITIES,
+                  "algorithm": ALGORITHM, "search_storage_version": STORAGE_VERSION, "capabilities": CAPABILITIES,
                   "parent_data_revision": top["data_revision"], "header": header,
                   "catalog_sha256": _hash(catalog), "changes": frames}
     binding = _publish_header(db, header, catalog, lens, descriptor, epoch + 1, limits)

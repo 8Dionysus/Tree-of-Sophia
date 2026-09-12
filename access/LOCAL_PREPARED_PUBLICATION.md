@@ -30,12 +30,18 @@ endpoint closure; this does not substitute for those owner obligations.
 
 Bootstrap traverses explicit repeatable row lists to calculate a reproducible
 descriptor, then streams each carrier into SQLite once alongside search. The
-descriptor binds the profile, search algorithm, source header, catalog digest
+descriptor binds the profile, search algorithm, physical search storage version, source header, catalog digest
 and an ordered SHA-256 stream of kind, exact ID, numeric address, source-order
 token and exact compact-row digest. It rechecks that stream during insertion.
 The search header binds the **final** publication snapshot, avoiding a cyclic
 header hash. Random search cursor incarnation is outside reproducible content
 identity; this is not a claim of SQLite file byte reproducibility.
+
+The descriptor schema is `tos_local_prepared_revision_v2`. Delta maintenance
+checks its bounded stored bytes, exact framing/digest, profile, algorithm,
+physical storage version and capabilities before row mutation. Earlier
+descriptors or another storage version require an explicit new-file bootstrap;
+they are not silently adopted even when the forward query ABI is unchanged.
 
 `publish_prepared_rows(new_path, source_header=header, catalog=catalog,
 row_factory=rows)` accepts an explicit repeatable `rows(kind)` factory instead

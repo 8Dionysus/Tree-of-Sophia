@@ -13,7 +13,8 @@ from tos_access.prepared_publication import (
     PreparedChange, PublicationLimits, SCHEMA, apply_prepared_delta,
     apply_prepared_delta_transaction, publish_prepared, publish_prepared_rows,
 )
-from tos_access.compressed_search_store import SearchStore
+from tos_access.compressed_search_store import SearchStore, STORAGE_VERSION
+from tos_access import prepared_publication as publication
 from tos_access.compressed_search_bootstrap import BulkBootstrapLimits
 from tos_access.published_read_metadata import _compact, published_lens_metadata, LENS_META_KEY
 from tos_access.published_read_model import PublishedKnowledgeReadModel, PublishedSnapshotConflict
@@ -381,6 +382,49 @@ class PreparedPublicationTests(unittest.TestCase):
             self.assertEqual([r["id"] for r in page["matches"]], ["A", "a", "b"])
             db.execute("ROLLBACK")
         self.assertEqual([r["id"] for r in self.search(self.binding)], ["a", "A", "b"])
+
+    def test_descriptor_binds_physical_storage_and_rejects_foreign_version_before_writes(self):
+        self.publish()
+        header, catalog = self.header()
+        with closing(sqlite3.connect(self.path, isolation_level=None)) as db:
+            original = json.loads(db.execute("SELECT descriptor FROM prepared_state").fetchone()[0])
+            self.assertEqual(original['schema'], publication.DESCRIPTOR_SCHEMA)
+            self.assertEqual(original['search_storage_version'], STORAGE_VERSION)
+            for key, value in [('schema', 'tos_local_prepared_revision_v1'),
+                               ('search_storage_version', STORAGE_VERSION - 1),
+                               ('search_storage_version', True), ('profile', 'foreign'),
+                               ('algorithm', 'foreign'), ('capabilities', {})]:
+                with self.subTest(key=key, value=value):
+                    db.execute('BEGIN IMMEDIATE')
+                    changed = {**original, key: value}
+                    revision = publication._hash(changed)
+                    top = publication._metadata(db, publication.TOP_KEY)
+                    top['data_revision'] = revision
+                    db.execute('UPDATE prepared_state SET descriptor=?', (_compact(changed),))
+                    publication._put_metadata(db, publication.TOP_KEY, top, PublicationLimits())
+                    publication._put_metadata(db, 'data_revision', {'sha256': revision}, PublicationLimits())
+                    expected = publication.published_snapshot_binding(top, self.binding['publication_epoch'])
+                    writes = db.total_changes
+                    with self.assertRaisesRegex(ValueError, 'explicit bootstrap'):
+                        apply_prepared_delta_transaction(db, expected_binding=expected,
+                            source_header=header, catalog=catalog, changes=[])
+                    self.assertEqual(db.total_changes, writes)
+                    db.rollback()
+            for raw in ('{}', ' ' + _compact(original)):
+                db.execute('BEGIN IMMEDIATE')
+                db.execute('UPDATE prepared_state SET descriptor=?', (raw,))
+                writes = db.total_changes
+                with self.assertRaisesRegex(ValueError, 'framing or digest'):
+                    apply_prepared_delta_transaction(db, expected_binding=self.binding,
+                        source_header=header, catalog=catalog, changes=[])
+                self.assertEqual(db.total_changes, writes)
+                db.rollback()
+        selected = self.delta([])
+        with closing(sqlite3.connect(self.path)) as db:
+            descriptor = json.loads(db.execute('SELECT descriptor FROM prepared_state').fetchone()[0])
+        self.assertEqual(descriptor['search_storage_version'], STORAGE_VERSION)
+        self.assertEqual(descriptor['schema'], publication.DESCRIPTOR_SCHEMA)
+        self.assertEqual(PublishedKnowledgeReadModel(self.path, selected).catalog()['source_revision'], 'c' * 64)
 
 
 if __name__ == "__main__":
