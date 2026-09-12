@@ -218,6 +218,36 @@ Empty fences and zero-count terms remain as reusable directory history; a
 partial nonempty-block index makes query seeks skip them. Reclaiming that
 history is a future bounded owner maintenance route, not implicit compaction.
 
+Storage version **3** replaces the former `(doc_id, term_id)` reverse pair
+table with one `search_document_terms(doc_id, term_count, payload, digest)` row
+per document. `search_reverse_codec.py` encodes strictly increasing dictionary
+IDs as canonical unsigned delta-varints, independently of document ordering.
+IDs are `1..2**63-1`; at most 200000 IDs and 1800000 payload bytes are admitted.
+The selected row's count, SQLite value types and byte lengths are probed before
+fetching its payload. Decode rejects noncanonical/truncated varints, zero
+deltas, overflow, extra terms and count mismatch. A domain-separated SHA-256
+frame binds document address, kind, count and exact bytes. Every document has
+at least its all-document sentinel term, so an absent/empty reverse row is an
+error, not an empty old set.
+
+Addressed updates/deletes validate old selected IDs against their dictionary
+kind and sentinel in batches of at most 512. They decode only the selected
+frame, retain the existing forward set differences and sort-key relocation,
+and write/delete the reverse frame once. An unchanged term set and kind keeps
+its frame even when order changes. The fresh private bulk producer can omit
+dictionary revalidation of IDs it just resolved in the same owned transaction;
+it still validates frame bounds, canonical bytes and digest. Request queries
+never read this reverse table. These checks do not certify arbitrary hidden
+cohort corruption or a malicious co-owner's recomputed frames.
+
+Storage 2 and 3 are deliberately incompatible at the exact search-header
+gate. This change leaves `tos_knowledge_search_compressed_v3`,
+`python-lower-json-default-order-v1`, forward blocks and query/cursor shape
+unchanged. Migration is an explicit offline bootstrap into a new file and a
+fresh cursor incarnation; neither requests nor delta writers rewrite an older
+file. Prepared-publication descriptors independently name the search storage
+version through that owner's publication contract.
+
 Delta publication is one SQLite transaction with exact expected/new binding
 and fresh incarnation. Failure, allocation conflict, mutation-budget refusal or
 disk-page-limit refusal rolls back content, blocks, high-water and header.
@@ -235,8 +265,9 @@ delta budgets do not change the caller's transaction or page cap. An admitted
 budget is still checked against actual writes, with the same rollback duty.
 
 A full cohort accumulates term/document memberships across every carrier;
-each membership needs a reverse-membership insertion and posting-count update,
-and each dirty block eventually needs a block write. The delta ceiling is
+the buffered initializer still updates term counts per membership, while its
+reverse frame is written once per document and each dirty block eventually
+needs a block write. The delta ceiling is
 therefore not a portable full-corpus size limit. A larger bootstrap budget
 changes neither stored wire format nor
 query, row, term, block, chunk or database-page limits. Prepared publication
@@ -259,9 +290,10 @@ On a monotonic insertion into a retained range, no block read/decode, complete
 key reload/sort, or per-membership payload rewrite is needed. Nonmonotonic keys
 use the original exact ordering; no pre-sorted corpus, locale sort, source-order
 reinterpretation, unbounded cohort map, external sort, or temporary full index
-is assumed. Dictionary lookup, reverse membership and term-count writes remain
-per membership. Delta operations keep the original unbuffered writer. Storage
-version, fence contents/splits, query semantics and cursor ABI are unchanged.
+is assumed. Dictionary lookup and term-count writes remain per membership;
+reverse storage is the sealed per-document frame above. Delta operations keep
+the unbuffered forward writer. Fence contents/splits, query semantics and
+cursor ABI are unchanged by posting coalescing.
 `test_compressed_search_bootstrap.py` compares complete logical tables (except
 fresh random cursor secrets), paged results, flush failures and write counters
 against that original writer. Its synthetic reduction in block rewrites is
@@ -289,22 +321,40 @@ report = SearchStore.initialize_bulk_transaction(
 These example caps are explicit refusal bounds, not a full-corpus sizing claim.
 The bulk loader reuses exact document preparation, all serialized-object terms,
 identity constraints, chunking and ordering. First it writes documents, values,
-the term dictionary and reverse memberships without incremental posting-block
+the term dictionary and compressed reverse frames without incremental posting-block
 maintenance. A bounded dictionary cache has at most 8192 entries and 8 MiB of
 accounted retained payload by default; this is not an RSS bound. Existing
-per-document term/value/text bounds still apply, and insert batches contain at
-most 1024 integer rows.
+per-document term/value/text bounds still apply. The dictionary cache is released
+before staging, retaining its reported high-water measurements.
 
-It then traverses the existing `(kind, sort_key)` index and each document's
-reverse-membership primary key. A temporary integer rank expresses that exact
-order, without replacing source-order tokens or persistent addresses. Compact
-`(term_id, rank, doc_id)` memberships are written to the scratch primary key and
-read in index order. No source text or long sort key is duplicated per scratch
-membership. A temporary-sort query plan is refused before its scan. Packing
-retains at most 256 addresses, obtains each later block fence from the first
-document's original sort key, and writes each term's final count once. The
-main header follows all stages and contains the unchanged algorithm, Unicode
-binding and storage version.
+It then traverses the existing `(kind, sort_key)` index and decodes one reverse
+frame at a time. A temporary integer rank expresses that exact order, without
+replacing source-order tokens or persistent addresses. A temporary-sort query
+plan is refused before its scan. Per-term tails retain at most 255 addresses;
+appending the 256th writes a complete forward block immediately. A separate
+LRU permits at most `max_cached_tails` (default 8192) and `max_tail_bytes`
+(default 8 MiB) of accounted retained tails. An oversized entry bypasses the
+cache. Eviction writes one compressed, sealed scratch `tails` row per term,
+not a row per membership. Reload validates byte bounds, digest, canonical
+forward codec, total modulo 256 and strictly increasing temporary rank.
+The fixed frame plus numeric addresses is accounted payload, not measured RSS.
+
+Staging flushes retained tails; final packing visits scratch term IDs through
+their primary key, writes remaining partial blocks and each term's final count
+once. Packed term and membership totals must match the fresh dictionary and
+producer totals before the header is written. Later block fences use the first
+document's original sort key. No source
+text or long sort key is duplicated in scratch. The main header follows all
+stages and contains the exact algorithm, Unicode binding and storage version.
+The retained `batch_size` bound (1..1024) controls scratch page-measurement
+checkpoints; `max_page_count` enforces every allocation. This private transaction
+never shrinks its page count, and the final flush measures its actual high-water.
+
+Tail compression removes per-membership SQLite rows, not all per-membership
+work. A very small or churn-heavy cache can still perform a scratch read/write
+for almost every membership. Cache hits/misses/evictions, reads/writes, stage
+duration and scratch high-water must be measured; no cache-locality or
+full-corpus speed claim follows from boundedness alone.
 
 Logical memberships/counts and the concatenated query result stream match the
 buffered initializer. SQLite bytes, block/fence boundaries, write counts, work
@@ -330,7 +380,9 @@ cap is also explicit. The overall `max_mutations` additionally charges both
 main and scratch DML (affected rows, with at least one per write statement).
 The report separates `main_mutations`, `scratch_mutations`, their sum
 `mutations`, batch/write-call counts, cache peaks, stage durations, main page
-bytes and peak scratch page bytes. DDL/index maintenance is not a DML row
+bytes and peak scratch page bytes. It also reports `reverse_memberships`, tail
+hits/misses/evictions, scratch read calls and tail-cache entry/byte peaks.
+DDL/index maintenance is not a DML row
 count; page caps cover their allocated storage. Disk reservation must cover
 main plus scratch and the main owner's rollback journal/headroom, not just
 the final file. Main `max_page_count` alone cannot cap SQLite TEMP spills.
@@ -352,9 +404,15 @@ are explicit service-slice admission limits, not full-corpus feasibility proof.
 `storage_stats()` reports physical page/file bytes, all six data-table row
 counts and per-object `dbstat` bytes when that SQLite extension exists. Its
 full aggregate scan is an offline diagnostic, never a query preflight. A
-270-document synthetic test measured 1204224 total bytes: 802816 reverse
-membership bytes, 110592 block bytes and the separately counted dictionary,
-fence index, text, value, document and schema pages. Insert-before changed
+separate `reverse_memberships` sum distinguishes logical memberships from the
+new one-row-per-document table. The former storage-2 270-document synthetic
+fixture measured 1204224 total bytes, including 802816 reverse membership bytes
+and 110592 block bytes. A bounded in-memory design measurement encoded its
+76866 reverse memberships losslessly into 77189 payload bytes and 98304 SQLite
+bytes including per-document counts and 32-byte seals (8.167 times smaller for
+that table only). The production storage-3 buffered fixture measures 499712
+total bytes and the same 98304 reverse bytes. This is not a full-corpus forecast.
+Insert-before changed
 282/1373 blocks without other address/order-key changes. This is not a real
 corpus or D1 measurement and must not be extrapolated as one.
 
@@ -362,6 +420,12 @@ Focused checks live in `tests/test_compressed_search_store.py`: complete paged
 reference equality, short/common/absent/Unicode queries, ties, typed filters,
 large-value progress and chunk overlap, cursor integrity/restart/ABA, local
 delta edits/rollback/nonreuse, physical storage and indexed directory seeks.
+`tests/test_search_reverse_codec.py` protects canonical frame boundaries,
+selected corruption, dictionary closure, local mutations and old-version
+refusal. Bulk tests cover 255/256/257 tails, tiny-cache churn, all mutation/page
+refusals, cancellation and scratch cleanup. A frozen storage-2 oracle for 513
+explicit synthetic carriers checks term dictionary, ordered logical forward
+postings and complete query streams; physical block history may differ.
 
 ## Full-carrier publication search
 

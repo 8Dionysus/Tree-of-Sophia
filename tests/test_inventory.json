@@ -153,6 +153,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_search_reverse_codec.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/search_reverse_codec.py",
+      "protects": "lossless bounded canonical reverse frames, selected corruption and dictionary checks, local reversible mutations, no request reverse reads, transaction rollback and explicit incompatible storage refusal",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_search_reverse_codec.py",
+      "failure_route": "Fix or refuse the selected storage frame without changing forward query semantics, reading the entire cohort or silently migrating an older publication.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_compressed_search_bootstrap.py",
       "home": "access",
       "home_scope": "product-local",

@@ -2,6 +2,8 @@
 from contextlib import closing
 from dataclasses import replace
 import os
+import hashlib
+import json
 from pathlib import Path
 import random
 import sqlite3
@@ -11,6 +13,12 @@ from unittest.mock import patch
 
 from tos_access import compressed_search_bootstrap as bulk
 from tos_access import compressed_search_store as search
+
+ORACLE = json.loads(Path(__file__).with_name("search_storage_v2_oracle.json").read_text())
+
+
+def oracle_digest(value):
+    return hashlib.sha256(json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
 class BulkBootstrapTests(unittest.TestCase):
@@ -54,8 +62,9 @@ class BulkBootstrapTests(unittest.TestCase):
         documents = dict(db.execute("SELECT doc_id,sort_key FROM search_documents"))
         # Fixture-only oracle: one scan, not a reverse-table scan per term.
         reverse = {}
-        for address, term in db.execute("SELECT doc_id,term_id FROM search_document_terms"):
-            reverse.setdefault(term, set()).add(address)
+        for address, kind in db.execute("SELECT doc_id,kind FROM search_documents"):
+            for term in search._reverse_terms(db, address, kind):
+                reverse.setdefault(term, set()).add(address)
         for term, total in db.execute("SELECT term_id,posting_count FROM search_terms"):
             found, previous = [], None
             blocks = list(db.execute("SELECT lower_fence,posting_count,payload FROM search_blocks WHERE term_id=? ORDER BY lower_fence", (term,)))
@@ -77,14 +86,27 @@ class BulkBootstrapTests(unittest.TestCase):
             self.assertEqual(len(found), len(set(found)))
             self.assertEqual(set(found), reverse.get(term, set()))
 
-    def compare(self, old, actual, binding):
+    def compare(self, old, actual, binding, *, frozen=False):
         for table in ("search_documents", "search_terms", "search_document_terms", "search_values", "search_text_chunks"):
             self.assertEqual(sorted(old.execute(f"SELECT * FROM {table}")), sorted(actual.execute(f"SELECT * FROM {table}")), table)
+        streams = []
         for kind in ("node", "relation"):
-            for query in ("", "common", "needle", "unknown_nested", "false", "Общее", "\0", "🚀", "\ud800", "i\u0307", "no-match"):
+            for query in ORACLE["queries"]:
+                stream = self.stream(actual, binding, kind, query, candidate_budget=29)
                 self.assertEqual(self.stream(old, binding, kind, query, candidate_budget=29),
-                                 self.stream(actual, binding, kind, query, candidate_budget=29), (kind, query))
+                                 stream, (kind, query))
+                streams.append([kind, query, stream])
         self.assert_invariants(actual)
+        if frozen:
+            terms = [[r[0], r[1], r[2], r[3], r[4].hex(), r[5]]
+                     for r in actual.execute("SELECT * FROM search_terms ORDER BY term_id")]
+            forward = [[term, [address for (blob,) in actual.execute(
+                "SELECT payload FROM search_blocks WHERE term_id=? ORDER BY lower_fence", (term,))
+                for address in search.decode_postings(blob)]]
+                for term, in actual.execute("SELECT term_id FROM search_terms ORDER BY term_id")]
+            self.assertEqual(oracle_digest(terms), ORACLE["terms_sha256"])
+            self.assertEqual(oracle_digest(forward), ORACLE["logical_forward_sha256"])
+            self.assertEqual(oracle_digest(streams), ORACLE["query_streams_sha256"])
 
     def test_513_exact_objects_oracle_and_post_bootstrap_delta_cursor_streams(self):
         documents = list(self.documents())
@@ -97,12 +119,14 @@ class BulkBootstrapTests(unittest.TestCase):
             self.assertFalse(list(Path(folder).iterdir()))
             self.assertEqual(report["main_mutations"], actual.total_changes)
             self.assertEqual(report["mutations"], actual.total_changes + report["scratch_mutations"])
-            self.assertEqual(report["scratch_mutations"], actual.execute("SELECT count(*) FROM search_document_terms").fetchone()[0])
+            self.assertEqual(actual.execute("SELECT count(*) FROM search_document_terms").fetchone()[0], len(documents))
+            self.assertEqual(report["reverse_memberships"], actual.execute("SELECT sum(term_count) FROM search_document_terms").fetchone()[0])
+            self.assertLess(report["scratch_mutations"], report["reverse_memberships"])
             self.assertEqual(report["high_water"], max(doc.doc_id for doc in documents))
             self.assertGreater(report["dictionary_hits"], 0)
             self.assertLessEqual(report["dictionary_peak_entries"], self.limits.max_cached_terms)
             self.assertLessEqual(report["dictionary_peak_bytes"], self.limits.max_cached_bytes)
-            self.compare(old, actual, self.binding)
+            self.compare(old, actual, self.binding, frozen=True)
             previous = search.SearchStore.query_transaction(actual, binding=self.binding, kind="node", page_size=1)["next_cursor"]
             update = replace(documents[1], identifier="new-first", searchable="changed common", visible=("changed",))
             high = report["high_water"]
@@ -150,6 +174,70 @@ class BulkBootstrapTests(unittest.TestCase):
                 self.assertEqual(report["dictionary_peak_entries"], 0 if cache_bytes == 1 else 1)
                 self.assertLessEqual(report["dictionary_peak_bytes"], cache_bytes)
                 self.compare(old, actual, self.binding)
+
+    def test_tail_255_256_257_boundaries_and_tiny_cache_churn(self):
+        for size in (255, 256, 257):
+            for entries, byte_limit in ((8192, 8 * 1024 * 1024), (1, 512), (1, 1)):
+                with self.subTest(size=size, entries=entries, byte_limit=byte_limit), tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as folder, closing(sqlite3.connect(":memory:")) as db:
+                    db.execute("BEGIN")
+                    docs = [search.PreparedSearchDocument(size - i, "node", f"k{i:03d}", i, "common", (), (), {}) for i in range(size)]
+                    report = self.initialize(db, Path(folder) / "scratch", docs,
+                        scratch_limits=replace(self.limits, max_cached_tails=entries, max_tail_bytes=byte_limit))
+                    sentinel = db.execute("SELECT term_id FROM search_terms WHERE plane=3 AND n=0").fetchone()[0]
+                    expected = [(256,), (1,)] if size == 257 else [(size,)]
+                    self.assertEqual(db.execute("SELECT posting_count FROM search_blocks WHERE term_id=? ORDER BY lower_fence", (sentinel,)).fetchall(), expected)
+                    self.assertLessEqual(report["tail_peak_entries"], entries)
+                    self.assertLessEqual(report["tail_peak_bytes"], byte_limit)
+                    self.assertEqual(report["main_mutations"], db.total_changes)
+                    self.assertEqual(report["mutations"], db.total_changes + report["scratch_mutations"])
+                    if byte_limit == 1:
+                        self.assertEqual(report["tail_peak_entries"], 0)
+                        self.assertEqual(report["tail_hits"], 0)
+                        self.assertEqual(report["scratch_mutations"], report["reverse_memberships"])
+                    elif entries == 1:
+                        self.assertGreater(report["tail_evictions"], 0)
+                    else:
+                        self.assertGreater(report["tail_hits"], 0)
+                        self.assertLess(report["scratch_mutations"], report["reverse_memberships"])
+                    self.assert_invariants(db)
+
+    def test_staged_tail_damage_cannot_publish_and_is_cleaned(self):
+        def bad_stage(writer, scratch):
+            result = original(writer, scratch)
+            scratch.db.execute("UPDATE tails SET digest=zeroblob(32)")
+            return result
+        original = bulk._stage
+        with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as folder, closing(sqlite3.connect(":memory:")) as db:
+            db.execute("BEGIN")
+            with patch.object(bulk, "_stage", bad_stage), self.assertRaises(search.SearchUnavailable):
+                self.initialize(db, Path(folder) / "scratch", self.documents(1))
+            self.assertEqual(db.execute("SELECT * FROM search_header").fetchall(), [])
+            self.assertFalse(list(Path(folder).iterdir()))
+            db.rollback()
+
+    def test_tail_rank_and_payload_guards_and_interrupt_leave_no_scratch(self):
+        for damage in ("rank", "oversized", "missing", "interrupt"):
+            with self.subTest(damage=damage), tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as folder, closing(sqlite3.connect(":memory:")) as db:
+                db.execute("BEGIN")
+                original = bulk._stage
+                def bad_stage(writer, scratch):
+                    result = original(writer, scratch)
+                    if damage == "interrupt":
+                        raise KeyboardInterrupt("bounded cancellation")
+                    if damage == "oversized":
+                        scratch.db.execute("UPDATE tails SET payload=zeroblob(?)", (search.MAX_BLOCK_BYTES + 1,))
+                    elif damage == "missing":
+                        scratch.db.execute("DELETE FROM tails WHERE term_id=(SELECT min(term_id) FROM tails)")
+                    else:
+                        term = scratch.db.execute("SELECT term_id FROM tails LIMIT 1").fetchone()[0]
+                        scratch.append(term, 1, 1)
+                    return result
+                error = KeyboardInterrupt if damage == "interrupt" else search.SearchUnavailable
+                with patch.object(bulk, "_stage", bad_stage), self.assertRaises(error):
+                    self.initialize(db, Path(folder) / "scratch", self.documents(1))
+                self.assertEqual(db.execute("SELECT * FROM search_header").fetchall(), [])
+                self.assertFalse(list(Path(folder).iterdir()))
+                db.rollback()
 
     def test_combined_mutations_charge_final_header_after_scratch_and_packing(self):
         with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as folder:

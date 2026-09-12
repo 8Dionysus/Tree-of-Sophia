@@ -227,7 +227,7 @@ class CompressedSearchStoreTests(unittest.TestCase):
         before = store.storage_stats()
         self.assertEqual(before["database_bytes"], before["file_bytes"])
         self.assertGreater(before["database_bytes"], publication["payload_bytes_written"] // 100)
-        self.assertGreater(before["tables"]["search_document_terms"]["rows"], 270)
+        self.assertEqual(before["tables"]["search_document_terms"]["rows"], 270)
         # Prefix replay across multiple blocks must not reread the metadata of
         # each predecessor, including near the end of a 256-address block.
         cursor, seen = None, []

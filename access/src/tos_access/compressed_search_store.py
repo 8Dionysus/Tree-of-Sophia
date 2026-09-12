@@ -21,15 +21,18 @@ from dataclasses import dataclass
 from functools import wraps
 from typing import Any, Iterable
 
+from .search_reverse_codec import (MAX_TERMS, MAX_PAYLOAD_BYTES, ReverseCodecError,
+                                   decode_reverse, encode_reverse)
+
 SCHEMA = "tos_knowledge_search_compressed_v3"
 ALGORITHM = "python-lower-json-default-order-v1"
-STORAGE_VERSION = 2
+STORAGE_VERSION = 3
 BLOCK_SIZE = 256
 CHUNK_SIZE = 32768
 MAX_ADDRESS = 2**53 - 1
 MAX_DOCUMENT_BYTES = 8 * 1024 * 1024
 MAX_ROW_BYTES = 1_900_000
-MAX_TERMS_PER_DOCUMENT = 200_000
+MAX_TERMS_PER_DOCUMENT = MAX_TERMS
 MAX_VALUES_PER_DOCUMENT = 8192
 MAX_HEADER_BYTES = 65536
 MAX_QUERY_BYTES = 65536
@@ -215,8 +218,40 @@ CREATE TABLE search_text_chunks (doc_id INTEGER NOT NULL, category TEXT NOT NULL
 CREATE TABLE search_terms (term_id INTEGER PRIMARY KEY, kind TEXT NOT NULL, plane INTEGER NOT NULL, n INTEGER NOT NULL, term_key BLOB NOT NULL, posting_count INTEGER NOT NULL, UNIQUE(kind,plane,n,term_key));
 CREATE TABLE search_blocks (term_id INTEGER NOT NULL, lower_fence BLOB NOT NULL, posting_count INTEGER NOT NULL, payload BLOB NOT NULL, PRIMARY KEY(term_id,lower_fence)) WITHOUT ROWID;
 CREATE INDEX search_blocks_nonempty ON search_blocks(term_id,lower_fence) WHERE posting_count>0;
-CREATE TABLE search_document_terms (doc_id INTEGER NOT NULL, term_id INTEGER NOT NULL, PRIMARY KEY(doc_id,term_id)) WITHOUT ROWID;
+CREATE TABLE search_document_terms (doc_id INTEGER PRIMARY KEY, term_count INTEGER NOT NULL, payload BLOB NOT NULL, digest BLOB NOT NULL);
 """
+
+
+def _reverse_terms(connection, doc_id, kind, *, validate_terms=True):
+    """Read one bounded reverse frame, never the cohort or a forward scan.
+
+The private fresh bulk producer can omit dictionary revalidation: it has just
+resolved every ID against that dictionary in this still-owned transaction.
+Addressed deltas validate selected old IDs and the mandatory all-document term.
+"""
+    probe = connection.execute("SELECT term_count,typeof(term_count),length(payload),typeof(payload),"
+                               "length(digest),typeof(digest) FROM search_document_terms WHERE doc_id=?", (doc_id,)).fetchone()
+    if (probe is None or probe[1] != "integer" or not 1 <= probe[0] <= MAX_TERMS_PER_DOCUMENT
+            or probe[3] != "blob" or not probe[0] <= probe[2] <= min(MAX_PAYLOAD_BYTES, 9 * probe[0])
+            or probe[4:] != (32, "blob")):
+        raise SearchUnavailable("missing, invalid or oversized reverse document frame")
+    count, payload, digest = connection.execute("SELECT term_count,payload,digest FROM search_document_terms WHERE doc_id=?", (doc_id,)).fetchone()
+    try:
+        terms = decode_reverse(doc_id, kind, count, payload, digest)
+    except ReverseCodecError as exc:
+        raise SearchUnavailable(str(exc)) from exc
+    if validate_terms:
+        sentinel = False
+        for start in range(0, len(terms), 512):
+            selected = terms[start:start + 512]
+            rows = connection.execute("SELECT kind,plane,n,term_key FROM search_terms WHERE term_id IN ("
+                                      + ",".join("?" for _ in selected) + ")", tuple(selected)).fetchall()
+            if len(rows) != len(selected) or any(row[0] != kind for row in rows):
+                raise SearchUnavailable("reverse document references missing or wrong-kind term")
+            sentinel = sentinel or any(row[1:] == (3, 0, b"") for row in rows)
+        if not sentinel:
+            raise SearchUnavailable("reverse document omits its all-document term")
+    return terms
 
 
 class _Writer:
@@ -279,7 +314,6 @@ class _Writer:
                 self.block(term, keys[addresses[middle]], addresses[middle:])
             else:
                 self.block(term, fence, addresses)
-            self.write("INSERT INTO search_document_terms VALUES (?,?)", (doc_id, term))
             self.write("UPDATE search_terms SET posting_count=posting_count+1 WHERE term_id=?", (term,))
         else:
             if doc_id not in addresses:
@@ -288,7 +322,6 @@ class _Writer:
             # Keep empty fences: they are stable directory ranges, not tombstones
             # walked by queries. The next nonempty block uses an indexed seek.
             self.block(term, fence, addresses)
-            self.write("DELETE FROM search_document_terms WHERE doc_id=? AND term_id=?", (doc_id, term))
             self.write("UPDATE search_terms SET posting_count=posting_count-1 WHERE term_id=?", (term,))
 
     def terms(self, document: PreparedSearchDocument) -> set[tuple[int, int, bytes]]:
@@ -346,7 +379,9 @@ class _Writer:
         old = self.db.execute("SELECT kind,sort_key FROM search_documents WHERE doc_id=?", (document.doc_id,)).fetchone()
         if insert == (old is not None):
             raise ValueError("insert/update existence mismatch")
-        old_ids = {row[0] for row in self.db.execute("SELECT term_id FROM search_document_terms WHERE doc_id=?", (document.doc_id,))}
+        old_ids = set(_reverse_terms(self.db, document.doc_id, old[0])) if old is not None else set()
+        if insert and self.db.execute("SELECT 1 FROM search_document_terms WHERE doc_id=?", (document.doc_id,)).fetchone():
+            raise SearchUnavailable("orphan reverse document frame")
         new_ids = set()
         for plane, n, term_key in sorted(new_terms):
             row = self.db.execute("SELECT term_id FROM search_terms WHERE kind=? AND plane=? AND n=? AND term_key=?", (document.kind, plane, n, term_key)).fetchone()
@@ -367,15 +402,25 @@ class _Writer:
         self.save_values(document)
         for term in sorted(new_ids if moved else new_ids - old_ids):
             self.membership(term, document.doc_id, key, insert=True)
+        if insert or old[0] != document.kind or old_ids != new_ids:
+            self.save_reverse(document.doc_id, document.kind, new_ids, insert=insert)
+
+    def save_reverse(self, doc_id, kind, terms, *, insert):
+        count, payload, digest = encode_reverse(doc_id, kind, sorted(terms))
+        if insert:
+            self.write("INSERT INTO search_document_terms VALUES (?,?,?,?)", (doc_id, count, payload, digest))
+        else:
+            self.write("UPDATE search_document_terms SET term_count=?,payload=?,digest=? WHERE doc_id=?",
+                       (count, payload, digest, doc_id))
 
     def delete(self, doc_id: int) -> None:
-        old = self.db.execute("SELECT sort_key FROM search_documents WHERE doc_id=?", (doc_id,)).fetchone()
+        old = self.db.execute("SELECT sort_key,kind FROM search_documents WHERE doc_id=?", (doc_id,)).fetchone()
         if old is None:
             raise ValueError("delete targets missing document")
-        terms = [row[0] for row in self.db.execute("SELECT term_id FROM search_document_terms WHERE doc_id=?", (doc_id,))]
+        terms = _reverse_terms(self.db, doc_id, old[1])
         for term in terms:
             self.membership(term, doc_id, old[0], insert=False)
-        for table in ("search_values", "search_text_chunks", "search_documents"):
+        for table in ("search_document_terms", "search_values", "search_text_chunks", "search_documents"):
             self.write(f"DELETE FROM {table} WHERE doc_id=?", (doc_id,))
 
     def report(self) -> dict[str, int]:
@@ -462,9 +507,8 @@ class _BootstrapWriter(_Writer):
     def membership(self, term, doc_id, key, *, insert):
         if not insert:
             raise ValueError("bootstrap buffer accepts insertions only")
-        # The reverse PK rejects duplicate membership without a per-insertion
-        # scan of an entire 256-address block. Failure still requires rollback.
-        self.write("INSERT INTO search_document_terms VALUES (?,?)", (doc_id, term))
+        # The document PK and the prepared unique term set reject duplication;
+        # the caller stores one sealed reverse frame after these memberships.
         block = self._take(term, key)
         block.addresses.append(doc_id)
         keys = None
@@ -956,6 +1000,7 @@ class SearchStore:
             self._check(db)
             result = {"database_bytes": db.execute("PRAGMA page_count").fetchone()[0] * db.execute("PRAGMA page_size").fetchone()[0], "file_bytes": self.path.stat().st_size}
             result["tables"] = {name: {"rows": db.execute(f"SELECT count(*) FROM {name}").fetchone()[0]} for name in ("search_documents", "search_terms", "search_blocks", "search_document_terms", "search_values", "search_text_chunks")}
+            result["reverse_memberships"] = db.execute("SELECT coalesce(sum(term_count),0) FROM search_document_terms").fetchone()[0]
             try:
                 result["sqlite_objects_bytes"] = dict(db.execute("SELECT name,sum(pgsize) FROM dbstat GROUP BY name"))
             except sqlite3.OperationalError:
