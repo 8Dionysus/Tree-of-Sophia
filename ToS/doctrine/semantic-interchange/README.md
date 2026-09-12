@@ -88,6 +88,46 @@ hierarchy and crosswalk, and bumping `registry_version` when a released
 registry changes. Incompatible meaning receives a successor ID and an
 explicit `supersedes_*` link rather than reusing an old ID.
 
+## Candidate-only dossier relations
+
+Relation registry 44 adds three distinct, directed `philosophy` / `edge`
+crosswalks for source candidates already retained by the atlas source-return
+route. These are not a generic Thing-to-Thing family:
+
+| Exact native predicate | Stable relation ID | Domain → range |
+| --- | --- | --- |
+| `figure_anchor` | `tos.relation.candidate-authorizing-figure` | `tos.entity.text-corpus` → `tos.entity.figure` |
+| `translates_into` | `tos.relation.candidate-translator-involvement` | `tos.entity.figure` → `tos.entity.text-corpus` |
+| `uses_medium` | `tos.relation.candidate-material-realization` | `tos.entity.language-script` → `tos.entity.medium` |
+
+All endpoints are the existing pre-canon categories. A figure anchor is not
+necessarily a normalized Agent or a historical person; a text-corpus candidate
+does not become a Work, Collection or acquired Item. The first relation reports
+the dossier's authorizing or intratextual figure, not proven authorship. The
+second reports translator involvement **from figure to corpus**, retaining the
+original language/comment wording; it is not the existing `translated_into`
+direction and establishes no translated Expression identity or equivalence.
+The third reports material realization, including an information system's
+cord structure; it does not normalize Artifact identity or make that system
+a readable philosophical corpus. Its frontier constraints remain mandatory
+source context.
+
+Forward and inverse RU/EN labels explicitly qualify the relations as reported
+by a dossier. Exact native predicates, source labels, comments, complete source
+bodies, evidence refs, confidence, manual-review requirements and pre-canon
+status remain unchanged. `assertion_mode: direct` describes the existing
+candidate edge carrier, not direct historical truth. No reified source Claim
+profile, writer, admission, new identity, inverse edge or transitive rule is
+introduced. The mappings do not apply to `source-claims`, canon or a
+`claim-predicate` scope. Unknown vocabulary still uses the explicit fallback.
+
+The [source-visible boundary review](../../review-ledger/2026-09-12-philosophy-candidate-relation-mappings-review.md)
+records the exact five relations, eight endpoints, stream digests and immutable
+pre-change registry baseline. The earlier
+[atlas source-return review](../../review-ledger/2026-09-09-philosophy-atlas-source-return-review.md)
+remains a truthful record of its then-unmapped state; it is not rewritten as
+if this later vocabulary review had already happened.
+
 ## Semantic boundaries
 
 - Agent is a persistent responsibility bearer. Author, translator, editor,

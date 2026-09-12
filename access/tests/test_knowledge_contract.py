@@ -3070,6 +3070,137 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertEqual(relation["relation_type_id"], "tos.relation.unmapped")
         self.assertEqual(relation["predicate_mapping"]["status"], "unmapped")
 
+    def candidate_mapping_slice(self):
+        """Eight exact authored endpoints and five relations, no corpus read."""
+        relation_ids = {
+            "table-i-a35-relation-019", "table-i-a35-relation-020", "table-i-a35-relation-021",
+            "table-ii-t2-05-relation-027", "table-ii-t2-56-relation-002",
+        }
+        owner = self.repo_root / "ToS/philosophy/graph-workbench"
+        relations, nodes = [], []
+        for table in ("table-i", "table-ii"):
+            path = owner / "proposed-relations" / f"{table}-prepared-dossiers.jsonl"
+            with path.open(encoding="utf-8") as stream:
+                for line in stream:
+                    if any(identifier in line for identifier in relation_ids):
+                        record = json.loads(line)
+                        if record["candidate_id"] in relation_ids:
+                            relations.append(record)
+        self.assertEqual({row["candidate_id"] for row in relations}, relation_ids)
+        node_ids = {row[key] for row in relations for key in ("source_candidate_id", "target_candidate_id")}
+        for table in ("table-i", "table-ii"):
+            path = owner / "proposed-nodes" / f"{table}-prepared-dossiers.jsonl"
+            with path.open(encoding="utf-8") as stream:
+                for line in stream:
+                    if any(identifier in line for identifier in node_ids):
+                        record = json.loads(line)
+                        if record["candidate_id"] in node_ids:
+                            nodes.append(record)
+        self.assertEqual(len(nodes), 8)
+        self.assertEqual({row["candidate_id"] for row in nodes}, node_ids)
+        # A bounded test carrier preserves complete owner records. It does not
+        # recreate a generated projection or impersonate its source envelope.
+        philosophy = {
+            "nodes": [{"node_id": "candidate-node:" + row["candidate_id"],
+                       "node_type": "candidate-node", "label": row["label"], "source_ref": row["source_ref"],
+                       "properties": {**copy.deepcopy(row), "original_node_type": row["node_kind"],
+                                      "source_record": copy.deepcopy(row)}} for row in nodes],
+            "edges": [{"edge_id": "edge:candidate-relation:" + row["candidate_id"],
+                       "from_id": "candidate-node:" + row["source_candidate_id"],
+                       "to_id": "candidate-node:" + row["target_candidate_id"],
+                       "predicate_id": row["relation_kind"], "source_ref": row["source_ref"],
+                       "properties": {**copy.deepcopy(row), "source_record": copy.deepcopy(row)}} for row in relations],
+        }
+        return philosophy, {row["candidate_id"]: row for row in [*nodes, *relations]}
+
+    def test_candidate_relation_mappings_preserve_exact_source_and_direction(self):
+        philosophy, records = self.candidate_mapping_slice()
+        before = copy.deepcopy(philosophy)
+        graph = build_knowledge_graph({}, philosophy, {}, self.entity_type_registry, self.relation_type_registry)
+        self.assertEqual(philosophy, before)
+        self.assertEqual(graph["counts"]["semantic_mapping"]["unmapped_nodes"], 0)
+        self.assertEqual(graph["counts"]["semantic_mapping"]["unmapped_relations"], 0)
+        self.assertTrue(graph["counts"]["semantic_validation"]["valid"])
+        expected = {
+            "figure_anchor": ("tos.relation.candidate-authorizing-figure", "tos.entity.text-corpus", "tos.entity.figure"),
+            "translates_into": ("tos.relation.candidate-translator-involvement", "tos.entity.figure", "tos.entity.text-corpus"),
+            "uses_medium": ("tos.relation.candidate-material-realization", "tos.entity.language-script", "tos.entity.medium"),
+        }
+        nodes = {node["id"]: node for node in graph["nodes"]}
+        entries = {entry["relation_type_id"]: entry for entry in self.relation_type_registry["relations"]}
+        for relation in graph["relations"]:
+            source_row = records[relation["attributes"]["candidate_id"]]
+            relation_type, domain, range_type = expected[source_row["relation_kind"]]
+            self.assertEqual(relation["relation_type_id"], relation_type)
+            self.assertEqual(relation["predicate_id"], source_row["relation_kind"])
+            self.assertEqual(relation["predicate_mapping"]["source_predicate_id"], source_row["relation_kind"])
+            self.assertEqual(relation["predicate_mapping"]["status"], "mapped")
+            self.assertEqual(relation["from_id"], "philosophy:candidate-node:" + source_row["source_candidate_id"])
+            self.assertEqual(relation["to_id"], "philosophy:candidate-node:" + source_row["target_candidate_id"])
+            self.assertEqual(nodes[relation["from_id"]]["type_id"], domain)
+            self.assertEqual(nodes[relation["to_id"]]["type_id"], range_type)
+            self.assertEqual(relation["source_record"]["payload"]["properties"]["source_record"], source_row)
+            self.assertEqual(relation["attributes"]["source_record"], source_row)
+            self.assertEqual(relation["source_refs"], [source_row["source_ref"]])
+            self.assertEqual(relation["epistemic"]["authority_layer"], source_row["authority_posture"])
+            self.assertEqual(relation["epistemic"]["canon_status"], "pre-canon")
+            self.assertEqual(relation["epistemic"]["review_posture"], source_row.get("review_posture", "not-recorded"))
+            self.assertEqual(relation["attributes"].get("review_reason"), source_row.get("review_reason"))
+            self.assertEqual(relation["attributes"].get("route_constraints"), source_row.get("route_constraints"))
+            self.assertEqual(relation["display"]["explanation"]["default"], source_row["comment"])
+            entry = entries[relation_type]
+            self.assertEqual(entry["domain_type_ids"], [domain])
+            self.assertEqual(entry["range_type_ids"], [range_type])
+            self.assertEqual(entry["assertion_mode"], "direct")
+            self.assertNotIn("source_claim_profile", entry)
+            self.assertEqual(entry["review_requirement"], "recorded")
+            self.assertFalse(entry["transitive"])
+            for language in ("ru", "en"):
+                self.assertEqual(relation["display"]["label"][language], entry["labels"][language])
+                self.assertEqual(relation["display"]["inverse_label"][language], entry["inverse_labels"][language])
+        for node in graph["nodes"]:
+            candidate = node["attributes"].get("candidate_id")
+            if candidate:
+                self.assertEqual(node["source_record"]["payload"]["properties"]["source_record"], records[candidate])
+
+    def test_candidate_relation_endpoint_boundaries_reject_reversal_and_wrong_kinds(self):
+        philosophy, _ = self.candidate_mapping_slice()
+        for predicate in ("figure_anchor", "translates_into", "uses_medium"):
+            selected = next(row for row in philosophy["edges"] if row["predicate_id"] == predicate)
+            node_ids = {selected["from_id"], selected["to_id"]}
+            base = {"nodes": [row for row in philosophy["nodes"] if row["node_id"] in node_ids],
+                    "edges": [selected]}
+            for mutation in ("reverse", "wrong-domain", "wrong-range"):
+                with self.subTest(predicate=predicate, mutation=mutation):
+                    broken = copy.deepcopy(base)
+                    edge = broken["edges"][0]
+                    if mutation == "reverse":
+                        edge["from_id"], edge["to_id"] = edge["to_id"], edge["from_id"]
+                    else:
+                        endpoint = edge["from_id" if mutation == "wrong-domain" else "to_id"]
+                        node = next(row for row in broken["nodes"] if row["node_id"] == endpoint)
+                        node["properties"]["original_node_type"] = "concept"
+                    with self.assertRaisesRegex(ValueError, "(domain|range).*outside"):
+                        build_knowledge_graph({}, broken, {}, self.entity_type_registry, self.relation_type_registry)
+
+    def test_candidate_relation_mappings_are_exact_not_claim_or_foreign_routes(self):
+        from tos_access.knowledge import _relation_registry_indexes
+        entries, mappings, fallback = _relation_registry_indexes(self.relation_type_registry)
+        selected = {
+            "figure_anchor": "tos.relation.candidate-authorizing-figure",
+            "translates_into": "tos.relation.candidate-translator-involvement",
+            "uses_medium": "tos.relation.candidate-material-realization",
+        }
+        for predicate, identifier in selected.items():
+            entry = entries[identifier]
+            self.assertEqual(entry["source_mappings"], [{"source_graph": "philosophy", "source_predicate_id": predicate, "scope": "edge"}])
+            self.assertEqual(mappings[("philosophy", predicate, "edge")], identifier)
+            for graph, scope in (("source-claims", "claim-predicate"), ("source-claims", "edge"),
+                                 ("canon", "edge"), ("candidate-intake", "edge"), ("philosophy", "claim-predicate")):
+                self.assertEqual(mappings.get((graph, predicate, scope), fallback), fallback)
+        self.assertEqual(mappings[("philosophy", "translated_into", "edge")], "tos.relation.philosophy-transmission")
+        self.assertEqual(mappings.get(("philosophy", "future_candidate_predicate", "edge"), fallback), fallback)
+
     def test_current_repository_projection_has_complete_registry_coverage(self) -> None:
         corpus = json.loads(
             (self.repo_root / "ToS/derived-exports/tos_corpus_index.min.json").read_text(
@@ -3098,12 +3229,10 @@ class KnowledgeContractTests(unittest.TestCase):
         )
         mapping = graph["counts"]["semantic_mapping"]
         self.assertEqual(mapping["unmapped_nodes"], 0)
-        # The source-owner review explicitly retains five atlas edges whose
-        # predicates are not yet admitted to the semantic registry.  This is
-        # an exact, source-bound remainder—not a blanket allowance for unknown
-        # vocabulary.  Keep the edge identity, owner ref and review posture
-        # visible so a new unmapped carrier cannot hide behind this exception.
-        expected_unmapped = {
+        # Registry 44 maps the five retained edges to distinct candidate-only
+        # relations. Mapping does not accept their source claims or change
+        # authored direction, complete source body, or review posture.
+        expected_candidates = {
             "philosophy:edge:candidate-relation:table-i-a35-relation-019": {
                 "predicate_id": "figure_anchor",
                 "candidate_id": "table-i-a35-relation-019",
@@ -3145,15 +3274,24 @@ class KnowledgeContractTests(unittest.TestCase):
             for relation in graph["relations"]
             if relation.get("predicate_mapping", {}).get("status") == "unmapped"
         }
-        self.assertEqual(set(unmapped), set(expected_unmapped))
-        self.assertEqual(mapping["unmapped_relations"], len(expected_unmapped))
+        self.assertEqual(unmapped, {})
+        self.assertEqual(mapping["unmapped_relations"], 0)
+        candidates = {relation["id"]: relation for relation in graph["relations"]
+                      if relation["id"] in expected_candidates}
+        self.assertEqual(set(candidates), set(expected_candidates))
+        candidate_types = {
+            "figure_anchor": "tos.relation.candidate-authorizing-figure",
+            "translates_into": "tos.relation.candidate-translator-involvement",
+            "uses_medium": "tos.relation.candidate-material-realization",
+        }
         owner_records: dict[str, list[dict[str, object]]] = {}
-        for relation_id, expected in expected_unmapped.items():
-            relation = unmapped[relation_id]
+        for relation_id, expected in expected_candidates.items():
+            relation = candidates[relation_id]
             self.assertEqual(relation["source_graph"], "philosophy")
             self.assertEqual(relation["predicate_id"], expected["predicate_id"])
             self.assertEqual(relation["predicate_mapping"]["source_predicate_id"], expected["predicate_id"])
-            self.assertEqual(relation["predicate_mapping"]["status"], "unmapped")
+            self.assertEqual(relation["predicate_mapping"]["status"], "mapped")
+            self.assertEqual(relation["relation_type_id"], candidate_types[expected["predicate_id"]])
             payload = relation["source_record"]["payload"]
             self.assertEqual(payload["source_ref"], expected["source_ref"])
             properties = payload["properties"]
