@@ -1319,10 +1319,14 @@ class CoreContractTests(unittest.TestCase):
             contract.write_text('{"revision":1}', encoding="utf-8")
             graph = {
                 "source_revision": "a" * 64,
-                "nodes": [{"id": "n", "content_revision": "b" * 64}],
-                "relations": [{"id": "r", "content_revision": "c" * 64}],
+                "nodes": [{"id": "n", "content_revision": "b" * 64, "source_graph": "philosophy",
+                           "kind_id": "concept", "type_id": "tos.entity.concept"}],
+                "relations": [{"id": "r", "content_revision": "c" * 64, "source_graph": "philosophy",
+                               "predicate_id": "related_to", "relation_type_id": "tos.relation.related-to"}],
                 "catalog_hint": "first",
             }
+            catalog = {"schema": "tos_knowledge_catalog_v1", "source_revision": "a" * 64,
+                       "fixture_catalog": "first"}
 
             class FakeCore:
                 tos_root = root
@@ -1337,8 +1341,8 @@ class CoreContractTests(unittest.TestCase):
                 ) = source_paths
 
                 @staticmethod
-                def knowledge_graph() -> dict[str, object]:
-                    return graph
+                def knowledge_snapshot() -> dict[str, object]:
+                    return {"graph": graph, "catalog": catalog}
 
                 @staticmethod
                 def zarathustra_word_analysis_public_capability() -> dict[str, object]:
@@ -1350,11 +1354,17 @@ class CoreContractTests(unittest.TestCase):
                 graph["catalog_hint"] = "second"
                 self.assertEqual(edge_build.data_revision(FakeCore()), baseline)
 
+                catalog["fixture_catalog"] = "second"
+                self.assertNotEqual(edge_build.data_revision(FakeCore()), baseline)
+                catalog["fixture_catalog"] = "first"
+
                 graph["nodes"][0]["content_revision"] = "d" * 64
                 self.assertNotEqual(edge_build.data_revision(FakeCore()), baseline)
                 graph["nodes"][0]["content_revision"] = "b" * 64
 
-                graph['query_properties'] = [{'property_id': 'tos.property.test', 'field': 'attributes.test'}]
+                graph['query_properties'] = [{'property_id': 'tos.property.test', 'field': 'attributes.test',
+                                             'value_type': 'string', 'inherited': True,
+                                             'applies_to': ['tos.entity.concept'], 'operators': ['eq']}]
                 self.assertNotEqual(edge_build.data_revision(FakeCore()), baseline)
                 graph.pop('query_properties')
                 self.assertEqual(edge_build.data_revision(FakeCore()), baseline)

@@ -59,6 +59,7 @@ EXPECTED_KNOWLEDGE_OPERATIONS = {
     "tos.knowledge.catalog",
     "tos.knowledge.contracts",
     "tos.knowledge.search",
+    "tos.knowledge.search.capabilities",
     "tos.knowledge.node.inspect",
     "tos.knowledge.relation.inspect",
     "tos.knowledge.temporal.compare",
