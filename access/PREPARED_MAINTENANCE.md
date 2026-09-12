@@ -85,6 +85,11 @@ dependencies from a supplied replacement list.
 
 ## Budgets and compatibility
 
+The bounded [source-cohort normalization](contracts/source-assembly-normalization.v1.md)
+adapter reuses full-builder kernels for multiple source nodes, Claim traces and
+their relations. Its supplied input closure must be established by the source
+assembler; a candidate does not prove complete dependency discovery.
+
 The private [source-root pairing](contracts/prepared-source-binding.v1.md)
 wrapper can select immutable source projection roots in this same caller
 transaction. It stores the exact roots beside the final prepared binding,

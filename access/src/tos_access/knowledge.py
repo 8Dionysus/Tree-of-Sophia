@@ -2712,6 +2712,67 @@ def _single_value(values, _):
     return values[0]
 
 
+def _bibliographic_relation_source(item, claim_traces, bibliographic_nodes_by_native):
+    """Shared raw relation enrichment; callers supply complete resolved context."""
+    material = dict(item)
+    material["predicate_id"] = _string(item.get("edge_kind")) or "related_to"
+    material["source_ref"] = _string(item.get("source_claim_file_ref")) or "ToS/source-witnesses/catalog/claims.jsonl"
+    material["graph_layers"] = ["bibliographic-claim"]
+    properties = dict(item.get("properties")) if isinstance(item.get("properties"), dict) else {}
+    claim_ref = _string(item.get("claim_ref"))
+    trace = claim_traces.get(claim_ref or "")
+    object_node = (
+        bibliographic_nodes_by_native.get(str(trace.get("object_node_id")))
+        if isinstance(trace, dict)
+        else None
+    )
+    object_properties = (
+        object_node.get("properties")
+        if isinstance(object_node, dict) and isinstance(object_node.get("properties"), dict)
+        else {}
+    )
+    value = object_properties.get("value") if isinstance(object_properties, dict) else None
+    target_node = bibliographic_nodes_by_native.get(str(item.get("to_id")))
+    target_properties = (
+        target_node.get("properties")
+        if isinstance(target_node, dict) and isinstance(target_node.get("properties"), dict)
+        else {}
+    )
+    target_identity = _string(target_properties.get("identity_ref"))
+    if material["predicate_id"] == "has_normalized_place" and isinstance(value, dict):
+        matching = [
+            place
+            for place in _objects(value.get("places"))
+            if _string(place.get("normalized_place_ref")) == target_identity
+        ]
+        properties["spatial_roles"] = sorted(
+            {
+                *_strings(properties.get("spatial_roles")),
+                *(_string(place.get("role")) for place in matching if _string(place.get("role"))),
+            }
+        )
+        properties["spatial_literal_forms"] = sorted(
+            {
+                *_strings(properties.get("spatial_literal_forms")),
+                *(_string(place.get("literal_form")) for place in matching if _string(place.get("literal_form"))),
+            }
+        )
+    if material["predicate_id"] == "has_normalized_agent" and isinstance(value, dict):
+        matching = [
+            agent
+            for agent in _objects(value.get("agents"))
+            if _string(agent.get("normalized_agent_ref")) == target_identity
+        ]
+        properties["agent_roles"] = sorted(
+            {_string(agent.get("role")) for agent in matching if _string(agent.get("role"))}
+        )
+        properties["agent_literal_forms"] = sorted(
+            {_string(agent.get("literal_form")) for agent in matching if _string(agent.get("literal_form"))}
+        )
+    material["properties"] = properties
+    return material
+
+
 def build_knowledge_graph(
     corpus: dict[str, Any],
     philosophy: dict[str, Any],
@@ -2932,63 +2993,8 @@ def build_knowledge_graph(
     relation_sources.extend(("source-navigation", item, None) for item in _objects(navigation.get("edges")))
 
     for item in _objects(bibliographic.get("edges")):
-        material = dict(item)
-        material["predicate_id"] = _string(item.get("edge_kind")) or "related_to"
-        material["source_ref"] = _string(item.get("source_claim_file_ref")) or "ToS/source-witnesses/catalog/claims.jsonl"
-        material["graph_layers"] = ["bibliographic-claim"]
-        properties = dict(item.get("properties")) if isinstance(item.get("properties"), dict) else {}
-        claim_ref = _string(item.get("claim_ref"))
-        trace = claim_traces.get(claim_ref or "")
-        object_node = (
-            bibliographic_nodes_by_native.get(str(trace.get("object_node_id")))
-            if isinstance(trace, dict)
-            else None
-        )
-        object_properties = (
-            object_node.get("properties")
-            if isinstance(object_node, dict) and isinstance(object_node.get("properties"), dict)
-            else {}
-        )
-        value = object_properties.get("value") if isinstance(object_properties, dict) else None
-        target_node = bibliographic_nodes_by_native.get(str(item.get("to_id")))
-        target_properties = (
-            target_node.get("properties")
-            if isinstance(target_node, dict) and isinstance(target_node.get("properties"), dict)
-            else {}
-        )
-        target_identity = _string(target_properties.get("identity_ref"))
-        if material["predicate_id"] == "has_normalized_place" and isinstance(value, dict):
-            matching = [
-                place
-                for place in _objects(value.get("places"))
-                if _string(place.get("normalized_place_ref")) == target_identity
-            ]
-            properties["spatial_roles"] = sorted(
-                {
-                    *_strings(properties.get("spatial_roles")),
-                    *(_string(place.get("role")) for place in matching if _string(place.get("role"))),
-                }
-            )
-            properties["spatial_literal_forms"] = sorted(
-                {
-                    *_strings(properties.get("spatial_literal_forms")),
-                    *(_string(place.get("literal_form")) for place in matching if _string(place.get("literal_form"))),
-                }
-            )
-        if material["predicate_id"] == "has_normalized_agent" and isinstance(value, dict):
-            matching = [
-                agent
-                for agent in _objects(value.get("agents"))
-                if _string(agent.get("normalized_agent_ref")) == target_identity
-            ]
-            properties["agent_roles"] = sorted(
-                {_string(agent.get("role")) for agent in matching if _string(agent.get("role"))}
-            )
-            properties["agent_literal_forms"] = sorted(
-                {_string(agent.get("literal_form")) for agent in matching if _string(agent.get("literal_form"))}
-            )
-        material["properties"] = properties
-        relation_sources.append(("source-claims", material, None))
+        relation_sources.append(("source-claims", _bibliographic_relation_source(
+            item, claim_traces, bibliographic_nodes_by_native), None))
 
     branch_items = _objects(corpus.get("branches"))
     branch_by_path = {

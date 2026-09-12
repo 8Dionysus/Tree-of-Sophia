@@ -33,6 +33,21 @@
   ],
   "tests": [
     {
+      "path": "access/tests/test_source_assembly_normalization.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/contracts/source-assembly-normalization.v1.md",
+      "protects": "bounded multi-node source cohort normalization using full-builder Claim, literal-context, relation, inherited-view and readable-context kernels; source Agent correction parity beyond direct incidence, exact retained versions, missing input refusal, output isolation and budgets without closure or admission claims",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_source_assembly_normalization.py",
+      "failure_route": "Fix shared normalization or supplied closure verification; never infer omitted source dependencies, skip Claim reducers or silently fall back to a full graph build.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_prepared_source_binding.py",
       "home": "access",
       "home_scope": "product-local",
