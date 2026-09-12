@@ -996,6 +996,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_bibliographic_claim_projector.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "generated_parity",
+      "validation_lane": "graph_exports",
+      "owner_surface": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+      "protects": "shared pure Claim cohort assembly with exact owner-resolved contributors, unchanged raw edge and trace ordering, no I/O or input mutation, metadata version and label descriptor binding, identity-evidence dependency and normalized Claim relations beyond direct Agent incidence; synthetic assertions provide no historical or semantic admission",
+      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_bibliographic_claim_projector.py",
+      "failure_route": "Fix the source Claim projector or its full-builder integration; do not infer dependency closure or normalized reducer completeness from pure cohort assembly.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_source_witness_bibliographic_graph.py",
       "home": "tests",
       "home_scope": "root",

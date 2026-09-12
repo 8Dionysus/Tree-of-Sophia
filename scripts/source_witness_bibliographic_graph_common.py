@@ -1212,6 +1212,172 @@ def _edge(
     }
 
 
+@dataclass(frozen=True)
+class BibliographicClaimInput:
+    """Exact owner-resolved contributors, not source or incidence admission.
+
+    Subject/object and optional member/maker-identity nodes come from the shared
+    identity/literal renderers. Evidence and event nodes have already passed the
+    owner's source, visibility and fixity checks. Evidence tuples retain the
+    source reference order, including duplicates; membership and normalized
+    identity edges retain their owner order. Existing claim IDs need cover only
+    the selected alternatives/supersedes references, not a global inventory.
+
+    All values are borrowed read-only, not a detached snapshot. A caller must
+    bind these values to one source publication, verify complete source lookup
+    and external incidence, and impose its own input/output budgets. The full
+    loader does those source checks; this pure renderer performs no I/O,
+    assessment, membership discovery, source transition or normalized reducer.
+    """
+    entry: dict[str, Any]
+    source_claim: dict[str, Any]
+    subject_node: dict[str, Any]
+    object_node: dict[str, Any]
+    event_node: dict[str, Any]
+    maker_node: dict[str, Any]
+    evidence_nodes: tuple[dict[str, Any], ...]
+    counterevidence_nodes: tuple[dict[str, Any], ...]
+    existing_claim_ids: set[str] | frozenset[str]
+    navigation_registry: dict[str, Any]
+    entity_registry: dict[str, Any]
+    maker_identity_node: dict[str, Any] | None = None
+    member_nodes: tuple[dict[str, Any], ...] = ()
+    normalized_identity_edges: tuple[tuple[str, dict[str, Any]], ...] = ()
+    forms: tuple[str, bytes, list[dict[str, Any]]] | None = None
+    collection_order_basis: dict[str, Any] | None = None
+    legacy_object_link_context: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
+class BibliographicClaimProjection:
+    nodes: tuple[dict[str, Any], ...]
+    edges: tuple[dict[str, Any], ...]
+    trace: dict[str, Any]
+
+    @property
+    def incident_closure_verified(self) -> bool:
+        return False
+
+    @property
+    def source_verification_performed(self) -> bool:
+        return False
+
+
+def project_bibliographic_claim(inputs: BibliographicClaimInput) -> BibliographicClaimProjection:
+    """Render one complete raw Claim cohort with the full builder's ordering.
+
+    The source Claim, exact endpoint metadata and resolved evidence remain
+    distinct inputs. Descriptor creation uses the shared owner renderer; trace
+    assembly retains its original source refs, digests, ordinal edge IDs and
+    sorted/deduplicated fields. This does not finalize normalized claim/context
+    reducers or prove that every dependent Claim was selected.
+    """
+    entry, claim = inputs.entry, inputs.source_claim
+    claim_id = str(claim['claim_id'])
+    subject_node, object_node = inputs.subject_node, inputs.object_node
+    event_node, maker_node = inputs.event_node, inputs.maker_node
+    nodes: dict[str, dict[str, Any]] = {}
+    for node in (subject_node, object_node):
+        _add_node(nodes, node)
+    claim_node = _claim_node(entry, claim)
+    if inputs.collection_order_basis is not None:
+        claim_node['properties']['collection_order_basis'] = inputs.collection_order_basis
+    if inputs.legacy_object_link_context is not None:
+        claim_node['properties'].update(inputs.legacy_object_link_context)
+    descriptor = build_claim_navigation_descriptor(
+        claim, subject_node, object_node, inputs.navigation_registry, inputs.entity_registry)
+    if descriptor is not None:
+        claim_node['properties']['navigation_descriptor'] = descriptor
+    if inputs.forms is not None:
+        forms_ref, _forms_raw, materializations = inputs.forms
+        claim_node['properties'].update(human_forms=materializations, human_forms_source_ref=forms_ref)
+    _add_node(nodes, claim_node)
+    for node in (event_node, maker_node):
+        _add_node(nodes, node)
+    if inputs.maker_identity_node is not None:
+        _add_node(nodes, inputs.maker_identity_node)
+    for label, refs, resolved in (
+        ('evidence', claim['evidence_refs'], inputs.evidence_nodes),
+        ('counterevidence', claim.get('counterevidence_refs', []), inputs.counterevidence_nodes),
+    ):
+        if (not isinstance(refs, list) or len(refs) != len(resolved)
+                or any(str(ref) != node.get('properties', {}).get('evidence_ref')
+                       for ref, node in zip(refs, resolved))):
+            raise BibliographicGraphBuildError(f'{claim_id}: exact ordered {label} resolutions required')
+        for node in resolved:
+            _add_node(nodes, node)
+    evidence_node_ids = sorted({str(node['node_id']) for node in inputs.evidence_nodes})
+    if not evidence_node_ids:
+        raise BibliographicGraphBuildError(f'{claim_id}: a projected claim must carry evidence')
+    counterevidence_refs = claim.get('counterevidence_refs', [])
+    counterevidence_node_ids = sorted({str(node['node_id']) for node in inputs.counterevidence_nodes})
+    reviews = claim.get('reviews', [])
+    if not isinstance(reviews, list):
+        raise BibliographicGraphBuildError(f'{claim_id}: reviews must be a list')
+    review_node_ids = []
+    for review in reviews:
+        if not isinstance(review, dict):
+            raise BibliographicGraphBuildError(f'{claim_id}: review entries must be objects')
+        review_node = _review_node(review, entry=entry)
+        _add_node(nodes, review_node)
+        review_node_ids.append(str(review_node['node_id']))
+    claim_node_id = str(claim_node['node_id'])
+    edge_specs = [
+        ('has_subject', str(subject_node['node_id'])),
+        ('has_object', str(object_node['node_id'])),
+        ('made_by', str(maker_node['node_id'])),
+        ('generated_by', str(event_node['node_id'])),
+    ]
+    edge_specs.extend(('supported_by', identifier) for identifier in evidence_node_ids)
+    edge_specs.extend(('counterevidenced_by', identifier) for identifier in counterevidence_node_ids)
+    edge_specs.extend(('reviewed_by', identifier) for identifier in sorted(review_node_ids))
+    value_member_node_ids = []
+    for node in inputs.member_nodes:
+        _add_node(nodes, node)
+        value_member_node_ids.append(node['node_id'])
+        edge_specs.append(('has_value_member', node['node_id']))
+    normalized_identity_node_ids = []
+    for edge_kind, node in inputs.normalized_identity_edges:
+        _add_node(nodes, node)
+        identifier = str(node['node_id'])
+        normalized_identity_node_ids.append(identifier)
+        edge_specs.append((edge_kind, identifier))
+    alternative_claim_refs = claim.get('alternative_claim_refs', [])
+    if not isinstance(alternative_claim_refs, list):
+        raise BibliographicGraphBuildError(f'{claim_id}: alternative_claim_refs must be a list')
+    for reference in sorted(str(ref) for ref in alternative_claim_refs):
+        if reference not in inputs.existing_claim_ids:
+            raise BibliographicGraphBuildError(f'{claim_id}: alternative claim {reference!r} is outside the projection')
+        edge_specs.append(('alternative_to', _node_id('claim', reference)))
+    supersedes_ref = claim.get('supersedes_claim_ref')
+    if supersedes_ref is not None:
+        if supersedes_ref not in inputs.existing_claim_ids:
+            raise BibliographicGraphBuildError(f'{claim_id}: superseded claim {supersedes_ref!r} is outside the projection')
+        edge_specs.append(('supersedes', _node_id('claim', str(supersedes_ref))))
+    edges = tuple(_edge(claim_entry=entry, edge_kind=kind, ordinal=ordinal,
+        from_id=claim_node_id, to_id=identifier, evidence_node_ids=evidence_node_ids,
+        maker_node_id=str(maker_node['node_id']), provenance_event_node_id=str(event_node['node_id']))
+        for ordinal, (kind, identifier) in enumerate(edge_specs, start=1))
+    trace = {
+        'claim_ref': claim_id, 'claim_sha256': entry['claim_sha256'], 'claim_node_id': claim_node_id,
+        'subject_node_id': subject_node['node_id'], 'object_node_id': object_node['node_id'],
+        'predicate': claim['predicate'], 'assertion_layer': claim['assertion_layer'],
+        'epistemic_status': claim['epistemic_status'], 'confidence': claim.get('confidence'),
+        'qualifiers': claim.get('qualifiers'), 'maker_node_id': maker_node['node_id'],
+        'provenance_event_node_id': event_node['node_id'], 'evidence_node_ids': evidence_node_ids,
+        'counterevidence_node_ids': counterevidence_node_ids, 'review_node_ids': sorted(review_node_ids),
+        'normalized_identity_node_ids': sorted(normalized_identity_node_ids),
+        **({'value_member_node_ids': sorted(value_member_node_ids)} if value_member_node_ids else {}),
+        'review_status': claim['review_status'], 'visibility': claim['visibility'],
+        'alternative_claim_refs': sorted(str(ref) for ref in alternative_claim_refs),
+        'counterevidence_refs': sorted(str(ref) for ref in counterevidence_refs),
+        'supersedes_claim_ref': supersedes_ref, 'source_claim_file_ref': entry['source_claim_file_ref'],
+        'source_claim_line': entry['source_claim_line'], 'source_claim_sha256': entry['claim_sha256'],
+        'edge_ids': sorted(str(edge['edge_id']) for edge in edges),
+    }
+    return BibliographicClaimProjection(tuple(nodes.values()), edges, trace)
+
+
 def _validate_cross_references(payload: dict[str, Any]) -> None:
     nodes = {
         node["node_id"]: node
@@ -1493,8 +1659,6 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
                 f"{claim_id}: subject does not resolve through the object catalog"
             )
         subject_node = _identity_node(subject_entry)
-        _add_node(nodes, subject_node)
-
         object_value = claim["object"]
         if isinstance(object_value, str) and object_value in objects:
             object_node = _identity_node(objects[object_value])
@@ -1504,9 +1668,9 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
             )
         else:
             object_node = _literal_node(object_value, claim, entry)
-        _add_node(nodes, object_node)
-
-        claim_node = _claim_node(entry, claim)
+        collection_order_basis = None
+        legacy_object_link_context = None
+        forms = None
         if (Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME
                 and claim_profiles.profiles[claim['predicate']].get('object_reference_set', {}).get(
                     'basis_adapter') == 'collection-membership-versions-v1'):
@@ -1514,25 +1678,19 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
                 from metadata_version_reader import MetadataVersionReader
                 from claim_version_reader import ClaimVersionReader
                 order_metadata_reader, order_claim_reader = MetadataVersionReader(repo_root), ClaimVersionReader(repo_root)
-            claim_node['properties']['collection_order_basis'] = ground_collection_order(
+            collection_order_basis = ground_collection_order(
                 claim, order_metadata_reader, order_claim_reader)
-            input_digests.update(claim_node['properties']['collection_order_basis']['input_digests'])
+            input_digests.update(collection_order_basis['input_digests'])
         if entry['source_claim_file_ref'] == OBJECT_LINK_CLAIM_REF:
-            claim_node['properties'].update(legacy_links.context(entry['source_claim_line'], claim))
-        descriptor = build_claim_navigation_descriptor(
-            claim, subject_node, object_node, navigation_registry, profiles.registry)
-        if descriptor is not None:
-            claim_node['properties']['navigation_descriptor'] = descriptor
+            legacy_object_link_context = legacy_links.context(entry['source_claim_line'], claim)
         if Path(entry['source_claim_file_ref']).name in {SOURCE_CLAIM_BASENAME, 'historical-claims.jsonl'}:
             try:
                 forms = load_claim_forms(repo_root, entry['source_claim_file_ref'], claim, access_allowed=True)
             except (ValueError, OSError) as exc:
                 raise BibliographicGraphBuildError(f'{claim_id}: invalid adjacent Claim forms: {exc}') from exc
             if forms is not None:
-                forms_ref, forms_raw, materializations = forms
-                claim_node['properties'].update(human_forms=materializations, human_forms_source_ref=forms_ref)
+                forms_ref, forms_raw, _materializations = forms
                 input_digests[forms_ref] = hashlib.sha256(forms_raw).hexdigest()
-        _add_node(nodes, claim_node)
 
         event_ref = str(claim["provenance_event_ref"])
         indexed_event = events.get(event_ref)
@@ -1544,7 +1702,6 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
             schema_ref = 'ToS/contracts/provenance-event-v2.schema.json'
             input_digests[schema_ref] = file_digest(repo_root / schema_ref)
         event_node = _event_node(indexed_event, repo_root=repo_root)
-        _add_node(nodes, event_node)
 
         maker = claim["maker"]
         if not isinstance(maker, dict):
@@ -1554,12 +1711,11 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
             objects=objects,
             claim_catalog_sha256=input_digests[CLAIM_CATALOG_REF],
         )
-        _add_node(nodes, maker_node)
         identity_node_id = maker_node["properties"].get("identity_node_id")
-        if isinstance(identity_node_id, str):
-            _add_node(nodes, _identity_node(objects[str(maker["agent_ref"])]))
+        maker_identity_node = (_identity_node(objects[str(maker["agent_ref"])])
+                               if isinstance(identity_node_id, str) else None)
 
-        evidence_node_ids: list[str] = []
+        evidence_nodes = []
         for evidence_ref in claim["evidence_refs"]:
             evidence_node = _evidence_node(
                 str(evidence_ref),
@@ -1570,20 +1726,14 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
                 citing_claim=claim,
                 claim_entry=entry,
             )
-            _add_node(nodes, evidence_node)
-            evidence_node_ids.append(str(evidence_node["node_id"]))
-        evidence_node_ids = sorted(set(evidence_node_ids))
-        if not evidence_node_ids:
-            raise BibliographicGraphBuildError(
-                f"{claim_id}: a projected claim must carry evidence"
-            )
+            evidence_nodes.append(evidence_node)
 
         counterevidence_refs = claim.get("counterevidence_refs", [])
         if not isinstance(counterevidence_refs, list):
             raise BibliographicGraphBuildError(
                 f"{claim_id}: counterevidence_refs must be a list"
             )
-        counterevidence_node_ids: list[str] = []
+        counterevidence_nodes = []
         for counterevidence_ref in counterevidence_refs:
             counterevidence_node = _evidence_node(
                 str(counterevidence_ref),
@@ -1594,46 +1744,14 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
                 citing_claim=claim,
                 claim_entry=entry,
             )
-            _add_node(nodes, counterevidence_node)
-            counterevidence_node_ids.append(str(counterevidence_node["node_id"]))
-        counterevidence_node_ids = sorted(set(counterevidence_node_ids))
+            counterevidence_nodes.append(counterevidence_node)
 
-        review_node_ids: list[str] = []
-        reviews = claim.get("reviews", [])
-        if not isinstance(reviews, list):
-            raise BibliographicGraphBuildError(f"{claim_id}: reviews must be a list")
-        for review in reviews:
-            if not isinstance(review, dict):
-                raise BibliographicGraphBuildError(
-                    f"{claim_id}: review entries must be objects"
-                )
-            review_node = _review_node(review, entry=entry)
-            _add_node(nodes, review_node)
-            review_node_ids.append(str(review_node["node_id"]))
-
-        claim_node_id = str(claim_node["node_id"])
-        edge_specs: list[tuple[str, str]] = [
-            ("has_subject", str(subject_node["node_id"])),
-            ("has_object", str(object_node["node_id"])),
-            ("made_by", str(maker_node["node_id"])),
-            ("generated_by", str(event_node["node_id"])),
-        ]
-        edge_specs.extend(("supported_by", node_id) for node_id in evidence_node_ids)
-        edge_specs.extend(
-            ("counterevidenced_by", node_id)
-            for node_id in counterevidence_node_ids
-        )
-        edge_specs.extend(("reviewed_by", node_id) for node_id in sorted(review_node_ids))
-
-        value_member_node_ids = []
+        member_nodes = []
         if Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME:
             for member_ref in claim_profiles.reference_members(claim):
                 member_node = _identity_node(objects[member_ref])
-                _add_node(nodes, member_node)
-                value_member_node_ids.append(member_node['node_id'])
-                edge_specs.append(('has_value_member', member_node['node_id']))
+                member_nodes.append(member_node)
 
-        normalized_identity_node_ids: list[str] = []
         identity_edges = _provision_identity_edges(
             claim,
             objects=objects,
@@ -1642,86 +1760,21 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
                     else claim['predicate'] == 'historical_dating')
         if temporal and claim['object'].get('relative'):
             identity_edges.append(('has_historical_date_anchor', claim['object']['relative']['anchor_ref']))
-        for edge_kind, normalized_ref in identity_edges:
-            normalized_node = _identity_node(objects[normalized_ref])
-            _add_node(nodes, normalized_node)
-            normalized_node_id = str(normalized_node["node_id"])
-            normalized_identity_node_ids.append(normalized_node_id)
-            edge_specs.append((edge_kind, normalized_node_id))
-
-        alternative_claim_refs = claim.get("alternative_claim_refs", [])
-        if not isinstance(alternative_claim_refs, list):
-            raise BibliographicGraphBuildError(
-                f"{claim_id}: alternative_claim_refs must be a list"
-            )
-        for alternative_ref in sorted(str(ref) for ref in alternative_claim_refs):
-            if alternative_ref not in claim_ids:
-                raise BibliographicGraphBuildError(
-                    f"{claim_id}: alternative claim {alternative_ref!r} is outside the projection"
-                )
-            edge_specs.append(
-                ("alternative_to", _node_id("claim", alternative_ref))
-            )
-
-        supersedes_ref = claim.get("supersedes_claim_ref")
-        if supersedes_ref is not None:
-            if supersedes_ref not in claim_ids:
-                raise BibliographicGraphBuildError(
-                    f"{claim_id}: superseded claim {supersedes_ref!r} is outside the projection"
-                )
-            edge_specs.append(("supersedes", _node_id("claim", str(supersedes_ref))))
-
-        claim_edge_ids: list[str] = []
-        for ordinal, (edge_kind, to_id) in enumerate(edge_specs, start=1):
-            projected_edge = _edge(
-                claim_entry=entry,
-                edge_kind=edge_kind,
-                ordinal=ordinal,
-                from_id=claim_node_id,
-                to_id=to_id,
-                evidence_node_ids=evidence_node_ids,
-                maker_node_id=str(maker_node["node_id"]),
-                provenance_event_node_id=str(event_node["node_id"]),
-            )
-            edges.append(projected_edge)
-            claim_edge_ids.append(str(projected_edge["edge_id"]))
-
-        traces.append(
-            {
-                "claim_ref": claim_id,
-                "claim_sha256": entry["claim_sha256"],
-                "claim_node_id": claim_node_id,
-                "subject_node_id": subject_node["node_id"],
-                "object_node_id": object_node["node_id"],
-                "predicate": claim["predicate"],
-                "assertion_layer": claim["assertion_layer"],
-                "epistemic_status": claim["epistemic_status"],
-                "confidence": claim.get("confidence"),
-                "qualifiers": claim.get("qualifiers"),
-                "maker_node_id": maker_node["node_id"],
-                "provenance_event_node_id": event_node["node_id"],
-                "evidence_node_ids": evidence_node_ids,
-                "counterevidence_node_ids": counterevidence_node_ids,
-                "review_node_ids": sorted(review_node_ids),
-                "normalized_identity_node_ids": sorted(
-                    normalized_identity_node_ids
-                ),
-                **({'value_member_node_ids': sorted(value_member_node_ids)} if value_member_node_ids else {}),
-                "review_status": claim["review_status"],
-                "visibility": claim["visibility"],
-                "alternative_claim_refs": sorted(
-                    str(ref) for ref in alternative_claim_refs
-                ),
-                "counterevidence_refs": sorted(
-                    str(ref) for ref in counterevidence_refs
-                ),
-                "supersedes_claim_ref": supersedes_ref,
-                "source_claim_file_ref": entry["source_claim_file_ref"],
-                "source_claim_line": entry["source_claim_line"],
-                "source_claim_sha256": entry["claim_sha256"],
-                "edge_ids": sorted(claim_edge_ids),
-            }
-        )
+        projection = project_bibliographic_claim(BibliographicClaimInput(
+            entry=entry, source_claim=claim, subject_node=subject_node, object_node=object_node,
+            event_node=event_node, maker_node=maker_node,
+            evidence_nodes=tuple(evidence_nodes), counterevidence_nodes=tuple(counterevidence_nodes),
+            existing_claim_ids=claim_ids, navigation_registry=navigation_registry,
+            entity_registry=profiles.registry, maker_identity_node=maker_identity_node,
+            member_nodes=tuple(member_nodes),
+            normalized_identity_edges=tuple((kind, _identity_node(objects[ref])) for kind, ref in identity_edges),
+            forms=forms, collection_order_basis=collection_order_basis,
+            legacy_object_link_context=legacy_object_link_context,
+        ))
+        for node in projection.nodes:
+            _add_node(nodes, node)
+        edges.extend(projection.edges)
+        traces.append(projection.trace)
         review_counts[str(claim["review_status"])] += 1
         visibility_counts[str(claim["visibility"])] += 1
 
