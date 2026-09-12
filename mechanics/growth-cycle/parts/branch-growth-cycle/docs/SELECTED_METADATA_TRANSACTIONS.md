@@ -54,6 +54,39 @@ after a successful source commit is not authority to roll back that source.
 
 ## Internal writer API and caller responsibilities
 
+### Read-only handoff to prepared projection assembly
+
+`source_prepared_transition.py` captures a current committed native selected
+metadata correction through its existing owner adapter:
+
+```python
+transition = capture_selected_prepared_transition(
+    owner_config_path, transaction_id,
+    expected_before_publication=selected_derived_baseline_source_token,
+)
+before_record = transition.record('before')
+after_record = transition.record('after')
+verify_selected_prepared_transition_current(transition)
+```
+
+Capture reconstructs the retained command with `_pending_plan`, rechecks current
+delegation and dependencies, compares the exact archived predecessor bytes and
+current successor package, and verifies the participating publication token.
+It retains detached immutable bytes; record/receipt accessors decode copies.
+Pending, rolled-back, historical/non-current transactions, wrong predecessors,
+stale configuration, source-byte drift and corrupted retained evidence refuse.
+The observer never executes the command, resumes recovery, writes a catalog,
+normalizes a graph or selects a prepared reader. It currently accepts the v2/v3
+native selected-revision owners, not flat v1 or arbitrary transaction profiles.
+
+The predecessor token must come from the caller's admitted derived baseline;
+capture cannot establish that baseline or complete new graph dependencies.
+This is an observation, not a lease. A later publisher must preserve the
+source-owner lock and exact nonparticipating-input guards and reverify before
+its derived commit. No assessment journal lock, inherited admission or
+cross-filesystem/SQLite atomicity is implied. Local root/owner locators and
+retained source bytes are private integration inputs, not public query output.
+
 `source_metadata_transactions.py` exposes:
 
 ```python

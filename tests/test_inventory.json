@@ -33,6 +33,21 @@
   ],
   "tests": [
     {
+      "path": "mechanics/growth-cycle/tests/test_source_prepared_transition.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "source_growth_command_contract",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SELECTED_METADATA_TRANSACTIONS.md",
+      "protects": "read-only exact committed selected-source transition capture, current delegation and predecessor binding, retained archive and successor byte agreement, immutable handoff, stale/pending/rolled-back refusal and no descendant enumeration",
+      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "mechanics/growth-cycle/tests/test_source_prepared_transition.py",
+      "failure_route": "Fix source-owner transition capture without replaying writes, trusting caller receipts, accepting stale bytes or claiming a lease, projection closure or semantic admission.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_prepared_neighborhood.py",
       "home": "access",
       "home_scope": "product-local",
