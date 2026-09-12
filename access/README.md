@@ -341,6 +341,23 @@ use the prepared services described below. The default, without these two argume
 retains the existing compatibility route. This is not completion of the broader
 cold-reader or addressed-source publication work, nor a production activation.
 
+The executable accepts the same explicit selection, including HTTP and MCP:
+
+```bash
+tos --root /path/to/runtime-data --prepared-read-model /path/to/selected.sqlite \
+  --prepared-binding /path/to/owner-selected-binding.json knowledge catalog
+tos --root /path/to/runtime-data --prepared-read-model /path/to/selected.sqlite \
+  --prepared-binding /path/to/owner-selected-binding.json \
+  --exploration-checkpoints /path/to/local-continuations.sqlite mcp
+```
+
+Use `serve` instead of `mcp` to start local HTTP. Binding JSON is limited to
+64 KiB and loaded from the separately chosen file; it is never recovered from
+the selected database after mismatch. The optional checkpoint path is a distinct
+local continuation store, not authored knowledge. Without it, exploration
+checkpoints remain process-local. `doctor` and `verify` still inspect the
+source-backed profile and reject prepared flags rather than claiming its health.
+
 `PublishedLensService(reader, limits=PublishedLensLimits(...))` executes native-v7
 lens and focus semantics over an owner-published v9 snapshot. `execute(spec)` and
 `focus(node_id, **options)` share the native property binder, focus specification
