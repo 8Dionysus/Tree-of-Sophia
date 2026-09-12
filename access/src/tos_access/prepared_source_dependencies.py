@@ -626,6 +626,8 @@ def verify_source_dependency_binding_transaction(db, *, new_binding, source_inpu
         if not state['pending']:
             if state['binding'] != new_binding or state['source_inputs_sha256'] != source_inputs_sha256:
                 raise ValueError('source dependency final binding differs')
+            if b.one('SELECT 1 FROM source_dependency_pending LIMIT 1'):
+                raise ValueError('source dependency orphan pending declaration')
             return _receipt(b, new_binding, source_inputs_sha256, pending=False)
         if (state['next_source_inputs_sha256'] != source_inputs_sha256
                 or state['next_source_revision'] != new_binding['source_revision']

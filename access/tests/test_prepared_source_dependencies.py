@@ -271,6 +271,25 @@ class PreparedSourceDependencyTests(unittest.TestCase):
         self.assertEqual(found['declarations'][0]['digest'], declaration.digest)
         self.db.rollback()
 
+    def test_idempotent_finalize_refuses_orphan_pending_without_mutation(self):
+        declaration = self.declaration(1)
+        self.attach([declaration])
+        self.db.execute('BEGIN IMMEDIATE')
+        clean = self.finalize(self.binding, self.source)
+        self.assertFalse(clean['pending'])
+        self.assertEqual(clean['sql_mutations'], 0)
+        self.db.execute('INSERT INTO source_dependency_pending VALUES (?,?)',
+                        (declaration.claim_id, declaration.digest))
+        start = self.db.total_changes
+        with self.assertRaisesRegex(ValueError, 'orphan pending declaration'):
+            self.finalize(self.binding, self.source)
+        self.assertEqual(self.db.total_changes, start)
+        self.assertTrue(self.db.in_transaction)
+        self.db.rollback()
+        self.db.execute('BEGIN')
+        self.assertFalse(self.finalize(self.binding, self.source)['pending'])
+        self.db.rollback()
+
     def test_stale_preconditions_refuse_before_lane_mutation(self):
         old = self.declaration(1)
         self.attach([old])
