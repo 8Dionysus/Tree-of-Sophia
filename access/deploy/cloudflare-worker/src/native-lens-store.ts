@@ -8,111 +8,24 @@ import {arrayRefs, compileNativeSpec, derived, nativeMatchesGroup, nativeChild, 
   nativePacketJson, parseNativeJson, stringField, type NativeRef, type NativeSpec, type NativeGroup, type NativeLensResult} from './native-lens.ts';
 import {finalizeNativeLens} from './native-lens-result.ts';
 
+import {NativeD1Read as Read, NativeD1Rows, nativeD1Limits as nativeLensLimits, nativeBytes as bytes, nativeSha256 as sha256, nativeUnavailable as unavailable, readNativePublication, type NativeD1Limits as Limits} from './native-d1-read.ts';
+export {nativeD1Limits as nativeLensLimits} from './native-d1-read.ts';
+const compact = (value: unknown) => JSON.stringify(value);
 type Kind = 'node' | 'relation';
 type Header = {id: string; from_id: string; to_id: string; sort_key: string; key?: string[]};
 type Cell = [string, string, string, number];
 type LensMetadata = {node_counts: Cell[]; relation_counts: Cell[]; query_properties: QueryProperty[]};
 const DIMENSIONS = {node: ['source_graph', 'kind_id', 'type_id'], relation: ['source_graph', 'predicate_id', 'relation_type_id']} as const;
-const IDENTITY = {node: ['id', 'entity_id', 'native_id', 'source_graph', 'kind_id', 'type_id'],
-  relation: ['id', 'native_id', 'source_graph', 'from_id', 'to_id', 'predicate_id', 'relation_type_id']} as const;
+
 const INDEXES = ['knowledge_lens_order_sort', 'knowledge_lens_order_from', 'knowledge_lens_order_to', 'knowledge_lens_order_pair'];
-export const nativeLensLimits = Object.freeze({maxCandidates: 2048, maxCallbacks: 32768, maxDecodedBytes: 16 * 1024 * 1024,
-  maxSortBytes: 4 * 1024 * 1024, maxCacheBytes: 2 * 1024 * 1024, maxCacheEntries: 64, maxPathSteps: 100000,
-  maxRows: 4096, maxSqlReads: 200000, maxQueries: 2000, blockSize: 16});
-type Limits = typeof nativeLensLimits;
-const bytes = (text: string) => new TextEncoder().encode(text).length;
-const compact = (value: unknown) => JSON.stringify(value);
-async function sha256(raw: string): Promise<string> {
-  return [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw)))].map(b => b.toString(16).padStart(2, '0')).join('');
-}
-function unavailable(message: string): never {throw new HttpError(503, message);}
 
-class Read {
-  returned = 0; deliveredBytes = 0; queries = 0; sqlReads = 0;
-  private pending: Promise<void> = Promise.resolve();
-  readonly db: D1Database; readonly limits: Limits;
-  constructor(db: D1Database, limits: Limits) {this.db = db; this.limits = limits;}
-  async query<T>(input: string | (() => {sql: string; args: unknown[]}), ...bindings: unknown[]): Promise<T[]> {
-    // A request may merge several endpoint streams concurrently. Serialize
-    // delivery admission so they cannot each reserve the same remaining bytes.
-    const previous = this.pending; let release!: () => void;
-    this.pending = new Promise<void>(resolve => {release = resolve;});
-    await previous;
-    try {
-      if (this.returned >= this.limits.maxRows) throw new NativeBudgetExceeded('native D1 returned-row budget');
-      if (++this.queries > this.limits.maxQueries) throw new NativeBudgetExceeded('native D1 query budget');
-      const {sql, args} = typeof input === 'string' ? {sql: input, args: bindings} : input();
-      const result = await this.db.prepare(sql).bind(...args).all<T>();
-      this.sqlReads += result.meta?.rows_read ?? 0;
-      if (this.sqlReads > this.limits.maxSqlReads) throw new NativeBudgetExceeded('native D1 rows-read budget');
-      for (const row of result.results) {
-        if (++this.returned > this.limits.maxRows) throw new NativeBudgetExceeded('native D1 returned-row budget');
-        for (const value of Object.values(row as Record<string, unknown>)) if (typeof value === 'string') this.deliveredBytes += bytes(value);
-        if (this.deliveredBytes > this.limits.maxDecodedBytes) throw new NativeBudgetExceeded('native D1 returned-byte budget');
-      }
-      return result.results;
-    } finally {release();}
-  }
-  async textRows<T>(columns: readonly string[], order: readonly string[], sql: string, ...args: unknown[]): Promise<T[]> {
-    // Column/order names are internal literals from the concrete plan, never
-    // request fields. Both source-cell and aggregate bounds precede delivery.
-    if ([...columns, ...order].some(name => !/^[a-z_]+$/.test(name)) || order.some(name => !columns.includes(name))) throw new Error('invalid native header projection');
-    let allowance = 0;
-    const rows = await this.query<T & {_native_valid: number; _native_bytes: number}>(() => {
-      allowance = this.limits.maxDecodedBytes - this.deliveredBytes;
-      const valid = columns.map(name => `typeof(${name})='text' AND length(CAST(${name} AS BLOB))<=1048576`).join(' AND ');
-      const cost = columns.map(name => `coalesce(length(CAST(${name} AS BLOB)),0)`).join('+');
-      return {sql: `WITH selected AS (SELECT * FROM (${sql}) LIMIT ?), framed AS (
-        SELECT *,CASE WHEN ${valid} THEN 1 ELSE 0 END AS _native_valid,
-        sum(${cost}) OVER (ORDER BY ${order.join(',')} ROWS UNBOUNDED PRECEDING) AS _native_bytes FROM selected)
-        SELECT ${columns.map(name => `CASE WHEN _native_valid=1 AND _native_bytes<=? THEN ${name} ELSE NULL END AS ${name}`).join(',')},
-        _native_valid,_native_bytes FROM framed ORDER BY ${order.join(',')}`,
-        args: [...args, this.limits.maxRows - this.returned + 1, ...columns.map(() => allowance)]};
-    });
-    for (const row of rows) {
-      if (row._native_valid !== 1) unavailable('native lens header is not bounded text');
-      if (row._native_bytes > allowance) throw new NativeBudgetExceeded('native lens header delivery-byte budget');
-    }
-    return rows;
-  }
-  async metadata(key: string, maxBytes = 8 * 1024 * 1024): Promise<{raw: string; ref: NativeRef}> {
-    const chunks: string[] = []; let total = 0;
-    while (true) {
-      // Never deliver oversized source text into the Worker before checking it.
-      const page = await this.query<{part: number | null; json_chunk: string | null; json_bytes: number | null; json_valid: number; part_count: number; has_more: number}>(() => ({
-        sql: `SELECT CASE WHEN typeof(part)='integer' THEN part ELSE NULL END AS part,
-        CASE WHEN typeof(json_chunk)='text' AND length(CAST(json_chunk AS BLOB))<=? THEN json_chunk ELSE NULL END AS json_chunk,
-        length(CAST(json_chunk AS BLOB)) AS json_bytes,CASE WHEN typeof(json_chunk)='text' THEN 1 ELSE 0 END AS json_valid,
-        (SELECT count(*) FROM edge_meta same WHERE same.key=m.key AND same.part=m.part) AS part_count,
-        EXISTS(SELECT 1 FROM edge_meta later WHERE later.key=m.key AND later.part>m.part) AS has_more
-        FROM edge_meta m WHERE key=?${chunks.length ? ' AND part>?' : ''} ORDER BY part LIMIT 1`,
-        args: [Math.min(131072, maxBytes - total, this.limits.maxDecodedBytes - this.deliveredBytes), key, ...(chunks.length ? [chunks.length - 1] : [])],
-      }));
-      if (!page.length) break;
-      for (const row of page) {
-        if (row.json_valid !== 1 || row.json_bytes === null || row.json_bytes > 131072 || row.json_bytes > maxBytes - total) unavailable('native lens metadata chunk is not bounded text: ' + key);
-        if (row.json_bytes > this.limits.maxDecodedBytes - this.deliveredBytes && row.json_chunk === null) throw new NativeBudgetExceeded('native lens metadata delivery-byte budget');
-        if (chunks.length >= 256 || row.part !== chunks.length || row.part_count !== 1 || typeof row.json_chunk !== 'string') unavailable('native lens metadata chunks unavailable: ' + key);
-        total += bytes(row.json_chunk); if (total > maxBytes) unavailable('native lens metadata exceeds byte budget: ' + key);
-        chunks.push(row.json_chunk);
-      }
-      if (page[0]!.has_more === 0) break;
-    }
-    if (!chunks.length) unavailable('native lens metadata chunks unavailable: ' + key);
-    const raw = chunks.join('');
-    try {return {raw, ref: parseNativeJson(raw, {maxBytes})};}
-    catch {return unavailable('native lens metadata invalid: ' + key);}
-  }
-}
-
-class Plan {
-  decoded = 0; callbacks = 0; candidates = 0; sortBytes = 0; pathSteps = 0; cacheBytes = 0;
-  cache = new Map<string, {ref: NativeRef; size: number}>();
+class Plan extends NativeD1Rows {
+  callbacks = 0; candidates = 0; sortBytes = 0; pathSteps = 0;
   matchedNodes = 0; matchedRelations = 0; genericRelations: Header[] | null = null;
   sources: Set<string>;
-  readonly read: Read; readonly metadata: LensMetadata; readonly spec: NativeSpec; readonly limits: Limits;
+  readonly metadata: LensMetadata; readonly spec: NativeSpec;
   constructor(read: Read, metadata: LensMetadata, spec: NativeSpec, limits: Limits) {
-    this.read = read; this.metadata = metadata; this.spec = spec; this.limits = limits; this.sources = new Set(spec.sources);
+    super(read, limits); this.metadata = metadata; this.spec = spec; this.sources = new Set(spec.sources);
   }
   callback<T>(fn: () => T): T {if (++this.callbacks > this.limits.maxCallbacks) throw new NativeBudgetExceeded('native lens callback budget'); return fn();}
   group(ref: NativeRef, group: NativeGroup): boolean {return this.callback(() => nativeMatchesGroup(ref, group));}
@@ -146,58 +59,6 @@ class Plan {
     }
     return {sql, args};
   }
-  async load(kind: Kind, identifiers: Iterable<string>): Promise<Map<string, NativeRef>> {
-    const ids = [...new Set(identifiers)].sort(codePointCompare), result = new Map<string, NativeRef>(), missing: string[] = [];
-    for (const id of ids) {
-      const key = kind + ':' + id, cached = this.cache.get(key);
-      if (cached) {this.cache.delete(key); this.cache.set(key, cached); result.set(id, cached.ref);} else missing.push(id);
-    }
-    for (let offset = 0; offset < missing.length; offset += this.limits.blockSize) {
-      const page = missing.slice(offset, offset + this.limits.blockSize);
-      let allowance = 0;
-      const costs = [...IDENTITY[kind], 'json'].map(field => `coalesce(length(CAST(${field} AS BLOB)),0)`).join('+');
-      const valid = ["typeof(json)='text'", ...IDENTITY[kind].map(field => `typeof(${field})='text' AND length(CAST(${field} AS BLOB))<=1048576`)].join(' AND ');
-      const permitted = valid + ' AND json_bytes<=1048576 AND delivered_bytes<=?';
-      const fields = [...IDENTITY[kind], 'json'];
-      const items = await this.read.query<Record<string, unknown>>(() => {
-        allowance = Math.min(this.limits.maxDecodedBytes - this.read.deliveredBytes, this.limits.maxDecodedBytes - this.decoded);
-        return {sql: `WITH selected AS (
-        SELECT ${fields.join(',')},length(CAST(json AS BLOB)) AS json_bytes FROM knowledge_${kind}s
-        WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id LIMIT ?), framed AS (
-        SELECT *,sum(${costs}) OVER (ORDER BY id ROWS UNBOUNDED PRECEDING) AS delivered_bytes FROM selected)
-        SELECT ${fields.map(field => `CASE WHEN ${permitted} THEN ${field} ELSE NULL END AS ${field}`).join(',')},
-        json_bytes,CASE WHEN ${valid} THEN 1 ELSE 0 END AS json_valid,delivered_bytes FROM framed ORDER BY id`,
-        args: [compact(page), Math.min(page.length + 1, this.limits.maxRows - this.read.returned + 1), ...fields.map(() => allowance)]};
-      });
-      const orders = await this.read.textRows<{kind: string; id: string; sort_key: string; from_id: string; to_id: string}>(['kind','id','sort_key','from_id','to_id'], ['id'], 'SELECT kind,id,sort_key,from_id,to_id FROM knowledge_lens_order WHERE kind=? AND id IN (SELECT value FROM json_each(?)) LIMIT ?', kind, compact(page), page.length + 1);
-      if (items.length !== page.length || orders.length !== page.length) unavailable('native lens selected payload/order closure missing');
-      const byOrder = new Map(orders.map(row => [row.id, row]));
-      for (const row of items) {
-        if (row.json_valid !== 1 || typeof row.json_bytes !== 'number' || row.json_bytes > 1048576) unavailable('native lens row JSON is not bounded text');
-        if (typeof row.delivered_bytes !== 'number' || row.delivered_bytes > allowance) throw new NativeBudgetExceeded('native lens payload delivery-byte budget');
-        if (typeof row.json !== 'string') unavailable('native lens row JSON is not text');
-        const raw = row.json as string, size = bytes(raw);
-        this.decoded += size;
-        if (this.decoded > this.limits.maxDecodedBytes) throw new NativeBudgetExceeded('native lens decoded-byte budget');
-        const expected = await this.read.metadata(`knowledge_${kind}_digest:${row.id}`, 1024);
-        if (nativeKeys(expected.ref).join(',') !== 'sha256' || nativeField(expected.ref, 'sha256').value !== await sha256(raw)) unavailable('emitted knowledge row checksum differs');
-        let ref: NativeRef;
-        try {ref = parseNativeJson(raw);} catch {return unavailable('native lens source row invalid');}
-        if (!ref.value || typeof ref.value !== 'object' || Array.isArray(ref.value) || IDENTITY[kind].some(key => nativeField(ref, key).value !== row[key])) unavailable('knowledge row identity/index columns differ');
-        const id = stringField(ref, 'id'), order = byOrder.get(id);
-        if (!order || order.kind !== kind || order.sort_key !== nativeLower(id) || order.from_id !== (kind === 'relation' ? stringField(ref, 'from_id') : '') || order.to_id !== (kind === 'relation' ? stringField(ref, 'to_id') : '')) unavailable('native lens ordered carrier differs from payload');
-        result.set(id, ref);
-        if (size <= this.limits.maxCacheBytes) {
-          while (this.cache.size && (this.cache.size >= this.limits.maxCacheEntries || this.cacheBytes + size > this.limits.maxCacheBytes)) {
-            const [key, retired] = this.cache.entries().next().value!; this.cache.delete(key); this.cacheBytes -= retired.size;
-          }
-          this.cache.set(kind + ':' + id, {ref, size}); this.cacheBytes += size;
-        }
-      }
-    }
-    return result;
-  }
-  async get(kind: Kind, id: string): Promise<NativeRef> {return (await this.load(kind, [id])).get(id)!;}
   async focus(): Promise<NativeRef | null> {
     const requested = this.spec.seed.focus_node_id;
     if (requested === null) return null;
@@ -402,18 +263,7 @@ function nativeSearchable(ref: NativeRef): string {
 export async function executeNativeLensD1(db: D1Database, input: NativeRef, overrides: Partial<Limits> = {}, expectedRevision?: string): Promise<NativeLensResult> {
   const limits = {...nativeLensLimits, ...overrides};
   if (Object.values(limits).some(value => !Number.isSafeInteger(value) || value < 1) || limits.blockSize > 64) throw new Error('invalid native lens budgets');
-  const read = new Read(db, limits), top = await read.metadata('knowledge_reader_top');
-  const topKeys = ['schema','read_model_schema','source_revision','data_revision','graph_schema','normalization_binding','catalog_sha256','row_integrity','authority_boundary','lens_sha256'];
-  if ([...nativeKeys(top.ref)].sort().join(',') !== topKeys.sort().join(',') || nativeField(top.ref, 'graph_schema').value !== 'tos_knowledge_graph_v1'
-    || ['source_revision','data_revision','catalog_sha256','lens_sha256'].some(key => typeof nativeField(top.ref, key).value !== 'string' || !/^[a-f0-9]{64}$/.test(nativeField(top.ref, key).value as string))) unavailable('native lens publication header invalid');
-  const normalization = nativeField(top.ref, 'normalization_binding');
-  const normalizationKeys = ['schema','processor_digest','entity_registry_digest','relation_registry_digest','configuration_digest'];
-  if (!normalization.value || typeof normalization.value !== 'object' || Array.isArray(normalization.value)
-    || [...nativeKeys(normalization)].sort().join(',') !== normalizationKeys.sort().join(',') || nativeField(normalization, 'schema').value !== 'tos_knowledge_graph_normalization_binding_v1'
-    || normalizationKeys.filter(key => key !== 'schema').some(key => typeof nativeField(normalization, key).value !== 'string' || !/^[a-f0-9]{64}$/.test(nativeField(normalization, key).value as string))) unavailable('native lens normalization binding invalid');
-  if (nativeField(top.ref, 'authority_boundary.source_owner').value !== 'Tree-of-Sophia' || ['is_source','is_canon','writes_to_tree'].some(key => nativeField(top.ref, 'authority_boundary.' + key).value !== false)) unavailable('native lens source authority boundary invalid');
-  if (expectedRevision !== undefined && nativeField(top.ref, 'data_revision').value !== expectedRevision) unavailable('native lens publication header differs from serving revision');
-  if (nativeField(top.ref, 'schema').value !== 'tos_published_knowledge_reader_v2' || nativeField(top.ref, 'read_model_schema').value !== 'tos_cloudflare_edge_read_model_v9' || nativeField(top.ref, 'row_integrity').value !== 'sha256-emitted-json-v1') unavailable('native lens requires owner-published v9 metadata');
+  const read = new Read(db, limits), top = await readNativePublication(read, expectedRevision);
   const sourceRevision = stringField(top.ref, 'source_revision'), metadata = await read.metadata('knowledge_lens_top', 1048576);
   if (nativeField(top.ref, 'lens_sha256').value !== await sha256(metadata.raw)) unavailable('native lens metadata checksum differs');
   const lensKeys = ['schema','execution_version','source_revision','sort_key','unicode_version','query_properties','node_counts','relation_counts'];

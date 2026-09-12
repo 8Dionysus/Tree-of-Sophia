@@ -91,6 +91,46 @@ D1 rows-read accounting is post-statement, not SQLite VM-step interruption.
 The local synthetic differential tests cover native packets; they do not claim
 full-corpus deployment or Cloudflare runtime acceptance.
 
+### Lossless inspection compatibility
+
+Node/relation inspection independently supports published v8/v9 rows. It uses
+the common bounded SQL/digest reader and retains full `NativeRef` rows through
+the first HTTP serialization. It does not execute a lens, read its histogram or
+catalog, scan a whole graph, or reread selected full rows. Existing packet
+schemas, exact/entity/native resolution precedence, code-point ID order,
+relation_limit 0..1000 (default 200), exact counts and the shared publication
+clock/ABA guard remain intact. V9 required migration indices are checked without
+loading the lens ordered carrier.
+
+The following are explicit compatibility corrections to the older D1
+inspection implementation, matching the authoritative published Python reader:
+
+- Aggregate `source_refs` includes only nonempty strings, without coercion.
+- Missing relation endpoints and duplicate source JSON members return 503.
+- More than 128 alias matches return 413 before selected bodies are loaded.
+- IDs contain 1..4096 Unicode code points after Python Unicode stripping
+  (including U+0085/U+001C, excluding U+FEFF), otherwise 400.
+- The small reader header must use declared Python compact emitted framing;
+  equivalent but non-emitted whitespace/escape/float spelling returns 503.
+  Source row bytes are never rewritten by this check.
+- Explicit row/digest/header and aggregate delivery/response budgets return
+  413. Inspection uses 1 MiB rows, 1 KiB digests, 64 KiB headers, 128 KiB metadata
+  chunks, 16 MiB aggregate delivery/response, and at most 4096 delivered rows.
+
+Unavailable/damaged publication data remains 503; absent IDs are 404;
+publication changes during successful packet construction are 409. HEAD has
+the same admission/status checks and no body. A relation packet returns all
+matched full relations and up to 256 unique full endpoints, or refuses; it
+never silently drops an endpoint. Lens source-size status/header-framing
+behavior is unchanged by these inspector-only corrections.
+
+The D1 statement/rows-read budgets are not Python SQLite VM interruption or
+hard-limit emulation. A tested valid row of 1048577 bytes yields 413 on both
+readers; a 2 MiB row hits Python's earlier SQLite hard limit (503) while D1's
+explicit pre-delivery size refusal is 413. Neither route returns the row.
+The exact status distinction and remaining lossless-route gaps must not be
+reported as complete local/D1 runtime equivalence.
+
 Large lossless JSON fields are inserted in deterministic UTF-8 chunks only
 when one statement would exceed the D1 statement ceiling, then reconstructed
 in the staged row before table swap. Contract tests use isolated synthetic D1

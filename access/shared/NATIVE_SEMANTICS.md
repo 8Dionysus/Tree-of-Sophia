@@ -3,7 +3,8 @@
 The shared helpers preserve Python values independently of a runtime. The
 Worker's lens/focus route uses them from raw request and D1 row text through
 bounded selection, grouping, pagination and the first wire serialization.
-Exploration, temporal comparison and unrelated inspection routes are unchanged.
+Node/relation inspection separately retains full raw rows through its first
+wire serialization. Search, exploration and temporal comparison are unchanged.
 
 ## Entry and reference API
 
@@ -110,11 +111,37 @@ or oversized publication assets return 503. Native execution/response budgets
 return 413 for compilation and stored-lens/focus GET/HEAD; malformed compile
 input remains 400 and damaged source metadata remains 503.
 
+`native-d1-read.ts` is the internal bounded text/payload/digest reader shared
+with `native-inspection-store.ts`. Inspection is an independent v8/v9 plan:
+exact normalized ID, then node entity ID, then native aliases; code-point ID
+ordering; full selected rows; exact incident counts; bounded related relations
+or complete unique endpoint closure. It never executes a lens, reads the catalog
+or lens histograms, or rereads selected full rows to rebuild a packet. Its
+`NativePacket` contains raw row/header refs and explicitly derived counts/flags;
+`nativePacketResponse` is its first serialization, including for HEAD admission.
+
+Inspection adopts the published Python reader's explicit compatibility
+corrections: nonempty string `source_refs` only, incomplete endpoint closure
+503, 128 alias matches, 4096-code-point IDs, Python Unicode stripping, duplicate
+source-member refusal, and declared Python compact header framing. Header
+framing verification never canonicalizes source rows. Row/digest/header size
+budgets return 413 in inspection; the prior lens source-size statuses and
+header-framing checks remain unchanged pending separate shared-owner review.
+
 ## Work budgets
 
 Default per-document limits: 1 MiB UTF-8 input, depth 64, 300000 value visits,
 4300 integer digits (current native Python default). Callers may set explicit
 positive limits and must account for their aggregate decoded/callback budget.
+Inspection additionally limits aliases to 128 matches, relation endpoints to
+256 unique nodes, related relations to 0..1000 (default 200), reader headers to
+64 KiB and row digests to 1 KiB. Per-row input is 1 MiB and per-metadata-chunk
+input is 128 KiB. It shares 16 MiB aggregate delivery/response, 4096 returned
+rows, 2000 statements and post-statement 200000 rows-read accounting. This is
+not SQLite VM/hard-limit equivalence: at a tested 1048577-byte valid source row,
+both inspectors return 413; at 2 MiB Python's earlier hard SQLite string limit
+returns 503 while D1's explicit pre-delivery size guard returns 413. Both refuse
+and D1 does not deliver the oversized text. No full-graph scan verifies indices.
 Equality/membership have shared visit limits; repr/string/reference-only JSON
 have output character limits. Mixed packet JSON has aggregate UTF-8 byte (1 MiB),
 value-visit (300000) and depth (64) limits, counting the output root as a visit
@@ -152,10 +179,10 @@ source records or publishes. No corpus-scale field index is generated.
 ## Focused verification
 
 From `access/deploy/cloudflare-worker`, run the host resource route with a
-384 MiB forecast around:
+768 MiB forecast around:
 
 ```sh
-node --experimental-strip-types --test test/native-semantics.test.mjs test/native-packet.test.mjs test/native-lens.test.mjs
+node --experimental-strip-types --test test/native-semantics.test.mjs test/native-packet.test.mjs test/native-lens.test.mjs test/native-inspection.test.mjs
 ```
 
 Thirteen tests compare actual Python str/repr/truthiness on fixed edge cases and
@@ -175,3 +202,8 @@ packets, numeric kinds, source member order and fingerprints; the actual Worker
 HTTP handler is bundled for raw-body and refusal checks. Legacy fixtures use an
 explicit test-only v9 publisher. No test here imports the complete corpus or
 proves production Cloudflare runtime acceptance.
+Inspection tests compare against the actual `PublishedKnowledgeReadModel` on
+the same tiny SQLite publication, not a reconstructed lens or JS oracle. They
+cover raw HTTP, source number kinds/unsafe integers/member order, exact/entity/
+native aliases, refusal boundaries and publication/ABA guards, plus an actual
+Miniflare D1 smoke test. Temporary test databases stay under the host TMPDIR.

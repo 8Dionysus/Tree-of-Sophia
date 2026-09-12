@@ -19,6 +19,8 @@ export async function publishNativeLensFixture(db: D1Database): Promise<void> {
       'CREATE INDEX IF NOT EXISTS knowledge_lens_order_to ON knowledge_lens_order(kind,to_id,sort_key,id)',
       'CREATE INDEX IF NOT EXISTS knowledge_lens_order_pair ON knowledge_lens_order(kind,from_id,to_id,id)',
       'CREATE INDEX IF NOT EXISTS knowledge_nodes_native_idx ON knowledge_nodes(native_id)',
+      'CREATE INDEX IF NOT EXISTS knowledge_nodes_entity_idx ON knowledge_nodes(entity_id)',
+      'CREATE INDEX IF NOT EXISTS knowledge_relations_native_idx ON knowledge_relations(native_id)',
     ].map(sql => db.prepare(sql)));
     initialized.add(db);
   }

@@ -7,7 +7,8 @@ import {
 } from "./knowledge.ts";
 import { jsonRows, meta, rows } from "./store.ts";
 import {executeNativeLensD1} from './native-lens-store.ts';
-import {parseNativeJson, type NativeRef, type NativeLensResult} from './native-lens.ts';
+import {inspectNativeD1} from './native-inspection-store.ts';
+import {parseNativeJson, type NativeRef, type NativeLensResult, type NativePacket} from './native-lens.ts';
 import { compareTemporalOperands, normalizeTemporalComparisonRequest, temporalNodeFromJson } from './temporal-comparison.ts';
 
 const KNOWLEDGE_SOURCES = new Set(["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"]);
@@ -145,12 +146,12 @@ export async function knowledgeSearchD1Indexed(
   return consistentRead(db, (snapshot) => knowledgeSearchD1IndexedUnchecked(db, options, snapshot));
 }
 
-export async function knowledgeNodeD1(db: D1Database, id: string, relationLimit: number): Promise<Item> {
-  return consistentRead(db, () => knowledgeNodeD1Unchecked(db, id, relationLimit));
+export async function knowledgeNodeD1(db: D1Database, id: string, relationLimit: number): Promise<NativePacket> {
+  return consistentRead(db, snapshot => inspectNativeD1(db, 'node', id, relationLimit, snapshot.revision));
 }
 
-export async function knowledgeRelationD1(db: D1Database, id: string): Promise<Item> {
-  return consistentRead(db, () => knowledgeRelationD1Unchecked(db, id));
+export async function knowledgeRelationD1(db: D1Database, id: string): Promise<NativePacket> {
+  return consistentRead(db, snapshot => inspectNativeD1(db, 'relation', id, 200, snapshot.revision));
 }
 
 export async function knowledgeTemporalCompareD1(db: D1Database, request: unknown): Promise<Item> {
@@ -731,72 +732,6 @@ async function knowledgeSearchD1Unchecked(
     counts: { matching_nodes: nodeCount, matching_relations: relationCount, returned_nodes: nodeRows.length, returned_relations: relationRows.length },
     nodes: nodeRows,
     relations: relationRows,
-    authority_boundary: knowledgeTop.authority_boundary ?? {},
-  };
-}
-
-async function knowledgeNodeD1Unchecked(db: D1Database, id: string, relationLimit: number): Promise<Item> {
-  const identifier = id.trim();
-  if (!identifier) throw new HttpError(400, "knowledge node id is required");
-  const exact = await rows<JsonRow>(db, "SELECT json FROM knowledge_nodes WHERE id = ? ORDER BY id", identifier);
-  const entity = exact.length ? [] : await rows<JsonRow>(db, "SELECT json FROM knowledge_nodes WHERE entity_id = ? ORDER BY id", identifier);
-  const matchedRows = exact.length
-    ? exact
-    : entity.length
-    ? entity
-    : await rows<JsonRow>(db, "SELECT json FROM knowledge_nodes WHERE native_id = ? ORDER BY id", identifier);
-  if (matchedRows.length === 0) throw new HttpError(404, `unknown ToS knowledge node: ${identifier}`);
-  const matches = matchedRows.map((row) => parseItem(row.json));
-  const ids = matches.map((item) => String(item.id));
-  const relationWhere: SqlFragment = {
-    sql: "from_id IN (SELECT value FROM json_each(?)) OR to_id IN (SELECT value FROM json_each(?))",
-    bindings: [JSON.stringify(ids), JSON.stringify(ids)],
-  };
-  const [relatedCount, selected, knowledgeTop] = await Promise.all([
-    count(db, "knowledge_relations", relationWhere),
-    jsonRows(
-      db,
-      `SELECT json FROM knowledge_relations WHERE ${relationWhere.sql} ORDER BY id LIMIT ?`,
-      ...relationWhere.bindings,
-      relationLimit,
-    ),
-    meta<Item>(db, "knowledge_top"),
-  ]);
-  const refs = [...new Set([...matches, ...selected].flatMap((item) => Array.isArray(item.source_refs) ? item.source_refs.map(String) : []))].sort();
-  return {
-    schema: "tos_knowledge_node_packet_v1",
-    source_revision: knowledgeTop.source_revision,
-    requested_id: identifier,
-    ambiguous_native_id: exact.length === 0 && entity.length === 0 && matches.length > 1,
-    shared_entity_id: entity.length > 1,
-    matches,
-    related_relations: selected,
-    counts: { matches: matches.length, related_relations: relatedCount, returned_relations: selected.length },
-    source_refs: refs,
-    authority_boundary: knowledgeTop.authority_boundary ?? {},
-  };
-}
-
-async function knowledgeRelationD1Unchecked(db: D1Database, id: string): Promise<Item> {
-  const identifier = id.trim();
-  if (!identifier) throw new HttpError(400, "knowledge relation id is required");
-  const exact = await rows<JsonRow>(db, "SELECT json FROM knowledge_relations WHERE id = ? ORDER BY id", identifier);
-  const matchedRows = exact.length ? exact : await rows<JsonRow>(db, "SELECT json FROM knowledge_relations WHERE native_id = ? ORDER BY id", identifier);
-  if (matchedRows.length === 0) throw new HttpError(404, `unknown ToS knowledge relation: ${identifier}`);
-  const matches = matchedRows.map((row) => parseItem(row.json));
-  const endpointIds = [...new Set(matches.flatMap((item) => [String(item.from_id), String(item.to_id)]))];
-  const endpoints = await nodesByIds(db, endpointIds);
-  const knowledgeTop = await meta<Item>(db, "knowledge_top");
-  const refs = [...new Set([...matches, ...endpoints].flatMap((item) => Array.isArray(item.source_refs) ? item.source_refs.map(String) : []))].sort();
-  return {
-    schema: "tos_knowledge_relation_packet_v1",
-    source_revision: knowledgeTop.source_revision,
-    requested_id: identifier,
-    ambiguous_native_id: exact.length === 0 && matches.length > 1,
-    matches,
-    endpoints,
-    counts: { matches: matches.length, endpoints: endpoints.length },
-    source_refs: refs,
     authority_boundary: knowledgeTop.authority_boundary ?? {},
   };
 }

@@ -6,7 +6,9 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
 import {executeKnowledgeLens, type KnowledgeGraph} from '../src/knowledge.ts';
-import {executeKnowledgeLensD1, knowledgeNodeD1} from '../src/knowledge-store.ts';
+import {knowledgeNodeD1} from '../src/knowledge-store.ts';
+import {nativePacketJson} from '../src/native-lens.ts';
+import {executePublishedFixtureLens} from './native-lens-fixture.ts';
 
 const knowledgeExplorationMigration = readFileSync(
   new URL('../migrations/0001-exploration.sql', import.meta.url),
@@ -57,7 +59,7 @@ print(json.dumps({'graph':g,'catalog':{'context_presentation':catalog['context_p
     await applyKnowledgeExplorationMigration(db);
     for (const {spec, expected} of fixture.cases) {
       const pure = await executeKnowledgeLens(graph, spec);
-      const stored = await executeKnowledgeLensD1(db, spec);
+      const stored = await executePublishedFixtureLens(db, spec);
       assert.deepEqual(pure, expected, `${spec.language}/${spec.detail}: Python/Worker`);
       assert.deepEqual(stored, expected, `${spec.language}/${spec.detail}: local D1`);
       for (const node of stored.nodes as KnowledgeGraph['nodes']) {
@@ -77,7 +79,7 @@ print(json.dumps({'graph':g,'catalog':{'context_presentation':catalog['context_p
       }
     }
     const source = graph.nodes.find(n => n.source_graph === 'source-navigation')!;
-    const inspected = await knowledgeNodeD1(db, source.id, 10);
+    const inspected = JSON.parse(nativePacketJson(await knowledgeNodeD1(db, source.id, 10)));
     assert.deepEqual((inspected.matches as Record<string, unknown>[])[0]!.readable_context, source.readable_context);
     assert.deepEqual(graph, original, 'delivery leaves source material unchanged');
     // Synthetic numeric extension of this source-copy fixture: no source write.
@@ -89,7 +91,7 @@ print(json.dumps({'graph':g,'catalog':{'context_presentation':catalog['context_p
       db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_top'").bind(JSON.stringify({source_revision: numeric.graph.source_revision, authority_boundary: numeric.graph.authority_boundary})),
       ...numeric.graph.nodes.map(n => db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(n), n.id)),
     ]);
-    const delivered = await executeKnowledgeLensD1(db, numeric.spec);
+    const delivered = await executePublishedFixtureLens(db, numeric.spec);
     // A JSON HTTP response normalizes -0 to 0. That ordinary carrier is not
     // the numeric-fidelity evidence; the canonical string below is unchanged.
     assert.deepEqual(JSON.parse(JSON.stringify(delivered)), JSON.parse(JSON.stringify(numeric.expected)));

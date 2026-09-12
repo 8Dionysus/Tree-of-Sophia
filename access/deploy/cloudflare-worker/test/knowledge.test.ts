@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { knowledgeSearchD1, knowledgeSearchD1Indexed, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
+import {nativePacketJson} from '../src/native-lens.ts';
 
 import {executePublishedFixtureLens, publishNativeLensFixture} from './native-lens-fixture.ts';
 import { executeKnowledgeLens, focusKnowledgeNode, knowledgeScene, normalizeLensSpec, selectDisplayForm, type KnowledgeGraph } from "../src/knowledge.ts";
@@ -490,7 +491,8 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     assert.equal((await requestPage(httpSpec)).status, 409);
     await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_top'")
       .bind(JSON.stringify({source_revision:graph.source_revision,authority_boundary:graph.authority_boundary})).run();
-    for (const packet of [await knowledgeNodeD1(db,'philosophy:a',0), await knowledgeRelationD1(db,'philosophy:e'),
+    await publishNativeLensFixture(db);
+    for (const packet of [JSON.parse(nativePacketJson(await knowledgeNodeD1(db,'philosophy:a',0))), JSON.parse(nativePacketJson(await knowledgeRelationD1(db,'philosophy:e'))),
       await knowledgeSearchD1(db,{query:'',sources:null,kindIds:[],predicateIds:[],offset:0,limit:2})]) {
       assert.equal(packet.source_revision, graph.source_revision);
     }

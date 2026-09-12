@@ -30,7 +30,7 @@ import { metaItem } from "./store";
 import { KnowledgeRevisionConflict } from "./lens-pagination";
 import { exploreD1, explorationCapabilitiesD1 } from "./exploration";
 import {parseNativeRequest, parseNativeJson, nativeField, arrayRefs, type NativeRef} from './native-lens.ts';
-import {nativeLensResponse} from './native-lens-response.ts';
+import {nativeLensResponse, nativePacketResponse} from './native-lens-response.ts';
 import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
@@ -285,7 +285,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   }
   const knowledgeNodePrefix = "/api/knowledge/nodes/";
   if (path.startsWith(knowledgeNodePrefix)) {
-    return jsonResponse(
+    return nativePacketResponse(
       await knowledgeNodeD1(env.DB, segment(path, knowledgeNodePrefix), boundedInt(search.get("relation_limit"), 200, 0, 1000)),
       200,
       method,
@@ -293,7 +293,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   }
   const knowledgeRelationPrefix = "/api/knowledge/relations/";
   if (path.startsWith(knowledgeRelationPrefix)) {
-    return jsonResponse(await knowledgeRelationD1(env.DB, segment(path, knowledgeRelationPrefix)), 200, method);
+    return nativePacketResponse(await knowledgeRelationD1(env.DB, segment(path, knowledgeRelationPrefix)), 200, method);
   }
   const knowledgeFocusPrefix = "/api/knowledge/focus/";
   if (path.startsWith(knowledgeFocusPrefix)) {
@@ -496,7 +496,7 @@ export default {
       try {
         return await apiResponse(request, env, url);
       } catch (error) {
-        if (error instanceof NativeBudgetExceeded && (url.pathname.startsWith('/api/knowledge/focus/') || url.pathname.startsWith('/api/knowledge/lenses/'))) {
+        if (error instanceof NativeBudgetExceeded && ['/api/knowledge/focus/','/api/knowledge/lenses/','/api/knowledge/nodes/','/api/knowledge/relations/'].some(prefix => url.pathname.startsWith(prefix))) {
           return jsonResponse({error: error.message}, 413, request.method);
         }
         if (error instanceof HttpError || error instanceof SourceNavigationError) {
