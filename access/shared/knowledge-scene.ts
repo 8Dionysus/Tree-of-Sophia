@@ -74,8 +74,10 @@ function compactClaimScene(nodes: Item[], relations: Item[], vertices: SceneVert
     const ids = vertex.node_ids, idSet = new Set(ids), localClaims = ids.filter(id => claims.has(id));
     if (!localClaims.length) continue;
     let reason: string | null = null;
-    if (vertex.id === focusVertex) reason = 'focus-claim';
-    else if ((incident.get(vertex.id) ?? []).some(arc => arc.relation_id === focusRelationId)) reason = 'focus-relation';
+    // A selected raw edge wins over a coincident Claim-node focus: consuming
+    // that edge into a path would hide the very relation being inspected.
+    if ((incident.get(vertex.id) ?? []).some(arc => arc.relation_id === focusRelationId)) reason = 'focus-relation';
+    else if (vertex.id === focusVertex) reason = 'focus-claim';
     else if (ids.some(id => !candidates.has(id))) reason = 'mixed-or-incomplete-claim-carriers';
     else {
       const legs = new Set(ids.flatMap(id => candidates.get(id)!.legs));

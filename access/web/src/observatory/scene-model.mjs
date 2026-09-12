@@ -4,6 +4,10 @@ import {claimPathClosure,resolveClaimReading} from './human-forms.mjs';
 // presentation adapter bounded as well when it is used directly by a fixture,
 // a restored place, or a future consumer.
 export const SCENE_LIMITS=Object.freeze({nodes:40,relations:80,vertices:40,arcs:80,paths:40});
+// This separate consumer owns a retained, bounded local view. These limits do
+// not change LensResult delivery and cannot be selected through caller numbers.
+export const EXPLORATION_SCENE_LIMITS=Object.freeze({nodes:200,relations:600,vertices:200,arcs:600,paths:200});
+const EXPLORATION_VIEW_SCHEMA='tos_browser_exploration_view_v1';
 
 const SCENE_SCHEMA='tos_knowledge_scene_v1';
 const SCENE_SCOPE='returned-packet-only';
@@ -53,10 +57,10 @@ function ids(value,{max=Infinity,min=0,unique=true}={}){
   return value;
 }
 
-function boundedPacket(packet){
+function boundedPacket(packet,limits){
   requireScene(object(packet));
-  requireScene(Array.isArray(packet.nodes)&&packet.nodes.length<=SCENE_LIMITS.nodes);
-  requireScene(Array.isArray(packet.relations)&&packet.relations.length<=SCENE_LIMITS.relations);
+  requireScene(Array.isArray(packet.nodes)&&packet.nodes.length<=limits.nodes);
+  requireScene(Array.isArray(packet.relations)&&packet.relations.length<=limits.relations);
   const rawNodesById=new Map(),rawRelationsById=new Map();
   for(const node of packet.nodes){
     requireScene(object(node)&&string(node.id)&&!rawNodesById.has(node.id));
@@ -83,6 +87,44 @@ function focusBinding(packet,rawNodesById,rawRelationsById){
   return {nodeId:focus.node_id,relationId};
 }
 
+function explorationFocusBinding(view,rawNodesById,rawRelationsById){
+  const revision=value=>typeof value==='string'&&value.length===64&&/^[a-f0-9]+$/.test(value);
+  requireScene(view.schema===EXPLORATION_VIEW_SCHEMA&&view.scope==='bounded-retained-exploration-carriers'
+    &&view.writes_to_tree===false&&view.authority_boundary?.is_source===false
+    &&view.authority_boundary?.is_canon===false&&view.authority_boundary?.writes_to_tree===false
+    &&revision(view.source_revision)&&revision(view.snapshot_revision)
+    &&['tos-exploration-execution-v6','tos-exploration-d1-execution-v6'].includes(view.execution_version)
+    &&!hasOwn(view,'focus'));
+  const origin=view.origin;
+  requireScene(object(origin)&&['node','relation'].includes(origin.kind));
+  exactKeys(origin,origin.kind==='relation'?['kind','id','content_revision','endpoints']:['kind','id','content_revision']);
+  requireScene(string(origin.id)&&revision(origin.content_revision));
+  const originRow=(origin.kind==='node'?rawNodesById:rawRelationsById).get(origin.id);
+  requireScene(originRow&&originRow.content_revision===origin.content_revision);
+  if(origin.kind==='relation'){
+    exactKeys(origin.endpoints,['from','to']);
+    for(const side of ['from','to']){
+      const endpoint=origin.endpoints[side],node=rawNodesById.get(originRow[`${side}_id`]);
+      exactKeys(endpoint,['node_id','entity_id','content_revision']);
+      requireScene(node&&endpoint.node_id===node.id&&endpoint.entity_id===node.entity_id
+        &&revision(endpoint.content_revision)&&endpoint.content_revision===node.content_revision);
+    }
+  }
+  // Resolve private validation focus from exact raw selectors. Do not add a
+  // fake LensResult focus or replace the local view's own schema/origin.
+  const selection=view.selection??{kind:origin.kind,id:origin.id};
+  requireScene(object(selection)&&['node','relation','claim-path'].includes(selection.kind));
+  exactKeys(selection,selection.kind==='claim-path'?['kind','id','claimId']:['kind','id']);
+  requireScene(string(selection.id));
+  if(selection.kind==='relation'){
+    const relation=rawRelationsById.get(selection.id);requireScene(relation);
+    return {nodeId:relation.from_id,relationId:relation.id,pathId:null};
+  }
+  const nodeId=selection.kind==='claim-path'?selection.claimId:selection.id;
+  requireScene(string(nodeId)&&rawNodesById.has(nodeId));
+  return {nodeId,relationId:null,pathId:selection.kind==='claim-path'?selection.id:null};
+}
+
 // Raw mode intentionally exposes each carrier under its own API node ID. It
 // has no declared scene identity to prefix or reinterpret.
 function rawCarrierVertex(nodeId){return nodeId;}
@@ -101,48 +143,48 @@ function rawProjection(packet,rawNodesById,rawRelationsById){
   return {mode:'raw',declared:null,vertices,edges,rawNodesById,rawRelationsById,carrierToVertex,verticesById,pathsById:new Map()};
 }
 
-function sceneVertex(value){
+function sceneVertex(value,limits){
   exactKeys(value,['id','entity_id','node_ids','representative_node_id']);
   requireScene(string(value.id)&&(value.entity_id===null||declaredEntity(value.entity_id)));
-  ids(value.node_ids,{max:SCENE_LIMITS.nodes,min:1});
+  ids(value.node_ids,{max:limits.nodes,min:1});
   requireScene(value.node_ids.includes(value.representative_node_id));
 }
 
-function validateReadingShape(reading){
+function validateReadingShape(reading,limits){
   exactKeys(reading,['mode','node_id','content_revision','wording_pointer','wording_state','context_pointers','relation_context_ids','standalone']);
   requireScene(string(reading.node_id)&&/^[a-f0-9]{64}$/.test(reading.content_revision));
   requireScene(reading.wording_pointer===null||string(reading.wording_pointer));
   requireScene(['available','missing'].includes(reading.wording_state));
   requireScene(Array.isArray(reading.context_pointers)&&reading.context_pointers.length===2
     &&reading.context_pointers[0]==='/semantics'&&reading.context_pointers[1]==='/epistemic');
-  ids(reading.relation_context_ids,{max:SCENE_LIMITS.relations});
-  requireScene(reading.mode==='claim-with-mandatory-context'&&reading.standalone===false);
+  ids(reading.relation_context_ids,{max:limits.relations});
+  requireScene(['claim-with-mandatory-context','claim-with-shared-form-context-v2'].includes(reading.mode)&&reading.standalone===false);
   requireScene(reading.wording_state==='missing'?reading.wording_pointer===null:reading.wording_pointer!==null);
 }
 
-function pathShape(path){
+function pathShape(path,limits){
   exactKeys(path,['id','from_id','to_id','claim_node_id','relation_type_id','node_ids','relation_ids','detail_relation_ids','reading']);
   requireScene(string(path.id)&&string(path.from_id)&&string(path.to_id)&&string(path.claim_node_id)&&string(path.relation_type_id));
   ids(path.node_ids,{max:3,min:3});
   ids(path.relation_ids,{max:2,min:2});
-  ids(path.detail_relation_ids,{max:SCENE_LIMITS.relations});
-  validateReadingShape(path.reading);
+  ids(path.detail_relation_ids,{max:limits.relations});
+  validateReadingShape(path.reading,limits);
 }
 
-function validateScene(packet,rawNodesById,rawRelationsById,focus){
+function validateScene(packet,rawNodesById,rawRelationsById,focus,limits){
   const scene=packet.scene;
   exactKeys(scene,['schema_version','vertices','arcs','collapsed_relation_ids','focus_vertex_id','compact','scope','identity_rule','authority'],
     ['schema_version','vertices','arcs','collapsed_relation_ids','focus_vertex_id','scope','identity_rule','authority']);
   requireScene(scene.schema_version===SCENE_SCHEMA&&scene.scope===SCENE_SCOPE
     &&scene.identity_rule===SCENE_IDENTITY&&scene.authority===SCENE_AUTHORITY);
-  requireScene(Array.isArray(scene.vertices)&&scene.vertices.length<=SCENE_LIMITS.vertices);
-  requireScene(Array.isArray(scene.arcs)&&scene.arcs.length<=SCENE_LIMITS.arcs);
-  ids(scene.collapsed_relation_ids,{max:SCENE_LIMITS.relations});
+  requireScene(Array.isArray(scene.vertices)&&scene.vertices.length<=limits.vertices);
+  requireScene(Array.isArray(scene.arcs)&&scene.arcs.length<=limits.arcs);
+  ids(scene.collapsed_relation_ids,{max:limits.relations});
   requireScene(scene.focus_vertex_id===null||string(scene.focus_vertex_id));
 
   const verticesById=new Map(),carrierToSceneVertex=new Map(),entityToVertex=new Map();
   for(const vertex of scene.vertices){
-    sceneVertex(vertex);
+    sceneVertex(vertex,limits);
     requireScene(!verticesById.has(vertex.id));
     verticesById.set(vertex.id,vertex);
     if(vertex.entity_id!==null){
@@ -186,17 +228,17 @@ function validateScene(packet,rawNodesById,rawRelationsById,focus){
   return {scene,verticesById,carrierToSceneVertex,arcs,arcById,collapsed,entityToVertex};
 }
 
-function validateCompact(packet,sceneData,rawNodesById,rawRelationsById,focus){
+function validateCompact(packet,sceneData,rawNodesById,rawRelationsById,focus,limits){
   const hasCompact=hasOwn(sceneData.scene,'compact'),compact=sceneData.scene.compact;
   if(!hasCompact)return null;
   requireScene(object(compact));
   exactKeys(compact,['rule','vertex_ids','relation_ids','claim_paths','folded_vertex_ids','retained_claims','authority']);
   requireScene(compact.rule===COMPACT_RULE&&compact.authority===COMPACT_AUTHORITY);
-  ids(compact.vertex_ids,{max:SCENE_LIMITS.vertices});
-  ids(compact.folded_vertex_ids,{max:SCENE_LIMITS.vertices});
-  ids(compact.relation_ids,{max:SCENE_LIMITS.relations});
-  requireScene(Array.isArray(compact.claim_paths)&&compact.claim_paths.length<=SCENE_LIMITS.paths);
-  requireScene(Array.isArray(compact.retained_claims)&&compact.retained_claims.length<=SCENE_LIMITS.nodes);
+  ids(compact.vertex_ids,{max:limits.vertices});
+  ids(compact.folded_vertex_ids,{max:limits.vertices});
+  ids(compact.relation_ids,{max:limits.relations});
+  requireScene(Array.isArray(compact.claim_paths)&&compact.claim_paths.length<=limits.paths);
+  requireScene(Array.isArray(compact.retained_claims)&&compact.retained_claims.length<=limits.nodes);
 
   const allVertexIds=new Set(sceneData.verticesById.keys()),visibleIds=new Set(compact.vertex_ids),foldedIds=new Set(compact.folded_vertex_ids);
   requireScene([...visibleIds,...foldedIds].every(id=>allVertexIds.has(id))
@@ -204,10 +246,13 @@ function validateCompact(packet,sceneData,rawNodesById,rawRelationsById,focus){
     &&[...visibleIds].every(id=>!foldedIds.has(id)));
   const arcIds=new Set(sceneData.arcById.keys()),relationIds=new Set(compact.relation_ids);
   requireScene([...relationIds].every(id=>arcIds.has(id)));
+  // A selected raw relation cannot disappear into a Claim path either. The
+  // producer retains it; this consumer rejects rather than repairs a mismatch.
+  requireScene(focus.relationId===null||relationIds.has(focus.relationId));
 
   const pathsById=new Map(),pathRelationIds=new Set(),pathClaimIds=new Set();
   for(const path of compact.claim_paths){
-    pathShape(path);
+    pathShape(path,limits);
     requireScene(!pathsById.has(path.id)&&!pathClaimIds.has(path.claim_node_id)
       &&rawNodesById.has(path.claim_node_id));
     requireScene(path.node_ids[1]===path.claim_node_id);
@@ -290,20 +335,34 @@ function sceneProjection(packet,sceneData,compactData,rawNodesById,rawRelationsB
   return {mode:effectiveMode,declared:scene,vertices,edges,rawNodesById,rawRelationsById,carrierToVertex,verticesById,pathsById};
 }
 
-export function buildSceneModel(packet,{mode='compact'}={}){
+function buildModel(packet,mode,limits,exploration){
   try {
     requireScene(['compact','grouped','raw'].includes(mode));
-    const {rawNodesById,rawRelationsById}=boundedPacket(packet);
-    const focus=focusBinding(packet,rawNodesById,rawRelationsById);
+    const {rawNodesById,rawRelationsById}=boundedPacket(packet,limits);
+    requireScene(exploration||packet.schema!==EXPLORATION_VIEW_SCHEMA);
+    const focus=(exploration?explorationFocusBinding:focusBinding)(packet,rawNodesById,rawRelationsById);
     if(!hasOwn(packet,'scene')){
+      requireScene(!exploration);
       return rawProjection(packet,rawNodesById,rawRelationsById);
     }
     requireScene(object(packet.scene));
-    const sceneData=validateScene(packet,rawNodesById,rawRelationsById,focus);
-    const compactData=validateCompact(packet,sceneData,rawNodesById,rawRelationsById,focus);
+    const sceneData=validateScene(packet,rawNodesById,rawRelationsById,focus,limits);
+    const compactData=validateCompact(packet,sceneData,rawNodesById,rawRelationsById,focus,limits);
+    if(exploration){
+      requireScene(compactData&&compactData.visibleIds.has(sceneData.carrierToSceneVertex.get(focus.nodeId)));
+      requireScene(focus.pathId===null||compactData.pathsById.get(focus.pathId)?.claim_node_id===focus.nodeId);
+    }
     return sceneProjection(packet,sceneData,compactData,rawNodesById,rawRelationsById,focus,mode);
   } catch(error) {
     if(error instanceof SceneContractError)throw error;
     throw new SceneContractError();
   }
+}
+
+export function buildSceneModel(packet,{mode='compact'}={}){
+  return buildModel(packet,mode,SCENE_LIMITS,false);
+}
+
+export function buildExplorationSceneModel(localView,{mode='compact'}={}){
+  return buildModel(localView,mode,EXPLORATION_SCENE_LIMITS,true);
 }
