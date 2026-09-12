@@ -1,0 +1,17 @@
+[Unit]
+Description=Tree of Sophia private demo — resource-gated HTTP server
+
+[Service]
+Type=simple
+ExecStart=@START@
+ExecStop=@STOP@
+Restart=no
+TimeoutStopSec=20
+KillMode=control-group
+StandardInput=null
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1
+UMask=0077
+
+# On-demand only. No [Install] section and no login autostart.
