@@ -91,6 +91,18 @@ class TestTopologyTests(unittest.TestCase):
                 self.assertEqual(expected_home, entry["home"])
                 self.assertTrue(entry["path"].startswith(f"{entry['home']}/"))
 
+    def test_constructor_python_tests_keep_product_ownership_outside_a_tests_directory(self) -> None:
+        cases = {
+            "access/web/constructor/desktop/test_desktop.py": ("product-local", "access"),
+            "access/web/constructor/test_build_fragments.py": ("product-local", "access"),
+            "access/tests/test_http_security.py": ("product-local", "access"),
+            "tests/test_test_topology.py": ("root", "tests"),
+            "access/web/constructor-tools/test_other.py": ("root", "access/web/constructor-tools"),
+        }
+        for path, expected in cases.items():
+            with self.subTest(path=path):
+                self.assertEqual(topology_inventory.classify_test_home(path), expected)
+
     def test_test_inventory_does_not_duplicate_command_authority(self) -> None:
         inventory = topology_inventory.load_inventory()
         inventory_text = json.dumps(inventory, sort_keys=True)

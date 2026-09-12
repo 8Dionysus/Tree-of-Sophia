@@ -33,6 +33,36 @@
   ],
   "tests": [
     {
+      "path": "access/web/constructor/desktop/test_desktop.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/web/constructor/desktop/README.md",
+      "protects": "private loopback release allowlist and exact identity, changed-release and unowned-worker refusal, concurrent on-demand startup, child output-pipe independence, dry-run non-mutation and rendered desktop/service syntax without GUI launch or service installation",
+      "coverage_authority": "access/web/constructor/desktop/README.md focused source checks; not collected by the standalone_access sequence",
+      "mode": "advisory",
+      "runtime_cost": "fast",
+      "focused_target": "access/web/constructor/desktop/test_desktop.py",
+      "failure_route": "Fix the desktop server, launcher or install-plan boundary without trusting an unowned listener, mutating an active release, starting a browser or installing a service during tests.",
+      "disposition": "keep"
+    },
+    {
+      "path": "access/web/constructor/test_build_fragments.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/web/constructor/FRAGMENTS.md",
+      "protects": "selected navigation identities and parent closure without copying earlier private text, source paths or archival entries, immutable input and exact catalog digest, and refusal when declared video-display coverage is missing; not rights or translation assessment",
+      "coverage_authority": "access/web/constructor/FRAGMENTS.md focused assembly checks; not collected by the standalone_access sequence",
+      "mode": "advisory",
+      "runtime_cost": "fast",
+      "focused_target": "access/web/constructor/test_build_fragments.py",
+      "failure_route": "Fix the fragment assembly boundary without copying the prior private library, silently relaxing declared display coverage or treating a passing fixture as rights or semantic approval.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_source_assembly_normalization.py",
       "home": "access",
       "home_scope": "product-local",

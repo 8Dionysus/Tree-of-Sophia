@@ -598,6 +598,10 @@ export const UI_CATALOG={
     "en": "Incomplete relationship exploration page.",
     "es": "Página de exploración de relaciones incompleta."
   },
+  "Не указан центр области.": {
+    "en": "No area focus was specified.",
+    "es": "No se ha especificado el centro del área."
+  },
   "Запрос не удалось исполнить.": {
     "en": "The request could not be completed.",
     "es": "No se pudo completar la solicitud."

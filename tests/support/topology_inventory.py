@@ -43,7 +43,9 @@ def classify_test_home(relative_path: str) -> tuple[str, str]:
 
     if len(parts) >= 2 and parts[0] == "tests":
         return "root", "tests"
-    if len(parts) >= 3 and parts[0] == "access" and "tests" in parts:
+    if len(parts) >= 3 and parts[0] == "access" and (
+        "tests" in parts or parts[:3] == ("access", "web", "constructor")
+    ):
         return "product-local", "access"
     if len(parts) >= 4 and parts[0] == "mechanics" and parts[2] == "tests":
         return "mechanic-level", "/".join(parts[:3])
