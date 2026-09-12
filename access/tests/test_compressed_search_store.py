@@ -464,12 +464,22 @@ class CompressedSearchStoreTests(unittest.TestCase):
             self.assertEqual(report["blocks_written"], 0)
             self.assertEqual(SearchStore.query_transaction(db, binding={"revision": 2}, kind="node")["matches"][0]["id"], "a")
             self.assertEqual(db.execute("PRAGMA max_page_count").fetchone()[0], 48)
+            self.assertEqual(db.execute("SELECT max_pages FROM search_header").fetchone()[0], 48)
             db.rollback()
             db.execute("BEGIN")
             with self.assertRaises(SearchBudgetExceeded):
                 SearchStore.initialize_transaction(db, binding=self.binding, documents=[], max_bytes=65536)
             self.assertTrue(db.in_transaction)
             db.rollback()
+            db.row_factory = None
+            db.execute("BEGIN")
+            SearchStore.apply_delta_transaction(db, expected_binding=self.binding, new_binding={"revision": 2}, changes=[])
+            db.commit()
+        # SQLite's pragma is connection-local. Persisting the narrowed bound
+        # prevents a later standalone writer from reverting to the original cap.
+        SearchStore.apply_delta(self.path, expected_binding={"revision": 2}, new_binding={"revision": 3}, changes=[])
+        with closing(sqlite3.connect(self.path)) as db:
+            self.assertEqual(db.execute("SELECT max_pages FROM search_header").fetchone()[0], 48)
 
     def test_typed_errors_distinguish_expiry_binding_corruption_and_request(self):
         store, _, _ = self.publish([self.item("a"), self.item("b")])

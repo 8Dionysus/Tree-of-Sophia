@@ -486,7 +486,7 @@ class SearchStore:
         if row is None or type(row[0]) is not int or not 0 <= row[0] <= MAX_ADDRESS or type(row[1]) is not int or row[1] < 1:
             raise SearchUnavailable("invalid stored search allocation/page cap")
         high_water = row[0]
-        _page_cap(connection, row[1])
+        max_pages = _page_cap(connection, row[1])
         writer = _Writer(connection, max_mutations)
         seen = set()
         for change in changes:
@@ -506,7 +506,7 @@ class SearchStore:
                 writer.replace(change.document, insert=change.operation == "insert")
             else:
                 raise SearchInvalidRequest("invalid typed search change")
-        writer.write("UPDATE search_header SET header=?,high_water=?,cursor_key=? WHERE singleton=1", (new, high_water, os.urandom(32)))
+        writer.write("UPDATE search_header SET header=?,high_water=?,cursor_key=?,max_pages=? WHERE singleton=1", (new, high_water, os.urandom(32), max_pages))
         return writer.report()
 
     @classmethod
