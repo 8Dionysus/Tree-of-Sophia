@@ -1,9 +1,12 @@
 import {t,uiLanguage} from './ui-i18n.mjs';
 import {displayForm} from './display-language.mjs';
 import {contentLanguage,validateHumanForms,claimPathFor,claimPathClosure,FormContractError} from './human-forms.mjs';
+import {knowledgeScene} from '../../../shared/knowledge-scene.ts';
 // The browser consumes the access contract; it never authors ToS relationships.
 export const DEFAULT_FOCUS = 'tos.work.friedrich-nietzsche.also-sprach-zarathustra';
 export const BUDGET = Object.freeze({nodes:40,relations:80});
+// Transport bounds are not a license to draw or retain every delivered page.
+export const EXPLORATION_BUDGET = Object.freeze({nodes:302,relations:101});
 const executedSpecs=new WeakMap();
 export const specForPacket=packet=>executedSpecs.get(packet)||null;
 export class ContractError extends Error {}
@@ -12,6 +15,26 @@ export class RevisionError extends Error {
 }
 export class RequestError extends Error {
   constructor(status,message){super(message);this.status=status;}
+}
+// JSON objects have no meaningful property order; array order remains exact.
+export function sameJson(left,right){
+  if(left===right)return true;
+  if(left===null||right===null||typeof left!=='object'||typeof right!=='object')return false;
+  if(Array.isArray(left)||Array.isArray(right))return Array.isArray(left)&&Array.isArray(right)
+    &&left.length===right.length&&left.every((value,index)=>sameJson(value,right[index]));
+  const keys=Object.keys(left);
+  return keys.length===Object.keys(right).length&&keys.every(key=>Object.hasOwn(right,key)&&sameJson(left[key],right[key]));
+}
+// Only these two exploration fields are sets in the owner's normalizer.
+// Keep the original request on the wire so invalid input is not repaired into
+// a valid command by client-side deduplication; compare its accepted meaning.
+export function explorationRequestMatches(normalized,requested){
+  return !!normalized&&Object.entries(requested).every(([key,value])=>{
+    if(!['sources','predicate_ids'].includes(key))return sameJson(normalized[key],value);
+    const actual=normalized[key];
+    return Array.isArray(value)&&Array.isArray(actual)&&value.every(item=>typeof item==='string')
+      &&new Set(actual).size===actual.length&&new Set(value).size===actual.length&&value.every(item=>actual.includes(item));
+  });
 }
 // Durable reading stores selectors only. The backend must supply and validate
 // the complete current path again; saved IDs never stand in for source text.
@@ -129,13 +152,13 @@ function checkItems(items,kind) {
   }
   return ids;
 }
-function validateArea(packet,expected=null) {
+function validateArea(packet,expected=null,limits=BUDGET) {
   checkRevision(packet,expected);
   if(packet.authority_boundary?.is_source!==false
     ||packet.authority_boundary?.is_canon!==false
     ||packet.authority_boundary?.writes_to_tree!==false)throw new ContractError(t("Неподдерживаемый контракт области."));
   if(!Array.isArray(packet.nodes)||!Array.isArray(packet.relations)
-    ||packet.nodes.length>BUDGET.nodes||packet.relations.length>BUDGET.relations)throw new ContractError(t("Область превышает бюджет отображения."));
+    ||packet.nodes.length>limits.nodes||packet.relations.length>limits.relations)throw new ContractError(t("Область превышает бюджет отображения."));
   const ids=checkItems(packet.nodes,'node');checkItems(packet.relations,'relation');
   if(packet.relations.some(r=>!ids.has(r.from_id)||!ids.has(r.to_id)))throw new ContractError(t("Связь не содержит оба конца в области."));
   if(packet.focus&&!ids.has(packet.focus.node_id))throw new ContractError(t("Центр отсутствует в области."));
@@ -147,6 +170,7 @@ export function validateLens(packet,expected=null) {
 }
 // Exploration pages remain exploration packets; they are never relabelled as a LensResult.
 export function validateExploration(packet,expected=null,previous=null) {
+  if(packet?.schema==='tos_exploration_result_v2')return validateOriginExploration(packet,expected,previous);
   validateArea(packet,expected);
   const page=packet.page,ids=new Set(packet.nodes.map(n=>n.id));
   if(packet.schema!=='tos_exploration_result_v1'||packet.writes_to_tree!==false
@@ -166,6 +190,62 @@ export function validateExploration(packet,expected=null,previous=null) {
     ||packet.focus.node_id!==previous.focus.node_id
     ||page.number!==previous.page.number+1
     ||JSON.stringify(packet.query)!==JSON.stringify(previous.query)))throw new RevisionError();
+  return packet;
+}
+
+// Exact packet-local origin closure. A relation origin retains its own ID and
+// both version-bound endpoints; it is not rewritten into a node focus.
+function validateOriginExploration(packet,expected,previous){
+  validateArea(packet,expected,EXPLORATION_BUDGET);
+  const fail=()=>{throw new ContractError(t("Неполная страница раскрытия связей."));};
+  const revision=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
+  const nodes=new Map(packet.nodes.map(item=>[item.id,item])),relations=new Map(packet.relations.map(item=>[item.id,item]));
+  const origin=packet.origin,page=packet.page,query=packet.query;
+  if(packet.writes_to_tree!==false||!revision(packet.snapshot_revision)
+    ||!['tos-exploration-execution-v6','tos-exploration-d1-execution-v6'].includes(packet.execution_version)
+    ||!['paused','complete','limit_reached'].includes(packet.status)
+    ||!origin||!['node','relation'].includes(origin.kind)||!revision(origin.content_revision)
+    ||typeof origin.id!=='string'||!origin.id||!query||query.schema_version!=='tos_exploration_request_v2'
+    ||query.source_revision!==packet.source_revision||!query.origin
+    ||['kind','id','content_revision'].some(key=>query.origin[key]!==origin[key])
+    ||Object.hasOwn(packet,'focus')||!Number.isSafeInteger(page?.number)||page.number<1
+    ||page.scope!=='resumable-neighborhood'||page.returned_nodes!==nodes.size||page.returned_relations!==relations.size
+    ||!Number.isSafeInteger(page.work_units)||page.work_units<0||page.work_units>512
+    ||packet.counts?.scope!=='cumulative-discovered-not-global-total'
+    ||packet.inclusion?.authority!=='query-execution-not-semantic-proof'
+    ||(packet.status==='paused'?!revision(page.next_cursor):page.next_cursor!==null)
+    ||(packet.status==='limit_reached'?!['session_nodes','session_relations'].includes(packet.limit_reason):packet.limit_reason!==null))fail();
+  for(const [kind,items] of [['node',nodes],['relation',relations]]){
+    const primary=page[`primary_${kind}_ids`],context=page[`context_${kind}_ids`];
+    if(!Array.isArray(primary)||!Array.isArray(context)||primary.length+context.length!==items.size
+      ||new Set([...primary,...context]).size!==items.size||[...primary,...context].some(id=>!items.has(id)))fail();
+    const inclusion=packet.inclusion[`${kind}s`];
+    if(!inclusion||Object.keys(inclusion).length!==items.size||[...items.keys()].some(id=>!Object.hasOwn(inclusion,id)))fail();
+  }
+  const item=(origin.kind==='node'?nodes:relations).get(origin.id);
+  if(!item||item.content_revision!==origin.content_revision)fail();
+  if(origin.kind==='node'){
+    if(Object.hasOwn(origin,'endpoints')||page.context_relation_ids.length
+      ||!page.context_node_ids.includes(origin.id)||packet.inclusion.nodes[origin.id]?.kind!=='origin')fail();
+  }else{
+    if(page.context_relation_ids.length!==1||page.context_relation_ids[0]!==origin.id
+      ||packet.inclusion.relations[origin.id]?.kind!=='origin')fail();
+    for(const side of ['from','to']){
+      const endpoint=origin.endpoints?.[side],node=nodes.get(item[`${side}_id`]);
+      if(!endpoint||!node||endpoint.node_id!==node.id||endpoint.content_revision!==node.content_revision
+        ||endpoint.entity_id!==node.entity_id||!page.context_node_ids.includes(node.id)
+        ||packet.inclusion.nodes[node.id]?.kind!=='origin-endpoint')fail();
+    }
+  }
+  if(previous&&(previous.schema!==packet.schema||previous.status!=='paused'
+    ||packet.source_revision!==previous.source_revision||packet.snapshot_revision!==previous.snapshot_revision
+    ||packet.execution_version!==previous.execution_version||page.number!==previous.page.number+1
+    ||(packet.status==='paused'&&page.next_cursor===previous.page.next_cursor)
+    ||!sameJson(packet.origin,previous.origin)||!sameJson(packet.query,previous.query)))throw new RevisionError();
+  // Reuse the producer's rule. No client-specific identity or Claim folding.
+  const focusNode=origin.kind==='node'?origin.id:origin.endpoints.from.node_id;
+  let scene;try{scene=knowledgeScene(packet.nodes,packet.relations,focusNode,origin.kind==='relation'?origin.id:null);}catch{fail();}
+  if(!sameJson(packet.scene,scene))fail();
   return packet;
 }
 // Abort and generation checking are both needed: a completed response can race
@@ -217,7 +297,7 @@ export class KnowledgeClient {
   async compile(spec,signal,expected=null){const owned=structuredClone(spec),packet=validateLens(await this.request('/lenses/compile',{signal,body:owned}),expected);executedSpecs.set(packet,owned);return packet;}
   async explore(query,signal,expected,previous=null){
     const packet=validateExploration(await this.request('/explore',{signal,body:query}),expected,previous);
-    if(!previous&&Object.entries(query).some(([key,value])=>JSON.stringify(packet.query?.[key])!==JSON.stringify(value)))throw new ContractError(t("Сервер вернул другую область раскрытия."));
+    if(!previous&&!explorationRequestMatches(packet.query,query))throw new ContractError(t("Сервер вернул другую область раскрытия."));
     return packet;
   }
   async inspect(kind,id,signal,expected,contentRevision) {

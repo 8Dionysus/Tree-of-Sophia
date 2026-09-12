@@ -119,6 +119,20 @@ CSP is required.
 - `knowledge-ui.mjs` handles paged search, inspection, scene request cancellation
   and explicit retry. A failed request retains the current graph. Inspection
   checks both source and content revisions before entering the card cache.
+- `exploration-cache.mjs` retains exact-origin exploration v2 pages as a bounded
+  browser reading space, not a new LensResult or corpus membership. It admits
+  complete pages atomically: 200 raw nodes, 600 raw relations, 32 query contexts,
+  128 pages per context, and 4 MiB including the retained replay packet. Limits
+  may only narrow. Absence on a later page does not delete earlier carriers.
+  Source, snapshot, execution, origin and continuation are checked; conflicting
+  row bytes fail even with an unchanged advertised digest. Identity and compact
+  Claim paths use the same packet-local compositor as the backend. Distinct
+  inclusion reasons retain their query and first-observed page. A failed new
+  query keeps both the last good space and its resumable continuation; `resume`
+  issues a fresh generation so ignored cancellation cannot revive an old reply.
+  A different publication needs explicit replacement. Capacity failure never
+  evicts, truncates, accepts a partial page, writes to ToS or admits knowledge.
+  Layout and camera are consumer state outside this record cache.
 - `workspace.mjs` rebuilds source dossiers, notes, hypotheses, proposals, source
   gaps and source-bound word-analysis preparation in floating panels. It reuses
   `query-operations.ts` and `research-workspace.ts`; there is no second backend.
