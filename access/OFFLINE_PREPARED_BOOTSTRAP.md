@@ -21,8 +21,15 @@ for whole-source normalization and disk/journal capacity remain caller duties.
 
 The five knowledge input paths are explicitly rooted in `--source-root` and
 override ambient `TOS_*` carrier selection; ancillary paths are explicitly
-rooted too. Core's coherent graph/catalog snapshot is used, then source file
-state is checked again after publication. The receipt identifies the source
+rooted too. Core's explicit `knowledge_snapshot_once()` reads the five carriers
+without populating or evicting process-global raw caches, uses the shared
+graph/catalog builders, and does not retain canonical carrier bytes for a future
+mutable CAS delta. It checks the complete path/mtime/size/inode/ctime tuple
+before and after input reading, graph construction, and catalog construction;
+source drift refuses this attempt. The producer checks that state again before
+and after publication. Ambient normalization-cache context is disabled only
+for this one-shot build and restored afterwards. Existing mutable snapshots and
+their caches remain untouched. The receipt identifies the source
 revision and normalization binding observed during the build. A successful
 check does not prove future source currentness, rights, semantic acceptance,
 canon or any external deployment. Source symlinks retain the core's normal
@@ -32,7 +39,10 @@ The producer applies the same recursive portable path-value conversion as the
 edge builder: the exact root becomes `Tree-of-Sophia`, root-prefixed strings
 become relative, dictionary keys and non-string/list/dict values are unchanged.
 No normalization cache is selected or written. Complete graph construction still
-retains full-size source and normalized objects. The producer converts each row
+retains full-size source and normalized objects while building; this is not a
+streaming source compiler. Local input references expire after graph/catalog
+construction except where returned values legitimately retain their contents.
+The producer converts each row
 on demand in two repeatable publication passes, so path conversion does not
 retain a second complete graph. Header and catalog are converted separately.
 Publication uses

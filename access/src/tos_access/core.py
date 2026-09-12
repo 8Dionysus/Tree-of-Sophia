@@ -93,6 +93,17 @@ PHILOSOPHY_CHALLENGE_PREDICATES = {
     "polemicizes_with",
 }
 JSON_VERSION_CACHE_MAX_PATHS = 32
+_KNOWLEDGE_SCHEMA_RULES = {
+    "philosophy": (
+        {"tos_philosophy_graph_projection_v1", "tos_philosophy_graph_projection_v2"},
+        "ToS philosophy graph projection schema_version must be one of "
+        "tos_philosophy_graph_projection_v1, tos_philosophy_graph_projection_v2",
+    ),
+    "entity_type_registry": ({"tos_semantic_entity_type_registry_v1"},
+        "ToS entity type registry schema_version must be tos_semantic_entity_type_registry_v1"),
+    "relation_type_registry": ({"tos_semantic_relation_type_registry_v1"},
+        "ToS relation type registry schema_version must be tos_semantic_relation_type_registry_v1"),
+}
 SEARCH_READ_MODEL_DEFAULT_MAX_BYTES = 512 * 1024 * 1024
 SEARCH_READ_MODEL_CURSOR_SCHEMA = "tos_knowledge_search_indexed_cursor_v1"
 _json_version_cache_lock = Lock()
@@ -144,6 +155,21 @@ def _unavailable_word_analysis_capability(reason: str) -> dict[str, Any]:
     }
 
 
+def _read_json_file(path: Path) -> dict[str, Any]:
+    """Read a selected carrier without registering or evicting process caches."""
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"ToS corpus index is not a JSON object: {path}")
+    return payload
+
+
+def _checked_knowledge_schema(payload: dict[str, Any], name: str) -> dict[str, Any]:
+    allowed, message = _KNOWLEDGE_SCHEMA_RULES[name]
+    if payload.get("schema_version") not in allowed:
+        raise RuntimeError(message)
+    return payload
+
+
 def _read_json_version(
     path_text: str, mtime_ns: int, size: int, inode: int, ctime_ns: int
 ) -> dict[str, Any]:
@@ -163,9 +189,7 @@ def _read_json_version(
             _json_version_cache.move_to_end(path_text)
             return cached[1]
     path = Path(path_text)
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise RuntimeError(f"ToS corpus index is not a JSON object: {path}")
+    payload = _read_json_file(path)
     with _json_version_cache_lock:
         _json_version_cache[path_text] = (state, payload)
         _json_version_cache.move_to_end(path_text)
@@ -1042,14 +1066,7 @@ class ToSAccessCore:
         return self.philosophy_graph_projection_path.is_file()
 
     def philosophy_projection(self) -> dict[str, Any]:
-        payload = _read_json(self.philosophy_graph_projection_path)
-        supported = {"tos_philosophy_graph_projection_v1", "tos_philosophy_graph_projection_v2"}
-        if payload.get("schema_version") not in supported:
-            raise RuntimeError(
-                "ToS philosophy graph projection schema_version must be one of "
-                + ", ".join(sorted(supported))
-            )
-        return payload
+        return _checked_knowledge_schema(_read_json(self.philosophy_graph_projection_path), "philosophy")
 
     def bibliographic_graph(self) -> dict[str, Any]:
         payload = _read_json(self.bibliographic_graph_path)
@@ -1061,22 +1078,10 @@ class ToSAccessCore:
         return payload
 
     def entity_type_registry(self) -> dict[str, Any]:
-        payload = _read_json(self.entity_type_registry_path)
-        if payload.get("schema_version") != "tos_semantic_entity_type_registry_v1":
-            raise RuntimeError(
-                "ToS entity type registry schema_version must be "
-                "tos_semantic_entity_type_registry_v1"
-            )
-        return payload
+        return _checked_knowledge_schema(_read_json(self.entity_type_registry_path), "entity_type_registry")
 
     def relation_type_registry(self) -> dict[str, Any]:
-        payload = _read_json(self.relation_type_registry_path)
-        if payload.get("schema_version") != "tos_semantic_relation_type_registry_v1":
-            raise RuntimeError(
-                "ToS relation type registry schema_version must be "
-                "tos_semantic_relation_type_registry_v1"
-            )
-        return payload
+        return _checked_knowledge_schema(_read_json(self.relation_type_registry_path), "relation_type_registry")
 
     def philosophy_audit_exists(self) -> bool:
         return self.philosophy_post_planting_audit_path.is_file()
@@ -1192,14 +1197,15 @@ class ToSAccessCore:
             self.relation_type_registry_path,
         )
 
-    def _knowledge_source_inputs(self) -> dict[str, dict[str, Any]]:
+    def _knowledge_source_inputs(self, *, reader=None) -> dict[str, dict[str, Any]]:
         """Read the complete direct carrier set for exact owner transitions."""
+        reader = _read_json if reader is None else reader
         return {
-            "corpus": _read_json(self.index_path),
-            "philosophy": _read_json(self.philosophy_graph_projection_path),
-            "bibliographic": _read_json(self.bibliographic_graph_path),
-            "entity_type_registry": _read_json(self.entity_type_registry_path),
-            "relation_type_registry": _read_json(self.relation_type_registry_path),
+            "corpus": reader(self.index_path),
+            "philosophy": reader(self.philosophy_graph_projection_path),
+            "bibliographic": reader(self.bibliographic_graph_path),
+            "entity_type_registry": reader(self.entity_type_registry_path),
+            "relation_type_registry": reader(self.relation_type_registry_path),
         }
 
     @staticmethod
@@ -1503,6 +1509,41 @@ class ToSAccessCore:
                 self._published_catalog_source_state = state_after
                 return {"graph": graph, "catalog": catalog}
             raise RuntimeError("ToS knowledge source projections changed during catalog build")
+
+    def knowledge_snapshot_once(self) -> dict[str, Any]:
+        """Explicit one-shot full bootstrap, without mutable-core retention.
+
+        Uses the same graph/catalog builders and source state as the legacy
+        snapshot. It neither populates nor evicts another reader's caches,
+        retains canonical source bytes for a future CAS delta, nor installs
+        the result as this core's current mutable snapshot. Source drift fails
+        this attempt; the caller may retry explicitly with a fresh output.
+        """
+        if self._prepared_reader is not None:
+            raise PublishedReadModelError("prepared reader cannot bootstrap source carriers")
+        from .normalization_cache import active_cache
+
+        before = self._knowledge_input_state()
+        inputs = self._knowledge_source_inputs(reader=_read_json_file)
+        if self._knowledge_input_state() != before:
+            raise RuntimeError("source changed during one-shot carrier read")
+        # Match the schema checks performed by knowledge_snapshot's catalog
+        # path, sharing their authority instead of adding a second policy.
+        for name in _KNOWLEDGE_SCHEMA_RULES:
+            _checked_knowledge_schema(inputs[name], name)
+        token = active_cache.set(None)
+        try:
+            graph = build_knowledge_graph(inputs["corpus"], inputs["philosophy"],
+                inputs["bibliographic"], inputs["entity_type_registry"], inputs["relation_type_registry"])
+            if self._knowledge_input_state() != before:
+                raise RuntimeError("source changed during one-shot graph build")
+            catalog = build_knowledge_catalog(graph, inputs["corpus"], inputs["philosophy"],
+                inputs["entity_type_registry"], inputs["relation_type_registry"])
+            if self._knowledge_input_state() != before:
+                raise RuntimeError("source changed during one-shot catalog build")
+        finally:
+            active_cache.reset(token)
+        return {"graph": graph, "catalog": catalog, "source_state": before}
 
     def knowledge_contracts(self) -> dict[str, Any]:
         """Return the executable API map and JSON Schemas through one public read route."""

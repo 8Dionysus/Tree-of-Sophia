@@ -1,5 +1,6 @@
 """Real tiny source bootstrap, exclusive completion and explicit prepared reads."""
 import json
+import copy
 import os
 from pathlib import Path
 import subprocess
@@ -152,6 +153,77 @@ class OfflinePrepareTests(unittest.TestCase):
             receipt = producer.prepare(self.root, self.output)
         self.assertEqual(len(rows), 2 * (receipt["build_counts"]["nodes"] + receipt["build_counts"]["relations"]))
         self.assertEqual(rows[:len(rows) // 2], rows[len(rows) // 2:])
+
+    def test_one_shot_snapshot_matches_legacy_without_cache_or_delta_retention(self):
+        from tos_access.normalization_cache import active_cache
+        core = source.ToSAccessCore.discover(self.root)
+        expected = core.knowledge_snapshot()
+        old_graph = core._published_graph
+        old_bytes = core._published_source_inputs
+        with source._json_version_cache_lock:
+            old_cache = list(source._json_version_cache.items())
+        sentinel = object()
+        token = active_cache.set(sentinel)
+        try:
+            with patch.object(source, "_read_json_version", side_effect=AssertionError("shared raw cache")), \
+                 patch.object(source.ToSAccessCore, "_canonical_source_inputs", side_effect=AssertionError("delta retention")), \
+                 patch.object(source.ToSAccessCore, "knowledge_snapshot", side_effect=AssertionError("mutable snapshot")):
+                actual = core.knowledge_snapshot_once()
+            self.assertIs(active_cache.get(), sentinel)
+        finally:
+            active_cache.reset(token)
+        self.assertEqual({key: actual[key] for key in ("graph", "catalog")}, expected)
+        self.assertEqual(actual["source_state"], core._knowledge_input_state())
+        self.assertIs(core._published_graph, old_graph)
+        self.assertIs(core._published_source_inputs, old_bytes)
+        with source._json_version_cache_lock:
+            self.assertEqual(list(source._json_version_cache.keys()), [key for key, _ in old_cache])
+            for key, value in old_cache:
+                self.assertIs(source._json_version_cache[key], value)
+        node = next(row for row in actual["graph"]["nodes"] if row["native_id"] == "a")
+        original = copy.deepcopy(expected)
+        node["attributes"]["future"]["zero"] = "changed"
+        self.assertEqual(expected, original)
+
+    def test_one_shot_drift_at_each_stage_preserves_ambient_cache_and_never_publishes(self):
+        from tos_access.normalization_cache import active_cache
+        for stage in ("_read_json_file", "build_knowledge_graph", "build_knowledge_catalog"):
+            with self.subTest(stage=stage):
+                self.output = Path(self.tmp.name) / stage
+                original = getattr(source, stage)
+                changed = False
+                def call_then_drift(*args, **kwargs):
+                    nonlocal changed
+                    result = original(*args, **kwargs)
+                    if not changed:
+                        changed = True
+                        path = self.root / source.INDEX_RELATIVE_PATH
+                        before = path.stat()
+                        payload = path.read_bytes()
+                        path.write_bytes(payload)
+                        os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
+                        self.assertEqual(path.stat().st_size, before.st_size)
+                        self.assertEqual(path.stat().st_mtime_ns, before.st_mtime_ns)
+                        self.assertNotEqual(path.stat().st_ctime_ns, before.st_ctime_ns)
+                    return result
+                sentinel = object()
+                token = active_cache.set(sentinel)
+                try:
+                    with patch.object(source, stage, side_effect=call_then_drift):
+                        with self.assertRaisesRegex(RuntimeError, "source changed during one-shot"):
+                            producer.prepare(self.root, self.output)
+                    self.assertIs(active_cache.get(), sentinel)
+                finally:
+                    active_cache.reset(token)
+                self.assertFalse((self.output / "snapshot.sqlite").exists())
+                self.assertFalse((self.output / "completed.json").exists())
+
+    def test_actual_producer_does_not_install_a_mutable_source_snapshot(self):
+        with patch.object(source.ToSAccessCore, "knowledge_snapshot", side_effect=AssertionError("mutable snapshot")), \
+             patch.object(source.ToSAccessCore, "_canonical_source_inputs", side_effect=AssertionError("delta retention")), \
+             patch.object(source, "_read_json_version", side_effect=AssertionError("shared raw cache")):
+            receipt = producer.prepare(self.root, self.output)
+        self.assertEqual(receipt["status"], "completed")
 
     def test_missing_source_and_partial_publication_never_complete(self):
         (self.root / source.INDEX_RELATIVE_PATH).unlink()

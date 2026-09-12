@@ -78,9 +78,9 @@ def prepare(source_root: str | Path, output_dir: str | Path, *,
         search_read_model_path=output / ".unused-source-search.sqlite",
         search_read_model_max_bytes=source.SEARCH_READ_MODEL_DEFAULT_MAX_BYTES,
     )
-    snapshot = core.knowledge_snapshot()
-    state = core._published_source_state
-    if state is None or core._knowledge_input_state() != state:
+    snapshot = core.knowledge_snapshot_once()
+    state = snapshot["source_state"]
+    if core._knowledge_input_state() != state:
         raise RuntimeError("source changed after coherent snapshot selection")
     graph = snapshot["graph"]
     header = normalize_paths({key: value for key, value in graph.items()
