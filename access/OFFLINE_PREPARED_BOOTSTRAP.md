@@ -35,11 +35,18 @@ No normalization cache is selected or written. Complete graph construction still
 retains full-size source and normalized objects. The producer converts each row
 on demand in two repeatable publication passes, so path conversion does not
 retain a second complete graph. Header and catalog are converted separately.
-Publication uses fixed
+Publication uses
 `PublicationLimits` defaults: 64 MiB SQLite file, 1 MiB compact row, 8 MiB
 metadata, two million SQL mutations, plus the publisher's delta-only limits
 (4096 changes / 16 MiB). These are mechanical refusal caps, not host memory
-forecasts or write authority. This command exposes no cap-raising or cache flag.
+forecasts or write authority. For a larger corpus, explicitly select
+`--max-bytes BYTES` and `--max-mutations COUNT` after obtaining resource/storage
+admission. Both require positive integers and are recorded in the completion
+receipt. Raising these whole-publication caps does not raise the row/metadata
+limits, reserve any space, switch readers, or make full normalization incremental.
+The byte cap covers the SQLite file, not its transient journal or source memory;
+reserve those separately. There is no automatic retry with larger caps and no
+cache flag.
 
 ## Completion and selection
 
@@ -50,7 +57,7 @@ A complete output contains three mode-0600 files:
   post-publication source-state check.
 - `completed.json`: last, atomically linked completion receipt with schema
   `tos_offline_prepared_bootstrap_receipt_v1`, source revision, normalization
-  binding, output filenames, full binding, fixed declared limits, node/relation
+  binding, output filenames, full binding, explicit declared limits, node/relation
   counts and final SQLite byte size. It is also printed to stdout on success.
 
 Only a valid `completed.json` marks this output-directory ABI complete. Missing

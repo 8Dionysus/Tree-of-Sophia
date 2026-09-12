@@ -109,12 +109,27 @@ def prepare(source_root: str | Path, output_dir: str | Path, *,
 
 
 def main(argv: list[str] | None = None) -> int:
+    def positive_integer(value: str) -> int:
+        try:
+            result = int(value)
+        except ValueError as error:
+            raise argparse.ArgumentTypeError("must be a positive integer") from error
+        if result < 1:
+            raise argparse.ArgumentTypeError("must be a positive integer")
+        return result
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-root", required=True)
     parser.add_argument("--output-dir", required=True, help="fresh directory in an existing parent")
+    defaults = PublicationLimits()
+    parser.add_argument("--max-bytes", type=positive_integer, default=defaults.max_bytes,
+                        help="explicit SQLite file byte cap; caller must reserve disk/journal capacity")
+    parser.add_argument("--max-mutations", type=positive_integer, default=defaults.max_mutations,
+                        help="explicit total SQL mutation cap; does not authorize unbounded processing")
     args = parser.parse_args(argv)
     try:
-        receipt = prepare(args.source_root, args.output_dir)
+        receipt = prepare(args.source_root, args.output_dir, limits=PublicationLimits(
+            max_bytes=args.max_bytes, max_mutations=args.max_mutations))
     except Exception as error:
         # Exception text may contain source payloads/paths: report a bounded
         # class only, with explicit non-success; leave partial output untouched.
