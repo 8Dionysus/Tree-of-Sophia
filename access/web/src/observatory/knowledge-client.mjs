@@ -2,6 +2,7 @@ import {t,uiLanguage} from './ui-i18n.mjs';
 import {displayForm} from './display-language.mjs';
 import {contentLanguage,validateHumanForms,claimPathFor,claimPathClosure,FormContractError} from './human-forms.mjs';
 import {knowledgeScene} from '../../../shared/knowledge-scene.ts';
+import {DEFAULT_RESPONSE_BYTES,validateResponseLimit,ResponseLimitError,withAbort,cancelResponseBody,readBoundedJSON} from './bounded-response.mjs';
 // The browser consumes the access contract; it never authors ToS relationships.
 export const DEFAULT_FOCUS = 'tos.work.friedrich-nietzsche.also-sprach-zarathustra';
 export const BUDGET = Object.freeze({nodes:40,relations:80});
@@ -266,24 +267,34 @@ export class RequestSlots {
   }
 }
 export class KnowledgeClient {
-  constructor({fetcher=globalThis.fetch.bind(globalThis),base='/api/knowledge',timeoutMs=60000}={}){this.fetcher=fetcher;this.base=base;this.timeoutMs=timeoutMs;}
+  constructor({fetcher=globalThis.fetch.bind(globalThis),base='/api/knowledge',timeoutMs=60000,maxResponseBytes=DEFAULT_RESPONSE_BYTES}={}){
+    validateResponseLimit(maxResponseBytes);
+    this.fetcher=fetcher;this.base=base;this.timeoutMs=timeoutMs;this.maxResponseBytes=maxResponseBytes;
+  }
   async request(path,{signal,body}={}) {
     const controller=new AbortController();let timedOut=false;
     const abort=()=>controller.abort(signal.reason);
     if(signal?.aborted)abort();else signal?.addEventListener('abort',abort,{once:true});
     const timer=setTimeout(()=>{timedOut=true;controller.abort();},this.timeoutMs);
     try {
-    const response=await this.fetcher(this.base+path,{signal:controller.signal,method:body?'POST':'GET',
-      headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});
+    controller.signal.throwIfAborted();
+    const response=await withAbort(Promise.resolve(this.fetcher(this.base+path,{signal:controller.signal,method:body?'POST':'GET',
+      headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})})).then(response=>{
+        if(controller.signal.aborted){cancelResponseBody(response,controller.signal.reason);controller.signal.throwIfAborted();}
+        return response;
+      }),controller.signal);
     if(!response.ok) {
+      cancelResponseBody(response);
       if(response.status===409)throw new RevisionError();
       throw new RequestError(response.status,({400:t("Запрос не удалось исполнить."),403:t("Доступ к материалу ограничен."),404:t("Объект больше не доступен."),410:t("Срок сохранённого обхода истёк."),413:t("Область слишком велика. Выберите более узкий центр."),503:t("Этот способ просмотра пока не доступен.")})[response.status]||t("Не удалось получить данные. Попробуйте ещё раз."));
     }
-    const packet=await response.json();
-    if(!packet||typeof packet!=='object')throw new ContractError(t("Неверный ответ сервера."));
+    const packet=await readBoundedJSON(response,this.maxResponseBytes,controller.signal);
+    if(!packet||typeof packet!=='object'||Array.isArray(packet))throw new ContractError(t("Неверный ответ сервера."));
     return packet;
     } catch(error) {
       if(timedOut)throw new RequestError(504,t("Сервер отвечает дольше обычного. Попробуйте ещё раз."));
+      if(controller.signal.aborted)throw error;
+      if(error instanceof ResponseLimitError)throw new RequestError(413,t("Область слишком велика. Выберите более узкий центр."));
       if(!controller.signal.aborted&&(error instanceof TypeError||error?.name==='NetworkError'))throw new RequestError(0,t("Нет связи с данными. Проверьте соединение и повторите запрос."));
       if(error instanceof SyntaxError)throw new ContractError(t("Сервер вернул нечитаемый ответ. Повторите запрос."));
       throw error;

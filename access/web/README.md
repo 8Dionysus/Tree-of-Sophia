@@ -133,6 +133,18 @@ CSP is required.
   A different publication needs explicit replacement. Capacity failure never
   evicts, truncates, accepts a partial page, writes to ToS or admits knowledge.
   Layout and camera are consumer state outside this record cache.
+- `KnowledgeClient.request` admits real response streams by actual UTF-8 body
+  bytes before JSON decoding/parsing: 4 MiB by default, configurable through
+  `maxResponseBytes` up to a hard 8 MiB browser ceiling. This is a narrower
+  browser transport profile, not a changed backend response allowance or ABI.
+  A valid oversized `Content-Length` rejects early; absent, malformed or small
+  declarations never bypass actual stream accounting. Oversize maps to the
+  existing readable 413 error and cancellation/timeout cleans up the reader.
+  Fetch/read completion is raced against abort, including custom transports
+  that ignore the signal; late packets cannot complete the cancelled request.
+  Existing in-memory `json()`-only custom/test transports retain compatibility
+  with a post-parse UTF-8 size check, which is **not** a network-memory bound.
+  A non-null body must expose a byte reader and never uses that fallback.
 - `workspace.mjs` rebuilds source dossiers, notes, hypotheses, proposals, source
   gaps and source-bound word-analysis preparation in floating panels. It reuses
   `query-operations.ts` and `research-workspace.ts`; there is no second backend.
