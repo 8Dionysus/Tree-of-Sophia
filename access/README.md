@@ -97,6 +97,13 @@ depending on browser-owned view logic. A LensSpec can select sources, start
 from nodes or relations, filter, traverse, close relation endpoints, group,
 sort, and provide presentation hints under explicit resource limits.
 
+Native and offline catalogs share one exact contribution/renderer implementation.
+The [offline catalog index](EXACT_CATALOG_INDEX.md) supports caller-transaction
+bootstrap and addressed deltas, retaining reversible counts, source-ordered
+representatives/examples and affected entity-route closure. It does not publish
+prepared metadata or activate a reader; source/semantic admission and atomic
+prepared integration remain the caller's responsibility.
+
 Registered properties can be queried without knowing their internal paths.
 For example, `{"property_id":"tos.property.time-role","op":"eq","value":"historical-time"}`
 is a node filter, also usable at a path step. Discover the actual descriptor
