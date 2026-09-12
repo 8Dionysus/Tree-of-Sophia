@@ -104,6 +104,9 @@ representatives/examples and affected entity-route closure. It does not publish
 prepared metadata or activate a reader. The explicit `prepared_catalog` join
 updates catalog, full carriers, search and lenses in the same caller transaction;
 source/semantic admission, commit and reader activation remain owner operations.
+The [joined semantic maintenance API](PREPARED_MAINTENANCE.md) additionally
+computes the exact semantic report and verifies that the final publication
+contains the identical checked changes, under a combined SQL mutation budget.
 
 Registered properties can be queried without knowing their internal paths.
 For example, `{"property_id":"tos.property.time-role","op":"eq","value":"historical-time"}`

@@ -1,5 +1,6 @@
 """Exact full-wrapper parity and transaction/budget fences, not admission proof."""
 import copy
+from contextlib import closing
 from dataclasses import replace
 import json
 import os
@@ -312,7 +313,7 @@ class SemanticIndexTests(unittest.TestCase):
     def test_bootstrap_recomputes_and_refuses_foreign_header_valid_flag(self):
         self.graph["counts"] = {"semantic_validation": {**self.full(), "valid": True}}
         self.binding = publish_prepared(self.path, graph=self.graph, catalog=self.catalog)
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db:
             db.execute("BEGIN IMMEDIATE")
             with self.assertRaisesRegex(ValueError, "computed report"):
                 s.bootstrap_semantic_index_transaction(db, binding=self.binding,

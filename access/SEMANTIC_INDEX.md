@@ -1,5 +1,11 @@
 # Bounded auxiliary semantic index
 
+For the existing catalog and prepared publication in the **same** SQLite file,
+use the [joined maintenance API](PREPARED_MAINTENANCE.md) to sequence these
+checks, catalog rendering, full-row/search/lens changes and final verification
+under one combined mutation allowance. The lower-level APIs below remain
+available to an explicit owner that needs to compose its own transaction.
+
 `tos_access.semantic_index` is an explicit offline, prepared-store companion.
 It computes the existing `validate_knowledge_semantics` report; it does not
 accept source, semantics, rights, canon, or publication. It never assembles
