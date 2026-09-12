@@ -1,25 +1,25 @@
 {
-  "allowed_bytes": 7866090,
-  "allowed_tracked_bytes": 46423734,
+  "allowed_bytes": 7747037,
+  "allowed_tracked_bytes": 46422981,
   "approved_by": "repository-owner",
   "base_ref": "23414b69d596a12c4f02634e16297e37519631e0",
   "candidate_identity": {
     "algorithm": "sha256:canonical-json-file-inventory-v2",
     "base_ref": "23414b69d596a12c4f02634e16297e37519631e0",
     "contract_version": "aoa-kag:budget-receipt-candidate-identity-v2",
-    "excluded_path": "kag/receipts/index_family_budget/36cf5b38737b670b7794513da06dd0e4e635b462b0d9dd3704f83a894bcf1664.json",
-    "family_digest": "36cf5b38737b670b7794513da06dd0e4e635b462b0d9dd3704f83a894bcf1664",
+    "excluded_path": "kag/receipts/index_family_budget/2b4c200d040a0dfae3fdc936bc9383335cb03ff52d45917b176cee79d40c49b9.json",
+    "family_digest": "2b4c200d040a0dfae3fdc936bc9383335cb03ff52d45917b176cee79d40c49b9",
     "file_count": 4935,
-    "seal": "1215be185599c661824e7fbcfaee964456cfd66cc4393bff45ded92eb62125af",
-    "source_epoch": "sha256:ff368a9f77e296c074e5f5d213484c7f40f940fa1e610bedc476c4869cae16e4",
-    "source_snapshot": "sha256:4951fb9178cdf26a0131823c25ad458149706fb691cf771bb1515f4cd0d25f5a"
+    "seal": "4a0f3800a9ca9dc68053ecb2448f69338236f043f3b0ced85736a7a23713841f",
+    "source_epoch": "sha256:8562fb6ecfb70f4b90c28a4ac954403592ad799c3bce115494b7088cc6e402e6",
+    "source_snapshot": "sha256:f30ef8464b73c5165c62fc09bc9bed0c2300cf014192e94c059c0f67689b5fb7"
   },
-  "changed_generated_bytes": 7866090,
-  "changed_generated_files": 69,
+  "changed_generated_bytes": 7747037,
+  "changed_generated_files": 66,
   "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
   "default_limit_bytes": 1048576,
-  "head_family_digest": "36cf5b38737b670b7794513da06dd0e4e635b462b0d9dd3704f83a894bcf1664",
-  "head_source_snapshot": "sha256:4951fb9178cdf26a0131823c25ad458149706fb691cf771bb1515f4cd0d25f5a",
+  "head_family_digest": "2b4c200d040a0dfae3fdc936bc9383335cb03ff52d45917b176cee79d40c49b9",
+  "head_source_snapshot": "sha256:f30ef8464b73c5165c62fc09bc9bed0c2300cf014192e94c059c0f67689b5fb7",
   "producer_identity": {
     "action": {
       "bytes": 5200,
@@ -1362,10 +1362,10 @@
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
     "source_digest": "4882f50ab3a09b04b02715510f2e5dbec13fa60a5032f98e9e043dc9e79f812e"
   },
-  "reason": "README demo video: preserve the exact user-provided MP4 and expose the complete uncut demo; generated KAG family parity is required for the changed tracked source.",
+  "reason": "README demo video fallback download link removed",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
   "scope": "generated_delta_and_tracked_size",
-  "tracked_bytes": 46423734,
+  "tracked_bytes": 46422981,
   "tracked_bytes_max": 11534336
 }
