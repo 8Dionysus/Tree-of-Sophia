@@ -40,6 +40,7 @@ def normalization_processor_digest(path: Path):
         '_normalize_node', '_normalize_relation', 'validate_knowledge_semantics',
         '_finalize_knowledge_node', 'addressed_update_knowledge_graph',
         '_attach_readable_context',
+        'build_knowledge_graph',
     ]
     selected = {}
     while pending:
@@ -149,6 +150,38 @@ class NormalizationCache:
     def memo(self, kind, identifier, dependencies, compute):
         """Cache one finalization/check without hiding its complete dependencies."""
         task = Task(f'{kind}:{identifier}', self.processor_digest, tuple(dependencies), None, lambda _: compute())
+        result, _ = self.scheduler.evaluate(task)
+        self.hits, self.misses = self.scheduler.reused, self.scheduler.executed
+        return result
+
+    def input_dependency(self, identifier, value):
+        """Require the exact completed source Input already registered this run."""
+        node = self.scheduler.definitions.get(identifier)
+        result = self.scheduler.results.get(identifier)
+        try:
+            matches = (isinstance(node, Input) and node.id == identifier and result is not None
+                       and digest(value) == result[1])
+        except Exception:
+            self.scheduler.failed = True
+            raise
+        if not matches:
+            self.scheduler.failed = True
+            raise ValueError('source input differs from its completed producer: ' + identifier)
+        return node
+
+    def reduce(self, kind, identifier, dependencies, inputs, compute):
+        """Evaluate a pure reducer from resolved dependencies, not assembly maps."""
+        unique, positions, indexes = [], [], {}
+        for dependency in dependencies:
+            if dependency.id not in indexes:
+                indexes[dependency.id] = len(unique)
+                unique.append(dependency)
+            elif unique[indexes[dependency.id]] != dependency:
+                self.scheduler.failed = True
+                raise ValueError('conflicting reducer dependency: ' + dependency.id)
+            positions.append(indexes[dependency.id])
+        task = Task(f'{kind}:{identifier}', self.processor_digest, tuple(unique), [inputs, positions],
+                    lambda values: compute([values[position] for position in positions], inputs))
         result, _ = self.scheduler.evaluate(task)
         self.hits, self.misses = self.scheduler.reused, self.scheduler.executed
         return result

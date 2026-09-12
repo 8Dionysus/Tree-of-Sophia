@@ -494,6 +494,11 @@ class ProcessingTests(unittest.TestCase):
             self.assertEqual(normalization_processor_digest(path),before)
             path.write_text(initial.replace('LIMIT=1','LIMIT=2'))
             self.assertNotEqual(normalization_processor_digest(path),before)
+            assembly = initial + 'def assembly(x): return x+17\ndef build_knowledge_graph(x): return assembly(x)\n'
+            path.write_text(assembly)
+            before = normalization_processor_digest(path)
+            path.write_text(assembly.replace('x+17', 'x+18'))
+            self.assertNotEqual(normalization_processor_digest(path), before)
 
 
 class TerminalCarrierLineageTests(unittest.TestCase):
@@ -544,8 +549,8 @@ class TerminalCarrierLineageTests(unittest.TestCase):
                 row = next(item for item in graph[kind + 's'] if item['id'] == identifier)
                 self.assertIn('readable_context', row)
                 self.assertEqual(nodes['readable-' + kind + ':' + identifier]['output_digest'], digest(row))
-            # Terminal producer links do not assert complete inherited-view,
-            # Claim-context, assessment or other source-owner dependencies.
+            # Recorded reducers do not assert complete source membership,
+            # assessment or other source-owner dependencies.
             self.assertFalse(node_packet['is_source_change_completeness'])
             self.assertFalse(relation_packet['is_source_change_completeness'])
         self.assertEqual((corpus, philosophy), untouched)
@@ -616,6 +621,171 @@ class TerminalCarrierLineageTests(unittest.TestCase):
                             cache.carrier_dependency('node', 'a', value, input_id='base-node:a')
                 with closing(sqlite3.connect(path)) as db:
                     self.assertIsNone(db.execute('SELECT * FROM processing_publication').fetchone())
+
+
+class ReducerLineageTests(unittest.TestCase):
+    closure = TerminalCarrierLineageTests.closure
+
+    def fixture(self):
+        return {'nodes': [
+            {'node_id': 'c1', 'node_kind': 'claim', 'properties': {'claim_ref': 'c', 'polarity': 'negative'}},
+            {'node_id': 'c2', 'node_kind': 'claim', 'properties': {'claim_ref': 'c', 'polarity': 'positive'}},
+            {'node_id': 'c3', 'node_kind': 'claim', 'properties': {'claim_ref': 'd', 'negated': False}},
+            {'node_id': 's', 'node_kind': 'identity', 'properties': {'identity_ref': 'tos.work.test', 'identity_kind': 'work'}},
+            {'node_id': 'v', 'node_kind': 'literal', 'properties': {'value': 'test'}},
+        ], 'edges': [
+            {'edge_id': 'e', 'from_id': 'c1', 'to_id': 'v', 'edge_kind': 'has_object', 'claim_ref': 'c'},
+        ], 'claim_traces': [
+            {'claim_ref': 'c', 'claim_node_id': 'c1', 'subject_node_id': 's', 'object_node_id': 'v', 'predicate': 'fixture'},
+            {'claim_ref': 'd', 'claim_node_id': 'c3', 'subject_node_id': 's', 'object_node_id': 'v', 'predicate': 'fixture'},
+        ]}
+
+    def test_empty_view_relations_and_self_loops_reach_endpoint_finalization(self):
+        philosophy = {'nodes': [{'node_id': 'a'}, {'node_id': 'b'}], 'edges': [
+            {'edge_id': 'e', 'from_id': 'a', 'to_id': 'b', 'view_ids': []},
+            {'edge_id': 'loop', 'from_id': 'a', 'to_id': 'a', 'view_ids': []}]}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'steps.sqlite'
+            for views in ([], ['new-view'], []):
+                philosophy['edges'][0]['view_ids'] = views
+                with NormalizationCache(path, 'reducers-v1') as cache:
+                    actual = build_knowledge_graph({}, philosophy)
+                    task = cache.scheduler.definitions['inherited-views:philosophy:a']
+                    self.assertEqual(len(task.dependencies), 2)
+                self.assertEqual(actual, build_knowledge_graph({}, philosophy))
+                packet = self.closure(path, cache.scheduler.run_id, 'source-relation:philosophy:e')
+                self.assertTrue({'final-node:philosophy:a', 'final-node:philosophy:b'} <=
+                                {item['id'] for item in packet['nodes']})
+            philosophy['edges'] = []
+            with NormalizationCache(path, 'reducers-v1') as cache:
+                actual = build_knowledge_graph({}, philosophy)
+            self.assertEqual(actual, build_knowledge_graph({}, philosophy))
+            self.assertNotIn('inherited-views:philosophy:a', cache.scheduler.definitions)
+
+    def test_shared_contexts_reach_relation_literal_and_claim_terminal_with_exact_order(self):
+        raw = self.fixture()
+        before = copy.deepcopy(raw)
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'steps.sqlite'
+            expected = build_knowledge_graph({}, {}, raw)
+            for attempt in range(2):
+                with NormalizationCache(path, 'reducers-v1') as cache:
+                    actual = build_knowledge_graph({}, {}, raw)
+                self.assertEqual(actual, expected)
+                if attempt:
+                    self.assertEqual(cache.scheduler.executed, 0)
+            packet = self.closure(path, cache.scheduler.run_id, 'source-node:source-claims:c2')
+            ids = {item['id'] for item in packet['nodes']}
+            self.assertIn('final-node:source-claims:v', ids)
+            self.assertTrue(any(identifier.startswith('relation:source-claims:') for identifier in ids))
+            trace_packet = self.closure(path, cache.scheduler.run_id, 'source-claim-trace:c')
+            self.assertTrue({'final-node:source-claims:c1', 'final-node:source-claims:v'} <=
+                            {item['id'] for item in trace_packet['nodes']})
+            registry_packet = self.closure(path, cache.scheduler.run_id, 'source-registry:relations')
+            self.assertIn('final-node:source-claims:c1', {item['id'] for item in registry_packet['nodes']})
+            literal = next(row for row in actual['nodes'] if row['id'] == 'source-claims:v')
+            contexts = literal['semantics']['assertion_contexts']
+            self.assertEqual([row['fields'].get('polarity', {}).get('value') for row in contexts],
+                             ['negative', 'positive', None])
+            self.assertFalse(contexts[2]['fields']['negated']['value'])
+            self.assertFalse(packet['is_source_change_completeness'])
+        self.assertEqual(raw, before)
+
+    def test_context_removal_trace_retarget_and_raw_literal_guard_match_uncached(self):
+        raw = self.fixture()
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'steps.sqlite'
+            for change in ('baseline', 'remove-context', 'retarget', 'nonliteral', 'literal-again'):
+                if change == 'remove-context':
+                    raw['nodes'][1]['properties'] = {}
+                elif change == 'retarget':
+                    raw['claim_traces'][0]['object_node_id'] = 's'
+                elif change == 'nonliteral':
+                    raw['nodes'][4]['node_kind'] = 'other'
+                elif change == 'literal-again':
+                    raw['nodes'][4]['node_kind'] = 'literal'
+                with NormalizationCache(path, 'reducers-v1') as cache:
+                    actual = build_knowledge_graph({}, {}, raw)
+                self.assertEqual(actual, build_knowledge_graph({}, {}, raw), change)
+                if change == 'nonliteral':
+                    row = next(row for row in actual['nodes'] if row['id'] == 'source-claims:v')
+                    self.assertNotIn('assertion_contexts', row['semantics'])
+
+    def test_claim_policy_and_endpoint_identity_are_actual_dependencies(self):
+        from tos_access.knowledge import _prepare_claim_finalization
+        raw = self.fixture()
+        trace = raw['claim_traces'][0]
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'steps.sqlite'
+            for fallback, entity, status in [('fallback.a', 'tos.work.entity.a', None), ('fallback.b', 'tos.work.entity.b', 'reviewed')]:
+                registry = {'fallback_relation_type_id': fallback, 'relations': []}
+                trace = {**trace, 'review_status': status}
+                with NormalizationCache(path, 'reducers-v1') as cache:
+                    cache.scheduler.evaluate(Input('source-registry:relations', registry))
+                    cache.scheduler.evaluate(Input('source-claim-trace:c', trace))
+                    nodes = {}
+                    raw['nodes'][3]['properties']['identity_ref'] = entity
+                    for value in raw['nodes']:
+                        node = _normalize_node(value, 'source-claims')
+                        nodes[node['id']] = node
+                    source_trace = cache.scheduler.definitions['source-claim-trace:c']
+                    self.assertIs(cache.input_dependency('source-claim-trace:c', trace), source_trace)
+                    updates, _ = _prepare_claim_finalization(nodes, {'c': trace}, {}, registry,
+                        {value['node_id']: value for value in raw['nodes']})
+                    self.assertEqual(updates['source-claims:c1'][0]['relation_type_id'], fallback)
+                    self.assertEqual(updates['source-claims:c1'][0]['review_status'], status)
+                    self.assertEqual(updates['source-claims:c1'][0]['subject_entity_id'], entity)
+
+    def test_source_input_binding_fails_closed_and_reducer_repeats_dependency_positions(self):
+        for defect in ('absent', 'changed', 'task', 'incomplete', 'wrong-identity'):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as folder:
+                with self.assertRaisesRegex(RuntimeError, 'failed tasks'):
+                    with NormalizationCache(Path(folder) / 'steps.sqlite', 'reducers-v1') as cache:
+                        if defect == 'changed':
+                            cache.scheduler.evaluate(Input('source-registry:relations', {'before': True}))
+                        elif defect == 'task':
+                            cache.scheduler.evaluate(Task('source-registry:relations', 'v1', (), None, lambda _: {}))
+                        elif defect == 'incomplete':
+                            cache.scheduler.definitions['source-registry:relations'] = Input('source-registry:relations', {})
+                        elif defect == 'wrong-identity':
+                            cache.scheduler.evaluate(Input('different-source', {}))
+                            cache.scheduler.definitions['source-registry:relations'] = cache.scheduler.definitions['different-source']
+                            cache.scheduler.results['source-registry:relations'] = cache.scheduler.results['different-source']
+                        with self.assertRaisesRegex(ValueError, 'completed producer'):
+                            cache.input_dependency('source-registry:relations', {})
+        with tempfile.TemporaryDirectory() as folder:
+            with NormalizationCache(Path(folder) / 'steps.sqlite', 'reducers-v1') as cache:
+                dependency = Input('shared', 3)
+                self.assertEqual(cache.reduce('sum', 'same', [dependency, dependency], None,
+                                              lambda values, _: sum(values)), 6)
+                self.assertEqual(len(cache.scheduler.definitions['sum:same'].dependencies), 1)
+
+    def test_reducer_actions_do_not_retain_assembly_maps(self):
+        import gc
+        import weakref
+        from tos_access.knowledge import _prepare_claim_finalization
+
+        class AssemblyMap(dict):
+            pass
+
+        raw = self.fixture()
+        with tempfile.TemporaryDirectory() as folder:
+            with NormalizationCache(Path(folder) / 'steps.sqlite', 'reducers-v1') as cache:
+                cache.scheduler.evaluate(Input('source-registry:relations', {}))
+                traces = AssemblyMap((trace['claim_ref'], trace) for trace in raw['claim_traces'])
+                for reference, trace in traces.items():
+                    cache.scheduler.evaluate(Input('source-claim-trace:' + reference, trace))
+                nodes = AssemblyMap()
+                for value in raw['nodes']:
+                    node = _normalize_node(value, 'source-claims')
+                    nodes[node['id']] = node
+                groups = AssemblyMap()
+                sources = AssemblyMap((value['node_id'], value) for value in raw['nodes'])
+                refs = [weakref.ref(value) for value in (nodes, traces, groups, sources)]
+                _prepare_claim_finalization(nodes, traces, groups, {}, sources)
+                del nodes, traces, groups, sources
+                gc.collect()
+                self.assertTrue(all(reference() is None for reference in refs))
 
 
 if __name__=='__main__': unittest.main()

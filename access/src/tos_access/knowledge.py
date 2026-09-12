@@ -1961,7 +1961,8 @@ def _normalize_relation(
         identifier = f'{source_graph}:{identity_id or native}'
         dependencies = [Input('source-relation:' + identifier, item),
                         Input(f'relation-type:{source_graph}:{predicate_id}', relation_type_entry),
-                        Input('relation-claim-contexts:' + identifier, claim_contexts)]
+                        _claim_context_dependency(cache, source_graph, item.get('claim_ref'), claim_contexts,
+                                                  input_id='relation-claim-contexts:' + identifier)]
         dependencies.extend(cache.node_title(id, (nodes_by_id.get(id) or {}).get('display', {}).get('title'))
                             for id in dict.fromkeys((left_id, right_id)))
         return cache.normalize('relation', identifier,
@@ -2483,6 +2484,234 @@ def knowledge_source_revision(
     )
 
 
+def _group_identifier(key):
+    return json.dumps(key, ensure_ascii=False, separators=(',', ':'))
+
+
+def _assertion_context_values(values, _):
+    return values[0].get('semantics', {}).get('assertion_contexts', [])
+
+
+def _claim_context_group_value(values, claim_ref):
+    result = []
+    for contexts in values:
+        for context in contexts:
+            fields = context['fields']
+            reference = fields.get('claim_id', fields.get('claim_ref', {})).get('value')
+            if reference == claim_ref:
+                bound = {**context, 'binding_role': 'referenced-claim'}
+                if bound not in result:
+                    result.append(bound)
+    return result
+
+
+def _prepare_claim_context_groups(nodes):
+    """Keep encounter order and conflicts; retain only small context projections."""
+    cache = active_cache.get()
+    groups = {}
+    for node in nodes:
+        if node['kind_id'] not in {'claim', 'annotation-claim'}:
+            continue
+        if cache:
+            contexts = cache.reduce('claim-context-source', node['id'], [
+                cache.carrier_dependency('node', node['id'], node, input_id='base-node:' + node['id'])
+            ], None, _assertion_context_values)
+            contributor = cache.scheduler.definitions['claim-context-source:' + node['id']]
+        else:
+            contexts = contributor = _assertion_context_values([node], None)
+        references = dict.fromkeys(
+            reference for context in contexts
+            for reference in [context['fields'].get('claim_id', context['fields'].get('claim_ref', {})).get('value')]
+            if isinstance(reference, str))
+        for reference in references:
+            group = groups.setdefault((node['source_graph'], reference), [])
+            if cache:
+                group.append(contributor)
+            else:
+                for context in _claim_context_group_value([contexts], reference):
+                    if context not in group:
+                        group.append(context)
+    if not cache:
+        return groups
+    return {key: (cache.reduce('claim-context-group', _group_identifier(key), contributors,
+                              key[1], _claim_context_group_value))
+            for key, contributors in groups.items()}
+
+
+def _claim_context_dependency(cache, source_graph, claim_ref, value, *, input_id):
+    if isinstance(claim_ref, str):
+        return cache.carrier_dependency('claim-context-group', _group_identifier((source_graph, claim_ref)),
+                                        value, input_id=input_id)
+    return Input(input_id, value)
+
+
+def _relation_view_value(values, _):
+    return sorted(set(_strings(values[0].get('view_ids'))))
+
+
+def _inherited_view_value(values, _):
+    result = set()
+    for contribution in values:
+        _accumulate_view_contribution(result, contribution)
+    return sorted(result)
+
+
+def _accumulate_view_contribution(result, contribution):
+    result.update(contribution)
+
+
+def _prepare_inherited_views(relations):
+    cache = active_cache.get()
+    contributions = {}
+    for relation in relations:
+        if cache:
+            cache.reduce('relation-views', relation['id'], [
+                cache.carrier_dependency('relation', relation['id'], relation,
+                                         input_id='view-relation:' + relation['id'])
+            ], None, _relation_view_value)
+            contribution = cache.scheduler.definitions['relation-views:' + relation['id']]
+        else:
+            contribution = _relation_view_value([relation], None)
+        # Empty views still contribute a dependency; a self-loop contributes once.
+        for endpoint in dict.fromkeys((str(relation['from_id']), str(relation['to_id']))):
+            if cache:
+                contributions.setdefault(endpoint, []).append(contribution)
+            elif contribution:
+                _accumulate_view_contribution(contributions.setdefault(endpoint, set()), contribution)
+    return {endpoint: (cache.reduce('inherited-views', endpoint, values, None, _inherited_view_value)
+                       if cache else _inherited_view_value([values], None))
+            for endpoint, values in contributions.items()}
+
+
+def _claim_policy_index_value(values, _):
+    entries, mappings, fallback = _relation_registry_indexes(values[0])
+    return {'fallback': fallback, 'policies': {
+        predicate: {'relation_type_id': type_id, 'fallback': fallback,
+                    'profile': entries.get(type_id, {}).get('source_claim_profile', {})}
+        for (graph, predicate, scope), type_id in mappings.items()
+        if graph == 'source-claims' and scope == 'claim-predicate'},
+        'fallback_profile': entries.get(fallback, {}).get('source_claim_profile', {})}
+
+
+def _claim_policy_value(values, predicate):
+    index = values[0]
+    return index['policies'].get(predicate, {'relation_type_id': index['fallback'],
+        'fallback': index['fallback'], 'profile': index['fallback_profile']})
+
+
+def _claim_finalization_value(values, _):
+    claim_node, subject, object_node, trace, policy, association = values
+    source_predicate_id = _string(trace.get('predicate')) or 'related_to'
+    relation_type_id = policy['relation_type_id']
+    return [{
+        **dict(claim_node.get('semantics', {}).get('claim') or {}),
+        'claim_id': association['claim_ref'], 'source_predicate_id': source_predicate_id,
+        'relation_type_id': relation_type_id,
+        'predicate_mapping_status': 'mapped' if relation_type_id != policy['fallback'] else 'unmapped',
+        **({'source_claim_profile': copy.deepcopy(policy['profile']),
+            'source_canonical_json': _temporal_source_canonical(claim_node.get('attributes', {}).get('source_claim'))}
+           if policy['profile'].get('reader') == 'document-catalogue-temporal-v1' else {}),
+        'subject_node_id': association['subject_node_id'], 'subject_entity_id': (subject or {}).get('entity_id'),
+        'object_node_id': association['object_node_id'], 'object_entity_id': (object_node or {}).get('entity_id'),
+        'normalized_identity_node_ids': [f'source-claims:{identifier}' for identifier in _strings(trace.get('normalized_identity_node_ids'))],
+        'evidence_node_ids': [f'source-claims:{identifier}' for identifier in _strings(trace.get('evidence_node_ids'))],
+        **({'value_member_node_ids': [f'source-claims:{identifier}' for identifier in trace['value_member_node_ids']]}
+           if trace.get('value_member_node_ids') else {}),
+        'review_status': trace.get('review_status'), 'epistemic_status': trace.get('epistemic_status'),
+    }, dict(trace)]
+
+
+def _literal_context_contribution_value(values, _):
+    object_node, contexts, trace, association = values
+    if object_node is None:
+        return None
+    # The normalized carrier preserves the raw input envelope. Its kind, not
+    # semantic type inference, must agree with the source association guard.
+    raw_kind = object_node.get('source_record', {}).get('payload', {}).get('node_kind')
+    if raw_kind != association['literal_source_kind']:
+        raise ValueError('literal association differs from retained source kind')
+    return (contexts or []) if raw_kind == 'literal' else None
+
+
+def _literal_context_value(values, _):
+    result = None
+    for contribution in values:
+        result = _accumulate_literal_context(result, contribution)
+    return result
+
+
+def _accumulate_literal_context(result, contribution):
+    if contribution is not None:
+        if result is None:
+            result = []
+        for context in contribution:
+            if context not in result:
+                result.append(context)
+    return result
+
+
+def _prepare_claim_finalization(nodes_by_id, traces, context_groups, registry, raw_nodes):
+    cache = active_cache.get()
+    updates, literals = {}, {}
+    if not traces:
+        return updates, literals
+    if cache:
+        index = cache.reduce('claim-policy-index', 'source-claims', [
+            cache.input_dependency('source-registry:relations', registry)
+        ], None, _claim_policy_index_value)
+        index_dependency = cache.scheduler.definitions['claim-policy-index:source-claims']
+    else:
+        index = _claim_policy_index_value([registry], None)
+    for claim_ref, trace in traces.items():
+        claim_id = f"source-claims:{trace.get('claim_node_id')}"
+        claim = nodes_by_id.get(claim_id)
+        if claim is None:
+            continue
+        subject_id, object_id = (f"source-claims:{trace.get(field)}" for field in ('subject_node_id', 'object_node_id'))
+        subject, object_node = nodes_by_id.get(subject_id), nodes_by_id.get(object_id)
+        association = {'schema': 'tos_claim_association_v1', 'claim_ref': claim_ref,
+            'claim_node_id': claim_id, 'subject_node_id': subject_id, 'object_node_id': object_id,
+            'literal_source_kind': raw_nodes.get(trace.get('object_node_id'), {}).get('node_kind')}
+        predicate = _string(trace.get('predicate')) or 'related_to'
+        contexts = context_groups.get(('source-claims', claim_ref))
+        if cache:
+            trace_dependency = cache.input_dependency('source-claim-trace:' + claim_ref, trace)
+            association_dependency = Input('claim-association:' + claim_ref, association)
+            carriers = [cache.carrier_dependency('node', identifier, value, input_id='claim-endpoint:' + identifier)
+                        for identifier, value in ((claim_id, claim), (subject_id, subject), (object_id, object_node))]
+            cache.reduce('claim-policy', predicate, [index_dependency], predicate, _claim_policy_value)
+            policy_dependency = cache.scheduler.definitions['claim-policy:' + predicate]
+            # Multiple traces targeting one node retain the historical last-wins
+            # assembly rule; each contribution still has a unique trace identity.
+            update = cache.reduce('claim-update', claim_ref,
+                [*carriers, trace_dependency, policy_dependency, association_dependency], None, _claim_finalization_value)
+            updates[claim_id] = update
+            contribution = cache.reduce('literal-claim-contribution', claim_ref, [carriers[2],
+                _claim_context_dependency(cache, 'source-claims', claim_ref, contexts,
+                                          input_id='unjoined-claim-contexts:' + claim_ref),
+                trace_dependency, association_dependency], None, _literal_context_contribution_value)
+            literals.setdefault(object_id, []).append(cache.scheduler.definitions['literal-claim-contribution:' + claim_ref])
+        else:
+            policy = _claim_policy_value([index], predicate)
+            updates[claim_id] = _claim_finalization_value([claim, subject, object_node, trace, policy, association], None)
+            contribution = _literal_context_contribution_value([object_node, contexts, trace, association], None)
+            if contribution is not None:
+                literals[object_id] = _accumulate_literal_context(literals.get(object_id), contribution)
+    if cache:
+        # Only a compact output reference is retained, never a second base-row map.
+        for claim_id, update in updates.items():
+            claim_ref = update[0]['claim_id']
+            cache.reduce('claim-finalization', claim_id,
+                [cache.scheduler.definitions['claim-update:' + claim_ref]], None, _single_value)
+    return updates, {identifier: (cache.reduce('literal-claim-contexts', identifier, contributions, None, _literal_context_value)
+                                  if cache else contributions)
+                     for identifier, contributions in literals.items()}
+
+
+def _single_value(values, _):
+    return values[0]
+
+
 def build_knowledge_graph(
     corpus: dict[str, Any],
     philosophy: dict[str, Any],
@@ -2955,23 +3184,7 @@ def build_knowledge_graph(
             nodes.append(placeholder)
             nodes_by_id[identifier] = placeholder
 
-    claim_context_index: dict[tuple[str, str], list[dict[str, Any]]] = {}
-    for node in nodes:
-        # A review/evidence/value node may cite a claim without being its
-        # assertion. Only reified claim carriers can supply the governing body.
-        if node['kind_id'] not in {'claim', 'annotation-claim'}:
-            continue
-        for context in node.get('semantics', {}).get('assertion_contexts', []):
-            fields = context['fields']
-            claim_ref = fields.get('claim_id', fields.get('claim_ref', {})).get('value')
-            if isinstance(claim_ref, str):
-                key = (node['source_graph'], claim_ref)
-                bound_context = {**context, 'binding_role': 'referenced-claim'}
-                # Multiple source records are not adjudicated by this reader.
-                # Preserve their disagreement without stopping unrelated work.
-                contexts = claim_context_index.setdefault(key, [])
-                if bound_context not in contexts:
-                    contexts.append(bound_context)
+    claim_context_index = _prepare_claim_context_groups(nodes)
 
     def referenced_contexts(source_graph: str, item: dict[str, Any]) -> list[dict[str, Any]] | None:
         claim_ref = item.get('claim_ref')
@@ -2993,60 +3206,10 @@ def build_knowledge_graph(
         for source_graph, item, identity in relation_sources
     ]
 
-    claim_updates, literal_contexts = {}, {}
-    for claim_ref, trace in claim_traces.items():
-        claim_node_id = f"source-claims:{trace.get('claim_node_id')}"
-        claim_node = nodes_by_id.get(claim_node_id)
-        if claim_node is None:
-            continue
-        source_predicate_id = _string(trace.get("predicate")) or "related_to"
-        relation_type_id = relation_mappings.get(
-            ("source-claims", source_predicate_id, "claim-predicate"),
-            fallback_relation_type_id,
-        )
-        subject_id = f"source-claims:{trace.get('subject_node_id')}"
-        object_id = f"source-claims:{trace.get('object_node_id')}"
-        subject = nodes_by_id.get(subject_id)
-        object_node = nodes_by_id.get(object_id)
-        raw_object = bibliographic_nodes_by_native.get(trace.get('object_node_id'), {})
-        if raw_object.get('node_kind') == 'literal' and object_node is not None:
-            contexts = literal_contexts.setdefault(object_id, [])
-            for context in claim_context_index.get(('source-claims', claim_ref), []):
-                if context not in contexts:
-                    contexts.append(context)
-        claim_updates[claim_node_id] = ({
-            **dict(claim_node.get("semantics", {}).get("claim") or {}),
-            "claim_id": claim_ref,
-            "source_predicate_id": source_predicate_id,
-            "relation_type_id": relation_type_id,
-            "predicate_mapping_status": "mapped" if relation_type_id != fallback_relation_type_id else "unmapped",
-            **({'source_claim_profile': copy.deepcopy(relation_entries[relation_type_id]['source_claim_profile']),
-                'source_canonical_json': _temporal_source_canonical(claim_node.get('attributes', {}).get('source_claim'))}
-               if relation_entries.get(relation_type_id, {}).get('source_claim_profile', {}).get('reader') == 'document-catalogue-temporal-v1' else {}),
-            "subject_node_id": subject_id,
-            "subject_entity_id": (subject or {}).get("entity_id"),
-            "object_node_id": object_id,
-            "object_entity_id": (object_node or {}).get("entity_id"),
-            "normalized_identity_node_ids": [
-                f"source-claims:{identifier}"
-                for identifier in _strings(trace.get("normalized_identity_node_ids"))
-            ],
-            "evidence_node_ids": [
-                f"source-claims:{identifier}"
-                for identifier in _strings(trace.get("evidence_node_ids"))
-            ],
-            **({'value_member_node_ids': [f'source-claims:{identifier}'
-                for identifier in trace['value_member_node_ids']]} if trace.get('value_member_node_ids') else {}),
-            "review_status": trace.get("review_status"),
-            "epistemic_status": trace.get("epistemic_status"),
-        }, dict(trace))
-    inherited_views = {}
-    for relation in relations:
-        view_ids = set(_strings(relation.get("view_ids")))
-        if not view_ids:
-            continue
-        for endpoint in (str(relation["from_id"]), str(relation["to_id"])):
-            inherited_views.setdefault(endpoint, set()).update(view_ids)
+    claim_updates, literal_contexts = _prepare_claim_finalization(
+        nodes_by_id, claim_traces, claim_context_index, relation_registry,
+        bibliographic_nodes_by_native)
+    inherited_views = _prepare_inherited_views(relations)
     # These assembly indexes refer to base nodes, not the final graph. Do not
     # retain a superseded node generation through context compilation and
     # semantic validation (the opt-in cache owns its own dependency lifetime).
@@ -3056,7 +3219,7 @@ def build_knowledge_graph(
     for index, node in enumerate(nodes):
         nodes[index] = _finalize_knowledge_node(
             node, claim_updates.get(node['id']),
-            sorted(inherited_views.get(node['id'], set())),
+            inherited_views.get(node['id'], []),
             literal_contexts.get(node['id']), _owned=owned_nodes)
     del claim_updates, literal_contexts, inherited_views
     context_compiler = ReadableContextCompiler(entity_registry, digest=_stable_digest)
@@ -3607,9 +3770,12 @@ def _finalize_knowledge_node(node, claim_update, inherited_views, claim_contexts
         identifier = node['id']
         return cache.memo('final-node', identifier, [
             cache.carrier_dependency('node', identifier, node, input_id='base-node:' + identifier),
-            Input('claim-finalization:' + identifier, claim_update),
-            Input('inherited-views:' + identifier, inherited_views),
-            Input('literal-claim-contexts:' + identifier, claim_contexts),
+            cache.carrier_dependency('claim-finalization', identifier, claim_update,
+                                     input_id='standalone-claim-finalization:' + identifier),
+            cache.carrier_dependency('inherited-views', identifier, inherited_views,
+                                     input_id='standalone-inherited-views:' + identifier),
+            cache.carrier_dependency('literal-claim-contexts', identifier, claim_contexts,
+                                     input_id='standalone-literal-claim-contexts:' + identifier),
         ], lambda: _final_node_value(node, claim_update, inherited_views, claim_contexts))
     if _owned:
         return _owned_final_node_value(node, claim_update, inherited_views, claim_contexts)
