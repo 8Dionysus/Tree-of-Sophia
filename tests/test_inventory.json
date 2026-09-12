@@ -78,6 +78,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_offline_prepare.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/OFFLINE_PREPARED_BOOTSTRAP.md",
+      "protects": "explicit full source bootstrap executable, environment-fenced coherent graph and catalog, fresh private output and last completion marker, no successful descriptor after source drift or partial failure, portable path value kinds and real prepared reader search and lens equivalence",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_offline_prepare.py",
+      "failure_route": "Fix the explicit offline producer without switching consumers, overwriting an existing output, promising ongoing currentness or disguising a full source bootstrap as incremental work.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_prepared_publication.py",
       "home": "access",
       "home_scope": "product-local",

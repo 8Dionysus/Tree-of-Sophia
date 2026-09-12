@@ -19,6 +19,7 @@ if ACCESS_SRC.as_posix() not in sys.path:
     sys.path.insert(0, ACCESS_SRC.as_posix())
 
 from tos_access.core import ToSAccessCore, KNOWLEDGE_CONTRACT_RELATIVE_PATHS  # noqa: E402
+from tos_access.portable_paths import normalize_paths  # noqa: E402
 from tos_access import core as access_core  # noqa: E402
 from tos_access.normalization_cache import NormalizationCache, normalization_processor_digest  # noqa: E402
 from tos_access.processing import DEFAULT_CACHE_BYTES, DEFAULT_CACHE_ENTRIES  # noqa: E402
@@ -98,21 +99,6 @@ def item_identity(item: dict[str, Any], fallback: str) -> str:
         if isinstance(value, str) and value:
             return value
     return fallback
-
-
-def normalize_paths(value: Any, root: Path) -> Any:
-    prefix = root.resolve().as_posix() + "/"
-    if isinstance(value, str):
-        if value == root.resolve().as_posix():
-            return "Tree-of-Sophia"
-        if value.startswith(prefix):
-            return value.removeprefix(prefix)
-        return value
-    if isinstance(value, list):
-        return [normalize_paths(item, root) for item in value]
-    if isinstance(value, dict):
-        return {key: normalize_paths(item, root) for key, item in value.items()}
-    return value
 
 
 def write_json(root: Path, relative: str, value: Any) -> None:
