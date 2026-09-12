@@ -48,6 +48,26 @@ refuses a row count above the mutation budget. A changed, exhausted or failed
 second pass rolls back the new file. This seam can consume disk-backed rows;
 it neither assembles source dependencies nor makes a full bootstrap incremental.
 
+Both bootstrap entries accept the explicit pair `search_scratch_path` and
+`search_scratch_limits=BulkBootstrapLimits(max_bytes=..., max_mutations=...)`
+from `tos_access.compressed_search_bootstrap`. Supplying both selects the
+[scratch-backed bulk initializer](COMPRESSED_SEARCH_V3.md#explicit-scratch-backed-bulk-bootstrap);
+omitting both keeps the buffered initializer. There is no automatic fallback
+or retry. The owner reserves the main database, its rollback journal/headroom
+and the independently capped scratch file before execution. Scratch has an
+exclusive, non-adopting lifecycle and is removed on success or failure; a
+foreign/replacement inode is never deleted.
+
+Bulk changes physical block layout, not the publication descriptor, binding,
+full rows, exact search semantics or later delta API. Before bulk work the
+publisher reserves its already-written header, four fresh carrier DML rows
+per input row (carrier, lens order, emitted digest, stable address map), and
+the final prepared state. The remaining mutation allowance covers search-main
+plus scratch writes. The final whole-publication check counts main
+`total_changes` plus scratch mutations once each. Individual budget-limited
+search page boundaries can differ between physical layouts; the complete
+result stream and snapshot-bound continuation contract remain unchanged.
+
 Producer-owned `(kind, exact ID) -> doc_id` addresses are stable. Bootstrap
 assigns monotonic addresses and sparse source-order tokens in native row-list
 order, with stride `2**32`. Search uses those tokens only to break equal-lower-ID

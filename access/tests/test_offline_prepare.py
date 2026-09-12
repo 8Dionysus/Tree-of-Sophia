@@ -146,6 +146,49 @@ class OfflinePrepareTests(unittest.TestCase):
                 self.assertEqual(json.loads(result.stderr)["status"], "failed")
                 self.assertFalse(self.output.exists())
 
+    def test_real_bulk_cli_matches_buffered_binding_and_declares_scratch_disposition(self):
+        reference = self.command()
+        self.assertEqual(reference.returncode, 0, reference.stderr)
+        expected = json.loads(reference.stdout)
+        old_path = self.output / "snapshot.sqlite"
+        self.output = self.output.with_name("bulk-output")
+        result = self.command("--bulk-search-scratch-bytes", str(8 * 1024 * 1024),
+                              "--bulk-search-scratch-mutations", "2000000")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        receipt = json.loads(result.stdout)
+        self.assertEqual(receipt["binding"], expected["binding"])
+        self.assertEqual(receipt["search_bootstrap"], "bulk")
+        self.assertEqual(expected["search_bootstrap"], "buffered")
+        self.assertEqual(receipt["search_scratch_limits"], vars(producer.BulkBootstrapLimits(8 * 1024 * 1024, 2_000_000)))
+        self.assertEqual({p.name for p in self.output.iterdir()}, {"snapshot.sqlite", "binding.json", "completed.json"})
+        actual = PublishedKnowledgeReadModel(self.output / "snapshot.sqlite", receipt["binding"])
+        old = PublishedKnowledgeReadModel(old_path, expected["binding"])
+        self.assertEqual(actual.catalog(), old.catalog())
+        for query in ("", "Альфа", '"zero": 0', "missing"):
+            first = PublishedSearchService(actual).search(query, limit=10)
+            second = PublishedSearchService(old).search(query, limit=10)
+            self.assertEqual(first["nodes"], second["nodes"])
+            self.assertEqual(first["relations"], second["relations"])
+
+    def test_bulk_cli_requires_both_caps_and_checks_them_before_source_work(self):
+        for flags in (("--bulk-search-scratch-bytes", "65536"),
+                      ("--bulk-search-scratch-mutations", "100"),
+                      ("--bulk-search-scratch-bytes", "0", "--bulk-search-scratch-mutations", "100")):
+            result = self.command(*flags)
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertFalse(self.output.exists())
+        with patch.object(source.ToSAccessCore, "knowledge_snapshot_once", side_effect=AssertionError("invalid caps reached source")):
+            for limits in ({}, producer.BulkBootstrapLimits(1, 100)):
+                with self.assertRaises(ValueError):
+                    producer.prepare(self.root, self.output, search_scratch_limits=limits)
+                self.assertFalse(self.output.exists())
+        result = self.command("--bulk-search-scratch-bytes", "65536", "--bulk-search-scratch-mutations", "1")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(json.loads(result.stderr)["status"], "failed")
+        self.assertFalse((self.output / "completed.json").exists())
+        self.assertFalse((self.output / "snapshot.sqlite").exists())
+        self.assertFalse((self.output / ".search-sort.sqlite").exists())
+
     def test_portable_conversion_never_copies_the_whole_graph(self):
         original = producer.normalize_paths
         rows = []

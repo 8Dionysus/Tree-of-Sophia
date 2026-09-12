@@ -11,6 +11,7 @@ import sys
 from . import core as source
 from .portable_paths import normalize_paths
 from .prepared_publication import PublicationLimits, publish_prepared_rows
+from .compressed_search_bootstrap import BulkBootstrapLimits
 
 SCHEMA = "tos_offline_prepared_bootstrap_receipt_v1"
 
@@ -52,7 +53,8 @@ def _exclusive_json(path: Path, value: dict) -> None:
 
 
 def prepare(source_root: str | Path, output_dir: str | Path, *,
-            limits: PublicationLimits | None = None) -> dict:
+            limits: PublicationLimits | None = None,
+            search_scratch_limits: BulkBootstrapLimits | None = None) -> dict:
     """Create a fresh private output directory; retain incomplete attempts.
 
     The completed marker is the sole success signal for this directory ABI.
@@ -63,6 +65,10 @@ def prepare(source_root: str | Path, output_dir: str | Path, *,
         raise ValueError("source root must be a directory")
     output = Path(output_dir).expanduser().absolute()
     limits = limits or PublicationLimits()
+    if search_scratch_limits is not None:
+        if not isinstance(search_scratch_limits, BulkBootstrapLimits):
+            raise ValueError("explicit BulkBootstrapLimits required")
+        search_scratch_limits.validate()
     # No parents=True: the caller must select an existing output parent.
     output.mkdir(mode=0o700)
     _sync_directory(output.parent)
@@ -88,7 +94,9 @@ def prepare(source_root: str | Path, output_dir: str | Path, *,
     catalog = normalize_paths(snapshot["catalog"], root)
     path = output / "snapshot.sqlite"
     binding = publish_prepared_rows(path, source_header=header, catalog=catalog,
-        row_factory=lambda kind: (normalize_paths(item, root) for item in graph[kind + "s"]), limits=limits)
+        row_factory=lambda kind: (normalize_paths(item, root) for item in graph[kind + "s"]), limits=limits,
+        search_scratch_path=output / ".search-sort.sqlite" if search_scratch_limits is not None else None,
+        search_scratch_limits=search_scratch_limits)
     if core._knowledge_input_state() != state:
         raise RuntimeError("source changed during offline publication")
     receipt = {
@@ -100,6 +108,8 @@ def prepare(source_root: str | Path, output_dir: str | Path, *,
         "normalization_cache": "disabled", "consumer_switched": False,
         "snapshot": "snapshot.sqlite", "binding_file": "binding.json",
         "binding": binding, "publication_limits": asdict(limits),
+        "search_bootstrap": "bulk" if search_scratch_limits is not None else "buffered",
+        "search_scratch_limits": asdict(search_scratch_limits) if search_scratch_limits is not None else None,
         "build_counts": {"nodes": len(graph["nodes"]), "relations": len(graph["relations"]),
                          "snapshot_bytes": path.stat().st_size},
     }
@@ -126,10 +136,18 @@ def main(argv: list[str] | None = None) -> int:
                         help="explicit SQLite file byte cap; caller must reserve disk/journal capacity")
     parser.add_argument("--max-mutations", type=positive_integer, default=defaults.max_mutations,
                         help="explicit total SQL mutation cap; does not authorize unbounded processing")
+    parser.add_argument("--bulk-search-scratch-bytes", type=positive_integer,
+                        help="explicit bulk search scratch byte cap; requires scratch mutation cap and host reservation")
+    parser.add_argument("--bulk-search-scratch-mutations", type=positive_integer,
+                        help="explicit bulk search scratch mutation cap; also charged to --max-mutations")
     args = parser.parse_args(argv)
+    if (args.bulk_search_scratch_bytes is None) != (args.bulk_search_scratch_mutations is None):
+        parser.error("bulk search requires both scratch byte and mutation caps")
     try:
+        scratch_limits = (BulkBootstrapLimits(args.bulk_search_scratch_bytes, args.bulk_search_scratch_mutations)
+                          if args.bulk_search_scratch_bytes is not None else None)
         receipt = prepare(args.source_root, args.output_dir, limits=PublicationLimits(
-            max_bytes=args.max_bytes, max_mutations=args.max_mutations))
+            max_bytes=args.max_bytes, max_mutations=args.max_mutations), search_scratch_limits=scratch_limits)
     except Exception as error:
         # Exception text may contain source payloads/paths: report a bounded
         # class only, with explicit non-success; leave partial output untouched.

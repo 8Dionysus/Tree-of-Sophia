@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Iterable
 
 from .compressed_search_store import ALGORITHM, MAX_ADDRESS, PreparedSearchDocument, SearchChange, SearchStore
+from .compressed_search_bootstrap import BulkBootstrapLimits
 from .published_read_metadata import (
     CATALOG_KEY, LENS_META_KEY, TOP_KEY, _compact, emitted_row_digest,
     lens_order_row, published_lens_metadata, published_reader_metadata,
@@ -183,7 +184,9 @@ def _publish_header(db, header, catalog, lens, descriptor, epoch, limits):
 
 
 def publish_prepared(path: str | Path, *, graph: dict, catalog: dict,
-                     limits: PublicationLimits | None = None) -> dict:
+                     limits: PublicationLimits | None = None,
+                     search_scratch_path: str | Path | None = None,
+                     search_scratch_limits: BulkBootstrapLimits | None = None) -> dict:
     """Create one exclusive 0600 file; failure removes only that new inode.
 
     Explicit repeatable normalized row lists retain their native source order.
@@ -193,12 +196,16 @@ def publish_prepared(path: str | Path, *, graph: dict, catalog: dict,
         raise ValueError("explicit repeatable normalized row lists required")
     return publish_prepared_rows(path, source_header={key: value for key, value in graph.items()
                                  if key not in ("nodes", "relations")}, catalog=catalog,
-                                 row_factory=lambda kind: iter(graph[kind + "s"]), limits=limits)
+                                 row_factory=lambda kind: iter(graph[kind + "s"]), limits=limits,
+                                 search_scratch_path=search_scratch_path,
+                                 search_scratch_limits=search_scratch_limits)
 
 
 def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dict,
                           row_factory: Callable[[str], Iterable[dict[str, Any]]],
-                          limits: PublicationLimits | None = None) -> dict:
+                          limits: PublicationLimits | None = None,
+                          search_scratch_path: str | Path | None = None,
+                          search_scratch_limits: BulkBootstrapLimits | None = None) -> dict:
     """Bootstrap from two repeatable passes, without retaining transformed rows.
 
     ``row_factory(kind)`` supplies a fresh iterable for ``node`` or ``relation``
@@ -210,6 +217,12 @@ def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dic
         raise ValueError("source header must exclude row collections")
     if not callable(row_factory):
         raise ValueError("explicit repeatable normalized row factory required")
+    if (search_scratch_path is None) != (search_scratch_limits is None):
+        raise ValueError("bulk search requires both an explicit scratch path and limits")
+    if search_scratch_limits is not None:
+        if not isinstance(search_scratch_limits, BulkBootstrapLimits):
+            raise ValueError("explicit BulkBootstrapLimits required")
+        search_scratch_limits.validate()
     limits = limits or PublicationLimits()
     header = _header(source_header, catalog)
     digest = hashlib.sha256()
@@ -268,13 +281,30 @@ def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dic
             if actual.hexdigest() != digest.hexdigest():
                 raise ValueError("normalized input changed during publication")
 
-        SearchStore.initialize_transaction(db, binding=binding, documents=documents(),
-                                           max_mutations=limits.max_mutations, max_bytes=maximum * db.execute("PRAGMA page_size").fetchone()[0])
+        search_bytes = maximum * db.execute("PRAGMA page_size").fetchone()[0]
+        scratch_mutations = 0
+        if search_scratch_limits is None:
+            SearchStore.initialize_transaction(db, binding=binding, documents=documents(),
+                                               max_mutations=limits.max_mutations, max_bytes=search_bytes)
+        else:
+            # The search writer does not own generator-side carrier DML. In this
+            # fresh schema every row inserts one carrier, order, digest and map
+            # row (the digest DELETE matches nothing). Reserve that exact cost,
+            # the already emitted header, and the final prepared_state insert
+            # before admitting search-main + scratch mutations.
+            search_mutations = limits.max_mutations - db.total_changes - 4 * count - 1
+            if search_mutations < 1:
+                raise ValueError("whole publication mutation budget exhausted before bulk search")
+            report = SearchStore.initialize_bulk_transaction(
+                db, binding=binding, documents=documents(), max_bytes=search_bytes,
+                max_mutations=search_mutations, scratch_path=search_scratch_path,
+                scratch_limits=search_scratch_limits)
+            scratch_mutations = report["scratch_mutations"]
         if db.execute("SELECT high_water FROM search_header WHERE singleton=1").fetchone()[0] != count:
             raise ValueError("prepared/search address high-water differs")
         db.execute("INSERT INTO prepared_state VALUES (1,?,?,?)", (count, maximum, _compact(descriptor)))
         _cap(db, limits, maximum)
-        if db.total_changes > limits.max_mutations:
+        if db.total_changes + scratch_mutations > limits.max_mutations:
             raise ValueError("whole publication mutation budget exceeded")
         db.execute("COMMIT")
         return binding

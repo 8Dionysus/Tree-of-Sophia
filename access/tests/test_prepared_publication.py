@@ -7,12 +7,14 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from tos_access.prepared_publication import (
     PreparedChange, PublicationLimits, SCHEMA, apply_prepared_delta,
     apply_prepared_delta_transaction, publish_prepared, publish_prepared_rows,
 )
 from tos_access.compressed_search_store import SearchStore
+from tos_access.compressed_search_bootstrap import BulkBootstrapLimits
 from tos_access.published_read_metadata import _compact, published_lens_metadata, LENS_META_KEY
 from tos_access.published_read_model import PublishedKnowledgeReadModel, PublishedSnapshotConflict
 from tos_access.published_lens import PublishedLensService
@@ -124,6 +126,95 @@ class PreparedPublicationTests(unittest.TestCase):
             for table in ("knowledge_nodes", "knowledge_relations", "knowledge_lens_order", "prepared_documents", "edge_meta"):
                 self.assertEqual(actual.execute(f"SELECT * FROM {table} ORDER BY 1,2").fetchall(),
                                  expected.execute(f"SELECT * FROM {table} ORDER BY 1,2").fetchall())
+
+    def test_bulk_publication_preserves_binding_full_readers_and_post_delta_search(self):
+        reference = self.publish()
+        target = self.path.with_name("bulk.sqlite")
+        scratch = self.path.with_name("bulk-scratch.sqlite")
+        with patch.object(SearchStore, "initialize_transaction", side_effect=AssertionError("implicit buffered fallback")):
+            binding = publish_prepared(target, graph=self.graph, catalog=self.catalog,
+                search_scratch_path=scratch,
+                search_scratch_limits=BulkBootstrapLimits(8 * 1024 * 1024, 2_000_000))
+        self.assertFalse(scratch.exists())
+        self.assertEqual(binding, self.binding)
+        reader = PublishedKnowledgeReadModel(target, binding)
+        self.assertEqual(reader.catalog(), reference.catalog())
+        for item in self.graph["nodes"]:
+            self.assertEqual(reader.node(item["id"]), reference.node(item["id"]))
+        self.assertEqual(reader.relation("r"), reference.relation("r"))
+        spec = lens(seed={"node_ids": ["a"]})
+        self.assertEqual(PublishedLensService(reader).execute(spec), PublishedLensService(reference).execute(spec))
+        header, catalog = self.header()
+        changed = copy.deepcopy(self.graph["nodes"][0])
+        changed["probe"]["key"] = "corrected source"
+        changes = [PreparedChange("update", "node", "a", changed)]
+        actual_binding = apply_prepared_delta(target, expected_binding=binding,
+            source_header=header, catalog=catalog, changes=changes)
+        expected_binding = self.delta(changes)
+        self.assertEqual(actual_binding, expected_binding)
+        for query in ("", "common", '"key": "corrected source"', "false", "Слово"):
+            self.assertEqual(SearchStore(target, binding=actual_binding).query_page(kind="node", query=query)["matches"],
+                             self.search(expected_binding, query))
+        with self.assertRaises(PublishedSnapshotConflict):
+            reader.catalog()
+
+    def test_bulk_combined_publication_budget_is_exact_including_carriers_and_scratch(self):
+        scratch = self.path.with_name("scratch.sqlite")
+        original = SearchStore.initialize_bulk_transaction
+        observations = []
+        def measured(db, **kwargs):
+            report = original(db, **kwargs)
+            observations.append({"combined": db.total_changes + report["scratch_mutations"] + 1,
+                                 "search": report["mutations"], "allowance": kwargs["max_mutations"]})
+            return report
+        options = {"graph": self.graph, "catalog": self.catalog,
+                   "search_scratch_path": scratch,
+                   "search_scratch_limits": BulkBootstrapLimits(8 * 1024 * 1024, 2_000_000)}
+        with patch.object(SearchStore, "initialize_bulk_transaction", side_effect=measured):
+            expected = publish_prepared(self.path, **options)
+            required = observations[0]["combined"]
+            exact = self.path.with_name("exact.sqlite")
+            self.assertEqual(publish_prepared(exact, **options, limits=PublicationLimits(max_mutations=required)), expected)
+        self.assertEqual(observations[1]["combined"], required)
+        self.assertEqual(observations[1]["search"], observations[1]["allowance"])
+        refused = self.path.with_name("refused.sqlite")
+        with self.assertRaisesRegex(ValueError, "mutation budget"):
+            publish_prepared(refused, **options, limits=PublicationLimits(max_mutations=required - 1))
+        self.assertFalse(refused.exists())
+        self.assertFalse(scratch.exists())
+        self.assertEqual(PublishedKnowledgeReadModel(self.path, expected).catalog(), self.catalog)
+
+    def test_bulk_explicit_inputs_and_second_pass_failures_preserve_foreign_files(self):
+        limits = BulkBootstrapLimits(8 * 1024 * 1024, 2_000_000)
+        scratch = self.path.with_name("scratch.sqlite")
+        for options in ({"search_scratch_path": scratch}, {"search_scratch_limits": limits},
+                        {"search_scratch_path": scratch, "search_scratch_limits": {}}):
+            with self.assertRaises(ValueError):
+                publish_prepared(self.path, graph=self.graph, catalog=self.catalog, **options)
+            self.assertFalse(self.path.exists())
+            self.assertFalse(scratch.exists())
+        scratch.touch()
+        with self.assertRaises(FileExistsError):
+            publish_prepared(self.path, graph=self.graph, catalog=self.catalog,
+                search_scratch_path=scratch, search_scratch_limits=limits)
+        self.assertFalse(self.path.exists())
+        self.assertEqual(scratch.read_bytes(), b"")
+        # Existing path is never adopted. A fresh path is disposed on a source
+        # failure after carrier/search writes, without selecting a partial DB.
+        fresh_scratch = self.path.with_name("fresh-scratch.sqlite")
+        header, catalog = self.header("a")
+        calls = {"node": 0, "relation": 0}
+        def rows(kind):
+            calls[kind] += 1
+            yield from self.graph[kind + "s"]
+            if kind == "relation" and calls[kind] == 2:
+                raise RuntimeError("source second pass failed")
+        with self.assertRaisesRegex(RuntimeError, "second pass"):
+            publish_prepared_rows(self.path, source_header=header, catalog=catalog, row_factory=rows,
+                search_scratch_path=fresh_scratch, search_scratch_limits=limits)
+        self.assertFalse(self.path.exists())
+        self.assertFalse(fresh_scratch.exists())
+        self.assertEqual(scratch.read_bytes(), b"")
 
     def test_row_factory_change_or_failure_never_publishes_a_partial_snapshot(self):
         header, catalog = self.header("a")

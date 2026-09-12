@@ -63,6 +63,24 @@ The byte cap covers the SQLite file, not its transient journal or source memory;
 reserve those separately. There is no automatic retry with larger caps and no
 cache flag.
 
+For explicit bulk search construction, add **both**
+`--bulk-search-scratch-bytes BYTES` and
+`--bulk-search-scratch-mutations COUNT`. They select the scratch-backed
+initializer described in [local prepared publication](LOCAL_PREPARED_PUBLICATION.md);
+the old buffered route remains the default. Scratch is exclusively created as
+`.search-sort.sqlite` inside the new output directory, capped independently,
+and disposed before success. Both scratch limits are validated before source
+work/output creation. A process interruption can still leave a disposable
+scratch candidate; it is never an admitted or resumable snapshot.
+
+Reserve scratch in addition to the main file and journal/headroom. Scratch
+mutations also count toward `--max-mutations`, including the publisher's exact
+carrier/header overhead. The completion receipt records `search_bootstrap`
+(`bulk` or `buffered`) and `search_scratch_limits` (null for buffered). These
+physical-build choices do not alter the logical binding or source admission.
+This option eliminates incremental posting maintenance during the initial
+cohort load; full source normalization remains a separate measured stage.
+
 ## Completion and selection
 
 A complete output contains three mode-0600 files:
