@@ -144,6 +144,59 @@ source-independent semantic acceptance is claimed.
 
 ## Verification
 
+### Prepared publication join
+
+`tos_access.prepared_catalog` connects this reducer to the existing full-carrier,
+lens and search publication in the **same caller-owned SQLite transaction**:
+
+```python
+from tos_access.prepared_catalog import (
+    bootstrap_prepared_catalog_transaction,
+    apply_catalogued_prepared_delta_transaction,
+)
+
+# Explicit offline attachment to an already admitted prepared baseline.
+# Caller starts the transaction and rolls back the whole transaction on failure.
+receipt = bootstrap_prepared_catalog_transaction(
+    connection, expected_binding=binding, inputs=before_inputs)
+# No binding/clock/header/row/search content changes during attachment.
+
+result = apply_catalogued_prepared_delta_transaction(
+    connection, expected_binding=binding,
+    before_inputs=before_inputs, after_inputs=draft_after_inputs,
+    changes=prepared_changes)
+# Commit only after any stronger owner checks. On ANY exception: whole rollback.
+# Retain result['binding'] and the FINAL result['source_header'], not the draft.
+```
+
+Attachment streams prepared rows in their owner source order and verifies their
+full emitted-row digests and exact indexed identity. The rendered catalog and
+final header must equal the selected baseline before commit. This is an explicit
+full bootstrap, not an update and not a hidden reader fallback.
+
+Delta checks the exact prepared binding, descriptor/header, registry digests and
+before catalog, then copies only the bounded selected full old/new rows. The
+catalog's expected old-row digests are computed from those verified carriers.
+An input iterator cannot change an earlier captured item between the catalog and
+prepared write passes. Canonical catalog order comes from the row's exact
+`(source_graph,id)`; owner-sequence order uses `PreparedChange.source_order`.
+Insertions still need an explicit prepared sparse order token, even with the
+canonical catalog profile. Updates preserve that token unless explicitly moved.
+
+The shared publication byte/page cap applies to the whole file; the SQL mutation
+budget accounts for both catalog and prepared/search/lens mutations. A failed
+operation never commits, but may have changed the open transaction: the caller
+must roll it back, including its own earlier work. Only the final joined receipt
+and commit can establish a new local publication. Reader activation is separate.
+
+The caller still owns dependency-complete normalization, the explicit current
+semantic report, source revision and source/assessment transition. This join does
+not verify source growth or grant semantic acceptance. Its receipt states
+`source_transition_verified=false`, `semantic_acceptance=false` and
+`consumer_switched=false`; those are not claims about stronger owner work.
+
+### Regression evidence
+
 The frozen oracle in `access/tests/catalog_oracle.json` was captured from
 `knowledge_catalog` at commit `900202441e1c8894676efef90c420df2601598e5`
 **before** refactoring. An additional unsorted compact JSON oracle was captured

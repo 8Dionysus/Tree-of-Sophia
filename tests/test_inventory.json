@@ -381,6 +381,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_prepared_catalog.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/prepared_catalog.py",
+      "protects": "exact catalog attachment, atomic catalog/full-carrier/search/lens deltas, selected owner binding, bounded copied changes, combined mutation budget and whole caller rollback",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_prepared_catalog.py",
+      "failure_route": "Fix the joined publication without rebuilding the whole graph, copying stale semantic reports, losing exact rows or committing partial catalog/search state.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_catalog_index.py",
       "home": "access",
       "home_scope": "product-local",
