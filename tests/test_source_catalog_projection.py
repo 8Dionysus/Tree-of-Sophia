@@ -17,6 +17,7 @@ import build_source_witness_catalog as legacy
 import source_catalog_projection as catalog
 import source_commands as commands
 import source_metadata_snapshot as publication
+import metadata_version_reader as metadata
 import test_source_revisions as revision_tests
 from tos_access.projection_mutation import MutationLimits, ProjectionSnapshotView, ProjectionMutationError
 from tos_access.projection_store import ProjectionReader, canonical_bytes
@@ -312,6 +313,116 @@ class SourceCatalogProjectionTests(unittest.TestCase):
             trusted_baseline_sha256=changed.after_sha256)
         with self.assertRaisesRegex(catalog.SourceCatalogError, 'predecessor differs'):
             self.transition(foreign, transaction_id, token)
+
+    def test_metadata_reader_explicit_current_route_is_lossless_without_jsonl_fallback(self):
+        baseline = self.bootstrap()
+        snapshot = self.reader(baseline)
+        reference = commands.metadata_subject(self.record).ref
+        legacy_result = metadata.MetadataVersionReader(self.root).resolve_typed(reference)
+        with patch.object(metadata.MetadataVersionReader, '_catalog', side_effect=AssertionError('legacy catalog fallback')), \
+                patch.object(ProjectionReader, 'iter_items', side_effect=AssertionError('full catalog scan')), \
+                patch.object(Path, 'rglob', side_effect=AssertionError('source scan')):
+            reader = metadata.MetadataVersionReader(self.root, catalog_snapshot=snapshot)
+            result = reader.resolve_typed(reference)
+            refs = reader.exact_refs(self.identity)
+            reader.verify_current()
+        self.assertEqual(result['status'], 'available', result)
+        self.assertEqual(result['provenance']['catalog'], snapshot.get(self.identity).provenance)
+        self.assertEqual(refs['refs'], [reference])
+        self.assertEqual(refs['provenance']['catalog'], result['provenance']['catalog'])
+        for field in ('catalog',):
+            legacy_result['provenance'].pop(field)
+            result['provenance'].pop(field)
+        self.assertEqual(result, legacy_result)
+        with self.assertRaises(TypeError):
+            metadata.MetadataVersionReader(self.root, catalog_snapshot=baseline.snapshot())
+
+    def test_metadata_reader_current_and_history_share_exact_local_address_without_neighbor_churn(self):
+        baseline = self.bootstrap()
+        before = metadata.MetadataVersionReader(self.root, catalog_snapshot=self.reader(baseline))
+        original_ref = commands.metadata_subject(self.record).ref
+        other_ref = commands.metadata_subject(self.other).ref
+        unchanged = before.resolve(other_ref)
+        self.assertEqual(unchanged['status'], 'available', unchanged)
+        transaction_id, token = self.revise()
+        successor = self.transition(self.reader(baseline), transaction_id, token)
+        snapshot = self.reader(successor)
+        with patch.object(metadata.MetadataVersionReader, '_catalog', side_effect=AssertionError('legacy catalog fallback')):
+            reader = metadata.MetadataVersionReader(self.root, catalog_snapshot=snapshot)
+            history = reader.exact_refs(self.identity)
+            old = reader.resolve(original_ref)
+            current = reader.resolve(history['current_ref'])
+            next_unchanged = reader.resolve(other_ref)
+        self.assertEqual(old['status'], 'available', old)
+        self.assertEqual(current['status'], 'available', current)
+        self.assertEqual(old['version_status'], 'historical')
+        self.assertEqual(current['version_status'], 'current')
+        self.assertEqual(len(history['refs']), 2)
+        for result in (old, current, history):
+            self.assertEqual(result['provenance']['catalog'], snapshot.get(self.identity).provenance)
+            self.assertNotIn('line', result['provenance']['catalog'])
+            self.assertNotIn('root_sha256', result['provenance']['catalog'])
+        self.assertEqual(next_unchanged, unchanged)
+        self.assertEqual(before.resolve(other_ref)['status'], 'stale')
+
+    def test_metadata_reader_refuses_raw_drift_even_when_canonical_record_is_unchanged(self):
+        baseline = self.bootstrap()
+        original = self.fixture.path.read_bytes()
+        self.fixture.path.write_bytes(original + b'\n')
+        reference = commands.metadata_subject(self.record).ref
+        self.assertEqual(metadata.MetadataVersionReader(self.root).resolve(reference)['status'], 'available')
+        result = metadata.MetadataVersionReader(self.root, catalog_snapshot=self.reader(baseline)).resolve(reference)
+        self.assertEqual((result['status'], result['reason']), ('stale', 'catalog-source-binding-mismatch'))
+        self.assertIsNone(result['provenance'])
+        self.assertIsNone(result['record'])
+
+    def test_metadata_reader_refuses_unbound_publication_and_lookup_budget_without_fallback(self):
+        baseline = self.bootstrap()
+        transaction_id, token = self.revise()
+        successor = self.transition(self.reader(baseline), transaction_id, token)
+        reference = commands.metadata_subject(self.other).ref
+        for source_candidate in (baseline, successor):
+            if source_candidate is successor:
+                manifest = json.loads(successor.root_bytes)
+                manifest['header']['source_publication']['generation'] += 1
+                view = ProjectionSnapshotView(canonical_bytes(manifest), self.output)
+                snapshot = catalog.SourceCatalogSnapshot(view, expected_root_sha256=view.snapshot_digest,
+                    trusted_baseline_sha256=view.snapshot_digest)
+            else:
+                snapshot = self.reader(source_candidate)
+            reader = metadata.MetadataVersionReader(self.root, catalog_snapshot=snapshot)
+            with patch.object(metadata.MetadataVersionReader, '_catalog', side_effect=AssertionError('legacy catalog fallback')):
+                result = reader.resolve(reference)
+            self.assertEqual((result['status'], result['reason']), ('stale', 'source-publication-changed'))
+            self.assertIsNone(result['provenance'])
+        snapshot = self.reader(successor, limits=replace(MutationLimits(), max_opened_parts=0))
+        result = metadata.MetadataVersionReader(self.root, catalog_snapshot=snapshot).resolve(reference)
+        self.assertEqual((result['status'], result['reason']), ('over-budget', 'addressed-catalog-read-budget'))
+        self.assertIsNone(result['record'])
+
+    def test_metadata_reader_addressed_source_bytes_require_identity_and_preserve_original_locator(self):
+        baseline = self.bootstrap()
+        original_raw = self.fixture.path.read_bytes()
+        transaction_id, token = self.revise()
+        successor = self.transition(self.reader(baseline), transaction_id, token)
+        reader = metadata.MetadataVersionReader(self.root, catalog_snapshot=self.reader(successor))
+        with self.assertRaisesRegex(ValueError, 'explicit record_id'):
+            reader.resolve_source_bytes(self.relative, sha(original_raw))
+        with patch.object(metadata.MetadataVersionReader, '_catalog', side_effect=AssertionError('legacy catalog fallback')):
+            old = reader.resolve_source_bytes(self.relative, sha(original_raw), record_id=self.identity)
+            current = reader.resolve_source_bytes(self.relative, sha(self.fixture.path.read_bytes()), record_id=self.identity)
+            wrong = reader.resolve_source_bytes(self.relative, sha(original_raw), record_id=self.other['record_id'])
+            missing = reader.exact_refs('tos.agent.absent')
+        self.assertEqual(old['status'], 'available', old)
+        self.assertEqual(old['reason'], 'exact-historical-source-bytes')
+        self.assertEqual(old['exact_ref'], commands.metadata_subject(self.record).ref)
+        self.assertEqual(current['status'], 'available', current)
+        self.assertEqual(current['reason'], 'exact-current-source-bytes')
+        self.assertEqual(wrong['status'], 'missing', wrong)
+        self.assertIsNone(wrong['record'])
+        self.assertEqual(missing['status'], 'missing', missing)
+        self.assertEqual(missing['refs'], [])
+        self.assertIsNone(missing['provenance'])
 
 
 if __name__ == '__main__':

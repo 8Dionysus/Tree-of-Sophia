@@ -236,6 +236,25 @@ native Artifact, Link and retained scholarly Composite, plus the registry's
 declared metadata profiles and schema routes. Pass the locator to `supports`
 when one catalog contains more than one native/declared representation.
 
+An explicit `MetadataVersionReader(root, catalog_snapshot=SourceCatalogSnapshot(...))`
+uses the [addressed catalog v2](../../../../ToS/source-witnesses/README.md#explicit-addressed-record-catalog)
+for keyed record lookup. It verifies the catalog header's publication token and
+generation against the same coherent live source snapshot, and checks exact
+source raw bytes, length and record ref before opening retained history. There
+is no legacy JSONL fallback or fabricated line number. Both current and
+historical results carry the exact `CatalogRecord.provenance` in
+`provenance.catalog`; global catalog roots and publication tokens remain outside
+record/history/version provenance. An unrelated revision therefore does not
+change an untouched record merely by changing a global catalog digest.
+
+With an addressed snapshot, `resolve_source_bytes(path, raw_sha256, record_id=...)`
+requires the explicit stable identity and checks that record's current/retained
+source path and bytes; it never scans for a matching path. The default legacy
+constructor and source-byte route remain unchanged. Catalog traversal uses the
+supplied snapshot's `MutationLimits` separately from the source reader's existing
+limits; either budget can refuse without partial evidence. An immutable catalog
+alone grants no source currentness, reference closure, admission or publication.
+
 `resolve_typed` returns the same envelope plus `descriptor`: the validated
 owner `adapter`, `record_kind` (`subject`), `record_type`, `identity_field`,
 `schema_version`, `schema_ref`, `source_basename` and `type_id`. It is not a

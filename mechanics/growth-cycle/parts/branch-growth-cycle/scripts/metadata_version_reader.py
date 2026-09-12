@@ -13,6 +13,7 @@ import errno
 import os
 from pathlib import Path
 import re
+from typing import TYPE_CHECKING
 
 from jsonschema.exceptions import SchemaError, ValidationError
 from referencing import Registry, Resource
@@ -26,6 +27,9 @@ from build_source_witness_catalog import verify_catalog_publication, CatalogBuil
 from source_record_profiles import (
     SourceRecordProfiles, REGISTRY_REF, CONTRACT_REF, CORPUS_REF,
 )
+
+if TYPE_CHECKING:
+    from source_catalog_projection import SourceCatalogSnapshot
 
 CATALOG_ROOT = 'ToS/source-witnesses/catalog/'
 MAX_CATALOG_BYTES = 8 * 1024 * 1024
@@ -97,10 +101,15 @@ class MetadataVersionReader:
     operation enumerates source/private trees or accepts a caller-supplied path.
     Instances are not concurrent-reader objects or persistent process caches.
     """
-    def __init__(self, root):
+    def __init__(self, root, *, catalog_snapshot: SourceCatalogSnapshot | None = None):
         self.root = Path(root)
         if not self.root.is_absolute() or '..' in self.root.parts:
             raise ValueError('an absolute public source root is required')
+        if catalog_snapshot is not None:
+            from source_catalog_projection import SourceCatalogSnapshot
+            if not isinstance(catalog_snapshot, SourceCatalogSnapshot):
+                raise TypeError('an explicit SourceCatalogSnapshot is required')
+        self._catalog_snapshot = catalog_snapshot
         self._snapshot = _Snapshot()
         self._contracts = {}
         self._profiles = None
@@ -122,6 +131,10 @@ class MetadataVersionReader:
         if self._publication_error is not None:
             raise self._publication_error
         self._publication.verify_current()
+        if self._catalog_snapshot is not None:
+            selected = self._catalog_snapshot.header['source_publication']
+            if (selected['token'], selected['generation']) != (self._publication.token, self._publication.generation):
+                raise PublicationChanged('addressed catalog does not bind this coherent source publication')
 
     def _contract(self, ref):
         if ref not in {REGISTRY_REF, CONTRACT_REF} and not SCHEMA_REF.fullmatch(ref):
@@ -214,6 +227,8 @@ class MetadataVersionReader:
         return True
 
     def _catalog(self, route):
+        if self._catalog_snapshot is not None:
+            raise source.JournalCorruption('addressed metadata reader cannot fall back to a legacy catalog')
         self.verify_current()
         ref = CATALOG_ROOT + route['catalog_filename']
         if ref in self._catalogs:
@@ -374,10 +389,17 @@ class MetadataVersionReader:
         if identity in self._records:
             return self._records[identity]
         route = self._route(_identity(identity))
-        entries, catalog_ref, catalog_digest = self._catalog(route)
-        if identity not in entries:
-            raise _Unavailable('missing', 'record-not-in-public-catalog')
-        entry, line = entries[identity]
+        addressed = None
+        if self._catalog_snapshot is not None:
+            addressed = self._catalog_snapshot.lookup(identity)
+            if addressed is None:
+                raise _Unavailable('missing', 'record-not-in-public-catalog')
+            entry = addressed.entry
+        else:
+            entries, catalog_ref, catalog_digest = self._catalog(route)
+            if identity not in entries:
+                raise _Unavailable('missing', 'record-not-in-public-catalog')
+            entry, line = entries[identity]
         route = self._route(_identity(identity), entry.get('source_record_ref'))
         relative = _source_path(entry.get('source_record_ref'), route['source_basename'])
         path = self.root / relative
@@ -386,6 +408,10 @@ class MetadataVersionReader:
         record = source._json_object(raw)
         schema_ref = self._validate_current(record, route, relative)
         current_ref = _record_ref(record)
+        if addressed is not None and addressed.source != {
+                'source_ref': relative.as_posix(), 'raw_sha256': source._digest(raw)[7:],
+                'raw_bytes': len(raw), 'record_ref': current_ref}:
+            raise _Unavailable('stale', 'catalog-source-binding-mismatch')
         label = (record['custody']['inventory_numbers'][0] if route['record_type'] == 'artifact'
                  else record.get('preferred_label'))
         if (record[route['identity_field']] != identity or entry.get('record_sha256') != current_ref['digest'][7:]
@@ -463,8 +489,9 @@ class MetadataVersionReader:
         versions[_key(current_ref)] = current
         provenance = {
             'verification_scope': 'selected-record-chain', 'all_package_bytes_verified': False,
-            'catalog': {'source_ref': catalog_ref, 'line': line, 'sha256': catalog_digest,
-                        'source_record_ref': relative.as_posix(), 'current_record_ref': current_ref},
+            'catalog': (addressed.provenance if addressed is not None else {
+                'source_ref': catalog_ref, 'line': line, 'sha256': catalog_digest,
+                'source_record_ref': relative.as_posix(), 'current_record_ref': current_ref}),
             'descriptor': {'adapter': route['adapter'], 'record_type': route['record_type'],
                            'profile_type_id': route['profile_type_id'], 'source_schema_ref': schema_ref,
                            'source_schema_version': record['schema_version'], 'source_scope': 'public_metadata_only',
@@ -490,6 +517,10 @@ class MetadataVersionReader:
             error = changed
         if isinstance(error, _Unavailable):
             return error.status, error.reason
+        if self._catalog_snapshot is not None:
+            from tos_access.projection_mutation import ProjectionMutationBudgetExceeded
+            if isinstance(error, ProjectionMutationBudgetExceeded):
+                return 'over-budget', 'addressed-catalog-read-budget'
         if isinstance(error, FileNotFoundError):
             return 'missing', 'metadata-input-file-missing'
         if isinstance(error, source.JournalConflict):
@@ -558,7 +589,7 @@ class MetadataVersionReader:
         return {**result, 'descriptor': (copy.deepcopy(result['provenance']['descriptor'])
                                         if result['status'] == 'available' else None)}
 
-    def resolve_source_bytes(self, original_source_path, raw_sha256):
+    def resolve_source_bytes(self, original_source_path, raw_sha256, *, record_id=None):
         """Verify exact current/retained bytes at their original logical source.
 
         This is a source-provenance join, not a blob search. Only the supported
@@ -569,6 +600,8 @@ class MetadataVersionReader:
         if (not isinstance(original_source_path, str) or not isinstance(raw_sha256, str)
                 or not re.fullmatch(r'[a-f0-9]{64}', raw_sha256)):
             raise ValueError('exact logical metadata path and raw SHA-256 are required')
+        if self._catalog_snapshot is not None and _identity(record_id) is None:
+            raise ValueError('addressed source-byte resolution requires an explicit record_id')
         result = {'status': None, 'reason': None, 'source_path': original_source_path,
                   'requested_sha256': raw_sha256, 'exact_ref': None, 'record': None,
                   'provenance': None, 'grants_current_use': False,
@@ -578,12 +611,15 @@ class MetadataVersionReader:
             kind = {'artifact-witness': 'artifact', 'composite-witness': 'composite'}.get(relative.stem, relative.stem)
             route = self._route(kind, original_source_path)
             _source_path(original_source_path, route['source_basename'])
-            entries, _, _ = self._catalog(route)
-            identities = [identity for identity, (entry, _) in entries.items()
-                          if entry.get('source_record_ref') == original_source_path]
-            if len(identities) != 1:
-                raise _Unavailable('missing' if not identities else 'corrupt', 'logical-source-not-unique-in-catalog')
-            package = self._load(identities[0])
+            if self._catalog_snapshot is not None:
+                package = self._load(record_id)
+            else:
+                entries, _, _ = self._catalog(route)
+                identities = [identity for identity, (entry, _) in entries.items()
+                              if entry.get('source_record_ref') == original_source_path]
+                if len(identities) != 1:
+                    raise _Unavailable('missing' if not identities else 'corrupt', 'logical-source-not-unique-in-catalog')
+                package = self._load(identities[0])
             candidates = [value for value in package['versions'].values()
                           if value['source']['source_ref'] == original_source_path
                           and value['source']['record_sha256'] == 'sha256:' + raw_sha256]
