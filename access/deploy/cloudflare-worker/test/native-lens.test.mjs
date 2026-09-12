@@ -91,9 +91,9 @@ for page_number in range(20):
 print(json.dumps({'rawGraph':compact_json(graph),'rawNodes':raw_nodes,'rawRelations':raw_relations,'metadata':{key:compact_json(value) for key,value in metadata.items()},'cases':cases}))
 `);
 
-function database(data = fixture) {
+function database(data = fixture, metadataPrimaryKey = true) {
   const sqlite = new DatabaseSync(':memory:');
-  sqlite.exec(`CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(key,part));
+  sqlite.exec(`CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT${metadataPrimaryKey ? ',PRIMARY KEY(key,part)' : ''});
     CREATE TABLE knowledge_nodes(id TEXT PRIMARY KEY,entity_id TEXT,native_id TEXT,source_graph TEXT,kind_id TEXT,type_id TEXT,title_text TEXT,search_text TEXT,json TEXT);
     CREATE TABLE knowledge_relations(id TEXT PRIMARY KEY,native_id TEXT,source_graph TEXT,from_id TEXT,to_id TEXT,predicate_id TEXT,relation_type_id TEXT,label_text TEXT,search_text TEXT,json TEXT);
     CREATE TABLE knowledge_lens_order(kind TEXT,id TEXT,sort_key TEXT,from_id TEXT,to_id TEXT,PRIMARY KEY(kind,id));
@@ -113,8 +113,11 @@ function database(data = fixture) {
   const statements = [];
   const db = {prepare(sql) {let bindings=[]; return {
     bind(...values) {bindings=values;return this;},
-    async all() {statements.push({sql,bindings}); return {results:sqlite.prepare(sql).all(...bindings),meta:{rows_read:0}};},
-    async first() {statements.push({sql,bindings}); return sqlite.prepare(sql).get(...bindings) ?? null;},
+    async all() {const results=sqlite.prepare(sql).all(...bindings);
+      statements.push({sql,bindings,stringBytes:results.flatMap(row=>Object.values(row).filter(value=>typeof value==='string').map(value=>Buffer.byteLength(value)))});
+      return {results,meta:{rows_read:0}};},
+    async first() {const row=sqlite.prepare(sql).get(...bindings)??null;
+      statements.push({sql,bindings,stringBytes:Object.values(row??{}).filter(value=>typeof value==='string').map(value=>Buffer.byteLength(value))});return row;},
   };}};
   return {db, sqlite, statements};
 }
@@ -214,6 +217,143 @@ test('native lens/focus keep the publication-clock ABA guard across complete pac
       assert.equal(snapshots,2);
     } finally {sqlite.close();}
   }
+});
+
+test('shared snapshot bounds revision aggregation and typed diagnostics before delivery', async () => {
+  for(const field of ['single','aggregate','blob','part','epoch']) {
+    const {db,sqlite,statements}=database();
+    try {
+      if(field==='single')sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").run(' '.repeat(2048));
+      if(field==='aggregate'){
+        sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").run(' '.repeat(600));
+        sqlite.prepare("INSERT INTO edge_meta VALUES ('data_revision',1,?)").run(' '.repeat(600));
+      }
+      if(field==='blob')sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").run(new Uint8Array(2048));
+      if(field==='part')sqlite.prepare("UPDATE edge_meta SET part=? WHERE key='data_revision'").run('x'.repeat(2048));
+      if(field==='epoch')sqlite.prepare('UPDATE knowledge_exploration_clock SET epoch=?').run('x'.repeat(2048));
+      await assert.rejects(executeKnowledgeLensD1(db,parseNativeRequest(fixture.cases[0].rawSpec)),error=>error.status===503);
+      assert.equal(statements.length,1,'invalid prefix must not enter native plan');
+      assert.ok((statements[0].stringBytes??[]).every(size=>size<=1024));
+      if(['single','aggregate','blob'].includes(field)) assert.deepEqual(statements[0].stringBytes,[],'oversized revision text must not cross D1 transport');
+    } finally {sqlite.close();}
+  }
+});
+
+test('ordered relation endpoints cannot change a zero-relation-budget neighborhood', async () => {
+  const {db,sqlite}=database();
+  const spec={schema_version:'tos_lens_spec_v1',lens_id:'zero-relations',sources:['philosophy'],seed:{focus_node_id:'a-float'},
+    node_query:{enabled:false},relation_query:{enabled:true},traversal:{depth:1,direction:'outgoing',profile:'all'},
+    limits:{nodes:2,relations:0},composition:{endpoint_policy:'independent'}};
+  try {
+    const expected=python("from tos_access.knowledge import execute_knowledge_lens;d=json.load(sys.stdin);print(json.dumps(json.dumps(execute_knowledge_lens(json.loads(d['graph']),d['spec']))))",{graph:fixture.rawGraph,spec});
+    const actual=nativePacketJson((await executeKnowledgeLensD1(db,parseNativeRequest(JSON.stringify(spec)))).packet);
+    assert.deepEqual(differences([{name:'valid-zero-relations',expected,actual}])[0].diff,[]);
+    sqlite.prepare("UPDATE knowledge_lens_order SET to_id=? WHERE kind='relation' AND id=?").run(JSON.parse(fixture.rawNodes[2]).id,JSON.parse(fixture.rawRelations[0]).id);
+    await assert.rejects(executeKnowledgeLensD1(db,parseNativeRequest(JSON.stringify(spec))),error=>error.status===503 && /endpoints differ/.test(error.message));
+  } finally {sqlite.close();}
+});
+
+test('D1 SQL projects bounded metadata and payloads before delivery to the Worker', async () => {
+  for (const [kind,size] of [['metadata',131073],['digest',2048],['row',1048577]]) {
+    const {db,sqlite,statements}=database();
+    try {
+      if (kind==='row') sqlite.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').run(' '.repeat(size),JSON.parse(fixture.rawNodes[0]).id);
+      else sqlite.prepare('UPDATE edge_meta SET json_chunk=? WHERE key=?').run(' '.repeat(size),kind==='metadata'?'knowledge_reader_top':'knowledge_node_digest:'+JSON.parse(fixture.rawNodes[0]).id);
+      await assert.rejects(executeKnowledgeLensD1(db,parseNativeRequest(fixture.cases[0].rawSpec)),error=>error.status===503);
+      assert.equal(statements.some(item=>(item.stringBytes??[]).includes(size)),false,kind+' must be refused inside the SQL projection');
+    } finally {sqlite.close();}
+  }
+  const {db,sqlite,statements}=database();
+  try {
+    for(const raw of fixture.rawNodes.slice(0,2)){
+      const node=JSON.parse(raw);node.attributes.extra='x'.repeat(80000);const json=JSON.stringify(node);
+      sqlite.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').run(json,node.id);
+      sqlite.prepare('UPDATE edge_meta SET json_chunk=? WHERE key=?').run(JSON.stringify({sha256:createHash('sha256').update(json).digest('hex')}),'knowledge_node_digest:'+node.id);
+    }
+    await assert.rejects(executeNativeLensD1(db,parseNativeRequest(fixture.cases[0].rawSpec),{maxDecodedBytes:120000}),NativeBudgetExceeded);
+    assert.ok(statements.reduce((sum,item)=>sum+(item.stringBytes??[]).reduce((a,b)=>a+b,0),0)<=120000,'cumulative page projection must honor remaining delivery bytes');
+  } finally {sqlite.close();}
+  const chunked=database(fixture,false);
+  try {
+    const raw=fixture.metadata.knowledge_reader_top,split=Math.floor(raw.length/2);
+    chunked.sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_reader_top'").run(raw.slice(0,split));
+    chunked.sqlite.prepare("INSERT INTO edge_meta VALUES ('knowledge_reader_top',1,?)").run(raw.slice(split));
+    await executeKnowledgeLensD1(chunked.db,parseNativeRequest(fixture.cases[0].rawSpec));
+    chunked.sqlite.prepare("UPDATE edge_meta SET part=2 WHERE key='knowledge_reader_top' AND part=1").run();
+    await assert.rejects(executeKnowledgeLensD1(chunked.db,parseNativeRequest(fixture.cases[0].rawSpec)),error=>error.status===503);
+    chunked.sqlite.prepare("UPDATE edge_meta SET part=1 WHERE key='knowledge_reader_top' AND part=2").run();
+    chunked.sqlite.prepare("INSERT INTO edge_meta VALUES ('knowledge_reader_top',0,?)").run(raw.slice(0,split));
+    await assert.rejects(executeKnowledgeLensD1(chunked.db,parseNativeRequest(fixture.cases[0].rawSpec)),error=>error.status===503);
+  } finally {chunked.sqlite.close();}
+});
+
+test('stored lens catalog stream is bounded before parsing, with exact UTF-8 and numeric refs', async () => {
+  const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
+  const worker=(await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'))).default;
+  const {db,sqlite,statements}=database();const url='https://test.invalid/api/knowledge/lenses/native-lens';
+  try {
+    for (const length of [null,'1',String(8*1024*1024+1)]) {
+      let pulls=0,cancelled=false;
+      const body=new ReadableStream({pull(controller){pulls++;controller.enqueue(new Uint8Array(65536).fill(32));},cancel(){cancelled=true;}},{highWaterMark:0});
+      const response=await worker.fetch(new Request(url),{DB:db,ASSETS:{fetch:async()=>new Response(body,{headers:length===null?{}:{'Content-Length':length}})}});
+      assert.equal(response.status,503);assert.equal(cancelled,true);assert.ok(pulls<=129);assert.equal(statements.length,0);
+      if (length!==null && Number(length)>8*1024*1024) assert.equal(pulls,0);
+    }
+    const invalid=await worker.fetch(new Request(url),{DB:db,ASSETS:{fetch:async()=>new Response(new Uint8Array([255]))}});
+    assert.equal(invalid.status,503);assert.equal(statements.length,0);
+    const item=fixture.cases.find(c=>c.name==='eq-unsafe');
+    const raw=new TextEncoder().encode('{"note":"ё😀","lenses":['+item.rawSpec+']}');let offset=0;
+    const exact=new ReadableStream({pull(controller){if(offset===raw.length)controller.close();else controller.enqueue(raw.subarray(offset,++offset));}});
+    const response=await worker.fetch(new Request(url),{DB:db,ASSETS:{fetch:async()=>new Response(exact)}});
+    assert.equal(response.status,200);assert.deepEqual(differences([{name:'stored-exact',expected:item.expected,actual:await response.text()}])[0].diff,[]);
+  } finally {sqlite.close();}
+});
+
+test('D1 guards every selected identity/order/header text before transport', async () => {
+  const large='x'.repeat(1048577),nodeId=JSON.parse(fixture.rawNodes[0]).id,edgeId=JSON.parse(fixture.rawRelations[0]).id;
+  const independent=JSON.stringify({schema_version:'tos_lens_spec_v1',lens_id:'headers',sources:['philosophy'],node_query:{enabled:false},relation_query:{enabled:true},composition:{endpoint_policy:'independent'}});
+  for (const [sql,id,spec] of [
+    ["UPDATE knowledge_lens_order SET sort_key=? WHERE kind='node' AND id=?",nodeId,fixture.cases[0].rawSpec],
+    ["UPDATE knowledge_lens_order SET from_id=? WHERE kind='relation' AND id=?",edgeId,independent],
+    ['UPDATE knowledge_relations SET from_id=? WHERE id=?',edgeId,independent],
+    ['UPDATE knowledge_nodes SET entity_id=? WHERE id=?',nodeId,fixture.cases[0].rawSpec],
+    ['UPDATE knowledge_nodes SET id=? WHERE id=?',nodeId,fixture.cases[0].rawSpec],
+  ]) {
+    const {db,sqlite,statements}=database();
+    try {
+      sqlite.prepare(sql).run(large,id);
+      await assert.rejects(executeKnowledgeLensD1(db,parseNativeRequest(spec)),error=>error.status===503);
+      assert.equal(statements.some(item=>(item.stringBytes??[]).includes(large.length)),false,sql);
+    } finally {sqlite.close();}
+  }
+});
+
+test('actual Worker maps native execution and response budgets to 413 on compile and stored/focus reads', async () => {
+  const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
+  const worker=(await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'))).default;
+  const {db,sqlite}=database();const raw=fixture.cases[0].rawSpec;
+  const overBudget={prepare(sql){const statement=db.prepare(sql);const wrapped={
+    bind(...values){statement.bind(...values);return wrapped;},first(){return statement.first();},
+    async all(){const result=await statement.all();result.meta.rows_read=200001;return result;}};return wrapped;}};
+  const assets={fetch:async()=>new Response('{"lenses":['+raw+']}')};
+  try {
+    const requests=[new Request('https://test.invalid/api/knowledge/lenses/compile',{method:'POST',headers:{'Content-Type':'application/json'},body:raw}),
+      ...['GET','HEAD'].flatMap(method=>['focus/a-float','lenses/native-lens'].map(path=>new Request('https://test.invalid/api/knowledge/'+path,{method})))];
+    for (const request of requests) assert.equal((await worker.fetch(request,{DB:overBudget,ASSETS:assets})).status,413);
+    // 20 bounded source rows fit the input allowance; repeating their shared
+    // group value takes the complete full wire result over 16 MiB.
+    for(const rawNode of fixture.rawNodes.slice(0,20)){
+      const node=JSON.parse(rawNode);node.attributes.payload='x'.repeat(800000);const json=JSON.stringify(node);
+      sqlite.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').run(json,node.id);
+      sqlite.prepare('UPDATE edge_meta SET json_chunk=? WHERE key=?').run(JSON.stringify({sha256:createHash('sha256').update(json).digest('hex')}),'knowledge_node_digest:'+node.id);
+    }
+    const spec={schema_version:'tos_lens_spec_v1',lens_id:'native-lens',detail:'full',sources:['philosophy'],relation_query:{enabled:false},composition:{group_by:['attributes.payload']}};
+    const source=JSON.stringify(spec);const responseAssets={fetch:async()=>new Response('{"lenses":['+source+']}')};
+    for (const request of [new Request('https://test.invalid/api/knowledge/lenses/compile',{method:'POST',headers:{'Content-Type':'application/json'},body:source}),new Request('https://test.invalid/api/knowledge/lenses/native-lens')]) {
+      const response=await worker.fetch(request,{DB:db,ASSETS:responseAssets});assert.equal(response.status,413);
+      assert.match((await response.json()).error,/packet UTF-8 byte budget/);
+    }
+  } finally {sqlite.close();}
 });
 
 test('actual Worker HTTP receives raw numbers, strict cursors and publication failures without a lossy wire step', async () => {

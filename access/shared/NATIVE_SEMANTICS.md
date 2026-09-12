@@ -89,6 +89,14 @@ incompatible Unicode/schema, damaged row/order closure and changing publication
 clocks. SQL narrows identities, dimensions and incidence only; general matching
 and sort/count execute before bounded selection. Fixed-length path walks allow
 revisits; exhausted negative-path work fails rather than asserting absence.
+Metadata streams one chunk per query with SQL type/UTF-8-length guards against
+both local and remaining aggregate allowances. Selected payload pages use SQL
+length/type and cumulative page-byte guards before JSON or identity text is
+delivered to the Worker. Relation index endpoints must match authoritative row
+headers before use, even when no relation payload will be returned.
+All identity/order/header projections use SQL string-type/1 MiB-cell and
+cumulative remaining-byte guards too. Delivery admission is serialized within
+one request, so concurrently merged streams cannot overbook an allowance.
 
 `native-lens-result.ts` retains source references through compact omissions,
 human-form context transport and pagination. Its scene projection has only
@@ -96,6 +104,11 @@ explicit structural strings/IDs and display states; it is not a second lossy
 source-bearing result. `native-lens-response.ts` writes the plain public
 LensResult JSON directly with a 16 MiB ceiling. Internal `{packet, preview}`
 never appears on the wire. No producer schema or new scalar index is introduced.
+The stored catalog asset is byte-bounded while streaming before strict UTF-8
+decoding/JSON parsing (8 MiB; absent Content-Length does not bypass it). Invalid
+or oversized publication assets return 503. Native execution/response budgets
+return 413 for compilation and stored-lens/focus GET/HEAD; malformed compile
+input remains 400 and damaged source metadata remains 503.
 
 ## Work budgets
 

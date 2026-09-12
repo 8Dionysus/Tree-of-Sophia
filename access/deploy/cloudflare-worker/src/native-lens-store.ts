@@ -29,24 +29,77 @@ function unavailable(message: string): never {throw new HttpError(503, message);
 
 class Read {
   returned = 0; deliveredBytes = 0; queries = 0; sqlReads = 0;
+  private pending: Promise<void> = Promise.resolve();
   readonly db: D1Database; readonly limits: Limits;
   constructor(db: D1Database, limits: Limits) {this.db = db; this.limits = limits;}
-  async query<T>(sql: string, ...args: unknown[]): Promise<T[]> {
-    if (++this.queries > this.limits.maxQueries) throw new NativeBudgetExceeded('native D1 query budget');
-    const result = await this.db.prepare(sql).bind(...args).all<T>();
-    this.sqlReads += result.meta?.rows_read ?? 0;
-    if (this.sqlReads > this.limits.maxSqlReads) throw new NativeBudgetExceeded('native D1 rows-read budget');
-    for (const row of result.results) {
-      if (++this.returned > this.limits.maxRows) throw new NativeBudgetExceeded('native D1 returned-row budget');
-      for (const value of Object.values(row as Record<string, unknown>)) if (typeof value === 'string') this.deliveredBytes += bytes(value);
-      if (this.deliveredBytes > this.limits.maxDecodedBytes) throw new NativeBudgetExceeded('native D1 returned-byte budget');
+  async query<T>(input: string | (() => {sql: string; args: unknown[]}), ...bindings: unknown[]): Promise<T[]> {
+    // A request may merge several endpoint streams concurrently. Serialize
+    // delivery admission so they cannot each reserve the same remaining bytes.
+    const previous = this.pending; let release!: () => void;
+    this.pending = new Promise<void>(resolve => {release = resolve;});
+    await previous;
+    try {
+      if (this.returned >= this.limits.maxRows) throw new NativeBudgetExceeded('native D1 returned-row budget');
+      if (++this.queries > this.limits.maxQueries) throw new NativeBudgetExceeded('native D1 query budget');
+      const {sql, args} = typeof input === 'string' ? {sql: input, args: bindings} : input();
+      const result = await this.db.prepare(sql).bind(...args).all<T>();
+      this.sqlReads += result.meta?.rows_read ?? 0;
+      if (this.sqlReads > this.limits.maxSqlReads) throw new NativeBudgetExceeded('native D1 rows-read budget');
+      for (const row of result.results) {
+        if (++this.returned > this.limits.maxRows) throw new NativeBudgetExceeded('native D1 returned-row budget');
+        for (const value of Object.values(row as Record<string, unknown>)) if (typeof value === 'string') this.deliveredBytes += bytes(value);
+        if (this.deliveredBytes > this.limits.maxDecodedBytes) throw new NativeBudgetExceeded('native D1 returned-byte budget');
+      }
+      return result.results;
+    } finally {release();}
+  }
+  async textRows<T>(columns: readonly string[], order: readonly string[], sql: string, ...args: unknown[]): Promise<T[]> {
+    // Column/order names are internal literals from the concrete plan, never
+    // request fields. Both source-cell and aggregate bounds precede delivery.
+    if ([...columns, ...order].some(name => !/^[a-z_]+$/.test(name)) || order.some(name => !columns.includes(name))) throw new Error('invalid native header projection');
+    let allowance = 0;
+    const rows = await this.query<T & {_native_valid: number; _native_bytes: number}>(() => {
+      allowance = this.limits.maxDecodedBytes - this.deliveredBytes;
+      const valid = columns.map(name => `typeof(${name})='text' AND length(CAST(${name} AS BLOB))<=1048576`).join(' AND ');
+      const cost = columns.map(name => `coalesce(length(CAST(${name} AS BLOB)),0)`).join('+');
+      return {sql: `WITH selected AS (SELECT * FROM (${sql}) LIMIT ?), framed AS (
+        SELECT *,CASE WHEN ${valid} THEN 1 ELSE 0 END AS _native_valid,
+        sum(${cost}) OVER (ORDER BY ${order.join(',')} ROWS UNBOUNDED PRECEDING) AS _native_bytes FROM selected)
+        SELECT ${columns.map(name => `CASE WHEN _native_valid=1 AND _native_bytes<=? THEN ${name} ELSE NULL END AS ${name}`).join(',')},
+        _native_valid,_native_bytes FROM framed ORDER BY ${order.join(',')}`,
+        args: [...args, this.limits.maxRows - this.returned + 1, ...columns.map(() => allowance)]};
+    });
+    for (const row of rows) {
+      if (row._native_valid !== 1) unavailable('native lens header is not bounded text');
+      if (row._native_bytes > allowance) throw new NativeBudgetExceeded('native lens header delivery-byte budget');
     }
-    return result.results;
+    return rows;
   }
   async metadata(key: string, maxBytes = 8 * 1024 * 1024): Promise<{raw: string; ref: NativeRef}> {
-    const chunks = await this.query<{part: number; json_chunk: string}>('SELECT part,json_chunk FROM edge_meta WHERE key=? ORDER BY part LIMIT 257', key);
-    if (!chunks.length || chunks.length > 256 || chunks.some((row, i) => row.part !== i || typeof row.json_chunk !== 'string' || bytes(row.json_chunk) > 131072)) unavailable('native lens metadata chunks unavailable: ' + key);
-    const raw = chunks.map(c => c.json_chunk).join('');
+    const chunks: string[] = []; let total = 0;
+    while (true) {
+      // Never deliver oversized source text into the Worker before checking it.
+      const page = await this.query<{part: number | null; json_chunk: string | null; json_bytes: number | null; json_valid: number; part_count: number; has_more: number}>(() => ({
+        sql: `SELECT CASE WHEN typeof(part)='integer' THEN part ELSE NULL END AS part,
+        CASE WHEN typeof(json_chunk)='text' AND length(CAST(json_chunk AS BLOB))<=? THEN json_chunk ELSE NULL END AS json_chunk,
+        length(CAST(json_chunk AS BLOB)) AS json_bytes,CASE WHEN typeof(json_chunk)='text' THEN 1 ELSE 0 END AS json_valid,
+        (SELECT count(*) FROM edge_meta same WHERE same.key=m.key AND same.part=m.part) AS part_count,
+        EXISTS(SELECT 1 FROM edge_meta later WHERE later.key=m.key AND later.part>m.part) AS has_more
+        FROM edge_meta m WHERE key=?${chunks.length ? ' AND part>?' : ''} ORDER BY part LIMIT 1`,
+        args: [Math.min(131072, maxBytes - total, this.limits.maxDecodedBytes - this.deliveredBytes), key, ...(chunks.length ? [chunks.length - 1] : [])],
+      }));
+      if (!page.length) break;
+      for (const row of page) {
+        if (row.json_valid !== 1 || row.json_bytes === null || row.json_bytes > 131072 || row.json_bytes > maxBytes - total) unavailable('native lens metadata chunk is not bounded text: ' + key);
+        if (row.json_bytes > this.limits.maxDecodedBytes - this.deliveredBytes && row.json_chunk === null) throw new NativeBudgetExceeded('native lens metadata delivery-byte budget');
+        if (chunks.length >= 256 || row.part !== chunks.length || row.part_count !== 1 || typeof row.json_chunk !== 'string') unavailable('native lens metadata chunks unavailable: ' + key);
+        total += bytes(row.json_chunk); if (total > maxBytes) unavailable('native lens metadata exceeds byte budget: ' + key);
+        chunks.push(row.json_chunk);
+      }
+      if (page[0]!.has_more === 0) break;
+    }
+    if (!chunks.length) unavailable('native lens metadata chunks unavailable: ' + key);
+    const raw = chunks.join('');
     try {return {raw, ref: parseNativeJson(raw, {maxBytes})};}
     catch {return unavailable('native lens metadata invalid: ' + key);}
   }
@@ -101,11 +154,27 @@ class Plan {
     }
     for (let offset = 0; offset < missing.length; offset += this.limits.blockSize) {
       const page = missing.slice(offset, offset + this.limits.blockSize);
-      const items = await this.read.query<Record<string, unknown>>(`SELECT ${IDENTITY[kind].join(',')},json FROM knowledge_${kind}s WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id LIMIT ?`, compact(page), page.length + 1);
-      const orders = await this.read.query<{kind: string; id: string; sort_key: string; from_id: string; to_id: string}>('SELECT kind,id,sort_key,from_id,to_id FROM knowledge_lens_order WHERE kind=? AND id IN (SELECT value FROM json_each(?)) LIMIT ?', kind, compact(page), page.length + 1);
+      let allowance = 0;
+      const costs = [...IDENTITY[kind], 'json'].map(field => `coalesce(length(CAST(${field} AS BLOB)),0)`).join('+');
+      const valid = ["typeof(json)='text'", ...IDENTITY[kind].map(field => `typeof(${field})='text' AND length(CAST(${field} AS BLOB))<=1048576`)].join(' AND ');
+      const permitted = valid + ' AND json_bytes<=1048576 AND delivered_bytes<=?';
+      const fields = [...IDENTITY[kind], 'json'];
+      const items = await this.read.query<Record<string, unknown>>(() => {
+        allowance = Math.min(this.limits.maxDecodedBytes - this.read.deliveredBytes, this.limits.maxDecodedBytes - this.decoded);
+        return {sql: `WITH selected AS (
+        SELECT ${fields.join(',')},length(CAST(json AS BLOB)) AS json_bytes FROM knowledge_${kind}s
+        WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id LIMIT ?), framed AS (
+        SELECT *,sum(${costs}) OVER (ORDER BY id ROWS UNBOUNDED PRECEDING) AS delivered_bytes FROM selected)
+        SELECT ${fields.map(field => `CASE WHEN ${permitted} THEN ${field} ELSE NULL END AS ${field}`).join(',')},
+        json_bytes,CASE WHEN ${valid} THEN 1 ELSE 0 END AS json_valid,delivered_bytes FROM framed ORDER BY id`,
+        args: [compact(page), Math.min(page.length + 1, this.limits.maxRows - this.read.returned + 1), ...fields.map(() => allowance)]};
+      });
+      const orders = await this.read.textRows<{kind: string; id: string; sort_key: string; from_id: string; to_id: string}>(['kind','id','sort_key','from_id','to_id'], ['id'], 'SELECT kind,id,sort_key,from_id,to_id FROM knowledge_lens_order WHERE kind=? AND id IN (SELECT value FROM json_each(?)) LIMIT ?', kind, compact(page), page.length + 1);
       if (items.length !== page.length || orders.length !== page.length) unavailable('native lens selected payload/order closure missing');
       const byOrder = new Map(orders.map(row => [row.id, row]));
       for (const row of items) {
+        if (row.json_valid !== 1 || typeof row.json_bytes !== 'number' || row.json_bytes > 1048576) unavailable('native lens row JSON is not bounded text');
+        if (typeof row.delivered_bytes !== 'number' || row.delivered_bytes > allowance) throw new NativeBudgetExceeded('native lens payload delivery-byte budget');
         if (typeof row.json !== 'string') unavailable('native lens row JSON is not text');
         const raw = row.json as string, size = bytes(raw);
         this.decoded += size;
@@ -135,7 +204,7 @@ class Plan {
     const scope = this.scope('n');
     for (const field of ['id', 'entity_id', 'native_id']) {
       const order = field === 'entity_id' ? "CASE n.source_graph WHEN 'source-navigation' THEN 0 WHEN 'canon' THEN 1 WHEN 'source-claims' THEN 2 WHEN 'philosophy' THEN 3 WHEN 'candidate-intake' THEN 4 WHEN 'repository' THEN 5 WHEN 'semantic-interchange' THEN 6 ELSE 99 END,n.id" : 'n.id';
-      const rows = await this.read.query<{id: string}>(`SELECT n.id FROM knowledge_nodes n WHERE ${scope.sql} AND n.${field}=? ORDER BY ${order} LIMIT ?`, ...scope.args, requested, field === 'native_id' ? 2 : 1);
+      const rows = await this.read.textRows<{id: string}>(['id'], ['id'], `SELECT n.id FROM knowledge_nodes n WHERE ${scope.sql} AND n.${field}=? ORDER BY ${order} LIMIT ?`, ...scope.args, requested, field === 'native_id' ? 2 : 1);
       if (rows.length > 1) throw new HttpError(400, 'ambiguous ToS knowledge focus; use a namespaced node id');
       if (rows.length) return this.get('node', rows[0]!.id);
     }
@@ -151,8 +220,8 @@ class Plan {
           branches.push(`SELECT id FROM (SELECT n.id FROM knowledge_nodes n INDEXED BY ${index} WHERE n.${field} IN (SELECT value FROM json_each(?)) AND n.id>? AND ${scope.sql} ORDER BY n.id LIMIT ?)`);
           args.push(compact(seeds), after, ...scope.args, block);
         }
-        rows = await this.read.query('WITH candidates AS (' + branches.join(' UNION ') + ') SELECT id FROM candidates ORDER BY id LIMIT ?', ...args, block);
-      } else rows = await this.read.query(`SELECT n.id FROM knowledge_${kind}s n WHERE ${scope.sql} AND n.id>? ORDER BY n.id LIMIT ?`, ...scope.args, after, block);
+        rows = await this.read.textRows(['id'], ['id'], 'WITH candidates AS (' + branches.join(' UNION ') + ') SELECT id FROM candidates ORDER BY id LIMIT ?', ...args, block);
+      } else rows = await this.read.textRows(['id'], ['id'], `SELECT n.id FROM knowledge_${kind}s n WHERE ${scope.sql} AND n.id>? ORDER BY n.id LIMIT ?`, ...scope.args, after, block);
       if (!rows.length) return;
       const loaded = await this.load(kind, rows.map(row => row.id));
       for (const row of rows) {if (++this.candidates > this.limits.maxCandidates) throw new NativeBudgetExceeded('native lens candidate budget'); yield loaded.get(row.id)!;}
@@ -173,9 +242,10 @@ class Plan {
     const alias = kind === 'node' ? 'n' : 'r', index = endpoint ? 'knowledge_lens_order_' + endpoint[0] : 'knowledge_lens_order_sort';
     let after = ['', ''], first = true;
     while (true) {
-      const rows = await this.read.query<Header>(`SELECT l.id,l.sort_key,l.from_id,l.to_id FROM knowledge_lens_order l INDEXED BY ${index} CROSS JOIN knowledge_${kind}s ${alias} ON ${alias}.id=l.id WHERE l.kind=?${endpoint ? ` AND l.${endpoint[0]}_id=?` : ''} AND (l.sort_key,l.id)>(?,?) AND ${where.sql} ORDER BY l.sort_key,l.id LIMIT ?`, kind, ...(endpoint ? [endpoint[1]] : []), ...after, ...where.args, first && endpoint ? 1 : this.limits.blockSize);
+      const endpoints = kind === 'relation' ? `${alias}.from_id,${alias}.to_id` : "'' AS from_id,'' AS to_id";
+      const rows = await this.read.textRows<Header & {order_from: string; order_to: string}>(['id','sort_key','from_id','to_id','order_from','order_to'], ['sort_key','id'], `SELECT l.id,l.sort_key,${endpoints},l.from_id AS order_from,l.to_id AS order_to FROM knowledge_lens_order l INDEXED BY ${index} CROSS JOIN knowledge_${kind}s ${alias} ON ${alias}.id=l.id WHERE l.kind=?${endpoint ? ` AND l.${endpoint[0]}_id=?` : ''} AND (l.sort_key,l.id)>(?,?) AND ${where.sql} ORDER BY l.sort_key,l.id LIMIT ?`, kind, ...(endpoint ? [endpoint[1]] : []), ...after, ...where.args, first && endpoint ? 1 : this.limits.blockSize);
       if (!rows.length) return;
-      for (const row of rows) {if (row.sort_key !== nativeLower(row.id)) unavailable('native lens ordered key differs'); yield row;}
+      for (const row of rows) {if (row.sort_key !== nativeLower(row.id) || row.from_id !== row.order_from || row.to_id !== row.order_to) unavailable('native lens ordered key or endpoints differ'); yield row;}
       after = [rows.at(-1)!.sort_key, rows.at(-1)!.id]; first = false;
     }
   }
@@ -247,21 +317,21 @@ class Plan {
   }
   async nodeSources(ids: Iterable<string>): Promise<Map<string, string>> {
     const list = [...new Set(ids)]; if (!list.length) return new Map();
-    return new Map((await this.read.query<{id: string; source_graph: string}>('SELECT id,source_graph FROM knowledge_nodes WHERE id IN (SELECT value FROM json_each(?)) LIMIT ?', compact(list), list.length + 1)).map(row => [row.id, row.source_graph]));
+    return new Map((await this.read.textRows<{id: string; source_graph: string}>(['id','source_graph'], ['id'], 'SELECT id,source_graph FROM knowledge_nodes WHERE id IN (SELECT value FROM json_each(?)) LIMIT ?', compact(list), list.length + 1)).map(row => [row.id, row.source_graph]));
   }
   async aliases(frontier: string[], selected: Set<string>, remaining: number): Promise<{ids: string[]; limited: boolean; origins: Map<string, string>}> {
     const origins = new Map<string, string>();
     for (const [id, node] of [...await this.load('node', frontier)].sort(([a], [b]) => codePointCompare(a, b))) {const entity = nativeField(node, 'entity_id').value; if (typeof entity === 'string' && entity.startsWith('tos.') && !origins.has(entity)) origins.set(entity, id);}
     if (!origins.size) return {ids: [], limited: false, origins};
     const scope = this.scope('n');
-    const rows = await this.read.query<{id: string}>('SELECT n.id FROM knowledge_nodes n INDEXED BY knowledge_nodes_identity_seek WHERE n.entity_id IN (SELECT value FROM json_each(?)) AND ' + scope.sql + ' AND n.id NOT IN (SELECT value FROM json_each(?)) ORDER BY n.id LIMIT ?', compact([...origins.keys()]), ...scope.args, compact([...selected]), remaining + 1);
+    const rows = await this.read.textRows<{id: string}>(['id'], ['id'], 'SELECT n.id FROM knowledge_nodes n INDEXED BY knowledge_nodes_identity_seek WHERE n.entity_id IN (SELECT value FROM json_each(?)) AND ' + scope.sql + ' AND n.id NOT IN (SELECT value FROM json_each(?)) ORDER BY n.id LIMIT ?', compact([...origins.keys()]), ...scope.args, compact([...selected]), remaining + 1);
     return {ids: rows.slice(0, remaining).map(row => row.id), limited: rows.length > remaining, origins};
   }
   async pathWitness(start: string, condition: NativeSpec['path_query'][number]): Promise<Record<string, unknown> | null> {
     const adjacent = async function* (plan: Plan, id: string): AsyncGenerator<NativeRef> {
       let after = '';
       while (true) {
-        const packets = await Promise.all((['from', 'to'] as const).map(side => plan.read.query<{id: string}>(`SELECT id FROM knowledge_relations INDEXED BY knowledge_relations_${side}_seek WHERE ${side}_id=? AND id>? ORDER BY id LIMIT ?`, id, after, plan.limits.blockSize)));
+        const packets = await Promise.all((['from', 'to'] as const).map(side => plan.read.textRows<{id: string}>(['id'], ['id'], `SELECT id FROM knowledge_relations INDEXED BY knowledge_relations_${side}_seek WHERE ${side}_id=? AND id>? ORDER BY id LIMIT ?`, id, after, plan.limits.blockSize)));
         const ids = [...new Set(packets.flatMap(rows => rows.map(row => row.id)))].sort(codePointCompare).slice(0, plan.limits.blockSize);
         if (!ids.length) return;
         const loaded = await plan.load('relation', ids);
@@ -306,9 +376,9 @@ class Plan {
     const stream = (async function* () {
       let after = ['', ''];
       while (true) {
-        const rows = await plan.read.query<Header>(`WITH eligible AS (${ids}) SELECT r.id,r.from_id,r.to_id,l.sort_key FROM eligible e CROSS JOIN knowledge_lens_order l INDEXED BY sqlite_autoindex_knowledge_lens_order_1 ON l.kind='relation' AND l.id=e.id CROSS JOIN knowledge_relations r ON r.id=e.id WHERE ${where.sql} AND (l.sort_key,l.id)>(?,?) ORDER BY l.sort_key,l.id LIMIT ?`, ...args, ...where.args, ...after, plan.limits.blockSize);
+        const rows = await plan.read.textRows<Header & {order_from: string; order_to: string}>(['id','from_id','to_id','sort_key','order_from','order_to'], ['sort_key','id'], `WITH eligible AS (${ids}) SELECT r.id,r.from_id,r.to_id,l.sort_key,l.from_id AS order_from,l.to_id AS order_to FROM eligible e CROSS JOIN knowledge_lens_order l INDEXED BY sqlite_autoindex_knowledge_lens_order_1 ON l.kind='relation' AND l.id=e.id CROSS JOIN knowledge_relations r ON r.id=e.id WHERE ${where.sql} AND (l.sort_key,l.id)>(?,?) ORDER BY l.sort_key,l.id LIMIT ?`, ...args, ...where.args, ...after, plan.limits.blockSize);
         if (!rows.length) return;
-        for (const row of rows) {if (row.sort_key !== nativeLower(row.id)) unavailable('native lens eligible ordering differs'); yield row;}
+        for (const row of rows) {if (row.sort_key !== nativeLower(row.id) || row.from_id !== row.order_from || row.to_id !== row.order_to) unavailable('native lens eligible ordering or endpoints differ'); yield row;}
         after = [rows.at(-1)!.sort_key, rows.at(-1)!.id];
       }
     })();
@@ -359,7 +429,7 @@ export async function executeNativeLensD1(db: D1Database, input: NativeRef, over
       previous = key;
     }
   }
-  const indexes = await read.query<{name: string}>("SELECT name FROM sqlite_master WHERE type='index' AND name IN (SELECT value FROM json_each(?))", compact(INDEXES));
+  const indexes = await read.textRows<{name: string}>(['name'], ['name'], "SELECT name FROM sqlite_master WHERE type='index' AND name IN (SELECT value FROM json_each(?))", compact(INDEXES));
   if (new Set(indexes.map(row => row.name)).size !== INDEXES.length) unavailable('native lens ordered-index migration unavailable');
   const definitions = nativeField(metadata.ref, 'query_properties').value;
   if (!Array.isArray(definitions) || definitions.length > 4096) unavailable('native lens query property metadata invalid');

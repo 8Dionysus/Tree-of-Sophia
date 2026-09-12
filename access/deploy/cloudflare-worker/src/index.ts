@@ -31,10 +31,41 @@ import { KnowledgeRevisionConflict } from "./lens-pagination";
 import { exploreD1, explorationCapabilitiesD1 } from "./exploration";
 import {parseNativeRequest, parseNativeJson, nativeField, arrayRefs, type NativeRef} from './native-lens.ts';
 import {nativeLensResponse} from './native-lens-response.ts';
+import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
 const STATIC_PHILOSOPHY_LIMITS = new Set([1, 1000]);
 const MAX_LENS_REQUEST_BYTES = 64 * 1024;
+const MAX_LENS_CATALOG_BYTES = 8 * 1024 * 1024;
+
+async function nativeLensCatalog(asset: Response): Promise<NativeRef> {
+  const unavailable = () => new HttpError(503, 'generated lens catalog is unavailable or exceeds its byte budget');
+  const length = asset.headers.get('Content-Length');
+  if (!asset.ok || !asset.body || (length !== null && (!/^[0-9]+$/.test(length.trim()) || BigInt(length.trim()) > BigInt(MAX_LENS_CATALOG_BYTES)))) {
+    try {await asset.body?.cancel();} catch { /* Preserve the publication failure. */ }
+    throw unavailable();
+  }
+  const reader = asset.body.getReader(), decoder = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
+  const block = new Uint8Array(65536), parts: string[] = []; let size = 0, filled = 0;
+  try {
+    while (true) {
+      const {done, value} = await reader.read(); if (done) break;
+      size += value.byteLength; if (size > MAX_LENS_CATALOG_BYTES) throw unavailable();
+      // Fixed decode blocks also bound the number of retained strings when
+      // the upstream stream supplies many tiny chunks or splits UTF-8 scalars.
+      for (let at = 0; at < value.length;) {
+        const count = Math.min(block.length - filled, value.length - at);
+        block.set(value.subarray(at, at + count), filled); filled += count; at += count;
+        if (filled === block.length) {parts.push(decoder.decode(block, {stream: true})); filled = 0;}
+      }
+    }
+    parts.push(decoder.decode(block.subarray(0, filled), {stream: true}), decoder.decode());
+    return parseNativeJson(parts.join(''), {maxBytes: MAX_LENS_CATALOG_BYTES});
+  } catch {
+    try {await reader.cancel();} catch { /* Preserve the publication failure. */ }
+    throw unavailable();
+  } finally {reader.releaseLock();}
+}
 
 function segment(pathname: string, prefix: string): string {
   return decodeURIComponent(pathname.slice(prefix.length).split("/", 1)[0] ?? "");
@@ -139,6 +170,7 @@ async function lensCompileResponse(request: Request, env: Env, operation: 'lens'
   } catch (error) {
     if (error instanceof KnowledgeRevisionConflict) throw error;
     if (error instanceof HttpError) throw error;
+    if (operation === 'lens' && error instanceof NativeBudgetExceeded) throw new HttpError(413, error.message);
     if (operation === 'lens' && error instanceof Error) throw new HttpError(400, error.message);
     throw error;
   }
@@ -286,8 +318,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   if (path.startsWith(knowledgeLensPrefix)) {
     const lensId = segment(path, knowledgeLensPrefix);
     const asset = await env.ASSETS.fetch(new Request(new URL('/__edge/knowledge/catalog.json', request.url)));
-    if (!asset.ok) throw new Error('generated lens catalog is missing');
-    const catalog = parseNativeJson(await asset.text(), {maxBytes: 8 * 1024 * 1024});
+    const catalog = await nativeLensCatalog(asset);
     const lenses = nativeField(catalog, 'lenses');
     const spec = (Array.isArray(lenses.value) ? arrayRefs(lenses) : []).find(ref => nativeField(ref, 'lens_id').value === lensId);
     if (!spec) throw new HttpError(404, `unknown ToS knowledge lens: ${lensId}`);
@@ -465,6 +496,9 @@ export default {
       try {
         return await apiResponse(request, env, url);
       } catch (error) {
+        if (error instanceof NativeBudgetExceeded && (url.pathname.startsWith('/api/knowledge/focus/') || url.pathname.startsWith('/api/knowledge/lenses/'))) {
+          return jsonResponse({error: error.message}, 413, request.method);
+        }
         if (error instanceof HttpError || error instanceof SourceNavigationError) {
           return jsonResponse({ error: error.message }, error.status, request.method);
         }

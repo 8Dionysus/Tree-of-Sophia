@@ -24,19 +24,23 @@ const SEARCH_CURSOR_SCHEMA = "tos_knowledge_search_indexed_cursor_v2";
 // request's read-model identity.  Keep the metadata read as one SQL statement
 // so a guard never combines a clock from one D1 read with a revision from
 // another read.
+// Published data_revision is a small sha256 envelope. Reject oversized/nontext
+// chunks in SQL before GROUP_CONCAT; typed diagnostics cannot deliver raw text.
 const KNOWLEDGE_SNAPSHOT_SQL = `
 SELECT
   (SELECT COUNT(*) FROM knowledge_exploration_clock) AS clock_rows,
   (SELECT COUNT(*) FROM knowledge_exploration_clock WHERE singleton = 1) AS singleton_rows,
-  (SELECT MIN(epoch) FROM knowledge_exploration_clock WHERE singleton = 1) AS epoch_min,
-  (SELECT MAX(epoch) FROM knowledge_exploration_clock WHERE singleton = 1) AS epoch_max,
-  (SELECT GROUP_CONCAT(json_chunk, '') FROM (
-    SELECT json_chunk FROM edge_meta WHERE key = 'data_revision' ORDER BY part
-  )) AS data_revision_json,
+  (SELECT MIN(CASE WHEN typeof(epoch)='integer' THEN epoch ELSE NULL END) FROM knowledge_exploration_clock WHERE singleton = 1) AS epoch_min,
+  (SELECT MAX(CASE WHEN typeof(epoch)='integer' THEN epoch ELSE NULL END) FROM knowledge_exploration_clock WHERE singleton = 1) AS epoch_max,
+  CASE WHEN NOT EXISTS(SELECT 1 FROM edge_meta WHERE key='data_revision' AND typeof(json_chunk)!='text')
+    AND (SELECT coalesce(sum(length(CAST(json_chunk AS BLOB))),0) FROM edge_meta WHERE key='data_revision')<=1024
+    THEN (SELECT GROUP_CONCAT(json_chunk, '') FROM (
+      SELECT json_chunk FROM edge_meta WHERE key = 'data_revision' ORDER BY part
+    )) ELSE NULL END AS data_revision_json,
   (SELECT COUNT(*) FROM edge_meta WHERE key = 'data_revision') AS data_revision_parts,
   (SELECT COUNT(DISTINCT part) FROM edge_meta WHERE key = 'data_revision') AS data_revision_distinct_parts,
-  (SELECT MIN(part) FROM edge_meta WHERE key = 'data_revision') AS data_revision_min_part,
-  (SELECT MAX(part) FROM edge_meta WHERE key = 'data_revision') AS data_revision_max_part,
+  (SELECT MIN(CASE WHEN typeof(part)='integer' THEN part ELSE NULL END) FROM edge_meta WHERE key = 'data_revision') AS data_revision_min_part,
+  (SELECT MAX(CASE WHEN typeof(part)='integer' THEN part ELSE NULL END) FROM edge_meta WHERE key = 'data_revision') AS data_revision_max_part,
   (SELECT COUNT(*) FROM edge_meta WHERE key = 'data_revision' AND typeof(part) != 'integer') AS data_revision_non_integer_parts,
   (SELECT COUNT(*) FROM edge_meta WHERE key = 'data_revision' AND typeof(json_chunk) != 'text') AS data_revision_non_text_chunks
 `;

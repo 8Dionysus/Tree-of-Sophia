@@ -73,6 +73,20 @@ source rows reject duplicates. The public result remains plain LensResult JSON,
 with a 16 MiB response ceiling. Generic scans, decoded bytes, callbacks, sorting,
 cache and path work have explicit bounds, documented in
 [`NATIVE_SEMANTICS.md`](../../shared/NATIVE_SEMANTICS.md).
+Execution/response budget exhaustion returns 413 on lens compilation and
+stored-lens/focus GET/HEAD, matching the published Python adapter. Invalid
+compilation input remains 400; unavailable or damaged publication data is 503.
+Stored lens catalogs are streamed with an actual 8 MiB byte ceiling before
+parsing, regardless of Content-Length, and are cancelled/refused with 503 on
+overflow or invalid UTF-8. D1 metadata and selected row JSON are length/type
+guarded inside SQL before text delivery; metadata is read one bounded chunk
+at a time. Identity/order/header cells also have a 1 MiB SQL guard and a
+cumulative remaining-byte guard. Per-request D1 delivery admission is serialized
+so concurrent endpoint streams cannot each spend the same remaining allowance.
+The shared clock/revision prefix keeps its single-statement snapshot and checks
+revision metadata type/aggregate 1 KiB size before concatenation or delivery.
+Indexed relation endpoints are checked against their authoritative
+row headers before traversal, including queries returning zero relations.
 D1 rows-read accounting is post-statement, not SQLite VM-step interruption.
 The local synthetic differential tests cover native packets; they do not claim
 full-corpus deployment or Cloudflare runtime acceptance.
