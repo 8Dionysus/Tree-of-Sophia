@@ -4,7 +4,9 @@ The shared helpers preserve Python values independently of a runtime. The
 Worker's lens/focus route uses them from raw request and D1 row text through
 bounded selection, grouping, pagination and the first wire serialization.
 Node/relation inspection and temporal comparison separately retain full raw
-rows through their first wire serialization. Search and exploration are unchanged.
+rows through their first wire serialization. Resumable exploration preserves
+native compact packets through checkpoint persistence and replay. Search remains
+outside this conversion.
 
 ## Entry and reference API
 
@@ -42,6 +44,55 @@ reference context throws `NativeContextLost`; it is not a fallback to JS
 semantics. Self-bound non-enumerable reference markers reject spread/clone
 copies, including primitive references. These are correctness boundaries inside
 trusted application code, not a sandbox against hostile JavaScript reflection.
+
+## Resumable exploration boundary
+
+`native-exploration-store.ts` reads bounded identity/adjacency windows and verifies
+selected full rows against emitted digests and index identity before producing
+compact `nativeCarrier` packets. Arbitrary retained source fields, including
+unknown semantics, numeric kinds, negative zero, unsafe integers and source
+member order, remain native references. The existing compact projection still
+omits attributes, source records, readable context and the Claim canonical-JSON
+companion; it does not synthesize missing input. Scenes use the same bounded
+structural projection as lenses, without executing a lens.
+
+The exploration adapter serializes the native page once, before the atomic D1
+checkpoint batch, with its existing 1 MiB response cap. That same JSON text is
+returned on first delivery, persisted replay and concurrent CAS-winner delivery;
+replay validation never round-trips it through an ordinary JavaScript packet.
+Private state contains only normalized request options, string identities,
+bounded integer counters, queue/depth pairs and structural origin descriptors.
+Explicit key/type/range/closure guards precede cloning this private state.
+No source-valued carrier enters traversal state.
+
+The public v1/v2 schemas, `tos-exploration-d1-execution-v6`, traversal scheduling,
+24 adjacency windows/512 work-unit bounds, TTL and cache capacities are unchanged.
+The private checkpoint `version` now uses
+`tos-exploration-d1-execution-v6/native-json-v1`. Old v6 cache records may already
+contain rounded numbers: they return 409 and require a fresh start, without
+rewriting/migrating/deleting source data or changing the cache-table schema.
+Oversized state/replay cells are masked in SQL before delivery. Expiry, successor
+admission and eviction share the batch's publication-epoch guard, so a crossed
+publication does not even prune unrelated expired checkpoint rows.
+
+Exploration alone adopts the same v8/v9 published header/index and typed
+row/digest/metadata size admission as inspection/temporal comparison. Its small
+exploration header must agree with the published authority/source revision;
+bounded split metadata reads have clock checks on both sides, including replay.
+Ordinary traversal retains the existing absent-endpoint exclusion; mandatory
+origin or delivered-packet closure still refuses missing data. A completely
+hidden corrupt index entry is not proven absent by positive selected-row checks.
+Raw request integer fields use Python JSON integer kinds, not integral floats;
+legacy focus whitespace and predicate ordering use Python Unicode semantics.
+
+Focused tests use the actual `PublishedExplorationService` over the same SQLite
+publication, comparing full-traversal selection unions, complete retained source
+values/member order/numeric kinds, and each page's scene against Python. Real D1
+raw HTTP restart/concurrent replay and ABA tests cover the storage boundary.
+Runtime-specific page scheduling, work counts, snapshot hashes and opaque tokens
+are deliberately not asserted equal. D1's 1 MiB replay cap can refuse a packet
+accepted by Python's larger cache; D1 rows-read accounting is not SQLite VM
+preemption. These are bounded preservation tests, not universal runtime parity.
 
 ## Temporal comparison boundary
 

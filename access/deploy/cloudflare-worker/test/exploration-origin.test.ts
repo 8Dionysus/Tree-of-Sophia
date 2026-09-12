@@ -7,7 +7,8 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {build} from 'esbuild';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
-import {exploreD1, explorationCapabilitiesD1, normalizeExploration} from '../src/exploration.ts';
+import {explorationCapabilitiesD1, normalizeExploration} from '../src/exploration.ts';
+import {exploreD1,publishExplorationFixture} from './native-exploration-fixture.ts';
 import {bindOriginD1, REQUEST_V2, RESULT_V2, type Origin, type ResolvedOrigin} from '../src/exploration-origin.ts';
 import {HttpError, type Item} from '../src/common.ts';
 import {knowledgeScene} from '../src/knowledge.ts';
@@ -25,7 +26,9 @@ const python = (code: string, input: unknown) => JSON.parse(execFileSync('python
   "import sys,json;sys.path[:0]=['access/src','access/tests'];" + code],
   {cwd: repo, input: JSON.stringify(input), encoding: 'utf8', maxBuffer: 32 * 1024 * 1024}));
 function graph(seed = 0, identities = false): Graph {
-  return python("from test_exploration_origin import origin_graph;p=json.load(sys.stdin);print(json.dumps(origin_graph(seed=p['seed'],identities=p['identities'])))", {seed, identities});
+  const result=python("from test_exploration_origin import origin_graph;p=json.load(sys.stdin);print(json.dumps(origin_graph(seed=p['seed'],identities=p['identities'])))", {seed, identities});
+  result.authority_boundary={source_owner:'Tree-of-Sophia',is_source:false,is_canon:false,writes_to_tree:false};
+  return result;
 }
 function query(g: Graph, kind: Origin['kind'] = 'relation', options: Item = {}): Query {
   const item = g[kind === 'node' ? 'nodes' : 'relations'][0]!;
@@ -46,6 +49,7 @@ async function init(db: D1Database, g: Graph, duplicateTables = false) {
       .bind(r.id, r.from_id, r.to_id, r.source_graph, r.predicate_id, JSON.stringify(r))),
   ]);
   await db.batch(migration.split(/\n(?=CREATE |INSERT )/).map(s => db.prepare(s)));
+  await publishExplorationFixture(db);
 }
 function assertClosure(packet: Packet) {
   const {origin, page, query: q} = packet;
@@ -110,21 +114,22 @@ test('Unicode edge-whitespace schema uses the same policy as the runtime', () =>
   }
 });
 
-test('D1 typed origins conserve Python pages and independent zero/one-distance reachability', async () => {
+for (const identities of [false,true]) for (const direction of ['either','incoming','outgoing'])
+test(`D1 typed origins conserve Python pages and independent zero/one-distance reachability: ${identities?'identity':'plain'} ${direction}`, async () => {
   const mf = new Miniflare(convertV4MiniflareOptions({...inlineWorker, d1Databases: ['Plain', 'Identity']}));
   try {
-    for (const identities of [false, true]) {
+    {
       const g = graph(identities ? 1 : 0, identities), db = await mf.getD1Database(identities ? 'Identity' : 'Plain');
       await init(db, g);
       const requests: Query[] = [];
       // Python owns the full combinatorial oracle. D1 keeps the new two-root
       // paths plus small exact-node canaries; legacy tests cover node BFS.
-      for (const direction of ['either', 'incoming', 'outgoing']) {
+      {
         for (const profile of ['overview', 'all']) for (const size of [1, 4]) {
           requests.push(query(g, 'relation', {direction, max_depth: 2, profile, page_nodes: size, page_relations: size}));
         }
       }
-      for (const max_depth of [0, 2]) requests.push(query(g, 'node', {max_depth, page_nodes: 1, page_relations: 1}));
+      if(direction==='either')for (const max_depth of [0, 2]) requests.push(query(g, 'node', {max_depth, page_nodes: 1, page_relations: 1}));
       const expected = python("from test_exploration_origin import origin_reference;from tos_access.exploration import ExplorationService;p=json.load(sys.stdin);out=[]\nfor q in p['queries']:\n s=ExplorationService(lambda:p['graph']);r=s.explore(q);pages=[r]\n while r['page']['next_cursor']:\n  r=s.explore({'cursor':r['page']['next_cursor']});pages.append(r)\n nodes,relations,roots=origin_reference(p['graph'],q);out.append({'pages':pages,'nodes':sorted(nodes),'relations':sorted(relations),'roots':roots})\nprint(json.dumps(out))",
         {graph: g, queries: requests}) as {pages: Packet[]; nodes: string[]; relations: string[]; roots: string[]}[];
       for (const [index, request] of requests.entries()) {
@@ -139,7 +144,7 @@ test('D1 typed origins conserve Python pages and independent zero/one-distance r
         assert.deepEqual(semanticPages(pages), semanticPages(oracle.pages), JSON.stringify(request));
         if (request.max_depth !== 0) assert.ok(pages[0]!.page.primary_node_ids.length + pages[0]!.page.primary_relation_ids.length > 0);
       }
-      python("from test_exploration_origin import ExplorationOriginTests;ExplorationOriginTests.setUpClass();p=json.load(sys.stdin)\nfor packet in p: ExplorationOriginTests.validator.validate(packet)\nprint(json.dumps(True))",
+      if(direction==='either')python("from test_exploration_origin import ExplorationOriginTests;ExplorationOriginTests.setUpClass();p=json.load(sys.stdin)\nfor packet in p: ExplorationOriginTests.validator.validate(packet)\nprint(json.dumps(True))",
         await collect(db, query(g, 'relation', {page_nodes: 1, page_relations: 1})));
     }
   } finally {await mf.dispose();}
@@ -195,8 +200,10 @@ test('D1 binding rejects drift, aliases, excluded endpoints and corrupt carriers
     await rejects({...request, sources: ['canon']}, 400);
     const node = g.nodes[1]!, changedNode = {...node, source_graph: 'canon'};
     await db.prepare('UPDATE knowledge_nodes SET source_graph=?,json=? WHERE id=?').bind('canon', JSON.stringify(changedNode), node.id).run();
+    await publishExplorationFixture(db);
     await rejects({...request, sources: ['philosophy']}, 400);
     await db.prepare('UPDATE knowledge_nodes SET source_graph=?,json=? WHERE id=?').bind(node.source_graph, JSON.stringify(node), node.id).run();
+    await publishExplorationFixture(db);
     for (const key of ['attributes', 'semantics', 'display', 'epistemic', 'predicate_mapping']) {
       await db.prepare('UPDATE knowledge_relations SET json=? WHERE id=?').bind(JSON.stringify({...g.relations[0], [key]: null}), request.origin.id).run();
       await rejects(request, 503);

@@ -387,7 +387,8 @@ by Cloudflare and the operator account.
 ## Resumable exploration storage
 
 `POST /api/knowledge/explore` continues an actual BFS frontier using shared D1
-checkpoints. `/api/knowledge/explore/capabilities` reports readiness; the contracts
+checkpoints. `/api/knowledge/explore/capabilities` reports migration/metadata
+presence, not row-integrity or full publication validation; the contracts
 route returns the shared request/result schemas with target-specific capabilities.
 The additive `migrations/0001-exploration.sql` installs checkpoint tables, a
 publication clock and composite adjacency indexes. Deployment installs it on
@@ -402,6 +403,24 @@ simultaneous continuations are tested to return one page/next cursor. The epoch
 also rejects a publication that changed away and back between page reads.
 Full bootstrap still requires the documented maintenance boundary.
 
+Exploration now uses the published v8/v9 header/index boundary and emitted-row
+digests before compact projection. Arbitrary retained source values stay native
+through the **first** response serialization, including unsafe integers, integer
+versus float JSON kinds, negative zero and source member order. The final page
+is serialized once before the checkpoint batch; first delivery, persisted replay
+and concurrent CAS-winner delivery return identical JSON text. The compact
+field omissions and scene semantics remain unchanged. Traversal state holds only
+structural query/identity/counter data, validated before its private clone.
+
+Public execution remains `tos-exploration-d1-execution-v6` with the existing
+v1/v2 schemas. The private checkpoint version is now
+`tos-exploration-d1-execution-v6/native-json-v1`: old potentially rounded v6 cache
+records return 409 and require a fresh exploration. This invalidation changes no
+source rows or table schema and performs no request-time migration. Checkpoint
+and metadata text is bounded before D1 delivers it; split header reads bracket
+the publication clock, including replay. All cache batch writes, cleanup and
+eviction included, are conditional on the unchanged epoch.
+
 The D1 cache is disposable but survives Worker isolate restarts: 15-minute fixed
 TTL, 128 records and 32 MiB total, at most 1 MiB per state or replay response.
 Eviction and expiry delete only checkpoint rows, never knowledge tables. Cleanup
@@ -409,6 +428,12 @@ runs during admission; the storage bound holds even without a cleanup cron.
 An oversized checkpoint returns 413 before admission. 409 means changed
 publication, 410 means expired/evicted state, 503 means migration or metadata is
 missing. Restart from focus or narrow the request as appropriate.
+Invalid emitted-row digests, inconsistent index identity or damaged checkpoint
+state also return 503. The existing 1 MiB source-row, 1 KiB digest, 64 KiB header
+and 16 MiB request-delivery budgets apply. Ordinary traversal still excludes
+edges with absent endpoints; mandatory origin and returned-page closure refuse
+missing rows. This does not establish completeness of an arbitrarily corrupted
+index. Lens-only header/status behavior is unchanged by this route.
 
 The same additive publication-clock migration is a readiness prerequisite for
 all D1 knowledge reads (lenses, legacy and indexed search, node/relation
@@ -427,6 +452,15 @@ metadata/admission queries are additional. D1 may pause earlier than Python.
 Counts are discoveries, not global totals; an empty paused page may still advance
 past excluded edges. Runtime-specific cursors cannot be transferred to local
 HTTP/native MCP. Ordinary LensSpec delivery pagination remains stateless.
+
+The native tests compare full-stream selected carriers against the actual
+`PublishedExplorationService` on the same tiny SQLite file and compare each
+page's scene against Python. They preserve original raw numbers through actual
+Worker HTTP and real D1 restart/concurrent replay. Page boundaries, work units,
+snapshot hashes and tokens remain runtime-specific. The D1 1 MiB replay ceiling
+can reject a page accepted by Python's larger cache, and D1's post-statement
+rows-read guard is not SQLite VM interruption. This is not a whole-corpus or
+universal local/D1 parity claim.
 
 This is a query execution cache, not source history, a saved user workspace or a
 corpus processing scheduler. See [TOS-D-0047](../../../docs/decisions/TOS-D-0047-shared-d1-exploration-checkpoints.md).

@@ -156,21 +156,22 @@ async function lensCompileResponse(request: Request, env: Env, operation: 'lens'
   }
   let spec: unknown, nativeSpec: NativeRef | null = null;
   try {
-    const raw = new TextDecoder("utf-8", { fatal: true, ignoreBOM: operation !== 'exploration' }).decode(bytes);
-    if (operation === 'lens') {nativeSpec = parseNativeRequest(raw, {maxBytes: MAX_LENS_REQUEST_BYTES}); spec = nativeSpec.value;}
+    const raw = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
+    if (operation === 'lens' || operation === 'exploration') {nativeSpec = parseNativeRequest(raw, {maxBytes: MAX_LENS_REQUEST_BYTES}); spec = nativeSpec.value;}
     else spec = JSON.parse(raw);
   } catch (error) {
     throw new HttpError(400, `invalid LensSpec JSON: ${error instanceof Error ? error.message : "decode failed"}`);
   }
   if (!spec || typeof spec !== "object" || Array.isArray(spec)) throw new HttpError(400, "lens spec must be an object");
   try {
-    if (nativeSpec) return nativeLensResponse(await executeKnowledgeLensD1(env.DB, nativeSpec), 200, request.method);
+    if (nativeSpec && operation === 'lens') return nativeLensResponse(await executeKnowledgeLensD1(env.DB, nativeSpec), 200, request.method);
     if (operation === 'temporal') return nativePacketResponse(await knowledgeTemporalCompareD1(env.DB,spec),200,request.method);
-    return jsonResponse(await exploreD1(env.DB,spec), 200, request.method);
+    return withSecurity(new Response(await exploreD1(env.DB,spec,nativeSpec??undefined),{status:200,
+      headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}}));
   } catch (error) {
     if (error instanceof KnowledgeRevisionConflict) throw error;
     if (error instanceof HttpError) throw error;
-    if (operation !== 'exploration' && error instanceof NativeBudgetExceeded) throw new HttpError(413, error.message);
+    if (error instanceof NativeBudgetExceeded) throw new HttpError(413, error.message);
     if (operation === 'lens' && error instanceof Error) throw new HttpError(400, error.message);
     throw error;
   }

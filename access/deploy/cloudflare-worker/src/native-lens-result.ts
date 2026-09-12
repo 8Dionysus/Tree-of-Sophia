@@ -32,7 +32,7 @@ function sceneProjection(ref: NativeRef, selection: Item, forms?: Item): Item {
   if (forms) result.human_form_selection = forms;
   return result;
 }
-function carrier(ref: NativeRef, spec: NativeSpec): {packet: NativePacket; scene: Item} {
+export function nativeCarrier(ref: NativeRef, spec: Pick<NativeSpec, 'detail' | 'language'>): {packet: NativePacket; scene: Item} {
   // This existing helper returns only selected strings, booleans, counts and
   // pointers. It never copies arbitrary attributes/semantics/source records.
   const selection = displaySelection(ref.value as KnowledgeNode | KnowledgeRelation, spec.language);
@@ -123,7 +123,7 @@ export async function finalizeNativeLens(authority: NativeRef, revision: string,
       returned_nodes: pageNodes.length, returned_relations: pageRelations.length, scope: 'bounded-lens-result', counts_scope: 'complete-bounded-result'};
     pageInclusion = {...inclusion, nodes: Object.fromEntries(Object.entries(inclusion.nodes).filter(([id]) => ids.has(id))), relations: Object.fromEntries(Object.entries(inclusion.relations).filter(([id]) => relationIds.has(id)))};
   }
-  const nodeCarriers = pageNodes.map(ref => carrier(ref, spec)), relationCarriers = pageRelations.map(ref => carrier(ref, spec));
+  const nodeCarriers = pageNodes.map(ref => nativeCarrier(ref, spec)), relationCarriers = pageRelations.map(ref => nativeCarrier(ref, spec));
   const warnings = [
     ...(execution.identity_expansion_limited ? ['identity carrier expansion reached the node budget; use resumable exploration or narrower sources'] : []),
     ...(missingNodeSummaries ? [`${missingNodeSummaries} nodes expose an explicit missing-summary state`] : []),

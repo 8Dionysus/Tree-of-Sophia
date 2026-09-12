@@ -71,12 +71,14 @@ async function exactCarrier(db: D1Database, kind: Origin['kind'], id: string): P
 
 export async function bindOriginD1(db: D1Database,
   query: {source_revision: string; origin: Origin; sources: string[]}, sourceRevision: string,
+  lookup: (kind: Origin['kind'], id: string) => Promise<Item | null> = (kind, id) => exactCarrier(db, kind, id),
 ): Promise<{origin: ResolvedOrigin; roots: string[]; seedRelations: string[]}> {
   if (query.source_revision !== sourceRevision) {
     throw new HttpError(409, 'exploration source revision changed; select the origin again');
   }
-  const requested = query.origin, item = await exactCarrier(db, requested.kind, requested.id);
+  const requested = query.origin, item = await lookup(requested.kind, requested.id);
   if (!item) throw new HttpError(404, 'unknown or ambiguous exact exploration origin');
+  requireOriginCarrier(item, requested.kind);
   if (item.id !== requested.id) invalid('exploration origin lookup returned a different id');
   if (item.content_revision !== requested.content_revision) throw new HttpError(409, 'exploration origin content revision changed');
   if (!query.sources.includes(String(item.source_graph))) throw new HttpError(400, 'exploration sources exclude the selected origin');
@@ -87,8 +89,9 @@ export async function bindOriginD1(db: D1Database,
     const id = String(item[field]);
     let node = cached.get(id);
     if (!node) {
-      const found = await exactCarrier(db, 'node', id);
+      const found = await lookup('node', id);
       if (!found) invalid('exploration relation endpoint is missing or ambiguous');
+      requireOriginCarrier(found, 'node');
       node = found; cached.set(id, node);
     }
     if (node.id !== id) invalid('exploration endpoint lookup returned a different id');
