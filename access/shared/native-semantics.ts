@@ -1,4 +1,4 @@
-/** Independent native-v7 semantic prototype; no production executor uses it.
+/** Shared native-v7 semantics used by the bounded Worker D1 lens/focus route.
  * Ordinary JS values remain unchanged. Opaque per-document sidecars preserve
  * number lexemes/kinds and source object order, which JSON.parse alone loses.
  */
