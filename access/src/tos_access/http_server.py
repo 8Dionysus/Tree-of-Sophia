@@ -19,6 +19,7 @@ from .exploration import ExplorationExpired
 from .exploration_origin import ExplorationReadModelInvalid
 from .published_read_model import PublishedReadModelError, PublishedReadBudgetExceeded, PublishedSnapshotConflict
 from .published_checkpoints import PublishedCheckpointError
+from .compressed_search_store import SearchStaleBinding, SearchCursorExpired, SearchUnavailable, SearchBudgetExceeded
 from .doctor import web_root_for
 
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
@@ -132,8 +133,9 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 # traceback or a misleading product failure.
                 return
 
-        def _json(self, payload: Any, status: int = 200) -> None:
-            self._send(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+        def _json(self, payload: Any, status: int = 200, *, compact: bool = False) -> None:
+            options = {"separators": (",", ":"), "allow_nan": False} if compact else {}
+            self._send(json.dumps(payload, ensure_ascii=False, **options).encode("utf-8"), "application/json; charset=utf-8", status)
 
         def _static(self, relative: str) -> None:
             target = (web_root / relative).resolve()
@@ -241,20 +243,22 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 if path == "/api/knowledge/explore/capabilities": self._json(core.knowledge_exploration_capabilities()); return
                 if path == "/api/knowledge/explore/contracts": self._json(core.knowledge_exploration_contracts()); return
                 if path == "/api/knowledge/contracts": self._json(core.knowledge_contracts()); return
+                if path == "/api/knowledge/search/capabilities": self._json(core.knowledge_search_capabilities()); return
                 if path == "/api/knowledge/search":
                     mode = _single(query, "mode", "legacy")
-                    if mode == "indexed":
+                    if mode in {"indexed", "compressed"}:
                         if _integer(query, "offset", 0, 0, 100_000) != 0:
-                            raise ValueError("indexed knowledge search uses cursor continuation, not offset")
-                        self._json(core.knowledge_search_indexed(
+                            raise ValueError(f"{mode} knowledge search uses cursor continuation, not offset")
+                        search = core.knowledge_search_indexed if mode == "indexed" else core.knowledge_search_compressed
+                        self._json(search(
                             _single(query, "query"),
                             sources=_list(query, "sources") or None,
                             kind_ids=_list(query, "kind_ids") or None,
                             predicate_ids=_list(query, "predicate_ids") or None,
                             cursor=_single(query, "cursor") or None,
                             limit=_integer(query, "limit", 40, 1, 100),
-                        )); return
-                    if mode != "legacy": raise ValueError("knowledge search mode must be legacy or indexed")
+                        ), compact=mode == "compressed"); return
+                    if mode != "legacy": raise ValueError("knowledge search mode must be legacy, indexed or compressed")
                     self._json(core.knowledge_search(
                         _single(query, "query"),
                         sources=_list(query, "sources") or None,
@@ -378,11 +382,13 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 if path.startswith("/api/philosophy/views/"):
                     view_id = unquote(path.removeprefix("/api/philosophy/views/").split("/", 1)[0]); self._json(core.philosophy_view(view_id, _integer(query, "limit", 1000, 1, 1000))); return
                 self._json({"error": "not found", "path": path}, HTTPStatus.NOT_FOUND)
-            except (KnowledgeRevisionConflict, PublishedSnapshotConflict) as exc:
+            except (KnowledgeRevisionConflict, PublishedSnapshotConflict, SearchStaleBinding) as exc:
                 self._json({"error": str(exc)}, HTTPStatus.CONFLICT)
-            except PublishedReadBudgetExceeded as exc:
+            except SearchCursorExpired as exc:
+                self._json({"error": str(exc)}, HTTPStatus.GONE)
+            except (PublishedReadBudgetExceeded, SearchBudgetExceeded) as exc:
                 self._json({"error": str(exc)}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
-            except (PublishedReadModelError, PublishedCheckpointError) as exc:
+            except (PublishedReadModelError, PublishedCheckpointError, SearchUnavailable) as exc:
                 self._json({"error": str(exc)}, HTTPStatus.SERVICE_UNAVAILABLE)
             except KeyError as exc:
                 self._json({"error": str(exc)}, HTTPStatus.NOT_FOUND)

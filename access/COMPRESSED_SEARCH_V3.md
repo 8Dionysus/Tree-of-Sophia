@@ -1,11 +1,12 @@
 # Compressed search-v3 service
 
 `src/tos_access/compressed_search_store.py` is an offline-published SQLite
-service slice, not an activated public search mode. Legacy search and
+service. Legacy search and
 `tos_knowledge_search_indexed_v2` are unchanged. `PublishedSearchService` adds
-same-snapshot carrier joins for the explicit local prepared publication. Core,
-HTTP/MCP, WebMCP and Cloudflare/D1 activation remain adapter-owner work; this
-service alone does not close foundation K3 or establish full-corpus feasibility.
+same-snapshot carrier joins for the explicit local prepared publication. Python
+core, CLI, local HTTP and native MCP expose it through explicit `compressed`
+mode. WebMCP and Cloudflare/D1 do not gain this mode from local integration.
+This does not close foundation K3 or establish full-corpus feasibility.
 
 ## Producer and reader API
 
@@ -334,3 +335,32 @@ rank/filter/ID/order results, restart and empty-work continuations, long text,
 lossless body and fetch-byte deferral, mapping/checksum/index corruption,
 concurrent/stale publication, HMAC/expiry and explicit legacy refusal. They use
 the publisher owner's bounded synthetic fixture, not a full source corpus.
+
+## Local adapters
+
+On an explicitly selected prepared core, use
+`knowledge_search_compressed(query, sources=..., kind_ids=...,
+predicate_ids=..., cursor=..., limit=...)`. Discover engine selection with
+`knowledge_search_capabilities()`, `GET /api/knowledge/search/capabilities`,
+`tos knowledge search-capabilities` or native MCP
+`tos_knowledge_search_capabilities`. Compatibility mode availability describes
+engine selection only; compressed availability checks its selected small
+publication/search headers and required objects, not every corpus row.
+
+Select `GET /api/knowledge/search?mode=compressed`, CLI
+`tos knowledge search --mode compressed`, or native MCP
+`tos_knowledge_search(..., mode="compressed")`. CLI publication/binding flags
+are documented in [README](README.md#explicit-prepared-local-reader). The
+default mode remains `legacy`; a prepared reader requires an explicit supported
+mode and never silently creates or falls back to a compatibility graph.
+Offsets are not accepted in compressed mode. Preserve query/filters and pass
+the returned cursor until `has_more` is false; an empty page is not exhaustion.
+
+HTTP maps invalid requests/cursors to 400, known stale bindings to 409,
+authenticated expiry to 410, hard budget refusal to 413 and unavailable/corrupt
+publications to 503. CLI and native MCP preserve their normal exception/error
+envelopes. HTTP and CLI encode compressed results in compact UTF-8 JSON;
+native MCP uses the same compact text plus structured content rather than a
+pretty-printed full carrier. Reader limits describe the logical compact result,
+not the extra MCP protocol envelope containing both representations. GET request
+framing remains subject to the HTTP server's request-line bound.

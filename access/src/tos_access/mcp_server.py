@@ -114,6 +114,11 @@ def build_server(
         return current_state().knowledge_contracts()
 
     @mcp.tool()
+    def tos_knowledge_search_capabilities() -> dict[str, Any]:
+        """Discover selected search modes; compressed requires an explicit local prepared publication."""
+        return current_state().knowledge_search_capabilities()
+
+    @mcp.tool()
     def tos_knowledge_search(
         query: str = "",
         sources: list[str] | None = None,
@@ -124,11 +129,18 @@ def build_server(
         mode: str = "legacy",
         cursor: str | None = None,
     ) -> dict[str, Any]:
-        """Search the unified display-complete graph without choosing a philosophy/corpus legacy mode."""
-        if mode == "indexed":
+        """Search full node/relation carriers. Discover modes with tos_knowledge_search_capabilities.
+
+        Compressed mode supports short queries and authenticated continuation
+        on the explicitly selected local prepared profile. No cold build or
+        fallback; resume possibly empty pages until has_more is false.
+        """
+        if mode in {"indexed", "compressed"}:
             if offset:
-                raise ValueError("indexed knowledge search uses cursor continuation, not offset")
-            return current_state().knowledge_search_indexed(
+                raise ValueError(f"{mode} knowledge search uses cursor continuation, not offset")
+            state = current_state()
+            search = state.knowledge_search_indexed if mode == "indexed" else state.knowledge_search_compressed
+            packet = search(
                 query,
                 sources=sources,
                 kind_ids=kind_ids,
@@ -136,8 +148,16 @@ def build_server(
                 cursor=cursor,
                 limit=limit,
             )
+            if mode == "compressed":
+                # FastMCP otherwise pretty-prints every nested full carrier.
+                # Keep the text carrier in the same bounded compact framing;
+                # MCP's protocol envelope still carries both representations.
+                from mcp.types import CallToolResult, TextContent
+                text = json.dumps(packet, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+                return CallToolResult(content=[TextContent(type="text", text=text)], structuredContent=packet)
+            return packet
         if mode != "legacy":
-            raise ValueError("knowledge search mode must be legacy or indexed")
+            raise ValueError("knowledge search mode must be legacy, indexed or compressed")
         return current_state().knowledge_search(
             query,
             sources=sources,

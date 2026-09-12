@@ -331,13 +331,16 @@ coordination protocol.
 The distinct `tos_local_prepared_read_model_v1` profile may reuse these
 catalog/inspect, lens and exploration carriers without the edge-v9 compatibility
 search tables. It requires the same lens metadata and ordered indices, but an
-edge-v9 binding never implicitly selects it. Reader admission for this profile
-does not claim a complete publisher, integrated search or source assembly;
-those components must be selected and verified separately. The Cloudflare
+edge-v9 binding never implicitly selects it. The explicit offline publisher and
+joined compressed search are described below; source assembly and a live
+consumer selection remain separate responsibilities. The Cloudflare
 producer's v9 schema and capabilities are unchanged.
 
-Search integration is separate from these services. Lens/focus and exploration
-use the prepared services described below. The default, without these two arguments,
+Compressed search is available only through explicit `mode=compressed` on this
+local profile; [its contract](COMPRESSED_SEARCH_V3.md#local-adapters) covers
+capability discovery, bounded work, continuation and full-carrier joins.
+Lens/focus and exploration use the prepared services described below.
+The default, without these two arguments,
 retains the existing compatibility route. This is not completion of the broader
 cold-reader or addressed-source publication work, nor a production activation.
 

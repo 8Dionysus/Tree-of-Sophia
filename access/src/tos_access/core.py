@@ -1549,6 +1549,37 @@ class ToSAccessCore:
             search_index=index,
         )
 
+    def knowledge_search_capabilities(self) -> dict[str, Any]:
+        """Describe selected engines; do not materialize a compatibility graph."""
+        legacy = self._prepared_reader is None
+        compressed = {"available": False, "schema": "tos_knowledge_search_compressed_v3",
+                      "reason": "explicit-local-prepared-publication-required", "writes_to_tree": False}
+        if self._prepared_reader is not None:
+            from .published_search import PublishedSearchService
+            compressed = PublishedSearchService(self._prepared_reader).capability()
+        return {"schema": "tos_knowledge_search_capabilities_v1", "default_mode": "legacy",
+                "explicit_mode_required": not legacy, "writes_to_tree": False,
+                "modes": {
+                    "legacy": {"available": legacy, "schema": "tos_knowledge_search_v1",
+                               "verification": "engine-selection-only", "pagination": "offset"},
+                    "indexed": {"available": legacy, "schema": "tos_knowledge_search_indexed_v2",
+                                "verification": "engine-selection-only", "pagination": "cursor"},
+                    "compressed": compressed}}
+
+    def knowledge_search_compressed(
+        self, query: str = "", *, sources: list[str] | None = None,
+        kind_ids: list[str] | None = None, predicate_ids: list[str] | None = None,
+        cursor: str | None = None, limit: int = 40,
+    ) -> dict[str, Any]:
+        """Read compressed v3 matches and exact bodies in one prepared snapshot."""
+        from .compressed_search_store import SearchUnavailable
+        from .published_search import PublishedSearchService
+        if self._prepared_reader is None:
+            raise SearchUnavailable("compressed search requires an explicitly selected local prepared publication")
+        return PublishedSearchService(self._prepared_reader).search(
+            query, sources=sources, kind_ids=kind_ids, predicate_ids=predicate_ids,
+            cursor=cursor, limit=limit)
+
     def _search_read_model_for_snapshot(
         self, graph: dict[str, Any]
     ) -> SQLiteKnowledgeSearchReadModel:

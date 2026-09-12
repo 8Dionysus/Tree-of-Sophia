@@ -32,6 +32,7 @@ def _parser() -> argparse.ArgumentParser:
     knowledge_sub = knowledge.add_subparsers(dest="knowledge_command", required=True)
     knowledge_sub.add_parser("catalog", help="List fields, vocabularies, limits, and stored lenses")
     knowledge_sub.add_parser("contracts", help="Return the API map and JSON Schemas used by the constructor")
+    knowledge_sub.add_parser("search-capabilities", help="Describe selected search engines without building a graph")
     search = knowledge_sub.add_parser("search", help="Search normalized nodes and relations")
     search.add_argument("query", nargs="?", default="")
     search.add_argument("--sources", nargs="*")
@@ -39,7 +40,7 @@ def _parser() -> argparse.ArgumentParser:
     search.add_argument("--predicate", action="append", dest="predicate_ids")
     search.add_argument("--offset", type=int, default=0)
     search.add_argument("--limit", type=int, default=40)
-    search.add_argument("--mode", choices=("legacy", "indexed"), default="legacy")
+    search.add_argument("--mode", choices=("legacy", "indexed", "compressed"), default="legacy")
     search.add_argument("--cursor")
     node = knowledge_sub.add_parser("node", help="Inspect one normalized node")
     node.add_argument("node_id")
@@ -113,11 +114,14 @@ def main(argv: list[str] | None = None) -> None:
             packet = core.knowledge_catalog()
         elif args.knowledge_command == "contracts":
             packet = core.knowledge_contracts()
+        elif args.knowledge_command == "search-capabilities":
+            packet = core.knowledge_search_capabilities()
         elif args.knowledge_command == "search":
-            if args.mode == "indexed":
+            if args.mode in {"indexed", "compressed"}:
                 if args.offset:
-                    raise SystemExit("indexed knowledge search uses --cursor, not --offset")
-                packet = core.knowledge_search_indexed(
+                    raise SystemExit(f"{args.mode} knowledge search uses --cursor, not --offset")
+                search = core.knowledge_search_indexed if args.mode == "indexed" else core.knowledge_search_compressed
+                packet = search(
                     args.query,
                     sources=args.sources,
                     kind_ids=args.kind_ids,
@@ -154,7 +158,10 @@ def main(argv: list[str] | None = None) -> None:
             )
         else:  # pragma: no cover - argparse owns this branch
             raise SystemExit(f"unknown knowledge command: {args.knowledge_command}")
-        print(json.dumps(packet, ensure_ascii=False, indent=2))
+        if packet.get("schema") == "tos_knowledge_search_compressed_v3":
+            print(json.dumps(packet, ensure_ascii=False, separators=(",", ":"), allow_nan=False))
+        else:
+            print(json.dumps(packet, ensure_ascii=False, indent=2))
         return
     if args.command == "lens":
         if args.lens_command == "open":

@@ -37,8 +37,17 @@
       "result": "paginated display-complete node and relation matches",
       "modes": {
         "legacy": {"schema": "tos_knowledge_search_v1", "pagination": "offset", "counts": "exact", "default": true},
-        "indexed": {"schema": "tos_knowledge_search_indexed_v2", "query_parameter": "mode=indexed", "pagination": "source-revision-bound cursor", "counts": "exact only for a kind exhausted on the first page; null on continuation pages or while that kind has more results", "short_query": "fails closed at the indexed boundary; use legacy mode explicitly"}
+        "indexed": {"schema": "tos_knowledge_search_indexed_v2", "query_parameter": "mode=indexed", "pagination": "source-revision-bound cursor", "counts": "exact only for a kind exhausted on the first page; null on continuation pages or while that kind has more results", "short_query": "fails closed at the indexed boundary; use legacy mode explicitly"},
+        "compressed": {"schema": "tos_knowledge_search_compressed_v3", "query_parameter": "mode=compressed", "available_on": "explicitly selected tos_local_prepared_read_model_v1 in Python", "pagination": "authenticated publication-bound stateless cursor with absolute 15-minute expiry; no offset", "counts": "exact only for an initial exhausted kind with no pending carrier bodies; otherwise null", "short_query": "supported with bounded work and possibly empty continuation pages", "same_snapshot": "search header, matched addresses and full selected carriers", "default": false, "errors": {"400": "invalid request or unauthenticated/query-incompatible cursor", "409": "selected snapshot or known outer binding changed", "410": "authenticated cursor expired", "413": "declared reader/search budget cannot admit the request", "503": "local publication unavailable, corrupt or unsupported"}}
       }
+    },
+    {
+      "operation_id": "tos.knowledge.search.capabilities",
+      "http": {"method": "GET", "path": "/api/knowledge/search/capabilities"},
+      "mcp_tool": "tos_knowledge_search_capabilities",
+      "cli": "tos knowledge search-capabilities",
+      "result": "selected engine modes; compressed readiness checks only the selected local header and search objects, never a full corpus or catalog",
+      "available_on": "Python local HTTP, CLI and native MCP; not a Cloudflare/D1 capability claim"
     },
     {
       "operation_id": "tos.knowledge.node.inspect",
