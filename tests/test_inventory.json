@@ -48,6 +48,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_prepared_source_dependencies.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/contracts/prepared-source-dependencies.v1.md",
+      "protects": "private typed source Claim dependency declarations and complete addressed reverse lookup in the same prepared SQLite, exact source/prepared binding and per-Claim CAS, bounded count/XOR/sum integrity with constant-work high-fanout deltas, explicit unresolved retention, empty-declaration binding advance without scans, source/row/index all-lane rollback, budget refusal and caller progress-handler/row-factory preservation; no source coverage or semantic admission",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_prepared_source_dependencies.py",
+      "failure_route": "Fix exact declaration/index storage or transaction composition; never infer source coverage from graph incidence, drop unresolved dependencies, rescan a broad address for a small delta, or publish a pending index.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_prepared_source_binding.py",
       "home": "access",
       "home_scope": "product-local",
