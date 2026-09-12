@@ -31,8 +31,11 @@ resolution semantics; this is explicit selection, not a filesystem sandbox.
 The producer applies the same recursive portable path-value conversion as the
 edge builder: the exact root becomes `Tree-of-Sophia`, root-prefixed strings
 become relative, dictionary keys and non-string/list/dict values are unchanged.
-No normalization cache is selected or written. Complete graph construction and
-recursive conversion can retain full-size objects. Publication uses fixed
+No normalization cache is selected or written. Complete graph construction still
+retains full-size source and normalized objects. The producer converts each row
+on demand in two repeatable publication passes, so path conversion does not
+retain a second complete graph. Header and catalog are converted separately.
+Publication uses fixed
 `PublicationLimits` defaults: 64 MiB SQLite file, 1 MiB compact row, 8 MiB
 metadata, two million SQL mutations, plus the publisher's delta-only limits
 (4096 changes / 16 MiB). These are mechanical refusal caps, not host memory

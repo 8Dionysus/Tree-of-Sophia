@@ -6,6 +6,7 @@ request-time building occurs here. See LOCAL_PREPARED_PUBLICATION.md.
 from __future__ import annotations
 
 import copy
+from collections import Counter
 import hashlib
 import json
 import os
@@ -13,7 +14,7 @@ from pathlib import Path
 import sqlite3
 import stat
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 from .compressed_search_store import ALGORITHM, MAX_ADDRESS, PreparedSearchDocument, SearchChange, SearchStore
 from .published_read_metadata import (
@@ -186,16 +187,41 @@ def publish_prepared(path: str | Path, *, graph: dict, catalog: dict,
     Explicit repeatable normalized row lists retain their native source order.
     Rows are streamed into SQLite once; the descriptor pass retains no row copy.
     """
+    if not isinstance(graph, dict) or any(not isinstance(graph.get(kind + "s"), list) for kind in _COLUMNS):
+        raise ValueError("explicit repeatable normalized row lists required")
+    return publish_prepared_rows(path, source_header={key: value for key, value in graph.items()
+                                 if key not in ("nodes", "relations")}, catalog=catalog,
+                                 row_factory=lambda kind: iter(graph[kind + "s"]), limits=limits)
+
+
+def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dict,
+                          row_factory: Callable[[str], Iterable[dict[str, Any]]],
+                          limits: PublicationLimits | None = None) -> dict:
+    """Bootstrap from two repeatable passes, without retaining transformed rows.
+
+    ``row_factory(kind)`` supplies a fresh iterable for ``node`` or ``relation``
+    on each pass, in stable source order. The caller owns normalization and
+    source coherence. Complete emitted bytes and addresses must match between
+    passes or the new publication is rolled back. This is not a delta builder.
+    """
+    if not isinstance(source_header, dict) or any(key in source_header for key in ("nodes", "relations")):
+        raise ValueError("source header must exclude row collections")
+    if not callable(row_factory):
+        raise ValueError("explicit repeatable normalized row factory required")
     limits = limits or PublicationLimits()
-    header = _header(graph, catalog)
+    header = _header(source_header, catalog)
     digest = hashlib.sha256()
     count = 0
+    histograms = {kind: Counter() for kind in _COLUMNS}
     for kind in _COLUMNS:
-        if not isinstance(graph.get(kind + "s"), list):
-            raise ValueError("explicit repeatable normalized row lists required")
-        for position, item in enumerate(graph[kind + "s"]):
+        for position, item in enumerate(row_factory(kind)):
             raw = _row(kind, item, limits)
             count += 1
+            if count > min(MAX_ADDRESS, limits.max_mutations):
+                raise ValueError("publication row/mutation budget exceeded")
+            histograms[kind][tuple(str(item.get(key) or "") for key in _DIMENSIONS[kind])] += 1
+            if len(histograms[kind]) > 16384:
+                raise ValueError("publication histogram budget exceeded")
             token = position * SOURCE_ORDER_STRIDE
             if token > MAX_ADDRESS:
                 raise ValueError("source order capacity exhausted")
@@ -203,7 +229,10 @@ def publish_prepared(path: str | Path, *, graph: dict, catalog: dict,
     descriptor = {"schema": DESCRIPTOR_SCHEMA, "mode": "bootstrap", "profile": SCHEMA,
                   "algorithm": ALGORITHM, "capabilities": CAPABILITIES,
                   "header": header, "catalog_sha256": _hash(catalog), "rows_sha256": digest.hexdigest()}
-    lens = published_lens_metadata(graph)
+    lens = published_lens_metadata(header)
+    for kind in _COLUMNS:
+        lens[kind + "_counts"] = [[*key, histograms[kind][key]] for key in sorted(histograms[kind])]
+    validate_lens_metadata(lens, header["source_revision"])
     path = Path(path).absolute()
     fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     created = os.fstat(fd)
@@ -221,8 +250,10 @@ def publish_prepared(path: str | Path, *, graph: dict, catalog: dict,
             address = 0
             actual = hashlib.sha256()
             for kind in _COLUMNS:
-                for position, item in enumerate(graph[kind + "s"]):
+                for position, item in enumerate(row_factory(kind)):
                     address += 1
+                    if address > count:
+                        raise ValueError("normalized input changed during publication")
                     token = position * SOURCE_ORDER_STRIDE
                     raw = _row(kind, item, limits)
                     actual.update((_compact([kind, item["id"], address, token, emitted_row_digest(raw)["sha256"]]) + "\n").encode("utf-8"))

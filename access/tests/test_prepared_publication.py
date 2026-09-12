@@ -10,7 +10,7 @@ import unittest
 
 from tos_access.prepared_publication import (
     PreparedChange, PublicationLimits, SCHEMA, apply_prepared_delta,
-    apply_prepared_delta_transaction, publish_prepared,
+    apply_prepared_delta_transaction, publish_prepared, publish_prepared_rows,
 )
 from tos_access.compressed_search_store import SearchStore
 from tos_access.published_read_metadata import _compact, published_lens_metadata, LENS_META_KEY
@@ -94,6 +94,67 @@ class PreparedPublicationTests(unittest.TestCase):
             for kind in ("node", "relation"):
                 expected = {item["id"]: _compact(item) for item in self.graph[kind + "s"]}
                 self.assertEqual(dict(db.execute(f"SELECT id,json FROM knowledge_{kind}s")), expected)
+
+    def test_repeatable_row_factory_matches_list_publication_without_retaining_rows(self):
+        import weakref
+        class Row(dict):
+            pass
+        references = []
+        calls = []
+        def rows(kind):
+            calls.append(kind)
+            for item in self.graph[kind + "s"]:
+                # The writer may retain its current/previous loop item, but
+                # never all transformed bodies from an earlier pass.
+                self.assertLessEqual(sum(ref() is not None for ref in references), 2)
+                row = Row(copy.deepcopy(item))
+                references.append(weakref.ref(row))
+                yield row
+        reader = self.publish()
+        header, catalog = self.header("a")
+        path = self.path.with_name("stream.sqlite")
+        binding = publish_prepared_rows(path, source_header=header, catalog=catalog, row_factory=rows)
+        self.assertEqual(calls, ["node", "relation", "node", "relation"])
+        self.assertEqual(binding, self.binding)
+        streamed = PublishedKnowledgeReadModel(path, binding)
+        self.assertEqual(streamed.catalog(), reader.catalog())
+        for node in self.graph["nodes"]:
+            self.assertEqual(streamed.node(node["id"]), reader.node(node["id"]))
+        with closing(sqlite3.connect(path)) as actual, closing(sqlite3.connect(self.path)) as expected:
+            for table in ("knowledge_nodes", "knowledge_relations", "knowledge_lens_order", "prepared_documents", "edge_meta"):
+                self.assertEqual(actual.execute(f"SELECT * FROM {table} ORDER BY 1,2").fetchall(),
+                                 expected.execute(f"SELECT * FROM {table} ORDER BY 1,2").fetchall())
+
+    def test_row_factory_change_or_failure_never_publishes_a_partial_snapshot(self):
+        header, catalog = self.header("a")
+        for defect in ("missing", "extra", "changed", "failed"):
+            with self.subTest(defect=defect):
+                calls = {"node": 0, "relation": 0}
+                def rows(kind):
+                    calls[kind] += 1
+                    material = self.graph[kind + "s"]
+                    if kind == "node" and calls[kind] == 2:
+                        if defect == "missing":
+                            material = material[:-1]
+                        elif defect == "extra":
+                            material = [*material, {**material[-1], "id": "extra"}]
+                        elif defect == "changed":
+                            material = [{**item, "new": True} for item in material]
+                    yield from material
+                    if kind == "relation" and calls[kind] == 2 and defect == "failed":
+                        raise RuntimeError("injected iterator failure")
+                with self.assertRaises((ValueError, RuntimeError)):
+                    publish_prepared_rows(self.path, source_header=header, catalog=catalog, row_factory=rows)
+                self.assertFalse(self.path.exists())
+        with self.assertRaisesRegex(ValueError, "row collections"):
+            publish_prepared_rows(self.path, source_header=self.graph, catalog=catalog, row_factory=lambda _: ())
+        with self.assertRaisesRegex(ValueError, "factory"):
+            publish_prepared_rows(self.path, source_header=header, catalog=catalog, row_factory=iter([]))
+        with self.assertRaisesRegex(ValueError, "row/mutation budget"):
+            publish_prepared_rows(self.path, source_header=header, catalog=catalog,
+                                  row_factory=lambda kind: iter(self.graph[kind + "s"]),
+                                  limits=PublicationLimits(max_mutations=3))
+        self.assertFalse(self.path.exists())
 
     def test_exclusive_initial_and_failure_cleanup(self):
         self.publish()

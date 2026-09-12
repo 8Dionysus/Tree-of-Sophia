@@ -10,7 +10,7 @@ import sys
 
 from . import core as source
 from .portable_paths import normalize_paths
-from .prepared_publication import PublicationLimits, publish_prepared
+from .prepared_publication import PublicationLimits, publish_prepared_rows
 
 SCHEMA = "tos_offline_prepared_bootstrap_receipt_v1"
 
@@ -82,10 +82,13 @@ def prepare(source_root: str | Path, output_dir: str | Path, *,
     state = core._published_source_state
     if state is None or core._knowledge_input_state() != state:
         raise RuntimeError("source changed after coherent snapshot selection")
-    graph = normalize_paths(snapshot["graph"], root)
+    graph = snapshot["graph"]
+    header = normalize_paths({key: value for key, value in graph.items()
+                              if key not in ("nodes", "relations")}, root)
     catalog = normalize_paths(snapshot["catalog"], root)
     path = output / "snapshot.sqlite"
-    binding = publish_prepared(path, graph=graph, catalog=catalog, limits=limits)
+    binding = publish_prepared_rows(path, source_header=header, catalog=catalog,
+        row_factory=lambda kind: (normalize_paths(item, root) for item in graph[kind + "s"]), limits=limits)
     if core._knowledge_input_state() != state:
         raise RuntimeError("source changed during offline publication")
     receipt = {

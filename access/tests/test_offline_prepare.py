@@ -111,6 +111,21 @@ class OfflinePrepareTests(unittest.TestCase):
         self.assertEqual(json.loads(result.stderr)["status"], "failed")
         self.assertEqual(before, {p.name: p.read_bytes() for p in self.output.iterdir()})
 
+    def test_portable_conversion_never_copies_the_whole_graph(self):
+        original = producer.normalize_paths
+        rows = []
+        def convert(value, root):
+            if isinstance(value, dict):
+                self.assertNotIn("nodes", value)
+                self.assertNotIn("relations", value)
+                if "content_revision" in value:
+                    rows.append(value["id"])
+            return original(value, root)
+        with patch.object(producer, "normalize_paths", side_effect=convert):
+            receipt = producer.prepare(self.root, self.output)
+        self.assertEqual(len(rows), 2 * (receipt["build_counts"]["nodes"] + receipt["build_counts"]["relations"]))
+        self.assertEqual(rows[:len(rows) // 2], rows[len(rows) // 2:])
+
     def test_missing_source_and_partial_publication_never_complete(self):
         (self.root / source.INDEX_RELATIVE_PATH).unlink()
         result = self.command()
@@ -124,7 +139,7 @@ class OfflinePrepareTests(unittest.TestCase):
         def fail(path, **kwargs):
             path.write_text("unfinished")
             raise RuntimeError("injected failure")
-        with patch.object(producer, "publish_prepared", side_effect=fail):
+        with patch.object(producer, "publish_prepared_rows", side_effect=fail):
             with self.assertRaisesRegex(RuntimeError, "injected failure"):
                 producer.prepare(self.root, partial)
         self.assertEqual((partial / "snapshot.sqlite").read_text(), "unfinished")
@@ -132,13 +147,13 @@ class OfflinePrepareTests(unittest.TestCase):
         self.assertFalse((partial / "completed.json").exists())
 
     def test_source_drift_after_publication_never_describes_success(self):
-        original = producer.publish_prepared
+        original = producer.publish_prepared_rows
         def publish_then_drift(path, **kwargs):
             binding = original(path, **kwargs)
             with (self.root / source.INDEX_RELATIVE_PATH).open("a") as stream:
                 stream.write(" ")
             return binding
-        with patch.object(producer, "publish_prepared", side_effect=publish_then_drift):
+        with patch.object(producer, "publish_prepared_rows", side_effect=publish_then_drift):
             with self.assertRaisesRegex(RuntimeError, "source changed"):
                 producer.prepare(self.root, self.output)
         self.assertTrue((self.output / "snapshot.sqlite").exists())

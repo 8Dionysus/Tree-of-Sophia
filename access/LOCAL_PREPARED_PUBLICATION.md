@@ -37,6 +37,17 @@ The search header binds the **final** publication snapshot, avoiding a cyclic
 header hash. Random search cursor incarnation is outside reproducible content
 identity; this is not a claim of SQLite file byte reproducibility.
 
+`publish_prepared_rows(new_path, source_header=header, catalog=catalog,
+row_factory=rows)` accepts an explicit repeatable `rows(kind)` factory instead
+of in-memory row lists. The header excludes `nodes` and `relations`. The factory
+is called once per kind for the descriptor/count pass, then once per kind for
+the insertion pass, nodes before relations. It must return the same normalized
+rows in the same order. No transformed row collection is retained by the writer.
+Per-row, histogram and output storage limits still apply; the first pass also
+refuses a row count above the mutation budget. A changed, exhausted or failed
+second pass rolls back the new file. This seam can consume disk-backed rows;
+it neither assembles source dependencies nor makes a full bootstrap incremental.
+
 Producer-owned `(kind, exact ID) -> doc_id` addresses are stable. Bootstrap
 assigns monotonic addresses and sparse source-order tokens in native row-list
 order, with stride `2**32`. Search uses those tokens only to break equal-lower-ID
