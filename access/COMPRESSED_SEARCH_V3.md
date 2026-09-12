@@ -31,6 +31,81 @@ SearchStore.apply_delta(
 )
 ```
 
+The same algorithms are exposed to the internal prepared-publication owner
+through class methods taking an existing `sqlite3.Connection`:
+
+```python
+SearchStore.initialize_transaction(
+    connection, binding=owner_snapshot_header, documents=prepared_documents,
+    max_mutations=2_000_000, max_bytes=64 * 1024 * 1024,
+)
+SearchStore.apply_delta_transaction(
+    connection, expected_binding=old_header, new_binding=new_header,
+    changes=typed_changes, max_mutations=100_000,
+)
+page = SearchStore.query_transaction(
+    connection, binding=owner_snapshot_header, kind="node", query="a",
+    filters={"type_id": ["concept"]}, page_size=50, cursor=None,
+    candidate_budget=256, verification_bytes=65536,
+    max_metadata_bytes=4 * 1024 * 1024,
+    max_response_bytes=4 * 1024 * 1024,
+)
+```
+
+All three methods require `connection.in_transaction` to be true. They never
+begin, commit, roll back, close, or issue a savepoint on that connection. Schema
+creation uses individual DDL statements; `executescript` would implicitly
+commit caller work. The owner can write carrier rows and search data in the
+same main database and commit them together, or roll back both. Initialization
+returns `mutations`, `blocks_written`, `payload_bytes_written`, and whole-file
+`database_bytes`; a delta returns the first three counters. These counters
+cover search writes, not carrier writes. Query returns the unchanged page
+packet and validates its framed header and cursor incarnation in the passed
+transaction's snapshot. It can read a coherent publication written earlier
+in that same transaction. The owner must perform its carrier/header reads in
+that transaction too. The query never opens a second connection or computes
+an owner digest.
+
+`max_bytes` is a cap on the **whole main SQLite database**, including carrier,
+schema and index pages. It is not a separate search allowance. The effective
+cap is the smaller of the requested page count and the connection's current
+`max_page_count`; an already oversized database is refused. The stored cap is
+reapplied on deltas without increasing a stricter caller cap. Owners reopening
+connections must enforce their own whole-file cap before doing carrier writes;
+SQLite's pager limit is connection state, not durable quota enforcement for
+arbitrary writers. Pager-limit changes are not promised to roll back with SQL
+data. Journal/WAL/headroom reservations are separate from the main-file cap.
+
+Any transaction-method failure makes the owner's entire publication attempt
+failed; the owner must abort it and never commit partial work. The methods do
+not secretly roll back on the owner's behalf. SQLite itself can abort a
+transaction on `SQLITE_FULL` or another engine failure, so the owner must also
+check `connection.in_transaction` when cleaning up. A connection remains open
+on success and failure. Standalone `publish_initial`, `apply_delta` and
+`query_page` retain ownership of their own connection lifecycle and use the
+same implementation.
+
+Typed exceptions provide an internal adapter mapping, without activating HTTP:
+
+| Exception | Meaning | Suggested HTTP status |
+| --- | --- | --- |
+| `SearchInvalidRequest` | Invalid request, typed change or missing open transaction | 400 |
+| `SearchStaleBinding` | Explicit selected binding or pinned reader incarnation mismatch | 409 |
+| `SearchCursorError` | Malformed cursor, wrong query or failed cursor authentication; restart query | 400 |
+| `SearchCursorExpired` | Authenticated cursor past its absolute expiry | 410 |
+| `SearchUnavailable` | Missing, unreadable or corrupt publication | 503 |
+| `SearchBudgetExceeded` | Publication mutation/page/data cap or hard response framing refusal | 413 |
+
+All are `ValueError` subclasses; `SearchCursorExpired` also derives from
+`SearchCursorError`. Unavailable and budget errors additionally preserve
+`sqlite3.DatabaseError` catches. Continuation under a normal per-page work
+budget remains a successful packet, possibly empty, rather than a budget
+exception. A failed MAC cannot distinguish tampering from an old publication;
+it is a cursor error, not evidence of staleness. A known outer publication
+binding mismatch can be rejected separately before querying. The existing
+cursor shape and HMAC remain unchanged, including restart survival and ABA
+rejection.
+
 The initial publisher creates an absent path exclusively. Failure removes only
 that new file. It accepts prepared normalized carriers from the offline owner;
 it does not discover a corpus, normalize source meaning, or verify owner truth.

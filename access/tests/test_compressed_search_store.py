@@ -12,6 +12,8 @@ from unittest.mock import patch
 from tos_access.compressed_search_store import (
     BLOCK_SIZE, MAX_ADDRESS, MAX_HEADER_BYTES, MIN_METADATA_BYTES, MIN_RESPONSE_BYTES,
     PreparedSearchDocument, SearchChange, SearchStore,
+    SearchInvalidRequest, SearchStaleBinding, SearchCursorError,
+    SearchCursorExpired, SearchUnavailable, SearchBudgetExceeded,
     decode_postings, encode_postings, order_key,
 )
 from tos_access.knowledge import _knowledge_search_rank
@@ -333,6 +335,165 @@ class CompressedSearchStoreTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             SearchStore.publish_initial(self.path, binding=self.binding, documents=docs)
         self.assertFalse(self.path.exists())
+
+    def test_owner_initial_schema_and_carriers_commit_or_rollback_together(self):
+        document = PreparedSearchDocument.from_item(1, "node", self.item("a"), 1)
+        with closing(sqlite3.connect(self.path)) as db:
+            for commit in (False, True):
+                db.execute("BEGIN IMMEDIATE")
+                db.execute("CREATE TABLE carrier (doc_id INTEGER PRIMARY KEY, id TEXT)")
+                db.execute("INSERT INTO carrier VALUES (1,'a')")
+                traced = []
+                db.set_trace_callback(traced.append)
+                stats = SearchStore.initialize_transaction(db, binding=self.binding, documents=[document])
+                page = SearchStore.query_transaction(db, binding=self.binding, kind="node")
+                self.assertEqual(page["matches"], [{"doc_id": 1, "id": "a", "rank": 3}])
+                self.assertGreater(stats["database_bytes"], 0)
+                self.assertTrue(db.in_transaction)
+                self.assertFalse(any(sql.split()[0].upper() in {"BEGIN", "COMMIT", "END", "ROLLBACK", "SAVEPOINT", "RELEASE"} for sql in traced))
+                db.set_trace_callback(None)
+                with closing(sqlite3.connect(self.path)) as other:
+                    self.assertEqual(other.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall(), [])
+                (db.commit if commit else db.rollback)()
+                self.assertEqual(db.execute("SELECT count(*) FROM sqlite_master WHERE type='table'").fetchone()[0] > 0, commit)
+            self.assertEqual(db.execute("SELECT id FROM carrier").fetchone(), ("a",))
+        self.assertEqual(SearchStore(self.path, binding=self.binding).query_page(kind="node")["matches"], page["matches"])
+
+    def test_owner_delta_failure_never_autocommits_or_closes_connection(self):
+        self.publish([self.item("a")])
+        changed = PreparedSearchDocument.from_item(1, "node", self.item("b"), 1)
+        new_binding = {"revision": "2"}
+        with closing(sqlite3.connect(self.path)) as db:
+            db.execute("CREATE TABLE carrier (doc_id INTEGER PRIMARY KEY, id TEXT)")
+            db.execute("INSERT INTO carrier VALUES (1,'a')")
+            db.commit()
+            for changes, error in (([SearchChange("update", 1, changed), SearchChange("delete", 99)], SearchInvalidRequest),
+                                   ([SearchChange("update", 1, changed)], SearchBudgetExceeded)):
+                db.execute("BEGIN IMMEDIATE")
+                db.execute("UPDATE carrier SET id='b'")
+                traced = []
+                db.set_trace_callback(traced.append)
+                with self.assertRaises(error):
+                    SearchStore.apply_delta_transaction(db, expected_binding=self.binding, new_binding=new_binding, changes=changes,
+                                                        max_mutations=1 if error is SearchBudgetExceeded else 100000)
+                self.assertTrue(db.in_transaction)
+                self.assertEqual(db.execute("SELECT id FROM carrier").fetchone(), ("b",))
+                self.assertFalse(any(sql.split()[0].upper() in {"BEGIN", "COMMIT", "END", "ROLLBACK"} for sql in traced))
+                db.set_trace_callback(None)
+                db.rollback()
+                self.assertEqual(db.execute("SELECT id FROM carrier").fetchone(), ("a",))
+                self.assertEqual(db.execute("SELECT identifier FROM search_documents").fetchone()[0], b'"a"')
+            for commit in (False, True):
+                db.execute("BEGIN IMMEDIATE")
+                db.execute("UPDATE carrier SET id='b'")
+                SearchStore.apply_delta_transaction(db, expected_binding=self.binding, new_binding=new_binding, changes=[SearchChange("update", 1, changed)])
+                page = SearchStore.query_transaction(db, binding=new_binding, kind="node")
+                self.assertEqual(page["matches"][0]["id"], db.execute("SELECT id FROM carrier").fetchone()[0])
+                with self.assertRaises(SearchStaleBinding):
+                    SearchStore.query_transaction(db, binding=self.binding, kind="node")
+                self.assertTrue(db.in_transaction)
+                (db.commit if commit else db.rollback)()
+            self.assertEqual(db.execute("SELECT id FROM carrier").fetchone(), ("b",))
+        self.assertEqual(SearchStore(self.path, binding=new_binding).query_page(kind="node")["matches"][0]["id"], "b")
+
+    def test_owner_initial_failure_leaves_schema_and_carrier_rollback_to_caller(self):
+        document = PreparedSearchDocument.from_item(1, "node", self.item("a"), 1)
+        with closing(sqlite3.connect(self.path)) as db:
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("CREATE TABLE carrier (id TEXT)")
+            db.execute("INSERT INTO carrier VALUES ('a')")
+            with self.assertRaises(SearchInvalidRequest):
+                SearchStore.initialize_transaction(db, binding=self.binding, documents=[document, document])
+            self.assertTrue(db.in_transaction)
+            self.assertEqual(db.execute("SELECT id FROM carrier").fetchone(), ("a",))
+            self.assertEqual(db.execute("SELECT count(*) FROM search_documents").fetchone(), (1,))
+            with closing(sqlite3.connect(self.path)) as other:
+                self.assertEqual(other.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall(), [])
+            db.rollback()
+            self.assertEqual(db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall(), [])
+
+    def test_owner_query_checks_header_inside_existing_snapshot(self):
+        self.publish([self.item("a"), self.item("b")])
+        new_binding = {"revision": "new"}
+        with closing(sqlite3.connect(self.path)) as reader, closing(sqlite3.connect(self.path)) as writer:
+            writer.execute("PRAGMA journal_mode=WAL")
+            writer.execute("CREATE TABLE carrier (doc_id INTEGER PRIMARY KEY, id TEXT)")
+            writer.execute("INSERT INTO carrier VALUES (1,'a')")
+            writer.commit()
+            reader.execute("BEGIN")
+            old_carrier = reader.execute("SELECT id FROM carrier").fetchone()[0]
+            first = SearchStore.query_transaction(reader, binding=self.binding, kind="node", page_size=1)
+            writer.execute("BEGIN IMMEDIATE")
+            writer.execute("UPDATE carrier SET id='z'")
+            changed = PreparedSearchDocument.from_item(1, "node", self.item("z"), 1)
+            SearchStore.apply_delta_transaction(writer, expected_binding=self.binding, new_binding=new_binding, changes=[SearchChange("update", 1, changed)])
+            writer.commit()
+            old = SearchStore.query_transaction(reader, binding=self.binding, kind="node")
+            self.assertEqual(old["matches"][0]["id"], old_carrier)
+            resumed = SearchStore.query_transaction(reader, binding=self.binding, kind="node", cursor=first["next_cursor"])
+            self.assertEqual(resumed["matches"][0]["id"], "b")
+            self.assertTrue(reader.in_transaction)
+            reader.rollback()
+            reader.execute("BEGIN")
+            with self.assertRaises(SearchStaleBinding):
+                SearchStore.query_transaction(reader, binding=self.binding, kind="node")
+            fresh = SearchStore.query_transaction(reader, binding=new_binding, kind="node")
+            self.assertEqual(fresh["matches"][-1]["id"], reader.execute("SELECT id FROM carrier").fetchone()[0])
+
+    def test_owner_transaction_required_and_wholefile_cap_preserved(self):
+        document = PreparedSearchDocument.from_item(1, "node", self.item("a"), 1)
+        with closing(sqlite3.connect(self.path)) as db:
+            for call in (lambda: SearchStore.initialize_transaction(db, binding=self.binding, documents=[document]),
+                         lambda: SearchStore.apply_delta_transaction(db, expected_binding=self.binding, new_binding={"revision": 2}, changes=[]),
+                         lambda: SearchStore.query_transaction(db, binding=self.binding, kind="node")):
+                with self.assertRaises(SearchInvalidRequest):
+                    call()
+                self.assertFalse(db.in_transaction)
+            db.execute("PRAGMA max_page_count=64")
+            db.execute("BEGIN")
+            db.execute("CREATE TABLE carrier (payload BLOB)")
+            db.execute("INSERT INTO carrier VALUES (zeroblob(8192))")
+            SearchStore.initialize_transaction(db, binding=self.binding, documents=[document], max_bytes=1048576)
+            self.assertEqual(db.execute("SELECT max_pages FROM search_header").fetchone()[0], 64)
+            self.assertEqual(db.execute("PRAGMA max_page_count").fetchone()[0], 64)
+            db.commit()
+            db.execute("PRAGMA max_page_count=48")
+            db.row_factory = sqlite3.Row
+            db.execute("BEGIN")
+            report = SearchStore.apply_delta_transaction(db, expected_binding=self.binding, new_binding={"revision": 2}, changes=[SearchChange("update", 1, document)])
+            self.assertEqual(report["blocks_written"], 0)
+            self.assertEqual(SearchStore.query_transaction(db, binding={"revision": 2}, kind="node")["matches"][0]["id"], "a")
+            self.assertEqual(db.execute("PRAGMA max_page_count").fetchone()[0], 48)
+            db.rollback()
+            db.execute("BEGIN")
+            with self.assertRaises(SearchBudgetExceeded):
+                SearchStore.initialize_transaction(db, binding=self.binding, documents=[], max_bytes=65536)
+            self.assertTrue(db.in_transaction)
+            db.rollback()
+
+    def test_typed_errors_distinguish_expiry_binding_corruption_and_request(self):
+        store, _, _ = self.publish([self.item("a"), self.item("b")])
+        cursor = store.query_page(kind="node", page_size=1)["next_cursor"]
+        with self.assertRaises(SearchInvalidRequest):
+            store.query_page(kind="other")
+        with self.assertRaises(SearchStaleBinding):
+            SearchStore(self.path, binding={"revision": "wrong"})
+        with self.assertRaises(SearchCursorError):
+            store.query_page(kind="node", cursor={})
+        malformed = copy.deepcopy(cursor)
+        malformed["mac"] = "é" * 64
+        with self.assertRaises(SearchCursorError):
+            store.query_page(kind="node", cursor=malformed)
+        with patch("tos_access.compressed_search_store.time.time", return_value=cursor["state"]["expires"]):
+            with self.assertRaises(SearchCursorExpired):
+                store.query_page(kind="node", cursor=cursor)
+        with self.assertRaises(SearchUnavailable):
+            SearchStore(self.path.with_name("missing.sqlite"), binding=self.binding)
+        with closing(sqlite3.connect(self.path)) as db:
+            db.execute("UPDATE search_documents SET filters=?", (b"not json",))
+            db.commit()
+        with self.assertRaises(SearchUnavailable):
+            store.query_page(kind="node")
 
 
 if __name__ == "__main__":

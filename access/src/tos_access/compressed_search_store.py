@@ -16,6 +16,7 @@ import sqlite3
 import time
 import unicodedata
 from dataclasses import dataclass
+from functools import wraps
 from typing import Any, Iterable
 
 SCHEMA = "tos_knowledge_search_compressed_v3"
@@ -35,6 +36,65 @@ MIN_RESPONSE_BYTES = MAX_ROW_BYTES + 8192
 RESPONSE_OVERHEAD_BYTES = 4096
 MAX_BLOCK_BYTES = BLOCK_SIZE * 8
 
+class SearchInvalidRequest(ValueError):
+    """Invalid caller input; adapters may map to HTTP 400."""
+
+
+class SearchStaleBinding(ValueError):
+    """Selected binding or pinned incarnation changed; HTTP 409."""
+
+
+class SearchCursorError(ValueError):
+    """Invalid or publication-incompatible continuation; HTTP 400."""
+
+
+class SearchCursorExpired(SearchCursorError):
+    """Authentic continuation has reached its absolute expiry; HTTP 410."""
+
+
+class SearchUnavailable(ValueError, sqlite3.DatabaseError):
+    """Missing, unreadable or corrupt search publication; HTTP 503."""
+
+
+class SearchBudgetExceeded(ValueError, sqlite3.DatabaseError):
+    """Publication or hard framing budget exceeded; owner refusal (HTTP 413)."""
+
+
+def _typed_errors(method):
+    @wraps(method)
+    def call(*args, **kwargs):
+        try:
+            return method(*args, **kwargs)
+        except (SearchInvalidRequest, SearchStaleBinding, SearchCursorError,
+                SearchUnavailable, SearchBudgetExceeded):
+            raise
+        except sqlite3.IntegrityError as exc:
+            raise SearchInvalidRequest(str(exc)) from exc
+        except sqlite3.DatabaseError as exc:
+            error = SearchBudgetExceeded if getattr(exc, "sqlite_errorcode", None) == sqlite3.SQLITE_FULL else SearchUnavailable
+            raise error(str(exc)) from exc
+        except (ValueError, TypeError, OverflowError) as exc:
+            raise SearchInvalidRequest(str(exc)) from exc
+    return call
+
+
+def _require_transaction(connection: sqlite3.Connection) -> None:
+    if not isinstance(connection, sqlite3.Connection) or not connection.in_transaction:
+        raise SearchInvalidRequest("an already-open caller SQLite transaction is required")
+
+
+def _page_cap(connection: sqlite3.Connection, requested_pages: int) -> int:
+    # This is the entire main database, including the owner's carrier tables.
+    # Never enlarge an independently configured, stricter owner connection cap.
+    current = connection.execute("PRAGMA max_page_count").fetchone()[0]
+    pages = min(current, requested_pages)
+    if connection.execute("PRAGMA page_count").fetchone()[0] > pages:
+        raise SearchBudgetExceeded("existing whole database exceeds search publication page cap")
+    actual = connection.execute(f"PRAGMA max_page_count={pages}").fetchone()[0]
+    if actual != pages:
+        raise SearchBudgetExceeded("could not enforce whole database page cap")
+    return pages
+
 
 def _json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True)
@@ -46,8 +106,15 @@ def _bytes(value: str) -> bytes:
 
 def _integer(value: Any, name: str, minimum: int, maximum: int) -> int:
     if type(value) is not int or not minimum <= value <= maximum:
-        raise ValueError(f"{name} must be an integer in {minimum}..{maximum}")
+        raise SearchInvalidRequest(f"{name} must be an integer in {minimum}..{maximum}")
     return value
+
+
+def _cursor_integer(value: Any, name: str, minimum: int, maximum: int) -> int:
+    try:
+        return _integer(value, name, minimum, maximum)
+    except SearchInvalidRequest as exc:
+        raise SearchCursorError(str(exc)) from exc
 
 
 def order_key(identifier: Any, source_order: int) -> bytes:
@@ -83,19 +150,20 @@ def decode_postings(payload: bytes) -> list[int]:
         if byte & 128:
             shift += 7
             if shift > 56:
-                raise ValueError("invalid posting varint")
+                raise SearchUnavailable("invalid posting varint")
             continue
         delta = -(value // 2) - 1 if value & 1 else value // 2
         previous += delta
-        _integer(previous, "decoded doc_id", 1, MAX_ADDRESS)
+        if not 1 <= previous <= MAX_ADDRESS:
+            raise SearchUnavailable("invalid decoded doc_id")
         result.append(previous)
         if len(result) > BLOCK_SIZE:
-            raise ValueError("oversized posting block")
+            raise SearchUnavailable("oversized posting block")
         value = shift = 0
     if shift:
-        raise ValueError("truncated posting varint")
+        raise SearchUnavailable("truncated posting varint")
     if len(result) != len(set(result)):
-        raise ValueError("duplicate posting address")
+        raise SearchUnavailable("duplicate posting address")
     return result
 
 
@@ -162,7 +230,7 @@ class _Writer:
         cursor = self.db.execute(sql, parameters)
         self.mutations += max(1, self.db.total_changes - before)
         if self.mutations > self.maximum:
-            raise ValueError("delta mutation budget exceeded; transaction rolled back")
+            raise SearchBudgetExceeded("delta mutation budget exceeded; caller must roll back transaction")
         return cursor
 
     def block(self, term: int, fence: bytes, addresses: list[int]) -> None:
@@ -178,14 +246,14 @@ class _Writer:
             for row in self.db.execute("SELECT doc_id,sort_key FROM search_documents WHERE doc_id IN (" + ",".join("?" for _ in part) + ")", part):
                 result[row[0]] = row[1]
         if len(result) != len(addresses):
-            raise ValueError("posting references missing document")
+            raise SearchUnavailable("posting references missing document")
         return result
 
     def membership(self, term: int, doc_id: int, key: bytes, *, insert: bool) -> None:
         block = self.db.execute("SELECT lower_fence,payload FROM search_blocks WHERE term_id=? AND lower_fence<=? ORDER BY lower_fence DESC LIMIT 1", (term, key)).fetchone()
         if block is None:
             if not insert:
-                raise ValueError("missing deletion block")
+                raise SearchUnavailable("missing deletion block")
             fence, addresses = b"", []
         else:
             fence, payload = block
@@ -206,7 +274,7 @@ class _Writer:
             self.write("UPDATE search_terms SET posting_count=posting_count+1 WHERE term_id=?", (term,))
         else:
             if doc_id not in addresses:
-                raise ValueError("missing deletion membership")
+                raise SearchUnavailable("missing deletion membership")
             addresses.remove(doc_id)
             # Keep empty fences: they are stable directory ranges, not tombstones
             # walked by queries. The next nonempty block uses an indexed seek.
@@ -230,7 +298,7 @@ class _Writer:
                     for i in range(len(value) - n + 1):
                         result.add((plane, n, _bytes(value[i:i + n])))
                         if len(result) > MAX_TERMS_PER_DOCUMENT:
-                            raise ValueError("prepared document distinct-term budget exceeded")
+                            raise SearchBudgetExceeded("prepared document distinct-term budget exceeded")
         return result
 
     def prepare(self, document: PreparedSearchDocument) -> tuple[bytes, set[tuple[int, int, bytes]]]:
@@ -239,18 +307,18 @@ class _Writer:
         _integer(document.doc_id, "doc_id", 1, MAX_ADDRESS)
         key = order_key(document.identifier, document.source_order)
         if len(key) + len(_bytes(_json(document.filters))) + len(_bytes(_json(document.identifier))) > MAX_ROW_BYTES:
-            raise ValueError("document metadata exceeds supported row size")
+            raise SearchBudgetExceeded("document metadata exceeds supported row size")
         if len(_bytes(document.searchable)) > MAX_DOCUMENT_BYTES:
-            raise ValueError("search document exceeds supported size")
+            raise SearchBudgetExceeded("search document exceeds supported size")
         if len(document.identities) + len(document.visible) > MAX_VALUES_PER_DOCUMENT:
-            raise ValueError("prepared document value-count budget exceeded")
+            raise SearchBudgetExceeded("prepared document value-count budget exceeded")
         total_bytes = 0
         for value in (document.searchable,) + document.identities + document.visible:
             if not isinstance(value, str) or len(_bytes(value)) > MAX_DOCUMENT_BYTES:
                 raise ValueError("invalid prepared search value")
             total_bytes += len(_bytes(value))
         if total_bytes > 4 * MAX_DOCUMENT_BYTES:
-            raise ValueError("prepared document aggregate text budget exceeded")
+            raise SearchBudgetExceeded("prepared document aggregate text budget exceeded")
         return key, self.terms(document)
 
     def save_values(self, document: PreparedSearchDocument) -> None:
@@ -278,7 +346,7 @@ class _Writer:
             else:
                 term = row[0]
             new_ids.add(term)
-        moved = old is not None and old != (document.kind, key)
+        moved = old is not None and tuple(old) != (document.kind, key)
         for term in sorted(old_ids if moved else old_ids - new_ids):
             self.membership(term, document.doc_id, old[1], insert=False)
         if old is not None:
@@ -322,6 +390,7 @@ class SearchStore:
             raise ValueError("complete framed search header exceeds 65536 bytes")
         return header
 
+    @_typed_errors
     def __init__(self, path: str | Path, *, binding: dict[str, Any]):
         self.path = Path(path)
         self.header = self._header(binding)
@@ -336,42 +405,65 @@ class SearchStore:
         db.execute("PRAGMA query_only=ON")
         return db
 
-    def _check(self, db: sqlite3.Connection, work: dict | None = None) -> bytes:
+    @staticmethod
+    def _check_header(db: sqlite3.Connection, header: str, generation: bytes | None = None, work: dict | None = None) -> bytes:
         lengths = db.execute("SELECT length(CAST(header AS BLOB)),length(cursor_key) FROM search_header WHERE singleton=1").fetchone()
         if lengths is None or type(lengths[0]) is not int or lengths[0] > MAX_HEADER_BYTES or lengths[1] != 32:
-            raise ValueError("invalid or oversized stored search header")
+            raise SearchUnavailable("invalid or oversized stored search header")
         row = db.execute("SELECT header,cursor_key FROM search_header WHERE singleton=1").fetchone()
         if work is not None:
             work["metadata_probes"] += 1
             work["metadata_rows"] += 1
             work["metadata_bytes"] += sum(lengths)
-        if row is None or row[0] != self.header or not isinstance(row[1], bytes) or (hasattr(self, "generation") and row[1] != self.generation):
-            raise ValueError("search store snapshot/algorithm binding mismatch; restart query")
+        if row is None or not isinstance(row[1], bytes):
+            raise SearchUnavailable("invalid stored search incarnation")
+        if row[0] != header or (generation is not None and row[1] != generation):
+            raise SearchStaleBinding("search store snapshot/algorithm binding mismatch; restart query")
         return row[1]
 
+    def _check(self, db: sqlite3.Connection, work: dict | None = None) -> bytes:
+        return self._check_header(db, self.header, getattr(self, "generation", None), work)
+
     @classmethod
-    def publish_initial(cls, path: str | Path, *, binding: dict[str, Any], documents: Iterable[PreparedSearchDocument], max_mutations: int = 2_000_000, max_bytes: int = 64 * 1024 * 1024) -> dict[str, int]:
-        path = Path(path)
+    @_typed_errors
+    def initialize_transaction(cls, connection: sqlite3.Connection, *, binding: dict[str, Any], documents: Iterable[PreparedSearchDocument], max_mutations: int = 2_000_000, max_bytes: int = 64 * 1024 * 1024) -> dict[str, int]:
+        """Create search tables inside the owner's open transaction.
+
+        max_bytes caps the WHOLE main database. No transaction lifecycle is
+        managed here; after any failure the owner must abort its publication.
+        """
+        _require_transaction(connection)
         header = cls._header(binding)
         _integer(max_bytes, "max_bytes", 65536, 2**40)
-        # Exclusive creation: never overwrite an existing publication.
+        writer = _Writer(connection, max_mutations)
+        page_size = connection.execute("PRAGMA page_size").fetchone()[0]
+        max_pages = _page_cap(connection, max_bytes // page_size)
+        # executescript commits a pending transaction, even for plain DDL.
+        for statement in DDL.split(";"):
+            if statement.strip():
+                connection.execute(statement)
+        high_water = 0
+        for document in documents:
+            writer.replace(document, insert=True)
+            high_water = max(high_water, document.doc_id)
+        writer.write("INSERT INTO search_header VALUES (1,?,?,?,?)", (header, os.urandom(32), high_water, max_pages))
+        result = writer.report()
+        result["database_bytes"] = connection.execute("PRAGMA page_count").fetchone()[0] * page_size
+        return result
+
+    @classmethod
+    @_typed_errors
+    def publish_initial(cls, path: str | Path, *, binding: dict[str, Any], documents: Iterable[PreparedSearchDocument], max_mutations: int = 2_000_000, max_bytes: int = 64 * 1024 * 1024) -> dict[str, int]:
+        path = Path(path)
+        cls._header(binding)
+        _integer(max_bytes, "max_bytes", 65536, 2**40)
         descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         os.close(descriptor)
         db = sqlite3.connect(path)
         try:
-            max_pages = max_bytes // db.execute("PRAGMA page_size").fetchone()[0]
-            db.execute(f"PRAGMA max_page_count={max_pages}")
-            db.executescript(DDL)
             db.execute("BEGIN IMMEDIATE")
-            writer = _Writer(db, max_mutations)
-            high_water = 0
-            for document in documents:
-                writer.replace(document, insert=True)
-                high_water = max(high_water, document.doc_id)
-            writer.write("INSERT INTO search_header VALUES (1,?,?,?,?)", (header, os.urandom(32), high_water, max_pages))
+            result = cls.initialize_transaction(db, binding=binding, documents=documents, max_mutations=max_mutations, max_bytes=max_bytes)
             db.commit()
-            result = writer.report()
-            result["database_bytes"] = db.execute("PRAGMA page_count").fetchone()[0] * db.execute("PRAGMA page_size").fetchone()[0]
             return result
         except BaseException:
             db.rollback()
@@ -382,42 +474,50 @@ class SearchStore:
             db.close()
 
     @classmethod
-    def apply_delta(cls, path: str | Path, *, expected_binding: dict[str, Any], new_binding: dict[str, Any], changes: Iterable[SearchChange], max_mutations: int = 100_000) -> dict[str, int]:
+    @_typed_errors
+    def apply_delta_transaction(cls, connection: sqlite3.Connection, *, expected_binding: dict[str, Any], new_binding: dict[str, Any], changes: Iterable[SearchChange], max_mutations: int = 100_000) -> dict[str, int]:
+        """Apply a delta without beginning, ending or closing owner work."""
+        _require_transaction(connection)
         expected, new = cls._header(expected_binding), cls._header(new_binding)
         if expected == new:
-            raise ValueError("delta requires a new snapshot binding")
+            raise SearchInvalidRequest("delta requires a new snapshot binding")
+        cls._check_header(connection, expected)
+        row = connection.execute("SELECT high_water,max_pages FROM search_header WHERE singleton=1").fetchone()
+        if row is None or type(row[0]) is not int or not 0 <= row[0] <= MAX_ADDRESS or type(row[1]) is not int or row[1] < 1:
+            raise SearchUnavailable("invalid stored search allocation/page cap")
+        high_water = row[0]
+        _page_cap(connection, row[1])
+        writer = _Writer(connection, max_mutations)
+        seen = set()
+        for change in changes:
+            if not isinstance(change, SearchChange):
+                raise SearchInvalidRequest("expected typed SearchChange")
+            address = _integer(change.doc_id, "doc_id", 1, MAX_ADDRESS)
+            if address in seen:
+                raise SearchInvalidRequest("duplicate delta target")
+            seen.add(address)
+            if change.operation == "delete" and change.document is None:
+                writer.delete(address)
+            elif change.operation in ("insert", "update") and isinstance(change.document, PreparedSearchDocument) and change.document.doc_id == address:
+                if change.operation == "insert":
+                    if address <= high_water:
+                        raise SearchInvalidRequest("insert would reuse/nonmonotonically allocate an address")
+                    high_water = address
+                writer.replace(change.document, insert=change.operation == "insert")
+            else:
+                raise SearchInvalidRequest("invalid typed search change")
+        writer.write("UPDATE search_header SET header=?,high_water=?,cursor_key=? WHERE singleton=1", (new, high_water, os.urandom(32)))
+        return writer.report()
+
+    @classmethod
+    @_typed_errors
+    def apply_delta(cls, path: str | Path, *, expected_binding: dict[str, Any], new_binding: dict[str, Any], changes: Iterable[SearchChange], max_mutations: int = 100_000) -> dict[str, int]:
         db = sqlite3.connect(Path(path).resolve().as_uri() + "?mode=rw", uri=True)
         try:
             db.execute("BEGIN IMMEDIATE")
-            row = db.execute("SELECT header,high_water,max_pages FROM search_header WHERE singleton=1").fetchone()
-            if row is None or row[0] != expected:
-                raise ValueError("delta expected binding mismatch")
-            high_water = row[1]
-            db.execute(f"PRAGMA max_page_count={row[2]}")
-            writer = _Writer(db, max_mutations)
-            seen = set()
-            for change in changes:
-                if not isinstance(change, SearchChange):
-                    raise ValueError("expected typed SearchChange")
-                address = _integer(change.doc_id, "doc_id", 1, MAX_ADDRESS)
-                if address in seen:
-                    raise ValueError("duplicate delta target")
-                seen.add(address)
-                if change.operation == "delete" and change.document is None:
-                    writer.delete(address)
-                elif change.operation in ("insert", "update") and isinstance(change.document, PreparedSearchDocument) and change.document.doc_id == address:
-                    if change.operation == "insert":
-                        if address <= high_water:
-                            raise ValueError("insert would reuse/nonmonotonically allocate an address")
-                        high_water = address
-                    writer.replace(change.document, insert=change.operation == "insert")
-                else:
-                    raise ValueError("invalid typed search change")
-            # A fresh publication incarnation rejects old readers/cursors even
-            # if an offline owner later reuses the same external binding (ABA).
-            writer.write("UPDATE search_header SET header=?,high_water=?,cursor_key=? WHERE singleton=1", (new, high_water, os.urandom(32)))
+            result = cls.apply_delta_transaction(db, expected_binding=expected_binding, new_binding=new_binding, changes=changes, max_mutations=max_mutations)
             db.commit()
-            return writer.report()
+            return result
         except BaseException:
             db.rollback()
             raise
@@ -458,10 +558,10 @@ class SearchStore:
             probe = db.execute("SELECT length(CAST(sort_key AS BLOB)) FROM search_documents WHERE doc_id=? AND kind=?", (after_id, kind)).fetchone()
             work["metadata_probes"] += 1
             if probe is None or type(probe[0]) is not int or probe[0] > MAX_ROW_BYTES:
-                raise ValueError("invalid cursor predecessor metadata")
+                raise SearchUnavailable("invalid cursor predecessor metadata")
             row = db.execute("SELECT sort_key FROM search_documents WHERE doc_id=?", (after_id,)).fetchone()
             if not isinstance(row[0], bytes):
-                raise ValueError("cursor predecessor sort key is not a byte key")
+                raise SearchUnavailable("cursor predecessor sort key is not a byte key")
             position["last_key"] = row[0]
             work["metadata_bytes"] += probe[0]
             work["metadata_rows"] += 1
@@ -475,10 +575,10 @@ class SearchStore:
             work["directory_probes"] += 1
             if probe is None:
                 if first:
-                    raise ValueError("selected term or cursor predecessor has no posting block")
+                    raise SearchUnavailable("selected term or cursor predecessor has no posting block")
                 return
             if type(probe[0]) is not int or not 1 <= probe[0] <= MAX_BLOCK_BYTES:
-                raise ValueError("invalid posting block size")
+                raise SearchUnavailable("invalid posting block size")
             if work["metadata_bytes"] + probe[0] > max_bytes:
                 yield None
                 return
@@ -489,7 +589,7 @@ class SearchStore:
             work["posting_entries_read"] += len(addresses)
             if first and after_id:
                 if after_id not in addresses:
-                    raise ValueError("cursor predecessor is not a member of its posting block")
+                    raise SearchUnavailable("cursor predecessor is not a member of its posting block")
                 addresses = addresses[addresses.index(after_id) + 1:]
             first = False
             for address in addresses:
@@ -503,7 +603,7 @@ class SearchStore:
             size = min(length, CHUNK_SIZE - start % CHUNK_SIZE)
             row = db.execute("SELECT substr(payload,?,?) FROM search_text_chunks WHERE doc_id=? AND category=? AND field=? AND chunk=?", (start % CHUNK_SIZE + 1, size, doc_id, category, field, start // CHUNK_SIZE)).fetchone()
             if row is None or len(row[0]) != size:
-                raise ValueError("missing/truncated search text chunk")
+                raise SearchUnavailable("missing/truncated search text chunk")
             result.extend(row[0])
             start += size
             length -= size
@@ -556,7 +656,24 @@ class SearchStore:
             state.update(field=field + 1 if offset == length else field, offset=0 if offset == length else offset)
         return None
 
+    @_typed_errors
     def query_page(self, *, kind: str, query: str = "", filters: dict[str, list[Any]] | None = None, page_size: int = 50, cursor: dict | None = None, candidate_budget: int = 256, verification_bytes: int = 65536, max_metadata_bytes: int = MIN_METADATA_BYTES, max_response_bytes: int = 4 * 1024 * 1024) -> dict:
+        db = self._connect()
+        try:
+            db.execute("BEGIN")
+            return self._query(db, header=self.header, generation=self.generation, kind=kind, query=query, filters=filters, page_size=page_size, cursor=cursor, candidate_budget=candidate_budget, verification_bytes=verification_bytes, max_metadata_bytes=max_metadata_bytes, max_response_bytes=max_response_bytes)
+        finally:
+            db.close()
+
+    @classmethod
+    @_typed_errors
+    def query_transaction(cls, connection: sqlite3.Connection, *, binding: dict[str, Any], kind: str, query: str = "", filters: dict[str, list[Any]] | None = None, page_size: int = 50, cursor: dict | None = None, candidate_budget: int = 256, verification_bytes: int = 65536, max_metadata_bytes: int = MIN_METADATA_BYTES, max_response_bytes: int = 4 * 1024 * 1024) -> dict:
+        """Read the checked search header and matches in the caller snapshot."""
+        _require_transaction(connection)
+        return cls._query(connection, header=cls._header(binding), kind=kind, query=query, filters=filters, page_size=page_size, cursor=cursor, candidate_budget=candidate_budget, verification_bytes=verification_bytes, max_metadata_bytes=max_metadata_bytes, max_response_bytes=max_response_bytes)
+
+    @classmethod
+    def _query(cls, db: sqlite3.Connection, *, header: str, generation: bytes | None = None, kind: str, query: str = "", filters: dict[str, list[Any]] | None = None, page_size: int = 50, cursor: dict | None = None, candidate_budget: int = 256, verification_bytes: int = 65536, max_metadata_bytes: int = MIN_METADATA_BYTES, max_response_bytes: int = 4 * 1024 * 1024) -> dict:
         if kind not in ("node", "relation"):
             raise ValueError("kind must be node or relation")
         normalized = str(query).strip()
@@ -575,110 +692,120 @@ class SearchStore:
         query_frame = _bytes(_json([kind, needle, filters]))
         if len(query_frame) > MAX_QUERY_BYTES:
             raise ValueError("complete framed search query/filter exceeds 65536 bytes")
-        query_hash = hashlib.sha256(_bytes(self.header) + b"\0" + query_frame).hexdigest()
-        db = self._connect()
-        try:
-            db.execute("BEGIN")  # Header and all reads share one SQLite snapshot.
-            work = {"candidates": 0, "operations": 0, "verification_bytes": 0, "blocks_decoded": 0, "posting_entries_read": 0, "metadata_bytes": 0, "metadata_rows": 0, "metadata_probes": 0, "directory_probes": 0, "response_bytes": 0}
-            cursor_key = self._check(db, work)
-            if cursor is None:
-                state = {"query": query_hash, "phase": 0 if needle else 3, "after": 0, "partial": None, "expires": int(time.time()) + 900}
-            else:
-                if not isinstance(cursor, dict) or set(cursor) != {"state", "mac"} or not isinstance(cursor["state"], dict) or not isinstance(cursor["mac"], str):
-                    raise ValueError("invalid search cursor")
+        query_hash = hashlib.sha256(_bytes(header) + b"\0" + query_frame).hexdigest()
+        work = {"candidates": 0, "operations": 0, "verification_bytes": 0, "blocks_decoded": 0, "posting_entries_read": 0, "metadata_bytes": 0, "metadata_rows": 0, "metadata_probes": 0, "directory_probes": 0, "response_bytes": 0}
+        cursor_key = cls._check_header(db, header, generation, work)
+        if cursor is None:
+            state = {"query": query_hash, "phase": 0 if needle else 3, "after": 0, "partial": None, "expires": int(time.time()) + 900}
+        else:
+            if not isinstance(cursor, dict) or set(cursor) != {"state", "mac"} or not isinstance(cursor["state"], dict) or not isinstance(cursor["mac"], str):
+                raise SearchCursorError("invalid search cursor")
+            try:
                 encoded = _bytes(_json(cursor["state"]))
-                if len(encoded) > 4096 or not hmac.compare_digest(hmac.new(cursor_key, encoded, hashlib.sha256).hexdigest(), cursor["mac"]):
-                    raise ValueError("invalid search cursor integrity")
-                state = json.loads(encoded.decode("utf-8", errors="surrogatepass"))
-                if set(state) != {"query", "phase", "after", "partial", "expires"}:
-                    raise ValueError("invalid search cursor state")
-                _integer(state["phase"], "cursor phase", 0 if needle else 3, 3)
-                _integer(state["after"], "cursor after", 0, MAX_ADDRESS)
-                _integer(state["expires"], "cursor expiry", 1, MAX_ADDRESS)
-                if state["partial"] is not None:
-                    partial = state["partial"]
-                    if not isinstance(partial, dict) or set(partial) != {"doc_id", "stage", "field", "offset", "rank"} or partial["stage"] not in ("identity", "visible", "full", "matched"):
-                        raise ValueError("invalid partial search cursor")
-                    _integer(partial["doc_id"], "cursor doc_id", 1, MAX_ADDRESS)
-                    _integer(partial["field"], "cursor field", 0, MAX_DOCUMENT_BYTES)
-                    _integer(partial["offset"], "cursor offset", 0, MAX_DOCUMENT_BYTES)
-                    _integer(partial["rank"], "cursor rank", 0, 3)
-                if state["query"] != query_hash or state["expires"] <= time.time():
-                    raise ValueError("search cursor query/snapshot mismatch or expiry")
-            matches = []
-            match_bytes = 0
-            while state["phase"] < 4 and len(matches) < page_size and work["operations"] < candidate_budget:
-                phase = state["phase"]
-                term = self._term(db, kind, phase, needle)
-                if term is None:
-                    state.update(phase=phase + 1, after=0, partial=None)
-                    continue
-                exhausted = True
-                position = {}
-                for address in self._candidates(db, term, state["after"], kind, work, max_metadata_bytes, position):
-                    exhausted = False
-                    if address is None or work["operations"] >= candidate_budget:
-                        break
-                    lengths = db.execute("SELECT length(CAST(identifier AS BLOB)),length(CAST(sort_key AS BLOB)),length(CAST(filters AS BLOB)) FROM search_documents WHERE doc_id=? AND kind=?", (address, kind)).fetchone()
-                    work["metadata_probes"] += 1
-                    work["operations"] += 1
-                    work["candidates"] += 1
-                    if lengths is None or any(type(value) is not int or value < 0 for value in lengths) or sum(lengths) > MAX_ROW_BYTES:
-                        raise ValueError("posting references missing or oversized document metadata")
-                    if work["metadata_bytes"] + sum(lengths) > max_metadata_bytes:
-                        break
-                    identifier, key, raw_filters = db.execute("SELECT identifier,sort_key,filters FROM search_documents WHERE doc_id=?", (address,)).fetchone()
-                    if any(not isinstance(value, bytes) for value in (identifier, key, raw_filters)):
-                        raise ValueError("document metadata does not use byte framing")
-                    work["metadata_bytes"] += sum(lengths)
-                    work["metadata_rows"] += 1
-                    position["last_key"] = key
-                    # Literal false/zero/null remain JSON values, never coerced.
+            except (ValueError, TypeError, OverflowError) as exc:
+                raise SearchCursorError("invalid search cursor serialization") from exc
+            if len(encoded) > 4096 or len(cursor["mac"]) != 64 or any(c not in "0123456789abcdef" for c in cursor["mac"]) or not hmac.compare_digest(hmac.new(cursor_key, encoded, hashlib.sha256).hexdigest(), cursor["mac"]):
+                raise SearchCursorError("invalid search cursor integrity")
+            state = json.loads(encoded.decode("utf-8", errors="surrogatepass"))
+            if set(state) != {"query", "phase", "after", "partial", "expires"}:
+                raise SearchCursorError("invalid search cursor state")
+            _cursor_integer(state["phase"], "cursor phase", 0 if needle else 3, 3)
+            _cursor_integer(state["after"], "cursor after", 0, MAX_ADDRESS)
+            _cursor_integer(state["expires"], "cursor expiry", 1, MAX_ADDRESS)
+            if state["partial"] is not None:
+                partial = state["partial"]
+                if not isinstance(partial, dict) or set(partial) != {"doc_id", "stage", "field", "offset", "rank"} or partial["stage"] not in ("identity", "visible", "full", "matched"):
+                    raise SearchCursorError("invalid partial search cursor")
+                _cursor_integer(partial["doc_id"], "cursor doc_id", 1, MAX_ADDRESS)
+                _cursor_integer(partial["field"], "cursor field", 0, MAX_DOCUMENT_BYTES)
+                _cursor_integer(partial["offset"], "cursor offset", 0, MAX_DOCUMENT_BYTES)
+                _cursor_integer(partial["rank"], "cursor rank", 0, 3)
+            if state["query"] != query_hash:
+                raise SearchCursorError("search cursor query/snapshot mismatch")
+            if state["expires"] <= time.time():
+                raise SearchCursorExpired("search cursor expired")
+        matches = []
+        match_bytes = 0
+        while state["phase"] < 4 and len(matches) < page_size and work["operations"] < candidate_budget:
+            phase = state["phase"]
+            term = cls._term(db, kind, phase, needle)
+            if term is None:
+                state.update(phase=phase + 1, after=0, partial=None)
+                continue
+            exhausted = True
+            position = {}
+            for address in cls._candidates(db, term, state["after"], kind, work, max_metadata_bytes, position):
+                exhausted = False
+                if address is None or work["operations"] >= candidate_budget:
+                    break
+                lengths = db.execute("SELECT length(CAST(identifier AS BLOB)),length(CAST(sort_key AS BLOB)),length(CAST(filters AS BLOB)) FROM search_documents WHERE doc_id=? AND kind=?", (address, kind)).fetchone()
+                work["metadata_probes"] += 1
+                work["operations"] += 1
+                work["candidates"] += 1
+                if lengths is None or any(type(value) is not int or value < 0 for value in lengths) or sum(lengths) > MAX_ROW_BYTES:
+                    raise SearchUnavailable("posting references missing or oversized document metadata")
+                if work["metadata_bytes"] + sum(lengths) > max_metadata_bytes:
+                    break
+                identifier, key, raw_filters = db.execute("SELECT identifier,sort_key,filters FROM search_documents WHERE doc_id=?", (address,)).fetchone()
+                if any(not isinstance(value, bytes) for value in (identifier, key, raw_filters)):
+                    raise SearchUnavailable("document metadata does not use byte framing")
+                work["metadata_bytes"] += sum(lengths)
+                work["metadata_rows"] += 1
+                position["last_key"] = key
+                # Literal false/zero/null remain JSON values, never coerced.
+                try:
                     doc_filters = json.loads(raw_filters)
-                    if any(values and not any(type(doc_filters.get(field)) is type(v) and doc_filters.get(field) == v for v in values) for field, values in filters.items()):
-                        state.update(after=address, partial=None)
-                    else:
-                        partial = state["partial"] or {"doc_id": address, "stage": "identity", "field": 0, "offset": 0, "rank": 3}
-                        if partial["doc_id"] != address:
-                            raise ValueError("cursor document no longer matches posting")
-                        found = True if not needle else self._verify(db, address, _bytes(needle), partial, work, candidate_budget, verification_bytes)
-                        if found is None:
+                    if not isinstance(doc_filters, dict):
+                        raise ValueError("filters must be an object")
+                except (ValueError, UnicodeError) as exc:
+                    raise SearchUnavailable("invalid stored document filters") from exc
+                if any(values and not any(type(doc_filters.get(field)) is type(v) and doc_filters.get(field) == v for v in values) for field, values in filters.items()):
+                    state.update(after=address, partial=None)
+                else:
+                    partial = state["partial"] or {"doc_id": address, "stage": "identity", "field": 0, "offset": 0, "rank": 3}
+                    if partial["doc_id"] != address:
+                        raise SearchUnavailable("cursor document no longer matches posting")
+                    found = True if not needle else cls._verify(db, address, _bytes(needle), partial, work, candidate_budget, verification_bytes)
+                    if found is None:
+                        state["partial"] = partial
+                        break
+                    if found and partial["rank"] == phase:
+                        try:
+                            exact_id = json.loads(identifier)
+                        except (ValueError, UnicodeError) as exc:
+                            raise SearchUnavailable("invalid stored document identity") from exc
+                        match = {"doc_id": address, "id": exact_id, "rank": phase}
+                        size = len(_bytes(_json(match))) + 2
+                        if match_bytes + size + RESPONSE_OVERHEAD_BYTES > max_response_bytes:
+                            partial.update(stage="matched", field=0, offset=0)
                             state["partial"] = partial
                             break
-                        if found and partial["rank"] == phase:
-                            match = {"doc_id": address, "id": json.loads(identifier), "rank": phase}
-                            size = len(_bytes(_json(match))) + 2
-                            if match_bytes + size + RESPONSE_OVERHEAD_BYTES > max_response_bytes:
-                                partial.update(stage="matched", field=0, offset=0)
-                                state["partial"] = partial
-                                break
-                            matches.append(match)
-                            match_bytes += size
-                        state.update(after=address, partial=None)
-                    if len(matches) >= page_size or work["operations"] >= candidate_budget:
-                        break
-                    exhausted = True
-                if exhausted:
-                    state.update(phase=phase + 1, after=0, partial=None)
-                else:
+                        matches.append(match)
+                        match_bytes += size
+                    state.update(after=address, partial=None)
+                if len(matches) >= page_size or work["operations"] >= candidate_budget:
                     break
-            has_more = state["phase"] < 4
-            next_cursor = None
-            if has_more:
-                encoded = _bytes(_json(state))
-                next_cursor = {"state": state, "mac": hmac.new(cursor_key, encoded, hashlib.sha256).hexdigest()}
-            result = {"schema": SCHEMA, "matches": matches, "returned_count": len(matches), "total_matching": len(matches) if cursor is None and not has_more else None, "has_more": has_more, "next_cursor": next_cursor, "work": work}
-            for _ in range(4):
-                size = len(_bytes(_json(result)))
-                if size == work["response_bytes"]:
-                    break
-                work["response_bytes"] = size
-            if work["response_bytes"] > max_response_bytes:
-                raise ValueError("search response framing exceeded its reserved overhead")
-            return result
-        finally:
-            db.close()
+                exhausted = True
+            if exhausted:
+                state.update(phase=phase + 1, after=0, partial=None)
+            else:
+                break
+        has_more = state["phase"] < 4
+        next_cursor = None
+        if has_more:
+            encoded = _bytes(_json(state))
+            next_cursor = {"state": state, "mac": hmac.new(cursor_key, encoded, hashlib.sha256).hexdigest()}
+        result = {"schema": SCHEMA, "matches": matches, "returned_count": len(matches), "total_matching": len(matches) if cursor is None and not has_more else None, "has_more": has_more, "next_cursor": next_cursor, "work": work}
+        for _ in range(4):
+            size = len(_bytes(_json(result)))
+            if size == work["response_bytes"]:
+                break
+            work["response_bytes"] = size
+        if work["response_bytes"] > max_response_bytes:
+            raise SearchBudgetExceeded("search response framing exceeded its reserved overhead")
+        return result
 
+    @_typed_errors
     def storage_stats(self) -> dict[str, Any]:
         """Physical SQLite pages, including dictionaries, fences and reverse index."""
         db = self._connect()
