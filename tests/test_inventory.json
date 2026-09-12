@@ -48,6 +48,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_published_search.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/COMPRESSED_SEARCH_V3.md",
+      "protects": "same-snapshot full carrier compressed search with native rank and identity order, typed source filters, authenticated restart continuation, lossless body and fetch-byte deferral, exact address and emitted-row checksum closure, explicit local profile and stale concurrent publication refusal",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_published_search.py",
+      "failure_route": "Fix the local published search service or exact stronger reader/search owner without loading a graph, losing deferred matches, inflating budgets or silently enabling legacy profiles.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_prepared_publication.py",
       "home": "access",
       "home_scope": "product-local",

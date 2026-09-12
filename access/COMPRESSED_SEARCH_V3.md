@@ -2,9 +2,10 @@
 
 `src/tos_access/compressed_search_store.py` is an offline-published SQLite
 service slice, not an activated public search mode. Legacy search and
-`tos_knowledge_search_indexed_v2` are unchanged. Core, carrier joins, HTTP/MCP,
-WebMCP, Cloudflare/D1 publication and a full-corpus producer are not integrated
-here. This service alone does not close foundation K3.
+`tos_knowledge_search_indexed_v2` are unchanged. `PublishedSearchService` adds
+same-snapshot carrier joins for the explicit local prepared publication. Core,
+HTTP/MCP, WebMCP and Cloudflare/D1 activation remain adapter-owner work; this
+service alone does not close foundation K3 or establish full-corpus feasibility.
 
 ## Producer and reader API
 
@@ -70,7 +71,9 @@ an owner digest.
 schema and index pages. It is not a separate search allowance. The effective
 cap is the smaller of the requested page count and the connection's current
 `max_page_count`; an already oversized database is refused. The stored cap is
-reapplied on deltas without increasing a stricter caller cap. Owners reopening
+reapplied on deltas without increasing a stricter caller cap. A stricter
+effective delta cap is persisted in `search_header.max_pages`, so later
+standalone search writers also retain it after reopening. Owners reopening
 connections must enforce their own whole-file cap before doing carrier writes;
 SQLite's pager limit is connection state, not durable quota enforcement for
 arbitrary writers. Pager-limit changes are not promised to roll back with SQL
@@ -241,3 +244,93 @@ Focused checks live in `tests/test_compressed_search_store.py`: complete paged
 reference equality, short/common/absent/Unicode queries, ties, typed filters,
 large-value progress and chunk overlap, cursor integrity/restart/ABA, local
 delta edits/rollback/nonreuse, physical storage and indexed directory seeks.
+
+## Full-carrier publication search
+
+`PublishedSearchService(reader, limits=PublishedSearchLimits())` in
+`src/tos_access/published_search.py` provides the shared internal service for
+`tos_local_prepared_read_model_v1`. Its reader must already carry the exact
+owner-selected `published_snapshot_binding`. `capability()` checks the selected
+reader/search headers and required search/mapping tables and indexes without
+reading a graph or full catalog. Edge v8/v9 are explicitly unavailable for this
+service; none of these methods select a publication from its own database.
+
+```python
+service = PublishedSearchService(reader)
+page = service.search(
+    query="common", sources=["philosophy"], kind_ids=None,
+    predicate_ids=None, cursor=None, limit=40,
+)
+```
+
+Requests use `normalize_search_query` and validate string lists, known sources,
+limits and the 65536-byte query/filter frame before opening SQLite. Empty string
+filters are ignored as in native search; absent/empty sources select all known
+sources. The limit is an integer in 1..100, per kind. The transport normalizer's
+256-character bound includes lower expansion; standalone `SearchStore` keeps
+its separately documented query normalization contract.
+
+One `reader._read` operation supplies one checked connection/snapshot for both
+`SearchStore.query_transaction` calls and all carrier joins. Every address is
+looked up with both `doc_id` and `kind` in `prepared_documents`; a length probe
+precedes the exact mapped ID. Its SHA-256 must equal the search match's exact
+JSON-ID digest. Body/index-column lengths and checksum metadata chunk lengths
+are probed before full rows. `read.items(kind, 'id=?', ...)` then verifies the
+existing emitted-byte checksum and exact full-row/index closure. No alias
+lookup, corpus digest, graph load, producer or alternative reader is used.
+
+The result schema remains `tos_knowledge_search_compressed_v3`, with complete
+unmodified `nodes`/`relations`, `source_revision`, normalized request filters,
+`page`, `counts`, `ranks`, `work`, and the checked source authority boundary.
+`ranks.nodes` and `ranks.relations` align positionally with their body arrays;
+each entry carries `doc_id`, rank 0..3 and a mechanical explanation
+(`exact-identity`, `identity-prefix`, `visible-text`, `serialized-text`, or
+`all-items` for an empty query). These explanations are search ordering, not
+semantic judgments. Returned counts are exact; matching counts are non-null
+only when the initial request exhausts that kind and emits all of its pending
+bodies. Continued pages always have null matching totals.
+
+Each kind performs at most one inner search page per request. Defaults are
+256 candidate/value operations, 65536 verification bytes and 4 MiB search
+metadata per kind. If matches exceed the body/fetch allowance, the unconsumed
+suffix is retained as `[doc_id, rank, sha256(exact_json_id)]` tuples, at most
+100 per kind. Later requests drain that suffix before doing another inner
+search. They do not reread already emitted bodies or repeat the saved search
+work. Empty candidate-work pages with a changing continuation remain valid.
+
+The outer cursor is base64url JSON authenticated with a separate HMAC domain
+using `search_header.cursor_key` from that same checked snapshot. It binds the
+complete selected publication, normalized query/filters, both inner cursors,
+exhaustion states and pending tuples. A canonical sorted-key hash makes
+equivalent binding dictionaries insensitive to JSON member order after restart;
+emitted-row framing is unchanged. The cursor expires absolutely after 15 minutes
+and is at most 65536 encoded ASCII bytes. Hashed exact IDs keep giant identities
+out of the continuation. A different selected binding is stale; a bad MAC alone
+is an invalid cursor and cannot establish whether the cause is ABA or tampering.
+
+The default body allowance is 4 MiB, partitioned into 2 MiB per kind. It is
+further bounded by the configured reader response limit after reserving 512 KiB
+for incoming/outgoing cursors, filters, authority metadata, ranks and top-level
+framing. Each kind must be able to return one maximal admitted reader row; an
+incompatible budget is refused without inflation. The remaining fetch-byte and
+row budgets are split evenly after reserving 66560 bytes and 513 rows for the
+reader's final snapshot check. A kind's fetch share must admit its configured
+inner metadata/verification allowance and a worst-case singleton carrier join;
+otherwise the request fails with `SearchBudgetExceeded`.
+
+Direct search metadata/text bytes are charged into `read.bytes` alongside mapped
+IDs, duplicate index columns, full bodies and checksum metadata. The service
+stops before fetching a body that would exceed its allowance and retains the
+pending match. `work.nodes`/`work.relations` include inner search counters and
+body/defer counts; top-level read counters describe the operation before the
+reserved final snapshot check. Search-owner row/probe counters remain separate
+from `_Read.query` row accounting. The reader validates the entire serialized
+response and performs its post-operation publication check, rejecting a result
+if publication changed during the read. Current checksums detect byte drift;
+they do not defend against a malicious owner rewriting all bound metadata.
+
+Actual-file checks in `tests/test_published_search.py` compare full native
+rank/filter/ID/order results, restart and empty-work continuations, long text,
+lossless body and fetch-byte deferral, mapping/checksum/index corruption,
+concurrent/stale publication, HMAC/expiry and explicit legacy refusal. They use
+the publisher owner's bounded synthetic fixture, not a full source corpus.
