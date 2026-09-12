@@ -259,7 +259,7 @@ test('D1 SQL projects bounded metadata and payloads before delivery to the Worke
     try {
       if (kind==='row') sqlite.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').run(' '.repeat(size),JSON.parse(fixture.rawNodes[0]).id);
       else sqlite.prepare('UPDATE edge_meta SET json_chunk=? WHERE key=?').run(' '.repeat(size),kind==='metadata'?'knowledge_reader_top':'knowledge_node_digest:'+JSON.parse(fixture.rawNodes[0]).id);
-      await assert.rejects(executeKnowledgeLensD1(db,parseNativeRequest(fixture.cases[0].rawSpec)),error=>error.status===503);
+      await assert.rejects(executeKnowledgeLensD1(db,parseNativeRequest(fixture.cases[0].rawSpec)),NativeBudgetExceeded);
       assert.equal(statements.some(item=>(item.stringBytes??[]).includes(size)),false,kind+' must be refused inside the SQL projection');
     } finally {sqlite.close();}
   }

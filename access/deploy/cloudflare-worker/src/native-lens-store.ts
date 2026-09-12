@@ -263,7 +263,7 @@ function nativeSearchable(ref: NativeRef): string {
 export async function executeNativeLensD1(db: D1Database, input: NativeRef, overrides: Partial<Limits> = {}, expectedRevision?: string): Promise<NativeLensResult> {
   const limits = {...nativeLensLimits, ...overrides};
   if (Object.values(limits).some(value => !Number.isSafeInteger(value) || value < 1) || limits.blockSize > 64) throw new Error('invalid native lens budgets');
-  const read = new Read(db, limits), top = await readNativePublication(read, expectedRevision);
+  const read = new Read(db, limits, true), top = await readNativePublication(read, expectedRevision);
   const sourceRevision = stringField(top.ref, 'source_revision'), metadata = await read.metadata('knowledge_lens_top', 1048576);
   if (nativeField(top.ref, 'lens_sha256').value !== await sha256(metadata.raw)) unavailable('native lens metadata checksum differs');
   const lensKeys = ['schema','execution_version','source_revision','sort_key','unicode_version','query_properties','node_counts','relation_counts'];

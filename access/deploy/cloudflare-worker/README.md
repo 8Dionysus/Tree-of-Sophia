@@ -91,6 +91,16 @@ D1 rows-read accounting is post-statement, not SQLite VM-step interruption.
 The local synthetic differential tests cover native packets; they do not claim
 full-corpus deployment or Cloudflare runtime acceptance.
 
+Lens and the other native published readers share a 64 KiB
+`knowledge_reader_top` boundary. It must match Python compact emitted framing,
+including numeric spelling and valid Unicode in every string and object key;
+equivalent non-emitted JSON or escaped lone surrogates return 503. Source rows
+are not rewritten. Lens source-size refusals are typed 413: 1 MiB rows/lens
+metadata, 1 KiB digests, 128 KiB metadata chunks and at most 256 chunks, plus the
+existing aggregate/execution/response bounds. Missing or malformed carriers
+remain 503; publication ABA remains 409. v9-only lens admission, execution v7,
+cursor ABI, traversal and the existing lens index-name policy are unchanged.
+
 ### Lossless search compatibility
 
 Legacy v1 and indexed v2 search use the v8/v9 emitted reader header, native
@@ -127,7 +137,7 @@ allowance. Explicit size/work refusals return 413, damaged/missing carriers 503,
 bad request inputs 400, and stale/crossed publication 409. Legacy global
 count/selection work does not acquire the native payload rows-read quota.
 This does not prove hidden global-index completeness, hard VM interruption,
-full-corpus runtime parity, or unify the earlier lens header/status policy.
+or full-corpus runtime parity. Shared header/status alignment is described above.
 
 ### Lossless inspection compatibility
 
@@ -159,8 +169,8 @@ Unavailable/damaged publication data remains 503; absent IDs are 404;
 publication changes during successful packet construction are 409. HEAD has
 the same admission/status checks and no body. A relation packet returns all
 matched full relations and up to 256 unique full endpoints, or refuses; it
-never silently drops an endpoint. Lens source-size status/header-framing
-behavior is unchanged by these inspector-only corrections.
+never silently drops an endpoint. The common emitted-header guard and typed
+lens source-size statuses are described above; inspection remains independent.
 
 The D1 statement/rows-read budgets are not Python SQLite VM interruption or
 hard-limit emulation. A tested valid row of 1048577 bytes yields 413 on both
@@ -471,7 +481,7 @@ state also return 503. The existing 1 MiB source-row, 1 KiB digest, 64 KiB heade
 and 16 MiB request-delivery budgets apply. Ordinary traversal still excludes
 edges with absent endpoints; mandatory origin and returned-page closure refuse
 missing rows. This does not establish completeness of an arbitrarily corrupted
-index. Lens-only header/status behavior is unchanged by this route.
+index. Shared header/status alignment does not change exploration scheduling.
 
 The same additive publication-clock migration is a readiness prerequisite for
 all D1 knowledge reads (lenses, legacy and indexed search, node/relation

@@ -1,7 +1,7 @@
 /** Internal bounded native D1 delivery and emitted-row integrity reader. */
 import {HttpError} from './common.ts';
-import {nativeLower, codePointCompare, NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
-import {nativeKeys, nativeField, parseNativeJson, stringField, type NativeRef} from './native-lens.ts';
+import {nativeLower, codePointCompare, NativeBudgetExceeded, nativeNumberInfo, pythonStr} from '../../../shared/native-semantics.ts';
+import {nativeKeys, nativeField, nativeChild, nativePacketJson, parseNativeJson, stringField, type NativeRef} from './native-lens.ts';
 export type NativeKind = 'node' | 'relation';
 const IDENTITY = {node: ['id', 'entity_id', 'native_id', 'source_graph', 'kind_id', 'type_id'],
   relation: ['id', 'native_id', 'source_graph', 'from_id', 'to_id', 'predicate_id', 'relation_type_id']} as const;
@@ -164,9 +164,24 @@ export class NativeD1Rows {
   async get(kind: NativeKind, id: string): Promise<NativeRef> {return (await this.load(kind, [id])).get(id)!;}
 }
 
+/** Python compact emitted framing, including UTF-8 encodability of every key/value. */
+export function requireEmittedHeader(raw: string, ref: NativeRef): void {
+  const pending = [ref];
+  while (pending.length) {
+    const value = pending.pop()!;
+    if (typeof value.value === 'string' && !value.value.isWellFormed()) nativeUnavailable('prepared header contains an invalid Unicode string');
+    if (typeof value.value === 'number' && nativeNumberInfo(value).lexeme !== pythonStr(value)) nativeUnavailable('prepared header is not in its declared emitted JSON framing');
+    if (value.value && typeof value.value === 'object') for (const key of nativeKeys(value)) {
+      if (!key.isWellFormed()) nativeUnavailable('prepared header contains an invalid Unicode key');
+      pending.push(nativeChild(value,key));
+    }
+  }
+  if (nativePacketJson(ref,{maxBytes:65536}) !== raw) nativeUnavailable('prepared header is not in its declared emitted JSON framing');
+}
+
 /** Validate the common owner header without loading catalog or lens histograms. */
 export async function readNativePublication(read: NativeD1Read, expectedRevision?: string, mode: 'lens' | 'inspection' = 'lens'): Promise<{raw: string; ref: NativeRef}> {
-  const top = await read.metadata('knowledge_reader_top', mode === 'inspection' ? 65536 : undefined);
+  const top = await read.metadata('knowledge_reader_top', 65536);
   const version = nativeField(top.ref, 'schema').value;
   const lens = version === 'tos_published_knowledge_reader_v2';
   const topKeys = ['schema','read_model_schema','source_revision','data_revision','graph_schema','normalization_binding','catalog_sha256','row_integrity','authority_boundary', ...(lens ? ['lens_sha256'] : [])];
@@ -185,5 +200,6 @@ export async function readNativePublication(read: NativeD1Read, expectedRevision
       : (!['tos_published_knowledge_reader_v1','tos_published_knowledge_reader_v2'].includes(String(version))
         || !['tos_cloudflare_edge_read_model_v8','tos_cloudflare_edge_read_model_v9'].includes(String(model))
         || (model === 'tos_cloudflare_edge_read_model_v9' && !lens)))) nativeUnavailable('native publication metadata version unavailable');
+  requireEmittedHeader(top.raw, top.ref);
   return top;
 }

@@ -103,8 +103,8 @@ Tests compare complete native legacy packets and every indexed page against
 `SQLiteKnowledgeSearchReadModel`, preserving ordered source members, integer/
 float kinds and float repr. Runtime-specific opaque tokens and work counters
 are excluded from that indexed comparison. Real D1 HTTP restart/replay, query
-plans, budgets and negative admission are separate checks. Lens header/status
-differences and compressed local-prepared search are outside this correction.
+plans, budgets and negative admission are separate checks. Compressed
+local-prepared search is outside this correction.
 
 ## Resumable exploration boundary
 
@@ -273,9 +273,21 @@ Inspection adopts the published Python reader's explicit compatibility
 corrections: nonempty string `source_refs` only, incomplete endpoint closure
 503, 128 alias matches, 4096-code-point IDs, Python Unicode stripping, duplicate
 source-member refusal, and declared Python compact header framing. Header
-framing verification never canonicalizes source rows. Row/digest/header size
-budgets return 413 in inspection; the prior lens source-size statuses and
-header-framing checks remain unchanged pending separate shared-owner review.
+framing verification never canonicalizes source rows.
+
+All native published-reader callers share the emitted-header guard in
+`native-d1-read.ts`: 64 KiB maximum, Python compact whitespace/escape/numeric
+framing, and UTF-8-encodable strings and keys at every depth. Lone surrogates
+remain invalid even when JSON-escaped. Invalid framing is 503; an explicit
+source-size refusal is 413. Lens now uses typed source-size budgets too: 1 MiB
+rows and lens metadata, 1 KiB digests, 128 KiB chunks and 256 chunks maximum.
+The reader/header check does not execute inspection, broaden lens admission
+beyond v9, or alter v7 execution, cursors, traversal or index-name policy.
+Search retains its independent selected-source string/document checks.
+Actual published Python lens and Worker HTTP tests share the same SQLite
+publication; exact-limit/one-byte-over, native continuation, malformed framing,
+Unicode and ABA checks establish this bounded contract, not universal runtime
+parity. D1 rows-read accounting still cannot emulate SQLite VM/hard limits.
 
 ## Work budgets
 

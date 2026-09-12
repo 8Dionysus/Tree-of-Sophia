@@ -90,20 +90,21 @@ except Exception as e:
  print(json.dumps({'status':status,'error':str(e)}))
 `,{path:database.path,binding,kind,id,limit});
 }
-function assertPackets(actual,expected) {
+function assertPackets(actual,expected,lens=false) {
   const diff=python(String.raw`
 def diff(a,b,path='$'):
  if type(a)!=type(b):return [path+': kind '+type(a).__name__+' != '+type(b).__name__]
  if isinstance(a,dict):
-  if list(a)!=list(b):return [path+': ordered keys differ']
+  if set(a)!=set(b):return [path+': keys differ']
+  if list(a)!=list(b) and not any(path==root or path.startswith(root+'.') or path.startswith(root+'[') for root in unordered):return [path+': ordered keys differ']
   return [d for k in a for d in diff(a[k],b[k],path+'.'+k)]
  if isinstance(a,list):
   if len(a)!=len(b):return [path+': lengths differ']
   return [d for i,(x,y) in enumerate(zip(a,b)) for d in diff(x,y,path+'['+str(i)+']')]
  if isinstance(a,float):return [] if repr(a)==repr(b) else [path+': float repr differs']
  return [] if a==b else [path+': value differs']
-p=json.load(sys.stdin);print(json.dumps(diff(json.loads(p['actual']),json.loads(p['expected']))))
-`,{actual,expected});assert.deepEqual(diff,[]);
+p=json.load(sys.stdin);unordered=['$.lens','$.counts','$.scene'] if p['lens'] else [];print(json.dumps(diff(json.loads(p['actual']),json.loads(p['expected']))))
+`,{actual,expected,lens});assert.deepEqual(diff,[]);
 }
 let workerPromise;
 async function worker() {
@@ -122,6 +123,154 @@ function replaceRow(database,kind,id,change) {
   database.sqlite.prepare(`UPDATE knowledge_${kind}s SET ${columns.map(c=>c+'=?').join(',')},json=? WHERE id=?`).run(...columns.map(c=>item[c]),raw,id);
   database.sqlite.prepare('INSERT OR REPLACE INTO edge_meta VALUES (?,0,?)').run(`knowledge_${kind}_digest:${id}`,JSON.stringify({sha256:sha(raw)}));
 }
+
+// The same actual published SQLite fixture exercises shared admission through
+// lenses, without making inspection invoke the lens adapter or its histograms.
+// Inspection deliberately tests mixed-type source_refs; native lens requires
+// string refs. Emit a valid lens publication, preserving all other native JSON.
+const lensRows=python("p=json.load(sys.stdin);result={}\nfor kind,rows in p.items():\n result[kind]=[]\n for raw in rows:\n  item=json.loads(raw);item['source_refs']=[v for v in item['source_refs'] if isinstance(v,str) and v];result[kind].append(json.dumps(item,ensure_ascii=False,separators=(',',':')))\nprint(json.dumps(result))",
+  {node:fixture.nodes,relation:fixture.relations});
+function lensDatabase() {
+  const data=database();
+  for(const kind of ['node','relation'])for(const raw of lensRows[kind]) {
+    const item=JSON.parse(raw);
+    replaceRow(data,kind,item.id,()=>raw);
+    data.sqlite.prepare('INSERT INTO knowledge_lens_order VALUES (?,?,?,?,?)').run(kind,item.id,item.id.toLowerCase(),kind==='relation'?item.from_id:'',kind==='relation'?item.to_id:'');
+  }
+  return data;
+}
+const lensSpec={schema_version:'tos_lens_spec_v1',lens_id:'header-probe',sources:['philosophy','canon','source-navigation'],detail:'full',
+  node_query:{enabled:true},relation_query:{enabled:false},pagination:{nodes:2,relations:1}};
+function lensOracle(data,spec=lensSpec,focus=false,binding=data.binding()) {
+  return python(String.raw`
+from tos_access.published_lens import PublishedLensService
+from tos_access.published_read_model import PublishedKnowledgeReadModel,PublishedReadBudgetExceeded,PublishedSnapshotConflict,PublishedReadModelError
+from tos_access.lens_pagination import KnowledgeRevisionConflict
+p=json.load(sys.stdin)
+try:
+ service=PublishedLensService(PublishedKnowledgeReadModel(p['path'],p['binding']))
+ packet=service.focus('philosophy:a',depth=0,profile='all') if p['focus'] else service.execute(p['spec'])
+ print(json.dumps({'status':200,'raw':json.dumps(packet,ensure_ascii=False,separators=(',',':'),allow_nan=False)}))
+except Exception as e:
+ status=413 if isinstance(e,PublishedReadBudgetExceeded) else 409 if isinstance(e,(PublishedSnapshotConflict,KnowledgeRevisionConflict)) else 503 if isinstance(e,PublishedReadModelError) else 400 if isinstance(e,ValueError) else 500
+ print(json.dumps({'status':status,'error':str(e)}))
+`,{path:data.path,binding,spec,focus});
+}
+async function lensResponse(data,route='compile',spec=lensSpec,method='GET') {
+  const path=route==='compile'?'/api/knowledge/lenses/compile':route==='focus'?'/api/knowledge/focus/philosophy%3Aa?depth=0&profile=all':'/api/knowledge/lenses/header-probe';
+  return (await worker()).fetch(new Request('https://tos.test'+path,route==='compile'?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(spec)}:{method}),
+    {DB:data.db,ASSETS:{fetch:async()=>new Response(JSON.stringify({lenses:[spec]}))}},{});
+}
+function header(data,raw) {data.sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_reader_top'").run(raw);}
+function padded(raw,size) {
+  const value=JSON.parse(raw);value.padding='';const base=JSON.stringify(value);value.padding='x'.repeat(size-Buffer.byteLength(base));return JSON.stringify(value);
+}
+
+test('published lens header admission preserves complete native packets and continuation through Worker HTTP',async()=>{
+  const data=lensDatabase();try {
+    let spec=lensSpec;
+    for(let page=0;page<8;page++) {
+      const expected=lensOracle(data,spec);assert.equal(expected.status,200,expected.error);
+      const result=await lensResponse(data,'compile',spec);const raw=await result.text();assert.equal(result.status,200,raw.slice(0,1000));assertPackets(raw,expected.raw,true);
+      const stored=await lensResponse(data,'stored',spec);assert.equal(stored.status,200);assertPackets(await stored.text(),expected.raw,true);
+      const head=await lensResponse(data,'stored',spec,'HEAD');assert.equal(head.status,200);assert.equal(await head.text(),'');
+      const cursor=JSON.parse(expected.raw).page.next_cursor;if(!cursor)break;spec={...spec,pagination:{...spec.pagination,cursor}};
+      assert.ok(page<7,'bounded fixture must exhaust');
+    }
+    const expected=lensOracle(data,lensSpec,true),actual=await lensResponse(data,'focus');assert.equal(expected.status,200,expected.error);assert.equal(actual.status,200);assertPackets(await actual.text(),expected.raw,true);
+  }finally{data.close();}
+});
+
+test('shared emitted-header framing rejects whitespace, numeric spelling and all invalid Unicode keys/values',async()=>{
+  const changes=[raw=>' '+raw,raw=>raw.replace('1e-07','1e-7'),raw=>raw.replace('Tree-of-Sophia','Tree-of-So\\u0070hia'),
+    raw=>raw.replace('"unknown":{','"unknown":{"probe":"\\ud800",'),
+    raw=>raw.replace('"unknown":{','"unknown":{"\\udfff":null,'),
+    raw=>raw.replace('"unknown":{','"unknown":{"nested":[{"x":"\\ud800"}],')];
+  for(const change of changes){const data=lensDatabase();try {
+    header(data,change(fixture.metadata.knowledge_reader_top));const expected=lensOracle(data);assert.equal(expected.status,503,expected.error);
+    for(const route of ['compile','stored','focus'])assert.equal((await lensResponse(data,route)).status,503,route);
+    assert.equal((await lensResponse(data,'stored',lensSpec,'HEAD')).status,503);
+    assert.equal((await response(data,'node','philosophy:a')).status,503,'same guard owns inspection admission');
+    assert.equal(data.statements.some(s=>s.sql.includes('json_bytes FROM knowledge_')),false,'header rejection precedes source packets');
+  }finally{data.close();}}
+});
+
+test('published lens header, digest and row exact limits and one-byte-over statuses agree before text delivery',async()=>{
+  for(const kind of ['header','digest','row'])for(const extra of [0,1]){const data=lensDatabase();try {
+    const size={header:65536,digest:1024,row:1048576}[kind]+extra;
+    if(kind==='header') {
+      // Preserve Python number spelling and source member order while padding.
+      const raw=fixture.metadata.knowledge_reader_top.replace('"authority_boundary":{','"authority_boundary":{"padding":"",');
+      header(data,raw.replace('"padding":""','"padding":"'+'x'.repeat(size-Buffer.byteLength(raw))+'"'));
+    } else if(kind==='digest') {
+      const key='knowledge_node_digest:philosophy:a',raw=data.sqlite.prepare('SELECT json_chunk FROM edge_meta WHERE key=?').get(key).json_chunk;
+      data.sqlite.prepare('UPDATE edge_meta SET json_chunk=? WHERE key=?').run(raw+' '.repeat(size-Buffer.byteLength(raw)),key);
+    } else replaceRow(data,'node','philosophy:a',raw=>padded(raw,size));
+    const expected=lensOracle(data);assert.equal(expected.status,extra?413:200,kind+': '+expected.error);
+    for(const route of ['compile','stored','focus']) {
+      data.statements.length=0;const result=await lensResponse(data,route);assert.equal(result.status,expected.status,kind+'/'+route+': '+(await result.text()).slice(0,1000));
+      if(extra)assert.equal(data.statements.some(s=>s.stringBytes.includes(size)),false,'oversized '+kind+' must be masked');
+    }
+    const head=await lensResponse(data,'stored',lensSpec,'HEAD');assert.equal(head.status,expected.status);assert.equal(await head.text(),'');
+  }finally{data.close();}}
+});
+
+test('lens retains v9-only admission, malformed-publication 503 and publication ABA 409',async()=>{
+  for(const damage of ['v8','digest','json','aba']){const data=lensDatabase();try {
+    const before=data.binding();
+    if(damage==='v8') {
+      const raw=fixture.metadata.knowledge_reader_top.replace('tos_published_knowledge_reader_v2','tos_published_knowledge_reader_v1').replace('tos_cloudflare_edge_read_model_v9','tos_cloudflare_edge_read_model_v8').replace(/,"lens_sha256":"[a-f0-9]+"/,'');header(data,raw);
+    } else if(damage==='digest')data.sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_node_digest:philosophy:a'").run(JSON.stringify({sha256:'0'.repeat(64)}));
+    else if(damage==='json') {
+      const raw='{';data.sqlite.prepare("UPDATE knowledge_nodes SET json=? WHERE id='philosophy:a'").run(raw);
+      data.sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_node_digest:philosophy:a'").run(JSON.stringify({sha256:sha(raw)}));
+    } else {let once=false;data.hook.after=sql=>{if(!once&&sql.includes('json_bytes FROM knowledge_')){once=true;
+      data.sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").run(JSON.stringify({sha256:'e'.repeat(64)}));
+      data.sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").run(fixture.metadata.data_revision);}};}
+    const result=await lensResponse(data);assert.equal(result.status,damage==='aba'?409:503,damage+': '+(await result.text()).slice(0,1000));
+    const expected=lensOracle(data,lensSpec,false,damage==='aba'?before:data.binding());assert.equal(expected.status,result.status,expected.error);
+  }finally{data.close();}}
+});
+
+test('lens source-size checks remain selected-only and lens-metadata chunk bounds are typed',async()=>{
+  const data=lensDatabase();try {
+    data.sqlite.prepare("UPDATE knowledge_nodes SET json=? WHERE id='philosophy:c'").run('x'.repeat(1048577));
+    const spec={...lensSpec,seed:{node_ids:['philosophy:a']}};
+    assert.equal(lensOracle(data,spec).status,200);assert.equal((await lensResponse(data,'compile',spec)).status,200);
+    assert.equal(data.statements.some(s=>s.stringBytes.includes(1048577)),false);
+  }finally{data.close();}
+  for(const [parts,size] of [[1,131073],[257,0],[0,1048577]]) {const data=lensDatabase();try {
+    data.sqlite.exec("DELETE FROM edge_meta WHERE key='knowledge_lens_top'");
+    const chunks=parts?Array(parts).fill(size?' '.repeat(size):' '):[' '.repeat(131072)].concat(Array(7).fill(' '.repeat(131072)),[' ']);
+    chunks.forEach((raw,part)=>data.sqlite.prepare("INSERT INTO edge_meta VALUES ('knowledge_lens_top',?,?)").run(part,raw));
+    const expected=lensOracle(data);assert.equal(expected.status,413,expected.error);
+    assert.equal((await lensResponse(data)).status,413);
+  }finally{data.close();}}
+});
+
+test('real Miniflare D1 lens uses the shared header/status guard before first HTTP serialization',async()=>{
+  const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
+  const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-09-03',d1Databases:['DB']}));
+  const data=lensDatabase();try {
+    const db=await mf.getD1Database('DB');
+    await db.batch(schema.split(';').map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
+    await db.batch(migration.replace(/^--.*$/gm,'').trim().split(/\n(?=CREATE |INSERT )/).map(s=>db.prepare(s)));
+    const commands=[];
+    for(const row of data.sqlite.prepare('SELECT key,part,json_chunk FROM edge_meta').all())commands.push(db.prepare('INSERT INTO edge_meta VALUES (?,?,?)').bind(row.key,row.part,row.json_chunk));
+    for(const kind of ['node','relation'])for(const raw of lensRows[kind])commands.push(db.prepare(`INSERT INTO knowledge_${kind}s VALUES (${rowBindings(kind,raw).map(()=>'?').join(',')})`).bind(...rowBindings(kind,raw)));
+    for(const row of data.sqlite.prepare('SELECT kind,id,sort_key,from_id,to_id FROM knowledge_lens_order').all())commands.push(db.prepare('INSERT INTO knowledge_lens_order VALUES (?,?,?,?,?)').bind(row.kind,row.id,row.sort_key,row.from_id,row.to_id));
+    await db.batch(commands);
+    const send=spec=>mf.dispatchFetch('https://tos.test/api/knowledge/lenses/compile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(spec)});
+    const expected=lensOracle(data),first=await send(lensSpec);assert.equal(expected.status,200,expected.error);assert.equal(first.status,200);assertPackets(await first.text(),expected.raw,true);
+    const spec={...lensSpec,pagination:{...lensSpec.pagination,cursor:JSON.parse(expected.raw).page.next_cursor}},next=await send(spec);
+    assert.equal(next.status,200);assertPackets(await next.text(),lensOracle(data,spec).raw,true);
+    for(const raw of [' '+fixture.metadata.knowledge_reader_top,fixture.metadata.knowledge_reader_top.replace('"unknown":{','"unknown":{"probe":"\\ud800",')]) {
+      header(data,raw);await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_reader_top'").bind(raw).run();
+      assert.equal(lensOracle(data).status,503);assert.equal((await send(lensSpec)).status,503);
+      const head=await mf.dispatchFetch('https://tos.test/api/knowledge/focus/philosophy%3Aa?depth=0&profile=all',{method:'HEAD'});assert.equal(head.status,503);assert.equal(await head.text(),'');
+    }
+  }finally{data.close();await mf.dispose();}
+});
 
 test('native inspection actual Worker HTTP equals published Python full packets, alias precedence, limits and source order',async()=>{
   const data=database();try {

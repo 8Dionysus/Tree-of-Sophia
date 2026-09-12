@@ -1,10 +1,10 @@
 /** Exact bounded inspection over published rows; never a lens execution. */
 import {HttpError} from './common.ts';
-import {NativeBudgetExceeded, codePointCompare, nativeNumberInfo, pythonStr} from '../../../shared/native-semantics.ts';
+import {NativeBudgetExceeded, codePointCompare} from '../../../shared/native-semantics.ts';
 import {nativeStrip} from '../../../shared/native-unicode.ts';
 import {NativeD1Read, NativeD1Rows, nativeD1Limits, readNativePublication, nativeUnavailable,
   type NativeKind} from './native-d1-read.ts';
-import {arrayRefs, derived, nativeChild, nativeKeys, nativeField, nativePacketArray, nativePacketObject, nativePacketJson,
+import {arrayRefs, derived, nativeField, nativePacketArray, nativePacketObject,
   stringField, type NativeRef, type NativePacket} from './native-lens.ts';
 
 const MAX_MATCHES = 128;
@@ -13,18 +13,6 @@ const INDEXES = ['knowledge_nodes_native_idx','knowledge_nodes_entity_idx','know
 const V9_INDEXES = ['knowledge_nodes_identity_seek','knowledge_lens_order_sort','knowledge_lens_order_from',
   'knowledge_lens_order_to','knowledge_lens_order_pair'];
 const compact = (value: unknown) => JSON.stringify(value);
-
-export function requireEmittedHeader(raw: string, ref: NativeRef): void {
-  // Published Python binds compact emitted header bytes, not arbitrary JSON
-  // spelling of the same values. This check does not rewrite any source row.
-  if (nativePacketJson(ref,{maxBytes:65536}) !== raw) nativeUnavailable('prepared header is not in its declared emitted JSON framing');
-  const pending = [ref];
-  while (pending.length) {
-    const value = pending.pop()!;
-    if (typeof value.value === 'number' && nativeNumberInfo(value).lexeme !== pythonStr(value)) nativeUnavailable('prepared header is not in its declared emitted JSON framing');
-    if (value.value && typeof value.value === 'object') for (const key of nativeKeys(value)) pending.push(nativeChild(value,key));
-  }
-}
 
 function identifier(value: string): string {
   const result = nativeStrip(value);
@@ -117,7 +105,6 @@ export async function inspectNativeD1(db: D1Database, kind: NativeKind, requeste
 /** Common published read header/index admission, without inspection or lenses. */
 export async function readNativeInspectionPublication(read: NativeD1Read, expectedRevision?: string): Promise<{raw:string;ref:NativeRef}> {
   const top = await readNativePublication(read, expectedRevision, 'inspection');
-  requireEmittedHeader(top.raw,top.ref);
   const required = [...INDEXES, ...(nativeField(top.ref,'read_model_schema').value === 'tos_cloudflare_edge_read_model_v9' ? V9_INDEXES : [])];
   const found = await read.textRows<{name:string}>(['name'],['name'],
     "SELECT name FROM sqlite_master WHERE type='index' AND name IN (SELECT value FROM json_each(?))",compact(required));

@@ -48,12 +48,8 @@ export class NativeSearchDelivery {
   static async open(db: D1Database, revision: string): Promise<NativeSearchDelivery> {
     const read=new NativeD1Read(db,nativeD1Limits,true);
     const top=await readNativeInspectionPublication(read,revision);
-    // Python's ensure_ascii=False UTF-8 response cannot return lone surrogates,
-    // even when a damaged header spells them as syntactically valid escapes.
-    const pending=[top.ref];while(pending.length){const item=pending.pop()!;
-      if(typeof item.value==='string')sourceString(item.value);
-      else if(item.value&&typeof item.value==='object')for(const key of nativeKeys(item)){sourceString(key);pending.push(nativeChild(item,key));}
-    }
+    // Common publication admission validates all header strings/keys. Selected
+    // source/searchable strings retain their independent sourceString check.
     // Both v8/v9 producers emit the rank carrier. Presence is readiness, not
     // a global completeness proof; selected payloads still verify row digests.
     await read.query('SELECT kind,position,id,id_lower,native_id_lower,identity_values,visible_values,document_chars FROM knowledge_search_documents LIMIT 0');
