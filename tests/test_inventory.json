@@ -33,6 +33,21 @@
   ],
   "tests": [
     {
+      "path": "access/tests/test_prepared_source_binding.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/contracts/prepared-source-binding.v1.md",
+      "protects": "private immutable source-root selection paired with prepared rows in one caller transaction, exact predecessor and revision binding, detached bounded state, all-lane rollback and combined write budget without source closure or admission claims",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_prepared_source_binding.py",
+      "failure_route": "Fix atomic private source selection without replacing a second current-root file, accepting a stale predecessor, inferring source completeness or switching consumers.",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/tests/test_source_prepared_transition.py",
       "home": "mechanics/growth-cycle/tests",
       "home_scope": "mechanic-level",

@@ -85,6 +85,12 @@ dependencies from a supplied replacement list.
 
 ## Budgets and compatibility
 
+The private [source-root pairing](contracts/prepared-source-binding.v1.md)
+wrapper can select immutable source projection roots in this same caller
+transaction. It stores the exact roots beside the final prepared binding,
+without replacing a second current-root file. Source assembly, complete
+dependency checks and precommit source guards remain separate obligations.
+
 `PublicationLimits.max_mutations` counts actual SQLite changes across all three
 lanes, including final semantic binding verification. Each later lane receives
 only the remaining allowance. The semantic byte cap cannot exceed the declared
