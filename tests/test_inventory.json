@@ -123,6 +123,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_projection_mutation.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/contracts/projection-mutation.v1.md",
+      "protects": "complete bounded COW candidates without root publication, exact null and numeric identity, total declared order, touched-path locality, pre-I/O budgets, immutable no-replace installation and explicit candidate versus selected-reader boundary",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_projection_mutation.py",
+      "failure_route": "Fix the candidate transport without inventing source authority, publication CAS, automatic pruning or full-input fallback.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_prepared_publication.py",
       "home": "access",
       "home_scope": "product-local",

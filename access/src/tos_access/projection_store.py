@@ -295,6 +295,10 @@ class ProjectionReader:
             self._root_bytes = stream.read(MAX_ROOT_BYTES + 1)
         if len(self._root_bytes) > MAX_ROOT_BYTES:
             raise ProjectionStoreError("projection root exceeds bound")
+        self._initialize_manifest(cache_bytes)
+
+    def _initialize_manifest(self, cache_bytes):
+        """Validate already bounded root bytes; also used by immutable views."""
         self.manifest = _strict_json(self._root_bytes)
         root = self.manifest
         if (not isinstance(root, dict) or set(root) != {"schema_version", "logical_schema", "header", "limits", "collections"}

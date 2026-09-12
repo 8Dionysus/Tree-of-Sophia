@@ -72,6 +72,10 @@ focused test modules; no corpus payload or generated manifest/part is adopted.
 The [bounded Merkle diff](projection-diff.v1.md) is a separate read-only layer
 over two explicitly bound readers. It relies on an independently admitted
 baseline asserted by the caller and does not certify skipped target parts.
+The separate [bounded COW mutation profile](projection-mutation.v1.md) creates
+immutable parts and candidate root bytes in an existing namespace; it never
+replaces the selected root or activates a source-to-prepared bridge. Its
+immutable candidate view is deliberately not a selected-current reader.
 The initial adoption at `702ad351aa57c28a453a3f80b53f6f13875b8234` copied the
 store/schema/tests exactly from source-owner commit
 `78e628f00932cbebecbc3fc0e6f4433cb119a7ff`. Subsequent narrow store/parser
