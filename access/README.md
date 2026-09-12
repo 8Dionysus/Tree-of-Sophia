@@ -304,7 +304,9 @@ performance or remove the compatibility reader's initial graph construction.
 To build a fresh snapshot from an explicitly selected source tree, use the
 [offline prepared bootstrap](OFFLINE_PREPARED_BOOTSTRAP.md). It assembles the
 whole source graph; it neither switches consumers nor performs an incremental
-source update.
+source update. Its explicit `--attach-maintenance` option adds the exact catalog
+and auxiliary semantic indexes before completion, under separate write budgets
+and unchanged reader binding; attachment remains disabled by default.
 
 The [local prepared publisher](LOCAL_PREPARED_PUBLICATION.md) also provides an
 explicit offline, one-file full-row/catalog/lens/compressed-search profile and

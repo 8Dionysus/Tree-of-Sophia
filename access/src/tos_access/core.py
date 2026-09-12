@@ -1510,7 +1510,7 @@ class ToSAccessCore:
                 return {"graph": graph, "catalog": catalog}
             raise RuntimeError("ToS knowledge source projections changed during catalog build")
 
-    def knowledge_snapshot_once(self) -> dict[str, Any]:
+    def knowledge_snapshot_once(self, *, include_catalog_inputs: bool = False) -> dict[str, Any]:
         """Explicit one-shot full bootstrap, without mutable-core retention.
 
         Uses the same graph/catalog builders and source state as the legacy
@@ -1518,7 +1518,14 @@ class ToSAccessCore:
         retains canonical source bytes for a future CAS delta, nor installs
         the result as this core's current mutable snapshot. Source drift fails
         this attempt; the caller may retry explicitly with a fresh output.
+
+        An explicit offline maintenance caller may also request copy-isolated
+        CatalogInputs from these same actual registry and lens carriers. The
+        default packet remains unchanged; no inputs are reconstructed from a
+        catalog or retained as a mutable-core/source-transition baseline.
         """
+        if type(include_catalog_inputs) is not bool:
+            raise ValueError("include_catalog_inputs must be a boolean")
         if self._prepared_reader is not None:
             raise PublishedReadModelError("prepared reader cannot bootstrap source carriers")
         from .normalization_cache import active_cache
@@ -1539,11 +1546,21 @@ class ToSAccessCore:
                 raise RuntimeError("source changed during one-shot graph build")
             catalog = build_knowledge_catalog(graph, inputs["corpus"], inputs["philosophy"],
                 inputs["entity_type_registry"], inputs["relation_type_registry"])
+            catalog_inputs = None
+            if include_catalog_inputs:
+                from .catalog_semantics import CatalogInputs
+                # The sequence profile retains the actual graph encounter
+                # order; prepared publication gives it sparse source tokens.
+                catalog_inputs = CatalogInputs.from_graph(graph, inputs["corpus"], inputs["philosophy"],
+                    inputs["entity_type_registry"], inputs["relation_type_registry"])
             if self._knowledge_input_state() != before:
                 raise RuntimeError("source changed during one-shot catalog build")
         finally:
             active_cache.reset(token)
-        return {"graph": graph, "catalog": catalog, "source_state": before}
+        result = {"graph": graph, "catalog": catalog, "source_state": before}
+        if include_catalog_inputs:
+            result["catalog_inputs"] = catalog_inputs
+        return result
 
     def knowledge_contracts(self) -> dict[str, Any]:
         """Return the executable API map and JSON Schemas through one public read route."""

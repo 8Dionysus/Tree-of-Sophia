@@ -41,7 +41,9 @@ become relative, dictionary keys and non-string/list/dict values are unchanged.
 No normalization cache is selected or written. Complete graph construction still
 retains full-size source and normalized objects while building; this is not a
 streaming source compiler. Local input references expire after graph/catalog
-construction except where returned values legitimately retain their contents.
+construction except where returned values legitimately retain their contents;
+the optional maintenance handoff below retains only its exact header, registries
+and saved-lens specifications, not a canonical source-transition baseline.
 The producer converts each row
 on demand in two repeatable publication passes, so path conversion does not
 retain a second complete graph. Header and catalog are converted separately.
@@ -81,13 +83,98 @@ physical-build choices do not alter the logical binding or source admission.
 This option eliminates incremental posting maintenance during the initial
 cohort load; full source normalization remains a separate measured stage.
 
+## Optional maintenance attachment
+
+`--attach-maintenance` explicitly adds the existing exact catalog and auxiliary
+semantic indexes to this same snapshot. It works with either buffered or bulk
+search. Without this flag, snapshot packet keys, output fields and the three-file
+ABI are unchanged, and no maintenance indexes are constructed.
+
+```bash
+PYTHONPATH=access/src python -m tos_access.prepare \
+  --source-root /absolute/source/Tree-of-Sophia \
+  --output-dir /absolute/existing-parent/new-maintainable-publication \
+  --attach-maintenance --maintenance-max-mutations 2000000
+```
+
+The opt-in snapshot call requests `knowledge_snapshot_once(include_catalog_inputs=True)`.
+It returns copy-isolated `CatalogInputs` from the actual registries and saved-lens
+carriers used by that coherent graph/catalog build, while normalization caching
+is still disabled and before the final source-state check. The producer makes
+the captured header and lenses portable, but preserves the original registries
+and their normalization-binding digests. It never reconstructs stronger inputs
+from a catalog. If portable rows/header/lenses plus those original registries
+cannot exactly reproduce the selected catalog and semantic report, attachment
+refuses; registry values are not rewritten or rebound to force success.
+
+After base publication commits, a separate `BEGIN IMMEDIATE` transaction invokes
+the existing `bootstrap_prepared_maintenance_transaction` kernel. It receives
+the same on-demand portable row stream in an additional pass, not another full
+normalized graph. Source state and selected publication binding are checked
+before and after attachment; the kernel verifies exact catalog and semantic
+report reproduction. This bootstrap only creates auxiliary maintenance state:
+it does not change header, rows, catalog, search, epoch or independent reader
+binding, verify a source transition, select a consumer, or grant semantic
+acceptance. See [catalog index](EXACT_CATALOG_INDEX.md) and
+[semantic index](SEMANTIC_INDEX.md) for the unchanged kernel contracts.
+
+`--maintenance-max-mutations` requires the flag and defaults to two million. It
+is a separate allowance for the attachment transaction's combined catalog and
+semantic SQL mutations, with the same positive-integer/`2**53 - 1` ceiling as
+publication. `--max-mutations` still caps base publication, including bulk
+scratch writes. Their sum is a declared **upper bound**, not an observed actual
+combined total: base publication and attachment use separate connections and
+the publisher returns no mutation counter. The attachment receipt records its
+own measured `sql_mutations`; semantic writes also keep their narrower owner cap.
+
+All SQLite byte limits address the same whole file. Attachment uses the minimum
+of publication `max_bytes`, catalog `max_index_bytes`, and semantic `max_bytes`;
+it never interprets them as additive capacities. CLI owner defaults still
+include semantic 32 MiB input accounting and 256 MiB whole-file limits, catalog
+4 GiB whole-file limits, and publication 64 MiB whole-file limits. Raising only
+the CLI publication cap does not lift semantic or catalog limits. These defaults
+are refusal budgets, not full-corpus admission or RAM forecasts. Advanced callers
+can explicitly supply every owner limit, for example:
+
+```python
+from dataclasses import replace
+from tos_access.catalog_index import CatalogLimits
+from tos_access.semantic_index import SemanticIndexLimits
+from tos_access.prepare import MaintenanceAttachmentLimits, prepare
+from tos_access.prepared_publication import PublicationLimits
+
+maintenance = MaintenanceAttachmentLimits(
+    max_mutations=2_000_000,
+    catalog_limits=replace(CatalogLimits(), max_index_bytes=128 * 1024 * 1024),
+    semantic_limits=replace(SemanticIndexLimits(), max_bytes=128 * 1024 * 1024),
+)
+receipt = prepare(source_root, fresh_output_dir,
+    limits=PublicationLimits(max_bytes=128 * 1024 * 1024), maintenance=maintenance)
+```
+
+Only opt-in completion adds `maintenance` to the existing receipt. This field
+records attachment status, unchanged binding, catalog/report digests, declared
+and effective limits, measured attachment writes, mutation-budget upper bound,
+and explicit false publication-change/consumer-switch/source-transition/semantic-
+acceptance claims. It is not a new source authority or delta acceptance receipt.
+
+Any exception, interruption, budget refusal, source drift or binding drift
+before attachment commit rolls back both auxiliary lanes. The already committed
+base file remains an **incomplete, unselected** output without final JSON markers.
+After attachment commits, the producer checks source state again and writes
+`binding.json`, then `completed.json`. A later source check or JSON/link/fsync
+failure cannot roll back committed SQL: it leaves an incomplete output, possibly
+with auxiliary indexes and `binding.json`, but no valid completion marker. No
+automatic cleanup, fallback to completed base-only output or partial resume is
+performed. Completion and explicit selection retain the boundary below.
+
 ## Completion and selection
 
 A complete output contains three mode-0600 files:
 
 - `snapshot.sqlite`: committed `tos_local_prepared_read_model_v1` publication.
 - `binding.json`: exact independent reader binding, written only after the
-  post-publication source-state check.
+  post-publication source-state check and any requested maintenance commit/check.
 - `completed.json`: last, atomically linked completion receipt with schema
   `tos_offline_prepared_bootstrap_receipt_v1`, source revision, normalization
   binding, output filenames, full binding, explicit declared limits, node/relation
@@ -124,8 +211,11 @@ The completed marker records bootstrap completion only; it must not be treated
 as a refreshed binding after a later mutation.
 
 Focused regression: `PYTHONPATH=access/src:access/tests python -m unittest
-access/tests/test_offline_prepare.py`. The fixture writes only five tiny real
+test_offline_prepare test_offline_maintenance`. The fixture writes only five tiny real
 core input carriers, invokes the executable in a subprocess, and compares
 prepared catalog/node/lens/compressed-search reads to their source reference.
+Attachment cases cover both search initializers, exact registry/lens handoff,
+cache restoration, declared/effective caps, transaction and marker ordering,
+rollback on kernel failures/interruptions/drift, and post-commit marker failure.
 Test ownership is in `tests/test_inventory.json`; ordered validation authority
 stays in `docs/validation/validation_lanes.json`.
