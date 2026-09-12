@@ -1,14 +1,21 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tree-of-sophia.local/ToS/contracts/source-catalog-projection-v2.schema.json",
-  "title": "Explicit addressed source-record catalog projection v2",
+  "title": "Explicit addressed source-record and optional current Claim/slot catalog projection v2",
   "description": "Logical records and envelope carried by tos_partitioned_projection_v1. Source authority, source-reference dependency closure, selected-root publication and epoch authority remain separate. A transport root digest never enters each record address.",
   "allOf": [
     {"$ref": "#/$defs/headerFields"},
     {
       "type": "object",
       "required": ["records"],
-      "properties": {"records": {"type": "array", "items": {"$ref": "#/$defs/row"}}}
+      "properties": {
+        "records": {"type": "array", "items": {"$ref": "#/$defs/row"}},
+        "claims": {"type": "array", "items": {"$ref": "#/$defs/claimRow"}},
+        "source_slots": {"type": "array", "items": {"$ref": "#/$defs/slotRow"}}
+      },
+      "allOf": [{"if": {"properties": {"claims_addressed": {"const": true}}},
+                 "then": {"required": ["claims", "source_slots"]},
+                 "else": {"not": {"anyOf": [{"required": ["claims"]}, {"required": ["source_slots"]}]}}}]
     }
   ],
   "unevaluatedProperties": false,
@@ -71,6 +78,65 @@
         "source": {"$ref": "#/$defs/sourceBinding"}
       }
     },
+    "jsonlRef": {
+      "type": "string", "maxLength": 1024,
+      "pattern": "^ToS/source-witnesses/(?!.*(?:^|/)(?:\\.[^/]*|catalog|payload|private|owner-local|local-content)(?:/|$))[^\\\\\\u0000]+\\.jsonl$(?![\\s\\S])"
+    },
+    "claimIdentity": {"type": "string", "maxLength": 4096,
+      "pattern": "^tos\\.claim\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$(?![\\s\\S])"},
+    "slotIdentity": {"type": "string", "minLength": 1, "maxLength": 4096},
+    "slotKey": {"type": "string", "minLength": 1, "maxLength": 32768},
+    "claimEntry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "claim_id", "claim_type", "assertion_layer", "subject_ref", "predicate", "object", "evidence_refs", "maker", "provenance_event_ref", "epistemic_status", "review_status", "visibility", "review_refs", "claim_version", "source_claim_file_ref", "source_claim_line", "claim_sha256"],
+      "properties": {
+        "schema_version": {"const": "tos_source_witness_claim_catalog_entry_v1"},
+        "claim_id": {"$ref": "#/$defs/claimIdentity"},
+        "claim_type": {"type": "string"}, "assertion_layer": {"type": "string"},
+        "subject_ref": {"type": "string"}, "predicate": {"type": "string"}, "object": {},
+        "evidence_refs": {"type": "array"}, "maker": {"type": "object"},
+        "provenance_event_ref": {"type": "string"}, "epistemic_status": {"type": "string"},
+        "review_status": {"type": "string"}, "visibility": {"enum": ["public", "public_metadata_only"]},
+        "review_refs": {"type": "array", "items": {"type": "string"}},
+        "claim_version": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+        "source_claim_file_ref": {"$ref": "#/$defs/jsonlRef"},
+        "source_claim_line": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+        "claim_sha256": {"$ref": "#/$defs/sha256"},
+        "source_schema_ref": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$(?![\\s\\S])"},
+        "supersedes_claim_ref": {"type": ["string", "null"]}, "qualifiers": {}
+      }
+    },
+    "claimRow": {
+      "type": "object", "additionalProperties": false,
+      "required": ["claim_id", "entry", "source_slot_key", "claim_ref"],
+      "properties": {
+        "claim_id": {"$ref": "#/$defs/claimIdentity"}, "entry": {"$ref": "#/$defs/claimEntry"},
+        "source_slot_key": {"$ref": "#/$defs/slotKey"}, "claim_ref": {"$ref": "#/$defs/recordRef"}
+      }
+    },
+    "slotBinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_ref", "source_line", "byte_offset", "row_bytes", "raw_row_sha256", "delimiter", "file_sha256", "file_bytes", "canonical_sha256"],
+      "properties": {
+        "source_ref": {"$ref": "#/$defs/jsonlRef"},
+        "source_line": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+        "byte_offset": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "row_bytes": {"type": "integer", "minimum": 1, "maximum": 1048576},
+        "raw_row_sha256": {"$ref": "#/$defs/sha256"}, "delimiter": {"enum": ["lf", "crlf", "cr", "eof"]},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "file_bytes": {"type": "integer", "minimum": 1, "maximum": 16777216},
+        "canonical_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "slotRow": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_slot_key", "kind", "identity", "source"],
+      "properties": {
+        "source_slot_key": {"$ref": "#/$defs/slotKey"},
+        "kind": {"enum": ["claim", "provenance_event", "anchor"]},
+        "identity": {"$ref": "#/$defs/slotIdentity"}, "source": {"$ref": "#/$defs/slotBinding"}
+      }
+    },
     "publication": {
       "type": "object", "additionalProperties": false, "required": ["protocol", "token", "generation"],
       "properties": {
@@ -118,9 +184,15 @@
             "record_id": {"$ref": "#/$defs/identity"}
           }
         }]},
-        "claims_addressed": {"const": false},
+        "claims_addressed": {"type": "boolean"},
+        "claim_count": {"type": "integer", "minimum": 0},
+        "source_slot_count": {"type": "integer", "minimum": 0},
+        "source_slots_profile": {"const": "tos.source-catalog.current-jsonl-slots.v1"},
         "source_reference_closure_verified": {"const": false}
-      }
+      },
+      "allOf": [{"if": {"properties": {"claims_addressed": {"const": true}}},
+                 "then": {"required": ["claim_count", "source_slot_count", "source_slots_profile"]},
+                 "else": {"not": {"anyOf": [{"required": ["claim_count"]}, {"required": ["source_slot_count"]}, {"required": ["source_slots_profile"]}]}}}]
     },
     "header": {"allOf": [{"$ref": "#/$defs/headerFields"}], "unevaluatedProperties": false},
     "address": {

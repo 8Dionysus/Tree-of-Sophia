@@ -108,6 +108,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_source_catalog_slots.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/contracts/source-catalog-projection-v2.schema.json",
+      "protects": "explicit current Claim/event/anchor slot producer, exact native Claim catalog parity, physical line and byte range with blank CR/LF/CRLF/EOF rows, bounded protected addressed reads, full-file bootstrap binding versus row-only read scope, unchanged Claim slots across Agent correction and refusal of source/profile/range drift",
+      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_source_catalog_slots.py",
+      "failure_route": "Fix exact addressed source slot production or read boundaries without scanning whole JSONL during selected reads, inventing line numbers, admitting Claims or claiming unread whole-file integrity.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_source_catalog_projection.py",
       "home": "tests",
       "home_scope": "root",

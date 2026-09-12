@@ -29,7 +29,7 @@
       "organ_lane": "shared-library",
       "owner_surface": "ToS/source-witnesses/README.md",
       "source_truth": ["ToS/contracts/source-catalog-projection-v2.schema.json", "ToS/contracts/corpus-record.schema.json", "ToS/doctrine/semantic-interchange/entity-types.v1.json"],
-      "reads": ["explicit full legacy catalog/source baseline and profile bindings for bootstrap; addressed immutable catalog rows and exact retained selected Agent transaction for incremental staging"],
+      "reads": ["explicit full legacy catalog/source baseline and optional current Claim/event/anchor slots for bootstrap; addressed immutable catalog rows, protected bounded source row ranges and exact retained selected Agent transaction for incremental staging"],
       "writes": ["immutable catalog parts in the caller-owned original namespace; explicit disposable bootstrap scratch only"],
       "side_effects": "unselected candidate roots only; no target-root replacement, source change, implicit bootstrap, global currentness, source-reference closure, Claim admission, epoch, prepared SQLite transaction or runtime authority",
       "validation_lane": "source_witness_foundation",

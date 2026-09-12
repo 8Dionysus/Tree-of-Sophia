@@ -204,8 +204,42 @@ keep their existing per-package bounds; catalog capture and COW access have thei
 own explicit `CatalogLimits` and `MutationLimits`. Full bootstrap is not a hidden
 fallback when a bounded transition refuses.
 
-Legacy Claims are exact bootstrap anchors, not yet an addressed Claim collection.
-Complete source-reference dependency closure also remains an integration gap:
+An explicitly requested `include_claims=True` bootstrap adds `claims` and
+`source_slots` collections without changing the `records` API. The default
+records-only snapshot retains `claims_addressed=false`; the expanded snapshot
+declares `claims_addressed=true`, exact counts and
+`tos.source-catalog.current-jsonl-slots.v1`. `lookup_claim`/`get_claim` return a
+detached exact native catalog entry and canonical Claim ref. `lookup_slot(kind,
+identity)`/`get_slot` address current `claim`, `provenance_event` and `anchor`
+rows through a reversible canonical JSON pair key, not a delimiter heuristic.
+Full bootstrap uses only the existing native Claim basenames and event/anchor
+producer patterns (`*provenance*.jsonl`, `*anchor*.jsonl`) in public source scope.
+Duplicate typed identities, source membership drift and malformed rows refuse.
+
+Slot bindings retain the original physical line number (blank lines count),
+byte offset and row length, LF/CRLF/CR/EOF delimiter, exact raw row digest,
+canonical payload digest and complete source-file digest/length from bootstrap.
+Bodies remain at their source, including unknown and literal fields. Non-JSONL
+Unicode line separators refuse rather than inventing a physical source line.
+The existing pure `render_claim_catalog_entry` is shared with the full collector;
+schema and source checks remain separate from rendering.
+
+`SourceCatalogSourceReader(root, catalog_snapshot=...)` verifies exact source and
+processor profile inputs, then `read_claim(claim_id, expected_row_sha256=...)`
+or `read_slot(kind, identity)` uses protected descriptors, bounded byte ranges,
+boundary/digest/identity checks and file metadata before/after. `verify_current()`
+rechecks the observed paths and coherent publication token/generation. It never
+loads a whole JSONL file to locate a row or rehashes unread source-file bytes.
+`SourceSlotLimits` bound source files, slots, row/read bytes and profile inputs.
+Changed profiles require explicit bootstrap; there is no automatic migration.
+`whole_file_rehashed=false` is explicit: source line/range and full-file fixity
+rely on the trusted bootstrap and cooperating source owner, not protection
+against arbitrary same-UID changes to unobserved bytes. A selected Agent
+transition reuses Claim/slot descriptors without changing their local addresses.
+General Claim mutation/history transport is unsupported by this current-slot
+reader; a historical Claim cannot be silently rebound to its current row.
+
+Complete source-reference dependency closure remains an integration gap:
 an Agent may supply maker/evidence labels and digests without a direct identity
 graph edge. Graph incidence alone cannot prove that no dependent row exists.
 A separate reverse reference route and downstream owner validation are required

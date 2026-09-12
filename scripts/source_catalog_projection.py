@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+import os
 from pathlib import Path
 import re
 import sys
@@ -40,10 +41,15 @@ import source_metadata_transactions as transactions
 
 SCHEMA = 'tos_source_catalog_projection_v2'
 PROFILE = 'tos.source-catalog.public-records.v2'
+CLAIM_PROFILE = 'tos.source-catalog.public-claims.v1'
+SLOT_PROFILE = 'tos.source-catalog.current-jsonl-slots.v1'
 CONTRACT = 'ToS/contracts/source-catalog-projection-v2.schema.json'
 PUBLICATION_PROTOCOL = 'tos_selected_source_metadata_v1'
 IDENTITY = re.compile(r'tos\.([a-z][a-z0-9-]*)\.[a-z0-9]+(?:[.-][a-z0-9]+)*\Z')
 HASH = re.compile(r'[a-f0-9]{64}\Z')
+CLAIM_IDENTITY = re.compile(r'tos\.claim\.[a-z0-9]+(?:[.-][a-z0-9]+)*\Z')
+SLOT_FIELDS = {'claim': 'claim_id', 'provenance_event': 'event_id', 'anchor': 'anchor_id'}
+DELIMITERS = {'lf': b'\n', 'crlf': b'\r\n', 'cr': b'\r', 'eof': b''}
 EXECUTION_REFS = (
     CONTRACT, 'scripts/source_catalog_projection.py', 'scripts/build_source_witness_catalog.py',
     'scripts/source_record_profiles.py', 'scripts/source_metadata_snapshot.py',
@@ -51,6 +57,8 @@ EXECUTION_REFS = (
     'scripts/source_owner_context.py', 'scripts/native_text_binding.py',
     'access/src/tos_access/projection_store.py', 'access/src/tos_access/projection_diff.py',
     'access/src/tos_access/projection_mutation.py',
+    'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py',
+    'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py',
 )
 
 
@@ -70,6 +78,7 @@ class SourceCatalogRequiresBootstrap(SourceCatalogError):
 class CatalogLimits:
     max_records: int = 8192
     max_claims: int = 65536
+    max_source_slots: int = 131072
     max_source_files: int = 16384
     max_input_bytes: int = 64 * 1024 * 1024
     max_read_bytes: int = 256 * 1024 * 1024
@@ -106,6 +115,31 @@ def _source_ref(ref):
                    for part in path.parts)):
         raise SourceCatalogError('source locator is outside exact public metadata')
     return path
+
+
+def _slot_key(kind, identity):
+    if (kind not in SLOT_FIELDS or not isinstance(identity, str) or not 1 <= len(identity) <= 4096
+            or kind == 'claim' and CLAIM_IDENTITY.fullmatch(identity) is None):
+        raise SourceCatalogError('an exact typed source-slot identity is required')
+    return canonical_bytes([kind, identity]).decode('utf-8').rstrip('\n')
+
+
+def _slot_source_ref(ref, kind):
+    path = _source_ref(ref)
+    valid = (path.name in {*legacy.CLAIM_SOURCE_BASENAMES, 'source-claims.jsonl'} if kind == 'claim'
+             else path.match('*provenance*.jsonl') if kind == 'provenance_event'
+             else path.match('*anchor*.jsonl') if kind == 'anchor' else False)
+    if not valid:
+        raise SourceCatalogError('source slot is outside the exact native producer scope')
+    return path
+
+
+def _slot_visibility(payload, kind):
+    if (kind == 'claim' and payload.get('visibility') not in {'public', 'public_metadata_only'}
+            or kind == 'provenance_event' and payload.get('schema_version') == 'tos_provenance_event_v2'
+            and payload.get('rights_and_visibility', {}).get('content_visibility') not in {
+                'tracked_public_metadata', 'public_content', 'public_synthetic'}):
+        raise SourceCatalogError('source slot is not public metadata under its declared visibility contract')
 
 
 def _schema(definition):
@@ -178,6 +212,68 @@ class CatalogRecord:
                 **row['source']}
 
 
+@dataclass(frozen=True)
+class CatalogClaim:
+    row_bytes: bytes
+    catalog_namespace: str
+
+    @property
+    def entry(self):
+        return _strict_json(self.row_bytes)['entry']
+
+    @property
+    def source_slot_key(self):
+        return _strict_json(self.row_bytes)['source_slot_key']
+
+    @property
+    def claim_ref(self):
+        return _strict_json(self.row_bytes)['claim_ref']
+
+    @property
+    def row_sha256(self):
+        return _sha(self.row_bytes)
+
+    @property
+    def provenance(self):
+        return {'schema_version': 'tos_source_claim_catalog_address_v1',
+                'catalog_namespace': self.catalog_namespace, 'profile_id': CLAIM_PROFILE,
+                'claim_key': self.claim_ref['id'], 'row_sha256': self.row_sha256,
+                'source_slot_key': self.source_slot_key, 'claim_ref': self.claim_ref}
+
+
+@dataclass(frozen=True)
+class SourceCatalogSlot:
+    row_bytes: bytes
+    catalog_namespace: str
+
+    @property
+    def kind(self):
+        return _strict_json(self.row_bytes)['kind']
+
+    @property
+    def identity(self):
+        return _strict_json(self.row_bytes)['identity']
+
+    @property
+    def source_slot_key(self):
+        return _strict_json(self.row_bytes)['source_slot_key']
+
+    @property
+    def source(self):
+        return _strict_json(self.row_bytes)['source']
+
+    @property
+    def row_sha256(self):
+        return _sha(self.row_bytes)
+
+    @property
+    def provenance(self):
+        return {'schema_version': 'tos_source_catalog_slot_address_v1',
+                'catalog_namespace': self.catalog_namespace, 'profile_id': SLOT_PROFILE,
+                'source_slot_key': self.source_slot_key, 'row_sha256': self.row_sha256,
+                'kind': self.kind, 'identity': self.identity, **self.source}
+
+
 class SourceCatalogSnapshot:
     """Budgeted addressed access to explicit immutable catalog root bytes.
 
@@ -198,11 +294,19 @@ class SourceCatalogSnapshot:
         manifest = self._reader.manifest
         header = manifest['header']
         _schema('header').validate(header)
-        if (manifest['logical_schema'] != SCHEMA or set(manifest['collections']) != {'records'}
+        collections = {'records', 'claims', 'source_slots'} if header['claims_addressed'] else {'records'}
+        if (manifest['logical_schema'] != SCHEMA or set(manifest['collections']) != collections
                 or manifest['collections']['records']['key_field'] != 'record_id'
                 or manifest['collections']['records']['order_fields'] != ['record_id']
                 or manifest['collections']['records']['root']['count'] != header['record_count']):
             raise SourceCatalogError('catalog collection identity or declared count differs')
+        if header['claims_addressed']:
+            for name, key, count in (('claims', 'claim_id', 'claim_count'),
+                                     ('source_slots', 'source_slot_key', 'source_slot_count')):
+                collection = manifest['collections'][name]
+                if (collection['key_field'] != key or collection['order_fields'] != [key]
+                        or collection['root']['count'] != header[count]):
+                    raise SourceCatalogError('addressed Claim/slot collection binding differs')
         if (not {REGISTRY_REF, CONTRACT_REF} <= header['profile_bindings']['source'].keys()
                 or set(header['profile_bindings']['execution']) != set(EXECUTION_REFS)
                 or header['legacy_baseline']['files'].get(str(legacy.MANIFEST_PATH), {}).get('sha256')
@@ -210,6 +314,8 @@ class SourceCatalogSnapshot:
             raise SourceCatalogError('catalog baseline or required profile bindings are incomplete')
         self._header_bytes = canonical_bytes(header)
         self._row_validator = _schema('row')
+        self._claim_validator = _schema('claimRow') if header['claims_addressed'] else None
+        self._slot_validator = _schema('slotRow') if header['claims_addressed'] else None
 
     @property
     def root_sha256(self):
@@ -223,21 +329,24 @@ class SourceCatalogSnapshot:
     def accounting(self):
         return dict(self._reader.budget.usage)
 
-    def lookup(self, record_id):
-        if not isinstance(record_id, str) or IDENTITY.fullmatch(record_id) is None:
-            raise SourceCatalogError('catalog lookup requires a stable record identity')
-        descriptor = self._reader.manifest['collections']['records']['root']
-        prefix, hashed = '', _sha(record_id.encode('utf-8'))
+    def _lookup(self, collection, key):
+        descriptor = self._reader.manifest['collections'][collection]['root']
+        prefix, hashed = '', _sha(key.encode('utf-8'))
         while descriptor['kind'] == 'index':
             digit = hashed[len(prefix)]
             children = self._reader._children(descriptor, prefix)
             if digit not in children:
                 return None
             descriptor, prefix = children[digit], prefix + digit
-        rows = dict(self._reader._rows('records', descriptor, prefix))
-        if record_id not in rows:
+        rows = dict(self._reader._rows(collection, descriptor, prefix))
+        return rows.get(key)
+
+    def lookup(self, record_id):
+        if not isinstance(record_id, str) or IDENTITY.fullmatch(record_id) is None:
+            raise SourceCatalogError('catalog lookup requires a stable record identity')
+        row = self._lookup('records', record_id)
+        if row is None:
             return None
-        row = rows[record_id]
         self._row_validator.validate(row)
         entry, binding = row['entry'], row['source']
         if (entry['record_id'] != record_id or binding['record_ref']['id'] != record_id
@@ -255,8 +364,241 @@ class SourceCatalogSnapshot:
             raise SourceCatalogError('record is absent from this explicit catalog snapshot')
         return row
 
+    def lookup_claim(self, claim_id):
+        key = _slot_key('claim', claim_id)
+        if self._claim_validator is None:
+            raise SourceCatalogRequiresBootstrap('Claims require an explicit include_claims bootstrap')
+        row = self._lookup('claims', claim_id)
+        if row is None:
+            return None
+        self._claim_validator.validate(row)
+        entry = row['entry']
+        if (row['claim_id'] != claim_id or entry['claim_id'] != claim_id or row['source_slot_key'] != key
+                or row['claim_ref'] != {'id': claim_id, 'version': entry['claim_version'],
+                                        'digest': 'sha256:' + entry['claim_sha256']}):
+            raise SourceCatalogError('addressed Claim identities or exact ref differ')
+        _slot_source_ref(entry['source_claim_file_ref'], 'claim')
+        return CatalogClaim(canonical_bytes(row), self.header['catalog_namespace'])
+
+    def get_claim(self, claim_id):
+        value = self.lookup_claim(claim_id)
+        if value is None:
+            raise SourceCatalogError('Claim is absent from this explicit catalog snapshot')
+        return value
+
+    def lookup_slot(self, kind, identity):
+        key = _slot_key(kind, identity)
+        if self._slot_validator is None:
+            raise SourceCatalogRequiresBootstrap('source slots require an explicit include_claims bootstrap')
+        row = self._lookup('source_slots', key)
+        if row is None:
+            return None
+        self._slot_validator.validate(row)
+        if (row['source_slot_key'], row['kind'], row['identity']) != (key, kind, identity):
+            raise SourceCatalogError('addressed source slot identity differs')
+        binding = row['source']
+        _slot_source_ref(binding['source_ref'], kind)
+        end = binding['byte_offset'] + binding['row_bytes'] + len(DELIMITERS[binding['delimiter']])
+        if (end > binding['file_bytes'] or binding['delimiter'] == 'eof' and end != binding['file_bytes']
+                or (binding['source_line'] == 1) != (binding['byte_offset'] == 0)):
+            raise SourceCatalogError('source slot byte range or first-line binding differs')
+        return SourceCatalogSlot(canonical_bytes(row), self.header['catalog_namespace'])
+
+    def get_slot(self, kind, identity):
+        value = self.lookup_slot(kind, identity)
+        if value is None:
+            raise SourceCatalogError('source slot is absent from this explicit catalog snapshot')
+        return value
+
     def require_current(self):
         raise SourceCatalogError('immutable catalog access does not assert live source or selection currentness')
+
+
+@dataclass(frozen=True)
+class SourceSlotLimits:
+    max_source_files: int = 1024
+    max_read_slots: int = 4096
+    max_read_bytes: int = 16 * 1024 * 1024
+    max_row_bytes: int = 1024 * 1024
+    max_profile_bytes: int = 8 * 1024 * 1024
+    max_profile_files: int = 256
+
+    def __post_init__(self):
+        if any(type(value) is not int or value < 0 for value in vars(self).values()):
+            raise ValueError('source-slot limits must be nonnegative integers')
+
+
+@dataclass(frozen=True)
+class SourceSlotRead:
+    """Exact current source row; full-file hashing remains a bootstrap fact."""
+    raw_bytes: bytes
+    slot: SourceCatalogSlot
+    catalog_claim: CatalogClaim | None = None
+    whole_file_rehashed: bool = False
+    historical_claim_verified: bool = False
+
+    @property
+    def payload(self):
+        return _strict_json(self.raw_bytes)
+
+    @property
+    def provenance(self):
+        return {'source': self.slot.provenance,
+                'catalog': self.catalog_claim.provenance if self.catalog_claim is not None else None,
+                'verification_scope': 'current-source-slot', 'whole_file_rehashed': False,
+                'historical_claim_verified': False}
+
+
+class SourceCatalogSourceReader:
+    """One protected current source snapshot over bootstrap-addressed ranges.
+
+    Byte ranges and original physical line numbers originate in explicit full
+    bootstrap. This reads/hash-checks only the selected row, with file-size,
+    protected-fd metadata and cooperating publication checks before/after.
+    It does not rehash unread bytes or certify the whole file against an
+    uncooperative same-UID editor. Metadata changes observed within a reader
+    fail; they are never silently refreshed. No arbitrary path/range API.
+    """
+    def __init__(self, root: Path, *, catalog_snapshot: SourceCatalogSnapshot,
+                 limits: SourceSlotLimits | None = None):
+        self.root = Path(root)
+        if not self.root.is_absolute() or '..' in self.root.parts:
+            raise ValueError('an absolute public source root is required')
+        if not isinstance(catalog_snapshot, SourceCatalogSnapshot):
+            raise TypeError('an explicit SourceCatalogSnapshot is required')
+        if not catalog_snapshot.header['claims_addressed']:
+            raise SourceCatalogRequiresBootstrap('source reads require explicit include_claims bootstrap')
+        self.catalog_snapshot = catalog_snapshot
+        self.limits = SourceSlotLimits() if limits is None else limits
+        if not isinstance(self.limits, SourceSlotLimits):
+            raise TypeError('source reader limits must be SourceSlotLimits')
+        self._publication = PublicationSnapshot(self.root)
+        self._observed = {}
+        self._profile_observed = {}
+        self._profile_bytes = 0
+        self._read_slots = self._read_bytes = 0
+        self._check_publication()
+        for owner, base in (('source', self.root), ('execution', EXECUTION_ROOT)):
+            for ref, binding in catalog_snapshot.header['profile_bindings'][owner].items():
+                relative = Path(ref)
+                if relative.is_absolute() or relative.as_posix() != ref or '..' in relative.parts or '\\' in ref:
+                    raise SourceCatalogError('catalog profile must bind an exact repository-relative input')
+                if (len(self._profile_observed) >= self.limits.max_profile_files
+                        or self._profile_bytes + binding['bytes'] > self.limits.max_profile_bytes):
+                    raise SourceCatalogBudgetExceeded('source-slot profile input budget exceeded')
+                self._profile_bytes += binding['bytes']
+                path = base / relative
+                descriptor = source._owned_path(path)
+                try:
+                    before = self._signature(os.fstat(descriptor))
+                    raw = os.read(descriptor, binding['bytes'] + 1)
+                    after = self._signature(os.fstat(descriptor))
+                finally:
+                    os.close(descriptor)
+                if (before != after or len(raw) != binding['bytes'] or _sha(raw) != binding['sha256']):
+                    raise SourceCatalogRequiresBootstrap('catalog source/processor profile input changed')
+                self._profile_observed[path] = after
+        self.verify_current()
+
+    @property
+    def accounting(self):
+        return {'source_files': len(self._observed), 'read_slots': self._read_slots,
+                'read_bytes': self._read_bytes, 'whole_files_rehashed': 0,
+                'profile_files': len(self._profile_observed), 'profile_bytes': self._profile_bytes}
+
+    def _check_publication(self):
+        self._publication.verify_current()
+        value = self.catalog_snapshot.header['source_publication']
+        if (value['token'], value['generation']) != (self._publication.token, self._publication.generation):
+            raise source.JournalConflict('addressed source slots bind another source publication')
+
+    @staticmethod
+    def _signature(info):
+        return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_size,
+                info.st_mtime_ns, info.st_ctime_ns)
+
+    def _observe(self, ref, info):
+        value = self._signature(info)
+        if ref in self._observed and self._observed[ref] != value:
+            raise source.JournalConflict('addressed source file changed during inspection')
+        self._observed[ref] = value
+
+    def verify_current(self):
+        self._check_publication()
+        for path, observed in self._profile_observed.items():
+            descriptor = source._owned_path(path)
+            try:
+                if self._signature(os.fstat(descriptor)) != observed:
+                    raise SourceCatalogRequiresBootstrap('catalog source/processor profile input changed')
+            finally:
+                os.close(descriptor)
+        for ref in tuple(self._observed):
+            descriptor = source._owned_path(self.root / ref)
+            try:
+                self._observe(ref, os.fstat(descriptor))
+            finally:
+                os.close(descriptor)
+        self._check_publication()
+
+    def read_slot(self, kind, identity, *, expected_row_sha256=None):
+        self.verify_current()
+        slot = self.catalog_snapshot.get_slot(kind, identity)
+        if expected_row_sha256 is not None and slot.row_sha256 != _digest(expected_row_sha256):
+            raise SourceCatalogError('selected source-slot row digest differs')
+        binding = slot.source
+        ref, offset, length = binding['source_ref'], binding['byte_offset'], binding['row_bytes']
+        delimiter = DELIMITERS[binding['delimiter']]
+        start = max(0, offset - 1)
+        read_length = offset - start + length + len(delimiter)
+        if binding['delimiter'] == 'cr' and offset + length + 1 < binding['file_bytes']:
+            read_length += 1  # Distinguish a bare CR from the first half of CRLF.
+        if (length > self.limits.max_row_bytes or self._read_slots >= self.limits.max_read_slots
+                or self._read_bytes + read_length > self.limits.max_read_bytes
+                or ref not in self._observed and len(self._observed) >= self.limits.max_source_files):
+            raise SourceCatalogBudgetExceeded('addressed source-slot read budget exceeded')
+        self._read_slots += 1
+        self._read_bytes += read_length
+        descriptor = source._owned_path(self.root / _slot_source_ref(ref, kind))
+        try:
+            info = os.fstat(descriptor)
+            if info.st_size != binding['file_bytes']:
+                raise source.JournalConflict('addressed source file length differs from bootstrap binding')
+            self._observe(ref, info)
+            chunk = os.pread(descriptor, read_length, start)
+            self._observe(ref, os.fstat(descriptor))
+        finally:
+            os.close(descriptor)
+        prefix = offset - start
+        raw = chunk[prefix:prefix + length]
+        if (len(chunk) != read_length or prefix and chunk[0:1] not in {b'\n', b'\r'}
+                or prefix and chunk[0:1] == b'\r' and raw.startswith(b'\n')
+                or chunk[prefix + length:prefix + length + len(delimiter)] != delimiter
+                or binding['delimiter'] == 'cr' and chunk[prefix + length + 1:] == b'\n'
+                or _sha(raw) != binding['raw_row_sha256']):
+            raise SourceCatalogError('source-slot boundary, exact row bytes or raw digest differs')
+        payload = _strict_json(raw)
+        if (not isinstance(payload, dict) or payload.get(SLOT_FIELDS[kind]) != identity
+                or _sha(legacy.canonical_json(payload).encode('utf-8')) != binding['canonical_sha256']):
+            raise SourceCatalogError('source-slot canonical payload or identity differs')
+        _slot_visibility(payload, kind)
+        self.verify_current()
+        return SourceSlotRead(raw, slot)
+
+    def read_claim(self, claim_id, *, expected_row_sha256):
+        self.verify_current()
+        row = self.catalog_snapshot.get_claim(claim_id)
+        if row.row_sha256 != _digest(expected_row_sha256):
+            raise SourceCatalogError('selected Claim catalog row digest differs')
+        read = self.read_slot('claim', claim_id)
+        entry, claim, binding = row.entry, read.payload, read.slot.source
+        if (entry != legacy.render_claim_catalog_entry(claim, binding['source_ref'], binding['source_line'],
+                                                      source_schema_ref=entry.get('source_schema_ref'))
+                or row.source_slot_key != read.slot.source_slot_key
+                or row.claim_ref != {'id': claim_id, 'version': claim.get('claim_version'),
+                                     'digest': 'sha256:' + binding['canonical_sha256']}):
+            raise SourceCatalogError('addressed Claim entry and exact source slot differ')
+        self.verify_current()
+        return SourceSlotRead(read.raw_bytes, read.slot, row)
 
 
 @dataclass(frozen=True)
@@ -298,6 +640,81 @@ def _membership(root, profiles, limits):
             if len(refs) > limits.max_source_files:
                 raise SourceCatalogBudgetExceeded('source membership file-count budget exceeded')
     return refs
+
+
+def _source_slot_membership(root, limits):
+    """Exactly the full native event/anchor producers, never arbitrary JSONL."""
+    refs = set()
+    for pattern in ('*provenance*.jsonl', '*anchor*.jsonl'):
+        for path in (root / legacy.SOURCE_ROOT).rglob(pattern):
+            relative = path.relative_to(root)
+            if legacy.CATALOG_ROOT in relative.parents:
+                continue
+            _source_ref(relative.as_posix())
+            refs.add(relative.as_posix())
+            if len(refs) > limits.max_source_files:
+                raise SourceCatalogBudgetExceeded('source-slot membership file-count budget exceeded')
+    return refs
+
+
+def _source_slot_rows(claim_entries, extra_refs, capture, limits):
+    entries = {entry['claim_id']: entry for entry in claim_entries}
+    if len(entries) != len(claim_entries):
+        raise SourceCatalogError('duplicate Claim catalog identity')
+    claim_refs = {entry['source_claim_file_ref'] for entry in claim_entries}
+    slots, claims_seen = {}, set()
+    for ref in sorted(claim_refs | extra_refs):
+        raw = capture.read(ref, 16 * 1024 * 1024)
+        file_sha256 = _sha(raw)
+        chunks = raw.splitlines(keepends=True)
+        # Full native producers use text splitlines. Refuse separators that
+        # cannot be represented as a physical LF/CRLF/CR byte-range boundary.
+        rows = [chunk[:-2] if chunk.endswith(b'\r\n') else chunk[:-1]
+                if chunk.endswith((b'\n', b'\r')) else chunk for chunk in chunks]
+        if [row.decode('utf-8') for row in rows] != raw.decode('utf-8').splitlines():
+            raise SourceCatalogError('source uses unsupported non-JSONL line separators')
+        offset = 0
+        for number, (chunk, row_raw) in enumerate(zip(chunks, rows, strict=True), start=1):
+            start, offset = offset, offset + len(chunk)
+            if not row_raw.strip():
+                continue
+            if len(row_raw) > limits.max_record_bytes:
+                raise SourceCatalogBudgetExceeded('source-slot row byte budget exceeded')
+            payload = _strict_json(row_raw)
+            if not isinstance(payload, dict):
+                raise SourceCatalogError('source slot payload must be a strict JSON object')
+            kinds = (['claim'] if ref in claim_refs else []) + (
+                ['provenance_event'] if Path(ref).match('*provenance*.jsonl') else []) + (
+                ['anchor'] if Path(ref).match('*anchor*.jsonl') else [])
+            for kind in kinds:
+                identity = payload.get(SLOT_FIELDS[kind])
+                if identity is None and kind != 'claim':
+                    continue  # Exact full native event/anchor producer semantics.
+                key = _slot_key(kind, identity)
+                _slot_visibility(payload, kind)
+                if key in slots:
+                    raise SourceCatalogError('duplicate typed source-slot identity')
+                if len(slots) >= limits.max_source_slots:
+                    raise SourceCatalogBudgetExceeded('source-slot count budget exceeded')
+                if kind == 'claim':
+                    entry = entries.get(identity)
+                    if entry is None or entry != legacy.render_claim_catalog_entry(payload, ref, number,
+                            source_schema_ref=entry.get('source_schema_ref')):
+                        raise SourceCatalogError('source slot does not reproduce exact native Claim catalog row')
+                    claims_seen.add(identity)
+                delimiter = next(name for name, value in DELIMITERS.items() if chunk == row_raw + value)
+                slots[key] = {'source_slot_key': key, 'kind': kind, 'identity': identity,
+                    'source': {'source_ref': ref, 'source_line': number, 'byte_offset': start,
+                               'row_bytes': len(row_raw), 'raw_row_sha256': _sha(row_raw),
+                               'delimiter': delimiter, 'file_sha256': file_sha256, 'file_bytes': len(raw),
+                               'canonical_sha256': _sha(legacy.canonical_json(payload).encode('utf-8'))}}
+    if claims_seen != entries.keys():
+        raise SourceCatalogError('source slots do not cover the exact Claim catalog membership')
+    claim_rows = [{'claim_id': identity, 'entry': entry, 'source_slot_key': _slot_key('claim', identity),
+                   'claim_ref': {'id': identity, 'version': entry['claim_version'],
+                                 'digest': 'sha256:' + entry['claim_sha256']}}
+                  for identity, entry in sorted(entries.items())]
+    return claim_rows, [slots[key] for key in sorted(slots)]
 
 
 def _native_mapping(profiles, kind):
@@ -377,6 +794,7 @@ def _profile_bindings(profiles, claim_inputs, capture):
 def bootstrap_source_catalog(root: Path, namespace_path: Path, *, catalog_namespace: str,
                              expected_manifest_sha256: str, expected_publication_token: str | None,
                              work_dir: Path, limits: CatalogLimits | None = None,
+                             include_claims: bool = False,
                              target_part_bytes: int = DEFAULT_PART_BYTES) -> SourceCatalogCandidate:
     """Explicit full baseline verification and staging; never target-root selection.
 
@@ -388,6 +806,8 @@ def bootstrap_source_catalog(root: Path, namespace_path: Path, *, catalog_namesp
     limits = CatalogLimits() if limits is None else limits
     if not isinstance(limits, CatalogLimits):
         raise TypeError('bootstrap limits must be CatalogLimits')
+    if type(include_claims) is not bool:
+        raise TypeError('include_claims must be an explicit boolean')
     _digest(expected_manifest_sha256)
     root, namespace_path = Path(root).absolute(), Path(namespace_path).absolute()
     publication = PublicationSnapshot(root)
@@ -400,6 +820,8 @@ def bootstrap_source_catalog(root: Path, namespace_path: Path, *, catalog_namesp
     execution = _execution_bindings(limits)
     profiles = SourceRecordProfiles(root)
     membership = _membership(root, profiles, limits)
+    extra_slot_refs = _source_slot_membership(root, limits) if include_claims else set()
+    membership |= extra_slot_refs
     for ref in sorted(membership):
         capture.read(ref, 16 * 1024 * 1024 if ref.endswith('.jsonl') else limits.max_record_bytes)
     records = legacy.collect_records(root, profiles=profiles)
@@ -423,6 +845,8 @@ def bootstrap_source_catalog(root: Path, namespace_path: Path, *, catalog_namesp
             rows.append(_verified_row(entry, raw, profiles, capture))
     if len({row['record_id'] for row in rows}) != len(rows):
         raise SourceCatalogError('duplicate stable identity in bootstrap rows')
+    claim_rows, source_slots = (_source_slot_rows(claims, extra_slot_refs, capture, limits)
+                               if include_claims else ([], []))
     native_identity = profiles.native_identity_snapshot(
         read_bytes=lambda path, limit: capture.read(path.relative_to(root).as_posix(), limit))
     native_text = profiles.native_text_snapshot(
@@ -440,16 +864,26 @@ def bootstrap_source_catalog(root: Path, namespace_path: Path, *, catalog_namesp
                                   'native_text_snapshot': native_text},
               'profile_bindings': {'source': profile_bindings, 'execution': execution.observed},
               'membership_basis': 'verified-full-baseline-plus-explicit-transitions',
-              'last_transition': None, 'claims_addressed': False,
+              'last_transition': None, 'claims_addressed': include_claims,
+              **({'claim_count': len(claim_rows), 'source_slot_count': len(source_slots),
+                  'source_slots_profile': SLOT_PROFILE} if include_claims else {}),
               'source_reference_closure_verified': False}
     _schema('header').validate(header)
     row_validator = _schema('row')
     for row in rows:
         row_validator.validate(row)
+    if include_claims:
+        for definition, values in (('claimRow', claim_rows), ('slotRow', source_slots)):
+            validator = _schema(definition)
+            for row in values:
+                validator.validate(row)
+
+    def membership_now():
+        return _membership(root, profiles, limits) | (_source_slot_membership(root, limits) if include_claims else set())
 
     def verify():
         publication.verify_current()
-        if _membership(root, profiles, limits) != membership:
+        if membership_now() != membership:
             raise SourceCatalogError('source membership changed during bootstrap')
         profiles.native_identity_snapshot(
             read_bytes=lambda path, limit: capture.read(path.relative_to(root).as_posix(), limit))
@@ -458,7 +892,7 @@ def bootstrap_source_catalog(root: Path, namespace_path: Path, *, catalog_namesp
         capture.verify()
         execution.verify()
         publication.verify_current()
-        if _membership(root, profiles, limits) != membership:
+        if membership_now() != membership:
             raise SourceCatalogError('source membership changed during bootstrap verification')
 
     verify()
@@ -468,8 +902,11 @@ def bootstrap_source_catalog(root: Path, namespace_path: Path, *, catalog_namesp
     created = []
     with tempfile.TemporaryDirectory(prefix='tos-catalog-bootstrap-', dir=work_dir) as temporary:
         staging_path = Path(temporary) / namespace_path.name
-        write_projection(staging_path, header,
-                         {'records': Collection(rows, 'record_id', ('record_id',))},
+        collections = {'records': Collection(rows, 'record_id', ('record_id',))}
+        if include_claims:
+            collections.update(claims=Collection(claim_rows, 'claim_id', ('claim_id',)),
+                               source_slots=Collection(source_slots, 'source_slot_key', ('source_slot_key',)))
+        write_projection(staging_path, header, collections,
                          target_part_bytes=target_part_bytes, work_dir=Path(temporary))
         staged = ProjectionReader(staging_path, cache_bytes=0)
         root_bytes = staged._root_bytes
@@ -485,6 +922,7 @@ def bootstrap_source_catalog(root: Path, namespace_path: Path, *, catalog_namesp
         verify()
     verification = {'mode': 'explicit-full-bootstrap', 'records_verified': count,
                     'legacy_claims_anchored': len(claims), 'publication_token': publication.token,
+                    'claims_addressed': include_claims, 'source_slots_verified': len(source_slots),
                     'source_input_bytes': capture.input_bytes, 'source_read_bytes': capture.read_bytes,
                     'source_reference_closure_verified': False, 'grants_admission': False}
     return SourceCatalogCandidate(namespace_path, root_bytes, None, tuple(created), canonical_bytes(verification))

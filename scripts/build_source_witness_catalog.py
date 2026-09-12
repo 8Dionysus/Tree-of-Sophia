@@ -135,6 +135,28 @@ def render_native_catalog_entry(payload: dict, relative: str) -> dict:
     }
 
 
+def render_claim_catalog_entry(payload: dict, relative: str, line_number: int, *, source_schema_ref=None) -> dict:
+    """Pure exact legacy Claim catalog row; validation and source reads stay outside."""
+    entry = {
+        'schema_version': 'tos_source_witness_claim_catalog_entry_v1',
+        **({'source_schema_ref': 'ToS/contracts/historical-claim.schema.json'}
+           if payload.get('schema_version') == 'tos_historical_claim_v1' else {}),
+        **({'source_schema_ref': source_schema_ref} if source_schema_ref is not None else {}),
+        **{field: payload.get(field) for field in (
+            'claim_id', 'claim_type', 'assertion_layer', 'subject_ref', 'predicate', 'object',
+            'evidence_refs', 'maker', 'provenance_event_ref', 'epistemic_status', 'review_status',
+            'visibility', 'claim_version')},
+        'review_refs': [review.get('review_id') for review in payload.get('reviews', [])
+                        if isinstance(review, dict) and isinstance(review.get('review_id'), str)],
+        'source_claim_file_ref': relative, 'source_claim_line': line_number,
+        'claim_sha256': hashlib.sha256(canonical_json(payload).encode('utf-8')).hexdigest(),
+    }
+    for field in ('supersedes_claim_ref', 'qualifiers'):
+        if field in payload:
+            entry[field] = payload[field]
+    return entry
+
+
 def artifact_catalog_entry(repo_root: Path, payload: dict, relative: str,
                            validators: dict | None = None) -> dict:
     """Project native physical identity; never manufacture a Corpus record.
@@ -444,44 +466,9 @@ def _collect_claims(repo_root: Path, *, input_digests=None) -> list[dict[str, An
                         "for the tracked claim catalog"
                     )
 
-                digest = hashlib.sha256(
-                    canonical_json(payload).encode("utf-8")
-                ).hexdigest()
-                entry = {
-                    "schema_version": "tos_source_witness_claim_catalog_entry_v1",
-                    **({'source_schema_ref': 'ToS/contracts/historical-claim.schema.json'}
-                       if payload.get('schema_version') == 'tos_historical_claim_v1' else {}),
-                    **({'source_schema_ref': profiles.schema_routes[payload['predicate'], payload['schema_version']]['schema_ref']}
-                       if profiled else {}),
-                    "claim_id": claim_id,
-                    "claim_type": payload.get("claim_type"),
-                    "assertion_layer": payload.get("assertion_layer"),
-                    "subject_ref": payload.get("subject_ref"),
-                    "predicate": payload.get("predicate"),
-                    "object": payload.get("object"),
-                    "evidence_refs": payload.get("evidence_refs"),
-                    "maker": payload.get("maker"),
-                    "provenance_event_ref": payload.get("provenance_event_ref"),
-                    "epistemic_status": payload.get("epistemic_status"),
-                    "review_status": payload.get("review_status"),
-                    "visibility": visibility,
-                    "review_refs": [
-                        review.get("review_id")
-                        for review in payload.get("reviews", [])
-                        if isinstance(review, dict)
-                        and isinstance(review.get("review_id"), str)
-                    ],
-                    "claim_version": payload.get("claim_version"),
-                    "source_claim_file_ref": relative,
-                    "source_claim_line": line_number,
-                    "claim_sha256": digest,
-                }
-                if "supersedes_claim_ref" in payload:
-                    entry["supersedes_claim_ref"] = payload[
-                        "supersedes_claim_ref"
-                    ]
-                if "qualifiers" in payload:
-                    entry["qualifiers"] = payload["qualifiers"]
+                entry = render_claim_catalog_entry(payload, relative, line_number,
+                    source_schema_ref=(profiles.schema_routes[payload['predicate'], payload['schema_version']]['schema_ref']
+                                       if profiled else None))
                 claims.append(entry)
 
     if input_digests is not None and profiles is not None:
