@@ -81,6 +81,28 @@ functions never begin, commit, roll back, close or switch a consumer. SQLite
 itself may abort a transaction on an interrupt or storage failure; callers must
 not continue publication after either result.
 
+`prepared_source_publication.apply_dependency_bound_prepared_delta_transaction`
+implements this joined sequence for the existing source-bound publisher. It
+accepts its ordinary before/after source and catalog inputs and prepared
+`changes`, plus explicit `dependency_changes`, `declaration_profile_sha256`
+and `progress_owner`. `PublicationLimits.max_mutations` covers all writes made
+by the joined call, excluding earlier caller work. After declaration staging,
+it reserves the exact conservative finalizer bound before assigning the
+remaining allowance to semantic/catalog/row/lens/search/root publication.
+It then finalizes the dependency binding and checks the complete write count.
+The smaller dependency or publication whole-file cap applies throughout.
+Other per-lane work/read/output limits remain independent, not a claimed shared
+VM or elapsed-time budget.
+
+The join performs no source observation, discovery, normalization or guard
+callback. The assembler must still recheck its source transition and hold its
+owner locks through the eventual commit. Its receipt separately reports
+`source_dependencies_paired_in_caller_transaction=true` and the existing root
+pairing flag, while retaining false source completeness/transition, target
+closure, semantic acceptance and consumer-switch flags. Empty declaration
+changes are supported for metadata-only source updates; the assembler still
+supplies every affected normalized row and human form.
+
 ## Address integrity and cost
 
 Unique reverse rows have primary key `(kind, ref_key, claim_id)`; `ref_key` is

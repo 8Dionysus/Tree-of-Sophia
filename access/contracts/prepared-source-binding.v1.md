@@ -64,8 +64,11 @@ readback. They retain `source_transition_verified=false`,
 `consumer_switched=false`. A caller-supplied source input object or green
 storage test is not source authority, completeness or semantic admission.
 
-This primitive is one prerequisite for source assembly. It does not implement
-the addressed source-catalog migration, reverse source-reference dependencies,
-Claim/trace normalization closure or end-to-end source command publication.
+This primitive is one prerequisite for source assembly. The
+[source dependency index](prepared-source-dependencies.v1.md) has a joined
+transaction wrapper that pairs explicit Claim declarations with these same
+roots and prepared rows under one mutation budget. Neither layer implements
+the addressed source-catalog migration, Claim/trace normalization closure or
+end-to-end source command publication.
 Focused tests cover concurrent visibility, retained root-file bytes, exact
 predecessor checks, malformed state, combined limits and late-write rollback.

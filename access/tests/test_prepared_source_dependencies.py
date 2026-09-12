@@ -6,6 +6,8 @@ import sqlite3
 import unittest
 
 from tos_access import prepared_source_dependencies as index
+from tos_access import prepared_source_publication as joined
+from tos_access.prepared_publication import PublicationLimits, PreparedChange
 from tos_access.projection_mutation import _json_bytes
 from tos_access.published_read_model import PublishedKnowledgeReadModel, PublishedSnapshotConflict
 import test_prepared_source_binding as fixtures
@@ -67,6 +69,118 @@ class PreparedSourceDependencyTests(unittest.TestCase):
         return index.verify_source_dependency_binding_transaction(self.db, new_binding=binding,
             source_inputs_sha256=source.digest, declaration_profile_sha256=self.profile,
             progress_owner=self.owner, **options)
+
+    def publish_joined(self, graph, after, changes, **options):
+        return joined.apply_dependency_bound_prepared_delta_transaction(self.db,
+            expected_binding=self.binding, before_source_inputs=self.source, after_source_inputs=after,
+            before_inputs=self.f.f.inputs(self.f.f.graph), after_inputs=self.f.f.inputs(graph),
+            changes=[PreparedChange('update', 'node', 'a', graph['nodes'][0])],
+            dependency_changes=changes, declaration_profile_sha256=self.profile,
+            **({'progress_owner': self.owner} | options))
+
+    def test_joined_publication_reserves_finalizer_under_one_exact_mutation_cap(self):
+        old = self.declaration(1)
+        self.attach([old])
+        graph, after = self.f.delta()
+        changes = [index.SourceDependencyChange('update', old.claim_id, old.digest,
+                                               self.declaration(1, version=2))]
+        self.db.execute('BEGIN IMMEDIATE')
+        start = self.db.total_changes
+        measured = self.publish_joined(graph, after, changes)
+        writes = measured['sql_mutations']
+        self.assertEqual(writes, self.db.total_changes - start)
+        self.assertGreater(writes, measured['source_dependency_stage']['sql_mutations']
+                           + measured['source_dependency_finalization']['sql_mutations'])
+        self.db.rollback()
+        self.db.execute('BEGIN IMMEDIATE')
+        with self.assertRaises(ValueError):
+            self.publish_joined(graph, after, changes,
+                                limits=replace(PublicationLimits(), max_mutations=writes - 1))
+        self.db.rollback()
+        self.db.execute('BEGIN IMMEDIATE')
+        start = self.db.total_changes
+        exact = self.publish_joined(graph, after, changes,
+                                   limits=replace(PublicationLimits(), max_mutations=writes))
+        self.assertEqual(exact['sql_mutations'], writes)
+        self.assertEqual(self.db.total_changes - start, writes)
+        self.assertTrue(exact['source_dependencies_paired_in_caller_transaction'])
+        self.assertTrue(exact['roots_paired_in_caller_transaction'])
+        self.assertFalse(exact['source_completeness_verified'])
+        with closing(sqlite3.connect(self.f.f.path)) as independent:
+            self.assertEqual(independent.execute('SELECT digest FROM source_dependency_claims WHERE claim_id=?',
+                                                (old.claim_id,)).fetchone()[0], old.digest)
+            self.assertEqual(independent.execute('SELECT sha256 FROM prepared_source_state').fetchone()[0], self.source.digest)
+        self.db.commit()
+        self.db.execute('BEGIN')
+        self.assertEqual(self.lookup(**self.options(exact['binding'], after))['declarations'][0]['digest'],
+                         changes[0].declaration.digest)
+        self.db.rollback()
+        self.assertEqual(PublishedKnowledgeReadModel(self.f.f.path, exact['binding']).node('a')
+                         ['matches'][0]['display']['title'], 'After')
+
+    def test_joined_finalization_failure_requires_whole_rollback(self):
+        self.attach([self.declaration(1)])
+        graph, after = self.f.delta()
+        tables = ['source_dependency_state', 'source_dependency_pending', 'source_dependency_claims',
+                  'source_dependency_refs', 'source_dependency_heads', 'prepared_source_state',
+                  'prepared_state', 'edge_meta', 'knowledge_nodes', 'knowledge_relations',
+                  'semantic_state', 'catalog_state', 'search_documents']
+        before = {name: self.db.execute('SELECT * FROM ' + name).fetchall() for name in tables}
+        from unittest.mock import patch
+        finalize = joined.verify_source_dependency_binding_transaction
+        calls = []
+        def prior():
+            calls.append(1)
+            return 0
+        self.db.set_progress_handler(prior, 100)
+        owner = index.ProgressHandlerOwner(prior, 100)
+        def refuse_final(*args, **kwargs):
+            def authorizer(action, table, *_args):
+                return sqlite3.SQLITE_DENY if action == sqlite3.SQLITE_UPDATE and table == 'source_dependency_state' else sqlite3.SQLITE_OK
+            self.db.set_authorizer(authorizer)
+            try:
+                return finalize(*args, **kwargs)
+            finally:
+                self.db.set_authorizer(None)
+        self.db.execute('BEGIN IMMEDIATE')
+        self.db.execute('CREATE TABLE caller_sentinel(value TEXT)')
+        with patch.object(joined, 'verify_source_dependency_binding_transaction', refuse_final), \
+             self.assertRaises(sqlite3.DatabaseError):
+            self.publish_joined(graph, after, [], progress_owner=owner)
+        self.assertTrue(self.db.in_transaction)
+        previous = len(calls)
+        self.db.execute('WITH RECURSIVE x(n) AS (VALUES(1) UNION ALL SELECT n+1 FROM x WHERE n<100) SELECT sum(n) FROM x').fetchone()
+        self.assertGreater(len(calls), previous)
+        self.db.rollback()
+        self.db.set_progress_handler(None, 0)
+        for name in tables:
+            self.assertEqual(self.db.execute('SELECT * FROM ' + name).fetchall(), before[name], name)
+        self.assertIsNone(self.db.execute("SELECT name FROM sqlite_master WHERE name='caller_sentinel'").fetchone())
+        self.db.execute('BEGIN IMMEDIATE')
+        self.publish_joined(graph, after, [])
+        self.db.commit()
+
+    def test_joined_empty_declaration_update_retains_caller_handler_and_digest(self):
+        declaration = self.declaration(1)
+        self.attach([declaration])
+        graph, after = self.f.delta()
+        calls = []
+        def prior():
+            calls.append(1)
+            return 0
+        self.db.set_progress_handler(prior, 100)
+        self.db.execute('BEGIN IMMEDIATE')
+        result = self.publish_joined(graph, after, [], progress_owner=index.ProgressHandlerOwner(prior, 100))
+        self.assertEqual(result['source_dependency_stage']['sql_mutations'], 1)
+        self.assertEqual(result['source_dependency_finalization']['sql_mutations'], 1)
+        previous = len(calls)
+        self.db.execute('WITH RECURSIVE x(n) AS (VALUES(1) UNION ALL SELECT n+1 FROM x WHERE n<100) SELECT sum(n) FROM x').fetchone()
+        self.assertGreater(len(calls), previous)
+        self.db.commit()
+        self.db.set_progress_handler(None, 0)
+        self.db.execute('BEGIN')
+        self.assertEqual(self.lookup(**self.options(result['binding'], after))['declarations'][0]['digest'], declaration.digest)
+        self.db.rollback()
 
     def test_bootstrap_exact_addresses_complete_declarations_and_unchanged_publication(self):
         declarations = [self.declaration(2), self.declaration(0, refs=(('unresolved', None),)), self.declaration(1)]
