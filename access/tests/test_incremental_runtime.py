@@ -62,6 +62,97 @@ class IncrementalRuntimeTests(unittest.TestCase):
             self.assertNotEqual(baseline, changed)
             self.assertNotEqual(baseline, metadata_changed)
 
+    def test_explicit_producer_carrier_set_preserves_legacy_parity_and_bindings(self):
+        import build_runtime as builder
+        from test_access_contract import write_fixture
+        from tos_access.core import ToSAccessCore
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture(root)
+            with patch.object(builder, "REPO_ROOT", root):
+                core = ToSAccessCore.discover(root)
+                legacy_revision = builder.data_revision(core)
+                captured = builder.ProducerCarrierSet.from_core(core)
+                self.assertEqual(legacy_revision, builder.data_revision(core, captured))
+
+                legacy_sql = root / "legacy" / "read-model.sql"
+                captured_sql = root / "captured" / "read-model.sql"
+                builder.build_read_model_sql(core, legacy_sql, legacy_revision)
+                builder.build_read_model_sql(core, captured_sql, legacy_revision, captured)
+                self.assertEqual(legacy_sql.read_bytes(), captured_sql.read_bytes())
+
+                # Physical scratch locations do not participate in the
+                # revision; their explicit logical labels and bytes do.
+                scratch = root / "external-scratch"
+                external_paths = []
+                for index, (label, path) in enumerate(captured.carrier_paths):
+                    destination = scratch / f"carrier-{index}.json"
+                    if path.is_file():
+                        destination.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(path, destination)
+                    external_paths.append((label, destination))
+                external = builder.ProducerCarrierSet.admit(
+                    corpus=captured.corpus,
+                    philosophy=captured.philosophy,
+                    knowledge=captured.knowledge,
+                    knowledge_catalog=captured.knowledge_catalog,
+                    evidence=captured.evidence,
+                    philosophy_audit=captured.philosophy_audit,
+                    word_analysis_capability=captured.word_analysis_capability,
+                    carrier_paths=external_paths,
+                    logical_bindings={"source_revision": captured.source_revision},
+                )
+                relocated_paths = []
+                for index, (_label, path) in enumerate(external_paths):
+                    relocated_path = root / "external-scratch-relocated" / f"carrier-{index}.json"
+                    if path.is_file():
+                        relocated_path.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(path, relocated_path)
+                    relocated_paths.append((external_paths[index][0], relocated_path))
+                relocated = builder.ProducerCarrierSet.admit(
+                    corpus=captured.corpus,
+                    philosophy=captured.philosophy,
+                    knowledge=captured.knowledge,
+                    knowledge_catalog=captured.knowledge_catalog,
+                    evidence=captured.evidence,
+                    philosophy_audit=captured.philosophy_audit,
+                    word_analysis_capability=captured.word_analysis_capability,
+                    carrier_paths=relocated_paths,
+                    logical_bindings={"source_revision": captured.source_revision},
+                )
+                self.assertNotEqual(legacy_revision, builder.data_revision(core, external))
+                self.assertEqual(builder.data_revision(core, external), builder.data_revision(core, relocated))
+
+                bound = builder.ProducerCarrierSet.from_core(
+                    core,
+                    logical_bindings={
+                        "source_revision": captured.source_revision,
+                        "source-vector-root": "root-a",
+                    },
+                )
+                changed_binding = builder.ProducerCarrierSet.from_core(
+                    core,
+                    logical_bindings={
+                        "source_revision": captured.source_revision,
+                        "source-vector-root": "root-b",
+                    },
+                )
+                self.assertNotEqual(
+                    builder.data_revision(core, bound),
+                    builder.data_revision(core, changed_binding),
+                )
+
+                mismatch = captured.knowledge_catalog["source_revision"]
+                target = root / "mismatch" / "read-model.sql"
+                captured.knowledge_catalog["source_revision"] = "b" * 64
+                try:
+                    with self.assertRaisesRegex(ValueError, "source revisions do not match"):
+                        builder.build_read_model_sql(core, target, legacy_revision, captured)
+                    self.assertFalse(target.exists())
+                finally:
+                    captured.knowledge_catalog["source_revision"] = mismatch
+
     def test_cache_budget_cli_and_real_builder_admission(self):
         import build_runtime as builder
         from test_access_contract import write_fixture

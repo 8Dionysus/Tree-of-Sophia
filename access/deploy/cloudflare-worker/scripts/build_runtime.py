@@ -10,6 +10,7 @@ import os
 import shutil
 import sqlite3
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -53,6 +54,14 @@ READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v9"
 READ_MODEL_CONTENT_VERSION = "tos_cloudflare_edge_content_v2"
 SEARCH_READ_MODEL_SCHEMA_VERSION = "tos_knowledge_search_read_model_v3"
 SEARCH_READ_MODEL_MAX_POSTINGS = 10_000_000
+PRODUCER_LOGICAL_BINDINGS_VERSION = "tos_producer_logical_bindings_v1"
+MAX_PRODUCER_LOGICAL_BINDINGS = 128
+MAX_PRODUCER_LOGICAL_BINDING_BYTES = 1_048_576
+MAX_PRODUCER_LOGICAL_BINDING_NAME_BYTES = 4_096
+MAX_PRODUCER_LOGICAL_BINDING_VALUE_BYTES = 65_536
+MAX_PRODUCER_CARRIER_PATHS = 128
+MAX_PRODUCER_CARRIER_LABEL_BYTES = 4_096
+MAX_PRODUCER_CARRIER_PATH_BYTES = 4_096
 
 
 def compact_json(value: Any) -> str:
@@ -105,6 +114,250 @@ def item_identity(item: dict[str, Any], fallback: str) -> str:
         if isinstance(value, str) and value:
             return value
     return fallback
+
+
+def _legacy_carrier_paths(core: ToSAccessCore) -> tuple[tuple[str, Path], ...]:
+    """Return the historical carrier order with producer-relative labels.
+
+    This compatibility path is intentionally limited to carriers underneath
+    the implementation root.  An owner-supplied scratch carrier set must use
+    explicit logical labels, so it never needs to derive a label with
+    ``Path.relative_to(REPO_ROOT)``.
+    """
+    paths = (
+        core.index_path,
+        core.philosophy_graph_projection_path,
+        core.bibliographic_graph_path,
+        core.entity_type_registry_path,
+        core.relation_type_registry_path,
+        core.evidence_projection_path,
+        core.philosophy_post_planting_audit_path,
+        *sorted((core.tos_root / "ToS/source-witnesses/access-requests/public-ledger").glob("*.access-request.json")),
+    )
+    result: list[tuple[str, Path]] = []
+    for path in paths:
+        path = Path(path).expanduser()
+        try:
+            label = path.relative_to(REPO_ROOT).as_posix()
+        except ValueError as error:
+            raise ValueError(
+                "legacy core carriers must be under the producer implementation root; "
+                "use ProducerCarrierSet.admit for external scratch paths"
+            ) from error
+        result.append((label, path))
+    return tuple(result)
+
+
+def _logical_bindings(value: Mapping[str, str] | Iterable[tuple[str, str]] | None) -> tuple[tuple[str, str], ...]:
+    """Canonicalize owner-supplied logical source bindings without I/O."""
+    if value is None:
+        return ()
+    try:
+        items = iter(value.items() if isinstance(value, Mapping) else value)
+    except TypeError as error:
+        raise ValueError("producer logical source bindings must be iterable") from error
+    result: list[tuple[str, str]] = []
+    names: set[str] = set()
+    for item in items:
+        if len(result) >= MAX_PRODUCER_LOGICAL_BINDINGS:
+            raise ValueError("producer logical source bindings exceed their count budget")
+        if not isinstance(item, (tuple, list)) or len(item) != 2:
+            raise ValueError("producer logical source bindings must be name/value pairs")
+        name, binding = item
+        if (type(name) is not str or not name or "\x00" in name
+                or len(name.encode("utf-8")) > MAX_PRODUCER_LOGICAL_BINDING_NAME_BYTES
+                or type(binding) is not str or not binding or "\x00" in binding
+                or len(binding.encode("utf-8")) > MAX_PRODUCER_LOGICAL_BINDING_VALUE_BYTES):
+            raise ValueError("producer logical source bindings must contain non-empty strings")
+        if name in names:
+            raise ValueError("duplicate producer logical source binding: " + name)
+        names.add(name)
+        result.append((name, binding))
+    result.sort()
+    encoded = compact_json(result).encode("utf-8")
+    if len(encoded) > MAX_PRODUCER_LOGICAL_BINDING_BYTES:
+        raise ValueError("producer logical source bindings exceed their byte budget")
+    return tuple(result)
+
+
+def _producer_carrier_paths(value: Mapping[str, str | Path] | Iterable[tuple[str, str | Path]]) -> tuple[tuple[str, Path], ...]:
+    """Validate explicit logical labels and physical paths for a carrier set."""
+    try:
+        items = iter(value.items() if isinstance(value, Mapping) else value)
+    except TypeError as error:
+        raise ValueError("producer carrier paths must be iterable") from error
+    result: list[tuple[str, Path]] = []
+    labels: set[str] = set()
+    for item in items:
+        if len(result) >= MAX_PRODUCER_CARRIER_PATHS:
+            raise ValueError("producer carrier paths exceed their count budget")
+        if not isinstance(item, (tuple, list)) or len(item) != 2:
+            raise ValueError("producer carrier paths must be name/path pairs")
+        label, raw_path = item
+        if (type(label) is not str or not label or "\x00" in label
+                or len(label.encode("utf-8")) > MAX_PRODUCER_CARRIER_LABEL_BYTES
+                or label in labels):
+            raise ValueError("producer carrier paths require unique logical labels")
+        try:
+            path_text = os.fspath(raw_path)
+        except TypeError as error:
+            raise ValueError("producer carrier paths must be filesystem paths") from error
+        if (type(path_text) is not str or "\x00" in path_text
+                or len(path_text.encode("utf-8")) > MAX_PRODUCER_CARRIER_PATH_BYTES):
+            raise ValueError("producer carrier paths must be absolute and bounded")
+        path = Path(path_text).expanduser()
+        if (not path.is_absolute() or ".." in path.parts
+                or len(path.as_posix().encode("utf-8")) > MAX_PRODUCER_CARRIER_PATH_BYTES):
+            raise ValueError("producer carrier paths must be absolute and bounded")
+        if path.is_symlink():
+            raise ValueError("producer carrier paths must not be symlinks")
+        labels.add(label)
+        result.append((label, path))
+    return tuple(result)
+
+
+class ProducerCarrierSet:
+    """One owner-captured producer input snapshot and its logical bindings.
+
+    ``knowledge`` and ``knowledge_catalog`` are captured as one pair.  The
+    class does not assemble or semantically admit a source vector: an owner
+    binder must supply already verified carriers whose graph/catalog both
+    carry the same source revision.  No method writes that revision onto a
+    stale graph.  The handle intentionally avoids copying giant carriers;
+    nested values remain caller-owned and must be kept read-only for the
+    lifetime of the producer call.  Physical paths are deliberately separate
+    from logical labels, allowing frozen carriers in an external scratch directory without
+    changing producer-root normalization or leaking scratch paths into the
+    revision.
+    """
+
+    __slots__ = (
+        "corpus", "philosophy", "knowledge", "knowledge_catalog", "evidence",
+        "philosophy_audit", "word_analysis_capability", "carrier_paths", "logical_bindings",
+    )
+
+    def __init__(
+        self,
+        *,
+        corpus: dict[str, Any],
+        philosophy: dict[str, Any],
+        knowledge: dict[str, Any],
+        knowledge_catalog: dict[str, Any],
+        evidence: dict[str, Any],
+        philosophy_audit: dict[str, Any],
+        word_analysis_capability: dict[str, Any],
+        carrier_paths: Mapping[str, str | Path] | Iterable[tuple[str, str | Path]],
+        logical_bindings: Mapping[str, str] | Iterable[tuple[str, str]] = (),
+    ) -> None:
+        self.carrier_paths = _producer_carrier_paths(carrier_paths)
+        self.logical_bindings = _logical_bindings(logical_bindings)
+        self.corpus = corpus
+        self.philosophy = philosophy
+        self.knowledge = knowledge
+        self.knowledge_catalog = knowledge_catalog
+        self.evidence = evidence
+        self.philosophy_audit = philosophy_audit
+        self.word_analysis_capability = word_analysis_capability
+        self.validate()
+
+    @property
+    def source_revision(self) -> str:
+        return self.knowledge["source_revision"]
+
+    def validate(self) -> "ProducerCarrierSet":
+        # The handle deliberately keeps caller-owned nested values instead of
+        # copying potentially giant carriers.  Re-validate the bounded tuple
+        # surfaces as well, so accidental top-level reassignment or nested
+        # mutation cannot bypass the producer's admission checks between
+        # capture and SQL generation.
+        normalized_paths = _producer_carrier_paths(self.carrier_paths)
+        if normalized_paths != self.carrier_paths:
+            raise ValueError("producer carrier handle paths were mutated")
+        normalized_bindings = _logical_bindings(self.logical_bindings)
+        if normalized_bindings != self.logical_bindings:
+            raise ValueError("producer logical source bindings were mutated")
+        for name in (
+            "corpus",
+            "philosophy",
+            "knowledge",
+            "knowledge_catalog",
+            "evidence",
+            "philosophy_audit",
+            "word_analysis_capability",
+        ):
+            if not isinstance(getattr(self, name), dict):
+                raise ValueError(f"producer {name} carrier must be an object")
+        source_revision = self.knowledge.get("source_revision")
+        if type(source_revision) is not str or not source_revision:
+            raise ValueError("producer graph requires an exact source revision")
+        if self.knowledge_catalog.get("schema") != "tos_knowledge_catalog_v1":
+            raise ValueError("producer catalog carrier has an invalid schema")
+        if self.knowledge_catalog.get("source_revision") != source_revision:
+            raise ValueError("producer graph/catalog source revisions do not match")
+        if self.logical_bindings:
+            bindings = dict(self.logical_bindings)
+            if bindings.get("source_revision") != source_revision:
+                raise ValueError("producer logical source binding does not match graph source revision")
+        return self
+
+    @classmethod
+    def admit(
+        cls,
+        *,
+        corpus: dict[str, Any],
+        philosophy: dict[str, Any],
+        knowledge: dict[str, Any],
+        knowledge_catalog: dict[str, Any],
+        evidence: dict[str, Any],
+        philosophy_audit: dict[str, Any],
+        word_analysis_capability: dict[str, Any],
+        carrier_paths: Mapping[str, str | Path] | Iterable[tuple[str, str | Path]],
+        logical_bindings: Mapping[str, str] | Iterable[tuple[str, str]] | None = None,
+    ) -> "ProducerCarrierSet":
+        """Admit a caller-owned snapshot with an explicit source binding."""
+        normalized_bindings = _logical_bindings(logical_bindings)
+        if not normalized_bindings:
+            raise ValueError("explicit producer source binding required")
+        return cls(
+            corpus=corpus,
+            philosophy=philosophy,
+            knowledge=knowledge,
+            knowledge_catalog=knowledge_catalog,
+            evidence=evidence,
+            philosophy_audit=philosophy_audit,
+            word_analysis_capability=word_analysis_capability,
+            carrier_paths=carrier_paths,
+            logical_bindings=normalized_bindings,
+        )
+
+    @classmethod
+    def from_core(
+        cls,
+        core: ToSAccessCore,
+        *,
+        carrier_paths: Mapping[str, str | Path] | Iterable[tuple[str, str | Path]] | None = None,
+        logical_bindings: Mapping[str, str] | Iterable[tuple[str, str]] | None = None,
+    ) -> "ProducerCarrierSet":
+        """Capture one graph/catalog pair for compatibility with legacy callers."""
+        snapshot = core.knowledge_snapshot()
+        values = dict(
+            corpus=core.index(),
+            philosophy=core.philosophy_projection(),
+            knowledge=snapshot["graph"],
+            knowledge_catalog=snapshot["catalog"],
+            evidence=core.evidence_projection(),
+            philosophy_audit=core.philosophy_audit_payload() if core.philosophy_audit_exists() else {},
+            word_analysis_capability=core.zarathustra_word_analysis_public_capability(),
+            carrier_paths=_legacy_carrier_paths(core) if carrier_paths is None else carrier_paths,
+            logical_bindings=logical_bindings,
+        )
+        # Keep the historical no-argument path source-compatible.  A caller
+        # replacing physical carriers must use the explicit admission route,
+        # which requires a matching logical source binding and cannot silently
+        # turn an external scratch tree into a legacy producer input.
+        if carrier_paths is not None:
+            return cls.admit(**values)
+        return cls(**values)
 
 
 def write_json(root: Path, relative: str, value: Any) -> None:
@@ -465,15 +718,26 @@ class PostingStatsStore:
             self.path.unlink(missing_ok=True)
 
 
-def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> dict[str, Any]:
-    philosophy = core.philosophy_projection()
-    corpus = core.index()
-    knowledge_snapshot = core.knowledge_snapshot()
-    knowledge = knowledge_snapshot["graph"]
-    knowledge_catalog = knowledge_snapshot["catalog"]
-    evidence = core.evidence_projection()
-    audit = core.philosophy_audit_payload() if core.philosophy_audit_exists() else {}
-    word_analysis_capability = core.zarathustra_word_analysis_public_capability()
+def build_read_model_sql(
+    core: ToSAccessCore,
+    target: Path,
+    revision: str,
+    carrier_set: ProducerCarrierSet | None = None,
+) -> dict[str, Any]:
+    # Capture/admit the complete pair before creating target-side SQL or row
+    # index files.  A supplied set is the only route for external frozen
+    # carriers; legacy callers retain the existing core discovery behavior.
+    carriers = ProducerCarrierSet.from_core(core) if carrier_set is None else carrier_set
+    if not isinstance(carriers, ProducerCarrierSet):
+        raise TypeError("carrier_set must be a ProducerCarrierSet")
+    carriers.validate()
+    philosophy = carriers.philosophy
+    corpus = carriers.corpus
+    knowledge = carriers.knowledge
+    knowledge_catalog = carriers.knowledge_catalog
+    evidence = carriers.evidence
+    audit = carriers.philosophy_audit
+    word_analysis_capability = carriers.word_analysis_capability
     if word_analysis_capability.get("available") is True:
         raise RuntimeError(
             "the local Zarathustra word-analysis provider is available but has no Cloudflare edge adapter"
@@ -1092,15 +1356,32 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
     }
 
 
-def data_revision(core: ToSAccessCore) -> str:
+def data_revision(core: ToSAccessCore, carrier_set: ProducerCarrierSet | None = None) -> str:
     digest = hashlib.sha256()
     digest.update(READ_MODEL_SCHEMA_VERSION.encode("utf-8"))
     digest.update(READ_MODEL_CONTENT_VERSION.encode("utf-8"))
     digest.update(SEARCH_READ_MODEL_SCHEMA_VERSION.encode("utf-8"))
     digest.update(b"\0")
-    knowledge_snapshot = core.knowledge_snapshot()
-    knowledge = knowledge_snapshot["graph"]
-    knowledge_catalog = knowledge_snapshot["catalog"]
+    if carrier_set is None:
+        knowledge_snapshot = core.knowledge_snapshot()
+        knowledge = knowledge_snapshot["graph"]
+        knowledge_catalog = knowledge_snapshot["catalog"]
+        capability = core.zarathustra_word_analysis_public_capability()
+        carrier_paths = _legacy_carrier_paths(core)
+        logical_bindings = ()
+    else:
+        if not isinstance(carrier_set, ProducerCarrierSet):
+            raise TypeError("carrier_set must be a ProducerCarrierSet")
+        carrier_set.validate()
+        knowledge = carrier_set.knowledge
+        knowledge_catalog = carrier_set.knowledge_catalog
+        capability = carrier_set.word_analysis_capability
+        carrier_paths = carrier_set.carrier_paths
+        logical_bindings = carrier_set.logical_bindings
+    if (not isinstance(knowledge, dict) or not isinstance(knowledge_catalog, dict)
+            or knowledge_catalog.get("schema") != "tos_knowledge_catalog_v1"
+            or knowledge_catalog.get("source_revision") != knowledge.get("source_revision")):
+        raise ValueError("producer graph/catalog source revisions do not match")
     digest.update(str(knowledge.get("source_revision") or "").encode("utf-8"))
     digest.update(b"\0")
     # Query bindings are serving metadata, not row content. A code-only
@@ -1130,21 +1411,18 @@ def data_revision(core: ToSAccessCore) -> str:
     # emitted bytes so catalog-only changes cannot be skipped by deployment.
     digest.update(compact_json(normalize_paths(knowledge_catalog, REPO_ROOT)).encode("utf-8"))
     digest.update(b"\0")
-    digest.update(
-        compact_json(normalize_paths(core.zarathustra_word_analysis_public_capability(), REPO_ROOT)).encode("utf-8")
-    )
+    digest.update(compact_json(normalize_paths(capability, REPO_ROOT)).encode("utf-8"))
     digest.update(b"\0")
-    for path in (
-        core.index_path,
-        core.philosophy_graph_projection_path,
-        core.bibliographic_graph_path,
-        core.entity_type_registry_path,
-        core.relation_type_registry_path,
-        core.evidence_projection_path,
-        core.philosophy_post_planting_audit_path,
-        *sorted((core.tos_root / "ToS/source-witnesses/access-requests/public-ledger").glob("*.access-request.json")),
-    ):
-        digest.update(path.relative_to(REPO_ROOT).as_posix().encode("utf-8"))
+    if logical_bindings:
+        digest.update(PRODUCER_LOGICAL_BINDINGS_VERSION.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(compact_json(list(logical_bindings)).encode("utf-8"))
+        digest.update(b"\0")
+    for label, path in carrier_paths:
+        # Explicit ProducerCarrierSet paths may be outside REPO_ROOT.  Their
+        # stable logical label, never a physical scratch path, is the revision
+        # identity and the bytes remain the source of the content binding.
+        digest.update(label.encode("utf-8"))
         digest.update(b"\0")
         if path.is_file():
             digest.update(path.read_bytes())
