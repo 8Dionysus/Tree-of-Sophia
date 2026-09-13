@@ -753,6 +753,10 @@ class AgentCorrectionPublication:
             'is_semantic_acceptance': False}
         self._result_raw = _json_bytes(result, captured.limits.max_bytes)
         self._applied_total_changes = db.total_changes
+        # DDL does not increment total_changes. Retain SQLite's schema cookie
+        # as well so a later DROP INDEX or CREATE TRIGGER cannot slip through
+        # the guarded commit after all publication lanes were verified.
+        self._applied_schema_version = db.execute('PRAGMA main.schema_version').fetchone()
         return self.result
 
     @property
@@ -765,6 +769,8 @@ class AgentCorrectionPublication:
             raise ValueError('exact successfully applied caller transaction required')
         if db.total_changes != self._applied_total_changes:
             raise ValueError('caller wrote after verified publication; complete rollback required')
+        if db.execute('PRAGMA main.schema_version').fetchone() != self._applied_schema_version:
+            raise ValueError('schema changed after verified publication; complete rollback required')
         result = self.result
         paired = read_prepared_source_inputs_transaction(db, expected_binding=result['binding'])
         if paired.digest != result['source_inputs_sha256']:

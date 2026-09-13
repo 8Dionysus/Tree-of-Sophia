@@ -240,6 +240,22 @@ class SourceAgentPublicationTests(unittest.TestCase):
         from source_metadata_snapshot import PublicationSnapshot
         self.assertEqual(PublicationSnapshot(self.root).token, self.source.value()['source_publication'])
 
+    def test_late_schema_change_refuses_guarded_commit_and_preserves_predecessor(self):
+        captured = self.capture()
+        transaction, token = self.helper.fixture.revise()
+        before = list(self.db.iterdump())
+        with self.assertRaisesRegex(ValueError, 'schema changed after verified publication'):
+            with publication.agent_correction_publication(captured, transaction_id=transaction,
+                    expected_source_token=token, progress_owner=self.owner) as candidate:
+                self.db.execute('BEGIN IMMEDIATE')
+                candidate.apply_transaction(self.db)
+                mutations = self.db.total_changes
+                self.db.execute('DROP INDEX knowledge_relations_to_seek')
+                self.assertEqual(self.db.total_changes, mutations)
+                candidate.commit_transaction(self.db)
+        self.db.rollback()
+        self.assertEqual(list(self.db.iterdump()), before)
+
     def test_limits_and_profile_mismatch_refuse_capture_without_source_revision(self):
         with self.assertRaisesRegex(ValueError, 'fanout budget'):
             self.capture(limits=publication.AgentPublicationLimits(max_claims=1))

@@ -100,8 +100,11 @@ source writer lock and keeps it until scope exit. The caller begins a SQLite
 transaction, calls `apply_transaction`, then explicitly calls
 `commit_transaction` inside that scope. The latter rechecks actual source
 readers and retained transaction evidence immediately before committing.
-The caller must not execute additional DML after `apply_transaction`; guarded
-commit refuses a changed SQLite mutation counter. Returned receipt dictionaries
+The caller must not execute additional DML or DDL after `apply_transaction`;
+guarded commit refuses a changed SQLite mutation counter or main schema version.
+The schema check covers ordinary index/table/trigger changes, which do not
+increment the mutation counter; it is not a sandbox for hostile SQL callers.
+Returned receipt dictionaries
 are detached observations, not mutable commit authority. Private context tables
 must retain their exact declared schema without additional triggers.
 
