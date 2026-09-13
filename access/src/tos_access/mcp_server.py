@@ -253,7 +253,11 @@ def build_server(
 
     @mcp.tool()
     def tos_source_read(handle: dict[str, Any], representation: str = "record") -> dict[str, Any]:
-        """Read one exact public metadata, Claim, or source-slot record; ranges and text payloads are unsupported."""
+        """Read an exact record, or native_public_unit through an explicitly selected native owner.
+
+        Native text requires its own current public rights/closure checks;
+        the metadata handle is not permission. Caller paths/ranges are refused.
+        """
         return current_state().source_read({"handle": handle, "representation": representation})
 
     @mcp.tool()

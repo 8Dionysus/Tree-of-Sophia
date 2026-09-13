@@ -1089,7 +1089,7 @@ class ToSAccessCore:
                 "writes_to_source": False,
                 "grants_current_use": False,
                 "source_owner": "Tree-of-Sophia/source-witnesses",
-                "note": "The contract transports owner-issued exact public metadata records; it does not authorize arbitrary source access, revalidate usage rights, or grant current use.",
+                "note": "Exact metadata selection grants no text access. An explicitly selected native owner separately checks recorded public rights for native_public_unit; no arbitrary source access, new rights or current-use grant follows.",
             },
         }
 

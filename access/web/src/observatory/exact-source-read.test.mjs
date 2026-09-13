@@ -29,7 +29,8 @@ function harness(data=fixture(),decorate=packet=>new Response(JSON.stringify(pac
   const calls=[];
   const client=new KnowledgeClient({fetcher:async(path,options)=>{
     calls.push({path,body:options.body?JSON.parse(options.body):null,signal:options.signal});
-    return decorate(path.startsWith('/api/knowledge/')?data.inspection:path.endsWith('/handles')?data.discovery:data.read,path);
+    return decorate(path.startsWith('/api/knowledge/')?data.inspection:path.endsWith('/handles')?data.discovery:
+      JSON.parse(options.body).representation==='native_public_unit'?data.unitRead:data.read,path);
   }});
   return {client,calls,data};
 }
@@ -43,6 +44,32 @@ test('exact card inspection supplies the only source target; three bounded read-
   assert.deepEqual(calls[1].body,{target:data.discovery.target});
   assert.deepEqual(calls[2].body,{handle:data.discovery.handle,representation:'record'});
   assert.deepEqual(result.selection,selection);assert.equal(result.access.rights_revalidated,false);
+});
+
+test('native text is a separate gated request; bind exact IDs, span offsets and UTF-8 digest without normalizing',async()=>{
+  const data=fixture(),binding={unit_id:'tos.text-unit.fixture',unit_version:1,
+    segmentation_id:'tos.text-segmentation.fixture',segmentation_version:1,packet_id:'tos.packet.fixture',packet_version:1,
+    packet_sha256:'1'.repeat(64),text_layer:{layer_id:'tos.text-layer.fixture',layer_version:1,record_sha256:'2'.repeat(64)},
+    ordered_anchor_refs:['tos.anchor.fixture']};
+  data.read.record.native_text_binding=binding;
+  const text='cafe\u0301',sha=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text))),b=>b.toString(16).padStart(2,'0')).join('');
+  const unit={schema_version:'tos_native_public_unit_return_v1',summary:{unit_id:binding.unit_id,unit_version:1,
+    segmentation_id:binding.segmentation_id,segmentation_version:1,layer_id:binding.text_layer.layer_id,layer_version:1,
+    content_verified:true,public_content_available:true,assessment_applied:false},packet:{id:binding.packet_id,version:1,sha256:binding.packet_sha256},
+    layer_record_sha256:binding.text_layer.record_sha256,representation_sha256:'3'.repeat(64),closure_fingerprint:'sha256:'+'4'.repeat(64),
+    spans:[{anchor_ref:'tos.anchor.fixture',selector:{type:'text_position',position_unit:'unicode_code_point',interval:'half_open',start:3,end:8},exact_sha256:sha,text}]};
+  data.unitRead={...data.read,schema_version:'tos_source_native_unit_read_result_v1',record:null,native_unit:unit,
+    text_access:{scope:'public-native-unit',recorded_rights_verified:true,conditional_rights:false,grants_current_use:false}};
+  const options={representation:'native_public_unit'},h=harness(data);
+  assert.equal((await readExactSource(h.client,selection,options)).native_unit.spans[0].text,text);
+  assert.equal(h.calls.length,4);assert.deepEqual(h.calls[3].body,{handle:data.discovery.handle,representation:'native_public_unit'});
+  for(const mutate of [d=>d.unitRead.native_unit.spans[0].text='café',d=>d.unitRead.native_unit.summary.unit_id='tos.text-unit.foreign',
+    d=>d.unitRead.native_unit.spans[0].exact_sha256='0'.repeat(64),d=>d.unitRead.text_access.conditional_rights=true]){
+    const wrong=structuredClone(data);mutate(wrong);
+    await assert.rejects(readExactSource(harness(wrong).client,selection,options),ContractError);
+  }
+  data.unitRead={...data.unitRead,status:'access-restricted',reason:'native-unit-public-rights-not-satisfied',native_unit:null,text_access:null};
+  assert.equal((await readExactSource(harness(data).client,selection,options)).native_unit,null);
 });
 
 test('missing source target never guesses from graph ID, native ID or local references',async()=>{

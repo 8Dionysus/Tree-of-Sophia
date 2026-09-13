@@ -186,8 +186,24 @@ Native artifact/composite metadata uses its schema-declared `artifact_id` or
 `composite_id`, not a fabricated `record_id`. Exact reads bind the existing
 metadata owner's native-witness descriptor, version, digest and public metadata
 scope; this does not expose scans, transcriptions or grant content-use rights.
-Historical Claim reading, review-ledger reading and native text payloads remain
-separate integration work. A build or mocked client test alone does not establish the live
+An explicitly selected local source owner also advertises
+`representation: "native_public_unit"` on the same read operation. It reopens
+the handle's exact metadata record, takes only its native TextUnit binding,
+and invokes the source owner's bounded public-span reader. This is not an
+upgrade of the metadata handle's authority: both native closure and recorded
+unconditional public rights are checked independently before text is returned.
+`tos_source_native_unit_read_result_v1` keeps `record: null`; `native_unit`
+contains ordered spans only on success, with separate `text_access`. Private
+or conditional gates return `access-restricted` and no text. The constructor
+offers this explicit action inside the source record, preserving the scene,
+selection, exact Unicode text and separated spans. Client validation binds the
+native IDs/versions and packet/layer digests back to the exact metadata record,
+and checks each span's code-point length and UTF-8 digest. The 15-second shared
+deadline includes both metadata and text requests. Local-reader conditional
+permission remains distinct and is not inferred from available metadata.
+
+Historical Claim and review-ledger reading remain separate integration work.
+A build or mocked client test alone does not establish the live
 constructor-to-owner cycle.
 
 The read-only operations are available through all backend adapters:

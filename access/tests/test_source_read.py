@@ -281,6 +281,10 @@ def test_owner_handles_cover_agent_and_registry_declared_lexical_metadata() -> N
         assert discovered["status"] == "available", discovered
         assert discovered["handle"]
         validator.validate(discovered["handle"])
+        native = service.read({"handle": discovered["handle"], "representation": "native_public_unit"})
+        validator.validate(native)
+        assert native["status"] == "unsupported"
+        assert native["native_unit"] is native["text_access"] is None
         assert "source_ref" not in discovered["handle"]
         assert "path" not in discovered["handle"]
         read = service.read({"handle": discovered["handle"], "representation": "record"})

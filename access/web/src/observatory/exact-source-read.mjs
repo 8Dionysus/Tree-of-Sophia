@@ -66,7 +66,8 @@ function validateHandle(handle,target,revision){
 // path, strip a graph ID prefix or select a newer source when this card is stale.
 // The owner verifies canonical source bytes; the browser checks the delivered
 // binding and public-disclosure contract, not a second Python JSON serializer.
-export async function readExactSource(client,selection,{signal,timeoutMs=SOURCE_READ_DEADLINE_MS}={}){
+export async function readExactSource(client,selection,{signal,timeoutMs=SOURCE_READ_DEADLINE_MS,representation='record'}={}){
+  requireContract(['record','native_public_unit'].includes(representation));
   requireContract(keys(selection,['kind','id','source_revision','content_revision'])&&['node','relation'].includes(selection.kind)
     &&typeof selection.id==='string'&&selection.id.length>0&&selection.id.length<=2048
     &&hash(selection.source_revision)&&hash(selection.content_revision));
@@ -115,6 +116,41 @@ export async function readExactSource(client,selection,{signal,timeoutMs=SOURCE_
         &&read.record[metadata?'record_version':'claim_version']===target.record_ref.version);
       if(metadata&&!native)requireContract(read.record.record_type===target.record_type);
     }else requireContract(read.record===null);
+    if(representation==='native_public_unit'&&read.status==='available'){
+      const unitRead=await withAbort(client.request('/api/source/read',{...options,
+        body:{handle:discovered.handle,representation}}),controller.signal);
+      controller.signal.throwIfAborted();
+      validateStatus(unitRead,'tos_source_native_unit_read_result_v1',expected.source_revision,target);
+      requireContract(sameJson(unitRead.handle,discovered.handle)&&sameJson(unitRead.record_ref,target.record_ref)
+        &&unitRead.layer===target.layer&&unitRead.record===null);
+      if(unitRead.status==='available'){
+        requireRepresentableNumbers(unitRead);
+        const unit=unitRead.native_unit,binding=read.record.native_text_binding,access=unitRead.text_access;
+        requireContract(object(binding)&&keys(unit,['schema_version','summary','packet','layer_record_sha256','representation_sha256','spans','closure_fingerprint'])
+          &&unit.schema_version==='tos_native_public_unit_return_v1'&&byteSize(unit)<=65536
+          &&sameJson(unitRead.access,discovered.handle.access)
+          &&keys(access,['scope','recorded_rights_verified','conditional_rights','grants_current_use'])
+          &&access.scope==='public-native-unit'&&access.recorded_rights_verified===true
+          &&access.conditional_rights===false&&access.grants_current_use===false);
+        requireContract(object(unit.summary)&&unit.summary.unit_id===binding.unit_id&&unit.summary.unit_version===binding.unit_version
+          &&unit.summary.layer_id===binding.text_layer.layer_id&&unit.summary.layer_version===binding.text_layer.layer_version
+          &&unit.summary.segmentation_id===binding.segmentation_id&&unit.summary.segmentation_version===binding.segmentation_version
+          &&unit.summary.content_verified===true&&unit.summary.public_content_available===true&&unit.summary.assessment_applied===false
+          &&sameJson(unit.packet,{id:binding.packet_id,version:binding.packet_version,sha256:binding.packet_sha256})
+          &&unit.layer_record_sha256===binding.text_layer.record_sha256&&hash(unit.representation_sha256)&&digest(unit.closure_fingerprint)
+          &&Array.isArray(unit.spans)&&sameJson(unit.spans.map(span=>span?.anchor_ref),binding.ordered_anchor_refs));
+        for(const span of unit.spans){
+          const s=span.selector;
+          requireContract(keys(span,['anchor_ref','selector','exact_sha256','text'])&&typeof span.text==='string'&&hash(span.exact_sha256)
+            &&keys(s,['type','position_unit','interval','start','end'])&&s.type==='text_position'&&s.position_unit==='unicode_code_point'
+            &&s.interval==='half_open'&&Number.isSafeInteger(s.start)&&Number.isSafeInteger(s.end)&&s.start>=0&&s.end>=s.start
+            &&Array.from(span.text).length===s.end-s.start);
+          const raw=await withAbort(crypto.subtle.digest('SHA-256',new TextEncoder().encode(span.text)),controller.signal);
+          requireContract(Array.from(new Uint8Array(raw),byte=>byte.toString(16).padStart(2,'0')).join('')===span.exact_sha256);
+        }
+      }else requireContract(unitRead.native_unit===null&&unitRead.text_access===null);
+      return {...unitRead,selection:expected};
+    }
     return {...read,selection:expected};
   }catch(error){
     if(timedOut)throw new RequestError(504,t('Чтение источника превысило время ожидания.'));

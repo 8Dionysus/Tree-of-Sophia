@@ -60,6 +60,53 @@ def test_cli_source_selection_requires_explicit_prepared_pair():
         main(["--source-inputs", "/unselected/inputs.raw", "source", "capabilities"])
 
 
+@pytest.mark.parametrize("posture", ["public", "private", "conditional", "corrupt"])
+def test_exact_metadata_handle_never_bypasses_native_owner_gates(tmp_path, posture):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+    from test_native_text_binding import NativeTextBindingFixture
+    from test_source_read import _MetadataOwner, _record, _metadata_target, _schema
+    from tos_access.source_read import SourceOwnerBinding, SourceReadService
+    from jsonschema import Draft202012Validator
+    fixture = NativeTextBindingFixture(tmp_path)
+    if posture != "private":
+        fixture.make_public()
+    if posture == "conditional":
+        fixture.rights["redistribution_posture"] = "authorized_with_conditions"
+        fixture.refresh()
+    if posture == "corrupt":
+        fixture.write_bytes(fixture.content_ref, b"WRONG_PRIVATE_SENTINEL")
+    record = _record("occurrence", "tos.occurrence.fixture")
+    record["native_text_binding"] = copy.deepcopy(fixture.binding)
+    owner = _MetadataOwner({record["record_id"]: record})
+    session = SourceReadService(SourceOwnerBinding.from_owner_readers(metadata_reader=owner),
+                                metadata_record_types={"occurrence"})
+    selected = object.__new__(SelectedSourceReadService)
+    selected.source_root, selected.limits = tmp_path, session.limits
+    selected._slots = BoundedSemaphore(2)
+    selected._new_session = lambda: session
+    handle = session.discover({"target": _metadata_target(record)})["handle"]
+    request = {"handle": handle, "representation": "native_public_unit"}
+    result = selected.read(request)
+    Draft202012Validator(_schema()).validate(result)
+    assert result["record"] is None
+    assert result["handle"]["access"]["rights_revalidated"] is False
+    assert result["grants_current_use"] is False
+    if posture == "public":
+        assert result["status"] == "available", result
+        assert result["native_unit"]["spans"][0]["text"] == "cafe\u0301"
+        assert result["text_access"]["recorded_rights_verified"] is True
+    else:
+        assert result["status"] == ("corrupt" if posture == "corrupt" else "access-restricted")
+        assert result["native_unit"] is result["text_access"] is None
+        assert "WRONG_PRIVATE_SENTINEL" not in json.dumps(result)
+    with pytest.raises(SourceReadError, match="handle and representation only"):
+        selected.read({**request, "path": fixture.content_ref})
+    selected._slots.acquire(); selected._slots.acquire()
+    with pytest.raises(SourceReadError, match="concurrency budget"):
+        selected.read(request)
+    selected._slots.release(); selected._slots.release()
+
+
 def test_cli_default_source_capabilities_do_not_load_owner(capsys):
     with patch("tos_access.source_read_owner._owner_modules", side_effect=AssertionError("owner import")):
         main(["source", "capabilities"])

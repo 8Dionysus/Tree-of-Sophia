@@ -21,6 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 from native_text_binding import NativeTextBindingError, NativeTextBindingResolver
+from native_text_return import read_public_unit
 
 
 LAB = "ToS/research-packets/foundation-laboratory-2026-07"
@@ -435,7 +436,7 @@ class NativeTextBindingTests(unittest.TestCase):
 
     def test_public_unit_return_keeps_exact_selected_text_and_no_locators(self):
         self.fixture.make_public()
-        result = NativeTextBindingResolver(self.root).read_public_unit(self.fixture.binding)
+        result = read_public_unit(NativeTextBindingResolver(self.root), self.fixture.binding)
         self.assertEqual(result['schema_version'], 'tos_native_public_unit_return_v1')
         self.assertEqual(result['spans'], [{
             'anchor_ref': self.fixture.token_id,
@@ -450,17 +451,17 @@ class NativeTextBindingTests(unittest.TestCase):
         self.assertNotIn('P\\r\\n', json.dumps(result))
         self.assertNotIn('text', self.resolve(verify_content=True))
         size = len(json.dumps(result, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
-        self.assertEqual(NativeTextBindingResolver(self.root).read_public_unit(
+        self.assertEqual(read_public_unit(NativeTextBindingResolver(self.root),
             self.fixture.binding, max_return_bytes=size), result)
         with self.assertRaisesRegex(NativeTextBindingError, 'output-byte budget'):
-            NativeTextBindingResolver(self.root).read_public_unit(self.fixture.binding, max_return_bytes=size - 1)
+            read_public_unit(NativeTextBindingResolver(self.root), self.fixture.binding, max_return_bytes=size - 1)
 
     def test_public_unit_refuses_private_and_conditional_rights_before_content(self):
         def reader(path, limit):
             self.assertNotEqual(path, self.root / self.fixture.content_ref)
             return path.read_bytes()[:limit + 1]
         with self.assertRaisesRegex(NativeTextBindingError, 'public content authority'):
-            NativeTextBindingResolver(self.root, read_bytes=reader).read_public_unit(self.fixture.binding)
+            read_public_unit(NativeTextBindingResolver(self.root, read_bytes=reader), self.fixture.binding)
         self.fixture.make_public()
         for field, value in [('redistribution_posture', 'authorized_with_conditions'),
                              ('derivative_posture', 'allowed_with_conditions')]:
@@ -468,11 +469,11 @@ class NativeTextBindingTests(unittest.TestCase):
             self.fixture.rights[field] = value
             self.fixture.refresh()
             with self.subTest(field=field), self.assertRaisesRegex(NativeTextBindingError, 'unconditional'):
-                NativeTextBindingResolver(self.root, read_bytes=reader).read_public_unit(self.fixture.binding)
+                read_public_unit(NativeTextBindingResolver(self.root, read_bytes=reader), self.fixture.binding)
             self.fixture.rights[field] = old
         for limit in (True, 0, -1, 1_048_577):
             with self.subTest(limit=limit), self.assertRaises(NativeTextBindingError):
-                NativeTextBindingResolver(self.root).read_public_unit(self.fixture.binding, max_return_bytes=limit)
+                read_public_unit(NativeTextBindingResolver(self.root), self.fixture.binding, max_return_bytes=limit)
 
     def test_public_unit_return_rechecks_content_before_export(self):
         self.fixture.make_public()
@@ -486,7 +487,7 @@ class NativeTextBindingTests(unittest.TestCase):
                     return raw + b'changed'
             return raw
         with self.assertRaisesRegex(NativeTextBindingError, 'dependency changed'):
-            NativeTextBindingResolver(self.root, read_bytes=reader).read_public_unit(self.fixture.binding)
+            read_public_unit(NativeTextBindingResolver(self.root, read_bytes=reader), self.fixture.binding)
 
     def test_closed_rights_cannot_be_hidden_by_public_packet_flags(self):
         self.fixture.make_public()
@@ -530,7 +531,7 @@ class NativeTextBindingTests(unittest.TestCase):
         self.fixture.refresh()
         self.assertTrue(self.resolve(verify_content=True, allow_private_content=True)["content_verified"])
         self.fixture.make_public()
-        returned = NativeTextBindingResolver(self.root).read_public_unit(self.fixture.binding)
+        returned = read_public_unit(NativeTextBindingResolver(self.root), self.fixture.binding)
         self.assertEqual([span['anchor_ref'] for span in returned['spans']],
                          [self.fixture.token_id, second_id])
         self.assertEqual([span['text'] for span in returned['spans']], ['ca', 'fe\u0301'])

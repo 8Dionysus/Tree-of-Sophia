@@ -116,10 +116,10 @@ export function createLiveResearch({session=new ExplorationSession(),sky,onChang
     selectedTarget:()=>state.view?exact(state.view.selection):null,
     read,
     sourceDossier,
-    async sourceRecord(snapshot){
+    async sourceRecord(snapshot,options){
       if(disposed)return null;
       const token=++sourceGeneration;
-      try{const result=await session.sourceRecord(snapshot);return !disposed&&token===sourceGeneration?result:null;}
+      try{const result=await session.sourceRecord(snapshot,options);return !disposed&&token===sourceGeneration?result:null;}
       catch(error){if(!disposed&&token===sourceGeneration)throw error;return null;}
     },
     cancelSourceRecord(){sourceGeneration++;session.cancelSourceRecord?.();},

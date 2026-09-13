@@ -59,7 +59,7 @@
       "http": {"method": "POST", "path": "/api/source/read"},
       "mcp_tool": "tos_source_read",
       "cli": "tos source read REQUEST.json",
-      "result": "exact public metadata or Claim record selected by handle and representation=record; not carrier text or semantic admission",
+      "result": "exact public metadata or Claim for representation=record; an explicit native owner additionally supports native_public_unit with independently verified public rights and exact spans; handle selection grants neither text access nor semantic admission",
       "available_on": "explicitly selected Python source-owner service; no source mutation or rights grant"
     },
     {

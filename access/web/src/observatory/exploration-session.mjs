@@ -117,7 +117,7 @@ export class ExplorationSession {
     return result.current&&!this.#disposed?immutable(structuredClone(result.value)):null;
   }
   cancelSourceDossier(){this.#slots.cancel('source-dossier');}
-  async sourceRecord(reading){
+  async sourceRecord(reading,{representation='record'}={}){
     if(this.#disposed)return null;
     const view=this.snapshot(),selectionEpoch=this.#selectionEpoch;
     requireContract(view&&object(reading)&&['node','relation'].includes(reading.kind)&&object(reading.raw));
@@ -126,7 +126,7 @@ export class ExplorationSession {
     const raw=rows.find(row=>row.id===reading.raw.id);
     if(!raw||raw.content_revision!==reading.raw.content_revision)throw new RevisionError();
     const selected={kind:reading.kind,id:raw.id,source_revision:view.source_revision,content_revision:raw.content_revision};
-    const result=await this.#slots.run('source-record',signal=>readExactSource(this.#client,selected,{signal}));
+    const result=await this.#slots.run('source-record',signal=>readExactSource(this.#client,selected,{signal,representation}));
     if(!result.current||this.#disposed||selectionEpoch!==this.#selectionEpoch||this.snapshot()?.source_revision!==view.source_revision)return null;
     const retained=this.snapshot()[reading.kind==='node'?'nodes':'relations'].find(row=>row.id===raw.id);
     if(retained?.content_revision!==raw.content_revision)return null;

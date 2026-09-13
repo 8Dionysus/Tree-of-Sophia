@@ -793,8 +793,8 @@ Unicode rewriting, then checks absolute Unicode-code-point half-open anchors,
 span hashes, declared scope, coverage and gaps. Successful return is not proof
 of the original payload, OCR/transcription quality or linguistic correctness.
 
-The same resolver's explicit
-`read_public_unit(binding, max_return_bytes=65536)` is a separate
+The separate `scripts/native_text_return.py` delivery helper exposes
+`read_public_unit(resolver, binding, max_return_bytes=65536)` as a
 read-only public-text route; `resolve()` remains text-free. It first verifies
 metadata and public packet/layer/transport gates, then requires applicable
 recorded redistribution `authorized` and derivative `allowed` postures before
@@ -809,8 +809,12 @@ no inferred context, concatenation, Unicode/newline rewriting or partial output
 is supplied. No content locator or supporting rights record is exported.
 The complete compact UTF-8 JSON result must fit the requested limit (at most
 1 MiB). Input bounds and snapshot refusal remain unchanged. This library return
-is not itself an HTTP/MCP capability, fresh legal assessment, source admission,
-or acceptance of the unit's linguistic boundary.
+is not itself a fresh legal assessment, source admission, or acceptance of the
+unit's linguistic boundary. The optional access owner adapter consumes it
+through an exact metadata handle and a separate `native_public_unit`
+representation; generic metadata access cannot grant text permission.
+Keeping delivery outside `native_text_binding.py` leaves the catalog's
+verification processor unchanged when only the transport is extended.
 
 For protected configuration preparation, the same resolver's
 `assessment_records(binding, origin_id=..., verify_content=...,

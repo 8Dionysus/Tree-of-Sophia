@@ -220,20 +220,41 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       if(dossier)appendSourceDossier(body,dossier,snapshot,requestedRef);else body.append(el('p',t('sourceDossierUnavailable'),'body'));
     }catch(error){if(!disposed&&surface===surfaceGeneration){body.replaceChildren(el('p',error?.message??String(error),'body'));}}
   }
-  async function openSourceRecord(snapshot){
-    const body=modal(t('sourceRecord'),'source-record');if(!body)return;
+  async function openSourceRecord(snapshot,representation='record'){
+    const native=representation==='native_public_unit';
+    const title=native?(language==='ru'?'Точный текст фрагмента':'Exact fragment text'):t('sourceRecord');
+    const body=modal(title,'source-record');if(!body)return;
     const surface=surfaceGeneration;body.append(el('p',t('loading'),'body'));
     try{
-      const result=await controller.sourceRecord(snapshot);
+      const result=await controller.sourceRecord(snapshot,{representation});
       if(disposed||surface!==surfaceGeneration)return;
       body.replaceChildren();
       if(!result){body.append(el('p',t('sourceRecordUnavailable'),'body'));return;}
       body.dataset.sourceReadStatus=result.status;
       if(result.status!=='available'){
+        if(native&&result.status==='access-restricted'){
+          body.append(el('p',language==='ru'
+            ?'Точный текст пока не выдан: условия публичного чтения не подтверждены этим маршрутом. Доступность метаданных не означает разрешение читать текст.'
+            :'Exact text was not delivered: this route has not verified its public reading conditions. Available metadata does not grant text access.','body'));
+          return;
+        }
         const label={missing:'sourceRecordMissing','access-restricted':'sourceRecordRestricted',corrupt:'sourceRecordCorrupt','over-budget':'sourceRecordBudget'}[result.status]??'sourceRecordUnavailable';
         body.append(el('p',t(label),'body'));return;
       }
+      if(native){
+        const unit=result.native_unit;
+        if(!unit){body.append(el('p',t('sourceRecordUnavailable'),'body'));return;}
+        body.append(el('p',language==='ru'
+          ?'Точные исходные символы выбранной единицы. Раздельные фрагменты не склеиваются; проверка текста не принимает его интерпретацию.'
+          :'Exact source characters of the selected unit. Separate spans are not joined; text verification does not accept an interpretation.','body'));
+        for(const span of unit.spans){const text=el('pre',span.text,'body');text.style.whiteSpace='pre-wrap';text.lang=unit.summary.language;body.append(text);}
+        body.append(detail(t('sourceIdentity'),{record_ref:result.record_ref,summary:unit.summary,packet:unit.packet}),
+          detail(t('sourceRights'),result.text_access),detail(t('technical'),unit));return;
+      }
       body.append(el('p',t('sourceRecordNote'),'body'));
+      if(result.record.native_text_binding)body.append(button(
+        language==='ru'?'Открыть точный текст фрагмента':'Open exact fragment text',
+        ()=>void openSourceRecord(snapshot,'native_public_unit'),'source-link'));
       if(typeof result.record.preferred_label==='string')body.append(el('h3',result.record.preferred_label,'minor-title'));
       if(typeof result.record.notes==='string'&&result.record.notes.trim()){
         body.append(el('h3',t('sourceRecordWords'),'minor-title'));

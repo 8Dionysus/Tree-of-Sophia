@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://treeofsophia.local/access/contracts/source-read.v1.schema.json",
   "title": "Bounded owner-issued exact source read",
-  "description": "A transport contract for one exact public metadata, Claim, or addressed source-slot record selected by an existing source owner. The target must come from that owner's card/catalog or typed resolver; callers must not guess a digest or derive a path. It is an access adapter: it is not source authority, a current-use grant, a text payload route, or a filesystem locator.",
+  "description": "Owner-selected exact metadata, Claim or source-slot delivery, with an optional separately gated native public-unit representation. A metadata handle is not text permission: native closure and unconditional public rights must independently pass. Targets come from owner cards/catalogs, never guessed paths, ranges or digests. No source authority, use-rights grant or semantic admission follows.",
   "$defs": {
     "digest": {
       "type": "string",
@@ -145,7 +145,7 @@
       "required": ["handle", "representation"],
       "properties": {
         "handle": {"$ref": "#/$defs/handle"},
-        "representation": {"const": "record"}
+        "representation": {"enum": ["record", "native_public_unit"], "description": "native_public_unit requires an explicitly selected native owner and fresh public rights checks; the metadata handle grants no text access."}
       }
     },
     "access": {
@@ -231,9 +231,17 @@
     "result": {
       "type": "object",
       "additionalProperties": false,
+      "allOf": [{"if": {"properties": {"schema_version": {"const": "tos_source_native_unit_read_result_v1"}}},
+        "then": {"required": ["native_unit", "text_access"], "properties": {"record": {"type": "null"}},
+          "allOf": [{"if": {"properties": {"status": {"const": "available"}}},
+            "then": {"properties": {"native_unit": {"$ref": "#/$defs/nativeUnit"}, "text_access": {"$ref": "#/$defs/textAccess"}}},
+            "else": {"properties": {"native_unit": {"type": "null"}, "text_access": {"type": "null"}}}}]},
+        "else": {"properties": {"native_unit": false, "text_access": false}}}],
       "required": ["schema_version", "status", "reason", "handle", "source_revision", "content_revision", "layer", "record_kind", "record_ref", "record", "provenance", "access", "grants_current_use", "performs_assessment", "writes_to_source"],
       "properties": {
-        "schema_version": {"const": "tos_source_read_result_v1"},
+        "schema_version": {"enum": ["tos_source_read_result_v1", "tos_source_native_unit_read_result_v1"]},
+        "native_unit": {"anyOf": [{"$ref": "#/$defs/nativeUnit"}, {"type": "null"}]},
+        "text_access": {"anyOf": [{"$ref": "#/$defs/textAccess"}, {"type": "null"}]},
         "status": {"$ref": "#/$defs/status"},
         "reason": {"type": "string", "minLength": 1, "maxLength": 256},
         "handle": {"$ref": "#/$defs/handle"},
@@ -248,6 +256,30 @@
         "grants_current_use": {"const": false},
         "performs_assessment": {"const": false},
         "writes_to_source": {"const": false}
+      }
+    },
+    "textAccess": {
+      "type": "object", "additionalProperties": false,
+      "required": ["scope", "recorded_rights_verified", "conditional_rights", "grants_current_use"],
+      "properties": {"scope": {"const": "public-native-unit"}, "recorded_rights_verified": {"const": true},
+        "conditional_rights": {"const": false}, "grants_current_use": {"const": false}}
+    },
+    "nativeUnit": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "summary", "packet", "layer_record_sha256", "representation_sha256", "spans", "closure_fingerprint"],
+      "properties": {
+        "schema_version": {"const": "tos_native_public_unit_return_v1"},
+        "summary": {"type": "object", "required": ["unit_id", "unit_version", "content_verified", "public_content_available", "assessment_applied"],
+          "properties": {"unit_id": {"type": "string", "pattern": "^tos\\.text-unit\\."}, "unit_version": {"$ref": "#/$defs/safeInteger", "minimum": 1},
+            "content_verified": {"const": true}, "public_content_available": {"const": true}, "assessment_applied": {"const": false}}},
+        "packet": {"type": "object", "additionalProperties": false, "required": ["id", "version", "sha256"],
+          "properties": {"id": {"type": "string"}, "version": {"$ref": "#/$defs/safeInteger", "minimum": 1}, "sha256": {"$ref": "#/$defs/bareDigest"}}},
+        "layer_record_sha256": {"$ref": "#/$defs/bareDigest"}, "representation_sha256": {"$ref": "#/$defs/bareDigest"},
+        "closure_fingerprint": {"$ref": "#/$defs/digest"},
+        "spans": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false,
+          "required": ["anchor_ref", "selector", "exact_sha256", "text"],
+          "properties": {"anchor_ref": {"type": "string"}, "selector": {"type": "object"},
+            "exact_sha256": {"$ref": "#/$defs/bareDigest"}, "text": {"type": "string"}}}}
       }
     }
   },
