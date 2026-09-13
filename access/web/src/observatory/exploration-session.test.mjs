@@ -153,6 +153,19 @@ test('source dossier keeps the exact owner handle and has an independent cancell
   assert.equal(await job,null);
 });
 
+test('exact source reading is bound to a retained card and cancellation leaves the scene intact',async()=>{
+  const {session,client}=harness();await session.discover();const view=await session.open(pageFixture().query.origin),raw=view.nodes[0];
+  const reading={kind:'node',sourceRevision:R,raw};
+  assert.equal((await session.sourceRecord(reading)).status,'unsupported');
+  assert.equal(session.snapshot(),view);
+  await assert.rejects(session.sourceRecord({...reading,sourceRevision:'f'.repeat(64)}),RevisionError);
+  await assert.rejects(session.sourceRecord({...reading,raw:{...raw,id:'not-retained'}}),RevisionError);
+  const pending=deferred();client.inspect=()=>pending.promise;
+  const request=session.sourceRecord(reading);session.cancelSourceRecord();
+  assert.equal(await request,null);assert.equal(session.snapshot(),view);
+  pending.resolve({packet:{source_revision:R}});
+});
+
 test('inspection passes exact raw ID and revisions; cancellation leaves scene and returns no late card',async()=>{
   const {session,client}=harness();await session.discover();const view=await session.open(pageFixture().query.origin),raw=view.nodes[0];
   const pending=deferred(),calls=[];client.readMaterial=async(...args)=>{calls.push(args);return pending.promise;};

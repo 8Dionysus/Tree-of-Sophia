@@ -116,6 +116,13 @@ export function createLiveResearch({session=new ExplorationSession(),sky,onChang
     selectedTarget:()=>state.view?exact(state.view.selection):null,
     read,
     sourceDossier,
+    async sourceRecord(snapshot){
+      if(disposed)return null;
+      const token=++sourceGeneration;
+      try{const result=await session.sourceRecord(snapshot);return !disposed&&token===sourceGeneration?result:null;}
+      catch(error){if(!disposed&&token===sourceGeneration)throw error;return null;}
+    },
+    cancelSourceRecord(){sourceGeneration++;session.cancelSourceRecord?.();},
     cancelSourceDossier(){sourceGeneration++;session.cancelSourceDossier?.();},
     closeReading(){inspection++;session.cancelInspect('inspect');emit({reading:null,readingError:null});},
     mode(mode){

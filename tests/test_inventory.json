@@ -33,6 +33,21 @@
   ],
   "tests": [
     {
+      "path": "access/tests/test_source_read_owner.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/source_read_owner.py",
+      "protects": "explicit source-owner selection, matching prepared revision, request-local reader lifetimes, bounded concurrency and CLI input; optional real metadata/Claim inspection-target-read seam without full publication or semantic acceptance claims",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_source_read_owner.py",
+      "failure_route": "Fix source-owner selection or request isolation without implicit owner discovery, source writes, unbounded queues or latest-version fallback.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_source_read.py",
       "home": "access",
       "home_scope": "product-local",

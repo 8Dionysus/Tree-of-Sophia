@@ -2307,6 +2307,98 @@ class KnowledgeContractTests(unittest.TestCase):
                        inspect_knowledge_relation(graph, graph['relations'][0]['id'])]
             self.assertTrue(all(packet['source_revision'] == revision for packet in packets))
 
+    def test_inspection_exposes_only_exact_raw_source_read_targets(self):
+        from tos_access.knowledge import (
+            _normalize_relation, _normalize_node, _exact_record_digest,
+            inspect_knowledge_node, inspect_knowledge_relation,
+        )
+        from tos_access.source_read import exact_target_from_record
+
+        metadata = {
+            'schema_version': 'tos_corpus_record_v1', 'record_type': 'agent',
+            'record_id': 'tos.agent.synthetic-source', 'record_version': 1,
+            'preferred_label': 'Synthetic source agent',
+        }
+        claim = {
+            'schema_version': 'tos_claim_packet_v1', 'claim_id': 'tos.claim.synthetic-source',
+            'claim_type': 'relation', 'claim_version': 1,
+            'subject_ref': metadata['record_id'], 'predicate': 'supports',
+            'object': 'tos.work.synthetic-source',
+        }
+        metadata_item = {
+            'node_id': metadata['record_id'], 'node_kind': 'agent',
+            'label': 'Synthetic source agent', 'source_ref': 'ToS/source-witnesses/agents/synthetic/agent.json',
+            'properties': {'source_record': metadata},
+        }
+        claim_item = {
+            'node_id': 'claim:' + claim['claim_id'], 'node_kind': 'claim',
+            'label': 'supports', 'source_ref': 'ToS/source-witnesses/relations/synthetic.jsonl',
+            'properties': {'claim_ref': claim['claim_id'], 'source_claim': claim},
+        }
+        node = _normalize_node(metadata_item, 'source-navigation')
+        claim_node = _normalize_node(claim_item, 'source-claims', source_kind_id='claim')
+        relation = _normalize_relation(
+            {
+                'edge_id': 'synthetic-source-relation', 'from_id': metadata_item['node_id'],
+                'to_id': metadata_item['node_id'], 'from_source_graph': 'source-navigation',
+                'to_source_graph': 'source-navigation', 'predicate_id': 'supports',
+                'source_ref': 'ToS/source-witnesses/relations/synthetic.jsonl',
+                'properties': {'source_claim': claim},
+            },
+            'source-claims', {node['id']: node, claim_node['id']: claim_node},
+        )
+        graph = {
+            'source_revision': 'a' * 64, 'nodes': [node, claim_node], 'relations': [relation],
+            'authority_boundary': {},
+        }
+        original = copy.deepcopy(graph)
+        node_packet = inspect_knowledge_node(graph, node['id'])
+        relation_packet = inspect_knowledge_relation(graph, relation['id'])
+        claim_packet = inspect_knowledge_node(graph, claim_node['id'])
+        metadata_target = exact_target_from_record(metadata, layer='metadata_record')
+        claim_target = exact_target_from_record(claim, layer='claim_record')
+        self.assertEqual(metadata_target['record_ref']['digest'], 'sha256:' + _exact_record_digest(metadata))
+        self.assertEqual(claim_target['record_ref']['digest'], 'sha256:' + _exact_record_digest(claim))
+        self.assertEqual(node_packet['source_read_targets'][node['id']]['target'], metadata_target)
+        self.assertEqual(node_packet['source_read_targets'][relation['id']]['target'], claim_target)
+        self.assertEqual(relation_packet['source_read_targets'][relation['id']]['target'], claim_target)
+        self.assertEqual(relation_packet['source_read_targets'][node['id']]['target'], metadata_target)
+        self.assertEqual(claim_packet['source_read_targets'][claim_node['id']]['target'], claim_target)
+        self.assertTrue(all(value['source_revision'] == graph['source_revision']
+                            for packet in (node_packet, relation_packet, claim_packet)
+                            for value in packet['source_read_targets'].values()))
+        self.assertEqual(graph, original)
+
+        # A claim_ref, source path, or normalized identity without the full raw
+        # Claim body is not enough to manufacture a source-read target.
+        bare = _normalize_node(
+            {
+                'node_id': 'claim:tos.claim.inferred-only', 'node_kind': 'claim',
+                'source_ref': 'ToS/source-witnesses/relations/inferred-only.jsonl',
+                'properties': {'claim_ref': claim['claim_id']},
+            },
+            'source-claims', source_kind_id='claim',
+        )
+        bare_packet = inspect_knowledge_node({**graph, 'nodes': [bare]}, bare['id'])
+        self.assertEqual(bare_packet['source_read_targets'], {})
+
+        # Native composite/artifact records use a different owner identity
+        # ABI; until that owner exposes a matching metadata target/result,
+        # inspection must leave them unsupported rather than inventing one.
+        native = {
+            'schema_version': 'tos_scholarly_composite_witness_v1',
+            'composite_id': 'tos.composite.synthetic-source', 'record_version': 1,
+            'title': 'Native composite carrier',
+        }
+        self.assertIsNone(exact_target_from_record(native, layer='metadata_record'))
+        shadow_native = {**native, 'record_id': 'tos.composite.synthetic-source', 'record_type': 'composite'}
+        self.assertIsNone(exact_target_from_record(shadow_native, layer='metadata_record'))
+        minimal_metadata = {
+            'record_type': 'agent', 'record_id': 'tos.agent.synthetic-minimal',
+            'record_version': 1, 'preferred_label': 'Minimal source agent',
+        }
+        self.assertIsNotNone(exact_target_from_record(minimal_metadata, layer='metadata_record'))
+
     def test_predicate_translation_depends_on_meaning_not_number_of_carriers(self):
         from tos_access.knowledge import _relation_display
         entry = {'labels': {'default': 'authored by', 'ru': 'написано автором'},

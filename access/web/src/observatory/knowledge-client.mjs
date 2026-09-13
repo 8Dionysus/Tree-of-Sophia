@@ -305,7 +305,9 @@ export class KnowledgeClient {
     validateResponseLimit(maxResponseBytes);
     this.fetcher=fetcher;this.base=base;this.timeoutMs=timeoutMs;this.maxResponseBytes=maxResponseBytes;
   }
-  async request(path,{signal,body}={}) {
+  async request(path,{signal,body,maxResponseBytes=this.maxResponseBytes}={}) {
+    validateResponseLimit(maxResponseBytes);
+    if(maxResponseBytes>this.maxResponseBytes)throw new RangeError('A request cannot widen the client response budget.');
     const controller=new AbortController();let timedOut=false;
     const abort=()=>controller.abort(signal.reason);
     if(signal?.aborted)abort();else signal?.addEventListener('abort',abort,{once:true});
@@ -326,7 +328,7 @@ export class KnowledgeClient {
       if(response.status===409)throw new RevisionError();
       throw new RequestError(response.status,({400:t("Запрос не удалось исполнить."),403:t("Доступ к материалу ограничен."),404:t("Объект больше не доступен."),410:t("Срок сохранённого обхода истёк."),413:t("Область слишком велика. Выберите более узкий центр."),503:t("Этот способ просмотра пока не доступен.")})[response.status]||t("Не удалось получить данные. Попробуйте ещё раз."));
     }
-    const packet=await readBoundedJSON(response,this.maxResponseBytes,controller.signal);
+    const packet=await readBoundedJSON(response,maxResponseBytes,controller.signal);
     if(!packet||typeof packet!=='object'||Array.isArray(packet))throw new ContractError(t("Неверный ответ сервера."));
     return packet;
     } catch(error) {

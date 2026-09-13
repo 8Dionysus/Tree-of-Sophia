@@ -153,9 +153,39 @@ public metadata or Claim content without accepting filesystem paths, byte
 ranges or a latest-version fallback. A well-formed selector absent from the
 catalog returns `missing`, with no fabricated target, digest or handle.
 Reads recheck the owner epoch and source bytes; handles grant no use rights.
-This seam does not yet connect the constructor's source panel, CLI owner
-selection, historical Claim reader, review-ledger reader or native text payload.
-Those remain distinct integration work, not implied by HTTP/MCP parity.
+Full node/relation inspection returns `source_read_targets`, keyed by the exact
+returned graph ID, only where a complete retained owner record supplies the
+target. This projection does not assert source-reader availability. The
+constructor's **Open source record** action follows that target through the
+same handle/read operations used by agents; it never guesses a filesystem path
+or substitutes the latest version. Selection changes and dialog closure cancel
+the read, with a 15-second overall deadline and a 2 MiB response ceiling.
+Original notes and explicit gaps remain distinct from technical fields, carrier
+text, assessment and use rights. An unconfigured owner reports unavailability.
+
+For local source-owner selection, pass all four exact inputs:
+
+```bash
+tos --root /absolute/source-owner --prepared-read-model /absolute/snapshot.sqlite \
+  --prepared-binding /absolute/binding.json --source-inputs /absolute/inputs.raw \
+  serve --host 127.0.0.1 --port 8080
+```
+
+The source vector must match the prepared reader revision. The source mechanics
+come from the access implementation checkout, never from caller-selected source
+data. A portable bundle without those mechanics cannot activate this route.
+`SelectedSourceReadService` creates fresh bounded owner readers per operation,
+with at most two concurrent source operations and no waiting queue. Reader
+caches and work counters do not accumulate across a server lifetime. Reselection
+after source changes is explicit; no request quietly chooses a newer snapshot.
+The same selection works with `mcp` and the `source capabilities`, `source
+contracts`, `source discover REQUEST.json`, and `source read REQUEST.json` CLI
+commands. Discovery/read accept `-` for bounded JSON input from stdin.
+
+Historical Claim reading, native artifact/composite source identities,
+review-ledger reading and native text payloads remain separate integration
+work. A build or mocked client test alone does not establish the live
+constructor-to-owner cycle.
 
 The read-only operations are available through all backend adapters:
 

@@ -16,6 +16,7 @@ from .processing import Input
 from .lens_pagination import normalize_pagination, paginate_lens
 from .readable_context import ReadableContextCompiler, presentation_catalog, validate_vocabulary
 from .human_form_codec import bounded_cost, encode_human_form_selection
+from .source_read_projection import source_read_targets
 
 
 KNOWLEDGE_SOURCES = (
@@ -5881,6 +5882,7 @@ def inspect_knowledge_node(
             "returned_relations": len(selected_relations),
         },
         "source_refs": sorted({ref for item in [*matches, *selected_relations] for ref in _strings(item.get("source_refs"))}),
+        "source_read_targets": source_read_targets([*matches, *selected_relations], graph["source_revision"]),
         "authority_boundary": graph.get("authority_boundary", {}),
     }
 
@@ -5921,5 +5923,6 @@ def inspect_knowledge_relation(
         "endpoints": endpoints,
         "counts": {"matches": len(matches), "endpoints": len(endpoints)},
         "source_refs": sorted({ref for item in [*matches, *endpoints] for ref in _strings(item.get("source_refs"))}),
+        "source_read_targets": source_read_targets([*matches, *endpoints], graph["source_revision"]),
         "authority_boundary": graph.get("authority_boundary", {}),
     }

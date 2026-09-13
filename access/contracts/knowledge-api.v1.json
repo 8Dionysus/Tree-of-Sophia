@@ -9,6 +9,7 @@
     "lens_result": "lens-result.v1.schema.json",
     "temporal_comparison_request": "temporal-comparison-request.v1.schema.json",
     "temporal_comparison_result": "temporal-comparison-result.v1.schema.json",
+    "source_read": "source-read.v1.schema.json",
     "entity_type_registry_schema": "../../ToS/contracts/semantic-entity-type-registry.schema.json",
     "relation_type_registry_schema": "../../ToS/contracts/semantic-relation-type-registry.schema.json",
     "entity_type_registry": "../../ToS/doctrine/semantic-interchange/entity-types.v1.json",
@@ -54,14 +55,32 @@
       "http": {"method": "GET", "path": "/api/knowledge/nodes/{node_id}"},
       "mcp_tool": "tos_knowledge_node",
       "cli": "tos knowledge node",
-      "result": "normalized node matches and related human-readable relations"
+      "result": "normalized node matches and related human-readable relations",
+      "source_read_targets": {
+        "field": "source_read_targets",
+        "key": "exact returned normalized material id",
+        "value": {
+          "source_revision": "the packet source_revision",
+          "target": "source-read.v1.schema.json#/$defs/target"
+        },
+        "availability": "target projection only; the owner-bound SourceReadService must revalidate it before issuing a handle"
+      }
     },
     {
       "operation_id": "tos.knowledge.relation.inspect",
       "http": {"method": "GET", "path": "/api/knowledge/relations/{relation_id}"},
       "mcp_tool": "tos_knowledge_relation",
       "cli": "tos knowledge relation",
-      "result": "normalized relation matches and display-complete endpoints"
+      "result": "normalized relation matches and display-complete endpoints",
+      "source_read_targets": {
+        "field": "source_read_targets",
+        "key": "exact returned normalized material id",
+        "value": {
+          "source_revision": "the packet source_revision",
+          "target": "source-read.v1.schema.json#/$defs/target"
+        },
+        "availability": "target projection only; the owner-bound SourceReadService must revalidate it before issuing a handle"
+      }
     },
     {
       "operation_id": "tos.knowledge.temporal.compare",
@@ -172,6 +191,7 @@
     "scene_mapping_preserves_exact_carriers_and_relation_coverage": true,
     "compact_claim_paths_preserve_exact_expansion_and_mandatory_context": true,
     "compact_claim_paths_are_not_new_assertions": true,
+    "exact_source_read_targets_are_raw_bound": true,
     "incomplete_or_focused_claim_paths_remain_explicit": true,
     "endpoint_closure_does_not_recurse": true,
     "relation_counts_distinguish_query_matches_from_topology_eligibility": true,

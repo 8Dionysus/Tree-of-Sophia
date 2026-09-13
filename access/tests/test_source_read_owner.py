@@ -1,0 +1,154 @@
+"""Owner selection and request-lifetime checks, not semantic acceptance."""
+import copy
+import json
+import os
+from pathlib import Path
+import sys
+import subprocess
+import threading
+from threading import BoundedSemaphore
+from unittest.mock import Mock, patch
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from tos_access.cli import main
+from tos_access.source_read import SourceReadError
+from tos_access.source_read_owner import SelectedSourceReadService
+
+
+def test_each_request_has_an_isolated_reader_and_saturation_is_not_queued():
+    # Test the lifecycle wrapper independently of source content and catalogs.
+    selected = object.__new__(SelectedSourceReadService)
+    selected._slots = BoundedSemaphore(2)
+    sessions = []
+    def fresh():
+        result = Mock()
+        result.read.return_value = {"session": len(sessions)}
+        sessions.append(result)
+        return result
+    selected._new_session = fresh
+    assert selected.read({}) == {"session": 0}
+    assert selected.read({}) == {"session": 1}
+    assert sessions[0] is not sessions[1]
+    selected._slots.acquire(); selected._slots.acquire()
+    with pytest.raises(SourceReadError, match="concurrency budget"):
+        selected.read({})
+    assert len(sessions) == 2
+    selected._slots.release(); selected._slots.release()
+    selected._new_session = Mock(side_effect=ValueError("owner changed"))
+    with pytest.raises(ValueError, match="owner changed"):
+        selected.read({})
+    assert selected._slots.acquire(blocking=False)
+    assert selected._slots.acquire(blocking=False)
+
+
+def test_cli_source_selection_requires_explicit_prepared_pair():
+    with pytest.raises(SystemExit, match="requires --root"):
+        main(["--source-inputs", "/unselected/inputs.raw", "source", "capabilities"])
+
+
+def test_cli_default_source_capabilities_do_not_load_owner(capsys):
+    with patch("tos_access.source_read_owner._owner_modules", side_effect=AssertionError("owner import")):
+        main(["source", "capabilities"])
+    assert json.loads(capsys.readouterr().out)["available"] is False
+
+
+def test_cli_rejects_oversized_and_duplicate_request_before_dispatch(tmp_path):
+    request = tmp_path / "request.json"
+    core = Mock()
+    for raw in (b" " * 65537, b'{"target":{},"target":{}}'):
+        request.write_bytes(raw)
+        with patch("tos_access.cli.ToSAccessCore.discover", return_value=core):
+            with pytest.raises(SystemExit, match="cannot read exact source"):
+                main(["source", "discover", str(request)])
+    core.source_handle_discover.assert_not_called()
+
+
+def test_cli_keeps_explicit_source_selection_in_the_mcp_core(tmp_path):
+    binding = tmp_path / "binding.json"
+    binding.write_text(json.dumps({"source_revision": "a" * 64}))
+    inputs = tmp_path / "inputs.raw"
+    selected, core, server = Mock(), Mock(), Mock()
+    with patch("tos_access.source_read_owner.SelectedSourceReadService", return_value=selected) as choose, \
+         patch("tos_access.cli.ToSAccessCore.discover", return_value=core) as discover, \
+         patch("tos_access.mcp_server.build_server", return_value=server) as build, \
+         patch("tos_access.mcp_server._run_server") as run:
+        main(["--root", str(tmp_path), "--prepared-read-model", str(tmp_path / "snapshot.sqlite"),
+              "--prepared-binding", str(binding), "--source-inputs", str(inputs), "mcp"])
+    choose.assert_called_once_with(tmp_path, inputs, expected_revision="a" * 64)
+    assert discover.call_args.kwargs["source_read_service"] is selected
+    build.assert_called_once_with(core=core)
+    run.assert_called_once_with(server)
+
+
+def test_real_selected_owner_inspection_target_and_fresh_request_parity():
+    ref = os.environ.get("TOS_REAL_SOURCE_INPUTS")
+    if not ref:
+        pytest.skip("select the exact retained real source vector")
+    root = Path(os.environ["TOS_REAL_SOURCE_ROOT"])
+    raw = Path(ref).read_bytes()
+    revision = json.loads(raw)["source_revision"]
+    selected = SelectedSourceReadService(root, Path(ref), expected_revision=revision)
+    from tos_access.knowledge import _normalize_node, inspect_knowledge_node
+    observed = []
+    for selector in (
+        {"layer": "metadata_record", "record_type": "agent", "record_id": "tos.agent.friedrich-nietzsche"},
+        {"layer": "claim_record", "claim_id": "tos.claim.basel-print.environment-place"},
+    ):
+        first = selected.discover({"selector": selector})
+        assert first["status"] == "available", first
+        request = {"handle": first["handle"], "representation": "record"}
+        record = selected.read(request)
+        assert record["status"] == "available", record
+        assert selected.read(request) == record  # fresh reader, identical exact result
+        metadata = selector["layer"] == "metadata_record"
+        # A bounded normalization seam over actual owner-read source material.
+        # This is not a full graph publication or a claim about graph coverage.
+        raw_node = {"node_id": record["record_ref"]["id"],
+                    "node_kind": "agent" if metadata else "claim",
+                    "properties": {"source_record" if metadata else "source_claim": record["record"]}}
+        node = _normalize_node(raw_node, "source-claims", source_kind_id="agent" if metadata else "claim")
+        before = copy.deepcopy(node)
+        packet = inspect_knowledge_node({"source_revision": revision, "nodes": [node], "relations": []}, node["id"], 0)
+        target = packet["source_read_targets"][node["id"]]
+        assert target == {"source_revision": revision, "target": first["target"]}
+        assert selected.discover({"target": target["target"]}) == first
+        assert node == before
+        # Cross the real HTTP -> human client -> owner seam on this bounded
+        # real-material inspection fixture. Only inspection is fixture-bound;
+        # source selection/discovery/reading and the JS client are production.
+        # This does not certify the full graph UI or publication currentness.
+        from tos_access.core import ToSAccessCore
+        from tos_access.http_server import make_server
+        core = ToSAccessCore.discover(tos_root=root, source_read_service=selected)
+        with patch.object(ToSAccessCore, "knowledge_node", return_value=packet):
+            server = make_server(core, port=0)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                web = Path(__file__).resolve().parents[1] / "web/src/observatory"
+                program = (
+                    f"import {{KnowledgeClient}} from {json.dumps((web / 'knowledge-client.mjs').as_uri())};\n"
+                    f"import {{readExactSource}} from {json.dumps((web / 'exact-source-read.mjs').as_uri())};\n"
+                    "const input=JSON.parse(process.argv[1]);\n"
+                    "const client=new KnowledgeClient({fetcher:(path,options)=>fetch(input.url+path,options)});\n"
+                    "const result=await readExactSource(client,input.selection);\n"
+                    "process.stdout.write(JSON.stringify(result));\n"
+                )
+                args = {"url": f"http://127.0.0.1:{server.server_port}", "selection": {
+                    "kind": "node", "id": node["id"], "source_revision": revision,
+                    "content_revision": node["content_revision"]}}
+                completed = subprocess.run(["node", "--input-type=module", "-e", program, json.dumps(args)],
+                    text=True, capture_output=True, timeout=25)
+                assert completed.returncode == 0, completed.stderr
+                human_read = json.loads(completed.stdout)
+                assert human_read["status"] == "available", human_read
+                assert human_read["record"] == record["record"]
+                assert human_read["handle"] == first["handle"]
+            finally:
+                server.shutdown(); server.server_close(); thread.join(timeout=5)
+        observed.append(record["record_ref"]["id"])
+    assert observed == ["tos.agent.friedrich-nietzsche", "tos.claim.basel-print.environment-place"]
+    with pytest.raises(SourceReadError, match="revisions differ"):
+        SelectedSourceReadService(root, Path(ref), expected_revision="0" * 64)

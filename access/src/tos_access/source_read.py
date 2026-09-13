@@ -664,6 +664,69 @@ def _target(value: Any) -> dict[str, Any]:
     raise SourceReadError("source target layer is unsupported")
 
 
+def exact_target_from_record(record: Any, *, layer: str) -> dict[str, Any] | None:
+    """Project one complete raw owner record into the existing target ABI.
+
+    This is a pure projection used by graph inspection.  It does not consult a
+    catalog, source path, or current owner binding; the owner reader remains
+    responsible for rechecking the returned target before issuing a handle.
+    Invalid or unsupported raw records are deliberately omitted rather than
+    turned into an inferred selector or an availability claim.
+    """
+    if layer not in (METADATA_LAYER, CLAIM_LAYER) or type(record) is not dict:
+        return None
+    try:
+        if layer == CLAIM_LAYER:
+            identifier = record.get("claim_id")
+            version = record.get("claim_version")
+            if type(identifier) is not str or type(version) is not int:
+                return None
+            reference = {
+                "id": identifier,
+                "version": version,
+                "digest": "sha256:" + _canonical_digest(record),
+            }
+            return _target({
+                "layer": CLAIM_LAYER,
+                "record_ref": reference,
+                "content_revision": reference["digest"],
+            })
+
+        # The current metadata-owner ABI is explicitly record_id based.  Native
+        # composite/artifact carriers use different identity fields and are
+        # intentionally omitted until their owner reader exposes a matching
+        # exact target/result contract; mapping them here would create an
+        # apparently usable target that ``_metadata_result`` cannot serve.
+        if record.get("schema_version") in {
+            "tos_scholarly_composite_witness_v1",
+            "tos_artifact_source_witness_v1",
+            "tos_artifact_source_witness_v2",
+        }:
+            return None
+        identifier = record.get("record_id")
+        record_type = record.get("record_type")
+        version = record.get("record_version")
+        if (
+            type(identifier) is not str
+            or type(record_type) is not str
+            or type(version) is not int
+        ):
+            return None
+        reference = {
+            "id": identifier,
+            "version": version,
+            "digest": "sha256:" + _canonical_digest(record),
+        }
+        return _target({
+            "layer": METADATA_LAYER,
+            "record_type": record_type,
+            "record_ref": reference,
+            "content_revision": reference["digest"],
+        })
+    except (SourceReadError, TypeError, ValueError, OverflowError, RecursionError, UnicodeError):
+        return None
+
+
 def _handle_access(value: Any, target: dict[str, Any]) -> dict[str, Any]:
     if type(value) is not dict or set(value) != {
         "scope", "visibility", "visibility_verified", "rights_revalidated", "rights_scope", "authority"

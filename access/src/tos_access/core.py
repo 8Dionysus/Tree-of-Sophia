@@ -47,6 +47,7 @@ from .published_read_model import PublishedKnowledgeReadModel, PublishedReadMode
 from .published_exploration import PublishedExplorationService
 from .published_lens import PublishedLensService
 from .source_read import SourceReadError, SourceReadService, contract_summary, unavailable_capabilities
+from .source_read_owner import SelectedSourceReadService
 
 
 INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
@@ -514,7 +515,7 @@ class ToSAccessCore:
     published_read_model_path: Path | None = None
     published_read_model_expected: dict[str, Any] | None = None
     published_exploration_checkpoint_path: Path | None = None
-    source_read_service: SourceReadService | None = None
+    source_read_service: SourceReadService | SelectedSourceReadService | None = None
     _prepared_reader: PublishedKnowledgeReadModel | None = field(default=None, init=False, repr=False, compare=False)
     _prepared_lens: PublishedLensService | None = field(default=None, init=False, repr=False, compare=False)
     _exploration: ExplorationService = field(init=False, repr=False, compare=False)
@@ -554,7 +555,7 @@ class ToSAccessCore:
             raise ValueError("prepared reader requires both a path and an exact expected snapshot binding")
         if self.published_exploration_checkpoint_path is not None and self.published_read_model_path is None:
             raise ValueError("persistent exploration checkpoints require an explicitly selected prepared reader")
-        if self.source_read_service is not None and not isinstance(self.source_read_service, SourceReadService):
+        if self.source_read_service is not None and not isinstance(self.source_read_service, (SourceReadService, SelectedSourceReadService)):
             raise TypeError("source_read_service must be an explicit SourceReadService")
         if self.published_read_model_path is not None:
             path = Path(self.published_read_model_path).expanduser()
@@ -618,7 +619,7 @@ class ToSAccessCore:
         published_read_model_path: str | Path | None = None,
         published_read_model_expected: dict[str, Any] | None = None,
         published_exploration_checkpoint_path: str | Path | None = None,
-        source_read_service: SourceReadService | None = None,
+        source_read_service: SourceReadService | SelectedSourceReadService | None = None,
     ) -> "ToSAccessCore":
         """Select legacy carrier reads, or explicitly pin the prepared reader.
 

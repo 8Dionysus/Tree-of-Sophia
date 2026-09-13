@@ -16,6 +16,16 @@ function harness(){
     selectEdge:id=>events.push({type:'edge',id}),frame:()=>events.push({type:'frame'}),dispose:()=>events.push({type:'disposed'})};
   const controller=createLiveResearch({session,sky});return {controller,session,events,calls,first};
 }
+test('source record reading and cancellation never frame or mutate the sky',async()=>{
+  const {controller:c,session,events,first}=harness();await c.start();await c.open(first.query.origin);
+  const before=c.state().view,count=events.length,snapshot={kind:'node',raw:first.nodes[0]};
+  session.sourceRecord=async value=>{assert.equal(value,snapshot);return {status:'available'};};
+  assert.equal((await c.sourceRecord(snapshot)).status,'available');assert.equal(c.state().view,before);assert.equal(events.length,count);
+  const pending=deferred();session.sourceRecord=()=>pending.promise;let cancelled=false;
+  session.cancelSourceRecord=()=>{cancelled=true;};const read=c.sourceRecord(snapshot);c.cancelSourceRecord();pending.resolve({status:'available'});
+  assert.equal(await read,null);assert.equal(cancelled,true);assert.equal(events.length,count);
+});
+
 test('real cache pages drive the owner sky with stable positions, exact selection and no continuation framing',async()=>{
   const {controller:c,first,events}=harness();await c.start();await c.open(first.query.origin);
   const vertex=c.state().model.vertices[1];c.move(vertex.id,[11,22,33]);c.selectNode(vertex.id);

@@ -103,6 +103,48 @@ class PublishedReadModelTests(unittest.TestCase):
         self.assertFalse(any("knowledge_top" in sql for sql in statements))
         self.assertFalse(any(sql.startswith(("INSERT", "UPDATE", "CREATE", "DELETE")) for sql in statements))
 
+    def test_prepared_inspection_projects_retained_raw_source_target(self):
+        from tos_access.knowledge import _content_revision, _exact_record_digest, _stable_digest
+
+        item_id = self.graph["nodes"][0]["id"]
+        record = {
+            "schema_version": "tos_corpus_record_v1", "record_type": "agent",
+            "record_id": "tos.agent.prepared-source", "record_version": 1,
+            "preferred_label": "Prepared source agent",
+        }
+        item = copy.deepcopy(self.graph["nodes"][0])
+        payload = copy.deepcopy(item["source_record"]["payload"])
+        payload["properties"] = {
+            **(payload.get("properties") if isinstance(payload.get("properties"), dict) else {}),
+            "source_record": record,
+        }
+        item["source_record"] = {
+            **item["source_record"], "payload": payload, "digest": _stable_digest(payload),
+        }
+        item["content_revision"] = _content_revision(item)
+        raw_json = builder.compact_json(item)
+        with closing(sqlite3.connect(self.path)) as db:
+            db.execute("UPDATE knowledge_nodes SET json=? WHERE id=?", (raw_json, item_id))
+            db.execute(
+                "UPDATE edge_meta SET json_chunk=? WHERE key=? AND part=0",
+                (builder.compact_json(emitted_row_digest(raw_json)), published_row_digest_key("node", item_id)),
+            )
+            db.commit()
+
+        packet = self.reader.node(item_id, 0)
+        targets = packet["source_read_targets"]
+        self.assertEqual(set(targets), {item_id})
+        target = targets[item_id]
+        self.assertEqual(target["source_revision"], self.binding["source_revision"])
+        self.assertEqual(target["target"]["layer"], "metadata_record")
+        self.assertEqual(target["target"]["record_type"], "agent")
+        self.assertEqual(target["target"]["record_ref"]["id"], record["record_id"])
+        self.assertEqual(target["target"]["record_ref"]["version"], record["record_version"])
+        self.assertEqual(
+            target["target"]["record_ref"]["digest"],
+            "sha256:" + _exact_record_digest(record),
+        )
+
     def test_genuinely_cold_process_and_explicit_core_opt_in(self):
         program = """
 import json, sys

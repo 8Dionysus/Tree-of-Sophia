@@ -26,6 +26,7 @@ const copy={ru:{brand:'ДРЕВО СОФИИ',subtitle:'Исследование
   noPins:'Закрепите до двух материалов из карточки выбранного предмета или связи.',
   discoveryFailed:'Этот backend не предоставил совместимый контракт исследования. Исходные данные не изменены.',
   retry:'Повторить подключение',retryReading:'Повторить чтение',selected:'Выбранный материал',complete:'Раскрытие завершено',space:'Локальное поле чтения',
+  sourceRecord:'Открыть исходную запись',sourceRecordNote:'Это точная публичная запись, связанная с выбранной карточкой. Она не является текстом носителя, оценкой достоверности или разрешением использования.',sourceRecordWords:'Исходные примечания',sourceRecordNoWords:'У записи нет отдельного текстового примечания; её поля доступны в точных сведениях.',sourceRecordUnavailable:'Для этой карточки точное чтение источника пока не доступно.',sourceRecordMissing:'Точная исходная запись не найдена.',sourceRecordRestricted:'Доступ к исходной записи ограничен.',sourceRecordCorrupt:'Целостность исходной записи не подтверждена.',sourceRecordBudget:'Исходная запись превысила границы этого чтения.',
   sourceDossier:'Открыть точное досье источника',sourceChanges:'Изменение источника',sourceNoDossier:'Для этой локальной ссылки безопасный маршрут к досье не заявлен; путь не открывается автоматически.',
   sourceDossierLoading:'Загружаю досье источника…',sourceDossierUnavailable:'Досье источника сейчас недоступно.',sourceNoLinks:'В возвращённой цепочке нет HTTP-ссылки на носитель.',sourceIdentity:'Точная идентичность',sourceRights:'Права и границы',sourceLinks:'Наблюдаемые ссылки',sourceStructure:'Структура досье',sourceRefs:'Ссылки владельца',sourceDossierNote:'Это досье содержит ограниченный набор библиографических сведений и технических ссылок. Оно не выдаёт исходные байты и не подтверждает разрешение на их использование.',sourceDossierVersionNote:'Досье не привязано к версии данных или записи. Версии карточки показаны отдельно и не являются версией досье.',sourceCommandUnconfirmedClose:'В этой операции есть неподтверждённая команда. Перед закрытием сохраните её; иначе повтор станет невозможен.',sourceCommandCopy:'Скопировать сохранённую команду',sourceCommandCopied:'Точная команда скопирована. Теперь можно закрыть окно.',sourceCommandClose:'Закрыть после сохранения',sourceCommandCopyUnavailable:'Не удалось скопировать команду; оставьте окно открытым и повторите попытку.'},
 en:{brand:'TREE OF SOPHIA',subtitle:'Explore source-owned knowledge',search:'Find an object or relation',close:'Close',
@@ -43,6 +44,7 @@ en:{brand:'TREE OF SOPHIA',subtitle:'Explore source-owned knowledge',search:'Fin
   noPins:'Pin up to two materials from the selected object or relation card.',
   discoveryFailed:'This backend did not provide a compatible exploration contract. Source data is unchanged.',
   retry:'Reconnect',retryReading:'Retry reading',selected:'Selected material',complete:'Expansion complete',space:'Local reading field',
+  sourceRecord:'Open source record',sourceRecordNote:'This is the exact public record bound to the selected card. It is not carrier text, an assessment of truth, or permission to use the material.',sourceRecordWords:'Source notes',sourceRecordNoWords:'This record has no separate textual note; its fields are available in exact details.',sourceRecordUnavailable:'Exact source reading is not available for this card yet.',sourceRecordMissing:'The exact source record was not found.',sourceRecordRestricted:'Access to the source record is restricted.',sourceRecordCorrupt:'Source record integrity could not be confirmed.',sourceRecordBudget:'The source record exceeds this reading budget.',
   sourceDossier:'Open exact source dossier',sourceChanges:'Source changes',sourceNoDossier:'No safe dossier route is advertised for this local reference; the path is not opened automatically.',
   sourceDossierLoading:'Loading bounded source dossier…',sourceDossierUnavailable:'The source dossier is currently unavailable.',sourceNoLinks:'No carrier HTTP link is present in the returned link chain.',sourceIdentity:'Exact identity',sourceRights:'Rights and boundaries',sourceLinks:'Observed links',sourceStructure:'Dossier structure',sourceRefs:'Owner references',sourceDossierNote:'This dossier contains bounded bibliographic context and technical links. It does not deliver source bytes or conclude legal openness.',sourceDossierVersionNote:'The dossier contract carries no source/content revision; card revisions are shown separately and are not a dossier version.',sourceCommandUnconfirmedClose:'This operation has an unconfirmed command. Save it before closing or replay will be impossible.',sourceCommandCopy:'Copy retained command',sourceCommandCopied:'The exact command was copied. You can now close the window.',sourceCommandClose:'Close after saving',sourceCommandCopyUnavailable:'The command could not be copied; keep this window open and try again.'}};
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);node.textContent=String(text??'');node.className=className;return node;};
@@ -170,12 +172,13 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   const transport=()=>controller.state().discovery;
   function modal(title,kind){
     if(sourceCommandPending()){sourceCommandCloseWarning();return null;}
+    controller.cancelSourceRecord?.();controller.cancelSourceDossier?.();
     disposeSourceCommandPanel();surfaceGeneration++;
     dialog.replaceChildren();dialog.dataset.kind=kind;dialog.classList.toggle('wide',['comparison','source-dossier'].includes(kind));
     const top=el('div','','dialog-top'),close=button('×',closeDialog,'icon');close.setAttribute('aria-label',t('close'));
     top.append(el('h2',title),close);const body=el('div','','dialog-content');dialog.append(top,body);if(!dialog.open)dialog.showModal();return body;
   }
-  dialog.addEventListener('close',()=>{surfaceGeneration++;controller.cancelSourceDossier?.();disposeSourceCommandPanel();});
+  dialog.addEventListener('close',()=>{surfaceGeneration++;controller.cancelSourceDossier?.();controller.cancelSourceRecord?.();disposeSourceCommandPanel();});
   dialog.addEventListener('cancel',event=>{if(sourceCommandPending()){event.preventDefault();sourceCommandCloseWarning();}});
   const sourceDossierRefs=snapshot=>[...new Set([snapshot?.raw?.source_dossier_ref,...(snapshot?.endpoints??[]).map(item=>item?.source_dossier_ref)])]
     .filter(isSourceDossierRef);
@@ -216,6 +219,31 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       if(dossier)appendSourceDossier(body,dossier,snapshot,requestedRef);else body.append(el('p',t('sourceDossierUnavailable'),'body'));
     }catch(error){if(!disposed&&surface===surfaceGeneration){body.replaceChildren(el('p',error?.message??String(error),'body'));}}
   }
+  async function openSourceRecord(snapshot){
+    const body=modal(t('sourceRecord'),'source-record');if(!body)return;
+    const surface=surfaceGeneration;body.append(el('p',t('loading'),'body'));
+    try{
+      const result=await controller.sourceRecord(snapshot);
+      if(disposed||surface!==surfaceGeneration)return;
+      body.replaceChildren();
+      if(!result){body.append(el('p',t('sourceRecordUnavailable'),'body'));return;}
+      body.dataset.sourceReadStatus=result.status;
+      if(result.status!=='available'){
+        const label={missing:'sourceRecordMissing','access-restricted':'sourceRecordRestricted',corrupt:'sourceRecordCorrupt','over-budget':'sourceRecordBudget'}[result.status]??'sourceRecordUnavailable';
+        body.append(el('p',t(label),'body'));return;
+      }
+      body.append(el('p',t('sourceRecordNote'),'body'));
+      if(typeof result.record.preferred_label==='string')body.append(el('h3',result.record.preferred_label,'minor-title'));
+      if(typeof result.record.notes==='string'&&result.record.notes.trim()){
+        body.append(el('h3',t('sourceRecordWords'),'minor-title'));
+        const notes=el('p',result.record.notes,'body');
+        if(typeof result.record.language==='string')notes.lang=result.record.language;
+        body.append(notes);
+      }else body.append(el('p',t('sourceRecordNoWords'),'muted'));
+      body.append(detail(t('sourceIdentity'),{source_revision:result.source_revision,content_revision:result.content_revision,record_ref:result.record_ref}),
+        detail(t('sourceRights'),result.access),detail(t('technical'),result.record),detail(t('sourceRefs'),result.provenance));
+    }catch(error){if(!disposed&&surface===surfaceGeneration)body.replaceChildren(el('p',error?.message??t('sourceRecordUnavailable'),'body'));}
+  }
   function openSourceCommands(){
     try{
       const body=modal(t('sourceChanges'),'source-command');
@@ -233,6 +261,8 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     if(snapshot.claimReading)container.append(renderClaimContext(snapshot.claimReading));
     if(snapshot.claimContextUnavailable)container.append(el('p',language==='ru'?'Контекст утверждения не вошёл в эту карточку. Раскройте его связи.':'Claim context is not included in this card. Expand its relations.','muted'));
     const sources=el('details');sources.append(el('summary',t('sources')));
+    const exactSource=button(t('sourceRecord'),()=>void openSourceRecord(snapshot),'source-link');
+    exactSource.dataset.sourceRecordId=snapshot.raw.id;sources.append(exactSource);
     for(const ref of doc.sourceRefs){
       if(/^https?:\/\//i.test(ref)){const link=el('a',ref,'source-link');link.href=ref;link.target='_blank';link.rel='noopener noreferrer';sources.append(link);}
       else sources.append(el('p',ref,'source-link'));

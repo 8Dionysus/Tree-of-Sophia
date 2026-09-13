@@ -3,6 +3,7 @@ import {ExplorationSceneCache} from './exploration-cache.mjs';
 import {validateHumanForms,claimPathFor} from './human-forms.mjs';
 import {readingSnapshot} from './reader-model.mjs';
 import {nativeStrip,nativeLower} from '../../../shared/native-unicode.ts';
+import {readExactSource} from './exact-source-read.mjs';
 
 const hash=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
@@ -116,6 +117,22 @@ export class ExplorationSession {
     return result.current&&!this.#disposed?immutable(structuredClone(result.value)):null;
   }
   cancelSourceDossier(){this.#slots.cancel('source-dossier');}
+  async sourceRecord(reading){
+    if(this.#disposed)return null;
+    const view=this.snapshot(),selectionEpoch=this.#selectionEpoch;
+    requireContract(view&&object(reading)&&['node','relation'].includes(reading.kind)&&object(reading.raw));
+    if(reading.sourceRevision!==view.source_revision)throw new RevisionError();
+    const rows=view[reading.kind==='node'?'nodes':'relations'];
+    const raw=rows.find(row=>row.id===reading.raw.id);
+    if(!raw||raw.content_revision!==reading.raw.content_revision)throw new RevisionError();
+    const selected={kind:reading.kind,id:raw.id,source_revision:view.source_revision,content_revision:raw.content_revision};
+    const result=await this.#slots.run('source-record',signal=>readExactSource(this.#client,selected,{signal}));
+    if(!result.current||this.#disposed||selectionEpoch!==this.#selectionEpoch||this.snapshot()?.source_revision!==view.source_revision)return null;
+    const retained=this.snapshot()[reading.kind==='node'?'nodes':'relations'].find(row=>row.id===raw.id);
+    if(retained?.content_revision!==raw.content_revision)return null;
+    return immutable(structuredClone(result.value));
+  }
+  cancelSourceRecord(){this.#slots.cancel('source-record');}
   cancelScene(){
     this.#sceneRequest?.abort();this.#sceneRequest=null;
     if(this.#ticket)this.#cache.cancel(this.#ticket);this.#ticket=null;
@@ -133,7 +150,7 @@ export class ExplorationSession {
     if(JSON.stringify(previous?.selection)!==JSON.stringify(next.selection))this.#changedSelection();
     return next;
   }
-  #changedSelection(){this.#selectionEpoch++;this.#slots.cancel('inspect');}
+  #changedSelection(){this.#selectionEpoch++;this.#slots.cancel('inspect');this.cancelSourceRecord();}
   async open(target,{replace=false,selectOrigin=true,options={}}={}){
     requireContract(this.#discovery&&object(target)&&['node','relation'].includes(target.kind)
       &&typeof target.id==='string'&&target.id.length>0&&typeof replace==='boolean'&&typeof selectOrigin==='boolean');

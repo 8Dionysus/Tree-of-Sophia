@@ -24,6 +24,7 @@ from .published_read_metadata import (
     emitted_row_digest, published_reader_metadata, published_row_digest_key,
     published_snapshot_binding,
 )
+from .source_read_projection import source_read_targets
 _INDEXES = (
     "knowledge_nodes_native_idx", "knowledge_nodes_entity_idx",
     "knowledge_relations_native_idx", "knowledge_relations_from_seek",
@@ -350,6 +351,7 @@ class PublishedKnowledgeReadModel:
                 "shared_entity_id": len(entity) > 1, "matches": matches, "related_relations": selected,
                 "counts": {"matches": len(matches), "related_relations": related_count, "returned_relations": len(selected)},
                 "source_refs": self._refs([*matches, *selected]), "authority_boundary": top["authority_boundary"],
+                "source_read_targets": source_read_targets([*matches, *selected], top["source_revision"]),
             }
         return self._read(operation)
 
@@ -370,5 +372,6 @@ class PublishedKnowledgeReadModel:
                 "matches": matches, "endpoints": endpoints,
                 "counts": {"matches": len(matches), "endpoints": len(endpoints)},
                 "source_refs": self._refs([*matches, *endpoints]), "authority_boundary": top["authority_boundary"],
+                "source_read_targets": source_read_targets([*matches, *endpoints], top["source_revision"]),
             }
         return self._read(operation)

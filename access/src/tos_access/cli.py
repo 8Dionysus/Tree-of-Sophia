@@ -18,6 +18,8 @@ def _parser() -> argparse.ArgumentParser:
                         help="Owner-selected snapshot binding JSON file, not inferred from the database")
     parser.add_argument("--exploration-checkpoints", type=Path,
                         help="Separate local continuation store for an explicitly selected prepared reader")
+    parser.add_argument("--source-inputs", type=Path,
+                        help="Explicit retained source vector; requires --root and the matching prepared reader/binding")
     sub = parser.add_subparsers(dest="command", required=True)
     doctor = sub.add_parser("doctor", help="Inspect data, web, contract, MCP, and integration readiness")
     doctor.add_argument("--json", action="store_true", dest="as_json")
@@ -28,6 +30,12 @@ def _parser() -> argparse.ArgumentParser:
     web.add_argument("--host", default="127.0.0.1")
     web.add_argument("--port", type=int, default=8080)
     sub.add_parser("mcp", help="Run the native Tree of Sophia MCP server")
+    source = sub.add_parser("source", help="Read exact owner-bound source records without changing the Tree")
+    source_sub = source.add_subparsers(dest="source_command", required=True)
+    source_sub.add_parser("capabilities")
+    source_sub.add_parser("contracts")
+    for operation in ("discover", "read"):
+        source_sub.add_parser(operation).add_argument("request", help="Bounded source-read request JSON file or - for stdin")
     knowledge = sub.add_parser("knowledge", help="Use the unified human/agent knowledge backend")
     knowledge_sub = knowledge.add_subparsers(dest="knowledge_command", required=True)
     knowledge_sub.add_parser("catalog", help="List fields, vocabularies, limits, and stored lenses")
@@ -74,6 +82,8 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit("prepared reads require both --prepared-read-model and --prepared-binding")
     if args.exploration_checkpoints is not None and not prepared:
         raise SystemExit("--exploration-checkpoints requires an explicitly selected prepared reader")
+    if args.source_inputs is not None and (not prepared or args.root is None):
+        raise SystemExit("--source-inputs requires --root and an explicitly selected prepared reader/binding")
     if args.command in {"doctor", "verify"}:
         if prepared:
             raise SystemExit("doctor/verify check the source-backed profile, not a prepared publication")
@@ -100,6 +110,13 @@ def main(argv: list[str] | None = None) -> None:
         options = {"published_read_model_path": args.prepared_read_model,
                    "published_read_model_expected": binding,
                    "published_exploration_checkpoint_path": args.exploration_checkpoints}
+    if args.source_inputs is not None:
+        from .source_read_owner import SelectedSourceReadService
+        try:
+            options["source_read_service"] = SelectedSourceReadService(
+                args.root, args.source_inputs, expected_revision=binding["source_revision"])
+        except (OSError, ValueError, KeyError, ImportError) as exc:
+            raise SystemExit(f"cannot select source owner: {exc}") from exc
     core = ToSAccessCore.discover(tos_root=args.root, **options)
     if args.command == "serve":
         from .http_server import serve
@@ -108,6 +125,29 @@ def main(argv: list[str] | None = None) -> None:
     if args.command == "mcp":
         from .mcp_server import _run_server, build_server
         _run_server(build_server(core=core) if prepared else build_server(tos_root=core.tos_root))
+        return
+    if args.command == "source":
+        if args.source_command == "capabilities":
+            packet = core.source_read_capabilities()
+        elif args.source_command == "contracts":
+            packet = core.source_read_contract()
+        else:
+            from .source_read import MAX_REQUEST_BYTES, SourceReadError
+            try:
+                if args.request == "-":
+                    raw = sys.stdin.buffer.read(MAX_REQUEST_BYTES + 1)
+                else:
+                    with Path(args.request).open("rb") as stream:
+                        raw = stream.read(MAX_REQUEST_BYTES + 1)
+                if len(raw) > MAX_REQUEST_BYTES:
+                    raise ValueError("source request exceeds 65536 bytes")
+                from .projection_store import _strict_json
+                request = _strict_json(raw)
+                packet = (core.source_handle_discover(request) if args.source_command == "discover"
+                          else core.source_read(request))
+            except (OSError, ValueError, SourceReadError) as exc:
+                raise SystemExit(f"cannot read exact source: {exc}") from exc
+        print(json.dumps(packet, ensure_ascii=False, separators=(",", ":"), allow_nan=False))
         return
     if args.command == "knowledge":
         if args.knowledge_command == "catalog":

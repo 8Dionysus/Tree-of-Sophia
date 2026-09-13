@@ -22,6 +22,16 @@ code or a mutation. A synthesized description is explicitly marked and never
 presented as authored ToS meaning. The live catalog also publishes observed
 attribute fields and types, filter-value contracts, facets, bounds, and stored
 lenses, so clients do not need to hard-code the current corpus vocabulary.
+
+Exact node and relation inspection packets may additionally carry
+`source_read_targets`. Each entry is keyed by the exact normalized material ID
+returned in that packet and contains the packet `source_revision` plus one
+`source-read.v1.schema.json#/$defs/target` built from a retained raw
+`source_record` or full `source_claim`. This is a pure target projection: a
+source path, `claim_ref`, ID prefix, `latest` lookup, or owner scan cannot create
+an entry, and an entry does not promise that a source-read owner is configured
+or current. `SourceReadService` revalidates the exact target and owner epoch
+before issuing any handle; unsupported or ambiguous carriers remain absent.
 The ToS-owned entity and relation registries under
 `ToS/doctrine/semantic-interchange/` add stable machine type IDs, hierarchy,
 source crosswalks, localized definitions, relation domain/range, direction,
