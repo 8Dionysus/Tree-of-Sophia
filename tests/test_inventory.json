@@ -213,6 +213,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_source_claim_catalog.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "protects": "exact committed initial Claim package through addressed catalog staging and real assembler consumption, unchanged neighbors, current delegation and evidence, absence checks, corruption and budget refusal without full source scans or prepared publication claims",
+      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_source_claim_catalog.py",
+      "failure_route": "Fix the source Claim addition observer or catalog binding; never turn an unselected catalog candidate into graph publication or source admission.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_source_catalog_projection.py",
       "home": "tests",
       "home_scope": "root",

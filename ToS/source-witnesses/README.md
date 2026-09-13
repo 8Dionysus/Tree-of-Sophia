@@ -307,6 +307,33 @@ non-descriptive transitions remain outside this bounded profile, not
 implicitly covered by a green Agent correction. Explicit collection-order
 version bases are a separate exact reader path, not membership admission.
 
+`scripts/source_claim_catalog.py` adds a separate addressed **catalog** step
+for an exact, already committed initial `claims.create` package. The caller
+selects its protected v1 delegation, exact request digest, receipt byte digest
+and admitted catalog predecessor. Within the existing source writer lock,
+`claim_catalog_addition(...)` checks current delegation, unchanged initial
+package bytes, source-bound endpoint versions, public metadata path evidence,
+declared identity-relation profiles and absence of the new Claim/event slots.
+It stages only changed immutable Claim and source-slot parts and increments
+their counts; it does not scan the corpus or rewrite the selected root.
+
+The source metadata publication token stays unchanged: this creation package
+is not a selected Agent transaction. `last_transition` is cleared rather than
+inventing a metadata transaction. The detached candidate receipt binds the
+exact creation request and receipt; the candidate binds both catalog roots.
+Current scope and bytes are rechecked through `verify_current()` while its
+context is open. Revocation, drift, occupied identities and exhausted budgets
+refuse; staged parts may remain unselected and are not automatically deleted.
+
+This initial profile supports existing identity endpoints and exact public
+metadata path evidence, not temporal/structured values, identity proposals,
+correction/history, assessment or arbitrary evidence transports. It does not
+replay the source command, assess meaning, establish global source currentness
+or prove reverse dependency closure. A prepared publisher still must assemble
+the new Claim and affected shared contexts, update declarations and all reader
+lanes atomically, and verify source guards before its own commit. Catalog
+staging alone does not make a new Claim visible to a running human/agent reader.
+
 Evidence nodes carry a bounded readable `display` from owner metadata.
 An identity can reuse its catalog `preferred_label`. Direct Markdown
 notes in `ToS/review-ledger/` and in
