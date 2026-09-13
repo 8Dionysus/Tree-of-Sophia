@@ -121,10 +121,22 @@ class ValidateActiveNamingTests(unittest.TestCase):
             "may_seed_gold",
             "first-wave",
             "first-wave-resident",
+            "one-seeder",
         ):
             with self.subTest(reference=reference):
                 self.assertIsNotNone(active_reference(reference))
                 self.assertIsNone(validate_active_naming.retired_content_issue(reference))
+
+    def test_exact_source_title_exception_is_content_only(self) -> None:
+        reference = "A One-Seeder"
+        self.assertIsNotNone(active_reference(reference))
+        self.assertIsNone(validate_active_naming.retired_content_issue(reference))
+        self.assertIsNotNone(
+            validate_active_naming.retired_content_issue("A One-Seeder-v2")
+        )
+        self.assertIsNotNone(
+            validate_active_naming.retired_path_issue("ToS/a-one-seed/README.md")
+        )
 
     def test_domain_identifier_exceptions_are_exact_and_content_only(self) -> None:
         for reference in (
