@@ -10,6 +10,45 @@ The scene retains the observatory's GPU atmosphere, rotation, pan, zoom,
 selection and recording controls. It is a separate entry from the existing
 observatory and Foundation API consumer.
 
+## Live source exploration
+
+`constructor.html?live=1` selects the real, read-only exploration adapter before
+the demo library or personal workspace is loaded. It mounts the same owner sky,
+camera and gestures. It neither imports demo knowledge into ToS nor modifies the
+demo's saved state. Optional `focus=<exact API ID>&kind=node|relation&lang=ru|en`
+opens an addressable origin; without a focus, search is the entry point.
+
+Run `node node_modules/vite/bin/vite.js --config vite.constructor.config.mjs`
+from `access/web`. The local server uses port 44257 and proxies `/api` to the
+separately selected read-only backend at 127.0.0.1:44258. Its discovery must offer
+exploration v2 and indexed or compressed search; there is no fixture fallback.
+`TOS_WEB_CACHE_DIR` can place the development cache in owner-managed scratch.
+This does not install, restart or activate the desktop demo.
+
+`live-research.mjs` connects the bounded `ExplorationSession` to the sky through
+`live-model.mjs`. Search returns at most six items of each kind per page. Exact
+node/relation origins and continuation enter the existing immutable scene cache;
+failed queries retain the last good space. Selection, positions and camera
+survive continuation and local presentation/language changes. Only the first
+opening, explicit new field or fit action frames the camera. Source and snapshot
+changes require the existing explicit replacement boundary.
+
+The three presentation modes expose compact paths, grouped carriers or raw
+records; they do not invent semantic lenses. Expansion conditions come from
+the catalog and apply to the next query, not retroactively to retained areas.
+Reading uses complete version-checked forms and mandatory context. Comparison
+retains at most two exact cards; independent cancellation and visible terminal
+errors prevent stale or indefinitely loading cards. Neither comparison nor
+source availability establishes semantic acceptance.
+
+This entry currently implements reading, not source commands or a complete
+research constructor. Path conditions, semantic comparison operations, direct
+local-source opening and authorized growth still need joint integration.
+Source references and existing human-form gaps remain visible. Unit checks in
+`live-research.test.mjs`, `live-model.test.mjs` and
+`../src/observatory/exploration-session.test.mjs` protect this adapter; real
+browser and full-corpus checks remain necessary before foundation acceptance.
+
 ## What the mockup contains
 
 `atlas-data.mjs` owns prepared **demonstration material** and its explanatory

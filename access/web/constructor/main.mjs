@@ -33,6 +33,9 @@ let noticeTimer;
 function notice(text){const n=root.querySelector('.notice');n.textContent=text;n.hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>n.hidden=true,4200);}
 function attempt(fn){try{return fn()}catch(error){notice(`${t('error')}: ${error.message}`);return null;}}
 try{
+ if(new URL(location.href).searchParams.get('live')==='1'){
+   await (await import('./live-controller.mjs')).mountLiveResearch(root);
+ }else{
  const response=await fetch('./library.json');if(!response.ok)throw Error(`HTTP ${response.status}`);
  const sourceLibrary=await response.json();
  const library=await createAtlasLibrary(sourceLibrary),atlas=library.atlas,materials=new Map(library.nodes.map(m=>[m.id,m])),atlasEdges=new Map(atlas.edges.map(e=>['atlas:'+e.id,e]));
@@ -261,4 +264,5 @@ try{
  dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
  model.subscribe(reflect);reflect();sky.frame();root.dataset.ready='true';
  if(carried.copied.includes('tree'))notice(lang==='ru'?'Ваше личное поле перенесено в новую смысловую редакцию. Прежняя копия сохранена.':'Your personal workspace has moved to the new semantic edition. The earlier copy is preserved.');
+ }
 }catch(error){root.replaceChildren(el('h1','loading',t('error')),p(error.message,'loading'));}
