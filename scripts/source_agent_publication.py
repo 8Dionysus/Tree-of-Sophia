@@ -246,9 +246,11 @@ def bootstrap_agent_context_index_transaction(db, *, source_root, expected_bindi
     """
     _require_vector(source_inputs)
     _profiles(source_inputs, catalog_inputs, declaration_profile_sha256)
+    limits = limits or SourceDependencyLimits()
     if db.execute('PRAGMA journal_mode').fetchone()[0] != 'wal':
         raise ValueError('explicit WAL bootstrap required for independent predecessor readers')
-    if read_prepared_source_inputs_transaction(db, expected_binding=expected_binding) != source_inputs:
+    if read_prepared_source_inputs_transaction(db, expected_binding=expected_binding,
+            limits=PublicationLimits(max_bytes=limits.max_bytes)) != source_inputs:
         raise ValueError('context bootstrap source selection differs')
     with _operation(db, limits, progress_owner) as b:
         from bibliographic_claim_assembler import BibliographicClaimAssembler
@@ -435,7 +437,7 @@ class CapturedAgentCorrection:
 
 def capture_agent_correction(db, *, source_root, record_id, expected_binding,
         catalog_inputs, declaration_profile_sha256, progress_owner,
-        limits=None, mutation_limits=None, dependency_limits=None):
+        limits=None, mutation_limits=None, dependency_limits=None, publication_limits=None):
     """Capture current-only source inputs BEFORE invoking record.revise.
 
     The caller must close its transaction before this operation and before the
@@ -446,14 +448,16 @@ def capture_agent_correction(db, *, source_root, record_id, expected_binding,
     limits = limits or AgentPublicationLimits()
     mutation_limits = mutation_limits or MutationLimits()
     dependency_limits = dependency_limits or SourceDependencyLimits(max_claims=limits.max_claims)
+    publication_limits = publication_limits or PublicationLimits()
     if db.in_transaction or catalog_inputs.source_order_profile != CANONICAL_ORDER:
         raise ValueError('capture requires no caller transaction and canonical explicit bootstrap')
     root = Path(source_root).absolute()
     with source._locked(root / 'ToS/source-witnesses/historical-create'):
         db.execute('BEGIN')
         try:
-            inputs = read_prepared_source_inputs_transaction(db, expected_binding=expected_binding)
-            _catalog_selected(db, expected_binding, catalog_inputs, PublicationLimits())
+            inputs = read_prepared_source_inputs_transaction(db, expected_binding=expected_binding,
+                                                            limits=publication_limits)
+            _catalog_selected(db, expected_binding, catalog_inputs, publication_limits)
             _require_vector(inputs)
             _profiles(inputs, catalog_inputs, declaration_profile_sha256)
             selected = inputs.roots()['source-catalog']
@@ -718,7 +722,8 @@ class AgentCorrectionPublication:
         if publication_limits.max_mutations <= 1:
             raise ValueError('Agent publication requires final context-binding mutation allowance')
         start = db.total_changes
-        if read_prepared_source_inputs_transaction(db, expected_binding=captured.expected_binding) != captured.source_inputs:
+        if read_prepared_source_inputs_transaction(db, expected_binding=captured.expected_binding,
+                limits=publication_limits) != captured.source_inputs:
             raise ValueError('prepared predecessor advanced after Agent capture')
         old, new = _cohort_value(captured.cohort_raw), _cohort_value(self._new_raw)
         previous, successor = _normalize_pair(db, captured, old, new, self.progress_owner)
@@ -763,6 +768,7 @@ class AgentCorrectionPublication:
         # as well so a later DROP INDEX or CREATE TRIGGER cannot slip through
         # the guarded commit after all publication lanes were verified.
         self._applied_schema_version = db.execute('PRAGMA main.schema_version').fetchone()
+        self._publication_limits = publication_limits
         return self.result
 
     @property
@@ -778,7 +784,8 @@ class AgentCorrectionPublication:
         if db.execute('PRAGMA main.schema_version').fetchone() != self._applied_schema_version:
             raise ValueError('schema changed after verified publication; complete rollback required')
         result = self.result
-        paired = read_prepared_source_inputs_transaction(db, expected_binding=result['binding'])
+        paired = read_prepared_source_inputs_transaction(db, expected_binding=result['binding'],
+                                                        limits=self._publication_limits)
         if paired.digest != result['source_inputs_sha256']:
             raise ValueError('paired source selection changed before guarded commit')
         self.verify_current()

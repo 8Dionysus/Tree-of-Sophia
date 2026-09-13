@@ -98,6 +98,35 @@ class PreparedPublicationTests(unittest.TestCase):
                 expected = {item["id"]: _compact(item) for item in self.graph[kind + "s"]}
                 self.assertEqual(dict(db.execute(f"SELECT id,json FROM knowledge_{kind}s")), expected)
 
+    def test_metadata_only_successor_preserves_carriers_and_search_atomically(self):
+        predecessor = self.publish()
+        old_binding = dict(self.binding)
+        old_search = self.search(old_binding, "common")
+        with closing(sqlite3.connect(self.path)) as db:
+            db.execute('PRAGMA journal_mode=WAL')
+            before = {kind: list(db.execute(f'SELECT * FROM knowledge_{kind}s ORDER BY id'))
+                      for kind in ('node', 'relation')}
+            header, catalog = self.header()
+            db.execute('BEGIN IMMEDIATE')
+            successor = apply_prepared_delta_transaction(db, expected_binding=old_binding,
+                source_header=header, catalog=catalog, changes=[])
+            self.assertEqual(predecessor.catalog(), self.catalog)
+            db.rollback()
+            self.assertEqual(predecessor.catalog(), self.catalog)
+            db.execute('BEGIN IMMEDIATE')
+            successor = apply_prepared_delta_transaction(db, expected_binding=old_binding,
+                source_header=header, catalog=catalog, changes=[])
+            db.commit()
+            for kind, rows in before.items():
+                self.assertEqual(list(db.execute(f'SELECT * FROM knowledge_{kind}s ORDER BY id')), rows)
+        self.assertEqual(successor['source_revision'], header['source_revision'])
+        self.assertNotEqual(successor['data_revision'], old_binding['data_revision'])
+        self.assertEqual(successor['normalization_binding'], old_binding['normalization_binding'])
+        self.assertEqual(self.search(successor, 'common'), old_search)
+        self.assertEqual(PublishedKnowledgeReadModel(self.path, successor).catalog(), catalog)
+        with self.assertRaises(PublishedSnapshotConflict):
+            predecessor.catalog()
+
     def test_repeatable_row_factory_matches_list_publication_without_retaining_rows(self):
         import weakref
         class Row(dict):

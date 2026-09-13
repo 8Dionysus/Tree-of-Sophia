@@ -113,7 +113,12 @@ class SourceAgentPublicationTests(unittest.TestCase):
             catalog_inputs=self.inputs, declaration_profile_sha256=self.profile, progress_owner=self.owner, **kwargs)
 
     def test_real_agent_revision_publishes_all_lanes_and_preserves_old_reader_until_commit(self):
-        captured = self.capture()
+        publication_limits = publication.PublicationLimits(max_bytes=128 * 1024 * 1024)
+        original_read = publication.read_prepared_source_inputs_transaction
+        reader_patch = patch.object(publication, 'read_prepared_source_inputs_transaction', wraps=original_read)
+        reader = reader_patch.start()
+        self.addCleanup(reader_patch.stop)
+        captured = self.capture(publication_limits=publication_limits)
         transaction, token = self.helper.fixture.revise('Новая заметка реальной тестовой команды')
         original = PublishedKnowledgeReadModel(self.path, self.binding)
         old_catalog = original.catalog()
@@ -122,7 +127,7 @@ class SourceAgentPublicationTests(unittest.TestCase):
             self.db.execute('BEGIN IMMEDIATE')
             with patch.object(k, 'build_knowledge_graph', side_effect=AssertionError('full-build fallback')), \
                     patch.object(ProjectionSnapshotView, 'materialize', side_effect=AssertionError('whole-root fallback')):
-                result = candidate.apply_transaction(self.db)
+                result = candidate.apply_transaction(self.db, publication_limits=publication_limits)
             self.assertEqual(original.catalog(), old_catalog)
             with closing(sqlite3.connect(self.path)) as independent:
                 self.assertEqual(independent.execute('SELECT sha256 FROM prepared_source_state').fetchone()[0],
@@ -134,6 +139,8 @@ class SourceAgentPublicationTests(unittest.TestCase):
             self.assertEqual(candidate.result, result)
             committed = candidate.commit_transaction(self.db)
         self.assertTrue(committed['prepared_committed'])
+        self.assertEqual(len(reader.call_args_list), 3)
+        self.assertTrue(all(call.kwargs['limits'] == publication_limits for call in reader.call_args_list))
         with self.assertRaises(PublishedSnapshotConflict):
             original.catalog()
         # Independent full tiny oracle is outside the incremental execution.
@@ -325,14 +332,18 @@ class SourceAgentPublicationTests(unittest.TestCase):
             max_files=256, max_file_bytes=2 * 1024 * 1024,
             max_read_bytes=64 * 1024 * 1024, max_output_bytes=32 * 1024 * 1024)
         self.db.execute('BEGIN IMMEDIATE')
-        publication.bootstrap_agent_context_index_transaction(
-            self.db, source_root=self.root, expected_binding=self.binding,
-            source_inputs=self.source, catalog_inputs=self.inputs,
-            declaration_profile_sha256=self.profile,
-            ordered_nodes=self.graph['nodes'], ordered_relations=self.graph['relations'],
-            source_dossier_refs=[], progress_owner=self.owner,
-            catalog_read_limits=catalog_limits, assembly_limits=full_limits,
-            slot_limits=slot_limits)
+        dependency_limits = publication.SourceDependencyLimits(max_bytes=256 * 1024 * 1024)
+        with patch.object(publication, 'read_prepared_source_inputs_transaction',
+                wraps=publication.read_prepared_source_inputs_transaction) as read_binding:
+            publication.bootstrap_agent_context_index_transaction(
+                self.db, source_root=self.root, expected_binding=self.binding,
+                source_inputs=self.source, catalog_inputs=self.inputs,
+                declaration_profile_sha256=self.profile,
+                ordered_nodes=self.graph['nodes'], ordered_relations=self.graph['relations'],
+                source_dossier_refs=[], progress_owner=self.owner, limits=dependency_limits,
+                catalog_read_limits=catalog_limits, assembly_limits=full_limits,
+                slot_limits=slot_limits)
+        self.assertEqual(read_binding.call_args.kwargs['limits'].max_bytes, dependency_limits.max_bytes)
         self.assertEqual(self.db.execute(
             'SELECT count(*) FROM agent_context_state').fetchone()[0], 1)
         self.db.commit()
