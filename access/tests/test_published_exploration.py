@@ -460,6 +460,35 @@ with patch.object(ExplorationService, '_index', side_effect=AssertionError('cold
         with self.assertRaises(KnowledgeRevisionConflict):
             self.persistent(clock=lambda: now[0], ttl=10).explore(request)
 
+    def test_old_scene_checkpoints_refuse_reopen_and_replay_without_reset(self):
+        service = self.persistent()
+        first = service.explore({"focus_node_id": "node:00"})
+        request = {"cursor": first["page"]["next_cursor"]}
+        replay = service.explore(request)
+        self.assertEqual(self.persistent().explore(request), replay)
+        path = service.checkpoints.path
+        with closing(sqlite3.connect(path)) as db:
+            config = json.loads(db.execute("SELECT config FROM checkpoint_meta").fetchone()[0])
+            self.assertIn("scene_implementation", config["execution"])
+            del config["execution"]["scene_implementation"]
+            db.execute("UPDATE checkpoint_meta SET config=?", (json.dumps(config, separators=(",", ":")),))
+            db.commit()
+        before = path.read_bytes()
+        source_before = self.path.read_bytes()
+        with self.assertRaisesRegex(PublishedCheckpointError, "incompatible"):
+            self.persistent()
+        with self.assertRaisesRegex(PublishedCheckpointError, "incompatible"):
+            service.explore(request)
+        with self.assertRaisesRegex(PublishedCheckpointError, "incompatible"):
+            service.explore({"focus_node_id": "node:00"})
+        self.assertEqual(path.read_bytes(), before)
+        fresh = PublishedExplorationService(self.reader, checkpoint_path=path.with_name("new-scene.sqlite"), work_limit=2)
+        fresh.explore({"focus_node_id": "node:00"})
+        with self.assertRaises(ExplorationExpired):
+            fresh.explore(request)
+        self.assertEqual(path.read_bytes(), before)
+        self.assertEqual(self.path.read_bytes(), source_before)
+
     def test_persistent_busy_schema_mismatch_and_source_path_fail_closed(self):
         service = self.persistent()
         first = service.explore({"focus_node_id": "node:00"})

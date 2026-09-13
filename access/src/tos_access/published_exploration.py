@@ -28,6 +28,8 @@ from .published_read_model import PublishedKnowledgeReadModel, PublishedReadMode
 from .published_checkpoints import PublishedCheckpointStore, PublishedCheckpointError
 
 SNAPSHOT_SCHEMA = "tos_published_exploration_snapshot_v1"
+# Private stored-response compatibility, not a traversal/public schema change.
+SCENE_IMPLEMENTATION = "selected-relation-first-v1"
 
 
 class _Rows:
@@ -137,6 +139,7 @@ class PublishedExplorationService(ExplorationService):
         self.checkpoints = None if checkpoint_path is None else PublishedCheckpointStore(
             checkpoint_path, reader.path, max_checkpoints=max_checkpoints, max_bytes=max_bytes,
             execution_config={"version": EXECUTION_VERSION, "snapshot_schema": SNAPSHOT_SCHEMA,
+                              "scene_implementation": SCENE_IMPLEMENTATION,
                               "ttl": ttl, "work_limit": work_limit, "node_limit": node_limit,
                               "relation_limit": relation_limit, "block_size": block_size})
 

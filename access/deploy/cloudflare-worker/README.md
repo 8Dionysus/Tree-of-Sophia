@@ -462,8 +462,11 @@ structural query/identity/counter data, validated before its private clone.
 
 Public execution remains `tos-exploration-d1-execution-v6` with the existing
 v1/v2 schemas. The private checkpoint version is now
-`tos-exploration-d1-execution-v6/native-json-v1`: old potentially rounded v6 cache
-records return 409 and require a fresh exploration. This invalidation changes no
+`tos-exploration-d1-execution-v6/native-json-v1/selected-relation-first-v1`:
+old potentially rounded v6 records and pre-fix scene continuations/replays
+return 409 and require a fresh exploration. Selected raw relations now remain
+explicit even with coincident Claim focus, matching native scene selection.
+This private invalidation changes no
 source rows or table schema and performs no request-time migration. Checkpoint
 and metadata text is bounded before D1 delivers it; split header reads bracket
 the publication clock, including replay. All cache batch writes, cleanup and
@@ -474,7 +477,7 @@ TTL, 128 records and 32 MiB total, at most 1 MiB per state or replay response.
 Eviction and expiry delete only checkpoint rows, never knowledge tables. Cleanup
 runs during admission; the storage bound holds even without a cleanup cron.
 An oversized checkpoint returns 413 before admission. 409 means changed
-publication, 410 means expired/evicted state, 503 means migration or metadata is
+publication or incompatible private cache version, 410 means expired/evicted state, 503 means migration or metadata is
 missing. Restart from focus or narrow the request as appropriate.
 Invalid emitted-row digests, inconsistent index identity or damaged checkpoint
 state also return 503. The existing 1 MiB source-row, 1 KiB digest, 64 KiB header

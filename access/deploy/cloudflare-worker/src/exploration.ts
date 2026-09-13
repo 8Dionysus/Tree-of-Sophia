@@ -12,7 +12,7 @@ import {derived,nativeChild,nativeField,nativeKeys,nativePacketArray,nativePacke
 
 const VERSION = 'tos-exploration-d1-execution-v6';
 // Private disposable-cache framing, not a new public traversal execution ABI.
-const CACHE_VERSION = VERSION + '/native-json-v1';
+const CACHE_VERSION = VERSION + '/native-json-v1/selected-relation-first-v1';
 const SOURCES = ['philosophy', 'canon', 'candidate-intake', 'source-navigation', 'source-claims', 'semantic-interchange', 'repository'];
 const TTL = 900_000;
 const MAX_BYTES = 1_048_576;

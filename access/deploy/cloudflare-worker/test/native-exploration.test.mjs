@@ -150,8 +150,23 @@ test('native exploration replay and concurrent CAS winner retain identical store
   assert.equal(await exploreD1(data.db,{cursor}),raw);
   const state=data.sqlite.prepare('SELECT state FROM knowledge_exploration_checkpoints WHERE token=?').get(JSON.parse(raw).page.next_cursor).state;
   assert.doesNotMatch(state,/transport_probe|9007199254740993|authority_boundary|display_selection/);
-  assert.match(data.sqlite.prepare('SELECT version FROM knowledge_exploration_checkpoints WHERE token=?').get(cursor).version,/native-json-v1$/);
+  assert.match(data.sqlite.prepare('SELECT version FROM knowledge_exploration_checkpoints WHERE token=?').get(cursor).version,/native-json-v1\/selected-relation-first-v1$/);
  }finally{data.close();}
+});
+
+test('old scene continuation and replay versions are refused without changing stored rows',async()=>{
+ for(const replay of [false,true]){
+  const data=database();try{
+   const first=JSON.parse(await exploreD1(data.db,request('relation',{page_nodes:1,page_relations:1}))),cursor=first.page.next_cursor;
+   assert.ok(cursor);
+   if(replay)await exploreD1(data.db,{cursor});
+   data.sqlite.prepare("UPDATE knowledge_exploration_checkpoints SET version='tos-exploration-d1-execution-v6/native-json-v1' WHERE token=?").run(cursor);
+   const before=data.sqlite.prepare('SELECT * FROM knowledge_exploration_checkpoints ORDER BY token').all();
+   const result=await response(data,{cursor});assert.equal(result.status,409);
+   assert.deepEqual(data.sqlite.prepare('SELECT * FROM knowledge_exploration_checkpoints ORDER BY token').all(),before);
+   assert.equal((await response(data,request('relation',{page_nodes:1,page_relations:1}))).status,200);
+  }finally{data.close();}
+ }
 });
 
 test('old lossy cache version, ABA and source failure never admit a successful checkpoint',async()=>{

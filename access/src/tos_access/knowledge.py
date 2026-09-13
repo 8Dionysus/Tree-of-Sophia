@@ -4856,10 +4856,12 @@ def _compact_claim_scene(nodes, relations, vertices, arcs, by_node, focus_node_i
         if not local_claims:
             continue
         reason = None
-        if vertex['id'] == focus_vertex:
-            reason = 'focus-claim'
-        elif focus_relation_id is not None and any(a['relation_id'] == focus_relation_id for a in incident[vertex['id']]):
+        # A selected raw edge wins over coincident Claim-node focus; folding
+        # its path must not hide the relation currently being inspected.
+        if focus_relation_id is not None and any(a['relation_id'] == focus_relation_id for a in incident[vertex['id']]):
             reason = 'focus-relation'
+        elif vertex['id'] == focus_vertex:
+            reason = 'focus-claim'
         elif any(id not in candidates for id in identifiers):
             reason = 'mixed-or-incomplete-claim-carriers'
         else:

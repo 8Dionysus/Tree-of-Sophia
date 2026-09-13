@@ -257,6 +257,9 @@ in the packet. Other incident edges prevent folding. An incomplete, ambiguous,
 unmapped, mixed-carrier or focused Claim stays a vertex with a reason in
 `retained_claims`. Focusing on its grounds also keeps the neighborhood explicit.
 Only isolated detail vertices fold, never an incomplete Claim used as grounds.
+An explicitly selected raw relation takes priority over coincident Claim-node
+focus: its Claim stays unfolded with `focus-relation`, keeping that exact edge
+visible and inspectable in both native and shared scene implementations.
 Self-relations between a subject and itself remain possible; a Claim cannot
 share its subject/object presentation identity. Competing Claims keep separate
 path IDs even when their subject, predicate and object coincide.
@@ -445,7 +448,12 @@ the read-only source snapshot check; failures leave the previous state intact.
 Every replay rechecks the selected source binding and epoch. UTC wall-clock
 expiry persists across restart; backwards clock movement refuses without changes.
 Schema/execution mismatch, busy state or corruption fails closed without reset,
-migration or source revision reselection.
+migration or source revision reselection. The private execution configuration
+also binds scene implementation `selected-relation-first-v1`; older checkpoint
+files without that marker are incompatible, including stored replay responses.
+The owner must explicitly select a new checkpoint path and start a fresh query.
+Existing files are not deleted or migrated, and public execution/schema versions
+and publication snapshot framing remain unchanged by this presentation fix.
 
 Persistent capacity separately limits records, logical payload bytes and SQLite
 database pages. DELETE-journal mode avoids unbounded WAL growth; a transaction's
