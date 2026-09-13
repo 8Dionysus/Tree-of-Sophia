@@ -1,0 +1,730 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.registry-pali-an8-75-sujato-english.2026-09-12.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "expression",
+    "known_tos_refs": [
+      "tos.work.pali-canon.an8.75",
+      "tos.expression.pali-canon.an8.75.en-sujato-bilara",
+      "tos.edition.pali-canon.an8.75.en-sujato-bilara.bilara-d6d54741b7f2",
+      "tos.item.pali-canon.an8.75.en-sujato-bilara.bilara-d6d54741b7f2.git-segment-json"
+    ],
+    "description": "Exact an8.75 English translation by Bhikkhu Sujato in Bilara Git d6d54741b7f2ddfeca82f02c3f95eb3990b4e351; source filename an8.75_translation-en-sujato.json.",
+    "required_properties": [
+      "Grouped UID carriers in AN1–11 and SN36–56 are explicitly deferred; this batch preserves each original aggregate carrier and does not split it into individual Works.",
+      "Exact supplied SuttaCentral UID identifies this separately retained discourse; a title match never merges different UIDs.",
+      "Complete pinned JSON is supplied digital-file coverage, not complete ancient recitation, textual correctness, historical truth or canon admission.",
+      "Pali edition lineage, modern segment IDs and English translation remain distinct. Shared keys do not establish accepted semantic alignment.",
+      "SN UID, vagga heading and segment numbering are preserved as supplied digital coordinates; no equivalence to printed paragraph numbering or another recension is inferred.",
+      "Nikaya corpus leads remain broader than this constituent discourse; Agama parallels and other recensions are not supplied by this intake.",
+      "Bhikkhu Sujato is the modern English translator; reported 2016–2018 translation work and first publication 2018 do not date the ancient discourse.",
+      "The pinned current publication metadata retains CC0 and separately requests no AI training, model/algorithm development or AI-derived technologies. Preserve that request; this intake assesses local preservation and reading, not AI derivative use or translation quality.",
+      "Bounded English opening exposes supplied UID/title keys ['an8.75']; the opening is incomplete and does not establish alignment or translation quality.",
+      "Bounded Pali opening exposes supplied UID/title keys ['an8.75']; the opening is incomplete and does not establish full-text custody or acceptance.",
+      "exact pinned provider version and immutable local file identity"
+    ],
+    "acceptable_substitutions": [],
+    "languages": [
+      "en"
+    ],
+    "formats": [
+      "application/json"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/translations/manifest.json"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-1",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351?recursive=1",
+      "interface_type": "api",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://api.github.com/repos/suttacentral/bilara-data/git/trees/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351?recursive=1",
+      "queried_at": "2026-09-12T13:49:45.554678+00:00",
+      "elapsed_seconds": 0.0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-pali-an8-75-sujato-english-metadata-1",
+          "rank": 1,
+          "title_as_displayed": "bilara-en-selected-tree.json",
+          "result_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351?recursive=1",
+          "originating_record_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351?recursive=1",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351?recursive=1",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "4a03629dfb764625755c822fe2520540baba7dc20669c3f3cf433156e5605a48",
+            "reason": "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/evidence/bilara-en-selected-tree.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-2",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/translation/en/sujato/sutta/an/an8/an8.75_translation-en-sujato.json",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/translation/en/sujato/sutta/an/an8/an8.75_translation-en-sujato.json",
+      "queried_at": "2026-09-12T13:42:48.209172+00:00",
+      "elapsed_seconds": 0.24496162200011895,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-pali-an8-75-sujato-english-metadata-2",
+          "rank": 1,
+          "title_as_displayed": "an8.75_translation-en-sujato.json.opening",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/translation/en/sujato/sutta/an/an8/an8.75_translation-en-sujato.json",
+          "originating_record_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/translation/en/sujato/sutta/an/an8/an8.75_translation-en-sujato.json",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/translation/en/sujato/sutta/an/an8/an8.75_translation-en-sujato.json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "3ac3db9eb549e197ab40e105a5f209d90f3fb0d5d3d01910f05e1da943e6633c",
+            "reason": "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/evidence/translation/en/sujato/sutta/an/an8/an8.75_translation-en-sujato.json.opening"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-3",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/README.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/README.md",
+      "queried_at": "2026-09-09T21:54:51.404394+00:00",
+      "elapsed_seconds": 0.2856344089959748,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-pali-an8-75-sujato-english-metadata-3",
+          "rank": 1,
+          "title_as_displayed": "bilara-README.md",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/README.md",
+          "originating_record_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/README.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/README.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "2230ad13f757aba957fcf84066d764f573506e86591106ef825ffcc6193c1c3e",
+            "reason": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-README.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-4",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+      "queried_at": "2026-09-09T21:54:51.404665+00:00",
+      "elapsed_seconds": 0.2751801330014132,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-pali-an8-75-sujato-english-metadata-4",
+          "rank": 1,
+          "title_as_displayed": "bilara-LICENSE.md",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+          "originating_record_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "fb244eaafc121b9f5b14dbecb20ac407b3acf6eec8c5028fc1e3bd0afb1a6f3f",
+            "reason": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-LICENSE.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-5",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_author.json",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_author.json",
+      "queried_at": "2026-09-09T21:54:51.405125+00:00",
+      "elapsed_seconds": 0.274660428010975,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-pali-an8-75-sujato-english-metadata-5",
+          "rank": 1,
+          "title_as_displayed": "bilara-_author.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_author.json",
+          "originating_record_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_author.json",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_author.json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "063f63adbc151127b7feba18e5e35317f79e2b3efd699de3b48a851e5f2850b1",
+            "reason": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_author.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-6",
+      "sequence": 6,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_edition.json",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_edition.json",
+      "queried_at": "2026-09-09T21:54:51.405047+00:00",
+      "elapsed_seconds": 0.27911536701139994,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-pali-an8-75-sujato-english-metadata-6",
+          "rank": 1,
+          "title_as_displayed": "bilara-_edition.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_edition.json",
+          "originating_record_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_edition.json",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_edition.json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "52a5f0de46b5ebab65d977dbd5ebe4475133a7652021f0ad3475ac1eaa541c63",
+            "reason": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_edition.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-7",
+      "sequence": 7,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_publication.json",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_publication.json",
+      "queried_at": "2026-09-09T21:54:51.680086+00:00",
+      "elapsed_seconds": 0.4139964019996114,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-pali-an8-75-sujato-english-metadata-7",
+          "rank": 1,
+          "title_as_displayed": "bilara-_publication.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_publication.json",
+          "originating_record_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_publication.json",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_publication.json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "23706791ac5fd02f23634d75283447cff4e454c8c03c457f74d1cbd3971dc874",
+            "reason": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_publication.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-8",
+      "sequence": 8,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_publication-v2.json",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_publication-v2.json",
+      "queried_at": "2026-09-09T21:54:51.680202+00:00",
+      "elapsed_seconds": 0.44497884399606846,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-pali-an8-75-sujato-english-metadata-8",
+          "rank": 1,
+          "title_as_displayed": "bilara-_publication-v2.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_publication-v2.json",
+          "originating_record_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_publication-v2.json",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/_publication-v2.json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "3656eafee0d826e8a8d3a510c1e89e54668ba6060434036d4ad93fab18df9990",
+            "reason": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_publication-v2.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-9",
+      "sequence": 9,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+      "queried_at": "2026-09-08T20:47:51.433511+00:00",
+      "elapsed_seconds": 0.28868810099993425,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-pali-an8-75-sujato-english-metadata-9",
+          "rank": 1,
+          "title_as_displayed": "suttacentral-root-edition.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+          "originating_record_url": "https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "df1f577c80f941b05996cdd4868c6680890406827474198e422f486bd644abee",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-10",
+      "sequence": 10,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+      "queried_at": "2026-09-08T20:47:51.081694+00:00",
+      "elapsed_seconds": 0.3513186639993364,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-pali-an8-75-sujato-english-metadata-10",
+          "rank": 1,
+          "title_as_displayed": "suttacentral-licensing.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+          "originating_record_url": "https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "86dadc3d00708b9f12e3043b0435271bcfe5c9e4f0693baa62812e4ab363241c",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-file-11",
+      "sequence": 11,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/translation/en/sujato/sutta/an/an8/an8.75_translation-en-sujato.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/translation/en/sujato/sutta/an/an8/an8.75_translation-en-sujato.json",
+      "queried_at": "2026-09-12T17:02:18.260552+00:00",
+      "elapsed_seconds": 0.443409581999731,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-pali-an8-75-sujato-english-file-11",
+          "rank": 1,
+          "title_as_displayed": "an8.75_translation-en-sujato.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/translation/en/sujato/sutta/an/an8/an8.75_translation-en-sujato.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "a6082b1378d806628052e52de13d5123346428b4"
+            }
+          ],
+          "available_formats": [
+            "application/json"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-12T17:02:18.703965+00:00",
+            "byte_size": 1313,
+            "sha256": "18c7a5175416906c5a195120df50a53f25ee72b56b88ef382d6b18c1774d5680",
+            "event_ref": "tos.event.acquisition.registry-20260912.pali-an8-75-sujato-english"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-1",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.0,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-2",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.24496162200011895,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-3",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2856344089959748,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-4",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2751801330014132,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-5",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.274660428010975,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-6",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.27911536701139994,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-7",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.4139964019996114,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-8",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.44497884399606846,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-9",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.28868810099993425,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-metadata-10",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.3513186639993364,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-pali-an8-75-sujato-english-file-11",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.443409581999731,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.registry-pali-an8-75-sujato-english-file-11"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-09-08T20:47:51.081694+00:00",
+  "ended_at": "2026-09-12T17:02:18.703965+00:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.registry-20260912.pali-an8-75-sujato-english",
+    "tos.event.acquisition.registry-20260912.pali-an8-75-sujato-english"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

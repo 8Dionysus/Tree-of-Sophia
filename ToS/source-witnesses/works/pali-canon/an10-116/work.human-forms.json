@@ -1,0 +1,286 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8f40c51c108942bf7db37851a45c30510586ab13614217869b554f50dab914e2",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8f40c51c108942bf7db37851a45c30510586ab13614217869b554f50dab914e2",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:8f40c51c108942bf7db37851a45c30510586ab13614217869b554f50dab914e2",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:8f40c51c108942bf7db37851a45c30510586ab13614217869b554f50dab914e2",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.e827480ccff4de52010e826e751662b524fa522964016a9fea14cc97893321bc",
+      "form_version": 2,
+      "language": "pli",
+      "revises": {
+        "digest": "sha256:b916c2fe6e397c087c6e47edc4661d240350485040fa30bcf65b07f57e1fcc99",
+        "id": "tos.form.metadata.e827480ccff4de52010e826e751662b524fa522964016a9fea14cc97893321bc",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:8f40c51c108942bf7db37851a45c30510586ab13614217869b554f50dab914e2",
+        "id": "tos.work.pali-canon.an10.116",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8f40c51c108942bf7db37851a45c30510586ab13614217869b554f50dab914e2",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8f40c51c108942bf7db37851a45c30510586ab13614217869b554f50dab914e2",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:8f40c51c108942bf7db37851a45c30510586ab13614217869b554f50dab914e2",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:8f40c51c108942bf7db37851a45c30510586ab13614217869b554f50dab914e2",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.596753f7ee392d6aaba31267615a68ce754fe00b984d912565632d4d50ac6302",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:e0c2c79d195ab58ff22a0a767df62e2360c1db6023d83111247f28e180517cb2",
+        "id": "tos.form.metadata.596753f7ee392d6aaba31267615a68ce754fe00b984d912565632d4d50ac6302",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:8f40c51c108942bf7db37851a45c30510586ab13614217869b554f50dab914e2",
+        "id": "tos.work.pali-canon.an10.116",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905:registry-seventeenth-planting-20260912:pali",
+      "command_id": "registry-seventeenth-pali-source-forms:e7980fed5ed493899b18d13e2885698d7820ad26f1fd216fd5ae56443e110534",
+      "owner_configuration": "sha256:bd02b3e8dd765a3628e3f49122eab2cbad494a5751bd1bb513bb67f39f9cc5b8",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-12T15:11:46.357844+00:00",
+      "request_digest": "sha256:544bf237d674b092ac9982bfbc82bd1ef18009084fa1fc0c933fabd2fe84cdba",
+      "results": [
+        {
+          "digest": "sha256:b916c2fe6e397c087c6e47edc4661d240350485040fa30bcf65b07f57e1fcc99",
+          "id": "tos.form.metadata.e827480ccff4de52010e826e751662b524fa522964016a9fea14cc97893321bc",
+          "version": 1
+        },
+        {
+          "digest": "sha256:e0c2c79d195ab58ff22a0a767df62e2360c1db6023d83111247f28e180517cb2",
+          "id": "tos.form.metadata.596753f7ee392d6aaba31267615a68ce754fe00b984d912565632d4d50ac6302",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:3c16c5e81d16c0e9900076fd8d7489c028a4d225690e7529c96754de7adf29aa",
+        "id": "tos.work.pali-canon.an10.116",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-seventeenth-English-source-forms:e7980fed5ed493899b18d13e2885698d7820ad26f1fd216fd5ae56443e110534",
+      "request_digest": "sha256:3e186b0825f79c7300c1d20481c7198937e59b7e76051a41d099bb6b38f7301f",
+      "principal_id": "model:codex",
+      "authority_ref": "A18/source-witnesses",
+      "owner_configuration": "sha256:ca6d9bb033c62c3014fd88df7179bf7a38f1fd37d13cd40006427f1b081aad0a",
+      "recorded_at": "2026-09-12T18:17:47.701162+00:00",
+      "source": {
+        "id": "tos.work.pali-canon.an10.116",
+        "version": 2,
+        "digest": "sha256:8f40c51c108942bf7db37851a45c30510586ab13614217869b554f50dab914e2"
+      },
+      "previous_revision": "sha256:9c5ac423dd8814076a7c74d911f24704c720b789c9dddf993891d980a48ba98d",
+      "results": [
+        {
+          "id": "tos.form.metadata.e827480ccff4de52010e826e751662b524fa522964016a9fea14cc97893321bc",
+          "version": 2,
+          "digest": "sha256:cfc9f6789e141c5aaaa967242e2c394e711938355156f419bd505d993671c08c"
+        },
+        {
+          "id": "tos.form.metadata.596753f7ee392d6aaba31267615a68ce754fe00b984d912565632d4d50ac6302",
+          "version": 2,
+          "digest": "sha256:51a3fc78e2748c27df8bd16800afe7bb4397036b281433745e2bfe2f12c3aef4"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:3c16c5e81d16c0e9900076fd8d7489c028a4d225690e7529c96754de7adf29aa",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:3c16c5e81d16c0e9900076fd8d7489c028a4d225690e7529c96754de7adf29aa",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:3c16c5e81d16c0e9900076fd8d7489c028a4d225690e7529c96754de7adf29aa",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:3c16c5e81d16c0e9900076fd8d7489c028a4d225690e7529c96754de7adf29aa",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.e827480ccff4de52010e826e751662b524fa522964016a9fea14cc97893321bc",
+      "form_version": 1,
+      "language": "pli",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:3c16c5e81d16c0e9900076fd8d7489c028a4d225690e7529c96754de7adf29aa",
+        "id": "tos.work.pali-canon.an10.116",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:3c16c5e81d16c0e9900076fd8d7489c028a4d225690e7529c96754de7adf29aa",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:3c16c5e81d16c0e9900076fd8d7489c028a4d225690e7529c96754de7adf29aa",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:3c16c5e81d16c0e9900076fd8d7489c028a4d225690e7529c96754de7adf29aa",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:3c16c5e81d16c0e9900076fd8d7489c028a4d225690e7529c96754de7adf29aa",
+            "id": "tos.work.pali-canon.an10.116",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.596753f7ee392d6aaba31267615a68ce754fe00b984d912565632d4d50ac6302",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:3c16c5e81d16c0e9900076fd8d7489c028a4d225690e7529c96754de7adf29aa",
+        "id": "tos.work.pali-canon.an10.116",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.pali-canon.an10.116",
+    "version": 2,
+    "digest": "sha256:8f40c51c108942bf7db37851a45c30510586ab13614217869b554f50dab914e2"
+  }
+}
