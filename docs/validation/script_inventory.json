@@ -24,6 +24,52 @@
   ],
   "script_surfaces": [
     {
+      "path": "scripts/source_payload_custody.py",
+      "family": "source_payload_transport",
+      "organ_lane": "shared-library",
+      "owner_surface": "ToS/source-witnesses/LOCAL_STORAGE_BOUNDARY.md",
+      "source_truth": [
+        "ToS/contracts/source-item-manifest.schema.json",
+        "ToS/source-witnesses/LOCAL_STORAGE_BOUNDARY.md"
+      ],
+      "reads": [
+        "explicit Item manifests and explicitly selected source and destination payload roots",
+        "exact byte sizes and SHA-256 from source-owned manifests"
+      ],
+      "writes": [
+        "missing immutable Item payload copies at the explicitly selected permanent root",
+        "private digest-bound custody receipts with opaque root labels"
+      ],
+      "side_effects": "explicit copy preserves sources and refuses conflicting targets; verify is read-only; no rights grant, network publication or worktree removal",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_payload_custody.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/source_payload_import.py",
+      "family": "source_payload_transport",
+      "organ_lane": "shared-library",
+      "owner_surface": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+      "source_truth": [
+        "ToS/contracts/source-item-manifest.schema.json",
+        "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md"
+      ],
+      "reads": [
+        "frozen server-import plan, exact manifest, rights and scoped review evidence",
+        "verified local payload and explicit transport configuration"
+      ],
+      "writes": [
+        "rights-gated R2 Standard object and independent readback receipt",
+        "explicit local publication registry and requested readback output"
+      ],
+      "side_effects": "explicit transfer invokes configured Wrangler and verifies returned bytes; source payloads remain local; local enable/revoke does not deploy or publish a website",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_payload_import.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/acquire_registry_sources.py",
       "family": "projection_builder",
       "organ_lane": "mechanics/part-owned",

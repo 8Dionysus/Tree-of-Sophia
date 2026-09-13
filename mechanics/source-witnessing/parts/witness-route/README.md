@@ -44,6 +44,18 @@ The implemented bounded acquisition entrypoint is
 `scripts/acquire_registry_sources.py`: `verify-preparation` checks the frozen
 manifest and retained evidence; `acquire` requires the actual preparation
 checkpoint receipt; `verify-local` opens and verifies the exact installed files.
+New acquisitions must explicitly select `--payload-source-root`, the durable
+source-witness root whose relative Item paths contain `payload/`. Metadata and
+review records stay in the source checkout; payload custody must survive its
+worktree. Pass that same root to `verify-local` and to the foundation validator
+with `--require-local-payloads`. Existing retained files can be copied and
+independently verified with `scripts/source_payload_custody.py`; a verified
+copy preserves its source and never overwrites conflicting destination bytes.
+The separate frozen-plan import route in
+`ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md` binds those bytes
+to the exact Item, File and rights revision before private R2 transfer. Adding
+an object replica does not change the philosophical graph or require its
+compilation. Website delivery remains a separate consumer integration.
 The first operation is retained in
 `ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/`, including
 its exact plan, per-transfer history, source-scope corrections, canary result

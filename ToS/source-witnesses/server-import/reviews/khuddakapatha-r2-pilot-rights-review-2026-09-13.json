@@ -1,0 +1,66 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-payload-rights-review.schema.json",
+  "schema_version": "tos_source_payload_rights_review_v1",
+  "review_id": "tos.review.agent-rights.khuddakapatha.r2-pilot.20260913",
+  "actor": {
+    "kind": "model",
+    "actor_ref": "model:codex",
+    "model": "Codex"
+  },
+  "reviewed_at": "2026-09-13T21:20:16Z",
+  "scope": {
+    "item_ref": "tos.item.pali-canon.khuddakapatha.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+    "file_refs": [
+      "tos.file.sha256.0d5f12be438dbda96a11206fd1484e3bf67f3287c873b06a9ff60315b24ae6d3",
+      "tos.file.sha256.a853e42554cb11527bac08350e2453976fafdde32eada84fedd8840f1be3bf68",
+      "tos.file.sha256.153917014196b7fc9b83c025baa198d44f3eca8ed5199c358404f56fac0e98e6",
+      "tos.file.sha256.c04f6a32d7e1161a8e170c61c4e1135b7d1b275b1385c208c0dce4bdd3d69c45",
+      "tos.file.sha256.607183d79bf1a87532d1240979e06491c7ba2f1beaee06d7180b7bc0a182d7d1",
+      "tos.file.sha256.ac87a462ffd911e0a820671af44ba7b616d9b9f9e035af12784b4251a1bdc646",
+      "tos.file.sha256.7274eff2cb9a3740ae02b360ef5c70c5ab934d4ad4d6faa8f1076a3e0c3734c1",
+      "tos.file.sha256.686a8527e4e6affbb119f8f5b71d5edab05140ffc736e819347b0bc8cb9130f2",
+      "tos.file.sha256.b70e1d9bdfb14622948b6c10c9627003ab4c2c36901df5fcb4df3ae54d6e9ede"
+    ],
+    "manifest_ref": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+    "manifest_sha256": "b04b49017401b1d8b0b1d0004aea9b655e8641142358038cbe1533abc9078203",
+    "rights_record_ref": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/rights.json",
+    "rights_record_sha256": "f6e10f4fd1f443fbad93d5b86f953cf820641d0261e5481bb95193bee1336ac7"
+  },
+  "license_evidence": [
+    {
+      "source_ref": "https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+      "evidence_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json",
+      "evidence_sha256": "86dadc3d00708b9f12e3043b0435271bcfe5c9e4f0693baa62812e4ab363241c",
+      "kind": "primary-license",
+      "scope": "SuttaCentral licensing statement for the exact root/pli/ms Pali digital layer and SuttaCentral contribution; translation statements are excluded."
+    },
+    {
+      "source_ref": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "evidence_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "evidence_sha256": "c472fae47ceabe45c28cc80915ac69359beb4e801ae0f492ca87755588a273dc",
+      "kind": "scope-evidence",
+      "scope": "Pinned Bilara upstream scope for root/pli/ms/sutta/kn/kp and the complete nine-file Khuddakapatha Item."
+    },
+    {
+      "source_ref": "https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+      "evidence_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json",
+      "evidence_sha256": "df1f577c80f941b05996cdd4868c6680890406827474198e422f486bd644abee",
+      "kind": "scope-evidence",
+      "scope": "Pinned ms Mahasaṅgīti edition metadata for digital lineage only; no independent ancient-authorship or underlying-rights conclusion."
+    }
+  ],
+  "decision": {
+    "access_class": "controlled-research",
+    "raw_cloud_retention": "controlled-research",
+    "server_processing": "authorized",
+    "publication": "not-published",
+    "conditions": [
+      "Transfer the complete nine-file Item only after fresh custody readback verifies every manifest SHA-256 and byte size.",
+      "Keep the R2 copy private and digest-addressed; preserve local source bytes, provenance, and attribution.",
+      "Do not include translations, comments, variants, HTML, or any derivative in this scope.",
+      "Public-payload admission requires its separate actual human/legal and publication owner gates."
+    ],
+    "expires_at": null,
+    "revocation_check_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md"
+  }
+}
