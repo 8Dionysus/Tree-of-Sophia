@@ -1828,7 +1828,7 @@ class CoreContractTests(unittest.TestCase):
                 manifest = build_standalone.build_bundle(root, bundle, "partitioned-fixture-ref")
             self.assertTrue(bundle.is_file())
             self.assertEqual(manifest["source_ref"], "partitioned-fixture-ref")
-            self.assertIn("query-compiler-v3", manifest["source_fingerprint_scope"])
+            self.assertIn("query-compiler-v4", manifest["source_fingerprint_scope"])
 
             query_subject = next(
                 item for item in manifest["subjects"]
@@ -1843,6 +1843,199 @@ class CoreContractTests(unittest.TestCase):
                 query_subject["compiler"]["compiler_paths"],
                 list(build_standalone.QUERY_STORE_COMPILER_PATHS),
             )
+
+            # A Product Shell producer can hand off the exact compiled bytes
+            # to the standalone job. Reuse must preserve the cold bundle's
+            # subject identity and must never invoke the compiler again.
+            from tos_access import knowledge_compile
+
+            producer_store = root / "ToS/derived-exports/runtime/knowledge.sqlite3"
+            producer_store.parent.mkdir(parents=True, exist_ok=True)
+            knowledge_compile.compile_knowledge_store(root, producer_store, allow_legacy=True)
+            producer_manifest = root / "query-store.ci-manifest.json"
+            build_standalone.write_query_store_artifact_manifest(
+                root,
+                producer_store,
+                producer_manifest,
+                "partitioned-fixture-ref",
+                "fixture-query-store",
+            )
+
+            # The capacity-saving hard-link is an owned staging optimization,
+            # not a writable SQLite workspace. A mutation through the source
+            # inode during byte validation must fail closed, and every reuse
+            # SQLite open must be immutable/read-only.
+            hazard_source = root / "hazard-source.sqlite3"
+            hazard_source.write_bytes(producer_store.read_bytes())
+            hazard_stage = root / "hazard-stage/knowledge.sqlite3"
+            expected_hazard_sha256 = hashlib.sha256(hazard_source.read_bytes()).hexdigest()
+            expected_hazard_size = hazard_source.stat().st_size
+            hash_original = build_standalone.sha256_file
+            mutation_seen = False
+
+            def mutate_shared_inode(path: Path) -> str:
+                nonlocal mutation_seen
+                if path == hazard_stage and not mutation_seen:
+                    mutation_seen = True
+                    self.assertEqual(hazard_source.stat().st_ino, path.stat().st_ino)
+                    with hazard_source.open("r+b") as stream:
+                        original_byte = stream.read(1)
+                        stream.seek(0)
+                        stream.write(bytes([original_byte[0] ^ 0x01]))
+                        stream.flush()
+                        os.fsync(stream.fileno())
+                return hash_original(path)
+
+            with patch.object(build_standalone, "sha256_file", side_effect=mutate_shared_inode):
+                with self.assertRaisesRegex(RuntimeError, "changed during staged byte validation"):
+                    build_standalone._materialize_prebuilt_query_store(
+                        hazard_source,
+                        hazard_stage,
+                        expected_sha256=expected_hazard_sha256,
+                        expected_size=expected_hazard_size,
+                        require_hardlink=True,
+                    )
+
+            reused_bundle = root / "fixture-standalone-reused.zip"
+            sqlite_connect = build_standalone.sqlite3.connect
+
+            def immutable_connect(database: object, *args: object, **kwargs: object):
+                self.assertIn("?mode=ro&immutable=1", str(database))
+                return sqlite_connect(database, *args, **kwargs)
+
+            with patch.object(
+                build_standalone,
+                "_compile_query_store",
+                side_effect=AssertionError("reuse invoked cold compiler"),
+            ), patch.object(build_standalone.sqlite3, "connect", side_effect=immutable_connect):
+                reused_manifest = build_standalone.build_bundle(
+                    root,
+                    reused_bundle,
+                    "partitioned-fixture-ref",
+                    prebuilt_query_store=producer_store,
+                    prebuilt_query_store_manifest=producer_manifest,
+                    prebuilt_query_store_artifact_name="fixture-query-store",
+                    require_prebuilt_query_store_hardlink=True,
+                )
+            reused_subject = next(
+                item for item in reused_manifest["subjects"]
+                if item.get("subject_id") == "tos-compiled-query-store"
+            )
+            self.assertEqual(reused_subject["sha256"], query_subject["sha256"])
+            self.assertEqual(reused_subject["size_bytes"], query_subject["size_bytes"])
+            self.assertTrue(producer_store.is_file())
+
+            # Handoff admission is fail-closed for the exact source ref,
+            # compiler bytes, source bindings, mutable SQLite sidecars, and
+            # corrupt payloads. Restore every fixture mutation immediately.
+            active_subject, _ = build_standalone._active_compiled_subject(
+                root,
+                allowlist,
+            )
+            self.assertIsNotNone(active_subject)
+            handoff = json.loads(producer_manifest.read_text(encoding="utf-8"))
+
+            def write_handoff(payload: dict[str, object]) -> None:
+                producer_manifest.write_text(
+                    json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+
+            wrong_ref = dict(handoff)
+            wrong_ref["source_ref"] = "wrong-ref"
+            write_handoff(wrong_ref)
+            with self.assertRaisesRegex(RuntimeError, "source ref"):
+                build_standalone._validate_prebuilt_query_store(
+                    root,
+                    producer_store,
+                    producer_manifest,
+                    "fixture-query-store",
+                    "partitioned-fixture-ref",
+                    allowlist,
+                    active_subject,
+                )
+            write_handoff(handoff)
+
+            wrong_compiler = dict(handoff)
+            wrong_compiler["compiler_sha256"] = "0" * 64
+            write_handoff(wrong_compiler)
+            with self.assertRaisesRegex(RuntimeError, "compiler bytes are stale"):
+                build_standalone._validate_prebuilt_query_store(
+                    root,
+                    producer_store,
+                    producer_manifest,
+                    "fixture-query-store",
+                    "partitioned-fixture-ref",
+                    allowlist,
+                    active_subject,
+                )
+            write_handoff(handoff)
+
+            input_path = root / "ToS/derived-exports/tos_corpus_index.min.json"
+            original_input = input_path.read_bytes()
+            try:
+                input_path.write_bytes(original_input + b"\n")
+                with self.assertRaisesRegex(RuntimeError, "source inputs are stale"):
+                    build_standalone._validate_prebuilt_query_store(
+                        root,
+                        producer_store,
+                        producer_manifest,
+                        "fixture-query-store",
+                        "partitioned-fixture-ref",
+                        allowlist,
+                        active_subject,
+                    )
+            finally:
+                input_path.write_bytes(original_input)
+
+            journal = Path(str(producer_store) + "-journal")
+            journal.write_bytes(b"mutable journal")
+            try:
+                with self.assertRaisesRegex(RuntimeError, "journal"):
+                    build_standalone._validate_prebuilt_query_store(
+                        root,
+                        producer_store,
+                        producer_manifest,
+                        "fixture-query-store",
+                        "partitioned-fixture-ref",
+                        allowlist,
+                        active_subject,
+                    )
+            finally:
+                journal.unlink()
+
+            corrupt_dir = root / "corrupt-handoff"
+            corrupt_dir.mkdir()
+            corrupt_store = corrupt_dir / producer_store.name
+            corrupt_bytes = bytearray(producer_store.read_bytes())
+            corrupt_bytes[0] ^= 0x01
+            corrupt_store.write_bytes(corrupt_bytes)
+            with self.assertRaisesRegex(RuntimeError, "SQLite snapshot|readable SQLite"):
+                build_standalone._validate_prebuilt_query_store(
+                    root,
+                    corrupt_store,
+                    producer_manifest,
+                    "fixture-query-store",
+                    "partitioned-fixture-ref",
+                    allowlist,
+                    active_subject,
+                )
+
+            linked_store = root / "linked-query-store.sqlite3"
+            linked_store.symlink_to(producer_store)
+            try:
+                with self.assertRaisesRegex(RuntimeError, "symlink"):
+                    build_standalone._validate_prebuilt_query_store(
+                        root,
+                        linked_store,
+                        producer_manifest,
+                        "fixture-query-store",
+                        "partitioned-fixture-ref",
+                        allowlist,
+                        active_subject,
+                    )
+            finally:
+                linked_store.unlink()
 
             with tempfile.TemporaryDirectory() as extracted_raw:
                 extracted = Path(extracted_raw)
@@ -1880,6 +2073,12 @@ class AuthoredContractTests(unittest.TestCase):
         self.assertIn("actions/upload-artifact@", workflow)
         self.assertIn("tree-of-sophia-standalone.zip.manifest.json", workflow)
         self.assertIn("if-no-files-found: error", workflow)
+        self.assertIn("actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c", workflow)
+        self.assertIn("tree-of-sophia-query-store-${{ github.sha }}", workflow)
+        self.assertIn("--prebuilt-query-store", workflow)
+        self.assertIn("--require-prebuilt-query-store-hardlink", workflow)
+        self.assertIn("--consume-prebuilt-query-store", workflow)
+        self.assertIn("digest-mismatch: error", workflow)
 
     def test_release_workflow_installs_standalone_mcp_extra(self) -> None:
         workflow = (REPO_ROOT / ".github/workflows/repo-validation.yml").read_text(encoding="utf-8")

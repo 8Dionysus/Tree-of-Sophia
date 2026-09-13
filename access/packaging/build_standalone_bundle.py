@@ -5,6 +5,8 @@ import argparse
 import hashlib
 import importlib
 import json
+import os
+import stat
 import shutil
 import sqlite3
 import subprocess
@@ -18,8 +20,11 @@ from typing import Any
 FIXED_ZIP_TIME = (2020, 1, 1, 0, 0, 0)
 BLOCKED_HOST_MARKERS = (b"/srv/" + b"AbyssOS", b"/srv/" + b"abyss-machine")
 PARTITIONED_PROJECTION_ROOT_BYTES = 256 * 1024
+QUERY_STORE_ARTIFACT_SCHEMA = "tos_query_store_ci_artifact_v1"
 QUERY_STORE_COMPILER_PATHS = (
+    "access/contracts/runtime-data.v1.json",
     "access/src/tos_access/__init__.py",
+    "access/src/tos_access/core.py",
     "access/src/tos_access/disk_collections.py",
     "access/src/tos_access/exploration.py",
     "access/src/tos_access/knowledge.py",
@@ -46,6 +51,27 @@ SUPPORTED_COMPILED_SUBJECT_CONDITIONS = frozenset({"partitioned_projection_input
 PARTITIONED_SUBJECT_POLICY_KEYS = frozenset(
     {"format", "inclusion", "discovery_glob_allowed", "source_authority"}
 )
+QUERY_STORE_ARTIFACT_KEYS = frozenset(
+    {
+        "schema_version",
+        "artifact_kind",
+        "artifact_name",
+        "source_ref",
+        "source_head",
+        "source_dirty",
+        "query_store_path",
+        "query_store_filename",
+        "query_store_sha256",
+        "query_store_size_bytes",
+        "schema",
+        "compiler_version",
+        "compiler_sha256",
+        "compiler_paths",
+        "input_bindings",
+        "snapshot_bindings",
+        "complete",
+    }
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -54,6 +80,53 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _regular_file_identity(path: Path, *, label: str) -> tuple[int, int, int, int]:
+    """Return a stable identity for one owned regular file, rejecting links."""
+    try:
+        file_stat = path.stat()
+        link_stat = path.lstat()
+    except OSError as exc:
+        raise RuntimeError(f"{label} is not readable: {path}") from exc
+    if path.is_symlink() or not stat.S_ISREG(link_stat.st_mode):
+        raise RuntimeError(f"{label} must be a regular file, not a symlink: {path}")
+    return (file_stat.st_dev, file_stat.st_ino, file_stat.st_size, file_stat.st_mtime_ns)
+
+
+def _read_query_store_metadata(path: Path, *, label: str = "query-store artifact") -> dict[str, Any]:
+    """Read and integrity-check a completed SQLite snapshot without opening it writable."""
+    before = _regular_file_identity(path, label=label)
+    if any(Path(str(path) + suffix).exists() for suffix in ("-wal", "-journal")):
+        raise RuntimeError(f"{label} has a mutable SQLite journal beside the snapshot: {path}")
+    try:
+        with sqlite3.connect(path.as_uri() + "?mode=ro&immutable=1", uri=True) as db:
+            metadata = {
+                key: json.loads(value)
+                for key, value in db.execute("SELECT key,value FROM metadata")
+            }
+            integrity = db.execute("PRAGMA integrity_check").fetchone()
+    except (OSError, sqlite3.Error, ValueError, TypeError) as exc:
+        raise RuntimeError(f"{label} is not a readable SQLite snapshot: {exc}") from exc
+    after = _regular_file_identity(path, label=label)
+    if before != after:
+        raise RuntimeError(f"{label} changed during integrity validation: {path}")
+    if integrity != ("ok",):
+        raise RuntimeError(f"{label} SQLite integrity check failed: {path}")
+    return metadata
+
+
+def _git_head(repo_root: Path) -> str | None:
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repo_root,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    head = result.stdout.strip()
+    return head if result.returncode == 0 and head else None
 
 
 def _contract_relative_path(value: Any, *, field: str) -> str:
@@ -365,6 +438,140 @@ def _query_store_input_bindings(
     return bindings
 
 
+def _query_store_compiler_contract(
+    repo_root: Path,
+    allowlist: Mapping[str, Any],
+    compiled_subject: Mapping[str, Any],
+) -> tuple[str, str, dict[str, str], str]:
+    """Resolve the compiler ABI and all source bindings for one compiled subject."""
+    input_bindings = _query_store_input_bindings(repo_root, allowlist, compiled_subject)
+    probe = """
+import importlib
+import json
+import sys
+from pathlib import Path
+
+request = json.load(sys.stdin)
+root = Path(request['root'])
+sys.path.insert(0, str(root / 'access' / 'src'))
+module = importlib.import_module(request['module'])
+print(json.dumps({
+    'inputs': getattr(module, 'INPUTS', None),
+    'default_relative_path': str(getattr(module, 'DEFAULT_RELATIVE_PATH', '')),
+    'schema': getattr(module, 'SCHEMA', None),
+    'compiler_version': getattr(module, 'COMPILER_VERSION', None),
+}))
+"""
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", probe],
+        input=json.dumps(
+            {"root": str(repo_root.resolve()), "module": str(compiled_subject["builder_module"])}
+        ),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if result.returncode:
+        raise RuntimeError(f"standalone partitioned bundle requires the query-store compiler: {result.stderr}")
+    try:
+        compiler_contract = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("query-store compiler contract probe returned invalid JSON") from exc
+    compiler_inputs = compiler_contract.get("inputs")
+    if not isinstance(compiler_inputs, Mapping) or not compiler_inputs:
+        raise RuntimeError("compiled query-store builder module has no INPUTS mapping")
+    if set(compiler_inputs.values()) != set(input_bindings):
+        raise RuntimeError(
+            "compiled query-store input subjects do not match the builder module INPUTS mapping"
+        )
+    output_path = _contract_relative_path(
+        compiled_subject["output_path"], field=f"{compiled_subject['subject_id']}.output_path"
+    )
+    compiler_default = compiler_contract.get("default_relative_path")
+    if not isinstance(compiler_default, str) or Path(compiler_default).as_posix() != output_path:
+        raise RuntimeError(
+            "compiled query-store output_path does not match the builder module default: "
+            f"{output_path}"
+        )
+    schema = compiler_contract.get("schema")
+    compiler_version = compiler_contract.get("compiler_version")
+    if not isinstance(schema, str) or not isinstance(compiler_version, str):
+        raise RuntimeError("compiled query-store builder module has no schema/compiler version")
+    return schema, compiler_version, input_bindings, _query_store_compiler_fingerprint(repo_root)
+
+
+def write_query_store_artifact_manifest(
+    repo_root: Path,
+    query_store: Path,
+    output: Path,
+    explicit_source_ref: str | None,
+    artifact_name: str,
+) -> dict[str, Any]:
+    """Record a same-run, source-bound query-store handoff for CI only."""
+    if not isinstance(artifact_name, str) or not artifact_name.strip():
+        raise RuntimeError("query-store artifact name must be a non-empty string")
+    if query_store.is_symlink():
+        raise RuntimeError("query-store artifact handoff rejects a symlink producer")
+    allowlist_path = repo_root / "access/contracts/runtime-data.v1.json"
+    allowlist = json.loads(allowlist_path.read_text(encoding="utf-8"))
+    compiled_subject, partitioned_ids = _active_compiled_subject(repo_root, allowlist)
+    if not partitioned_ids or compiled_subject is None:
+        raise RuntimeError("query-store artifact handoff requires an active compiled subject")
+    resolved_ref, source_dirty = source_identity(repo_root, explicit_source_ref, allow_dirty=False)
+    if source_dirty:
+        raise RuntimeError("query-store artifact handoff refuses a dirty producer checkout")
+    source_head = _git_head(repo_root) or resolved_ref
+    if source_head != resolved_ref:
+        raise RuntimeError(
+            "query-store artifact handoff source_ref must equal the producer checkout HEAD: "
+            f"{resolved_ref} != {source_head}"
+        )
+    relative = _relative_path(repo_root, query_store)
+    expected_path = _contract_relative_path(
+        compiled_subject["output_path"], field=f"{compiled_subject['subject_id']}.output_path"
+    )
+    if relative != expected_path:
+        raise RuntimeError(
+            "query-store artifact handoff path does not match the compiled subject: "
+            f"{relative} != {expected_path}"
+        )
+    schema, compiler_version, input_bindings, compiler_sha256 = _query_store_compiler_contract(
+        repo_root, allowlist, compiled_subject
+    )
+    metadata = _read_query_store_metadata(query_store, label="producer query-store")
+    if metadata.get("schema") != schema or metadata.get("compiler_version") != compiler_version:
+        raise RuntimeError("producer query-store has an unexpected schema/compiler version")
+    if metadata.get("snapshot_bindings") != input_bindings or metadata.get("complete") is not True:
+        raise RuntimeError("producer query-store is not bound to the declared source subjects")
+    stat_identity = _regular_file_identity(query_store, label="producer query-store")
+    query_store_sha256 = sha256_file(query_store)
+    if stat_identity != _regular_file_identity(query_store, label="producer query-store"):
+        raise RuntimeError("producer query-store changed while recording its handoff")
+    manifest = {
+        "schema_version": QUERY_STORE_ARTIFACT_SCHEMA,
+        "artifact_kind": "same-run-ci-query-store-handoff",
+        "artifact_name": artifact_name,
+        "source_ref": resolved_ref,
+        "source_head": source_head,
+        "source_dirty": False,
+        "query_store_path": expected_path,
+        "query_store_filename": query_store.name,
+        "query_store_sha256": query_store_sha256,
+        "query_store_size_bytes": stat_identity[2],
+        "schema": schema,
+        "compiler_version": compiler_version,
+        "compiler_sha256": compiler_sha256,
+        "compiler_paths": list(QUERY_STORE_COMPILER_PATHS),
+        "input_bindings": input_bindings,
+        "snapshot_bindings": metadata["snapshot_bindings"],
+        "complete": True,
+    }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return manifest
+
+
 def _compile_query_store(
     repo_root: Path,
     output: Path,
@@ -472,6 +679,135 @@ print(json.dumps({'path': str(path), 'metadata': metadata}))
     }
 
 
+def _validate_prebuilt_query_store(
+    repo_root: Path,
+    query_store: Path,
+    manifest_path: Path,
+    artifact_name: str,
+    resolved_source_ref: str,
+    allowlist: Mapping[str, Any],
+    compiled_subject: Mapping[str, Any],
+) -> tuple[dict[str, Any], str, int]:
+    """Validate a same-run handoff before it can enter the standalone stage."""
+    if query_store.is_symlink() or manifest_path.is_symlink():
+        raise RuntimeError("prebuilt query-store handoff rejects symlink inputs")
+    try:
+        handoff = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"prebuilt query-store handoff manifest is unreadable: {manifest_path}") from exc
+    if not isinstance(handoff, Mapping) or set(handoff) != QUERY_STORE_ARTIFACT_KEYS:
+        raise RuntimeError("prebuilt query-store handoff manifest has an unsupported field shape")
+    if handoff["schema_version"] != QUERY_STORE_ARTIFACT_SCHEMA:
+        raise RuntimeError("prebuilt query-store handoff manifest schema is unsupported")
+    if handoff["artifact_kind"] != "same-run-ci-query-store-handoff":
+        raise RuntimeError("prebuilt query-store handoff artifact kind is unsupported")
+    if handoff["artifact_name"] != artifact_name:
+        raise RuntimeError("prebuilt query-store handoff artifact name does not match the current run")
+    if handoff["source_ref"] != resolved_source_ref or handoff["source_head"] != resolved_source_ref:
+        raise RuntimeError("prebuilt query-store handoff source ref does not match the current checkout")
+    if handoff["source_dirty"] is not False:
+        raise RuntimeError("prebuilt query-store handoff was produced from a dirty checkout")
+    expected_path = _contract_relative_path(
+        compiled_subject["output_path"], field=f"{compiled_subject['subject_id']}.output_path"
+    )
+    if handoff["query_store_path"] != expected_path or handoff["query_store_filename"] != query_store.name:
+        raise RuntimeError("prebuilt query-store handoff path does not match the current contract")
+    if (
+        not isinstance(handoff["query_store_sha256"], str)
+        or len(handoff["query_store_sha256"]) != 64
+        or any(character not in "0123456789abcdef" for character in handoff["query_store_sha256"])
+        or not isinstance(handoff["query_store_size_bytes"], int)
+        or handoff["query_store_size_bytes"] <= 0
+    ):
+        raise RuntimeError("prebuilt query-store handoff file identity is invalid")
+    if not isinstance(handoff["compiler_paths"], list) or handoff["compiler_paths"] != list(QUERY_STORE_COMPILER_PATHS):
+        raise RuntimeError("prebuilt query-store handoff compiler dependency set is stale")
+    if (
+        not isinstance(handoff["compiler_sha256"], str)
+        or len(handoff["compiler_sha256"]) != 64
+        or any(character not in "0123456789abcdef" for character in handoff["compiler_sha256"])
+    ):
+        raise RuntimeError("prebuilt query-store handoff compiler identity is invalid")
+    schema, compiler_version, input_bindings, compiler_sha256 = _query_store_compiler_contract(
+        repo_root, allowlist, compiled_subject
+    )
+    if handoff["schema"] != schema or handoff["compiler_version"] != compiler_version:
+        raise RuntimeError("prebuilt query-store handoff schema/compiler version is stale")
+    if handoff["compiler_sha256"] != compiler_sha256:
+        raise RuntimeError("prebuilt query-store handoff compiler bytes are stale")
+    if handoff["input_bindings"] != input_bindings or handoff["snapshot_bindings"] != input_bindings:
+        raise RuntimeError("prebuilt query-store handoff source inputs are stale")
+    if handoff["complete"] is not True:
+        raise RuntimeError("prebuilt query-store handoff is incomplete")
+    identity = _regular_file_identity(query_store, label="prebuilt query-store")
+    if identity[2] != handoff["query_store_size_bytes"]:
+        raise RuntimeError("prebuilt query-store handoff size does not match its manifest")
+    metadata = _read_query_store_metadata(query_store, label="prebuilt query-store")
+    if metadata.get("schema") != schema or metadata.get("compiler_version") != compiler_version:
+        raise RuntimeError("prebuilt query-store has an unexpected schema/compiler version")
+    if metadata.get("snapshot_bindings") != input_bindings or metadata.get("complete") is not True:
+        raise RuntimeError("prebuilt query-store is stale or incomplete")
+    return dict(metadata), handoff["query_store_sha256"], handoff["query_store_size_bytes"]
+
+
+def _materialize_prebuilt_query_store(
+    source: Path,
+    target: Path,
+    *,
+    expected_sha256: str,
+    expected_size: int,
+    require_hardlink: bool,
+) -> Path:
+    """Materialize one verified input without a second full copy when CI permits linking."""
+    source_before = _regular_file_identity(source, label="prebuilt query-store")
+    if target.exists() or target.is_symlink():
+        raise RuntimeError(f"refusing to overwrite staged query-store path: {target}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        if require_hardlink:
+            os.link(source, target, follow_symlinks=False)
+        else:
+            before = source_before
+            with source.open("rb") as source_stream, target.open("xb") as target_stream:
+                opened = os.fstat(source_stream.fileno())
+                if (opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns) != before:
+                    raise RuntimeError("prebuilt query-store changed before materialization")
+                digest = hashlib.sha256()
+                copied = 0
+                for chunk in iter(lambda: source_stream.read(1024 * 1024), b""):
+                    digest.update(chunk)
+                    target_stream.write(chunk)
+                    copied += len(chunk)
+                target_stream.flush()
+                os.fsync(target_stream.fileno())
+            after = _regular_file_identity(source, label="prebuilt query-store")
+            if before != after:
+                raise RuntimeError("prebuilt query-store changed during materialization")
+            if copied != expected_size or digest.hexdigest() != expected_sha256:
+                raise RuntimeError("prebuilt query-store bytes do not match the handoff manifest")
+    except OSError as exc:
+        if require_hardlink:
+            raise RuntimeError(
+                "prebuilt query-store requires same-filesystem hard-link materialization; "
+                f"the runner cannot safely stage it without a second full copy: {exc}"
+            ) from exc
+        raise RuntimeError(f"unable to materialize prebuilt query-store: {exc}") from exc
+    source_after = _regular_file_identity(source, label="prebuilt query-store")
+    target_identity = _regular_file_identity(target, label="staged query-store")
+    if source_after != source_before:
+        raise RuntimeError("prebuilt query-store changed during hard-link materialization")
+    if require_hardlink and target_identity[:3] != source_after[:3]:
+        raise RuntimeError("staged query-store is not the verified same-filesystem hard link")
+    target_sha256 = sha256_file(target)
+    source_final = _regular_file_identity(source, label="prebuilt query-store")
+    target_final = _regular_file_identity(target, label="staged query-store")
+    if source_final != source_after or target_final != target_identity:
+        raise RuntimeError("prebuilt query-store changed during staged byte validation")
+    if target_final[2] != expected_size or target_sha256 != expected_sha256:
+        raise RuntimeError("staged query-store bytes do not match the handoff manifest")
+    return target
+
+
 def source_identity(repo_root: Path, explicit: str | None, allow_dirty: bool) -> tuple[str, bool]:
     if explicit and not (repo_root / ".git").exists():
         return explicit, False
@@ -566,17 +902,48 @@ def build_bundle(
     explicit_source_ref: str | None = None,
     *,
     allow_dirty: bool = False,
+    prebuilt_query_store: Path | None = None,
+    prebuilt_query_store_manifest: Path | None = None,
+    prebuilt_query_store_artifact_name: str | None = None,
+    require_prebuilt_query_store_hardlink: bool = False,
+    consume_prebuilt_query_store: bool = False,
 ) -> dict[str, Any]:
+    prebuilt_values = (
+        prebuilt_query_store,
+        prebuilt_query_store_manifest,
+        prebuilt_query_store_artifact_name,
+    )
+    if any(value is not None for value in prebuilt_values) and not all(
+        value is not None for value in prebuilt_values
+    ):
+        raise RuntimeError(
+            "prebuilt query-store reuse requires the store, manifest, and artifact name together"
+        )
+    if (require_prebuilt_query_store_hardlink or consume_prebuilt_query_store) and prebuilt_query_store is None:
+        raise RuntimeError(
+            "prebuilt query-store hard-link/consume options require a prebuilt query-store handoff"
+        )
     access_root = repo_root / "access"
     allowlist_path = access_root / "contracts/runtime-data.v1.json"
     allowlist = json.loads(allowlist_path.read_text(encoding="utf-8"))
     resolved_ref, source_dirty = source_identity(repo_root, explicit_source_ref, allow_dirty)
+    if prebuilt_query_store is not None:
+        current_head = _git_head(repo_root)
+        if current_head is not None and (source_dirty or current_head != resolved_ref):
+            raise RuntimeError(
+                "prebuilt query-store reuse requires a clean checkout at the declared source ref"
+            )
     resolved_fingerprint = source_fingerprint(repo_root, allowlist)
     if output.exists():
         raise RuntimeError(f"refusing to overwrite existing bundle: {output}")
     output.parent.mkdir(parents=True, exist_ok=True)
+    prebuilt_query_store_path = prebuilt_query_store.absolute() if prebuilt_query_store else None
+    prebuilt_query_store_manifest_path = (
+        prebuilt_query_store_manifest.absolute() if prebuilt_query_store_manifest else None
+    )
+    prebuilt_query_store_to_consume: Path | None = None
 
-    with tempfile.TemporaryDirectory(prefix="tos-standalone-build-") as raw_temp:
+    with tempfile.TemporaryDirectory(prefix="tos-standalone-build-", dir=output.parent) as raw_temp:
         stage = Path(raw_temp) / "tree-of-sophia-standalone"
         staged_access = stage / "access"
         shutil.copytree(access_root, staged_access, ignore=_ignored)
@@ -655,17 +1022,53 @@ def build_bundle(
             subjects.append(subject)
 
         compiled_subject, partitioned_ids = _active_compiled_subject(repo_root, allowlist)
+        if prebuilt_query_store is not None and not partitioned_ids:
+            raise RuntimeError("prebuilt query-store handoff has no active compiled subject to consume")
         if partitioned_ids:
             if compiled_subject is None:  # guarded by _active_compiled_subject
                 raise RuntimeError("partitioned projection inputs have no compiled subject")
             query_store_relative = Path(compiled_subject["output_path"])
             query_store_target = runtime_data / query_store_relative
-            query_store, query_store_metadata = _compile_query_store(
-                repo_root,
-                query_store_target,
-                allowlist,
-                compiled_subject,
-            )
+            if prebuilt_query_store is None:
+                query_store, query_store_metadata = _compile_query_store(
+                    repo_root,
+                    query_store_target,
+                    allowlist,
+                    compiled_subject,
+                )
+            else:
+                handoff_metadata, expected_sha256, expected_size = _validate_prebuilt_query_store(
+                    repo_root,
+                    prebuilt_query_store_path,
+                    prebuilt_query_store_manifest_path,
+                    prebuilt_query_store_artifact_name,
+                    resolved_ref,
+                    allowlist,
+                    compiled_subject,
+                )
+                query_store = _materialize_prebuilt_query_store(
+                    prebuilt_query_store_path,
+                    query_store_target,
+                    expected_sha256=expected_sha256,
+                    expected_size=expected_size,
+                    require_hardlink=require_prebuilt_query_store_hardlink,
+                )
+                staged_metadata = _read_query_store_metadata(
+                    query_store, label="staged prebuilt query-store"
+                )
+                if staged_metadata != handoff_metadata:
+                    raise RuntimeError("staged prebuilt query-store metadata changed during materialization")
+                schema, compiler_version, input_bindings, compiler_sha256 = _query_store_compiler_contract(
+                    repo_root, allowlist, compiled_subject
+                )
+                query_store_metadata = {
+                    "schema": schema,
+                    "compiler_version": compiler_version,
+                    "builder_module": compiled_subject["builder_module"],
+                    "compiler_sha256": compiler_sha256,
+                    "compiler_paths": list(QUERY_STORE_COMPILER_PATHS),
+                    "input_bindings": input_bindings,
+                }
             # The source checkout may change while the offline compiler runs.
             # Bind the compiled bytes to the inputs and code actually shipped,
             # not merely to a later snapshot observed in the live checkout.
@@ -686,6 +1089,9 @@ def build_bundle(
             }
             subjects.append(generated_subject)
 
+            if prebuilt_query_store is not None and consume_prebuilt_query_store:
+                prebuilt_query_store_to_consume = prebuilt_query_store_path
+
         manifest = {
             "schema_version": "tos_standalone_bundle_manifest_v1",
             "artifact_class": "unknown",
@@ -696,7 +1102,7 @@ def build_bundle(
             "source_ref": resolved_ref,
             "source_dirty": source_dirty,
             "source_fingerprint": resolved_fingerprint,
-            "source_fingerprint_scope": "access-source-plus-runtime-subject-closures-plus-query-compiler-v3-excludes-generated-query-store",
+            "source_fingerprint_scope": "access-source-plus-runtime-subject-closures-plus-query-compiler-v4-excludes-generated-query-store",
             "consumer_intent": "installer",
             "access_policy": "read-only-allowlisted-projections",
             "subjects": subjects,
@@ -711,6 +1117,13 @@ def build_bundle(
         (staged_access / "src/tos_access/bundle.manifest.json").write_text(rendered, encoding="utf-8")
         _scan_portable_code(staged_access)
         _write_deterministic_zip(stage, output)
+        if prebuilt_query_store_to_consume is not None:
+            if (
+                prebuilt_query_store_to_consume.is_symlink()
+                or not prebuilt_query_store_to_consume.is_file()
+            ):
+                raise RuntimeError("refusing to consume a missing or linked prebuilt query-store")
+            prebuilt_query_store_to_consume.unlink()
 
     sidecar = output.with_suffix(output.suffix + ".manifest.json")
     sidecar_payload = {
@@ -728,15 +1141,59 @@ def build_bundle(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build a portable Tree of Sophia standalone bundle")
     parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[2])
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--source-ref")
     parser.add_argument("--allow-dirty", action="store_true")
+    parser.add_argument("--write-query-store-artifact-manifest", action="store_true")
+    parser.add_argument("--query-store", type=Path)
+    parser.add_argument("--query-store-manifest", type=Path)
+    parser.add_argument("--artifact-name")
+    parser.add_argument("--prebuilt-query-store", type=Path)
+    parser.add_argument("--prebuilt-query-store-manifest", type=Path)
+    parser.add_argument("--prebuilt-query-store-artifact-name")
+    parser.add_argument("--require-prebuilt-query-store-hardlink", action="store_true")
+    parser.add_argument("--consume-prebuilt-query-store", action="store_true")
     args = parser.parse_args()
+    repo_root = args.repo_root.resolve()
+    if args.write_query_store_artifact_manifest:
+        if args.output is not None:
+            parser.error("--output is not used with --write-query-store-artifact-manifest")
+        if not all((args.query_store, args.query_store_manifest, args.artifact_name)):
+            parser.error(
+                "--write-query-store-artifact-manifest requires --query-store, "
+                "--query-store-manifest, and --artifact-name"
+            )
+        manifest = write_query_store_artifact_manifest(
+            repo_root,
+            args.query_store.absolute(),
+            args.query_store_manifest.absolute(),
+            args.source_ref,
+            args.artifact_name,
+        )
+        print(
+            json.dumps(
+                {
+                    "ok": True,
+                    "manifest": args.query_store_manifest.absolute().as_posix(),
+                    "sha256": manifest["query_store_sha256"],
+                    "size_bytes": manifest["query_store_size_bytes"],
+                },
+                indent=2,
+            )
+        )
+        return
+    if args.output is None:
+        parser.error("--output is required when building a standalone bundle")
     manifest = build_bundle(
-        args.repo_root.resolve(),
+        repo_root,
         args.output.resolve(),
         args.source_ref,
         allow_dirty=args.allow_dirty,
+        prebuilt_query_store=args.prebuilt_query_store,
+        prebuilt_query_store_manifest=args.prebuilt_query_store_manifest,
+        prebuilt_query_store_artifact_name=args.prebuilt_query_store_artifact_name,
+        require_prebuilt_query_store_hardlink=args.require_prebuilt_query_store_hardlink,
+        consume_prebuilt_query_store=args.consume_prebuilt_query_store,
     )
     print(
         json.dumps(

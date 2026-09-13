@@ -96,11 +96,42 @@ jobs:
           npm run build --prefix access/web
           git diff --exit-code -- access/web/dist
 
-      - name: Validate the Product Shell in Chromium
+      - name: Compile the Product Shell query store
         run: |
           PYTHONPATH=access/src python -m tos_access.knowledge_compile --root .
+          sha256sum ToS/derived-exports/runtime/knowledge.sqlite3 > "$RUNNER_TEMP/tos-query-store-before.sha256"
+          stat -c '%s' ToS/derived-exports/runtime/knowledge.sqlite3 > "$RUNNER_TEMP/tos-query-store-before.size"
+
+      - name: Validate the Product Shell in Chromium
+        run: |
           python -m playwright install --with-deps chromium
           PYTHONPATH=access/src pytest -q access/tests/test_http_security.py access/e2e/test_webmcp.py
+
+      - name: Prepare same-run query-store handoff
+        run: |
+          sha256sum ToS/derived-exports/runtime/knowledge.sqlite3 | cmp - "$RUNNER_TEMP/tos-query-store-before.sha256"
+          test "$(stat -c '%s' ToS/derived-exports/runtime/knowledge.sqlite3)" = "$(cat "$RUNNER_TEMP/tos-query-store-before.size")"
+          mkdir -p dist/query-store
+          ln ToS/derived-exports/runtime/knowledge.sqlite3 dist/query-store/knowledge.sqlite3
+          PYTHONPATH=access/src python access/packaging/build_standalone_bundle.py \
+            --write-query-store-artifact-manifest \
+            --query-store ToS/derived-exports/runtime/knowledge.sqlite3 \
+            --query-store-manifest dist/query-store/knowledge.sqlite3.ci-manifest.json \
+            --source-ref "${{ github.sha }}" \
+            --artifact-name "tree-of-sophia-query-store-${{ github.sha }}"
+
+      - name: Upload same-run Product Shell query-store handoff
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          # The consumer downloads only this workflow run's exact source head;
+          # the manifest also binds the compiler, inputs, schema, SHA, and size.
+          name: tree-of-sophia-query-store-${{ github.sha }}
+          path: |
+            dist/query-store/knowledge.sqlite3
+            dist/query-store/knowledge.sqlite3.ci-manifest.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
 
   standalone_product_candidate:
     name: Standalone Product Candidate
@@ -121,10 +152,26 @@ jobs:
       - name: Install standalone candidate validation dependencies
         run: python -m pip install -r requirements-dev.txt
 
+      - name: Download same-run Product Shell query-store handoff
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          # No run-id is supplied: download-artifact is restricted to this
+          # workflow run, and an absent/stale handoff fails this job.
+          name: tree-of-sophia-query-store-${{ github.sha }}
+          path: dist/query-store
+          digest-mismatch: error
+
       - name: Build and validate standalone product candidate
         run: |
           mkdir -p dist
-          python access/packaging/build_standalone_bundle.py --output dist/tree-of-sophia-standalone.zip
+          python access/packaging/build_standalone_bundle.py \
+            --output dist/tree-of-sophia-standalone.zip \
+            --source-ref "${{ github.sha }}" \
+            --prebuilt-query-store dist/query-store/knowledge.sqlite3 \
+            --prebuilt-query-store-manifest dist/query-store/knowledge.sqlite3.ci-manifest.json \
+            --prebuilt-query-store-artifact-name "tree-of-sophia-query-store-${{ github.sha }}" \
+            --require-prebuilt-query-store-hardlink \
+            --consume-prebuilt-query-store
           python access/packaging/validate_standalone.py --bundle dist/tree-of-sophia-standalone.zip
 
       - name: Publish standalone product candidate
