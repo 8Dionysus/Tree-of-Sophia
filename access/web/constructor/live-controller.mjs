@@ -9,6 +9,7 @@ import {readingDocument} from '../src/observatory/reader-model.mjs';
 import {renderHumanForms,renderClaimContext,renderEssentialContext} from '../src/observatory/human-forms-view.mjs';
 import {setUiLanguage} from '../src/observatory/ui-i18n.mjs';
 import {mountSourceCommandPanel} from './source-command-panel.mjs';
+import {inclusionSummary} from './inclusion-summary.mjs';
 
 const copy={ru:{brand:'ДРЕВО СОФИИ',subtitle:'Исследование исходного знания',search:'Найти предмет или связь',close:'Закрыть',
   view:'ПРЕДСТАВЛЕНИЕ',compact:'Смысловые связи',grouped:'Предметы и записи',raw:'Все носители',conditions:'Условия раскрытия',
@@ -289,7 +290,18 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     appendReading(reading,state.reading);
     const target=state.view.selection,ids=target.kind==='claim-path'?[target.claimId]:[target.id],kind=target.kind==='relation'?'relations':'nodes';
     const reasons=state.view.contexts.flatMap(context=>ids.flatMap(id=>(context.inclusion[kind][id]??[]).map(reason=>({origin:context.origin,query:context.query,...reason}))));
-    reading.append(detail(t('reasons'),reasons));
+    const explanation=el('details');explanation.append(el('summary',t('reasons')));
+    explanation.append(el('p',language==='ru'?'Это объяснение выполнения запроса, а не доказательство смысловой связи или истинности.':'This explains query execution, not proof of a semantic relationship or truth.','body'));
+    for(const reason of reasons){
+      const paragraph=el('p','','body');
+      paragraph.textContent=inclusionSummary({...reason.reason,query:reason.query},{language,
+        nodeLabel:id=>{const raw=state.view.nodes.find(row=>row.id===id);return raw?liveLabel(raw,language).text:null;},
+        relationLabel:id=>{const raw=state.view.relations.find(row=>row.id===id);return raw?liveLabel(raw,language).text:null;},
+        predicateLabel:id=>{const predicate=state.discovery?.catalog?.predicates?.find(row=>row.predicate_id===id);return predicate?livePredicateLabel(predicate,language):id;},
+      }).join(' ');
+      explanation.append(paragraph);
+    }
+    explanation.append(detail(language==='ru'?'Точные данные исполнения':'Exact execution data',reasons));reading.append(explanation);
     const links=el('details');links.append(el('summary',t('conditions')));
     for(const edge of state.model.edges){if(![edge.fromId,edge.toId].includes(state.model.carrierToVertex.get(ids[0])))continue;
       links.append(button(liveEdgeLabel(state.view,edge,language).text,()=>controller.selectEdge(edge.id),'material-row'));}

@@ -41,6 +41,11 @@ retains at most two exact cards; independent cancellation and visible terminal
 errors prevent stale or indefinitely loading cards. Neither comparison nor
 source availability establishes semantic acceptance.
 
+Why included explains origin selection, traversal and same-identity carriers
+as query operations in Russian/English, with direction, depth and relation
+filter where present. The full unchanged execution reasons remain available
+separately; unknown reason kinds are explicit gaps, not inferred explanations.
+
 This entry implements reading and one separately delegated source-copy command
 workflow, not a complete research constructor. Path conditions, semantic
 comparison operations, direct local-source opening and the remaining growth
