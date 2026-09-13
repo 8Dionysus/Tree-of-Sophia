@@ -6,14 +6,16 @@ interpretations, contexts, and intellectual lineages into an authored,
 reviewable tree. Systems reproduce this tree as graphs, search indexes, and
 public routes.
 
-**Live site:** [treeofsophia.com](https://treeofsophia.com/)
-
 Source-backed branches cite their source. Scaffold branches remain explicit
 about their provisional role until that evidence exists. Nodes and relations
 record provenance, exact source routes, interpretation history, and review
 status. ToS traces how ideas
 descend, diverge, inherit, and return across languages, traditions, places,
 and time while preserving uncertainty and competing readings.
+
+## Demo
+
+https://github.com/user-attachments/assets/9a75a3a2-7033-4d86-822c-805efb07ef7a
 
 ## Quick start
 
