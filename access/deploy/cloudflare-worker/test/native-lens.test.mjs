@@ -101,7 +101,8 @@ function database(data = fixture, metadataPrimaryKey = true) {
     CREATE INDEX knowledge_lens_order_from ON knowledge_lens_order(kind,from_id,sort_key,id);
     CREATE INDEX knowledge_lens_order_to ON knowledge_lens_order(kind,to_id,sort_key,id);
     CREATE INDEX knowledge_lens_order_pair ON knowledge_lens_order(kind,from_id,to_id,id);
-    CREATE INDEX knowledge_nodes_native_idx ON knowledge_nodes(native_id);`);
+    CREATE INDEX knowledge_nodes_native_idx ON knowledge_nodes(native_id);
+    CREATE INDEX knowledge_relations_native_idx ON knowledge_relations(native_id);`);
   sqlite.exec(readFileSync(new URL('../migrations/0001-exploration.sql', import.meta.url), 'utf8'));
   for (const [key, raw] of Object.entries(data.metadata)) sqlite.prepare('INSERT INTO edge_meta VALUES (?,0,?)').run(key, raw);
   for (const kind of ['node', 'relation']) for (const raw of data[kind === 'node' ? 'rawNodes' : 'rawRelations']) {
@@ -155,6 +156,71 @@ test('D1 native-v7 complete wire packets equal Python values, kinds, source orde
     assert.equal(statements.some(({sql})=>/json_extract\([^)]*\.json|lower\(|substr\(|OFFSET/i.test(sql)),false,'general semantics must not pass through lossy SQL');
     assert.ok(statements.some(({sql})=>sql.includes('knowledge_lens_order_sort')));
   } finally {sqlite.close();}
+});
+
+test('native exact identity selectors use bounded indexed keysets and retain parity', async () => {
+  const node = JSON.parse(fixture.rawNodes[0]);
+  const relation = JSON.parse(fixture.rawRelations[0]);
+  const cases = [
+    ['node', 'id', node.id, 'sqlite_autoindex_knowledge_nodes_1'],
+    ['node', 'entity_id', node.entity_id, 'knowledge_nodes_identity_seek'],
+    ['node', 'native_id', node.native_id, 'knowledge_nodes_native_idx'],
+    ['node', 'id', ['absent', node.id], 'sqlite_autoindex_knowledge_nodes_1'],
+    ['relation', 'id', relation.id, 'sqlite_autoindex_knowledge_relations_1'],
+    ['relation', 'native_id', relation.native_id, 'knowledge_relations_native_idx'],
+  ];
+  for (const [kind, field, value, index] of cases) {
+    const filter = {field, op: Array.isArray(value) ? 'in' : 'eq', value};
+    const spec = {schema_version:'tos_lens_spec_v1',lens_id:'identity-candidate',sources:['philosophy'],detail:'full',
+      node_query:kind === 'node' ? {filters:[filter]} : {enabled:false},
+      relation_query:kind === 'relation' ? {filters:[filter]} : {enabled:false},
+      composition:{endpoint_policy:'independent'},limits:{nodes:20,relations:20}};
+    const expected = python("from tos_access.knowledge import execute_knowledge_lens;d=json.load(sys.stdin);print(json.dumps(json.dumps(execute_knowledge_lens(json.loads(d['graph']),d['spec']))))",
+      {graph:fixture.rawGraph,spec});
+    const {db,sqlite,statements} = database();
+    try {
+      const actual = nativePacketJson((await executeNativeLensD1(db,parseNativeRequest(JSON.stringify(spec)),{maxCandidates:1})).packet);
+      assert.deepEqual(differences([{name:`${kind}-${field}`,expected,actual}])[0].diff,[]);
+      const alias = kind === 'node' ? 'n' : 'r';
+      const candidate = statements.find(({sql}) => sql.includes(`SELECT ${alias}.id`) && sql.includes(`knowledge_${kind}s`));
+      assert.ok(candidate, `candidate keyset missing for ${kind}.${field}: ${statements.map(({sql}) => sql).join(' || ')}`);
+      const plan = sqlite.prepare('EXPLAIN QUERY PLAN ' + candidate.sql).all(...candidate.bindings);
+      const details = plan.map(row => String(row.detail ?? Object.values(row).join(' '))).join('\n');
+      assert.match(details, new RegExp(index.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), details);
+    } finally {sqlite.close();}
+  }
+});
+
+test('native identity candidate reduction preserves boolean, seed, unknown and property semantics', async () => {
+  const node = JSON.parse(fixture.rawNodes[0]);
+  const cases = [
+    {node_query:{match:'all',filters:[{field:'id',op:'eq',value:node.id},{field:'native_id',op:'neq',value:'absent'}]},maxCandidates:1,indexed:true},
+    {node_query:{match:'any',filters:[{field:'id',op:'eq',value:node.id},{field:'native_id',op:'eq',value:node.native_id}]},maxCandidates:1,indexed:true},
+    // A non-identity OR disjunct can match any row, so retain the general scan.
+    {node_query:{match:'any',filters:[{field:'id',op:'eq',value:node.id},{field:'source_graph',op:'eq',value:'philosophy'}]},maxCandidates:64,indexed:false},
+    {node_query:{match:'all',filters:[{field:'id',op:'neq',value:'absent'}]},maxCandidates:64,indexed:false},
+    {node_query:{match:'all',filters:[{field:'id',op:'in',value:[]}]},maxCandidates:1,indexed:false},
+    {node_query:{match:'any',filters:[{field:'id',op:'in',value:[]}]},maxCandidates:1,indexed:false},
+    // Non-string inputs must not be interpreted through SQLite text affinity.
+    {node_query:{match:'all',filters:[{field:'id',op:'eq',value:0}]},maxCandidates:64,indexed:false},
+    // A bound semantic property is not an identity-column candidate.
+    {node_query:{match:'all',filters:[{property_id:'tos.property.native-number',op:'eq',value:1}]},maxCandidates:64,indexed:false},
+    {seed:{node_ids:[node.native_id]},node_query:{filters:[{field:'id',op:'eq',value:node.id}]},maxCandidates:1,indexed:true},
+  ];
+  for (const [number, item] of cases.entries()) {
+    const spec = {schema_version:'tos_lens_spec_v1',lens_id:'identity-semantics',sources:['philosophy'],detail:'full',
+      ...item.seed ? {seed:item.seed} : {},node_query:item.node_query,relation_query:{enabled:false},limits:{nodes:30,relations:0}};
+    const expected = python("from tos_access.knowledge import execute_knowledge_lens;d=json.load(sys.stdin);print(json.dumps(json.dumps(execute_knowledge_lens(json.loads(d['graph']),d['spec']))))",
+      {graph:fixture.rawGraph,spec});
+    const {db,sqlite,statements} = database();
+    try {
+      const actual = nativePacketJson((await executeNativeLensD1(db,parseNativeRequest(JSON.stringify(spec)),{maxCandidates:item.maxCandidates})).packet);
+      assert.deepEqual(differences([{name:`identity-${number}`,expected,actual}])[0].diff,[]);
+      const usedCandidate = statements.some(({sql}) => sql.includes('SELECT n.id') && sql.includes('knowledge_nodes')
+        && /\bn\.(?:id|entity_id|native_id) IN \(SELECT value FROM json_each\(\?\)\)/.test(sql));
+      assert.equal(usedCandidate,item.indexed,`candidate reduction mismatch for case ${number}`);
+    } finally {sqlite.close();}
+  }
 });
 
 test('native source strict duplicates and request/cursor last-wins remain separate', () => {

@@ -5,7 +5,7 @@ import {HttpError} from './common.ts';
 import {OVERVIEW_EXCLUDED_PREDICATES, OVERVIEW_EXCLUDED_RELATION_TYPES, type Inclusion, type QueryProperty, type SortRule} from './knowledge.ts';
 import {nativeLower, nativeUnicodeVersion, nativeSortKey, codePointCompare, NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 import {arrayRefs, compileNativeSpec, derived, nativeMatchesGroup, nativeChild, nativeField, nativeKeys,
-  nativePacketJson, parseNativeJson, stringField, type NativeRef, type NativeSpec, type NativeGroup, type NativeLensResult} from './native-lens.ts';
+  nativePacketJson, parseNativeJson, stringField, type NativeFilter, type NativeRef, type NativeSpec, type NativeGroup, type NativeLensResult} from './native-lens.ts';
 import {finalizeNativeLens} from './native-lens-result.ts';
 
 import {NativeD1Read as Read, NativeD1Rows, nativeD1Limits as nativeLensLimits, nativeBytes as bytes, nativeSha256 as sha256, nativeUnavailable as unavailable, readNativePublication, type NativeD1Limits as Limits} from './native-d1-read.ts';
@@ -16,6 +16,13 @@ type Header = {id: string; from_id: string; to_id: string; sort_key: string; key
 type Cell = [string, string, string, number];
 type LensMetadata = {node_counts: Cell[]; relation_counts: Cell[]; query_properties: QueryProperty[]};
 const DIMENSIONS = {node: ['source_graph', 'kind_id', 'type_id'], relation: ['source_graph', 'predicate_id', 'relation_type_id']} as const;
+type IdentityField = 'id' | 'entity_id' | 'native_id';
+type IdentitySelector = {field: IdentityField; values: string[]; index: string};
+type IdentityPlan = {mode: 'all' | 'any'; selectors: IdentitySelector[]};
+const IDENTITY_INDEXES: Record<Kind, Partial<Record<IdentityField, string>>> = {
+  node: {id: 'sqlite_autoindex_knowledge_nodes_1', entity_id: 'knowledge_nodes_identity_seek', native_id: 'knowledge_nodes_native_idx'},
+  relation: {id: 'sqlite_autoindex_knowledge_relations_1', native_id: 'knowledge_relations_native_idx'},
+};
 
 const INDEXES = ['knowledge_lens_order_sort', 'knowledge_lens_order_from', 'knowledge_lens_order_to', 'knowledge_lens_order_pair'];
 
@@ -59,6 +66,60 @@ class Plan extends NativeD1Rows {
     }
     return {sql, args};
   }
+  identitySelector(kind: Kind, rule: NativeFilter): IdentitySelector | null {
+    const field = rule.field as IdentityField | undefined;
+    if (!field || !Object.hasOwn(IDENTITY_INDEXES[kind], field)) return null;
+    const index = IDENTITY_INDEXES[kind][field];
+    if (rule._property_binding || !index || (rule.op !== 'eq' && rule.op !== 'in')) return null;
+    // Candidate columns are emitted as text, while the native matcher keeps
+    // Python's exact value/type semantics over the decoded source packet.
+    // Refuse non-string inputs here: otherwise SQLite affinity/NULL handling
+    // could discard a row that the native predicate must inspect.
+    const raw = rule.valueRef.value;
+    if (rule.op === 'eq' && typeof raw !== 'string') return null;
+    const values = Array.isArray(raw) ? arrayRefs(rule.valueRef).map(ref => ref.value) : [raw];
+    if (values.some(value => typeof value !== 'string')) return null;
+    return {field, values: [...new Set(values as string[])].sort(codePointCompare), index};
+  }
+  identityPlan(kind: Kind, group: NativeGroup): IdentityPlan | null {
+    if (!group.filters.length) return null;
+    const selectors = group.filters.map(rule => this.identitySelector(kind, rule));
+    if (group.match === 'all') {
+      const positive = selectors.filter((selector): selector is IdentitySelector => selector !== null);
+      return positive.length ? {mode: 'all', selectors: positive} : null;
+    }
+    return selectors.every((selector): selector is IdentitySelector => selector !== null)
+      ? {mode: 'any', selectors}
+      : null;
+  }
+  seedPlan(kind: Kind, seeds: string[]): IdentityPlan | null {
+    if (kind !== 'node' || !seeds.length) return null;
+    const values = [...new Set(seeds)].sort(codePointCompare);
+    return {mode: 'any', selectors: (['id', 'native_id', 'entity_id'] as IdentityField[]).map(field => ({
+      field, values, index: IDENTITY_INDEXES.node[field]!,
+    }))};
+  }
+  identityCondition(alias: string, plan: IdentityPlan): {sql: string; args: unknown[]} {
+    const parts: string[] = [], args: unknown[] = [];
+    for (const selector of plan.selectors) {
+      if (!selector.values.length) parts.push('0');
+      else {parts.push(`${alias}.${selector.field} IN (SELECT value FROM json_each(?))`); args.push(compact(selector.values));}
+    }
+    if (!parts.length) return {sql: '0', args: []};
+    return {sql: parts.join(plan.mode === 'all' ? ' AND ' : ' OR '), args};
+  }
+  async identityBranchScan(kind: Kind, plan: IdentityPlan, after: string): Promise<{id: string}[]> {
+    const alias = kind === 'node' ? 'n' : 'r', scope = this.scope(alias), branches: string[] = [], args: unknown[] = [];
+    for (const selector of plan.selectors) {
+      if (!selector.values.length) continue;
+      branches.push(`SELECT id FROM (SELECT ${alias}.id FROM knowledge_${kind}s ${alias} INDEXED BY ${selector.index}
+        WHERE ${alias}.${selector.field} IN (SELECT value FROM json_each(?)) AND ${alias}.id>? AND ${scope.sql}
+        ORDER BY ${alias}.id LIMIT ?)`);
+      args.push(compact(selector.values), after, ...scope.args, this.limits.blockSize);
+    }
+    if (!branches.length) return [];
+    return this.read.textRows<{id: string}>(['id'], ['id'], 'WITH candidates AS (' + branches.join(' UNION ') + ') SELECT id FROM candidates ORDER BY id LIMIT ?', ...args, this.limits.blockSize);
+  }
   async focus(): Promise<NativeRef | null> {
     const requested = this.spec.seed.focus_node_id;
     if (requested === null) return null;
@@ -72,17 +133,20 @@ class Plan extends NativeD1Rows {
     throw new HttpError(400, 'unknown ToS knowledge focus: ' + requested);
   }
   async *scan(kind: Kind, seeds: string[] = []): AsyncGenerator<NativeRef> {
-    let after = ''; const scope = this.scope('n'), block = this.limits.blockSize;
+    let after = ''; const alias = kind === 'node' ? 'n' : 'r', scope = this.scope(alias), block = this.limits.blockSize;
+    const group = kind === 'node' ? this.spec.node_query : this.spec.relation_query;
+    const groupPlan = this.identityPlan(kind, group), seedPlan = this.seedPlan(kind, seeds);
     while (true) {
       let rows: {id: string}[];
-      if (seeds.length) {
-        const args: unknown[] = [], branches: string[] = [];
-        for (const [field, index] of [['id', 'sqlite_autoindex_knowledge_nodes_1'], ['native_id', 'knowledge_nodes_native_idx'], ['entity_id', 'knowledge_nodes_identity_seek']]) {
-          branches.push(`SELECT id FROM (SELECT n.id FROM knowledge_nodes n INDEXED BY ${index} WHERE n.${field} IN (SELECT value FROM json_each(?)) AND n.id>? AND ${scope.sql} ORDER BY n.id LIMIT ?)`);
-          args.push(compact(seeds), after, ...scope.args, block);
-        }
-        rows = await this.read.textRows(['id'], ['id'], 'WITH candidates AS (' + branches.join(' UNION ') + ') SELECT id FROM candidates ORDER BY id LIMIT ?', ...args, block);
-      } else rows = await this.read.textRows(['id'], ['id'], `SELECT n.id FROM knowledge_${kind}s n WHERE ${scope.sql} AND n.id>? ORDER BY n.id LIMIT ?`, ...scope.args, after, block);
+      if (seedPlan && !groupPlan) rows = await this.identityBranchScan(kind, seedPlan, after);
+      else if (groupPlan && !seedPlan && groupPlan.mode === 'any') rows = await this.identityBranchScan(kind, groupPlan, after);
+      else {
+        const conditions: string[] = [], conditionArgs: unknown[] = [];
+        if (seedPlan) {const condition = this.identityCondition(alias, seedPlan); conditions.push('(' + condition.sql + ')'); conditionArgs.push(...condition.args);}
+        if (groupPlan) {const condition = this.identityCondition(alias, groupPlan); conditions.push('(' + condition.sql + ')'); conditionArgs.push(...condition.args);}
+        const indexed = groupPlan && !seedPlan && groupPlan.mode === 'all' ? ` INDEXED BY ${groupPlan.selectors[0]!.index}` : '';
+        rows = await this.read.textRows(['id'], ['id'], `SELECT ${alias}.id FROM knowledge_${kind}s ${alias}${indexed} WHERE ${scope.sql}${conditions.length ? ' AND ' + conditions.join(' AND ') : ''} AND ${alias}.id>? ORDER BY ${alias}.id LIMIT ?`, ...scope.args, ...conditionArgs, after, block);
+      }
       if (!rows.length) return;
       const loaded = await this.load(kind, rows.map(row => row.id));
       for (const row of rows) {if (++this.candidates > this.limits.maxCandidates) throw new NativeBudgetExceeded('native lens candidate budget'); yield loaded.get(row.id)!;}
