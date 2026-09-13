@@ -8,6 +8,7 @@ selection is performed by this adapter.
 from __future__ import annotations
 
 import importlib
+import importlib.util
 from pathlib import Path
 import sys
 from threading import BoundedSemaphore
@@ -17,6 +18,20 @@ from .source_read import (
     SourceCatalogClaimReader, SourceCatalogTargetIssuer, SourceOwnerBinding,
     SourceReadError, SourceReadService,
 )
+
+
+def _module_at(name, expected):
+    try:
+        spec = importlib.util.find_spec(name)
+    except (ImportError, ValueError) as error:
+        raise SourceReadError("source owner module has no verifiable origin: " + name) from error
+    if (spec is None or not isinstance(spec.origin, str)
+            or Path(spec.origin).resolve() != expected.resolve()):
+        raise SourceReadError("source owner module origin differs from this access checkout: " + name)
+    module = importlib.import_module(name)
+    if Path(module.__file__).resolve() != expected.resolve():
+        raise SourceReadError("loaded source owner module origin changed: " + name)
+    return module
 
 
 def _owner_modules():
@@ -30,15 +45,11 @@ def _owner_modules():
         raise SourceReadError("local source owner implementation is unavailable")
     if str(scripts) not in sys.path:
         sys.path.insert(0, str(scripts))
-    catalog = importlib.import_module("source_catalog_projection")
-    if Path(catalog.__file__).resolve() != expected.resolve():
-        raise SourceReadError("another source owner implementation is already loaded")
-    metadata = importlib.import_module("metadata_version_reader")
-    profiles = importlib.import_module("source_record_profiles")
+    catalog = _module_at("source_catalog_projection", expected)
     expected_metadata = execution_root / "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/metadata_version_reader.py"
-    if (Path(metadata.__file__).resolve() != expected_metadata.resolve()
-            or Path(profiles.__file__).resolve() != (scripts / "source_record_profiles.py").resolve()):
-        raise SourceReadError("source reader implementation does not match this access checkout")
+    metadata = _module_at("metadata_version_reader", expected_metadata)
+    profiles = _module_at("source_record_profiles", scripts / "source_record_profiles.py")
+    _module_at("source_agent_publication", scripts / "source_agent_publication.py")
     return catalog, metadata, profiles
 
 

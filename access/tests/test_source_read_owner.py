@@ -8,6 +8,8 @@ import subprocess
 import threading
 from threading import BoundedSemaphore
 from unittest.mock import Mock, patch
+from types import ModuleType
+from importlib.machinery import ModuleSpec
 
 import pytest
 
@@ -41,6 +43,16 @@ def test_each_request_has_an_isolated_reader_and_saturation_is_not_queued():
         selected.read({})
     assert selected._slots.acquire(blocking=False)
     assert selected._slots.acquire(blocking=False)
+
+
+def test_owner_selection_refuses_foreign_preloaded_publication_verifier():
+    from tos_access.source_read_owner import _owner_modules
+    foreign = ModuleType("source_agent_publication")
+    foreign.__file__ = "/foreign-owner/source_agent_publication.py"
+    foreign.__spec__ = ModuleSpec("source_agent_publication", loader=None, origin=foreign.__file__)
+    with patch.dict(sys.modules, {"source_agent_publication": foreign}):
+        with pytest.raises(SourceReadError, match="module origin differs.*source_agent_publication"):
+            _owner_modules()
 
 
 def test_cli_source_selection_requires_explicit_prepared_pair():
