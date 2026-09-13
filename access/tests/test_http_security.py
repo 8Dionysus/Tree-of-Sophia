@@ -68,6 +68,13 @@ def test_root_security_headers_and_nonce_bind_inline_boot(access_server) -> None
     assert headers["x-content-type-options"] == "nosniff"
 
 
+@pytest.mark.parametrize("host", ["0.0.0.0", "::", "192.0.2.1", "example.invalid"])
+def test_direct_server_cannot_expose_local_owner_routes_remotely(host):
+    # Reject before inspecting a core or opening a socket; CLI is not the gate.
+    with pytest.raises(ValueError, match="loopback-only"):
+        make_server(None, host=host, port=0)
+
+
 def test_json_and_static_responses_keep_cross_origin_boundaries(access_server) -> None:
     for path in ("/health", "/static/assets/tos-graph.css"):
         result, _ = response(access_server, path)

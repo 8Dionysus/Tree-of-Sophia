@@ -253,10 +253,12 @@ def build_server(
 
     @mcp.tool()
     def tos_source_read(handle: dict[str, Any], representation: str = "record") -> dict[str, Any]:
-        """Read an exact record, or native_public_unit through an explicitly selected native owner.
+        """Read an exact record, or native_public_unit/native_local_unit via the selected owner.
 
         Native text requires its own current public rights/closure checks;
         the metadata handle is not permission. Caller paths/ranges are refused.
+        Local reading also requires explicit current owner-selected conditions.
+        Retain all local_conditions notices with its text; no publication grant.
         """
         return current_state().source_read({"handle": handle, "representation": representation})
 

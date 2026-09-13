@@ -82,11 +82,16 @@ def test_exact_metadata_handle_never_bypasses_native_owner_gates(tmp_path, postu
                                 metadata_record_types={"occurrence"})
     selected = object.__new__(SelectedSourceReadService)
     selected.source_root, selected.limits = tmp_path, session.limits
+    selected.local_text_selection = None
     selected._slots = BoundedSemaphore(2)
     selected._new_session = lambda: session
     handle = session.discover({"target": _metadata_target(record)})["handle"]
     request = {"handle": handle, "representation": "native_public_unit"}
     result = selected.read(request)
+    local = selected.read({**request, "representation": "native_local_unit"})
+    assert local["status"] == "unsupported"
+    assert local["native_unit"] is local["text_access"] is None
+    Draft202012Validator(_schema()).validate(local)
     Draft202012Validator(_schema()).validate(result)
     assert result["record"] is None
     assert result["handle"]["access"]["rights_revalidated"] is False
@@ -95,6 +100,14 @@ def test_exact_metadata_handle_never_bypasses_native_owner_gates(tmp_path, postu
         assert result["status"] == "available", result
         assert result["native_unit"]["spans"][0]["text"] == "cafe\u0301"
         assert result["text_access"]["recorded_rights_verified"] is True
+        from native_text_return import LocalTextReadError
+        selected.local_text_selection = Mock()
+        selected.local_text_selection.verify.side_effect = LocalTextReadError("revoked after owner return")
+        with patch("native_text_return.read_local_unit", return_value=result["native_unit"]):
+            revoked = selected.read({**request, "representation": "native_local_unit"})
+        assert revoked["status"] == "access-restricted"
+        assert revoked["native_unit"] is revoked["text_access"] is None
+        Draft202012Validator(_schema()).validate(revoked)
     else:
         assert result["status"] == ("corrupt" if posture == "corrupt" else "access-restricted")
         assert result["native_unit"] is result["text_access"] is None

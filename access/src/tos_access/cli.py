@@ -20,6 +20,8 @@ def _parser() -> argparse.ArgumentParser:
                         help="Separate local continuation store for an explicitly selected prepared reader")
     parser.add_argument("--source-inputs", type=Path,
                         help="Explicit retained source vector; requires --root and the matching prepared reader/binding")
+    parser.add_argument("--source-local-text-selection", type=Path,
+                        help="Explicit protected local text conditions; requires --source-inputs, never enables publication")
     sub = parser.add_subparsers(dest="command", required=True)
     doctor = sub.add_parser("doctor", help="Inspect data, web, contract, MCP, and integration readiness")
     doctor.add_argument("--json", action="store_true", dest="as_json")
@@ -84,6 +86,8 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit("--exploration-checkpoints requires an explicitly selected prepared reader")
     if args.source_inputs is not None and (not prepared or args.root is None):
         raise SystemExit("--source-inputs requires --root and an explicitly selected prepared reader/binding")
+    if args.source_local_text_selection is not None and args.source_inputs is None:
+        raise SystemExit("--source-local-text-selection requires --source-inputs")
     if args.command in {"doctor", "verify"}:
         if prepared:
             raise SystemExit("doctor/verify check the source-backed profile, not a prepared publication")
@@ -113,8 +117,10 @@ def main(argv: list[str] | None = None) -> None:
     if args.source_inputs is not None:
         from .source_read_owner import SelectedSourceReadService
         try:
+            local_options = ({"local_text_selection": args.source_local_text_selection}
+                             if args.source_local_text_selection is not None else {})
             options["source_read_service"] = SelectedSourceReadService(
-                args.root, args.source_inputs, expected_revision=binding["source_revision"])
+                args.root, args.source_inputs, expected_revision=binding["source_revision"], **local_options)
         except (OSError, ValueError, KeyError, ImportError) as exc:
             raise SystemExit(f"cannot select source owner: {exc}") from exc
     core = ToSAccessCore.discover(tos_root=args.root, **options)

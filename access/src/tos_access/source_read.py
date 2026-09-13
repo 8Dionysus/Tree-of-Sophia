@@ -1211,8 +1211,8 @@ class SourceReadService:
         _request_size(request, self.limits)
         if type(request) is not dict or set(request) != {"handle", "representation"}:
             raise SourceReadError("source read requires handle and representation only")
-        if request.get("representation") not in ("record", "native_public_unit"):
-            raise SourceReadError("only exact record or owner-gated native_public_unit representations are supported")
+        if request.get("representation") not in ("record", "native_public_unit", "native_local_unit"):
+            raise SourceReadError("only exact record or owner-gated native unit representations are supported")
         handle = validate_handle(request["handle"], limits=self.limits)
         self.binding.verify()
         self._verify_target_issuer()
@@ -1224,7 +1224,7 @@ class SourceReadService:
             "access": handle["access"],
             "handle_digest": handle["handle_digest"],
         })
-        if request["representation"] == "native_public_unit":
+        if request["representation"] in ("native_public_unit", "native_local_unit"):
             return {**result, "schema_version": "tos_source_native_unit_read_result_v1",
                     "native_unit": None, "text_access": None,
                     "status": "stale" if handle["epoch"] != self.epoch.value() else "unsupported",
@@ -1300,7 +1300,7 @@ def contract_summary() -> dict[str, Any]:
         "discovery_schema": DISCOVERY_SCHEMA,
         "result_schema": RESULT_SCHEMA,
         "supported_layers": sorted(SUPPORTED_LAYERS),
-        "representations": ["record", "native_public_unit"],
+        "representations": ["record", "native_public_unit", "native_local_unit"],
         "native_unit_result_schema": "tos_source_native_unit_read_result_v1",
         "native_unit_owner_required": True,
         "discovery_inputs": ["owner_target", "typed_catalog_selector"],
@@ -1315,5 +1315,6 @@ def contract_summary() -> dict[str, Any]:
             "target_origin": "owner-card-or-typed-catalog-resolver",
             "rights_scope": "metadata-disclosure-only",
             "native_unit_rights_scope": "separate-unconditional-public-owner-gate",
+            "native_local_unit_rights_scope": "separate-current-owner-condition-selection-with-notices",
         },
     }

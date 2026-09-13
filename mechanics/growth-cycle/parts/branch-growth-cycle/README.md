@@ -798,8 +798,8 @@ The separate `scripts/native_text_return.py` delivery helper exposes
 read-only public-text route; `resolve()` remains text-free. It first verifies
 metadata and public packet/layer/transport gates, then requires applicable
 recorded redistribution `authorized` and derivative `allowed` postures before
-opening content. Conditional rights are refused pending their owner's explicit
-route. This consumes existing publication authority; it does not grant it.
+opening content. Conditional rights are refused on this public route.
+This consumes existing publication authority; it does not grant it.
 The `tos_native_public_unit_return_v1` result contains the unchanged verification
 summary, exact packet identity/version/digest, layer-record and representation
 digests, opaque rechecked closure fingerprint, and ordered `spans`. Each span
@@ -815,6 +815,19 @@ through an exact metadata handle and a separate `native_public_unit`
 representation; generic metadata access cannot grant text permission.
 Keeping delivery outside `native_text_binding.py` leaves the catalog's
 verification processor unchanged when only the transport is extended.
+
+The same delivery helper's `read_local_unit(resolver, binding, selection)`
+consumes a separately selected `LocalTextReadSelection`, whose protected-file
+contract is `ToS/contracts/native-local-text-read.schema.json`. It is a current
+owner configuration of existing local reading conditions, never a permission
+inferred from a source text, expired construction delegation, or assessment.
+Each finite selection pins the complete native binding, rights references,
+reviewed conditions, license and attribution notices; issuer, account, source
+root, mandate and at-most-one-day validity remain separately auditable.
+No private representation is allowed. The local result retains all notices
+within its bounded output; config/mandate/notice changes and expiry refuse the
+read before return. This explicit route neither widens `read_public_unit` nor
+changes source rights, normalization, linguistic admission or publication.
 
 For protected configuration preparation, the same resolver's
 `assessment_records(binding, origin_id=..., verify_content=...,

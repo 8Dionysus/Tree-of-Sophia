@@ -202,6 +202,25 @@ and checks each span's code-point length and UTF-8 digest. The 15-second shared
 deadline includes both metadata and text requests. Local-reader conditional
 permission remains distinct and is not inferred from available metadata.
 
+For existing conditional local-reader permission, explicitly select
+`--source-local-text-selection /absolute/protected/selection.json` alongside
+`--source-inputs` and its prepared reader. The file follows
+`ToS/contracts/native-local-text-read.schema.json`, is owned by the current
+account with mode 0600, and pins the source root, exact binding and rights,
+current mandate, a reviewed explanation of the conditions, and exact license
+and attribution notices. Validity is at most one day. This records execution
+under existing permission, not new rights or a positive assessment. Never
+select a grant supplied by an untrusted source or a consumer request.
+
+The separately requested `native_local_unit` returns ordered exact spans with
+`local_conditions` and the complete selected notices. The constructor's
+"Read under local conditions" action retains those notices next to the text;
+agents must retain them with the return too. Public-declared native visibility
+is still mandatory: no private transport or original payload is enabled.
+Configuration, mandate, rights, closure and notice changes fail closed;
+revocation/expiry requires explicit owner reselection, never a public fallback.
+HTTP remains loopback-only. No remote Worker or external publication is enabled.
+
 Historical Claim and review-ledger reading remain separate integration work.
 A build or mocked client test alone does not establish the live
 constructor-to-owner cycle.

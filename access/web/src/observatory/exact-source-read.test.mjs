@@ -30,7 +30,7 @@ function harness(data=fixture(),decorate=packet=>new Response(JSON.stringify(pac
   const client=new KnowledgeClient({fetcher:async(path,options)=>{
     calls.push({path,body:options.body?JSON.parse(options.body):null,signal:options.signal});
     return decorate(path.startsWith('/api/knowledge/')?data.inspection:path.endsWith('/handles')?data.discovery:
-      JSON.parse(options.body).representation==='native_public_unit'?data.unitRead:data.read,path);
+      JSON.parse(options.body).representation!=='record'?data.unitRead:data.read,path);
   }});
   return {client,calls,data};
 }
@@ -68,6 +68,26 @@ test('native text is a separate gated request; bind exact IDs, span offsets and 
     const wrong=structuredClone(data);mutate(wrong);
     await assert.rejects(readExactSource(harness(wrong).client,selection,options),ContractError);
   }
+  const local=structuredClone(data),localOptions={representation:'native_local_unit'};
+  local.unitRead.native_unit.schema_version='tos_native_local_unit_return_v1';
+  local.unitRead.text_access={scope:'local-native-unit',recorded_rights_verified:true,conditional_rights:true,
+    grants_current_use:false,external_publication_authorized:false};
+  const noticeText='Synthetic notice\r\n',noticeHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(noticeText))),b=>b.toString(16).padStart(2,'0')).join('');
+  local.unitRead.native_unit.local_conditions={selection_sha256:'5'.repeat(64),expires_at:new Date(Date.now()+60000).toISOString(),
+    condition_review:'Synthetic conditions only',notices:['license','attribution'].map(role=>({role,ref:role+'.md',sha256:noticeHash,text:noticeText}))};
+  assert.deepEqual((await readExactSource(harness(local).client,selection,localOptions)).native_unit.local_conditions,
+    local.unitRead.native_unit.local_conditions);
+  for(const mutate of [d=>delete d.unitRead.native_unit.local_conditions,
+    d=>d.unitRead.native_unit.local_conditions.notices.pop(),
+    d=>d.unitRead.native_unit.local_conditions.notices[0].text='changed',
+    d=>d.unitRead.native_unit.local_conditions.expires_at='2020-01-01T00:00:00Z',
+    d=>d.unitRead.text_access.external_publication_authorized=true,
+    d=>d.unitRead.native_unit.schema_version='tos_native_public_unit_return_v1']){
+    const wrong=structuredClone(local);mutate(wrong);
+    await assert.rejects(readExactSource(harness(wrong).client,selection,localOptions),ContractError);
+  }
+  await assert.rejects(readExactSource(harness(local).client,selection,options),ContractError);
+  await assert.rejects(readExactSource(harness(data).client,selection,localOptions),ContractError);
   data.unitRead={...data.unitRead,status:'access-restricted',reason:'native-unit-public-rights-not-satisfied',native_unit:null,text_access:null};
   assert.equal((await readExactSource(harness(data).client,selection,options)).native_unit,null);
 });

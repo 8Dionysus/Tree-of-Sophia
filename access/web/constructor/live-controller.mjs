@@ -221,7 +221,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     }catch(error){if(!disposed&&surface===surfaceGeneration){body.replaceChildren(el('p',error?.message??String(error),'body'));}}
   }
   async function openSourceRecord(snapshot,representation='record'){
-    const native=representation==='native_public_unit';
+    const native=representation!=='record',local=representation==='native_local_unit';
     const title=native?(language==='ru'?'Точный текст фрагмента':'Exact fragment text'):t('sourceRecord');
     const body=modal(title,'source-record');if(!body)return;
     const surface=surfaceGeneration;body.append(el('p',t('loading'),'body'));
@@ -233,9 +233,11 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       body.dataset.sourceReadStatus=result.status;
       if(result.status!=='available'){
         if(native&&result.status==='access-restricted'){
-          body.append(el('p',language==='ru'
+          body.append(el('p',local?(language==='ru'
+            ?'Локальное чтение не разрешено этой настройкой: проверьте её срок, точный фрагмент и условия источника.'
+            :'This local selection does not authorize reading: check its expiry, exact fragment and source conditions.'):(language==='ru'
             ?'Точный текст пока не выдан: условия публичного чтения не подтверждены этим маршрутом. Доступность метаданных не означает разрешение читать текст.'
-            :'Exact text was not delivered: this route has not verified its public reading conditions. Available metadata does not grant text access.','body'));
+            :'Exact text was not delivered: this route has not verified its public reading conditions. Available metadata does not grant text access.'),'body'));
           return;
         }
         const label={missing:'sourceRecordMissing','access-restricted':'sourceRecordRestricted',corrupt:'sourceRecordCorrupt','over-budget':'sourceRecordBudget'}[result.status]??'sourceRecordUnavailable';
@@ -248,13 +250,27 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
           ?'Точные исходные символы выбранной единицы. Раздельные фрагменты не склеиваются; проверка текста не принимает его интерпретацию.'
           :'Exact source characters of the selected unit. Separate spans are not joined; text verification does not accept an interpretation.','body'));
         for(const span of unit.spans){const text=el('pre',span.text,'body');text.style.whiteSpace='pre-wrap';text.lang=unit.summary.language;body.append(text);}
+        if(local){
+          body.append(el('p',language==='ru'?'Локальное чтение с условиями; внешняя публикация не разрешена.':'Local reading with conditions; external publication is not authorized.','body'));
+          const conditions=document.createElement('details');
+          conditions.append(el('summary',language==='ru'?'Условия локального чтения':'Local reading conditions'),el('p',unit.local_conditions.condition_review,'body'));
+          body.append(conditions);
+          for(const notice of unit.local_conditions.notices){
+            const section=document.createElement('details');
+            const label=language==='ru'?{license:'Лицензия',attribution:'Атрибуция',notice:'Уведомление'}[notice.role]:{license:'License',attribution:'Attribution',notice:'Notice'}[notice.role];
+            section.append(el('summary',`${label} · ${notice.ref}`));
+            const text=el('pre',notice.text,'body');text.style.whiteSpace='pre-wrap';section.append(text);body.append(section);
+          }
+        }
         body.append(detail(t('sourceIdentity'),{record_ref:result.record_ref,summary:unit.summary,packet:unit.packet}),
           detail(t('sourceRights'),result.text_access),detail(t('technical'),unit));return;
       }
       body.append(el('p',t('sourceRecordNote'),'body'));
       if(result.record.native_text_binding)body.append(button(
         language==='ru'?'Открыть точный текст фрагмента':'Open exact fragment text',
-        ()=>void openSourceRecord(snapshot,'native_public_unit'),'source-link'));
+        ()=>void openSourceRecord(snapshot,'native_public_unit'),'source-link'),button(
+        language==='ru'?'Читать по локальным условиям':'Read under local conditions',
+        ()=>void openSourceRecord(snapshot,'native_local_unit'),'source-link'));
       if(typeof result.record.preferred_label==='string')body.append(el('h3',result.record.preferred_label,'minor-title'));
       if(typeof result.record.notes==='string'&&result.record.notes.trim()){
         body.append(el('h3',t('sourceRecordWords'),'minor-title'));

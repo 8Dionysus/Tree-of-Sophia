@@ -145,7 +145,7 @@
       "required": ["handle", "representation"],
       "properties": {
         "handle": {"$ref": "#/$defs/handle"},
-        "representation": {"enum": ["record", "native_public_unit"], "description": "native_public_unit requires an explicitly selected native owner and fresh public rights checks; the metadata handle grants no text access."}
+        "representation": {"enum": ["record", "native_public_unit", "native_local_unit"], "description": "Native reads need the selected source owner; local reads additionally require a protected current condition review with license and attribution notices. A metadata handle grants no text access or publication."}
       }
     },
     "access": {
@@ -234,7 +234,10 @@
       "allOf": [{"if": {"properties": {"schema_version": {"const": "tos_source_native_unit_read_result_v1"}}},
         "then": {"required": ["native_unit", "text_access"], "properties": {"record": {"type": "null"}},
           "allOf": [{"if": {"properties": {"status": {"const": "available"}}},
-            "then": {"properties": {"native_unit": {"$ref": "#/$defs/nativeUnit"}, "text_access": {"$ref": "#/$defs/textAccess"}}},
+            "then": {"properties": {"native_unit": {"$ref": "#/$defs/nativeUnit"}, "text_access": {"$ref": "#/$defs/textAccess"}},
+              "allOf": [{"if": {"properties": {"native_unit": {"properties": {"schema_version": {"const": "tos_native_local_unit_return_v1"}}}}},
+                "then": {"properties": {"text_access": {"properties": {"scope": {"const": "local-native-unit"}}}}},
+                "else": {"properties": {"text_access": {"properties": {"scope": {"const": "public-native-unit"}}}}}}]},
             "else": {"properties": {"native_unit": {"type": "null"}, "text_access": {"type": "null"}}}}]},
         "else": {"properties": {"native_unit": false, "text_access": false}}}],
       "required": ["schema_version", "status", "reason", "handle", "source_revision", "content_revision", "layer", "record_kind", "record_ref", "record", "provenance", "access", "grants_current_use", "performs_assessment", "writes_to_source"],
@@ -261,14 +264,33 @@
     "textAccess": {
       "type": "object", "additionalProperties": false,
       "required": ["scope", "recorded_rights_verified", "conditional_rights", "grants_current_use"],
-      "properties": {"scope": {"const": "public-native-unit"}, "recorded_rights_verified": {"const": true},
-        "conditional_rights": {"const": false}, "grants_current_use": {"const": false}}
+      "properties": {"scope": {"enum": ["public-native-unit", "local-native-unit"]}, "recorded_rights_verified": {"const": true},
+        "conditional_rights": {"type": "boolean"}, "grants_current_use": {"const": false}, "external_publication_authorized": {"const": false}},
+      "allOf": [{"if": {"properties": {"scope": {"const": "local-native-unit"}}},
+        "then": {"required": ["external_publication_authorized"], "properties": {"conditional_rights": {"const": true}}},
+        "else": {"properties": {"conditional_rights": {"const": false}, "external_publication_authorized": false}}}]
+    },
+    "localConditions": {
+      "type": "object", "additionalProperties": false,
+      "required": ["selection_sha256", "expires_at", "condition_review", "notices"],
+      "properties": {
+        "selection_sha256": {"$ref": "#/$defs/bareDigest"}, "expires_at": {"type": "string", "format": "date-time"},
+        "condition_review": {"type": "string", "minLength": 1, "maxLength": 4096},
+        "notices": {"type": "array", "minItems": 2, "maxItems": 16, "items": {
+          "type": "object", "additionalProperties": false, "required": ["ref", "sha256", "role", "text"],
+          "properties": {"ref": {"type": "string", "minLength": 1, "maxLength": 2048}, "sha256": {"$ref": "#/$defs/bareDigest"},
+            "role": {"enum": ["license", "attribution", "notice"]}, "text": {"type": "string"}}
+        }, "allOf": [{"contains": {"properties": {"role": {"const": "license"}}}}, {"contains": {"properties": {"role": {"const": "attribution"}}}}]}
+      }
     },
     "nativeUnit": {
       "type": "object", "additionalProperties": false,
       "required": ["schema_version", "summary", "packet", "layer_record_sha256", "representation_sha256", "spans", "closure_fingerprint"],
+      "allOf": [{"if": {"properties": {"schema_version": {"const": "tos_native_local_unit_return_v1"}}},
+        "then": {"required": ["local_conditions"]}, "else": {"properties": {"local_conditions": false}}}],
       "properties": {
-        "schema_version": {"const": "tos_native_public_unit_return_v1"},
+        "schema_version": {"enum": ["tos_native_public_unit_return_v1", "tos_native_local_unit_return_v1"]},
+        "local_conditions": {"$ref": "#/$defs/localConditions"},
         "summary": {"type": "object", "required": ["unit_id", "unit_version", "content_verified", "public_content_available", "assessment_applied"],
           "properties": {"unit_id": {"type": "string", "pattern": "^tos\\.text-unit\\."}, "unit_version": {"$ref": "#/$defs/safeInteger", "minimum": 1},
             "content_verified": {"const": true}, "public_content_available": {"const": true}, "assessment_applied": {"const": false}}},

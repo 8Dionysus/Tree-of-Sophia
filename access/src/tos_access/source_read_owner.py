@@ -55,6 +55,7 @@ def _owner_modules():
     profiles = _module_at("source_record_profiles", scripts / "source_record_profiles.py")
     _module_at("source_agent_publication", scripts / "source_agent_publication.py")
     _module_at("native_text_binding", scripts / "native_text_binding.py")
+    _module_at("source_owner_context", scripts / "source_owner_context.py")
     _module_at("native_text_return", scripts / "native_text_return.py")
     return catalog, metadata, profiles
 
@@ -67,7 +68,7 @@ without adding an unbounded queue. A handle is reproducible across requests
 but never retains reader state or authorizes disclosure on its own.
     """
 
-    def __init__(self, source_root: Path, inputs_path: Path, *, expected_revision: str):
+    def __init__(self, source_root: Path, inputs_path: Path, *, expected_revision: str, local_text_selection: Path | None = None):
         self.source_root = Path(source_root)
         if (not self.source_root.is_absolute() or ".." in self.source_root.parts
                 or not self.source_root.is_dir()):
@@ -78,6 +79,9 @@ but never retains reader state or authorizes disclosure on its own.
         if self.inputs.value()["source_revision"] != expected_revision:
             raise SourceReadError("source vector and selected prepared reader revisions differ")
         self._modules = _owner_modules()
+        delivery = _module_at("native_text_return", Path(__file__).resolve().parents[3] / "scripts/native_text_return.py")
+        self.local_text_selection = (delivery.LocalTextReadSelection(local_text_selection, self.source_root)
+                                     if local_text_selection is not None else None)
         self._slots = BoundedSemaphore(2)
         initial = self._new_session()
         self.epoch = initial.epoch
@@ -115,15 +119,21 @@ but never retains reader state or authorizes disclosure on its own.
     def capabilities(self):
         result = self._call("capabilities")
         result["representations"] = ["record", "native_public_unit"]
+        if self.local_text_selection is not None:
+            try:
+                self.local_text_selection.verify()
+                result["representations"].append("native_local_unit")
+            except ValueError:
+                pass  # Revoked local reading is not advertised as available.
         result["authority"]["native_text_payload"] = True
-        result["authority"]["note"] = "Metadata handles select records, not text permissions. Explicit native_public_unit separately verifies exact native closure and unconditional public rights; no private or conditional text is delivered."
+        result["authority"]["note"] = "Metadata handles select records, not text permissions. native_public_unit requires unconditional public rights; native_local_unit additionally needs an explicitly selected current owner condition review and preserved notices. Neither route reads private payloads or authorizes external publication."
         return result
 
     def discover(self, request):
         return self._call("discover", request)
 
     def read(self, request):
-        if isinstance(request, dict) and request.get("representation") == "native_public_unit":
+        if isinstance(request, dict) and request.get("representation") in ("native_public_unit", "native_local_unit"):
             _request_size(request, self.limits)
             if set(request) != {"handle", "representation"}:
                 raise SourceReadError("source read requires handle and representation only")
@@ -149,15 +159,26 @@ but never retains reader state or authorizes disclosure on its own.
         module = _module_at("native_text_binding", Path(__file__).resolve().parents[3] / "scripts/native_text_binding.py")
         resolver = module.NativeTextBindingResolver(self.source_root)
         delivery = _module_at("native_text_return", Path(__file__).resolve().parents[3] / "scripts/native_text_return.py")
+        local = request['representation'] == 'native_local_unit'
+        if local and self.local_text_selection is None:
+            return {**result, "status": "unsupported", "reason": "native-local-unit-owner-unconfigured"}
         try:
-            unit = delivery.read_public_unit(resolver, native_binding)
+            unit = (delivery.read_local_unit(resolver, native_binding, self.local_text_selection)
+                    if local else delivery.read_public_unit(resolver, native_binding))
             # Recheck the source publication as well as the native closure.
             # The metadata handle never grants disclosure of its text.
             session.binding.verify()
             resolver.snapshot()
+            if local:
+                self.local_text_selection.verify()
             result.update(status="available", reason="exact-owner-public-native-unit", native_unit=unit,
                           text_access={"scope": "public-native-unit", "recorded_rights_verified": True,
                                        "conditional_rights": False, "grants_current_use": False})
+            if local:
+                result.update(reason="exact-owner-local-native-unit", text_access={
+                    "scope": "local-native-unit", "recorded_rights_verified": True,
+                    "conditional_rights": True, "grants_current_use": False,
+                    "external_publication_authorized": False})
             if len(_canonical_bytes(result)) > self.limits.max_response_bytes:
                 return {**result, "status": "over-budget", "reason": "source-response-byte-budget",
                         "native_unit": None, "text_access": None}
@@ -165,10 +186,12 @@ but never retains reader state or authorizes disclosure on its own.
         except module.NativeTextBindingError as error:
             # Return closed public reason codes, never paths or private inputs.
             reason = str(error)
-            if "requires public content authority" in reason or "requires unconditional recorded rights" in reason:
+            if isinstance(error, delivery.LocalTextReadError):
+                status, code = "access-restricted", "native-unit-local-conditions-not-satisfied"
+            elif "requires public content authority" in reason or "requires unconditional recorded rights" in reason:
                 status, code = "access-restricted", "native-unit-public-rights-not-satisfied"
             elif "budget" in reason:
                 status, code = "over-budget", "native-unit-read-budget"
             else:
                 status, code = "corrupt", "native-unit-closure-not-verified"
-            return {**result, "status": status, "reason": code}
+            return {**result, "status": status, "reason": code, "native_unit": None, "text_access": None}

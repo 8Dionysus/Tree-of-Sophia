@@ -67,7 +67,7 @@ function validateHandle(handle,target,revision){
 // The owner verifies canonical source bytes; the browser checks the delivered
 // binding and public-disclosure contract, not a second Python JSON serializer.
 export async function readExactSource(client,selection,{signal,timeoutMs=SOURCE_READ_DEADLINE_MS,representation='record'}={}){
-  requireContract(['record','native_public_unit'].includes(representation));
+  requireContract(['record','native_public_unit','native_local_unit'].includes(representation));
   requireContract(keys(selection,['kind','id','source_revision','content_revision'])&&['node','relation'].includes(selection.kind)
     &&typeof selection.id==='string'&&selection.id.length>0&&selection.id.length<=2048
     &&hash(selection.source_revision)&&hash(selection.content_revision));
@@ -116,7 +116,7 @@ export async function readExactSource(client,selection,{signal,timeoutMs=SOURCE_
         &&read.record[metadata?'record_version':'claim_version']===target.record_ref.version);
       if(metadata&&!native)requireContract(read.record.record_type===target.record_type);
     }else requireContract(read.record===null);
-    if(representation==='native_public_unit'&&read.status==='available'){
+    if(representation!=='record'&&read.status==='available'){
       const unitRead=await withAbort(client.request('/api/source/read',{...options,
         body:{handle:discovered.handle,representation}}),controller.signal);
       controller.signal.throwIfAborted();
@@ -126,12 +126,31 @@ export async function readExactSource(client,selection,{signal,timeoutMs=SOURCE_
       if(unitRead.status==='available'){
         requireRepresentableNumbers(unitRead);
         const unit=unitRead.native_unit,binding=read.record.native_text_binding,access=unitRead.text_access;
-        requireContract(object(binding)&&keys(unit,['schema_version','summary','packet','layer_record_sha256','representation_sha256','spans','closure_fingerprint'])
-          &&unit.schema_version==='tos_native_public_unit_return_v1'&&byteSize(unit)<=65536
+        const local=representation==='native_local_unit';
+        requireContract(object(binding)&&keys(unit,['schema_version','summary','packet','layer_record_sha256','representation_sha256','spans','closure_fingerprint',...(local?['local_conditions']:[])])
+          &&unit.schema_version===(local?'tos_native_local_unit_return_v1':'tos_native_public_unit_return_v1')&&byteSize(unit)<=65536
           &&sameJson(unitRead.access,discovered.handle.access)
-          &&keys(access,['scope','recorded_rights_verified','conditional_rights','grants_current_use'])
-          &&access.scope==='public-native-unit'&&access.recorded_rights_verified===true
-          &&access.conditional_rights===false&&access.grants_current_use===false);
+          &&keys(access,['scope','recorded_rights_verified','conditional_rights','grants_current_use',...(local?['external_publication_authorized']:[])])
+          &&access.scope===(local?'local-native-unit':'public-native-unit')&&access.recorded_rights_verified===true
+          &&access.conditional_rights===local&&access.grants_current_use===false);
+        if(local){
+          const c=unit.local_conditions;
+          requireContract(access.external_publication_authorized===false
+            &&keys(c,['selection_sha256','expires_at','condition_review','notices'])&&hash(c.selection_sha256)
+            &&typeof c.expires_at==='string'&&Number.isFinite(Date.parse(c.expires_at))&&Date.parse(c.expires_at)>Date.now()
+            &&typeof c.condition_review==='string'&&c.condition_review.length>0&&c.condition_review.length<=4096
+            &&Array.isArray(c.notices)&&c.notices.length>=2&&c.notices.length<=16
+            &&['license','attribution'].every(role=>c.notices.some(n=>n?.role===role)));
+          let noticeBytes=0;
+          for(const n of c.notices){
+            requireContract(keys(n,['ref','sha256','role','text'])&&typeof n.ref==='string'&&n.ref.length>0&&n.ref.length<=2048
+              &&hash(n.sha256)&&['license','attribution','notice'].includes(n.role)&&typeof n.text==='string');
+            const bytes=new TextEncoder().encode(n.text);noticeBytes+=bytes.byteLength;
+            requireContract(noticeBytes<=32768);
+            const raw=await withAbort(crypto.subtle.digest('SHA-256',bytes),controller.signal);
+            requireContract(Array.from(new Uint8Array(raw),b=>b.toString(16).padStart(2,'0')).join('')===n.sha256);
+          }
+        }
         requireContract(object(unit.summary)&&unit.summary.unit_id===binding.unit_id&&unit.summary.unit_version===binding.unit_version
           &&unit.summary.layer_id===binding.text_layer.layer_id&&unit.summary.layer_version===binding.text_layer.layer_version
           &&unit.summary.segmentation_id===binding.segmentation_id&&unit.summary.segmentation_version===binding.segmentation_version

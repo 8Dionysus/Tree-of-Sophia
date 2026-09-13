@@ -9,6 +9,8 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import sys
 import tempfile
@@ -21,7 +23,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 from native_text_binding import NativeTextBindingError, NativeTextBindingResolver
-from native_text_return import read_public_unit
+from native_text_return import read_public_unit, read_local_unit, LocalTextReadSelection, LocalTextReadError
 
 
 LAB = "ToS/research-packets/foundation-laboratory-2026-07"
@@ -455,6 +457,81 @@ class NativeTextBindingTests(unittest.TestCase):
             self.fixture.binding, max_return_bytes=size), result)
         with self.assertRaisesRegex(NativeTextBindingError, 'output-byte budget'):
             read_public_unit(NativeTextBindingResolver(self.root), self.fixture.binding, max_return_bytes=size - 1)
+
+    def local_selection(self):
+        from source_owner_context import _canonical
+        self.fixture.write_bytes('LICENSE', b'Synthetic license only.\r\n')
+        self.fixture.write_bytes('ToS/review-ledger/synthetic-attribution.md', b'Synthetic author; no historical evidence.\n')
+        now = datetime.now(timezone.utc)
+        value = {'schema_version': 'tos_native_local_text_read_v1', 'source_root': str(self.root),
+            'owner_uid': os.getuid(), 'issuer': 'agent:synthetic-test',
+            'issued_at': (now - timedelta(minutes=1)).isoformat(), 'expires_at': (now + timedelta(hours=1)).isoformat(),
+            'external_publication_authorized': False,
+            'mandate': {'path': str(self.root / self.fixture.authority_ref),
+                'sha256': self.fixture.file_digest(self.fixture.authority_ref), 'scope': NOTICE},
+            'selections': [{'binding_sha256': digest(_canonical(self.fixture.binding)),
+                'rights_record_refs': copy.deepcopy(self.fixture.layer['representation']['rights_record_refs']),
+                'condition_review': NOTICE, 'notices': [{'ref': ref, 'sha256': self.fixture.file_digest(ref), 'role': role}
+                    for role, ref in [('license', 'LICENSE'), ('attribution', 'ToS/review-ledger/synthetic-attribution.md')]]}]}
+        path = self.root / 'local-reading.json'
+        path.write_text(json.dumps(value), encoding='utf-8'); path.chmod(0o600)
+        return path, value
+
+    def test_local_exact_read_keeps_conditions_and_does_not_widen_public_access(self):
+        self.fixture.make_public()
+        self.fixture.rights.update(redistribution_posture='authorized_with_conditions', derivative_posture='allowed_with_conditions')
+        self.fixture.refresh()
+        path, _ = self.local_selection()
+        selected = LocalTextReadSelection(path, self.root)
+        result = read_local_unit(NativeTextBindingResolver(self.root), self.fixture.binding, selected)
+        self.assertEqual(result['schema_version'], 'tos_native_local_unit_return_v1')
+        self.assertEqual(result['spans'][0]['text'], 'cafe\u0301')
+        self.assertEqual(result['local_conditions']['notices'][0]['text'], 'Synthetic license only.\r\n')
+        self.assertNotIn(str(self.root), json.dumps(result))
+        with self.assertRaisesRegex(NativeTextBindingError, 'unconditional'):
+            read_public_unit(NativeTextBindingResolver(self.root), self.fixture.binding)
+        with self.assertRaisesRegex(NativeTextBindingError, 'budget'):
+            read_local_unit(NativeTextBindingResolver(self.root), self.fixture.binding, selected, max_return_bytes=100)
+
+    def test_local_selection_rejects_revocation_expiry_and_wrong_subject_before_content(self):
+        self.fixture.make_public()
+        path, value = self.local_selection()
+        def no_content(path, limit):
+            self.assertNotEqual(path, self.root / self.fixture.content_ref)
+            return path.read_bytes()[:limit + 1]
+        for change in ('subject', 'rights', 'expiry', 'mode', 'mandate', 'revocation', 'notice', 'no-license', 'duplicate'):
+            path.write_text(json.dumps(value), encoding='utf-8'); path.chmod(0o600)
+            selected = LocalTextReadSelection(path, self.root)
+            amended = copy.deepcopy(value)
+            if change == 'subject': amended['selections'][0]['binding_sha256'] = '0' * 64
+            elif change == 'rights': amended['selections'][0]['rights_record_refs'][0]['sha256'] = '0' * 64
+            elif change == 'expiry': amended['expires_at'] = amended['issued_at']
+            elif change == 'mandate': amended['mandate']['sha256'] = '0' * 64
+            elif change == 'notice': amended['selections'][0]['notices'][0]['sha256'] = '0' * 64
+            elif change == 'no-license': amended['selections'][0]['notices'] = amended['selections'][0]['notices'][1:]
+            elif change == 'duplicate': amended['selections'].append(copy.deepcopy(amended['selections'][0]))
+            if change == 'mode': path.chmod(0o644)
+            elif change == 'revocation': path.unlink()
+            else: path.write_text(json.dumps(amended), encoding='utf-8')
+            with self.subTest(change=change), self.assertRaises(LocalTextReadError):
+                if change not in ('mode', 'revocation'):
+                    selected = LocalTextReadSelection(path, self.root)
+                read_local_unit(NativeTextBindingResolver(self.root, read_bytes=no_content), self.fixture.binding, selected)
+
+    def test_local_selection_cannot_read_private_layer_or_survive_mid_read_notice_change(self):
+        path, _ = self.local_selection()
+        selected = LocalTextReadSelection(path, self.root)
+        with self.assertRaisesRegex(NativeTextBindingError, 'public content authority'):
+            read_local_unit(NativeTextBindingResolver(self.root), self.fixture.binding, selected)
+        self.fixture.make_public()
+        path, _ = self.local_selection()
+        selected = LocalTextReadSelection(path, self.root)
+        def changed_notice(path, limit):
+            if path == self.root / self.fixture.content_ref:
+                (self.root / 'LICENSE').write_text('Changed notice', encoding='utf-8')
+            return path.read_bytes()[:limit + 1]
+        with self.assertRaises(LocalTextReadError):
+            read_local_unit(NativeTextBindingResolver(self.root, read_bytes=changed_notice), self.fixture.binding, selected)
 
     def test_public_unit_refuses_private_and_conditional_rights_before_content(self):
         def reader(path, limit):
