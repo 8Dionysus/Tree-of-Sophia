@@ -139,6 +139,20 @@ test('search cancellation suppresses stale results without discarding an accepte
   assert.equal(await query,null);assert.equal(session.snapshot(),before);
 });
 
+test('source dossier keeps the exact owner handle and has an independent cancellable slot',async()=>{
+  const {session,client}=harness();await session.discover();const calls=[];
+  const packet={schema:'tos_source_dossier_v1',object_id:'tos.work.fixture',object:{node_id:'tos.work.fixture',node_kind:'work'},
+    agent_summary:{technical_access:'metadata_only',rights_posture:'unknown',human_review_required:true,can_conclude_legal_openness:false,
+      availability_is_license:false,rights_scope_refs:[],gaps:[]},chain:{work:[],link:[]},tree_paths:[],relations:[],rights:[],source_refs:[],truncated:false,
+    authority_note:'source-navigation'};
+  client.sourceDossier=async(objectId,signal,{limit})=>{calls.push({objectId,signal,limit});return packet;};
+  const result=await session.sourceDossier('tos.work.fixture',{limit:12});assert.equal(result.object_id,'tos.work.fixture');
+  assert.deepEqual(calls.map(({objectId,limit})=>[objectId,limit]),[['tos.work.fixture',12]]);assert.equal(Object.isFrozen(result),true);
+  await assert.rejects(session.sourceDossier('ToS/source-witnesses/work.json'),ContractError);
+  const pending=deferred();client.sourceDossier=()=>pending.promise;const job=session.sourceDossier('tos.work.fixture');session.cancelSourceDossier();pending.resolve(packet);
+  assert.equal(await job,null);
+});
+
 test('inspection passes exact raw ID and revisions; cancellation leaves scene and returns no late card',async()=>{
   const {session,client}=harness();await session.discover();const view=await session.open(pageFixture().query.origin),raw=view.nodes[0];
   const pending=deferred(),calls=[];client.readMaterial=async(...args)=>{calls.push(args);return pending.promise;};

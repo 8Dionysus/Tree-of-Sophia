@@ -1,7 +1,7 @@
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 
-import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle,displayTitleForm,sourceOriginalTitle,compileRouteCenter} from './knowledge-client.mjs';
+import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle,displayTitleForm,sourceOriginalTitle,compileRouteCenter,isSourceDossierRef,SOURCE_DOSSIER_LIMIT} from './knowledge-client.mjs';
 import {setUiLanguage} from './ui-i18n.mjs';
 
 const node=id=>({id,entity_id:'tos.work.friedrich-nietzsche.also-sprach-zarathustra',kind_id:'work',
@@ -11,6 +11,11 @@ const fixture={schema:'tos_lens_result_v1',source_revision:'a'.repeat(64),author
   relations:[{id:'relation:1',from_id:'graph-a:work',to_id:'graph-b:work',content_revision:'c'.repeat(64),source_refs:['ToS/fixture/relation.json'],display:{label:{ru:'Связано с'}}}]};
 const clone=()=>structuredClone(fixture);
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return {promise,resolve,reject};};
+const dossier=()=>({schema:'tos_source_dossier_v1',object_id:'tos.work.fixture',object:{node_id:'tos.work.fixture',node_kind:'work',label:'Fixture Work',properties:{}},
+  agent_summary:{technical_access:'metadata_only',rights_posture:'unknown',human_review_required:true,can_conclude_legal_openness:false,
+    availability_is_license:false,rights_scope_refs:['tos.work.fixture'],gaps:['no associated public rights record']},
+  chain:{work:[{node_id:'tos.work.fixture',node_kind:'work'}],link:[]},tree_paths:[],relations:[],rights:[],source_refs:['ToS/source-witnesses/works/fixture/work.json'],truncated:false,
+  authority_note:'ToS source_navigation remains authoritative.'});
 
 test('navigation language round trips preserve identities, positions and navigation-only provenance',()=>{
   const packet=clone();
@@ -157,6 +162,17 @@ test('route center resolves an opaque relation as the actual scene center and fa
   const node=await compileRouteCenter(fallback,'graph-a:work');
   assert.equal(node.kind,'node');assert.equal(node.packet.focus.node_id,'graph-a:work');
   assert.equal(fallbackCalls.filter(call=>call.url.includes('/compile')).length,1);
+});
+
+test('source dossier follows only an owner handle through the bounded source route',async()=>{
+  const calls=[],client=new KnowledgeClient({fetcher:async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>dossier()};}});
+  assert.equal(isSourceDossierRef('tos.work.fixture'),true);assert.equal(isSourceDossierRef('ToS/source-witnesses/work.json'),false);
+  const result=await client.sourceDossier('tos.work.fixture',undefined,{limit:12});
+  assert.equal(result.object_id,'tos.work.fixture');assert.equal(calls[0].url,'/api/source/dossiers/tos.work.fixture?limit=12');assert.equal(calls[0].options.method,'GET');
+  for(const limit of [0,SOURCE_DOSSIER_LIMIT+1])await assert.rejects(client.sourceDossier('tos.work.fixture',undefined,{limit}),ContractError);
+  await assert.rejects(client.sourceDossier('../private/file'),ContractError);assert.equal(calls.length,1);
+  const forged=dossier();forged.agent_summary.availability_is_license=true;
+  const guarded=new KnowledgeClient({fetcher:async()=>({ok:true,json:async()=>forged})});await assert.rejects(guarded.sourceDossier('tos.work.fixture'),ContractError);
 });
 
 test('timeouts fail visibly and user cancellation remains cancellation',async()=>{

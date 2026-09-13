@@ -1,4 +1,4 @@
-import {KnowledgeClient,ContractError,RevisionError,RequestSlots,checkRevision,claimMaterialReference,materialVersions} from './knowledge-client.mjs';
+import {KnowledgeClient,ContractError,RevisionError,RequestSlots,checkRevision,claimMaterialReference,materialVersions,isSourceDossierRef,SOURCE_DOSSIER_LIMIT} from './knowledge-client.mjs';
 import {ExplorationSceneCache} from './exploration-cache.mjs';
 import {validateHumanForms,claimPathFor} from './human-forms.mjs';
 import {readingSnapshot} from './reader-model.mjs';
@@ -109,6 +109,13 @@ export class ExplorationSession {
     return result.current&&!this.#disposed?immutable(structuredClone(result.value)):null;
   }
   cancelSearch(){this.#slots.cancel('search');}
+  async sourceDossier(objectId,{limit=SOURCE_DOSSIER_LIMIT}={}){
+    if(this.#disposed)return null;
+    requireContract(isSourceDossierRef(objectId)&&Number.isSafeInteger(limit)&&limit>=1&&limit<=SOURCE_DOSSIER_LIMIT);
+    const result=await this.#slots.run('source-dossier',signal=>this.#client.sourceDossier(objectId,signal,{limit}));
+    return result.current&&!this.#disposed?immutable(structuredClone(result.value)):null;
+  }
+  cancelSourceDossier(){this.#slots.cancel('source-dossier');}
   cancelScene(){
     this.#sceneRequest?.abort();this.#sceneRequest=null;
     if(this.#ticket)this.#cache.cancel(this.#ticket);this.#ticket=null;

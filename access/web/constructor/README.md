@@ -49,6 +49,22 @@ Source references and existing human-form gaps remain visible. Unit checks in
 `../src/observatory/exploration-session.test.mjs` protect this adapter; real
 browser and full-corpus checks remain necessary before foundation acceptance.
 
+Search can seek past empty backend pages, stopping at the first result or
+completion. One automatic window admits at most eight requests and stops
+between pages after 1 MiB of re-encoded JSON or two seconds. These last two
+values are thresholds, not hard transfer or wall-clock caps: an in-flight
+bounded request may finish later or cross the byte threshold. Its valid result
+is retained. A paused window exposes explicit continuation; changing the query
+or closing search cancels stale work without changing the scene.
+
+When the selected material supplies an exact `source_dossier_ref`, Sources can
+open the existing metadata-only `/api/source/dossiers/{handle}?limit=64` route.
+The dossier retains identity, rights posture, bounded chain and source refs.
+It has no source/content revision binding, so the UI does not attribute the
+card's version to it. This is not source-byte delivery or permission to use a
+carrier. Ordinary local paths are not interpreted as dossier handles or file
+URLs; exact local-source reading still requires the source owner's safe ABI.
+
 ## What the mockup contains
 
 `atlas-data.mjs` owns prepared **demonstration material** and its explanatory

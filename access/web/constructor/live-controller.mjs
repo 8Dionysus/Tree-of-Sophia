@@ -1,8 +1,9 @@
 import './live.css';
 import '../src/observatory/human-forms.css';
 import {mountConstructorSky} from './sky.mjs';
-import {createLiveResearch} from './live-research.mjs';
+import {createLiveResearch,seekSearchPage,SEARCH_SEEK_WINDOW} from './live-research.mjs';
 import {ExplorationSession} from '../src/observatory/exploration-session.mjs';
+import {isSourceDossierRef,SOURCE_DOSSIER_LIMIT} from '../src/observatory/knowledge-client.mjs';
 import {liveLabel,liveEdgeLabel,livePredicateLabel} from './live-model.mjs';
 import {readingDocument} from '../src/observatory/reader-model.mjs';
 import {renderHumanForms,renderClaimContext,renderEssentialContext} from '../src/observatory/human-forms-view.mjs';
@@ -12,7 +13,8 @@ const copy={ru:{brand:'ДРЕВО СОФИИ',subtitle:'Исследование
   view:'ПРЕДСТАВЛЕНИЕ',compact:'Смысловые связи',grouped:'Предметы и записи',raw:'Все носители',conditions:'Условия раскрытия',
   compare:'Сопоставить',continue:'Продолжить раскрытие',overview:'Вместить в поле',motion:'Движение пространства',cinema:'Скрыть интерфейс',
   show:'Показать интерфейс',empty:'С чего начнём исследование?',emptyText:'Найдите слово, мысль, человека, произведение, событие или связь.',
-  loading:'Загружаю…',readonly:'Чтение · без изменения источников',searchGo:'Найти',more:'Следующая страница',
+  loading:'Загружаю…',readonly:'Чтение · без изменения источников',searchGo:'Найти',more:'Следующая страница',continueSearch:'Продолжить поиск',
+  searchPaused:'Поиск приостановлен после окна подзапроса: {0}/{1} запросов, {2}/{3} байт, {4}/{5} мс. Продолжите поиск.',
   none:'Совпадений на этой странице нет.',node:'Предмет',relation:'Связь',read:'Читать',expand:'Раскрыть окружение',
   newSpace:'Открыть в новом поле',pin:'Закрепить для сравнения',sources:'Источники',technical:'Точные сведения',
   reasons:'Почему включено',noReading:'Выберите звезду или линию для чтения.',cancel:'Отменить запрос',
@@ -22,12 +24,15 @@ const copy={ru:{brand:'ДРЕВО СОФИИ',subtitle:'Исследование
   noTitle:'Название не предоставлено',noDescription:'Описание не предоставлено.',clear:'Убрать закреплённые карточки',
   noPins:'Закрепите до двух материалов из карточки выбранного предмета или связи.',
   discoveryFailed:'Этот backend не предоставил совместимый контракт исследования. Исходные данные не изменены.',
-  retry:'Повторить подключение',retryReading:'Повторить чтение',selected:'Выбранный материал',complete:'Раскрытие завершено',space:'Локальное поле чтения'},
+  retry:'Повторить подключение',retryReading:'Повторить чтение',selected:'Выбранный материал',complete:'Раскрытие завершено',space:'Локальное поле чтения',
+  sourceDossier:'Открыть точное досье источника',sourceNoDossier:'Для этой локальной ссылки безопасный маршрут к досье не заявлен; путь не открывается автоматически.',
+  sourceDossierLoading:'Загружаю досье источника…',sourceDossierUnavailable:'Досье источника сейчас недоступно.',sourceNoLinks:'В возвращённой цепочке нет HTTP-ссылки на носитель.',sourceIdentity:'Точная идентичность',sourceRights:'Права и границы',sourceLinks:'Наблюдаемые ссылки',sourceStructure:'Структура досье',sourceRefs:'Ссылки владельца',sourceDossierNote:'Это досье содержит ограниченный набор библиографических сведений и технических ссылок. Оно не выдаёт исходные байты и не подтверждает разрешение на их использование.',sourceDossierVersionNote:'Досье не привязано к версии данных или записи. Версии карточки показаны отдельно и не являются версией досье.'},
 en:{brand:'TREE OF SOPHIA',subtitle:'Explore source-owned knowledge',search:'Find an object or relation',close:'Close',
   view:'PRESENTATION',compact:'Meaningful relations',grouped:'Objects and records',raw:'All carriers',conditions:'Expansion conditions',
   compare:'Compare',continue:'Continue expansion',overview:'Fit the field',motion:'Space motion',cinema:'Hide interface',
   show:'Show interface',empty:'Where shall we begin?',emptyText:'Find a word, thought, person, work, event or relation.',
-  loading:'Loading…',readonly:'Reading · no source changes',searchGo:'Search',more:'Next page',none:'No matches on this page.',
+  loading:'Loading…',readonly:'Reading · no source changes',searchGo:'Search',more:'Next page',continueSearch:'Continue search',
+  searchPaused:'Search paused after the seek window: {0}/{1} requests, {2}/{3} bytes, {4}/{5} ms. Continue when ready.',none:'No matches on this page.',
   node:'Object',relation:'Relation',read:'Read',expand:'Expand neighborhood',newSpace:'Open in a new field',pin:'Pin for comparison',
   sources:'Sources',technical:'Exact details',reasons:'Why included',noReading:'Select a star or line to read.',cancel:'Cancel request',
   profile:'Proximity rule',direction:'Direction',either:'Both directions',incoming:'Incoming',outgoing:'Outgoing',depth:'Depth',
@@ -36,7 +41,9 @@ en:{brand:'TREE OF SOPHIA',subtitle:'Explore source-owned knowledge',search:'Fin
   noTitle:'Name not supplied',noDescription:'Description not supplied.',clear:'Remove pinned cards',
   noPins:'Pin up to two materials from the selected object or relation card.',
   discoveryFailed:'This backend did not provide a compatible exploration contract. Source data is unchanged.',
-  retry:'Reconnect',retryReading:'Retry reading',selected:'Selected material',complete:'Expansion complete',space:'Local reading field'}};
+  retry:'Reconnect',retryReading:'Retry reading',selected:'Selected material',complete:'Expansion complete',space:'Local reading field',
+  sourceDossier:'Open exact source dossier',sourceNoDossier:'No safe dossier route is advertised for this local reference; the path is not opened automatically.',
+  sourceDossierLoading:'Loading bounded source dossier…',sourceDossierUnavailable:'The source dossier is currently unavailable.',sourceNoLinks:'No carrier HTTP link is present in the returned link chain.',sourceIdentity:'Exact identity',sourceRights:'Rights and boundaries',sourceLinks:'Observed links',sourceStructure:'Dossier structure',sourceRefs:'Owner references',sourceDossierNote:'This dossier contains bounded bibliographic context and technical links. It does not deliver source bytes or conclude legal openness.',sourceDossierVersionNote:'The dossier contract carries no source/content revision; card revisions are shown separately and are not a dossier version.'}};
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);node.textContent=String(text??'');node.className=className;return node;};
 const button=(text,callback,className='text-button')=>{const node=el('button',text,className);node.type='button';node.onclick=callback;return node;};
 const detail=(title,value)=>{const node=el('details');node.append(el('summary',title),el('pre',JSON.stringify(value,null,2),'live-json'));return node;};
@@ -46,7 +53,7 @@ const detail=(title,value)=>{const node=el('details');node.append(el('summary',t
 export async function mountLiveResearch(root,{session,skyFactory=mountConstructorSky,url=new URL(location.href)}={}){
   const activeSession=session??new ExplorationSession();
   let language=url.searchParams.get('lang')==='en'?'en':'ru',controller,readingOpen=false,disposed=false;
-  let options={},searchPage=null,searchQuery='',searchGeneration=0,surfaceGeneration=0,renderedReading=null,renderedReadingError=null,renderedComparison=null;
+  let options={},searchPage=null,searchQuery='',searchSeek=null,searchGeneration=0,surfaceGeneration=0,renderedReading=null,renderedReadingError=null,renderedComparison=null;
   const t=key=>copy[language][key];setUiLanguage(language);
   root.dataset.mode='live';root.dataset.ready='false';
   root.innerHTML=`<canvas class="tree-sky" aria-hidden="true"></canvas><div class="tree-clusters"></div><div class="edge-labels"></div><div class="tree-stars"></div>
@@ -106,9 +113,48 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   const transport=()=>controller.state().discovery;
   function modal(title,kind){
     surfaceGeneration++;
-    dialog.replaceChildren();dialog.dataset.kind=kind;dialog.classList.toggle('wide',kind==='comparison');
+    dialog.replaceChildren();dialog.dataset.kind=kind;dialog.classList.toggle('wide',['comparison','source-dossier'].includes(kind));
     const top=el('div','','dialog-top'),close=button('×',()=>dialog.close(),'icon');close.setAttribute('aria-label',t('close'));
     top.append(el('h2',title),close);const body=el('div','','dialog-content');dialog.append(top,body);if(!dialog.open)dialog.showModal();return body;
+  }
+  dialog.addEventListener('close',()=>{surfaceGeneration++;controller.cancelSourceDossier?.();});
+  const sourceDossierRefs=snapshot=>[...new Set([snapshot?.raw?.source_dossier_ref,...(snapshot?.endpoints??[]).map(item=>item?.source_dossier_ref)])]
+    .filter(isSourceDossierRef);
+  function appendSourceDossier(container,dossier,snapshot,requestedRef){
+    const object=dossier.object,summary=dossier.agent_summary;
+    container.append(el('p',t('sourceDossierNote'),'body'),el('p',t('sourceDossierVersionNote'),'muted'));
+    if(typeof object?.label==='string'&&object.label)container.append(el('h3',object.label,'minor-title'));
+    container.append(detail(t('sourceIdentity'),{object_id:dossier.object_id,node_kind:object.node_kind,
+      requested_source_dossier_ref:requestedRef,material_source_dossier_refs:sourceDossierRefs(snapshot),
+      dossier_source_revision:null,dossier_content_revision:null,
+      material_card_source_revision:snapshot.sourceRevision,material_card_content_revision:snapshot.raw.content_revision}));
+    container.append(detail(t('sourceRights'),summary));
+    const observed=[];
+    for(const link of dossier.chain?.link??[]){
+      const uri=link?.properties?.uri,status=link?.properties?.access_status;
+      if(typeof uri==='string'&&/^https?:\/\//i.test(uri))observed.push({uri,
+        label:typeof link.label==='string'&&link.label?link.label:uri,
+        access_status:typeof status==='string'&&status?status:'unknown'});
+    }
+    const seen=new Set();
+    const links=el('details');links.append(el('summary',t('sourceLinks')));
+    for(const item of observed){if(seen.has(item.uri))continue;seen.add(item.uri);
+      const row=el('p','','source-link');const anchor=el('a',item.label);anchor.href=item.uri;anchor.target='_blank';anchor.rel='noopener noreferrer';
+      row.append(anchor,el('small',` · ${item.access_status}`,'muted'));links.append(row);}
+    if(seen.size)container.append(links);else container.append(el('p',t('sourceNoLinks'),'muted'));
+    container.append(detail(t('sourceStructure'),{chain:dossier.chain,tree_paths:dossier.tree_paths,relations:dossier.relations,
+      rights:dossier.rights,truncated:dossier.truncated}));
+    container.append(detail(t('sourceRefs'),dossier.source_refs));
+  }
+  async function openSourceDossier(requestedRef,snapshot){
+    if(!isSourceDossierRef(requestedRef))return;
+    const body=modal(t('sourceDossier'),'source-dossier'),surface=surfaceGeneration;body.append(el('p',t('sourceDossierLoading'),'body'));
+    try{
+      const dossier=await controller.sourceDossier(requestedRef,{limit:SOURCE_DOSSIER_LIMIT});
+      if(disposed||surface!==surfaceGeneration)return;
+      body.replaceChildren();
+      if(dossier)appendSourceDossier(body,dossier,snapshot,requestedRef);else body.append(el('p',t('sourceDossierUnavailable'),'body'));
+    }catch(error){if(!disposed&&surface===surfaceGeneration){body.replaceChildren(el('p',error?.message??String(error),'body'));}}
   }
   function appendReading(container,snapshot){
     const doc=readingDocument(snapshot,language);container.append(el('h1',doc.title?.text??t('noTitle')));
@@ -123,6 +169,12 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       if(/^https?:\/\//i.test(ref)){const link=el('a',ref,'source-link');link.href=ref;link.target='_blank';link.rel='noopener noreferrer';sources.append(link);}
       else sources.append(el('p',ref,'source-link'));
     }
+    const dossierRefs=sourceDossierRefs(snapshot);
+    for(const ref of dossierRefs){
+      const action=button(`${t('sourceDossier')} · ${ref}`,()=>void openSourceDossier(ref,snapshot),'source-link');
+      action.dataset.sourceDossierRef=ref;sources.append(action);
+    }
+    if(!dossierRefs.length&&doc.sourceRefs.some(ref=>!/^https?:\/\//i.test(ref)))sources.append(el('p',t('sourceNoDossier'),'muted'));
     container.append(sources,detail(t('technical'),{source_revision:snapshot.sourceRevision,record:snapshot.raw}));
   }
   function renderReading(state){
@@ -155,13 +207,18 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       readingOpen=true;renderedReading=undefined;reflect(controller.state());await controller.read();
     }
   }
+  const format=(key,values)=>String(t(key)).replace(/\{(\d+)\}/g,(_,index)=>String(values[Number(index)]??''));
   async function search(cursor=null){
     const query=root.querySelector('.search').value,token=++searchGeneration;
     root.querySelector('.live-search-status').textContent=t('loading');root.querySelector('.live-more').disabled=true;
     try{
-      // Search uses the same session as the scene and the bound discovery.
-      const result=await activeSession.search(query,{cursor});if(disposed||token!==searchGeneration||!result)return;
-      searchPage=result;searchQuery=query;renderSearch();
+      // Search uses the same session as the scene and the bound discovery. An
+      // empty prefix is sought only within the explicit browser-side window;
+      // the returned cursor remains the sole continuation authority.
+      const seek=await seekSearchPage(nextCursor=>activeSession.search(query,{cursor:nextCursor}),{
+        cursor,isCurrent:()=>!disposed&&token===searchGeneration&&root.querySelector('.search').value===query,window:SEARCH_SEEK_WINDOW});
+      if(disposed||token!==searchGeneration||!seek.page)return;
+      searchPage=seek.page;searchQuery=query;searchSeek=seek.paused?seek:null;renderSearch();
     }catch(error){if(!disposed&&token===searchGeneration){root.querySelector('.live-search-status').textContent=error.message;report(error);}}
   }
   function renderSearch(){
@@ -169,8 +226,11 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     for(const {kind,raw} of rows){const item=button('',()=>open({kind,id:raw.id,content_revision:raw.content_revision}),'material-row');
       item.dataset.resultKind=kind;item.dataset.resultId=raw.id;item.append(el('small',t(kind)),el('strong',liveLabel(raw,language).text));
       const identity=el('details');identity.append(el('summary',t('technical')),el('p',raw.id,'muted'));list.append(item,identity);}
-    root.querySelector('.live-search-status').textContent=rows.length?'':searchPage?t('none'):'';
+    root.querySelector('.live-search-status').textContent=rows.length?'':searchSeek?.paused
+      ?format('searchPaused',[searchSeek.requests,searchSeek.limits.maxRequests,searchSeek.bytes,searchSeek.limits.maxBytes,
+        searchSeek.elapsedMs,searchSeek.limits.maxTimeMs]):searchPage?t('none'):'';
     const more=root.querySelector('.live-more');more.hidden=!searchPage?.page.has_more;more.disabled=false;
+    more.textContent=searchSeek?.paused?t('continueSearch'):t('more');
   }
   function showSearch(){surfaceGeneration++;drawer.hidden=false;root.querySelector('.search').focus();sky.refresh();}
   function showConditions(){
@@ -198,7 +258,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     body.append(button(t('clear'),()=>controller.clearComparison()));
   }
   let moving=!matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const actions={search:showSearch,'close-search':()=>{searchGeneration++;activeSession.cancelSearch();drawer.hidden=true;sky.refresh();},
+  const actions={search:showSearch,'close-search':()=>{searchGeneration++;activeSession.cancelSearch();searchSeek=null;drawer.hidden=true;sky.refresh();},
     conditions:showConditions,compare:()=>renderComparison(controller.state()),continue:()=>void controller.continue(),cancel:()=>controller.cancel(),
     overview:()=>sky.frame(),motion:()=>{moving=!moving;sky.motion(moving);root.querySelector('[data-live-action="motion"]').setAttribute('aria-pressed',String(moving));},
     cinema:()=>{const hidden=root.dataset.cinema!=='true';root.dataset.cinema=String(hidden);root.querySelector('.show-panels').hidden=!hidden;sky.refresh();}};
@@ -206,8 +266,8 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     const lang=event.target.closest('[data-live-lang]')?.dataset.liveLang;if(lang){language=lang;setUiLanguage(lang);renderedReading=undefined;controller.language(lang);renderSearch();}};
   root.addEventListener('click',click);
   root.querySelector('.live-search-form').onsubmit=event=>{event.preventDefault();void search();};
-  root.querySelector('.search').oninput=()=>{searchGeneration++;activeSession.cancelSearch();searchPage=null;renderSearch();};
-  root.querySelector('.live-more').onclick=()=>{if(searchQuery===root.querySelector('.search').value)void search(searchPage.page.next_cursor);};
+  root.querySelector('.search').oninput=()=>{searchGeneration++;activeSession.cancelSearch();searchPage=null;searchSeek=null;renderSearch();};
+  root.querySelector('.live-more').onclick=()=>{if(searchPage&&searchQuery===root.querySelector('.search').value)void search(searchPage.page.next_cursor);};
   const keydown=event=>{if(event.target.closest('input,textarea,select,[contenteditable]'))return;
     if(event.key==='/'){event.preventDefault();showSearch();}if(event.key==='Escape'){actions['close-search']();readingOpen=false;controller.closeReading();}
     if(event.key==='o'&&!dialog.open)sky.frame();};

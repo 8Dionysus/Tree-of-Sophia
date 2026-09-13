@@ -6,6 +6,13 @@ import {DEFAULT_RESPONSE_BYTES,validateResponseLimit,ResponseLimitError,withAbor
 // The browser consumes the access contract; it never authors ToS relationships.
 export const DEFAULT_FOCUS = 'tos.work.friedrich-nietzsche.also-sprach-zarathustra';
 export const BUDGET = Object.freeze({nodes:40,relations:80});
+// Source dossiers are a metadata-only bridge from a delivered carrier to its
+// owner-provided bibliographic route.  Keep the browser window narrower than
+// the backend contract; truncation remains an honest dossier field.
+export const SOURCE_DOSSIER_LIMIT = 64;
+const SOURCE_DOSSIER_KINDS=new Set(['work','expression','edition','item','file','link']);
+const SOURCE_DOSSIER_REF=/^tos\.[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
+export const isSourceDossierRef=value=>typeof value==='string'&&value.length>0&&value.length<=2048&&SOURCE_DOSSIER_REF.test(value);
 // Transport bounds are not a license to draw or retain every delivered page.
 export const EXPLORATION_BUDGET = Object.freeze({nodes:302,relations:101});
 const executedSpecs=new WeakMap();
@@ -138,6 +145,33 @@ export async function compileRouteCenter(client,id,signal,expected=null,{depth=1
 export function checkRevision(packet,expected) {
   if(!/^[a-f0-9]{64}$/.test(packet?.source_revision||''))throw new ContractError(t("Ответ не содержит версию данных."));
   if(expected&&packet.source_revision!==expected)throw new RevisionError();
+  return packet;
+}
+const boundedStrings=(value,limit)=>Array.isArray(value)&&value.length<=limit&&value.every(item=>typeof item==='string'&&item.length>0&&item.length<=2048);
+const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+const boundedRecords=(value,limit)=>Array.isArray(value)&&value.length<=limit&&value.every(record);
+export function validateSourceDossier(packet,expected) {
+  const summary=packet?.agent_summary,object=packet?.object;
+  if(packet?.schema!=='tos_source_dossier_v1'||!isSourceDossierRef(expected)||packet.object_id!==expected
+    ||!record(object)||object.node_id!==expected
+    ||!SOURCE_DOSSIER_KINDS.has(object.node_kind)
+    ||!summary||typeof summary.technical_access!=='string'||!summary.technical_access
+    ||typeof summary.rights_posture!=='string'||!summary.rights_posture
+    ||typeof summary.human_review_required!=='boolean'||typeof summary.can_conclude_legal_openness!=='boolean'
+    ||summary.availability_is_license!==false
+    ||!boundedStrings(summary.rights_scope_refs,SOURCE_DOSSIER_LIMIT)
+    ||!boundedStrings(summary.gaps,SOURCE_DOSSIER_LIMIT)
+    ||!boundedRecords(packet.relations,SOURCE_DOSSIER_LIMIT)
+    ||!boundedRecords(packet.rights,SOURCE_DOSSIER_LIMIT)
+    ||!boundedRecords(packet.tree_paths,SOURCE_DOSSIER_LIMIT)
+    ||!boundedStrings(packet.source_refs,SOURCE_DOSSIER_LIMIT*16)
+    ||typeof packet.truncated!=='boolean'
+    ||!(typeof packet.authority_note==='string'&&packet.authority_note.length>0
+      ||record(packet.authority_note)))
+    throw new ContractError(t("Неподдерживаемое досье источника."));
+  if(!packet.chain||typeof packet.chain!=='object'||Array.isArray(packet.chain)
+    ||Object.values(packet.chain).some(value=>!boundedRecords(value,SOURCE_DOSSIER_LIMIT)))
+    throw new ContractError(t("Неполная цепочка источника."));
   return packet;
 }
 function checkItems(items,kind) {
@@ -278,7 +312,11 @@ export class KnowledgeClient {
     const timer=setTimeout(()=>{timedOut=true;controller.abort();},this.timeoutMs);
     try {
     controller.signal.throwIfAborted();
-    const response=await withAbort(Promise.resolve(this.fetcher(this.base+path,{signal:controller.signal,method:body?'POST':'GET',
+    // A source route is an explicit same-origin API path, never a caller-
+    // supplied host or filesystem base.  Knowledge routes remain relative to
+    // the configured knowledge prefix.
+    const endpoint=path.startsWith('/api/source/')?path:this.base+path;
+    const response=await withAbort(Promise.resolve(this.fetcher(endpoint,{signal:controller.signal,method:body?'POST':'GET',
       headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})})).then(response=>{
         if(controller.signal.aborted){cancelResponseBody(response,controller.signal.reason);controller.signal.throwIfAborted();}
         return response;
@@ -320,6 +358,14 @@ export class KnowledgeClient {
     if(contentRevision&&match.content_revision!==contentRevision)throw new RevisionError();
     if(kind==='relation'){const ids=checkItems(packet.endpoints,'node');if(!ids.has(match.from_id)||!ids.has(match.to_id))throw new ContractError(t("Неполные концы связи."));}
     return {packet,match};
+  }
+  async sourceDossier(objectId,signal,{limit=SOURCE_DOSSIER_LIMIT}={}) {
+    if(!isSourceDossierRef(objectId)||!Number.isSafeInteger(limit)||limit<1||limit>SOURCE_DOSSIER_LIMIT)
+      throw new ContractError(t("Неверная ссылка на досье источника."));
+    // This is the fixed same-origin source-navigation route.  It is not a
+    // configurable endpoint and never becomes an arbitrary filesystem URL.
+    const packet=await this.request('/api/source/dossiers/'+encodeURIComponent(objectId)+'?'+new URLSearchParams({limit:String(limit)}),{signal});
+    return validateSourceDossier(packet,objectId);
   }
   async readMaterial(kind,id,signal,expected,contentRevision,{language='ru',relation=null}={}) {
     if(!['node','relation'].includes(kind)||typeof id!=='string'||!id||!contentLanguage(language))throw new ContractError(t('Неверный запрос материала.'));

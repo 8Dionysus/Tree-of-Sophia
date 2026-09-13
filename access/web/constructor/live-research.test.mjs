@@ -1,6 +1,6 @@
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
-import {createLiveResearch} from './live-research.mjs';
+import {createLiveResearch,seekSearchPage} from './live-research.mjs';
 import {ExplorationSceneCache} from '../src/observatory/exploration-cache.mjs';
 import {pageFixture,secondPage} from '../src/observatory/exploration-test-fixtures.mjs';
 
@@ -77,4 +77,39 @@ test('failed reading has a terminal error and successful retry clears it',async(
   session.inspect=async()=>{throw new Error('offline');};await c.read();assert.equal(c.state().readingError.message,'offline');
   session.inspect=async()=>({raw:{id:'current'}});await c.read();assert.equal(c.state().readingError,null);
   assert.equal(c.state().reading.raw.id,'current');
+});
+
+test('source dossier transition delegates the unchanged owner handle and can be cancelled',async()=>{
+  const {controller:c,session,first}=harness();await c.open(first.query.origin);const calls=[];
+  session.sourceDossier=async(ref,options)=>{calls.push({ref,options});return {schema:'tos_source_dossier_v1',object_id:ref};};
+  session.cancelSourceDossier=()=>calls.push('cancelled');
+  const dossier=await c.sourceDossier('tos.work.fixture');assert.equal(dossier.object_id,'tos.work.fixture');assert.deepEqual(calls,[{ref:'tos.work.fixture',options:{}}]);
+  c.cancelSourceDossier();assert.equal(calls.at(-1),'cancelled');
+});
+
+test('search seeking stops at the first non-empty page and reports bounded continuation state',async()=>{
+  const page=(cursor,hasMore,next,nodes=[])=>({nodes,relations:[],page:{cursor,has_more:hasMore,next_cursor:hasMore?next:null}});
+  const pages=[page(null,true,'cursor-1'),page('cursor-1',true,'cursor-2'),page('cursor-2',false,null,[{id:'hit'}])],calls=[];
+  const result=await seekSearchPage(cursor=>{calls.push(cursor);return pages.shift();},{window:{maxRequests:5,maxBytes:100000,maxTimeMs:1000},now:()=>0});
+  assert.deepEqual(calls,[null,'cursor-1','cursor-2']);assert.equal(result.page.nodes[0].id,'hit');assert.equal(result.paused,false);assert.equal(result.reason,'match');assert.equal(result.requests,3);
+});
+
+test('search seeking pauses at request, byte and time bounds and suppresses cancellation',async()=>{
+  const empty=(cursor,next='next')=>({nodes:[],relations:[],page:{cursor,has_more:true,next_cursor:next}});
+  const bounded=await seekSearchPage(async cursor=>empty(cursor),{window:{maxRequests:2,maxBytes:100000,maxTimeMs:1000},now:()=>0});
+  assert.equal(bounded.paused,true);assert.equal(bounded.reason,'requests');assert.equal(bounded.requests,2);assert.equal(bounded.page.page.next_cursor,'next');
+  const byBytes=await seekSearchPage(async cursor=>empty(cursor),{window:{maxRequests:8,maxBytes:1,maxTimeMs:1000},now:()=>0});
+  assert.equal(byBytes.reason,'bytes');assert.equal(byBytes.paused,true);assert.equal(byBytes.requests,1);
+  let now=0;const byTime=await seekSearchPage(async cursor=>{now=5;return empty(cursor);},{window:{maxRequests:8,maxBytes:100000,maxTimeMs:5},now:()=>now});
+  assert.equal(byTime.reason,'time');assert.equal(byTime.requests,1);
+  const pending=deferred();let current=true;const cancelled=seekSearchPage(()=>pending.promise,{isCurrent:()=>current,now:()=>0});current=false;pending.resolve(empty(null));
+  assert.equal((await cancelled).cancelled,true);
+});
+
+test('seek preserves a valid match when an in-flight page crosses the soft window',async()=>{
+  let now=0;
+  const page={nodes:[{id:'hit',padding:'x'.repeat(128)}],relations:[],page:{cursor:null,has_more:true,next_cursor:'next'}};
+  const result=await seekSearchPage(async()=>{now=10;return page;},{window:{maxRequests:1,maxBytes:8,maxTimeMs:5},now:()=>now});
+  assert.equal(result.page.nodes[0].id,'hit');assert.equal(result.paused,false);assert.equal(result.reason,'match');
+  assert.ok(result.bytes>8);assert.ok(result.elapsedMs>5);assert.equal(result.windowExceeded.bytes,true);assert.equal(result.windowExceeded.time,true);
 });
