@@ -1896,6 +1896,21 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/tests/test_source_command_http.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "source_growth_command_contract",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SOURCE_COMMAND_HTTP.md",
+      "protects": "fixed owner signed transport, request and response proof, source-copy preview/apply/replay, revocation, bounded framing and deadlines, and honest uncertain delivery; not confidentiality or semantic admission",
+      "coverage_authority": "mechanics_local lane discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "mechanics/growth-cycle/tests/test_source_command_http.py",
+      "failure_route": "Fix the fixed-owner transport or delegated command boundary without widening grants, exposing credentials or treating uncertain delivery as rollback.",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/tests/test_source_commands.py",
       "home": "mechanics/growth-cycle/tests",
       "home_scope": "mechanic-level",

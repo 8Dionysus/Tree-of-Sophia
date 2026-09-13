@@ -426,6 +426,20 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_http.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SOURCE_COMMAND_HTTP.md",
+      "source_truth": ["mechanics/growth-cycle/parts/branch-growth-cycle/docs/SOURCE_COMMAND_HTTP.md", "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py"],
+      "reads": ["fixed protected owner configuration and private local signing key", "bounded signed request and current delegated source-command result"],
+      "writes": ["only source-command writes allowed by the fixed owner delegation; in-memory bounded nonce cache"],
+      "side_effects": "loopback request/response-authenticated HTTP transport with bounded framing and total request-read deadline; rechecks current owner authority including replay; signing key never sent over the wire, confidentiality not provided; no new grants, access API writes, semantic admission or automatic projection publication",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_command_http.py",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",
