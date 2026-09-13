@@ -6,7 +6,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
+import sqlite3
 import sys
 from pathlib import Path
 from typing import Any, Iterable
@@ -34,7 +36,12 @@ from tos_access.published_read_metadata import (  # noqa: E402
 _builder_dir = str(Path(__file__).resolve().parent)
 if _builder_dir not in sys.path:
     sys.path.insert(0, _builder_dir)
-from incremental_runtime import DeltaRecorder  # noqa: E402
+from incremental_runtime import (  # noqa: E402
+    MAX_D1_SQL_STATEMENT_BYTES,
+    MAX_D1_SQL_ROW_VALUE_BYTES,
+    DeltaRecorder,
+    DiskRowBaseline,
+)
 from build_stages import BuildStages, atomic_json, build_lock, fingerprint, tree_paths  # noqa: E402
 
 
@@ -42,7 +49,6 @@ CORPUS_COLLECTIONS = ("nodes", "resources", "manifests", "branches", "graph_view
 STATIC_PHILOSOPHY_LIMITS = (1, 1000)
 STATIC_CORPUS_LIMITS = (1, 100, 700, 1000)
 SQL_CHUNK_BYTES = 32_000
-MAX_D1_SQL_STATEMENT_BYTES = 100_000
 READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v9"
 READ_MODEL_CONTENT_VERSION = "tos_cloudflare_edge_content_v2"
 SEARCH_READ_MODEL_SCHEMA_VERSION = "tos_knowledge_search_read_model_v3"
@@ -277,6 +283,8 @@ class SqlStatementWriter:
         self.stream = self.pending.open("w", encoding="utf-8")
         self.count = 0
         self.delta = delta
+        self.finished = False
+        self.published = False
 
     def append(self, statement: str) -> None:
         if self.delta is not None:
@@ -294,10 +302,51 @@ class SqlStatementWriter:
         for statement in statements:
             self.append(statement)
 
-    def finish(self) -> None:
+    def finish(self, *, publish: bool = True) -> None:
         self.stream.flush()
         self.stream.close()
+        self.finished = True
+        if publish:
+            self.publish()
+
+    def publish(self) -> None:
+        if not self.finished:
+            raise ValueError("SQL statements must be finished before publication")
+        if self.published:
+            return
         self.pending.replace(self.target)
+        self.published = True
+
+
+def publish_prepared_files(files: tuple[tuple[Path, Path], ...]) -> None:
+    """Publish a prepared output set with rollback on a partial rename.
+
+    There is no multi-file filesystem transaction or crash-safe group commit.
+    Keep exact sibling backups while renaming the three carriers so a Python,
+    I/O, or KeyboardInterrupt failure cannot leave a newly generated SQL file
+    paired with an older row index.  SIGKILL, power loss, or filesystem
+    failure between renames remains outside this rollback guarantee.
+    """
+    backups: list[tuple[Path, Path]] = []
+    published: list[Path] = []
+    try:
+        for pending, target in files:
+            backup = target.with_name(target.name + ".rollback")
+            if backup.exists():
+                raise RuntimeError("stale prepared-output rollback file: " + str(backup))
+            if target.exists():
+                os.replace(target, backup)
+                backups.append((target, backup))
+            os.replace(pending, target)
+            published.append(target)
+    except BaseException:
+        for target in reversed(published):
+            target.unlink(missing_ok=True)
+        for target, backup in reversed(backups):
+            os.replace(backup, target)
+        raise
+    for _target, backup in backups:
+        backup.unlink(missing_ok=True)
 
 
 def append_chunkable_insert(
@@ -312,7 +361,7 @@ def append_chunkable_insert(
     """Insert one row while preserving oversized text through bounded updates."""
     # SQL chunking bounds statements, not the eventual SQLite row. Use an
     # intentionally conservative upper bound including escaped text/header.
-    if sum(len(value.encode('utf-8')) for value in values) + 1024 > 2_000_000:
+    if sum(len(value.encode('utf-8')) for value in values) + 1024 > MAX_D1_SQL_ROW_VALUE_BYTES:
         raise RuntimeError(f'{table} row exceeds the D1 row budget; split the record, never truncate it')
     statement = sql_insert(table, columns, values)
     if len(statement.encode("utf-8")) <= MAX_D1_SQL_STATEMENT_BYTES:
@@ -360,6 +409,62 @@ def append_batched_inserts(
         writer.append(prefix + ",".join(batch) + ";")
 
 
+class PostingStatsStore:
+    """Disk-backed unique n-gram counts for the indexed search carrier."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.unlink(missing_ok=True)
+        self.connection = sqlite3.connect(self.path)
+        self.connection.execute("PRAGMA journal_mode=OFF")
+        self.connection.execute("PRAGMA synchronous=OFF")
+        self.connection.execute("PRAGMA temp_store=FILE")
+        self.connection.execute("PRAGMA cache_size=-32768")
+        self.connection.execute(
+            "CREATE TABLE gram_stats ("
+            "kind TEXT NOT NULL, gram TEXT NOT NULL, postings INTEGER NOT NULL, "
+            "PRIMARY KEY (kind, gram)) WITHOUT ROWID"
+        )
+        self.total = 0
+        self.closed = False
+
+    def add(self, kind: str, gram: str) -> None:
+        self.connection.execute(
+            "INSERT INTO gram_stats(kind,gram,postings) VALUES (?,?,1) "
+            "ON CONFLICT(kind,gram) DO UPDATE SET postings=postings+1",
+            (kind, gram),
+        )
+        self.total += 1
+        if self.total % 4096 == 0:
+            self.connection.commit()
+
+    def rows(self):
+        self.connection.commit()
+        return self.connection.execute(
+            "SELECT kind,gram,postings FROM gram_stats ORDER BY kind,gram"
+        )
+
+    def close(self) -> None:
+        if self.closed:
+            return
+        self.connection.commit()
+        self.connection.close()
+        self.closed = True
+
+    def __enter__(self) -> "PostingStatsStore":
+        return self
+
+    def __exit__(self, error_type, error, traceback) -> None:
+        try:
+            self.close()
+        finally:
+            # This database is a build-time accumulator, never a published
+            # carrier.  Remove it on both success and failure so an interrupted
+            # producer cannot be mistaken for reusable output.
+            self.path.unlink(missing_ok=True)
+
+
 def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> dict[str, Any]:
     philosophy = core.philosophy_projection()
     corpus = core.index()
@@ -391,8 +496,19 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
     index_path = target.with_name('read-model.rows.json')
     deployed_path = target.with_name('read-model.deployed.rows.json')
     baseline_path = deployed_path if deployed_path.is_file() else index_path
-    previous_index = json.loads(baseline_path.read_text()) if baseline_path.is_file() else None
-    delta = DeltaRecorder(target.with_name('read-model.delta.sql'), revision, READ_MODEL_SCHEMA_VERSION, previous_index)
+    previous_index = (DiskRowBaseline(
+        baseline_path,
+        READ_MODEL_SCHEMA_VERSION,
+        target.with_name('read-model.baseline.sqlite'),
+    ) if baseline_path.is_file() else None)
+    index_pending = index_path.with_name(index_path.name + '.next')
+    delta = DeltaRecorder(
+        target.with_name('read-model.delta.sql'),
+        revision,
+        READ_MODEL_SCHEMA_VERSION,
+        previous_index,
+        index_store_path=target.with_name('read-model.rows.index.sqlite'),
+    )
     statements = SqlStatementWriter(target, delta)
     statements.extend((
         "PRAGMA foreign_keys=OFF;",
@@ -837,61 +953,61 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
     # legacy v1 compatibility plane and are also used for exact substring
     # verification after a posting candidate is selected.
     search_posting_count = 0
-    search_gram_stats: dict[tuple[str, str], int] = {}
-    for kind, source_items in (("nodes", knowledge_nodes), ("relations", knowledge_relations)):
-        for position, item in enumerate(source_items):
-            normalized = normalize_paths(item, REPO_ROOT)
-            document = SQLiteKnowledgeSearchReadModel._searchable(normalized)
-            id_lower, native_id_lower, identity_values, visible_values = SQLiteKnowledgeSearchReadModel._rank_fields(
-                normalized, relation=kind == "relations"
-            )
-            item_id = str(normalized.get("id") or "")
-            document_bytes = document.encode("utf-8", "surrogatepass")
-            append_chunkable_insert(
-                statements,
-                "knowledge_search_documents_next",
-                (
-                    "kind", "position", "id", "source_graph", "kind_id", "predicate_id",
-                    "id_lower", "native_id_lower", "identity_values", "visible_values",
-                    "document_chars", "document_digest",
-                ),
-                (
-                    sql_text(kind), str(position), sql_text(item_id),
-                    sql_text(str(normalized.get("source_graph") or "")),
-                    sql_text(str(normalized.get("kind_id") or "")),
-                    sql_text(str(normalized.get("predicate_id") or "")),
-                    sql_text(id_lower), sql_text(native_id_lower), sql_text(identity_values),
-                    sql_text(visible_values), str(len(document)),
-                    sql_text(hashlib.sha256(document_bytes).hexdigest()),
-                ),
-                selector_sql=f"kind = {sql_text(kind)} AND position = {position}",
-                chunked_text={},
-            )
-            grams = tuple(dict.fromkeys(
-                document[offset : offset + SEARCH_NGRAM_SIZE]
-                for offset in range(len(document) - SEARCH_NGRAM_SIZE + 1)
-            ))
-            search_posting_count += len(grams)
-            if search_posting_count > SEARCH_READ_MODEL_MAX_POSTINGS:
-                raise RuntimeError("knowledge search posting budget exceeded")
-            for gram in grams:
-                search_gram_stats[(kind, gram)] = search_gram_stats.get((kind, gram), 0) + 1
-            append_batched_inserts(
-                statements,
-                "knowledge_search_grams_next",
-                ("kind", "n", "gram", "position"),
-                ((sql_text(kind), str(SEARCH_NGRAM_SIZE), sql_text(gram), str(position)) for gram in grams),
-            )
+    with PostingStatsStore(target.with_name('read-model.search-gram-stats.sqlite')) as search_gram_stats:
+        for kind, source_items in (("nodes", knowledge_nodes), ("relations", knowledge_relations)):
+            for position, item in enumerate(source_items):
+                normalized = normalize_paths(item, REPO_ROOT)
+                document = SQLiteKnowledgeSearchReadModel._searchable(normalized)
+                id_lower, native_id_lower, identity_values, visible_values = SQLiteKnowledgeSearchReadModel._rank_fields(
+                    normalized, relation=kind == "relations"
+                )
+                item_id = str(normalized.get("id") or "")
+                document_bytes = document.encode("utf-8", "surrogatepass")
+                append_chunkable_insert(
+                    statements,
+                    "knowledge_search_documents_next",
+                    (
+                        "kind", "position", "id", "source_graph", "kind_id", "predicate_id",
+                        "id_lower", "native_id_lower", "identity_values", "visible_values",
+                        "document_chars", "document_digest",
+                    ),
+                    (
+                        sql_text(kind), str(position), sql_text(item_id),
+                        sql_text(str(normalized.get("source_graph") or "")),
+                        sql_text(str(normalized.get("kind_id") or "")),
+                        sql_text(str(normalized.get("predicate_id") or "")),
+                        sql_text(id_lower), sql_text(native_id_lower), sql_text(identity_values),
+                        sql_text(visible_values), str(len(document)),
+                        sql_text(hashlib.sha256(document_bytes).hexdigest()),
+                    ),
+                    selector_sql=f"kind = {sql_text(kind)} AND position = {position}",
+                    chunked_text={},
+                )
+                grams = tuple(dict.fromkeys(
+                    document[offset : offset + SEARCH_NGRAM_SIZE]
+                    for offset in range(len(document) - SEARCH_NGRAM_SIZE + 1)
+                ))
+                search_posting_count += len(grams)
+                if search_posting_count > SEARCH_READ_MODEL_MAX_POSTINGS:
+                    raise RuntimeError("knowledge search posting budget exceeded")
+                for gram in grams:
+                    search_gram_stats.add(kind, gram)
+                append_batched_inserts(
+                    statements,
+                    "knowledge_search_grams_next",
+                    ("kind", "n", "gram", "position"),
+                    ((sql_text(kind), str(SEARCH_NGRAM_SIZE), sql_text(gram), str(position)) for gram in grams),
+                )
 
-    append_batched_inserts(
-        statements,
-        "knowledge_search_gram_stats_next",
-        ("kind", "n", "gram", "postings"),
-        (
-            (sql_text(kind), str(SEARCH_NGRAM_SIZE), sql_text(gram), str(postings))
-            for (kind, gram), postings in sorted(search_gram_stats.items())
-        ),
-    )
+        append_batched_inserts(
+            statements,
+            "knowledge_search_gram_stats_next",
+            ("kind", "n", "gram", "postings"),
+            (
+                (sql_text(kind), str(SEARCH_NGRAM_SIZE), sql_text(gram), str(postings))
+                for kind, gram, postings in search_gram_stats.rows()
+            ),
+        )
 
     for table in (
         "edge_meta",
@@ -948,11 +1064,16 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
     # A maintenance bootstrap replaces the metadata table and its triggers.
     # Invalidate retained execution state even if it republishes identical data.
     statements.append("UPDATE knowledge_exploration_clock SET epoch=epoch+1 WHERE singleton=1;")
-    statements.finish()
-    row_index = delta.finish()
-    index_pending = index_path.with_name(index_path.name + '.next')
-    index_pending.write_text(compact_json(row_index) + '\n', encoding='utf-8')
-    index_pending.replace(index_path)
+    # Prepare every generated carrier before changing a final path.  The
+    # publish helper then renames the SQL, delta, and row-index files together
+    # with rollback if one local rename fails.
+    statements.finish(publish=False)
+    delta.finish(index_output=index_pending, publish=False)
+    publish_prepared_files((
+        (statements.pending, statements.target),
+        (delta.pending_path, delta.target),
+        (index_pending, index_path),
+    ))
     return {
         "philosophy_nodes": len(philosophy_nodes),
         "philosophy_edges": len(philosophy_edges),

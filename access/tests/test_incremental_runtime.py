@@ -14,7 +14,13 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'deploy/cloudflare-worker/scripts'))
-from incremental_runtime import DeltaRecorder, PRIMARY_KEYS
+from incremental_runtime import (
+    DiskRowBaseline,
+    DiskRowIndex,
+    DeltaRecorder,
+    PRIMARY_KEYS,
+    ROW_INDEX_MAX_KEY_CHARS,
+)
 
 
 class IncrementalRuntimeTests(unittest.TestCase):
@@ -224,6 +230,7 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 with patch.object(ToSAccessCore, 'knowledge_graph', return_value=graph_v2):
                     revision_v2 = builder.data_revision(source_core)
                     result = builder.build_read_model_sql(source_core, second_sql, revision_v2)
+                self.assertFalse((runtime / 'read-model.baseline.sqlite').exists())
                 delta_sql = runtime / 'read-model.delta.sql'
                 delta_text = delta_sql.read_text(encoding='utf-8')
                 self.assertIn('knowledge_search_documents', delta_text)
@@ -611,6 +618,194 @@ class IncrementalRuntimeTests(unittest.TestCase):
             grams = list(index['rows']['knowledge_search_grams'].values())
             self.assertIn(["'a''b,c'", '0'], [row['values'][2:] for row in grams])
             self.assertEqual(recorder.summary()['changed_rows'], 4)
+
+    def test_disk_row_index_preserves_memory_contract_and_is_removed_after_finish(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            statements = [
+                "INSERT INTO edge_meta_next (key, part, json_chunk) VALUES ('data_revision', 0, '{\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}');",
+                "INSERT INTO knowledge_nodes_next (id, value) VALUES ('a''b,c', '');",
+                "UPDATE knowledge_nodes_next SET value = value || 'part1' WHERE id = 'a''b,c';",
+                "UPDATE knowledge_nodes_next SET value = value || 'part2' WHERE id = 'a''b,c';",
+                "INSERT INTO knowledge_search_grams_next (kind,n,gram,position) VALUES ('nodes',3,'a''b,c',0),('nodes',3,'def',1);",
+            ]
+
+            memory = DeltaRecorder(root / 'memory.sql', 'a' * 64, 'test-schema')
+            for statement in statements:
+                memory.observe(statement)
+            expected = memory.finish()
+
+            disk = DeltaRecorder(
+                root / 'disk.sql',
+                'a' * 64,
+                'test-schema',
+                index_store_path=root / 'disk.rows.index.sqlite',
+            )
+            for statement in statements:
+                disk.observe(statement)
+            index_output = root / 'disk.rows.json.next'
+            self.assertIsNone(disk.finish(index_output=index_output))
+            self.assertEqual(json.loads(index_output.read_text()), expected)
+            self.assertFalse((root / 'disk.rows.index.sqlite').exists())
+
+    def test_posting_stats_sidecar_is_removed_on_success_and_failure(self):
+        import build_runtime as builder
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'search-gram-stats.sqlite'
+            with builder.PostingStatsStore(path) as store:
+                store.add('nodes', 'abc')
+            self.assertFalse(path.exists())
+
+            with self.assertRaisesRegex(RuntimeError, 'synthetic failure'):
+                with builder.PostingStatsStore(path) as store:
+                    store.add('relations', 'xyz')
+                    raise RuntimeError('synthetic failure')
+            self.assertFalse(path.exists())
+
+    def test_disk_baseline_streams_large_rows_and_preserves_digest_lookup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'baseline.rows.json'
+            source_index = DiskRowIndex(root / 'source.rows.sqlite')
+            large_literal = "'" + ('x' * (1024 * 1024 + 17)) + "'"
+            source_index.record(
+                'knowledge_nodes',
+                '["large"]',
+                'a' * 64,
+                ["'large'", large_literal],
+            )
+            source_index.write_json(source, 'test-schema', 'b' * 64)
+            source_index.close()
+            source_index.path.unlink(missing_ok=True)
+
+            baseline = DiskRowBaseline(source, 'test-schema', root / 'baseline.sqlite')
+            self.assertEqual((baseline.schema, baseline.revision), ('test-schema', 'b' * 64))
+            self.assertEqual(baseline.digest('knowledge_nodes', '["large"]'), 'a' * 64)
+            row = next(baseline.iter_table('knowledge_nodes'))
+            self.assertEqual(json.loads(row[2]), ["'large'", large_literal])
+            baseline.close()
+            self.assertFalse((root / 'baseline.sqlite').exists())
+
+    def test_disk_baseline_rejects_overbudget_truncated_value(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'broken.rows.json'
+            source.write_text(
+                '{"schema":"test-schema","revision":"' + ('b' * 64)
+                + '","rows":{"knowledge_nodes":{"[\\"one\\"]":{"digest":"'
+                + ('a' * 64) + '","values":["' + ('x' * 1024) + '"',
+                encoding='utf-8',
+            )
+            with self.assertRaisesRegex(ValueError, 'bounded size'):
+                DiskRowBaseline(source, 'test-schema', root / 'baseline.sqlite', max_value_chars=128)
+            self.assertFalse((root / 'baseline.sqlite').exists())
+
+    def test_disk_baseline_roundtrips_long_escaped_producer_key(self):
+        import build_runtime as builder
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            raw_key = 'x' * 8_300 + '"' + '\\' + '\n' + '\r' + '\t'
+            key_literal = builder.sql_text(raw_key)
+            statement = builder.sql_insert(
+                'knowledge_nodes_next',
+                ('id', 'value'),
+                (key_literal, builder.sql_text('payload')),
+            )
+            key = json.dumps([key_literal], ensure_ascii=False, separators=(',', ':'))
+            self.assertGreater(len(key), 8_192)
+            self.assertLess(
+                len(json.dumps(key, ensure_ascii=False, separators=(',', ':'))),
+                ROW_INDEX_MAX_KEY_CHARS,
+            )
+
+            first_target = root / 'first.sql'
+            first_recorder = DeltaRecorder(
+                first_target,
+                'a' * 64,
+                'test-schema',
+                index_store_path=root / 'first.rows.sqlite',
+            )
+            first_writer = builder.SqlStatementWriter(first_target, first_recorder)
+            first_writer.append(statement)
+            first_writer.finish(publish=False)
+            first_index = root / 'first.rows.json.next'
+            first_recorder.finish(index_output=first_index, publish=False)
+
+            baseline = DiskRowBaseline(
+                first_index,
+                'test-schema',
+                root / 'baseline.sqlite',
+            )
+            self.assertEqual(
+                baseline.digest('knowledge_nodes', key),
+                hashlib.sha256(statement.encode()).hexdigest(),
+            )
+
+            second_target = root / 'second.sql'
+            second_recorder = DeltaRecorder(
+                second_target,
+                'b' * 64,
+                'test-schema',
+                baseline,
+                index_store_path=root / 'second.rows.sqlite',
+            )
+            second_writer = builder.SqlStatementWriter(second_target, second_recorder)
+            second_writer.append(statement)
+            second_writer.finish(publish=False)
+            second_index = root / 'second.rows.json.next'
+            second_recorder.finish(index_output=second_index, publish=False)
+            self.assertEqual(second_recorder.summary()['reused_rows'], 1)
+            self.assertEqual(second_recorder.summary()['changed_rows'], 0)
+            self.assertFalse((root / 'first.rows.sqlite').exists())
+            self.assertFalse((root / 'second.rows.sqlite').exists())
+
+    def test_disk_delta_materialization_failure_does_not_publish_sql_target(self):
+        with tempfile.TemporaryDirectory() as directory:
+            from unittest.mock import patch
+
+            root = Path(directory)
+            target = root / 'delta.sql'
+            target.write_text('old delta\n', encoding='utf-8')
+            recorder = DeltaRecorder(
+                target,
+                'a' * 64,
+                'test-schema',
+                index_store_path=root / 'rows.sqlite',
+            )
+            recorder.observe("INSERT INTO knowledge_nodes_next (id, value) VALUES ('one', 'new');")
+            with patch.object(DiskRowIndex, 'write_json', side_effect=OSError('synthetic disk failure')):
+                with self.assertRaisesRegex(OSError, 'synthetic disk failure'):
+                    recorder.finish(index_output=root / 'rows.json.next')
+            self.assertEqual(target.read_text(encoding='utf-8'), 'old delta\n')
+            self.assertFalse((root / 'rows.sqlite').exists())
+
+    def test_prepared_output_rename_rolls_back_partial_publish(self):
+        import build_runtime as builder
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pairs = []
+            for name in ('sql', 'delta', 'rows'):
+                pending = root / f'{name}.next'
+                target = root / name
+                pending.write_text(f'new {name}\n', encoding='utf-8')
+                target.write_text(f'old {name}\n', encoding='utf-8')
+                pairs.append((pending, target))
+            real_replace = builder.os.replace
+
+            def fail_rows(source, target):
+                if Path(source).name == 'rows.next':
+                    raise OSError('synthetic rename failure')
+                return real_replace(source, target)
+
+            with patch.object(builder.os, 'replace', side_effect=fail_rows):
+                with self.assertRaisesRegex(OSError, 'synthetic rename failure'):
+                    builder.publish_prepared_files(tuple(pairs))
+            for name in ('sql', 'delta', 'rows'):
+                self.assertEqual((root / name).read_text(encoding='utf-8'), f'old {name}\n')
+                self.assertFalse((root / f'{name}.rollback').exists())
 
     def test_schema_change_requires_full_baseline(self):
         with tempfile.TemporaryDirectory() as directory:
