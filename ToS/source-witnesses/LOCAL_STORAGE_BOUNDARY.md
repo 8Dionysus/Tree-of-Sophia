@@ -34,6 +34,40 @@ untracked and ignored. The record alone is not current availability evidence.
 Changed content needs a new File and provenance event; neither a URL refresh
 nor a new download may overwrite the retained witness with different bytes.
 
+## Explicit external payload roots
+
+The metadata checkout and the physical payload directory are separate inputs.
+`scripts/acquire_registry_sources.py` and
+`scripts/validate_source_witness_foundation.py` accept
+`--payload-source-root` when the selected directory mirrors the
+`ToS/source-witnesses/` tree. The default remains the checkout's own source
+root for read-only verification; acquisition requires the explicit flag and
+refuses to write into a metadata checkout by default. An external root changes only byte location; it does not move Item,
+File, rights, provenance, or review authority and it must never be inferred
+from a cache or archive path.
+
+`scripts/source_payload_custody.py` is the bounded transfer seam for an
+explicit manifest or retained inventory. It rejects absolute and parent
+references, symlink escapes, differing existing bytes, and payload paths
+outside the Item `payload/` directory. A new payload is written to a
+same-directory temporary file, read back by size and SHA-256, and published
+with an exclusive no-clobber link. Every result is recorded per Item/File and
+manifest, including source-invalid, missing, already-present, conflict, and
+copied states. The receipt proves mechanical custody and fixity only; it does
+not assess rights, semantic identity, canon, publication, or human approval.
+
+An external-root check may use a different metadata checkout from the
+physical root. Git ignore/tracking posture is evaluated against the stable
+`ToS/source-witnesses/.../payload/...` reference, while bytes are opened from
+the explicitly supplied directory. The root must be an existing non-symlink
+directory, and each selected payload must remain a direct regular file. No
+full-corpus scan or implicit archive restore is part of this route. The
+operator owns and serializes writes to a selected root; untrusted concurrent
+writers are outside this bounded route's guarantees. The exclusive
+no-clobber publication protects an existing destination, while source and
+directory changes during a transfer must be prevented by the owner or cause
+the operation to be reviewed again.
+
 `local_only` governs access to the source bytes; it does not erase their
 research role. A local item may remain the exact witness behind extraction,
 comparison, translation work, annotations, or later claims. Public-safe

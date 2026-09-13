@@ -165,6 +165,7 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
     def test_claim_collision_stops_the_whole_batch_before_installation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            (root / "payload").mkdir()
             claim_ref = acquisition.SOURCE + "/relations/work-expression/work-expression-claims.jsonl"
             old = {"claim_id": "tos.claim.shared-title", "subject_ref": "tos.work.cicero.de-fato",
                 "predicate": "has_expression", "object": "tos.expression.cicero.de-fato.la"}
@@ -175,7 +176,8 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
             before = {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()}
             with (patch.object(acquisition, "ROOT", root),
                   patch.object(acquisition.sys, "argv", ["acquire", "acquire", "--manifest", str(root / "manifest.json"),
-                      "--preparation-receipt", str(root / "checkpoint.json")]),
+                      "--preparation-receipt", str(root / "checkpoint.json"),
+                      "--payload-source-root", str(root / "payload")]),
                   patch.object(acquisition, "load_preparation", return_value=({"targets": targets}, packages)),
                   patch.object(acquisition, "check_preparation_receipt"),
                   patch.object(acquisition, "install_target") as install,
@@ -185,6 +187,20 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
                 install.assert_not_called()
                 transfer.assert_not_called()
             self.assertEqual(before, {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()})
+
+    def test_acquire_rejects_missing_explicit_payload_root_before_loading_batch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / "manifest.json"
+            manifest.write_text("{}")
+            with patch.object(acquisition, "ROOT", root), patch.object(
+                acquisition.sys,
+                "argv",
+                ["acquire", "acquire", "--manifest", str(manifest)],
+            ), patch.object(acquisition, "load_preparation") as load_preparation:
+                with self.assertRaisesRegex(ValueError, "explicit --payload-source-root"):
+                    acquisition.main()
+                load_preparation.assert_not_called()
 
     def test_identity_collision_precedes_transfer_and_existing_item_shortcut(self) -> None:
         for collision in ("claim", "claim-other-owner", "discovery", "discovery-item", "discovery-other-path"):

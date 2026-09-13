@@ -33,6 +33,36 @@
   ],
   "tests": [
     {
+      "path": "tests/test_source_payload_custody.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/source-witnesses/LOCAL_STORAGE_BOUNDARY.md",
+      "protects": "explicit-root custody, manifest identity and SHA-256, no-clobber copies, symlink/path rejection, independent readback and repeatable preservation without deleting the source",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_source_payload_custody.py",
+      "failure_route": "Fix the source payload custody or import contract and implementation before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_source_payload_import.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+      "protects": "exact rights and review scope, unchanged legacy human review semantics, local and remote fixity, repeat import, immutable receipts and disabled or revoked reads without website deployment",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_source_payload_import.py",
+      "failure_route": "Fix the source payload custody or import contract and implementation before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_registry_source_acquisition.py",
       "home": "tests",
       "home_scope": "root",

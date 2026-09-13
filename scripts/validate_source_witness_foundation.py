@@ -40,6 +40,7 @@ from build_source_witness_catalog import (
     render_outputs,
 )
 from source_record_profiles import SourceRecordProfiles, SourceProfileError
+from source_payload_custody import CustodyError, checked_root, payload_path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -5642,6 +5643,7 @@ def validate_payload_file(
     payload_entry: dict[str, Any],
     *,
     require_local_payloads: bool,
+    payload_source_root: Path | None = None,
 ) -> list[Issue]:
     """Validate one manifest payload entry; public clones may omit local bytes."""
 
@@ -5651,31 +5653,49 @@ def validate_payload_file(
     if not isinstance(relative_path, str):
         return [(location, "payload relative_path is not a string")]
 
-    payload_path = item_directory / relative_path
-    if not payload_path.is_file():
+    item_ref = _relative(item_directory, repo_root)
+    stable_payload_ref = f"{item_ref}/{relative_path}"
+    if payload_source_root is None:
+        local_payload_path = item_directory / relative_path
+    else:
+        try:
+            local_payload_path = payload_path(payload_source_root, item_ref, relative_path)
+        except CustodyError as exc:
+            return [(location, str(exc))]
+    if not local_payload_path.is_file() or local_payload_path.is_symlink():
         if require_local_payloads:
-            issues.append((_relative(payload_path, repo_root), "required local payload is missing"))
+            issues.append((stable_payload_ref, "required local payload is missing or is a symlink"))
         return issues
 
     expected_size = payload_entry.get("byte_size")
-    actual_size = payload_path.stat().st_size
+    actual_size = local_payload_path.stat().st_size
     if actual_size != expected_size:
         issues.append(
-            (_relative(payload_path, repo_root), f"byte size {actual_size} != manifest {expected_size}")
+            (stable_payload_ref, f"byte size {actual_size} != manifest {expected_size}")
         )
 
     expected_digest = payload_entry.get("sha256")
-    actual_digest = _sha256(payload_path)
+    actual_digest = _sha256(local_payload_path)
     if actual_digest != expected_digest:
         issues.append(
-            (_relative(payload_path, repo_root), f"sha256 {actual_digest} != manifest {expected_digest}")
+            (stable_payload_ref, f"sha256 {actual_digest} != manifest {expected_digest}")
         )
 
-    ignored = _git_ignored(repo_root, payload_path)
+    if payload_source_root is None:
+        ignored = _git_ignored(repo_root, local_payload_path)
+    else:
+        result = subprocess.run(
+            ("git", "check-ignore", "--quiet", "--", stable_payload_ref),
+            cwd=repo_root,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        ignored = True if result.returncode == 0 else False if result.returncode == 1 else None
     if ignored is False:
-        issues.append((_relative(payload_path, repo_root), "local payload is not ignored by Git"))
+        issues.append((stable_payload_ref, "local payload is not ignored by Git"))
     elif ignored is None and (repo_root / ".git").exists():
-        issues.append((_relative(payload_path, repo_root), "could not determine Git ignore posture"))
+        issues.append((stable_payload_ref, "could not determine Git ignore posture"))
     return issues
 
 
@@ -7216,7 +7236,12 @@ def _record_paths(repo_root: Path) -> Iterable[Path]:
             yield path
 
 
-def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False) -> list[Issue]:
+def validate_foundation(
+    repo_root: Path,
+    *,
+    require_local_payloads: bool = False,
+    payload_source_root: Path | None = None,
+) -> list[Issue]:
     repo_root = repo_root.resolve()
     issues: list[Issue] = []
 
@@ -7923,6 +7948,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     item_directory,
                     payload_entry,
                     require_local_payloads=require_local_payloads,
+                    payload_source_root=payload_source_root,
                 )
             )
         expected_fixity = "\n".join(expected_lines) + ("\n" if expected_lines else "")
@@ -13372,6 +13398,18 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             continue
         location = _relative(path, repo_root)
         _validate_payload(payload, server_import_validator, location, issues)
+        review_policy = payload.get("rights_policy")
+        if isinstance(review_policy, dict) and review_policy.get("review_status") == "agent-reviewed":
+            from source_payload_import import (
+                SourcePayloadImportError,
+                load_plan,
+                validate_source_review,
+            )
+
+            try:
+                validate_source_review(load_plan(repo_root, path))
+            except (SourcePayloadImportError, OSError, ValueError) as exc:
+                issues.append((location, f"server plan source-review evidence is invalid: {exc}"))
         manifest_evidence = payload.get("manifest", {})
         manifest_ref = manifest_evidence.get("ref") if isinstance(manifest_evidence, dict) else None
         if isinstance(manifest_ref, str):
@@ -15462,6 +15500,11 @@ def main(argv: list[str] | None = None) -> int:
         help="fail when local gitignored source bytes are absent",
     )
     parser.add_argument(
+        "--payload-source-root",
+        type=Path,
+        help="explicit directory mirroring ToS/source-witnesses for payload bytes",
+    )
+    parser.add_argument(
         "--source-anchor-v2-lab-only",
         action="store_true",
         help="resolve and report only the public synthetic source-anchor v2 A/B/C",
@@ -15562,6 +15605,7 @@ def main(argv: list[str] | None = None) -> int:
     issues = validate_foundation(
         args.repo_root,
         require_local_payloads=args.require_local_payloads,
+        payload_source_root=checked_root(args.payload_source_root) if args.payload_source_root else None,
     )
     if issues:
         print("Source-witness foundation validation failed.", file=sys.stderr)

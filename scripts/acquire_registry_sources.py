@@ -20,6 +20,14 @@ from jsonschema import Draft202012Validator
 
 from build_source_resource_inventories import build_inventory
 from build_source_witness_catalog import CLAIM_SOURCE_BASENAMES, SOURCE_CLAIM_BASENAME
+from source_payload_custody import (
+    CustodyError,
+    FileDigest,
+    checked_root,
+    digest_file,
+    payload_path,
+    publish_bytes_no_clobber,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = "ToS/source-witnesses"
@@ -305,14 +313,33 @@ def check_preparation_receipt(root: Path, manifest_path: Path, receipt_path: Pat
     return receipt
 
 
-def transfer(root: Path, target: dict, entry: dict, log: Path) -> tuple[bytes, dict]:
-    destination = safe_path(root, f"{target['paths']['item_root']}/payload/{entry['basename']}")
-    relative = destination.relative_to(root).as_posix()
+def transfer(
+    root: Path,
+    target: dict,
+    entry: dict,
+    log: Path,
+    *,
+    payload_source_root: Path | None = None,
+) -> tuple[bytes, dict]:
+    payload_root = payload_source_root or (root / SOURCE)
+    try:
+        destination = payload_path(
+            payload_root,
+            target["paths"]["item_root"],
+            f"payload/{entry['basename']}",
+        )
+    except CustodyError as exc:
+        raise ValueError(str(exc)) from exc
+    # The receipt names the stable repository-relative Item/File path even
+    # when the physical payload root is outside this metadata checkout.
+    relative = f"{target['paths']['item_root']}/payload/{entry['basename']}"
     ignored = subprocess.run(["git", "check-ignore", "--quiet", "--", relative], cwd=root).returncode == 0
     tracked = subprocess.run(["git", "ls-files", "--error-unmatch", "--", relative], cwd=root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
     if not ignored or tracked:
         raise ValueError("source bytes must use an untracked, ignored Item payload path")
     if destination.exists():
+        if destination.is_symlink():
+            raise ValueError("existing destination payload is a symlink")
         body = destination.read_bytes()
         digest = check_file(body, entry)
         previous = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
@@ -333,9 +360,16 @@ def transfer(root: Path, target: dict, entry: dict, log: Path) -> tuple[bytes, d
             row["http_status"], row["final_url"] = response.status, response.url
         digest = check_file(body, entry)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        with destination.open("xb") as stream:
-            stream.write(body)
-        destination.chmod(0o444)
+        try:
+            published = publish_bytes_no_clobber(
+                destination,
+                body,
+                FileDigest(len(body), digest, entry["git_blob_sha1"]),
+            )
+        except CustodyError as exc:
+            raise ValueError(str(exc)) from exc
+        if published == "conflict":
+            raise ValueError("destination payload appeared with different bytes during acquisition")
         row.update(status="completed", ended_at=utcnow(), elapsed_seconds=time.monotonic() - tick, byte_size=len(body), sha256=digest)
         append_jsonl(log, row)
         return body, row
@@ -610,7 +644,15 @@ def event(event_id: str, event_type: str, started: str, ended: str, inputs: list
         "receipt_refs": receipts, "rights_basis_ref": rights_ref, "event_version": 1, "supersedes_event_ref": None}
 
 
-def install_target(root: Path, manifest_path: Path, preparation: dict, target: dict, package: dict) -> dict:
+def install_target(
+    root: Path,
+    manifest_path: Path,
+    preparation: dict,
+    target: dict,
+    package: dict,
+    *,
+    payload_source_root: Path | None = None,
+) -> dict:
     preflight_identities(root, [target], {target["slug"]: package})
     evidence_root = manifest_path.parent
     log = evidence_root / "acquisition-transfers.jsonl"
@@ -619,14 +661,18 @@ def install_target(root: Path, manifest_path: Path, preparation: dict, target: d
     item_root = safe_path(root, target["paths"]["item_root"])
     item_manifest_path = item_root / "item.manifest.json"
     if (item_root / "item.json").exists():
-        checked = verify_target(root, target)
+        checked = (
+            verify_target(root, target)
+            if payload_source_root is None
+            else verify_target(root, target, payload_source_root=payload_source_root)
+        )
         run = root / SOURCE / "discovery/runs" / f"registry-{target['slug']}.{operation_date(target)}.v1.json"
         if not run.exists():
             events = [json.loads(line) for line in (item_root / "provenance.jsonl").read_text().splitlines()]
             acquisitions = [value for value in events if value["event_type"] == "acquisition"]
             if len(acquisitions) != 1 or not any(value.get("ref") == manifest_ref and value.get("sha256") == sha256(manifest_path.read_bytes()) for value in acquisitions[0]["inputs"]):
                 raise ValueError("incomplete discovery does not bind the current preparation")
-            transfers = [transfer(root, target, entry, log)[1] for entry in target["files"]]
+            transfers = [transfer(root, target, entry, log, payload_source_root=payload_source_root)[1] for entry in target["files"]]
             write_discovery(root, manifest_path, preparation, target, transfers, acquisitions[0])
         return checked
     extension = validate_work_extension(root, target, package)
@@ -642,7 +688,7 @@ def install_target(root: Path, manifest_path: Path, preparation: dict, target: d
     started = utcnow()
     bodies, transfers = [], []
     for entry in target["files"]:
-        body, receipt = transfer(root, target, entry, log)
+        body, receipt = transfer(root, target, entry, log, payload_source_root=payload_source_root)
         bodies.append((entry, body))
         transfers.append(receipt)
     observations = inspect_payloads(target, bodies)
@@ -672,7 +718,12 @@ def install_target(root: Path, manifest_path: Path, preparation: dict, target: d
     validate_json(acquired_rights, "rights-record", root)
     write_json(rights_path, acquired_rights)
     write_json(item_root / "forensic-observations.json", observations)
-    inventory = build_inventory(repo_root=root, manifest_path=item_manifest_path, payload_source_root=root / SOURCE, event_date=ended[:10])
+    inventory = build_inventory(
+        repo_root=root,
+        manifest_path=item_manifest_path,
+        payload_source_root=payload_source_root or root / SOURCE,
+        event_date=ended[:10],
+    )
     if inventory is None:
         raise ValueError("resource inventory could not inspect every local payload")
     validate_json(inventory, "source-resource-inventory", root)
@@ -726,7 +777,11 @@ def install_target(root: Path, manifest_path: Path, preparation: dict, target: d
             append_jsonl(path, claim["record"])
     refresh_topology(root, evidence_root, ended)
     write_discovery(root, manifest_path, preparation, target, transfers, events[0])
-    return verify_target(root, target)
+    return (
+        verify_target(root, target)
+        if payload_source_root is None
+        else verify_target(root, target, payload_source_root=payload_source_root)
+    )
 
 
 def refresh_topology(root: Path, evidence_root: Path, ended: str) -> None:
@@ -827,7 +882,7 @@ def write_discovery(root: Path, manifest_path: Path, preparation: dict, target: 
     append_jsonl(root / SOURCE / "discovery/provenance.jsonl", provenance)
 
 
-def verify_target(root: Path, target: dict) -> dict:
+def verify_target(root: Path, target: dict, *, payload_source_root: Path | None = None) -> dict:
     item_root = safe_path(root, target["paths"]["item_root"])
     manifest = json.loads((item_root / "item.manifest.json").read_bytes())
     validate_json(manifest, "source-item-manifest", root)
@@ -836,7 +891,15 @@ def verify_target(root: Path, target: dict) -> dict:
     indexed = {entry["original_basename"]: entry for entry in manifest["payload_files"]}
     bodies = []
     for expected in target["files"]:
-        body = safe_path(root, f"{target['paths']['item_root']}/payload/{expected['basename']}").read_bytes()
+        try:
+            payload_file = payload_path(
+                payload_source_root or (root / SOURCE),
+                target["paths"]["item_root"],
+                f"payload/{expected['basename']}",
+            )
+        except CustodyError as exc:
+            raise ValueError(str(exc)) from exc
+        body = payload_file.read_bytes()
         digest = check_file(body, expected)
         entry = indexed[expected["basename"]]
         if entry["sha256"] != digest or entry["file_id"] != "tos.file.sha256." + digest or entry["byte_size"] != len(body) or entry["relative_path"] != "payload/" + expected["basename"]:
@@ -864,10 +927,18 @@ def main() -> int:
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--preparation-receipt", type=Path)
     parser.add_argument("--target", action="append", default=[])
+    parser.add_argument(
+        "--payload-source-root",
+        type=Path,
+        help="explicit directory mirroring ToS/source-witnesses for payload bytes",
+    )
     parser.add_argument("--allow-unbound-registry", action="store_true", help="Preparation inspection only; never accepted by acquire")
     args = parser.parse_args()
     manifest_path = args.manifest.resolve()
     manifest_path.relative_to(ROOT)
+    if args.command == "acquire" and args.payload_source_root is None:
+        raise ValueError("acquire requires an explicit --payload-source-root; refusing to write inside the metadata checkout")
+    payload_source_root = checked_root(args.payload_source_root) if args.payload_source_root else None
     preparation, packages = load_preparation(ROOT, manifest_path, allow_unbound=args.command == "verify-preparation" and args.allow_unbound_registry)
     targets = [target for target in preparation["targets"] if not args.target or target["slug"] in args.target]
     if args.target and {target["slug"] for target in targets} != set(args.target):
@@ -881,7 +952,18 @@ def main() -> int:
         check_preparation_receipt(ROOT, manifest_path, args.preparation_receipt)
         preflight_identities(ROOT, targets, packages)
     for target in targets:
-        result = install_target(ROOT, manifest_path, preparation, target, packages[target["slug"]]) if args.command == "acquire" else verify_target(ROOT, target)
+        result = (
+            install_target(
+                ROOT,
+                manifest_path,
+                preparation,
+                target,
+                packages[target["slug"]],
+                payload_source_root=payload_source_root,
+            )
+            if args.command == "acquire"
+            else verify_target(ROOT, target, payload_source_root=payload_source_root)
+        )
         print(json.dumps(result, ensure_ascii=False), flush=True)
     return 0
 

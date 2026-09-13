@@ -72,6 +72,7 @@ Each entry records:
 | `script_route_card` | Local route guidance for `scripts/`. | Covered by route-card validation and script topology; not a command sequence. |
 | `projection_builder` | Generated/read-model writes from source surfaces. | May write tracked generated companions; must not define source meaning. |
 | `projection_helper` | Shared builder library code. | Library only; command posture comes from callers. |
+| `source_payload_transport` | Explicit local custody and rights-gated object transfer from frozen Item manifests. | Preserves immutable source bytes; copy, readback and import receipts do not grant rights or deploy a public route. |
 | `projection_validator` | Generated/read-model parity checks. | Compares projections against source and builder expectations; does not own source meaning. |
 | `source_validator` | Source-home, domain, route-card, intake, canon, or mechanics checks. | Validates source-owned boundaries without becoming doctrine. |
 | `compatibility_builder` | Public compatibility mirrors and public-safe examples. | Writes mirrors only from canonical source routes. |
