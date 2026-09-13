@@ -237,7 +237,9 @@ rely on the trusted bootstrap and cooperating source owner, not protection
 against arbitrary same-UID changes to unobserved bytes. A selected Agent
 transition reuses Claim/slot descriptors without changing their local addresses.
 General Claim mutation/history transport is unsupported by this current-slot
-reader; a historical Claim cannot be silently rebound to its current row.
+reader. The bounded assembler uses the owner ClaimVersionReader only for an
+explicit collection-order version basis; a historical Claim cannot be
+silently rebound to its current row.
 
 ### Concrete selected source assembly
 
@@ -265,12 +267,19 @@ actual retained source/archive provenance, never current-use permission.
 `ClaimAssemblyLimits` bound selected Claim/metadata counts, addressed lookups,
 protected adjacent/schema/evidence files, bytes read and complete returned
 inputs plus expanded projection bytes. The catalog's explicit `MutationLimits`,
-source reader's `SourceSlotLimits`, and metadata reader's existing 64 MiB
-aggregate/per-record/history limits remain separate owner bounds. A limit
-refusal returns no partial cohort. There is no source discovery, whole JSONL
-lookup, caller-supplied node/verification flag, implicit bootstrap or remote
-schema fetch. Unsupported metadata transport, historical Claim versions and
-collection-order version-basis profiles fail closed without latest fallback.
+source reader's `SourceSlotLimits`, metadata reader's and ClaimVersionReader's
+existing bounded aggregate/per-record/history limits remain separate owner
+bounds. A limit refusal returns no partial cohort. The addressed current-slot
+lane performs no source discovery or whole-JSONL lookup. An explicit
+collection-order version basis is different by design: its owner
+`ClaimVersionReader` reads the bounded Claim catalog and selected source package
+to resolve each exact retained ref; its aggregate work is exposed in the
+`claim_versions` accounting, but is not a selected-work scaling proof. Neither
+lane accepts a caller-supplied node/verification flag, performs an implicit
+bootstrap or fetches remote schemas. Unsupported metadata transport and
+historical Claim versions outside the explicit collection-order basis fail
+closed without latest fallback; that basis is resolved through exact retained
+Claim refs.
 
 The assembler takes no writer lock. `verify_current()` rechecks the cooperating
 source publication, observed protected metadata and source-slot inputs, plus
@@ -293,9 +302,10 @@ an explicit root-vector/WAL bootstrap and verifies the old prepared cohort;
 it does not silently adopt the legacy global-catalog-provenance profile.
 `build_source_navigation(..., catalog_snapshot=...)` provides the full new-profile
 bootstrap/oracle using the same actual addressed metadata reader; its legacy
-default is unchanged. General source membership, historical Claim transport,
-collection-order and non-descriptive transitions remain outside this bounded
-profile, not implicitly covered by a green Agent correction.
+default is unchanged. General source membership, Claim mutation transport and
+non-descriptive transitions remain outside this bounded profile, not
+implicitly covered by a green Agent correction. Explicit collection-order
+version bases are a separate exact reader path, not membership admission.
 
 Evidence nodes carry a bounded readable `display` from owner metadata.
 An identity can reuse its catalog `preferred_label`. Direct Markdown

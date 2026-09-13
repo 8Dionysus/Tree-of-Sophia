@@ -227,6 +227,19 @@ class ClaimVersionReader:
         self._publication.verify_current()
         self._snapshot.verify()
 
+    @property
+    def accounting(self):
+        """Read-only bounded work counters, not availability or admission."""
+        return {
+            'read_bytes': self._snapshot.bytes,
+            'max_read_bytes': MAX_TOTAL_BYTES,
+            'catalog_records': (len(self._catalog_entries)
+                                if self._catalog_entries is not None else 0),
+            'packages': len(self._packages),
+            'observed_files': sum(not directory for _path, directory in self._snapshot.observed),
+            'observed_directories': sum(directory for _path, directory in self._snapshot.observed),
+        }
+
     def _package(self, relative):
         if relative in self._packages:
             return self._packages[relative]

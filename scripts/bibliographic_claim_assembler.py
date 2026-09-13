@@ -2,9 +2,10 @@
 
 The explicit source catalog bootstrap owns membership and JSONL locations.
 Current source slots and exact metadata history are verified by their real
-owner readers. This module performs only selected forward lookups and shares
-the full builders' renderers. It cannot admit source, select a prepared root,
-prove incident closure, or transport historical Claim versions.
+owner readers. Exact collection-order membership versions are resolved by the
+owner's bounded ClaimVersionReader; this module performs only selected forward
+lookups and shares the full builders' renderers. It cannot admit source, select
+a prepared root, or prove incident closure.
 """
 from __future__ import annotations
 
@@ -231,10 +232,11 @@ class BibliographicClaimAssembler:
 
     ``limits`` bounds this adapter's selected files/lookups/materializations;
     ``slot_limits`` bounds real current source rows/profile verification; the
-    catalog retains its caller-selected MutationLimits and MetadataVersionReader
-    retains its own 64 MiB aggregate and per-record/history owner limits. None
-    is a caller-attested verification flag. Reuse the assembler, then call
-    verify_current immediately before the stronger owner's guarded publication.
+    catalog retains its caller-selected MutationLimits, while the
+    MetadataVersionReader and lazy ClaimVersionReader retain their own bounded
+    aggregate/per-record/history owner limits. None is a caller-attested
+    verification flag. Reuse the assembler, then call verify_current
+    immediately before the stronger owner's guarded publication.
     """
     def __init__(self, root: Path, *, catalog_snapshot: SourceCatalogSnapshot,
                  limits: ClaimAssemblyLimits | None = None, slot_limits: SourceSlotLimits | None = None):
@@ -246,6 +248,16 @@ class BibliographicClaimAssembler:
                                                       limits=slot_limits)
         self.catalog_snapshot = catalog_snapshot
         self.metadata_reader = MetadataVersionReader(self.root, catalog_snapshot=catalog_snapshot)
+        # The historical Claim reader is intentionally lazy: ordinary Claims
+        # must not pay for or imply historical transport. When a native
+        # collection-order Claim opts into the exact basis adapter below, this
+        # is the same owner resolver used by the full bibliographic builder.
+        self._claim_version_reader = None
+        # The full graph builder grounds this basis with its independent exact
+        # metadata reader (without an addressed snapshot). Keep that provenance
+        # shape identical while current endpoint nodes remain catalog-backed by
+        # ``self.metadata_reader``.
+        self._collection_metadata_reader = None
         self.files = _Files(self.root, self.limits)
         self._objects, self._metadata, self._slots, self._claim_rows = {}, {}, {}, {}
         self._lookups = self._claims = self._output_bytes = 0
@@ -329,11 +341,27 @@ class BibliographicClaimAssembler:
             self._profiles = profiles.SourceClaimProfiles(self.root, read_json=self.files.json)
         return self._profiles
 
+    def _historical_claim_reader(self):
+        """Return the exact owner resolver for declared Claim versions only."""
+        if self._claim_version_reader is None:
+            # Keep this import lazy so the ordinary current-only path remains
+            # unchanged, and so the resolver's own version/digest checks stay
+            # the authority for retained Claim bytes.
+            import claim_version_reader
+            self._claim_version_reader = claim_version_reader.ClaimVersionReader(self.root)
+        return self._claim_version_reader
+
+    def _collection_order_metadata_reader(self):
+        """Return the full builder's bounded exact collection-version reader."""
+        if self._collection_metadata_reader is None:
+            self._collection_metadata_reader = MetadataVersionReader(self.root)
+        return self._collection_metadata_reader
+
     def _validate(self, entry, claim):
         native = Path(entry['source_claim_file_ref']).name == profiles.SOURCE_CLAIM_BASENAME
         if entry['source_claim_file_ref'] == graph.OBJECT_LINK_CLAIM_REF:
             validate_legacy_object_link(claim, legacy_object_link_validator(self.files.json(LINK_SCHEMA)), self.objects)
-            return render_legacy_object_link_context(entry['source_claim_line'], claim)
+            return render_legacy_object_link_context(entry['source_claim_line'], claim), None
         selected = self._claim_profiles() if native else None
         if (entry.get('claim_type') not in {'bibliographic', 'relation'}
                 or not native and entry.get('claim_type') == 'relation'
@@ -346,15 +374,23 @@ class BibliographicClaimAssembler:
             route = selected.schema_routes[claim['predicate'], claim['schema_version']]['schema_ref']
             if entry.get('source_schema_ref') != route:
                 raise ClaimAssemblyError('Claim catalog schema route differs from its exact profile')
-            if selected.profiles[claim['predicate']].get('object_reference_set', {}).get('basis_adapter'):
-                raise ClaimAssemblyUnsupported('collection-order exact Claim history needs a bounded historical Claim producer')
+            basis_adapter = selected.profiles[claim['predicate']].get('object_reference_set', {}).get('basis_adapter')
+            collection_order_basis = None
+            if basis_adapter == 'collection-membership-versions-v1':
+                # This is deliberately the shared owner grounding routine: it
+                # resolves every exact collection and membership ref, retains
+                # historical/current status and provenance, verifies the same
+                # reader snapshots, and never substitutes a current Claim.
+                collection_order_basis = profiles.ground_collection_order(
+                    claim, self._collection_order_metadata_reader(), self._historical_claim_reader())
+            return None, collection_order_basis
         else:
             if claim.get('assertion_layer') not in {'bibliographic_assertion', 'scholarly_report'}:
                 raise ClaimAssemblyUnsupported('Claim assertion layer is outside the full owner profile')
             if claim.get('predicate') in graph.HISTORICAL_PREDICATES:
                 contract = graph._historical_claim_contract(self.root, read_json=self.files.json)
                 graph._validate_historical_claim(claim, self.objects, contract, read_json=self.files.json)
-        return None
+        return None, None
 
     def _bindings(self):
         return {'catalog_root_sha256': self.catalog_snapshot.root_sha256,
@@ -369,9 +405,15 @@ class BibliographicClaimAssembler:
                 'metadata_records': len(self._metadata), 'files': len(self.files.observed),
                 'read_bytes': self.files.read_bytes, 'output_bytes': self._output_bytes,
                 'source_slots': self.source_reader.accounting, 'catalog': self.catalog_snapshot.accounting,
-                'metadata_versions': self.metadata_reader.accounting},
+                'metadata_versions': self.metadata_reader.accounting,
+                'collection_metadata_versions': (
+                    self._collection_metadata_reader.accounting
+                    if self._collection_metadata_reader is not None else None),
+                'claim_versions': (self._claim_version_reader.accounting
+                                   if self._claim_version_reader is not None else None)},
             'scope': 'selected-forward-source-assembly', 'reverse_claim_closure_verified': False,
-            'source_admission': False, 'establishes_epoch': False, 'historical_claim_transport': False}
+            'source_admission': False, 'establishes_epoch': False,
+            'historical_claim_transport': self._claim_version_reader is not None}
 
     def _charge_output(self, value):
         size = len(catalog.canonical_bytes(_json_size_value(value)))
@@ -389,7 +431,7 @@ class BibliographicClaimAssembler:
         entry, claim = read.catalog_claim.entry, read.payload
         self._claim_rows[claim_id] = read.catalog_claim.provenance
         self._slots[read.slot.source_slot_key] = read.provenance
-        context = self._validate(entry, claim)
+        context, collection_order_basis = self._validate(entry, claim)
         subject_node = graph._identity_node(self.objects[claim['subject_ref']])
         value = claim['object']
         if isinstance(value, str) and value in self.objects:
@@ -438,7 +480,8 @@ class BibliographicClaimAssembler:
             evidence_nodes, counterevidence, frozenset(existing), self.navigation_registry, self.entity_registry,
             maker_identity_node=maker_identity, member_nodes=member_nodes,
             normalized_identity_edges=tuple((kind, graph._identity_node(self.objects[ref])) for kind, ref in identity_edges),
-            forms=self._forms(entry, claim, claim=True), legacy_object_link_context=context)
+            forms=self._forms(entry, claim, claim=True), collection_order_basis=collection_order_basis,
+            legacy_object_link_context=context)
         dependencies = graph.enumerate_bibliographic_claim_dependencies(inputs)
         projected = graph.project_bibliographic_claim(inputs)
         self._charge_output({'inputs': inputs, 'projection': projected,
@@ -477,4 +520,8 @@ class BibliographicClaimAssembler:
     def verify_current(self):
         self.source_reader.verify_current()
         self.metadata_reader.verify_current()
+        if self._collection_metadata_reader is not None:
+            self._collection_metadata_reader.verify_current()
+        if self._claim_version_reader is not None:
+            self._claim_version_reader.verify_current()
         self.files.verify()

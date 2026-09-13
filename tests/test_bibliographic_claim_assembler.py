@@ -15,6 +15,8 @@ for directory in (ROOT / 'scripts', ROOT / 'access/src', ROOT / 'tests',
 import test_source_witness_bibliographic_graph as graph_fixtures
 import test_source_catalog_slots as slot_fixtures
 import bibliographic_claim_assembler as assembly
+import claim_revisions
+import source_revisions as claim_packages
 import source_catalog_projection as catalog
 import build_source_witness_catalog as legacy
 import source_witness_bibliographic_graph_common as graph
@@ -295,7 +297,7 @@ class BibliographicClaimAssemblerTests(unittest.TestCase):
         self.assertIn('ToS/contracts/social-relation-claim.schema.json', result.bindings['files'])
         self.assertEqual(result.inputs.source_claim['extensions'], claim['extensions'])
 
-    def test_collection_order_basis_is_explicitly_unsupported_without_historical_claim_fallback(self):
+    def test_collection_order_basis_uses_owner_historical_reader_and_is_projected(self):
         helper, claim, ref = self.native_claim_fixture()
         collection = {**helper.fixture.record, 'record_type': 'collection',
                       'record_id': 'tos.collection.assembly-fixture', 'membership_claim_refs': []}
@@ -318,9 +320,158 @@ class BibliographicClaimAssemblerTests(unittest.TestCase):
         snapshot = helper.snapshot(helper.bootstrap())
         row = snapshot.get_claim(claim['claim_id'])
         reader = assembly.BibliographicClaimAssembler(helper.root, catalog_snapshot=snapshot)
-        with patch('claim_version_reader.ClaimVersionReader', side_effect=AssertionError('full Claim history transport')):
-            with self.assertRaisesRegex(assembly.ClaimAssemblyUnsupported, 'historical Claim producer'):
-                reader.assemble(claim['claim_id'], expected_row_sha256=row.row_sha256)
+        basis = {
+            'collection': {'ref': copy.deepcopy(claim['object']['collection_version']),
+                           'provenance': {'source': 'fixture'}, 'version_status': 'historical'},
+            'memberships': [{'ref': copy.deepcopy(membership_ref), 'provenance': {'source': 'fixture'},
+                             'version_status': 'historical'}
+                            for membership_ref in claim['object']['membership_versions']],
+            'input_digests': {'ToS/test/retained-membership.jsonl': 'a' * 64},
+            'establishes_membership': False, 'grants_admission': False,
+        }
+        with patch.object(assembly.profiles, 'ground_collection_order', return_value=basis) as ground:
+            result = reader.assemble(claim['claim_id'], expected_row_sha256=row.row_sha256)
+        ground.assert_called_once_with(claim, reader._collection_metadata_reader, reader._claim_version_reader)
+        self.assertEqual(result.inputs.collection_order_basis, basis)
+        self.assertEqual(result.project(), graph.project_bibliographic_claim(result.inputs))
+        self.assertTrue(result.bindings['historical_claim_transport'])
+        self.assertEqual(result.bindings['accounting']['claim_versions']['max_read_bytes'],
+                         64 * 1024 * 1024)
+
+    def test_collection_order_assembles_a_real_retained_membership_version(self):
+        """A controlled correction proves transport, not historical truth."""
+        helper = self.agent_fixture()
+        for name in ('source-claim-record', 'source-relation-claim', 'source-member-structure-claim',
+                     'source-structured-value', 'scoped-member-structure'):
+            ref = 'ToS/contracts/' + name + '.schema.json'
+            helper.fixture.write(ref, (ROOT / ref).read_bytes())
+        collection = {**helper.fixture.record, 'record_type': 'collection',
+                      'record_id': 'tos.collection.assembly-history-fixture',
+                      'membership_claim_refs': ['tos.claim.collection-order-history-member']}
+        work = {**helper.fixture.record, 'record_type': 'work',
+                'record_id': 'tos.work.assembly-history-fixture', 'expression_claim_refs': []}
+        helper.fixture.write('ToS/source-witnesses/collections/history-fixture/collection.json',
+                             canonical_bytes(collection))
+        helper.fixture.write('ToS/source-witnesses/works/history-fixture/work.json', canonical_bytes(work))
+
+        membership_id = 'tos.claim.collection-order-history-member'
+        membership_ref = 'ToS/source-witnesses/relations/collection-order-history-membership/source-claims.jsonl'
+        membership = copy.deepcopy(helper.claim)
+        membership.pop('reviews', None)
+        unknown = membership.pop('uninterpreted', {})
+        membership.update(schema_version='tos_source_relation_claim_v1', claim_type='relation',
+                          extensions=unknown, claim_id=membership_id, subject_ref=collection['record_id'],
+                          predicate='contains_work', object=work['record_id'], claim_version=1,
+                          assertion_layer='scholarly_report', polarity='positive', qualifiers={
+                              'statement': 'Initial controlled membership wording.',
+                              'statement_language': 'en', 'statement_script': 'Latn',
+                              'relation_basis': 'Controlled transport fixture only.',
+                              'time_scope_note': 'No historical dates asserted.'})
+        helper.fixture.write(membership_ref, canonical_bytes(membership))
+        membership_path = helper.root / membership_ref
+        form_path = assembly.forms.claim_forms_path(membership_path, membership_id)
+        selection = {'form_id': 'tos.form.collection-order-history-member.statement',
+                     'field_id': 'claim.statement'}
+        initial_change = assembly.source.prepare_claim_change(membership, None, 'test:synthetic', **selection)
+        helper.fixture.write(form_path.relative_to(helper.root).as_posix(),
+                             claim_packages._encode(assembly.source._apply(
+                                 None, claim_revisions._subject(membership), [initial_change])))
+        helper.fixture.write((membership_path.parent / 'retained-context.json').relative_to(helper.root).as_posix(),
+                             b'{"controlled": true}\n')
+
+        # Build one actual retained archive and current successor with the same
+        # byte/package helpers the owner writer uses. This is fixture transport,
+        # not a production correction command or an admission decision.
+        files = claim_packages._package(membership_path.parent)
+        previous_ref = claim_revisions._subject(membership).ref
+        previous_revision = claim_packages._revision(files)
+        revised = claim_revisions._advance(
+            membership, {'qualifiers': {'statement': 'Current controlled membership wording.'}})
+        prior_forms = assembly.source._json_object(files[form_path.name])
+        revised_change = assembly.source.prepare_claim_change(revised, prior_forms, 'test:synthetic', **selection)
+        revised_forms = assembly.source._apply(
+            prior_forms, claim_revisions._subject(revised), [revised_change])
+        archive_config = {'source_root': str(helper.root), 'source_path': membership_ref,
+                          'record_id': membership_id}
+        claim_packages._archive(helper.root, archive_config, files,
+                                claim_revisions._subject(membership), previous_revision,
+                                reader=claim_revisions._read_archive)
+        request = {'operation': 'claim.revise', 'command_id': 'test:controlled-history-1',
+                   'fields': {'qualifiers': {'statement': 'Current controlled membership wording.'}},
+                   'forms': [selection], 'reason': 'Controlled transport fixture only.',
+                   'expected_source': previous_ref, 'expected_revision': previous_revision,
+                   'expected_configuration': 'sha256:' + '0' * 64,
+                   'expected_dependencies': 'sha256:' + '1' * 64, 'expected_inputs': {}}
+        receipt = {'command_id': request['command_id'],
+                   'request_digest': assembly.source._digest(assembly.source._canonical(request)),
+                   'principal_id': 'test:synthetic', 'authority_ref': 'test:not-production-authority',
+                   'owner_configuration': request['expected_configuration'],
+                   'recorded_at': '2026-01-01T00:00:00Z', 'reason': request['reason'],
+                   'previous_source': previous_ref, 'source': claim_revisions._subject(revised).ref,
+                   'previous_revision': previous_revision,
+                   'archive_path': claim_packages._archive_path(archive_config, previous_revision).as_posix(),
+                   'dependencies': request['expected_dependencies'], 'source_bindings': request['expected_inputs'],
+                   'changed_fields': ['qualifiers'], 'forms': [assembly.source._form_ref(revised_change['form'])],
+                   'grants_admission': False, 'request': request}
+        history = {'schema_version': 'tos_claim_revision_history_v1', 'source_path': membership_ref,
+                   'receipts': [receipt]}
+        membership_path.write_bytes(claim_revisions._replace(membership_path.read_bytes(), revised))
+        form_path.write_bytes(claim_packages._encode(revised_forms))
+        helper.fixture.write((membership_path.parent / claim_revisions.HISTORY).relative_to(helper.root).as_posix(),
+                             claim_packages._encode(history))
+
+        target = copy.deepcopy(helper.claim)
+        target.pop('reviews', None)
+        unknown = target.pop('uninterpreted', {})
+        target.update(schema_version='tos_source_member_structure_claim_v1', claim_type='relation',
+                      claim_id='tos.claim.collection-order-history', assertion_layer='scholarly_report',
+                      extensions=unknown, qualifiers={
+                          'statement': 'Controlled order only, not a historical assertion.',
+                          'statement_language': 'en', 'statement_script': 'Latn',
+                          'relation_basis': 'Controlled transport fixture only.',
+                          'social_scope': 'Fixture-only collection order.',
+                          'time_scope_note': 'No historical dates asserted.'})
+        target_ref = 'ToS/source-witnesses/relations/native-assembly-history/source-claims.jsonl'
+        target.update(schema_version='tos_source_member_structure_claim_v1',
+                      subject_ref=collection['record_id'], predicate='collection_member_order',
+                      object={'kind': 'collection-member-order', 'members': [work['record_id']],
+                              'source_wording': {'text': 'Controlled order only.', 'language': 'en', 'script': 'Latn'},
+                              'source_scope': 'A controlled transport fixture.', 'coverage': 'partial',
+                              'membership_basis': 'Controlled correction fixture, not historical evidence.',
+                              'ordering': {'mode': 'unordered', 'basis': 'No order asserted.', 'precedes': []},
+                              'limitations': 'No historical or bibliographic admission.',
+                              'collection_version': assembly.source.metadata_subject(collection).ref,
+                              'membership_versions': [previous_ref]})
+        helper.fixture.write(target_ref, canonical_bytes(target))
+        helper.fixture.rebuild()
+        snapshot = helper.snapshot(helper.bootstrap())
+        target_row = snapshot.get_claim(target['claim_id'])
+        reader = assembly.BibliographicClaimAssembler(helper.root, catalog_snapshot=snapshot)
+        result = reader.assemble(target['claim_id'], expected_row_sha256=target_row.row_sha256)
+        basis = result.inputs.collection_order_basis
+        self.assertTrue(result.bindings['historical_claim_transport'])
+        self.assertEqual(basis['memberships'][0]['ref'], previous_ref)
+        self.assertEqual(basis['memberships'][0]['version_status'], 'historical')
+        self.assertEqual(basis['memberships'][0]['provenance']['transition']['source'],
+                         claim_revisions._subject(revised).ref)
+        self.assertFalse(basis['establishes_membership'])
+        self.assertFalse(basis['grants_admission'])
+        accounting = result.bindings['accounting']['claim_versions']
+        self.assertGreater(accounting['read_bytes'], 0)
+        self.assertLessEqual(accounting['read_bytes'], accounting['max_read_bytes'])
+
+        claim_reader = reader._claim_version_reader
+        self.assertEqual(claim_reader.resolve(previous_ref)['version_status'], 'historical')
+        wrong_digest = {**previous_ref, 'digest': 'sha256:' + 'f' * 64}
+        self.assertEqual(claim_reader.resolve(wrong_digest)['reason'], 'exact-version-digest-mismatch')
+        missing_version = {**previous_ref, 'version': 9}
+        self.assertEqual(claim_reader.resolve(missing_version)['reason'], 'exact-version-not-retained')
+        current_ref = claim_revisions._subject(revised).ref
+        self.assertEqual(claim_reader.resolve(current_ref)['version_status'], 'current')
+        retained_context = helper.root / membership_ref.rsplit('/', 1)[0] / 'retained-context.json'
+        retained_context.write_bytes(b'{"controlled": false}\n')
+        with self.assertRaises(ValueError):
+            reader.verify_current()
 
 
 if __name__ == '__main__':
