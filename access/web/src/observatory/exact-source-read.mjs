@@ -14,6 +14,20 @@ const requireContract=condition=>{if(!condition)throw new ContractError(t('Не�
 const readonly=value=>value.grants_current_use===false&&value.performs_assessment===false&&value.writes_to_source===false;
 const byteSize=value=>new TextEncoder().encode(JSON.stringify(value)).byteLength;
 
+function requireRepresentableNumbers(packet){
+  // JSON.parse rounds integers outside JavaScript's safe range, including in
+  // unknown extensions. Never present that decoded value as an exact record.
+  // This conservative display limit does not change the owner source or grant
+  // the browser authority to rewrite a number as a string.
+  const pending=[packet];
+  while(pending.length){
+    const value=pending.pop();
+    if(typeof value==='number'&&(!Number.isFinite(value)||(Number.isInteger(value)&&!Number.isSafeInteger(value))))
+      throw new ContractError(t('Число в исходной записи нельзя показать без риска потери точности.'));
+    if(value!==null&&typeof value==='object')for(const child of Object.values(value))pending.push(child);
+  }
+}
+
 export function validateExactSourceTarget(target){
   requireContract(object(target)&&['metadata_record','claim_record'].includes(target.layer));
   const metadata=target.layer==='metadata_record';
@@ -88,6 +102,7 @@ export async function readExactSource(client,selection,{signal,timeoutMs=SOURCE_
     validateStatus(read,'tos_source_read_result_v1',expected.source_revision,target);
     requireContract(sameJson(read.handle,discovered.handle)&&sameJson(read.record_ref,target.record_ref)&&read.layer===target.layer);
     if(read.status==='available'){
+      requireRepresentableNumbers(read);
       requireContract(object(read.record)&&object(read.provenance)&&sameJson(read.access,discovered.handle.access)
         &&byteSize(read.record)<=1024*1024);
       const metadata=target.layer==='metadata_record';

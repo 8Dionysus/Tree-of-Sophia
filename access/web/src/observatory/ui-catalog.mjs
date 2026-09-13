@@ -1,5 +1,29 @@
 // Authored interface text only. Content-language variants remain server-owned.
 export const UI_CATALOG={
+  "Число в исходной записи нельзя показать без риска потери точности.": {
+    "en": "A number in the source record cannot be displayed without risking precision loss.",
+    "es": "Un número del registro fuente no se puede mostrar sin riesgo de perder precisión."
+  },
+  "Неверный ответ чтения источника.": {
+    "en": "Invalid source-read response.",
+    "es": "Respuesta de lectura de la fuente no válida."
+  },
+  "Неподдерживаемое досье источника.": {
+    "en": "Unsupported source dossier.",
+    "es": "Expediente de fuente no compatible."
+  },
+  "Неполная цепочка источника.": {
+    "en": "Incomplete source chain.",
+    "es": "Cadena de fuentes incompleta."
+  },
+  "Неверная ссылка на досье источника.": {
+    "en": "Invalid source dossier reference.",
+    "es": "Referencia al expediente de la fuente no válida."
+  },
+  "Чтение источника превысило время ожидания.": {
+    "en": "The source read timed out.",
+    "es": "Se agotó el tiempo de espera de lectura de la fuente."
+  },
   "Источник": {"en": "Source", "es": "Fuente"},
   "Статус": {"en": "Status", "es": "Estado"},
   "Версия материала изменилась. Обновите материал.": {

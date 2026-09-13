@@ -51,6 +51,16 @@ test('missing source target never guesses from graph ID, native ID or local refe
   assert.equal(result.status,'unsupported');assert.equal(result.record,null);assert.equal(calls.length,1);
 });
 
+test('unknown source fields cannot silently round a large integer in an exact record',async()=>{
+  const data=fixture();data.read.record.extension={values:['LARGE_INTEGER']};
+  const {client}=harness(data,(packet,path)=>new Response(
+    JSON.stringify(packet).replace('"LARGE_INTEGER"','9007199254740993')));
+  await assert.rejects(readExactSource(client,selection),ContractError);
+  data.read.record.extension={values:[Number.MAX_SAFE_INTEGER,-Number.MAX_SAFE_INTEGER,0,0.125,'9007199254740993']};
+  const result=await readExactSource(harness(data).client,selection);
+  assert.deepEqual(result.record.extension,data.read.record.extension);
+});
+
 test('nonavailable owner result stops at discovery without another request',async()=>{
   for(const status of ['missing','corrupt','access-restricted','over-budget','unsupported']){
     const data=fixture();data.discovery={...data.discovery,status,reason:'owner-unavailable',handle:null};
