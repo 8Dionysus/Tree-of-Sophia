@@ -34,9 +34,9 @@
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 550,
+    "excluded_tracked_path_count": 549,
     "human_scope": {
-      "bytes": 4394645,
+      "bytes": 4394543,
       "count": 804,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -91,9 +91,9 @@
           "lines": 202
         },
         "root": {
-          "bytes": 175405,
+          "bytes": 175303,
           "count": 14,
-          "lines": 3029
+          "lines": 3026
         },
         "scripts": {
           "bytes": 10577,
@@ -116,14 +116,14 @@
           "lines": 60739
         }
       },
-      "lines": 76814
+      "lines": 76811
     },
     "surface_kind_counts": {
       "executable": 200,
       "human": 804,
       "structured": 2296
     },
-    "tracked_path_count": 3850,
+    "tracked_path_count": 3849,
     "tracked_surface_count": 3300,
     "unhandled_family_count": 0,
     "unhandled_paths": []
@@ -134,7 +134,7 @@
       "surface_kind_counts": {
         "human": 14
       },
-      "tracked_surface_bytes": 175405,
+      "tracked_surface_bytes": 175303,
       "tracked_surface_count": 14
     },
     {
@@ -149,7 +149,7 @@
         "human": 3,
         "structured": 3
       },
-      "tracked_surface_bytes": 137956,
+      "tracked_surface_bytes": 137955,
       "tracked_surface_count": 6
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "51043284ed763f0ed2b9dba8297b0cb627d5ff3c4a518b512a9ce8882b4d8c41",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "4580d0c4f137eb3d298a9806fd78b9f4b5d988521ab1f9b1bf78964fb62ce967",
+  "tracked_surface_digest": "8187da04eceff36b9e090dabc3c46cf2bd3c7b3b0f8fedf9a8630a237a4bfa54",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -319,11 +319,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 86469,
+      "bytes": 86468,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "a0902dfaf5d35d386bdefb6b7920935a4c75549964e09820a023ce6602e770b5",
+      "sha256": "7869e8cdef729791795d0d929d76ac97ef23c5abddcb7b0ae7504565d08c3e11",
       "surface_kind": "structured"
     },
     {
@@ -439,11 +439,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5406,
+      "bytes": 5304,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "README.md",
-      "sha256": "be052cbe0d89b030a3d85c211543c30381287fbdb207da8750cc4cd5f137bd32",
+      "sha256": "7ed7f4161ce2b412a0bc8fae6241d32d0eb7c354daeef504613d7500d80eb48d",
       "surface_kind": "human"
     },
     {
