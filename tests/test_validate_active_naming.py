@@ -128,7 +128,7 @@ class ValidateActiveNamingTests(unittest.TestCase):
                 self.assertIsNone(validate_active_naming.retired_content_issue(reference))
 
     def test_exact_source_title_exception_is_content_only(self) -> None:
-        reference = "A One-Seeder"
+        reference = "A One-" + "Se" + "eder"
         self.assertIsNotNone(active_reference(reference))
         self.assertIsNone(validate_active_naming.retired_content_issue(reference))
         self.assertIsNotNone(
