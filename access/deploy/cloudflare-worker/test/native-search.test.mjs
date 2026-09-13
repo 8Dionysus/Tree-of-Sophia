@@ -90,7 +90,7 @@ async function response(database,mode='legacy',query='',extra={},method='GET'){
 }
 const options=(query='',extra={})=>({query,sources:null,kindIds:[],predicateIds:[],offset:0,limit:100,...extra});
 async function direct(database,mode,query='',extra={}){return nativePacketJson(await (mode==='indexed'?knowledgeSearchD1Indexed:knowledgeSearchD1)(database.db,options(query,extra)));}
-function oracle(mode,query,extra={}){return python(String.raw`
+function oracle(mode,query,extra={},graph=fixture.graph){return python(String.raw`
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -110,7 +110,7 @@ else:
     if cursor is None:break
   finally:model.close()
 print(json.dumps([json.dumps(packet,ensure_ascii=False,separators=(',',':'),allow_nan=False) for packet in out]))
-`,{graph:fixture.graph,mode,query,extra});}
+`,{graph,mode,query,extra});}
 function assertPackets(actual,expected,indexed=false){const differences=python(String.raw`
 def diff(a,b,path='$'):
  if type(a)!=type(b):return [path+': type differs']
@@ -127,6 +127,42 @@ if p['indexed']:
  for packet in (a,b):
   packet.pop('work');packet['page']['cursor']=packet['page']['cursor'] is not None;packet['page']['next_cursor']=packet['page']['next_cursor'] is not None
 print(json.dumps(diff(a,b)))`,{actual,expected,indexed});assert.deepEqual(differences,[]);}
+
+test('addressed case-tie relocation preserves Worker search and continuation source order',async()=>{
+ const change=python(String.raw`
+import sqlite3
+from incremental_runtime import prepare_search_address_indexes_transaction,plan_search_addresses_transaction
+p=json.load(sys.stdin);graph=json.loads(p['graph']);db=sqlite3.connect(':memory:')
+db.execute('CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(key,part))')
+db.execute('INSERT INTO edge_meta VALUES (?,0,?)',('data_revision',json.dumps({'sha256':'d'*64})))
+db.execute('CREATE TABLE knowledge_search_documents(kind TEXT,position INTEGER,id TEXT,id_lower TEXT,PRIMARY KEY(kind,position))')
+db.executemany('INSERT INTO knowledge_search_documents VALUES (?,?,?,?)',[(r[0],r[1],r[2],r[2].lower()) for r in p['documents']])
+prepare_search_address_indexes_transaction(db,expected_revision='d'*64)
+group=[n for n in graph['nodes'] if n['id'].lower()=='philosophy:tie'];assert len(group)==2
+ids=[n['id'] for n in reversed(group)]
+positions=[i for i,n in enumerate(graph['nodes']) if n['id'].lower()=='philosophy:tie']
+for i,n in zip(positions,reversed(group)):graph['nodes'][i]=n
+plan=plan_search_addresses_transaction(db,expected_revision='d'*64,kind='nodes',successor_groups={'philosophy:tie':ids})
+print(json.dumps({'plan':plan,'graph':json.dumps(graph,ensure_ascii=False,separators=(',',':'))}))
+`,{graph:fixture.graph,documents:fixture.documents});
+ const d=database();try{
+  const unrelated=d.sqlite.prepare("SELECT * FROM knowledge_search_grams WHERE kind='nodes' AND position NOT IN (?,?) ORDER BY gram,position")
+   .all(...Object.values(change.plan.before));
+  d.sqlite.exec('BEGIN');
+  for(const id of change.plan.changed_ids){const before=change.plan.before[id],after=change.plan.after[id];
+   d.sqlite.prepare('UPDATE knowledge_search_documents SET position=? WHERE kind=? AND position=?').run(after,'nodes',before);
+   d.sqlite.prepare('UPDATE knowledge_search_grams SET position=? WHERE kind=? AND position=?').run(after,'nodes',before);
+  }
+  d.sqlite.exec('COMMIT');
+  assert.deepEqual(d.sqlite.prepare("SELECT * FROM knowledge_search_grams WHERE kind='nodes' AND position NOT IN (?,?) ORDER BY gram,position")
+   .all(...Object.values(change.plan.after)),unrelated);
+  assertPackets(await direct(d,'legacy','alpha'),oracle('legacy','alpha',{limit:100},change.graph)[0]);
+  const expected=oracle('indexed','alpha',{limit:1},change.graph);let cursor=null;
+  for(const packet of expected){const responseValue=await response(d,'indexed','alpha',{limit:'1',...(cursor?{cursor}:{})});
+   assert.equal(responseValue.status,200);const raw=await responseValue.text();assertPackets(raw,packet,true);cursor=JSON.parse(raw).page.next_cursor;}
+  assert.equal(cursor,null);
+ }finally{d.close();}
+});
 
 for(const version of [8,9])test(`v${version} full search rows retain Python kinds, ordered keys, metadata and Unicode rank`,async()=>{
  const d=database(version);try{

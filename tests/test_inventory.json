@@ -762,7 +762,7 @@
       "family": "incremental_read_model_contract",
       "validation_lane": "standalone_access",
       "owner_surface": "access/deploy/cloudflare-worker/README.md",
-      "protects": "unchanged-row conservation, schema-bound deltas, stale-baseline rejection, atomic replayable publication, byte-preserving bounded SQL bootstrap with failure rollback and content-verified resumable build stages",
+      "protects": "unchanged-row conservation, schema-bound deltas, stale-baseline rejection, atomic replayable publication, stage-driven indexed deletion with bounded VM work, byte-preserving bounded SQL bootstrap with failure rollback, content-verified resumable build stages and bounded search address planning preserving exact case-tie order without unrelated posting renumbering",
       "coverage_authority": "access/AGENTS.md standalone access validation",
       "mode": "blocking",
       "runtime_cost": "fast",

@@ -31,6 +31,128 @@ PRIMARY_KEYS = {
 # UTF-8 bytes; the row-index limits below are derived from that contract rather
 # than from an identifier-shaped guess.
 MAX_D1_SQL_STATEMENT_BYTES = 100_000
+
+# Optional offline publisher indexes. They do not change the serving v9 row
+# schema or search order: position remains the last tie-break after id_lower.
+SEARCH_ADDRESS_INDEXES = {
+    'knowledge_search_address_id_idx': ('kind', 'id'),
+    'knowledge_search_address_tie_idx': ('kind', 'id_lower', 'position'),
+}
+MAX_SEARCH_ADDRESS = 9_007_199_254_740_991
+
+
+def _search_address_revision(db, expected_revision):
+    if not db.in_transaction:
+        raise ValueError('explicit caller transaction required')
+    if not isinstance(expected_revision, str) or not re.fullmatch('[0-9a-f]{64}', expected_revision):
+        raise ValueError('invalid expected D1 revision')
+    rows = db.execute("SELECT part,CASE WHEN length(CAST(json_chunk AS BLOB))<=1024 THEN json_chunk END "
+                      "FROM edge_meta WHERE key='data_revision' ORDER BY part LIMIT 2").fetchall()
+    if (len(rows) != 1 or rows[0][0] != 0 or rows[0][1] is None
+            or json.loads(rows[0][1]) != {'sha256': expected_revision}):
+        raise ValueError('D1 search address predecessor differs')
+
+
+def _search_address_indexes(db):
+    available = {row[1]: row for row in db.execute('PRAGMA index_list(knowledge_search_documents)')}
+    for name, columns in SEARCH_ADDRESS_INDEXES.items():
+        row = available.get(name)
+        keys = [r for r in db.execute(f'PRAGMA index_xinfo({name})') if r[5]]
+        if (row is None or row[4] or tuple(r[2] for r in keys) != columns
+                or any(r[3] or r[4] != 'BINARY' for r in keys)
+                or bool(row[2]) != (name == 'knowledge_search_address_id_idx')):
+            raise ValueError('explicit D1 search address index preparation required')
+
+
+def prepare_search_address_indexes_transaction(db, *, expected_revision, max_documents=200_000):
+    """Explicit optional maintenance; caller owns commit/rollback, never postings."""
+    _search_address_revision(db, expected_revision)
+    if type(max_documents) is not int or max_documents < 1:
+        raise ValueError('positive document preparation budget required')
+    count = db.execute('SELECT count(*) FROM (SELECT 1 FROM knowledge_search_documents LIMIT ?)',
+                       (max_documents + 1,)).fetchone()[0]
+    if count > max_documents:
+        raise ValueError('D1 search address index preparation budget exceeded')
+    for name, columns in SEARCH_ADDRESS_INDEXES.items():
+        unique = 'UNIQUE ' if name == 'knowledge_search_address_id_idx' else ''
+        db.execute(f'CREATE {unique}INDEX IF NOT EXISTS {name} ON knowledge_search_documents ({",".join(columns)})')
+    _search_address_indexes(db)
+    return {'documents': count, 'indexes': list(SEARCH_ADDRESS_INDEXES),
+            'row_mutations': 0, 'posting_mutations': 0, 'committed': False}
+
+
+def plan_search_addresses_transaction(db, *, expected_revision, kind, successor_groups,
+                                      max_groups=64, max_members=512, max_key_bytes=1_048_576):
+    """Plan stable posting addresses for complete successor id_lower tie groups.
+
+    The source publisher supplies and verifies the complete desired order in
+    each group. This read-only planner proves exact predecessor membership and
+    reserves disjoint addresses; it does not prove source closure, publish rows
+    or accept a partial group as a complete source transition.
+    """
+    _search_address_revision(db, expected_revision)
+    _search_address_indexes(db)
+    if kind not in ('nodes', 'relations'):
+        raise ValueError('unknown search address kind')
+    if any(type(n) is not int or n < 1 for n in (max_groups, max_members, max_key_bytes)):
+        raise ValueError('positive search address budgets required')
+    if not isinstance(successor_groups, dict) or len(successor_groups) > max_groups:
+        raise ValueError('search address group budget exceeded')
+    used = 0
+    for lower, ids in successor_groups.items():
+        if (not isinstance(lower, str) or not lower or lower.lower() != lower
+                or not isinstance(ids, (list, tuple)) or len(ids) > max_members
+                or any(not isinstance(i, str) or not i or i.lower() != lower for i in ids)
+                or len(set(ids)) != len(ids)):
+            raise ValueError('invalid complete successor search tie group')
+        used += len(lower.encode('utf-8')) + sum(len(i.encode('utf-8')) for i in ids)
+    if used > max_key_bytes or sum(map(len, successor_groups.values())) > max_members:
+        raise ValueError('search address successor budget exceeded')
+    last = db.execute('SELECT position FROM knowledge_search_documents WHERE kind=? '
+                      'ORDER BY position DESC LIMIT 1', (kind,)).fetchone()
+    high = -1 if last is None else last[0]
+    if type(high) is not int or high < -1 or high > MAX_SEARCH_ADDRESS:
+        raise ValueError('invalid search address high water')
+    initial_high, before, after = high, {}, {}
+    for lower, ids in successor_groups.items():
+        rows = db.execute('WITH selected AS (SELECT id,position FROM knowledge_search_documents '
+            'INDEXED BY knowledge_search_address_tie_idx WHERE kind=? AND id_lower=? '
+            'ORDER BY position LIMIT ?), framed AS (SELECT id,position, '
+            'sum(length(CAST(id AS BLOB))) OVER (ORDER BY position ROWS UNBOUNDED PRECEDING) AS bytes '
+            'FROM selected) SELECT CASE WHEN bytes<=? THEN id END,position FROM framed ORDER BY position',
+            (kind, lower, max_members - len(before) + 1, max_key_bytes - used)).fetchall()
+        if len(before) + len(rows) > max_members:
+            raise ValueError('search address predecessor member budget exceeded')
+        for identity, position in rows:
+            if (not isinstance(identity, str) or identity.lower() != lower
+                    or type(position) is not int or not 0 <= position <= initial_high):
+                raise ValueError('invalid predecessor search tie member')
+            used += len(identity.encode('utf-8'))
+            if used > max_key_bytes:
+                raise ValueError('search address predecessor byte budget exceeded')
+            before[identity] = position
+        for identity in ids:
+            found = db.execute('SELECT position,id_lower FROM knowledge_search_documents '
+                'INDEXED BY knowledge_search_address_id_idx WHERE kind=? AND id=?', (kind, identity)).fetchone()
+            if found is not None and (found[1] != lower or before.get(identity) != found[0]):
+                raise ValueError('search identity is omitted from its predecessor group')
+        retained_order = [identity for identity, _ in rows if identity in ids]
+        # Deletion and content-only change keep posting addresses. Addition or
+        # reordering relocates only this complete tie group above the high water.
+        if list(ids) == retained_order:
+            after.update((identity, before[identity]) for identity in ids)
+        else:
+            if high + len(ids) > MAX_SEARCH_ADDRESS:
+                raise ValueError('search address space exhausted')
+            for identity in ids:
+                high += 1
+                after[identity] = high
+    return {'schema': 'tos_d1_search_address_plan_v1', 'base_revision': expected_revision,
+            'kind': kind, 'high_water_before': initial_high, 'high_water_after': high,
+            'before': before, 'after': after,
+            'changed_ids': sorted(i for i in before.keys() | after.keys() if before.get(i) != after.get(i)),
+            'source_closure_verified': False, 'committed': False}
+
 # append_chunkable_insert admits a complete SQLite row whose SQL value
 # literals total at most this many UTF-8 bytes.  Keep the historical row-index
 # contract at least this broad even though ordinary primary keys are much
@@ -684,8 +806,7 @@ class DeltaRecorder:
                     continue
                 stage = self.stage(table)
                 operations.append(f"SELECT CASE WHEN (SELECT count(*) FROM {stage}) != {self.staged_counts[table]} OR (SELECT count(*) FROM {stage}_keys) != {self.key_counts[table]} THEN RAISE(ABORT, 'incomplete delta staging') END;")
-                equal = ' AND '.join(f'{table}.{key} IS changed.{key}' for key in keys)
-                operations.append(f'DELETE FROM {table} WHERE EXISTS (SELECT 1 FROM {stage}_keys changed WHERE {equal});')
+                operations.append(delete_staged_keys_sql(table, stage + '_keys'))
                 operations.append(f'INSERT INTO {table} SELECT * FROM {stage};')
             operations.append(f"SELECT CASE WHEN {current_revision} IS NOT '{self.revision}' THEN RAISE(ABORT, 'delta revision mismatch') END;")
             self.write(f'CREATE TRIGGER {publication} AFTER INSERT ON tos_delta_publications WHEN NEW.revision = \'{self.revision}\' BEGIN ' + ' '.join(operations) + ' END;')
@@ -734,3 +855,17 @@ class DeltaRecorder:
                 'reused_rows': self.reused_rows, 'removed_rows': self.removed_rows,
                 'sql_statements': self.statements, 'publication': 'single-statement-transaction',
                 'resume': 'replay-staging-and-idempotent-publication'}
+
+
+def delete_staged_keys_sql(table: str, keys_table: str) -> str:
+    """Seek serving primary keys from the bounded stage, retaining NULL IS law.
+
+    Registered producer tables are ordinary rowid tables, including composite
+    primary keys. CROSS JOIN pins the small key stage as the lookup driver;
+    the outer DELETE addresses only the found rowids, not the entire corpus.
+    """
+    if table not in PRIMARY_KEYS or not re.fullmatch('[a-z][a-z0-9_]*', keys_table):
+        raise ValueError('registered delta table and exact stage identifier required')
+    equal = ' AND '.join(f'target.{key} IS changed.{key}' for key in PRIMARY_KEYS[table])
+    return (f'DELETE FROM {table} WHERE rowid IN (SELECT target.rowid FROM {keys_table} AS changed '
+            f'CROSS JOIN {table} AS target WHERE {equal});')

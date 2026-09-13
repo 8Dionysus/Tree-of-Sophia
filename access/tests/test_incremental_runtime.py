@@ -20,6 +20,10 @@ from incremental_runtime import (
     DeltaRecorder,
     PRIMARY_KEYS,
     ROW_INDEX_MAX_KEY_CHARS,
+    prepare_search_address_indexes_transaction,
+    plan_search_addresses_transaction,
+    MAX_SEARCH_ADDRESS,
+    delete_staged_keys_sql,
 )
 
 
@@ -724,6 +728,33 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 db.executescript(path.read_text())
             self.assertEqual(db.execute("SELECT value FROM knowledge_nodes WHERE id='one'").fetchone()[0], 'new')
 
+    def test_stage_driven_delete_seeks_composite_keys_and_preserves_null_semantics(self):
+        with closing(self.database()) as db:
+            db.executemany('INSERT INTO knowledge_search_grams VALUES (?,?,?,?,?)',
+                (('nodes', '3', f'g{i}', str(i), 'stable') for i in range(10000)))
+            db.execute('INSERT INTO knowledge_search_grams VALUES (NULL,?,?,?,?)', ('3', 'null-key', '0', 'removed'))
+            db.execute('CREATE TABLE staged_keys AS SELECT kind,n,gram,position FROM knowledge_search_grams WHERE 0')
+            db.executemany('INSERT INTO staged_keys VALUES (?,?,?,?)',
+                [('nodes', '3', 'g5000', '5000'), (None, '3', 'null-key', '0'), ('nodes', '3', 'absent', '9')])
+            sql = delete_staged_keys_sql('knowledge_search_grams', 'staged_keys')
+            plan = [row[3] for row in db.execute('EXPLAIN QUERY PLAN ' + sql)]
+            self.assertTrue(any('SEARCH target USING' in row for row in plan), plan)
+            self.assertFalse(any('SCAN knowledge_search_grams' in row or 'SCAN target' in row for row in plan), plan)
+            steps = 0
+            def budget():
+                nonlocal steps
+                steps += 1
+                return int(steps > 2000)
+            db.set_progress_handler(budget, 1)
+            try:
+                db.execute(sql)
+            finally:
+                db.set_progress_handler(None, 0)
+            self.assertLess(steps, 2000)
+            self.assertEqual(db.execute('SELECT count(*) FROM knowledge_search_grams').fetchone()[0], 9999)
+            self.assertEqual(db.execute("SELECT value FROM knowledge_search_grams WHERE gram='g4999'").fetchone(), ('stable',))
+            self.assertIsNone(db.execute("SELECT value FROM knowledge_search_grams WHERE gram='null-key'").fetchone())
+
     def test_changed_chunked_row_has_complete_value_and_key_parser_handles_quotes(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'patch.sql'
@@ -949,3 +980,115 @@ class IncrementalRuntimeTests(unittest.TestCase):
             recorder = DeltaRecorder(Path(directory)/'patch.sql', 'a'*64, 'new-schema', {'schema': 'old-schema'})
             recorder.finish()
             self.assertFalse(recorder.summary()['available'])
+
+
+class SearchAddressPlanTests(unittest.TestCase):
+    def database(self, members=('Alpha', 'alpha', 'stable')):
+        db = sqlite3.connect(':memory:')
+        self.addCleanup(db.close)
+        db.execute('CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(key,part))')
+        db.execute('INSERT INTO edge_meta VALUES (?,?,?)', ('data_revision', 0, json.dumps({'sha256': 'a'*64})))
+        db.execute('CREATE TABLE knowledge_search_documents(kind TEXT,position INTEGER,id TEXT,id_lower TEXT,PRIMARY KEY(kind,position))')
+        db.execute('CREATE TABLE knowledge_search_grams(kind TEXT,gram TEXT,position INTEGER,PRIMARY KEY(kind,gram,position))')
+        for position, identity in enumerate(members):
+            db.execute('INSERT INTO knowledge_search_documents VALUES (?,?,?,?)', ('nodes', position, identity, identity.lower()))
+            db.execute('INSERT INTO knowledge_search_grams VALUES (?,?,?)', ('nodes', 'common', position))
+        db.commit()
+        return db
+
+    def ready(self, db):
+        db.execute('BEGIN IMMEDIATE')
+        return prepare_search_address_indexes_transaction(db, expected_revision='a'*64)
+
+    def plan(self, db, groups, **limits):
+        return plan_search_addresses_transaction(db, expected_revision='a'*64,
+            kind='nodes', successor_groups=groups, **limits)
+
+    def apply_plan(self, db, plan):
+        # Test-only source caller: one bounded posting per item. Actual publisher
+        # must reconstruct complete documents/postings and all remaining lanes.
+        for identity in plan['changed_ids']:
+            old = plan['before'].get(identity)
+            if old is not None:
+                db.execute('DELETE FROM knowledge_search_grams WHERE kind=? AND position=?', ('nodes', old))
+                db.execute('DELETE FROM knowledge_search_documents WHERE kind=? AND position=?', ('nodes', old))
+        for identity in plan['changed_ids']:
+            position = plan['after'].get(identity)
+            if position is not None:
+                db.execute('INSERT INTO knowledge_search_documents VALUES (?,?,?,?)', ('nodes', position, identity, identity.lower()))
+                db.execute('INSERT INTO knowledge_search_grams VALUES (?,?,?)', ('nodes', 'common', position))
+
+    def test_middle_insertion_preserves_unrelated_postings_and_exact_case_tie_order(self):
+        db = self.database()
+        before = list(db.iterdump())
+        receipt = self.ready(db)
+        self.assertEqual(receipt['posting_mutations'], 0)
+        planned = self.plan(db, {'alpha': ['Alpha', 'aLpha', 'alpha'], 'beta': ['beta']})
+        self.assertFalse(planned['source_closure_verified'])
+        self.assertEqual(planned['before'], {'Alpha': 0, 'alpha': 1})
+        self.assertEqual(planned['after'], {'Alpha': 3, 'aLpha': 4, 'alpha': 5, 'beta': 6})
+        self.apply_plan(db, planned)
+        # Same public rank/id_lower/source-order result as independent full
+        # successor enumeration, although physical posting addresses differ.
+        actual = [row[0] for row in db.execute('SELECT d.id FROM knowledge_search_grams g JOIN '
+            'knowledge_search_documents d USING(kind,position) WHERE g.gram=? ORDER BY d.id_lower,d.position', ('common',))]
+        successor = ['Alpha', 'aLpha', 'alpha', 'beta', 'stable']
+        self.assertEqual(actual, sorted(successor, key=lambda identity: (identity.lower(), successor.index(identity))))
+        self.assertEqual(db.execute("SELECT position FROM knowledge_search_documents WHERE id='stable'").fetchone(), (2,))
+        self.assertEqual(db.execute("SELECT position FROM knowledge_search_grams WHERE position=2").fetchall(), [(2,)])
+        db.rollback()
+        self.assertEqual(list(db.iterdump()), before)  # optional indexes and test writes roll back together
+
+    def test_content_deletion_reordering_and_distinct_insertions_are_bounded(self):
+        db = self.database(tuple(f'old-{i:04}' for i in range(1000)) + ('Alpha', 'alpha'))
+        self.ready(db)
+        self.assertEqual(self.plan(db, {'alpha': ['Alpha', 'alpha']})['changed_ids'], [])
+        removed = self.plan(db, {'alpha': ['alpha']})
+        self.assertEqual(removed['after'], {'alpha': 1001})
+        self.assertEqual(removed['changed_ids'], ['Alpha'])
+        reordered = self.plan(db, {'alpha': ['alpha', 'Alpha']})
+        self.assertEqual(list(reordered['after']), ['alpha', 'Alpha'])
+        added = self.plan(db, {'middle': ['middle']}, max_groups=1, max_members=1)
+        self.assertEqual(added['after'], {'middle': 1002})
+        self.assertEqual(added['before'], {})
+        empty = self.plan(db, {'alpha': []})
+        self.assertEqual(empty['after'], {})
+        self.assertEqual(empty['changed_ids'], ['Alpha', 'alpha'])
+        query = list(db.execute("EXPLAIN QUERY PLAN SELECT id,position FROM knowledge_search_documents "
+            "INDEXED BY knowledge_search_address_tie_idx WHERE kind='nodes' AND id_lower='alpha' ORDER BY position LIMIT 3"))
+        self.assertTrue(any('SEARCH' in r[3] and 'knowledge_search_address_tie_idx' in r[3] for r in query))
+
+    def test_refuses_unprepared_stale_oversized_or_corrupt_inputs_without_writes(self):
+        db = self.database()
+        with self.assertRaisesRegex(ValueError, 'caller transaction'):
+            self.plan(db, {})
+        db.execute('BEGIN')
+        with self.assertRaisesRegex(ValueError, 'index preparation'):
+            self.plan(db, {})
+        with self.assertRaisesRegex(ValueError, 'preparation budget'):
+            prepare_search_address_indexes_transaction(db, expected_revision='a'*64, max_documents=2)
+        prepare_search_address_indexes_transaction(db, expected_revision='a'*64)
+        before = list(db.iterdump())
+        for groups, limits in (({'alpha': ['Alpha', 'Alpha']}, {}), ({'ALPHA': []}, {}),
+                ({'alpha': ['not-alpha']}, {}), ({'alpha': []}, {'max_members': 1}),
+                ({'alpha': []}, {'max_key_bytes': 6}), ({'a': [], 'b': []}, {'max_groups': 1})):
+            with self.subTest(groups=groups, limits=limits), self.assertRaises(ValueError):
+                self.plan(db, groups, **limits)
+            self.assertEqual(list(db.iterdump()), before)
+        with self.assertRaisesRegex(ValueError, 'predecessor differs'):
+            plan_search_addresses_transaction(db, expected_revision='b'*64, kind='nodes', successor_groups={})
+        db.execute("UPDATE knowledge_search_documents SET id_lower='wrong' WHERE id='Alpha'")
+        with self.assertRaisesRegex(ValueError, 'omitted'):
+            self.plan(db, {'alpha': ['Alpha', 'alpha']})
+        db.execute("UPDATE knowledge_search_documents SET position=? WHERE id='stable'", (MAX_SEARCH_ADDRESS,))
+        with self.assertRaisesRegex(ValueError, 'space exhausted'):
+            self.plan(db, {'new': ['new']})
+
+    def test_wrong_index_definition_is_not_silently_replaced(self):
+        db = self.database()
+        db.execute('CREATE INDEX knowledge_search_address_id_idx ON knowledge_search_documents(id)')
+        db.execute('BEGIN')
+        with self.assertRaisesRegex(ValueError, 'index preparation'):
+            prepare_search_address_indexes_transaction(db, expected_revision='a'*64)
+        db.rollback()
+        self.assertEqual([r[2] for r in db.execute('PRAGMA index_info(knowledge_search_address_id_idx)')], ['id'])

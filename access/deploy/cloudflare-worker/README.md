@@ -100,6 +100,48 @@ companion; it requires fresh output paths without an existing/deployed baseline.
 It is not a delta deployment input or a substitute for remote D1 capacity
 admission. The ordinary build/CLI retains its existing defaults and companions.
 
+### Addressed search publication preparation
+
+The offline `incremental_runtime` module also exposes
+`prepare_search_address_indexes_transaction` and
+`plan_search_addresses_transaction`. These are explicit caller-transaction
+helpers, not a serving fallback or a completed all-lane delta producer.
+Preparation adds two optional publisher indexes over existing search documents
+(exact identity and lower-ID tie group); it leaves serving rows, postings,
+metadata and the v9 row schema unchanged. The caller must admit storage and
+index-build resources separately. Default preparation permits 200,000 documents.
+Wrong existing index definitions refuse rather than being silently replaced.
+
+The planner takes the exact current D1 revision and complete desired successor
+ID groups, ordered by the verified source publisher. Public search orders by
+rank, lower-ID and only then position. Thus physical posting addresses need
+not be dense or globally monotonic with source order: only equal lower-ID
+groups require the source-relative tie order. Content-only changes and deletion
+retain addresses; insertion or reordering relocates only that whole bounded
+tie group above the current high water. Unrelated postings need no renumbering.
+The caller must regenerate every moved member's complete postings, including
+unchanged source rows in a moved group, in the same guarded publication.
+
+Planning defaults to 64 groups, 512 predecessor/successor members and 1 MiB of
+key material, with SQL-side cumulative masking before key delivery. It is
+read-only and requires previously prepared exact indexes; no global document
+or posting scan is substituted. It refuses stale revision, malformed or
+incomplete predecessor membership, exhausted safe-integer address space and
+oversized groups. A plan is not source closure evidence, persisted reservation,
+admission or publication: source-order/group completeness, exact changed rows,
+all metadata/search/lens lanes, current-revision CAS and replay remain the
+responsibility of the joining publisher. Existing dense full-build/delta inputs
+and the serving ABI remain supported. This preparation alone does not claim
+successor D1 parity.
+
+Delta publication deletes by driving primary-key lookups from the staged key
+set and deleting the resulting rowids. It does not correlate each serving row
+against the stage, which would scan unchanged posting tables for a tiny patch.
+This uses the registered producer's ordinary rowid tables and retains null-safe
+`IS` key matching. The revision guard, complete-stage check and single-statement
+publication remain unchanged. Focused tests enforce both the indexed plan and
+bounded SQLite VM work, alongside atomic replay and missing-stage refusal.
+
 Lens and the other native published readers share a 64 KiB
 `knowledge_reader_top` boundary. It must match Python compact emitted framing,
 including numeric spelling and valid Unicode in every string and object key;
