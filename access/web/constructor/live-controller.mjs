@@ -3,7 +3,7 @@ import '../src/observatory/human-forms.css';
 import {mountConstructorSky} from './sky.mjs';
 import {createLiveResearch} from './live-research.mjs';
 import {ExplorationSession} from '../src/observatory/exploration-session.mjs';
-import {liveLabel,liveEdgeLabel} from './live-model.mjs';
+import {liveLabel,liveEdgeLabel,livePredicateLabel} from './live-model.mjs';
 import {readingDocument} from '../src/observatory/reader-model.mjs';
 import {renderHumanForms,renderClaimContext,renderEssentialContext} from '../src/observatory/human-forms-view.mjs';
 import {setUiLanguage} from '../src/observatory/ui-i18n.mjs';
@@ -46,7 +46,7 @@ const detail=(title,value)=>{const node=el('details');node.append(el('summary',t
 export async function mountLiveResearch(root,{session,skyFactory=mountConstructorSky,url=new URL(location.href)}={}){
   const activeSession=session??new ExplorationSession();
   let language=url.searchParams.get('lang')==='en'?'en':'ru',controller,readingOpen=false,disposed=false;
-  let options={},searchPage=null,searchQuery='',searchGeneration=0,renderedReading=null,renderedReadingError=null,renderedComparison=null;
+  let options={},searchPage=null,searchQuery='',searchGeneration=0,surfaceGeneration=0,renderedReading=null,renderedReadingError=null,renderedComparison=null;
   const t=key=>copy[language][key];setUiLanguage(language);
   root.dataset.mode='live';root.dataset.ready='false';
   root.innerHTML=`<canvas class="tree-sky" aria-hidden="true"></canvas><div class="tree-clusters"></div><div class="edge-labels"></div><div class="tree-stars"></div>
@@ -105,6 +105,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   controller=createLiveResearch({session:activeSession,sky,language,onChange:reflect});
   const transport=()=>controller.state().discovery;
   function modal(title,kind){
+    surfaceGeneration++;
     dialog.replaceChildren();dialog.dataset.kind=kind;dialog.classList.toggle('wide',kind==='comparison');
     const top=el('div','','dialog-top'),close=button('×',()=>dialog.close(),'icon');close.setAttribute('aria-label',t('close'));
     top.append(el('h2',title),close);const body=el('div','','dialog-content');dialog.append(top,body);if(!dialog.open)dialog.showModal();return body;
@@ -145,8 +146,14 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   }
   async function open(target,replace=false){
     if(!target)return;notice.hidden=true;
+    const surface=surfaceGeneration;
     const result=await controller.open(target,{replace,options});
-    if(result&&!disposed){drawer.hidden=true;dialog.close();readingOpen=true;renderedReading=undefined;reflect(controller.state());await controller.read();}
+    if(result&&!disposed){
+      // A late graph request must not dismiss a tool the reader opened while
+      // waiting. Only the surface that initiated this request may be closed.
+      if(surface===surfaceGeneration){drawer.hidden=true;dialog.close();}
+      readingOpen=true;renderedReading=undefined;reflect(controller.state());await controller.read();
+    }
   }
   async function search(cursor=null){
     const query=root.querySelector('.search').value,token=++searchGeneration;
@@ -165,7 +172,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     root.querySelector('.live-search-status').textContent=rows.length?'':searchPage?t('none'):'';
     const more=root.querySelector('.live-more');more.hidden=!searchPage?.page.has_more;more.disabled=false;
   }
-  function showSearch(){drawer.hidden=false;root.querySelector('.search').focus();sky.refresh();}
+  function showSearch(){surfaceGeneration++;drawer.hidden=false;root.querySelector('.search').focus();sky.refresh();}
   function showConditions(){
     const discovery=transport();if(!discovery)return;const body=modal(t('conditions'),'conditions');body.append(el('p',t('conditionNote'),'body'));
     const form=el('form');body.append(form);
@@ -178,7 +185,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     const depth=field(t('depth'),el('input'));depth.type='number';depth.min='0';depth.max=String(Math.min(10,discovery.exploration.limits.depth));depth.value=String(options.max_depth??2);
     const sources=field(t('sourceGraphs'),choose('sources',discovery.catalog.capabilities.sources.map(id=>[id,id]),true));
     for(const option of sources.options)option.selected=(options.sources??discovery.catalog.capabilities.sources).includes(option.value);
-    const predicates=field(t('predicates'),choose('predicates',discovery.catalog.predicates.map(item=>[item.predicate_id,liveLabel(item,language).role==='missing'?item.predicate_id:liveLabel(item,language).text]),true));
+    const predicates=field(t('predicates'),choose('predicates',discovery.catalog.predicates.map(item=>[item.predicate_id,livePredicateLabel(item,language)]),true));
     for(const option of predicates.options)option.selected=(options.predicate_ids??[]).includes(option.value);
     const submit=el('button',t('apply'),'primary');submit.type='submit';submit.disabled=!controller.state().view;form.append(submit);
     form.onsubmit=event=>{event.preventDefault();options={profile:profile.value,direction:direction.value,max_depth:Number(depth.value),

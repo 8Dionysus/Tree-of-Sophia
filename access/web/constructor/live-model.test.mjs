@@ -1,6 +1,6 @@
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
-import {StableExplorationLayout,liveLabel} from './live-model.mjs';
+import {StableExplorationLayout,liveLabel,livePredicateLabel} from './live-model.mjs';
 import {ExplorationSceneCache} from '../src/observatory/exploration-cache.mjs';
 import {buildExplorationSceneModel} from '../src/observatory/scene-model.mjs';
 import {pageFixture,secondPage} from '../src/observatory/exploration-test-fixtures.mjs';
@@ -32,4 +32,10 @@ test('layout moves admit only existing finite bounded coordinates',()=>{
   const packet=pageFixture(),cache=new ExplorationSceneCache(),view=cache.accept(cache.begin(packet.query),packet),model=buildExplorationSceneModel(view);
   const id=layout.project(view,model).nodes[0].id;
   for(const pos of [[NaN,0,0],[Infinity,0,0],[0,0],[1e6,0,0]])assert.throws(()=>layout.move(id,pos),RangeError);
+});
+test('catalog predicate labels use the supplied direct language map, never opaque ID words',()=>{
+  const predicate={predicate_id:'has_object',display:{ru:'имеет объект',en:'has object',default:'has object'}};
+  assert.equal(livePredicateLabel(predicate,'ru'),'имеет объект');
+  assert.equal(livePredicateLabel(predicate,'en'),'has object');
+  assert.equal(livePredicateLabel({predicate_id:'has_object',display:{}},'ru'),'Название не предоставлено');
 });
