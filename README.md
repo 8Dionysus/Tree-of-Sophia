@@ -15,10 +15,7 @@ and time while preserving uncertainty and competing readings.
 
 ## Demo
 
-<video controls preload="metadata" width="100%">
-  <source src="assets/tree-of-sophia-demo-2026-09-10.mp4" type="video/mp4">
-  Your browser does not support embedded video.
-</video>
+https://github.com/user-attachments/assets/9a75a3a2-7033-4d86-822c-805efb07ef7a
 
 ## Quick start
 
