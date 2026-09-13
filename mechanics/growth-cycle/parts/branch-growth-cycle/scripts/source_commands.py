@@ -1521,6 +1521,15 @@ def _run_form_command(owner_config, config, configuration, source_path, request)
             raise PermissionError('prepared operation is not delegated')
         response = result(snapshot)
         response['prepared_change'] = change
+        # Preview the proposed exact source copy through the same owner reader
+        # used after apply. The in-memory successor is not a source write or
+        # assessment; old materializations must not stand in for this preview.
+        proposed = _apply(payload, subject, [change])
+        preview = next(view for view in materialize(source, proposed, access_allowed=True)
+                       if view['form']['id'] == change['form']['form_id'])
+        if preview['state'] != 'ready':
+            raise ValueError('prepared source-copy does not satisfy the source metadata reader')
+        response['prepared_materialization'] = preview
         return response
     changes = _changes(request, config)
     if not isinstance(request['command_id'], str) or not 1 <= len(request['command_id']) <= 256:

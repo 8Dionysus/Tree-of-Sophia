@@ -41,9 +41,10 @@ retains at most two exact cards; independent cancellation and visible terminal
 errors prevent stale or indefinitely loading cards. Neither comparison nor
 source availability establishes semantic acceptance.
 
-This entry currently implements reading, not source commands or a complete
-research constructor. Path conditions, semantic comparison operations, direct
-local-source opening and authorized growth still need joint integration.
+This entry implements reading and one separately delegated source-copy command
+workflow, not a complete research constructor. Path conditions, semantic
+comparison operations, direct local-source opening and the remaining growth
+operations still need joint integration.
 Source references and existing human-form gaps remain visible. Unit checks in
 `live-research.test.mjs`, `live-model.test.mjs` and
 `../src/observatory/exploration-session.test.mjs` protect this adapter; real
@@ -64,6 +65,21 @@ It has no source/content revision binding, so the UI does not attribute the
 card's version to it. This is not source-byte delivery or permission to use a
 carrier. Ordinary local paths are not interpreted as dossier handles or file
 URLs; exact local-source reading still requires the source owner's safe ABI.
+
+**Source changes / Изменение источника** opens the separate
+[source-owner command transport](../../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/SOURCE_COMMAND_HTTP.md).
+The operator supplies its numeric loopback origin and a private in-memory key;
+the read-only access API never handles a write or issues a grant. The selected
+owner delegation, **not the selected star**, fixes the source and allowed forms.
+The panel displays that target, prepares an exact source-field copy with its
+full wording and mandatory context, and applies only the retained exact change.
+It does not perform interpretation, assessment, admission or automatic reader
+publication. In-flight and uncertain commands block accidental dialog close
+and request a browser unload warning. Transport timeout is an unknown owner
+outcome; explicit replay keeps the same command ID and expectations. A command
+can be copied before closing, but the key and draft are not persisted across a
+forced reload. Signed requests and replies authenticate the public metadata
+workflow without sending the key; they do not encrypt confidential payloads.
 
 ## What the mockup contains
 

@@ -8,6 +8,7 @@ import {liveLabel,liveEdgeLabel,livePredicateLabel} from './live-model.mjs';
 import {readingDocument} from '../src/observatory/reader-model.mjs';
 import {renderHumanForms,renderClaimContext,renderEssentialContext} from '../src/observatory/human-forms-view.mjs';
 import {setUiLanguage} from '../src/observatory/ui-i18n.mjs';
+import {mountSourceCommandPanel} from './source-command-panel.mjs';
 
 const copy={ru:{brand:'ДРЕВО СОФИИ',subtitle:'Исследование исходного знания',search:'Найти предмет или связь',close:'Закрыть',
   view:'ПРЕДСТАВЛЕНИЕ',compact:'Смысловые связи',grouped:'Предметы и записи',raw:'Все носители',conditions:'Условия раскрытия',
@@ -25,8 +26,8 @@ const copy={ru:{brand:'ДРЕВО СОФИИ',subtitle:'Исследование
   noPins:'Закрепите до двух материалов из карточки выбранного предмета или связи.',
   discoveryFailed:'Этот backend не предоставил совместимый контракт исследования. Исходные данные не изменены.',
   retry:'Повторить подключение',retryReading:'Повторить чтение',selected:'Выбранный материал',complete:'Раскрытие завершено',space:'Локальное поле чтения',
-  sourceDossier:'Открыть точное досье источника',sourceNoDossier:'Для этой локальной ссылки безопасный маршрут к досье не заявлен; путь не открывается автоматически.',
-  sourceDossierLoading:'Загружаю досье источника…',sourceDossierUnavailable:'Досье источника сейчас недоступно.',sourceNoLinks:'В возвращённой цепочке нет HTTP-ссылки на носитель.',sourceIdentity:'Точная идентичность',sourceRights:'Права и границы',sourceLinks:'Наблюдаемые ссылки',sourceStructure:'Структура досье',sourceRefs:'Ссылки владельца',sourceDossierNote:'Это досье содержит ограниченный набор библиографических сведений и технических ссылок. Оно не выдаёт исходные байты и не подтверждает разрешение на их использование.',sourceDossierVersionNote:'Досье не привязано к версии данных или записи. Версии карточки показаны отдельно и не являются версией досье.'},
+  sourceDossier:'Открыть точное досье источника',sourceChanges:'Изменение источника',sourceNoDossier:'Для этой локальной ссылки безопасный маршрут к досье не заявлен; путь не открывается автоматически.',
+  sourceDossierLoading:'Загружаю досье источника…',sourceDossierUnavailable:'Досье источника сейчас недоступно.',sourceNoLinks:'В возвращённой цепочке нет HTTP-ссылки на носитель.',sourceIdentity:'Точная идентичность',sourceRights:'Права и границы',sourceLinks:'Наблюдаемые ссылки',sourceStructure:'Структура досье',sourceRefs:'Ссылки владельца',sourceDossierNote:'Это досье содержит ограниченный набор библиографических сведений и технических ссылок. Оно не выдаёт исходные байты и не подтверждает разрешение на их использование.',sourceDossierVersionNote:'Досье не привязано к версии данных или записи. Версии карточки показаны отдельно и не являются версией досье.',sourceCommandUnconfirmedClose:'В этой операции есть неподтверждённая команда. Перед закрытием сохраните её; иначе повтор станет невозможен.',sourceCommandCopy:'Скопировать сохранённую команду',sourceCommandCopied:'Точная команда скопирована. Теперь можно закрыть окно.',sourceCommandClose:'Закрыть после сохранения',sourceCommandCopyUnavailable:'Не удалось скопировать команду; оставьте окно открытым и повторите попытку.'},
 en:{brand:'TREE OF SOPHIA',subtitle:'Explore source-owned knowledge',search:'Find an object or relation',close:'Close',
   view:'PRESENTATION',compact:'Meaningful relations',grouped:'Objects and records',raw:'All carriers',conditions:'Expansion conditions',
   compare:'Compare',continue:'Continue expansion',overview:'Fit the field',motion:'Space motion',cinema:'Hide interface',
@@ -42,8 +43,8 @@ en:{brand:'TREE OF SOPHIA',subtitle:'Explore source-owned knowledge',search:'Fin
   noPins:'Pin up to two materials from the selected object or relation card.',
   discoveryFailed:'This backend did not provide a compatible exploration contract. Source data is unchanged.',
   retry:'Reconnect',retryReading:'Retry reading',selected:'Selected material',complete:'Expansion complete',space:'Local reading field',
-  sourceDossier:'Open exact source dossier',sourceNoDossier:'No safe dossier route is advertised for this local reference; the path is not opened automatically.',
-  sourceDossierLoading:'Loading bounded source dossier…',sourceDossierUnavailable:'The source dossier is currently unavailable.',sourceNoLinks:'No carrier HTTP link is present in the returned link chain.',sourceIdentity:'Exact identity',sourceRights:'Rights and boundaries',sourceLinks:'Observed links',sourceStructure:'Dossier structure',sourceRefs:'Owner references',sourceDossierNote:'This dossier contains bounded bibliographic context and technical links. It does not deliver source bytes or conclude legal openness.',sourceDossierVersionNote:'The dossier contract carries no source/content revision; card revisions are shown separately and are not a dossier version.'}};
+  sourceDossier:'Open exact source dossier',sourceChanges:'Source changes',sourceNoDossier:'No safe dossier route is advertised for this local reference; the path is not opened automatically.',
+  sourceDossierLoading:'Loading bounded source dossier…',sourceDossierUnavailable:'The source dossier is currently unavailable.',sourceNoLinks:'No carrier HTTP link is present in the returned link chain.',sourceIdentity:'Exact identity',sourceRights:'Rights and boundaries',sourceLinks:'Observed links',sourceStructure:'Dossier structure',sourceRefs:'Owner references',sourceDossierNote:'This dossier contains bounded bibliographic context and technical links. It does not deliver source bytes or conclude legal openness.',sourceDossierVersionNote:'The dossier contract carries no source/content revision; card revisions are shown separately and are not a dossier version.',sourceCommandUnconfirmedClose:'This operation has an unconfirmed command. Save it before closing or replay will be impossible.',sourceCommandCopy:'Copy retained command',sourceCommandCopied:'The exact command was copied. You can now close the window.',sourceCommandClose:'Close after saving',sourceCommandCopyUnavailable:'The command could not be copied; keep this window open and try again.'}};
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);node.textContent=String(text??'');node.className=className;return node;};
 const button=(text,callback,className='text-button')=>{const node=el('button',text,className);node.type='button';node.onclick=callback;return node;};
 const detail=(title,value)=>{const node=el('details');node.append(el('summary',title),el('pre',JSON.stringify(value,null,2),'live-json'));return node;};
@@ -73,6 +74,62 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     <button class="icon" data-live-action="overview" data-live-title="overview">⤢</button><button class="icon" data-live-action="motion" data-live-title="motion">✧</button><button class="icon" data-live-action="cinema" data-live-title="cinema">◌</button></div></footer>
     <button class="show-panels" data-live-action="cinema" data-live-copy="show" hidden></button><p class="notice" role="status" hidden></p><dialog class="dialog"></dialog>`;
   const reading=root.querySelector('.reading'),drawer=root.querySelector('.materials-panel'),dialog=root.querySelector('dialog'),notice=root.querySelector('.notice');
+  let sourceCommandCleanup=null;
+  let sourceCommandBeforeUnload=false;
+  const sourceCommandBeforeUnloadHandler=event=>{
+    if(!sourceCommandPending())return;
+    event.preventDefault();event.returnValue='';
+  };
+  function syncSourceCommandBeforeUnload(){
+    const pending=sourceCommandPending();
+    if(!pending)dialog.querySelector('[data-source-command-close-warning]')?.remove();
+    if(pending&&!sourceCommandBeforeUnload){
+      window.addEventListener('beforeunload',sourceCommandBeforeUnloadHandler);sourceCommandBeforeUnload=true;
+    }else if(!pending&&sourceCommandBeforeUnload){
+      window.removeEventListener('beforeunload',sourceCommandBeforeUnloadHandler);sourceCommandBeforeUnload=false;
+    }
+  }
+  function disposeSourceCommandPanel(){
+    const mounted=sourceCommandCleanup;sourceCommandCleanup=null;
+    if(typeof mounted==='function')mounted();
+    else if(mounted&&typeof mounted.dispose==='function')mounted.dispose();
+    if(sourceCommandBeforeUnload){
+      window.removeEventListener('beforeunload',sourceCommandBeforeUnloadHandler);sourceCommandBeforeUnload=false;
+    }
+  }
+  const sourceCommandPending=()=>Boolean(sourceCommandCleanup?.hasUnconfirmedCommand?.());
+  function sourceCommandCloseWarning(){
+    const body=dialog.querySelector('.dialog-content');
+    if(!body||body.querySelector('[data-source-command-close-warning]'))return;
+    const warning=el('section','','source-command-close-warning');
+    warning.dataset.sourceCommandCloseWarning='true';
+    warning.append(el('p',t('sourceCommandUnconfirmedClose'),'body'));
+    const actions=el('div','','dialog-actions');
+    const copy=button(t('sourceCommandCopy'),async()=>{
+      copy.disabled=true;
+      try{
+        const retained=sourceCommandCleanup?.retainedCommand?.();
+        const write=globalThis.navigator?.clipboard?.writeText;
+        if(!retained||typeof write!=='function')throw new Error(t('sourceCommandCopyUnavailable'));
+        await write.call(globalThis.navigator.clipboard,JSON.stringify(retained,null,2));
+        status.textContent=t('sourceCommandCopied');
+        close.disabled=false;
+      }catch(error){
+        status.textContent=error?.message??t('sourceCommandCopyUnavailable');
+        copy.disabled=false;
+      }
+    },'text-button');
+    const close=button(t('sourceCommandClose'),()=>{
+      dialog.close();
+    },'text-button');
+    close.disabled=true;
+    const status=el('p','','muted');status.setAttribute('role','status');
+    actions.append(copy,close);warning.append(actions,status);body.prepend(warning);
+  }
+  function closeDialog(){
+    if(sourceCommandPending()){sourceCommandCloseWarning();return false;}
+    dialog.close();return true;
+  }
   const report=error=>{notice.textContent=error?.message??String(error);notice.hidden=false;};
   const attempt=action=>{try{return action();}catch(error){report(error);return null;}};
   const sky=skyFactory(root,{onSelect:id=>{readingOpen=true;attempt(()=>controller.selectNode(id));},
@@ -112,12 +169,14 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   controller=createLiveResearch({session:activeSession,sky,language,onChange:reflect});
   const transport=()=>controller.state().discovery;
   function modal(title,kind){
-    surfaceGeneration++;
+    if(sourceCommandPending()){sourceCommandCloseWarning();return null;}
+    disposeSourceCommandPanel();surfaceGeneration++;
     dialog.replaceChildren();dialog.dataset.kind=kind;dialog.classList.toggle('wide',['comparison','source-dossier'].includes(kind));
-    const top=el('div','','dialog-top'),close=button('×',()=>dialog.close(),'icon');close.setAttribute('aria-label',t('close'));
+    const top=el('div','','dialog-top'),close=button('×',closeDialog,'icon');close.setAttribute('aria-label',t('close'));
     top.append(el('h2',title),close);const body=el('div','','dialog-content');dialog.append(top,body);if(!dialog.open)dialog.showModal();return body;
   }
-  dialog.addEventListener('close',()=>{surfaceGeneration++;controller.cancelSourceDossier?.();});
+  dialog.addEventListener('close',()=>{surfaceGeneration++;controller.cancelSourceDossier?.();disposeSourceCommandPanel();});
+  dialog.addEventListener('cancel',event=>{if(sourceCommandPending()){event.preventDefault();sourceCommandCloseWarning();}});
   const sourceDossierRefs=snapshot=>[...new Set([snapshot?.raw?.source_dossier_ref,...(snapshot?.endpoints??[]).map(item=>item?.source_dossier_ref)])]
     .filter(isSourceDossierRef);
   function appendSourceDossier(container,dossier,snapshot,requestedRef){
@@ -148,13 +207,22 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   }
   async function openSourceDossier(requestedRef,snapshot){
     if(!isSourceDossierRef(requestedRef))return;
-    const body=modal(t('sourceDossier'),'source-dossier'),surface=surfaceGeneration;body.append(el('p',t('sourceDossierLoading'),'body'));
+    const body=modal(t('sourceDossier'),'source-dossier');if(!body)return;
+    const surface=surfaceGeneration;body.append(el('p',t('sourceDossierLoading'),'body'));
     try{
       const dossier=await controller.sourceDossier(requestedRef,{limit:SOURCE_DOSSIER_LIMIT});
       if(disposed||surface!==surfaceGeneration)return;
       body.replaceChildren();
       if(dossier)appendSourceDossier(body,dossier,snapshot,requestedRef);else body.append(el('p',t('sourceDossierUnavailable'),'body'));
     }catch(error){if(!disposed&&surface===surfaceGeneration){body.replaceChildren(el('p',error?.message??String(error),'body'));}}
+  }
+  function openSourceCommands(){
+    try{
+      const body=modal(t('sourceChanges'),'source-command');
+      if(!body)return;
+      sourceCommandCleanup=mountSourceCommandPanel(body,{language,onChanged:syncSourceCommandBeforeUnload});
+      syncSourceCommandBeforeUnload();
+    }catch(error){report(error);}
   }
   function appendReading(container,snapshot){
     const doc=readingDocument(snapshot,language);container.append(el('h1',doc.title?.text??t('noTitle')));
@@ -186,7 +254,8 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       return;
     }
     const actions=el('div','','reading-actions');actions.append(button(t('expand'),()=>open(controller.selectedTarget())),
-      button(t('newSpace'),()=>open(controller.selectedTarget(),true)),button(t('pin'),()=>void controller.pin()));reading.append(actions);
+      button(t('newSpace'),()=>open(controller.selectedTarget(),true)),button(t('pin'),()=>void controller.pin()),
+      button(t('sourceChanges'),openSourceCommands,'source-link'));reading.append(actions);
     appendReading(reading,state.reading);
     const target=state.view.selection,ids=target.kind==='claim-path'?[target.claimId]:[target.id],kind=target.kind==='relation'?'relations':'nodes';
     const reasons=state.view.contexts.flatMap(context=>ids.flatMap(id=>(context.inclusion[kind][id]??[]).map(reason=>({origin:context.origin,query:context.query,...reason}))));
@@ -203,7 +272,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     if(result&&!disposed){
       // A late graph request must not dismiss a tool the reader opened while
       // waiting. Only the surface that initiated this request may be closed.
-      if(surface===surfaceGeneration){drawer.hidden=true;dialog.close();}
+      if(surface===surfaceGeneration){drawer.hidden=true;closeDialog();}
       readingOpen=true;renderedReading=undefined;reflect(controller.state());await controller.read();
     }
   }
@@ -234,7 +303,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   }
   function showSearch(){surfaceGeneration++;drawer.hidden=false;root.querySelector('.search').focus();sky.refresh();}
   function showConditions(){
-    const discovery=transport();if(!discovery)return;const body=modal(t('conditions'),'conditions');body.append(el('p',t('conditionNote'),'body'));
+    const discovery=transport();if(!discovery)return;const body=modal(t('conditions'),'conditions');if(!body)return;body.append(el('p',t('conditionNote'),'body'));
     const form=el('form');body.append(form);
     const field=(label,node)=>{const row=el('label',label,'field');row.append(node);form.append(row);return node;};
     const choose=(name,items,multiple=false)=>{const select=el('select');select.name=name;select.multiple=multiple;if(multiple)select.size=5;
@@ -252,7 +321,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       sources:[...sources.selectedOptions].map(item=>item.value),predicate_ids:[...predicates.selectedOptions].map(item=>item.value)};void open(controller.selectedTarget());};
   }
   function renderComparison(state){
-    renderedComparison=state.comparison;const body=modal(t('compare'),'comparison'),grid=el('div','','comparison-grid');body.append(grid);
+    renderedComparison=state.comparison;const body=modal(t('compare'),'comparison');if(!body)return;const grid=el('div','','comparison-grid');body.append(grid);
     if(!state.comparison.length)body.append(el('p',t('noPins'),'body'));
     for(const item of state.comparison){const card=el('section');grid.append(card);if(item.reading)appendReading(card,item.reading);else card.append(el('p',item.error?.message??t('loading'),'body'));}
     body.append(button(t('clear'),()=>controller.clearComparison()));
@@ -272,13 +341,13 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     if(event.key==='/'){event.preventDefault();showSearch();}if(event.key==='Escape'){actions['close-search']();readingOpen=false;controller.closeReading();}
     if(event.key==='o'&&!dialog.open)sky.frame();};
   document.addEventListener('keydown',keydown);
-  const dispose=()=>{disposed=true;searchGeneration++;controller.dispose();root.removeEventListener('click',click);document.removeEventListener('keydown',keydown);};
+  const dispose=()=>{disposed=true;searchGeneration++;disposeSourceCommandPanel();controller.dispose();root.removeEventListener('click',click);document.removeEventListener('keydown',keydown);};
   window.addEventListener('pagehide',dispose,{once:true});
   reflect(controller.state());
   const discovery=await controller.start();if(discovery){root.dataset.ready='true';
     const id=url.searchParams.get('focus'),kind=url.searchParams.get('kind')??'node';
     if(id&&['node','relation'].includes(kind))await open({kind,id});else showSearch();
-  }else if(!disposed){const body=modal(t('discoveryFailed'),'connection');body.append(button(t('retry'),async()=>{
-    if(await controller.start()){root.dataset.ready='true';dialog.close();showSearch();}}));}
+  }else if(!disposed){const body=modal(t('discoveryFailed'),'connection');if(body)body.append(button(t('retry'),async()=>{
+    if(await controller.start()){root.dataset.ready='true';closeDialog();showSearch();}}));}
   return {controller,dispose};
 }

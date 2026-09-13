@@ -9,6 +9,10 @@ family. [Discovery contract](docs/SOURCE_COMMAND_DISCOVERY.md) explains the
 compact API, typed owner handles and limits: implemented is not authorized-now,
 and access adapters remain read-only.
 
+The separately selected [loopback command transport](docs/SOURCE_COMMAND_HTTP.md)
+can carry that same grammar to authenticated browser or agent clients. It owns
+no new grants and does not add writes to the access API.
+
 ### Explicit Claim display fields
 
 `public-source-forms` also exposes `tos_local_claim_form_owner_v2`, selected by
