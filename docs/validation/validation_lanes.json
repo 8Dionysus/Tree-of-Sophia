@@ -665,6 +665,10 @@
         "command": ["python", "-m", "unittest", "discover", "-s", "access/tests"]
       },
       {
+        "label": "run exact source-read pytest contracts",
+        "command": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "access/tests/test_source_read.py", "access/tests/test_source_read_owner.py"]
+      },
+      {
         "label": "validate standalone access source profile",
         "command": ["python", "access/packaging/validate_standalone.py"]
       }
@@ -799,6 +803,10 @@
       {
         "label": "run standalone access contract tests",
         "command": ["python", "-m", "unittest", "discover", "-s", "access/tests"]
+      },
+      {
+        "label": "run exact source-read pytest contracts",
+        "command": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "access/tests/test_source_read.py", "access/tests/test_source_read_owner.py"]
       },
       {
         "label": "validate standalone access source profile",
