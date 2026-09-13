@@ -61,6 +61,13 @@ or an inferred new-member order. It attaches only private derived lookup state
 to that same file. This is full offline bootstrap; capture/publication never
 call it implicitly.
 
+The context bootstrap accepts optional, caller-declared full-corpus budgets for
+catalog-part reads, Claim assembly and source-slot reads. Omitting them retains
+the correction-safe defaults; a full caller must provide its own explicit
+budgets rather than widening the delta/capture profile globally. The budgets
+bound selected work only and do not make an unsupported historical Claim
+producer available.
+
 The bounded profile requires self-owned bibliographic Claim context groups and
 reified bibliographic context-consuming relations outgoing from the governing
 Claim. A nonincident context consumer or a foreign contribution requires a

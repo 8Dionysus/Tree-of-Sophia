@@ -15,13 +15,14 @@ for directory in ('scripts', 'access/src', 'access/tests', 'tests', 'mechanics/g
 import test_bibliographic_claim_assembler as fixtures
 import source_agent_publication as publication
 import bibliographic_claim_assembler as assembly
+from source_catalog_projection import SourceSlotLimits
 import build_source_witness_catalog as legacy
 import source_witness_bibliographic_graph_common as bibliography
 import tos_corpus_index_common as navigation
 from tos_access import knowledge as k
 from tos_access.catalog_semantics import CatalogInputs, CANONICAL_ORDER, memory_catalog
 from tos_access.projection_store import Collection, ProjectionReader, write_projection, canonical_bytes
-from tos_access.projection_mutation import ProjectionSnapshotView
+from tos_access.projection_mutation import ProjectionSnapshotView, MutationLimits
 from tos_access.prepared_publication import publish_prepared
 from tos_access.prepared_semantics import bootstrap_prepared_maintenance_transaction
 from tos_access.prepared_source_binding import bootstrap_prepared_source_inputs_transaction
@@ -279,6 +280,62 @@ class SourceAgentPublicationTests(unittest.TestCase):
             source_publication=self.source.value()['source_publication'])
         with self.assertRaises(ValueError):
             publication._require_vector(foreign)
+
+    def test_full_context_accepts_explicit_budgets_without_widening_correction_defaults(self):
+        self.assertEqual(assembly.ClaimAssemblyLimits().max_claims, 64)
+        self.assertEqual(assembly.ClaimAssemblyLimits().max_output_bytes, 16 * 1024 * 1024)
+        self.assertEqual(publication.AgentPublicationLimits().max_claims, 64)
+        self.assertEqual(publication.AgentPublicationLimits().max_bytes, 16 * 1024 * 1024)
+
+        # The fixture was already bootstrapped once through the omitted-default
+        # path in setUp. Rebuild the private context tables and exercise the
+        # newly explicit full-only assembler budgets on the same tiny source.
+        for table in ('agent_context_heads', 'agent_context_refs',
+                      'agent_context_nodes', 'agent_context_state'):
+            self.db.execute('DROP TABLE ' + table)
+        self.db.commit()
+        catalog_limits = MutationLimits(
+            max_changes=0, max_input_bytes=64 * 1024 * 1024,
+            max_opened_parts=4096, max_stored_read_bytes=64 * 1024 * 1024,
+            max_decoded_bytes=64 * 1024 * 1024, max_keys=4096,
+            max_written_parts=0, max_written_decoded_bytes=0,
+            max_written_stored_bytes=0, max_result_bytes=16 * 1024 * 1024)
+        slot_limits = SourceSlotLimits(
+            max_source_files=1024, max_read_slots=4096,
+            max_read_bytes=64 * 1024 * 1024, max_row_bytes=1024 * 1024,
+            max_profile_bytes=8 * 1024 * 1024, max_profile_files=256)
+        too_small = assembly.ClaimAssemblyLimits(max_claims=64,
+            max_metadata_records=256, max_addressed_lookups=4096,
+            max_files=256, max_file_bytes=2 * 1024 * 1024,
+            max_read_bytes=64 * 1024 * 1024, max_output_bytes=1)
+        self.db.execute('BEGIN IMMEDIATE')
+        with self.assertRaises(assembly.ClaimAssemblyBudgetExceeded):
+            publication.bootstrap_agent_context_index_transaction(
+                self.db, source_root=self.root, expected_binding=self.binding,
+                source_inputs=self.source, catalog_inputs=self.inputs,
+                declaration_profile_sha256=self.profile,
+                ordered_nodes=self.graph['nodes'], ordered_relations=self.graph['relations'],
+                source_dossier_refs=[], progress_owner=self.owner,
+                catalog_read_limits=catalog_limits, assembly_limits=too_small,
+                slot_limits=slot_limits)
+        self.db.rollback()
+
+        full_limits = assembly.ClaimAssemblyLimits(max_claims=64,
+            max_metadata_records=256, max_addressed_lookups=4096,
+            max_files=256, max_file_bytes=2 * 1024 * 1024,
+            max_read_bytes=64 * 1024 * 1024, max_output_bytes=32 * 1024 * 1024)
+        self.db.execute('BEGIN IMMEDIATE')
+        publication.bootstrap_agent_context_index_transaction(
+            self.db, source_root=self.root, expected_binding=self.binding,
+            source_inputs=self.source, catalog_inputs=self.inputs,
+            declaration_profile_sha256=self.profile,
+            ordered_nodes=self.graph['nodes'], ordered_relations=self.graph['relations'],
+            source_dossier_refs=[], progress_owner=self.owner,
+            catalog_read_limits=catalog_limits, assembly_limits=full_limits,
+            slot_limits=slot_limits)
+        self.assertEqual(self.db.execute(
+            'SELECT count(*) FROM agent_context_state').fetchone()[0], 1)
+        self.db.commit()
 
     def test_missing_context_member_and_physical_seek_index_require_rollback(self):
         captured = self.capture()

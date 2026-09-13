@@ -233,12 +233,16 @@ def _body_bounded(b, kind, identity):
 
 def bootstrap_agent_context_index_transaction(db, *, source_root, expected_binding, source_inputs,
         catalog_inputs, declaration_profile_sha256, ordered_nodes, ordered_relations,
-        source_dossier_refs, progress_owner, limits=None):
+        source_dossier_refs, progress_owner, limits=None, catalog_read_limits=None,
+        assembly_limits=None, slot_limits=None):
     """Explicit full offline attachment; never called by capture or publication.
 
     The node stream is the full builder's original context encounter order. Its
     full rows must match the already selected publication exactly. Source order
     is not guessed from canonical normalized output or hash-part traversal.
+    Full-corpus callers may pass separate ``catalog_read_limits``,
+    ``assembly_limits`` and ``slot_limits``; correction callers retain the
+    bounded defaults when these are omitted.
     """
     _require_vector(source_inputs)
     _profiles(source_inputs, catalog_inputs, declaration_profile_sha256)
@@ -250,8 +254,10 @@ def bootstrap_agent_context_index_transaction(db, *, source_root, expected_bindi
         from bibliographic_claim_assembler import BibliographicClaimAssembler
         view = source_inputs.roots()['source-catalog']
         catalog = SourceCatalogSnapshot(view, expected_root_sha256=view.snapshot_digest,
-                                       trusted_baseline_sha256=view.snapshot_digest)
-        assembler = BibliographicClaimAssembler(Path(source_root), catalog_snapshot=catalog)
+                                       trusted_baseline_sha256=view.snapshot_digest,
+                                       limits=catalog_read_limits)
+        assembler = BibliographicClaimAssembler(Path(source_root), catalog_snapshot=catalog,
+                                                limits=assembly_limits, slot_limits=slot_limits)
         _current(b, expected_binding, source_inputs.digest, declaration_profile_sha256)
         if b.one('SELECT count(*) FROM source_dependency_claims')[0] != catalog.header['claim_count']:
             raise ValueError('source dependency bootstrap omitted or added a source Claim')
