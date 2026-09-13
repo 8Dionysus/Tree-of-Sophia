@@ -16,7 +16,6 @@ from .processing import Input
 from .lens_pagination import normalize_pagination, paginate_lens
 from .readable_context import ReadableContextCompiler, presentation_catalog, validate_vocabulary
 from .human_form_codec import bounded_cost, encode_human_form_selection
-from .source_read_projection import source_read_targets
 
 
 KNOWLEDGE_SOURCES = (
@@ -5838,6 +5837,9 @@ def inspect_knowledge_node(
     graph: dict[str, Any], identifier: str, relation_limit: int = 200,
     *, graph_index: KnowledgeGraphIndex | None = None,
 ) -> dict[str, Any]:
+    # Query-only dependencies must not change the normalization processor ABI.
+    from .source_read_projection import source_read_targets
+
     item_id = str(identifier).strip()
     if not item_id:
         raise ValueError("knowledge node id is required")
@@ -5890,6 +5892,8 @@ def inspect_knowledge_node(
 def inspect_knowledge_relation(
     graph: dict[str, Any], identifier: str, *, graph_index: KnowledgeGraphIndex | None = None,
 ) -> dict[str, Any]:
+    from .source_read_projection import source_read_targets
+
     item_id = str(identifier).strip()
     if not item_id:
         raise ValueError("knowledge relation id is required")

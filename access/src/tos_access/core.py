@@ -74,6 +74,7 @@ KNOWLEDGE_CONTRACT_RELATIVE_PATHS = {
     "lens_result": Path("access/contracts/lens-result.v1.schema.json"),
     "temporal_comparison_request": Path("access/contracts/temporal-comparison-request.v1.schema.json"),
     "temporal_comparison_result": Path("access/contracts/temporal-comparison-result.v1.schema.json"),
+    "source_read": SOURCE_READ_CONTRACT_RELATIVE_PATH,
     "entity_type_registry_schema": Path(
         "ToS/contracts/semantic-entity-type-registry.schema.json"
     ),

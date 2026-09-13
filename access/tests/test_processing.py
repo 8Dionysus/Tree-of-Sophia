@@ -492,6 +492,12 @@ class ProcessingTests(unittest.TestCase):
             before=normalization_processor_digest(path)
             path.write_text(initial.replace('return x\n','return x+99\n'))
             self.assertEqual(normalization_processor_digest(path),before)
+            path.write_text(initial.replace('def query(x): return x',
+                'def query(x):\n    from query_reader import inspect_source\n    return inspect_source(x)'))
+            self.assertEqual(normalization_processor_digest(path), before)
+            path.write_text(initial.replace('def _normalize_node(x): return helper(x)',
+                'def _normalize_node(x):\n    from source_normalizer import normalize\n    return normalize(x)'))
+            self.assertNotEqual(normalization_processor_digest(path), before)
             path.write_text(initial.replace('LIMIT=1','LIMIT=2'))
             self.assertNotEqual(normalization_processor_digest(path),before)
             assembly = initial + 'def assembly(x): return x+17\ndef build_knowledge_graph(x): return assembly(x)\n'

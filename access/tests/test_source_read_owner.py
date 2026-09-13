@@ -66,6 +66,27 @@ def test_cli_default_source_capabilities_do_not_load_owner(capsys):
     assert json.loads(capsys.readouterr().out)["available"] is False
 
 
+def test_source_operations_are_discoverable_without_owner_activation():
+    from tos_access.core import ToSAccessCore
+    from tos_access.cli import _parser
+    root = Path(__file__).resolve().parents[2]
+    with patch("tos_access.source_read_owner._owner_modules", side_effect=AssertionError("owner import")):
+        core = ToSAccessCore.discover(tos_root=root)
+        catalog = core.knowledge_contracts()
+        api = catalog["contracts"]["api"]
+        operations = {row["operation_id"]: row for row in api["operations"] if row["operation_id"].startswith("tos.source.")}
+        assert set(operations) == {"tos.source.read.capabilities", "tos.source.read.contracts",
+                                   "tos.source.handle.discover", "tos.source.record.read"}
+        for row in operations.values():
+            command = row["cli"].split()[1:]
+            assert _parser().parse_args(command).command == "source"
+            assert row["http"]["path"].startswith("/api/source/")
+            assert "Python" in row["available_on"]
+        assert api["data_contracts"]["source_read"] == "source-read.v1.schema.json"
+        assert catalog["contracts"]["source_read"]["$defs"]["handle"]
+        assert core.source_read_capabilities()["available"] is False
+
+
 def test_cli_rejects_oversized_and_duplicate_request_before_dispatch(tmp_path):
     request = tmp_path / "request.json"
     core = Mock()

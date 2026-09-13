@@ -31,6 +31,38 @@
       "result": "the versioned knowledge operation map plus graph, LensSpec, and LensResult JSON Schemas"
     },
     {
+      "operation_id": "tos.source.read.capabilities",
+      "http": {"method": "GET", "path": "/api/source/capabilities"},
+      "mcp_tool": "tos_source_read_capabilities",
+      "cli": "tos source capabilities",
+      "result": "selected exact-source owner epoch, supported metadata families and limits, or explicit unavailability",
+      "available_on": "Python local HTTP, CLI and native MCP; source owner is opt-in, not a Cloudflare/D1 source-read capability"
+    },
+    {
+      "operation_id": "tos.source.read.contracts",
+      "http": {"method": "GET", "path": "/api/source/contracts"},
+      "mcp_tool": "tos_source_read_contract",
+      "cli": "tos source contracts",
+      "result": "exact source target, handle, discovery and read response schemas without selecting a source owner",
+      "available_on": "Python local HTTP, CLI and native MCP"
+    },
+    {
+      "operation_id": "tos.source.handle.discover",
+      "http": {"method": "POST", "path": "/api/source/handles"},
+      "mcp_tool": "tos_source_handle_discover",
+      "cli": "tos source discover REQUEST.json",
+      "result": "one version-bound public source handle or bounded nonavailability; target or typed selector only, no paths or latest fallback",
+      "available_on": "explicitly selected Python source-owner service; no source mutation or rights grant"
+    },
+    {
+      "operation_id": "tos.source.record.read",
+      "http": {"method": "POST", "path": "/api/source/read"},
+      "mcp_tool": "tos_source_read",
+      "cli": "tos source read REQUEST.json",
+      "result": "exact public metadata or Claim record selected by handle and representation=record; not carrier text or semantic admission",
+      "available_on": "explicitly selected Python source-owner service; no source mutation or rights grant"
+    },
+    {
       "operation_id": "tos.knowledge.search",
       "http": {"method": "GET", "path": "/api/knowledge/search"},
       "mcp_tool": "tos_knowledge_search",
