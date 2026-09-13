@@ -1,0 +1,46 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.pali-canon.sn27.2.pli-ms-bilara.bilara-d6d54741b7f2.git-segment-json",
+  "item_kind": "born_digital",
+  "embodiment_ref": "tos.edition.pali-canon.sn27.2.pli-ms-bilara.bilara-d6d54741b7f2",
+  "storage_posture": "local_gitignored_payload",
+  "acquisition_event_ref": "tos.event.acquisition.registry-20260910.pali-sn27-2-root",
+  "rights_ref": "ToS/source-witnesses/works/pali-canon/sn27-2/expressions/pli-ms-bilara/editions/bilara-d6d54741b7f2/items/git-segment-json/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/pali-canon/sn27-2/expressions/pli-ms-bilara/editions/bilara-d6d54741b7f2/items/git-segment-json/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/pali-canon/sn27-2/expressions/pli-ms-bilara/editions/bilara-d6d54741b7f2/items/git-segment-json/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/pali-canon/sn27-2/expressions/pli-ms-bilara/editions/bilara-d6d54741b7f2/items/git-segment-json/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/source-observations.json",
+    "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/batch-scope.json",
+    "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/deferred-files.json",
+    "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/manifest.json",
+    "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/evidence/bilara-sn27-tree.json",
+    "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/evidence/sn27.2_root-pli-ms.json.opening",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-README.md",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-LICENSE.md",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_author.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_edition.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_publication.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_publication-v2.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json",
+    "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null,
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.c163b817f19fc91aab598b87da9d58ab9458fbada55cf150c3b861835507b3d3",
+      "relative_path": "payload/sn27.2_root-pli-ms.json",
+      "original_basename": "sn27.2_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 751,
+      "sha256": "c163b817f19fc91aab598b87da9d58ab9458fbada55cf150c3b861835507b3d3",
+      "fixity_verified_at": "2026-09-10T19:43:33.929009+00:00"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "expression",
+  "record_id": "tos.expression.pali-canon.sn35.19.pli-ms-bilara",
+  "preferred_label": "Paṭhamābhinandasutta — pli source-language layer",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/source-observations.json",
+    "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/batch-scope.json",
+    "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/deferred-files.json",
+    "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/manifest.json",
+    "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/evidence/bilara-sn35-tree.json",
+    "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/evidence/sn35.19_root-pli-ms.json.opening",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-README.md",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-LICENSE.md",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_author.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_edition.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_publication.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_publication-v2.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json",
+    "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "SuttaCentral",
+      "value": "sn35.19/pli/ms",
+      "source_ref": "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/evidence/sn35.19_root-pli-ms.json.opening",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "work_ref": "tos.work.pali-canon.sn35.19",
+  "language": "pli",
+  "expression_role": "source_language",
+  "responsibility_claim_refs": [],
+  "embodiment_claim_refs": [
+    "tos.claim.topology.registry-20260910.pali-sn35-19-root.expression-edition"
+  ],
+  "notes": "Exact sn35.19 Pali root text of the Mahasangiti edition in Bilara Git d6d54741b7f2ddfeca82f02c3f95eb3990b4e351; source filename sn35.19_root-pli-ms.json. Mahasangiti Tipitaka Buddhavasse 2500; Dhamma Society digital edition and SuttaCentral contributions. Ancient authorship is not inferred. Supplied annotation or punctuation does not establish ToS source-text acceptance.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

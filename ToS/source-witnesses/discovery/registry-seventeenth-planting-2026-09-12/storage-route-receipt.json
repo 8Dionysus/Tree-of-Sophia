@@ -1,0 +1,42 @@
+{
+  "schema": "tos_source_acquisition_storage_route_receipt_v1",
+  "visibility": "public-safe-derivative",
+  "status": "route-reviewed-before-payload",
+  "observed_at": "2026-09-12T13:40:42.799393+00:00",
+  "operation_scope": "registry-seventeenth-large-planting-AN1-11-and-SN36-56",
+  "private_raw_receipt": {
+    "retained": true,
+    "artifact_class": "private-host-evidence",
+    "sha256": "16a0ef739d26f4656f5441c8a341e16a73d92f75dec87c05dbf51fe51bdfd394",
+    "repository_path_withheld": true,
+    "raw_operational_identifiers_withheld": true
+  },
+  "host_staging": {
+    "route_owner": "Abyss machine storage policy",
+    "preflight_status": "passed",
+    "target_class": "host-owned-allowed",
+    "reservation_and_capacity_details": "retained only in private host evidence",
+    "project_target_policy_result": "deny/protected_or_unknown_target"
+  },
+  "project_owner_route": {
+    "owner": "Tree-of-Sophia source-witnesses owner route",
+    "acquisition_command": "python3 scripts/acquire_registry_sources.py acquire --manifest ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/manifest.json --preparation-receipt ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/preparation-checkpoint-receipt.json",
+    "owner_contract": "scripts/acquire_registry_sources.py transfer() requires destination under Item payload, gitignored, untracked, exact pinned raw URL, Git blob size/SHA-1 and local SHA-256.",
+    "payload_visibility": "local_gitignored_payload",
+    "project_write_authority": "repository owner route after preparation checkpoint; not host storage automation permission",
+    "target_does_not_inherit_tmp_allow": true
+  },
+  "route_separation": [
+    "host staging preflight and reservation are retained as independent private evidence",
+    "project target policy result is retained as independent route evidence",
+    "owner-local source acquisition is admitted by source-witnesses route and its preparation receipt",
+    "no project-target allow is claimed from host staging"
+  ],
+  "owner_route_inputs": {
+    "acquisition_script_ref": "scripts/acquire_registry_sources.py",
+    "acquisition_script_sha256": "f5a473f044d8b44c8030bf0547bd2df6984936bfdc7add48a095e55978ec351e",
+    "source_owner_card": "ToS/source-witnesses/AGENTS.md",
+    "source_owner_card_sha256": "0a243a181cdc7d96cd804bf10fdbeee452a6800ddf95a29de8165217fb3ddbd2"
+  },
+  "authority_boundary": "Receipt records owner-safe route facts only. It does not accept source text, rights, translation quality, semantics, canon, publication, CI, merge or deployment."
+}

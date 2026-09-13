@@ -1,0 +1,62 @@
+{
+  "schema_version": "tos_registry_translation_preparation_checkpoint_receipt_v1",
+  "status": "passed",
+  "observed_at": "2026-09-12T16:16:00Z",
+  "owner_surface": "ToS/source-witnesses",
+  "registry_owner": "A18/source-witnesses",
+  "stage": "seventeenth-English-Work-extension",
+  "preparation_commit": "8a5be7d1c6d708bbd33e1402d57150670dddd1eb",
+  "parent_pali_stage_commit": "40147b852b69fa958b72247356143b42bb67c503",
+  "inherited_boundary_repair_commit": "e46fe1e607f2a17afcf178789248d523276c2b25",
+  "boundary_repair_receipt_ref": "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/boundary-repair-checkpoint-receipt.json",
+  "manifest_ref": "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/translations/manifest.json",
+  "manifest_sha256": "3017fde4099df0b5dbe0a07f324824e6868fac08f8e6527122f3e12d8da0e895",
+  "prepared_packages_ref": "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/translations/prepared-source-packages.jsonl",
+  "prepared_packages_sha256": "a0d6814bcc684c01f71108fe8a5ee01232fc2513393fa6351adab4f0558e0486",
+  "global_dedup_ref": "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/translations/dedup-review.json",
+  "scope": {
+    "uid_scope": "pali-an1-11-* and pali-sn36-56-* selected individual Works with exact en/sujato parallel",
+    "candidate_uids": 1997,
+    "selected_uids": 1997,
+    "existing_work_new_expression": 1997,
+    "new_work": 0,
+    "already_present": 0,
+    "ambiguity": 0,
+    "deferred_grouped_uids": 174,
+    "deferred_files": 348,
+    "english_files": 1997,
+    "english_bytes": 4490029,
+    "whole_selected_files_after_pairing": 3994,
+    "whole_selected_bytes_after_pairing": 9660347
+  },
+  "identity_and_rights": {
+    "work_action": "guarded additive English Expression, Edition and Item extension on each exact existing Pali Work",
+    "pali_source_manifest_ref": "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/manifest.json",
+    "source_review_ref": "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/translations/SOURCE_AND_RIGHTS_REVIEW.md",
+    "translation_rights_owner": "SuttaCentral publication and Bhikkhu Sujato translation record",
+    "ai_request_preserved": true,
+    "server_processing_authorized": false,
+    "public_payload_delivery_authorized": false
+  },
+  "checks": [
+    "python scripts/acquire_registry_sources.py verify-preparation --manifest ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/translations/manifest.json",
+    "manifest and prepared-source-packages SHA-256 recorded above",
+    "translation global dedup is separate from the Pali root dedup review",
+    "English stage has no new Work candidates and extends exactly 1,997 existing Works",
+    "deferred grouped UID closure retained at 174 UIDs / 348 paired files",
+    "full source-witness foundation validation passed before English mutation"
+  ],
+  "authority_boundary": "Preparation checkpoint only. It admits owner-local acquisition of exact English files and guarded additive Work extension; it does not admit source text, translation quality, semantic alignment, rights expansion, AI derivatives, canon, publication, server transfer, CI, merge or deployment.",
+  "commit": "ac4834a08fdd349387df69f22ebef0708e96fff8",
+  "runtime_session_id": "01a095c0-7024-7b00-a78a-cea5750809b1",
+  "checkpoint_review_ref": "session:2026-09-12T13-53-50-595752Z-tos-large-planting-20260912-checkpoint-growth-01a095c0-702",
+  "checkpoint_review_status": "reviewed",
+  "passed_checks": [
+    "python -m py_compile ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/translations/execution/*.py",
+    "git diff --check",
+    "python scripts/acquire_registry_sources.py verify-preparation --manifest ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/translations/manifest.json",
+    "translation global dedup: 1997 existing_work_new_expression, 0 new_work, 0 already_present, 0 ambiguity, 174 deferred grouped UIDs",
+    "full source-witness foundation validation passed with present payload fixity checking before English mutation",
+    "aoa checkpoint review-note: reviewed preparation commit ac4834a08f"
+  ]
+}
