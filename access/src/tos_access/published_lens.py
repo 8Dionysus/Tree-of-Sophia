@@ -1,9 +1,10 @@
 """Native-v7 lens semantics over an explicitly pinned, published v9 read model.
 
-Default focus reads owner-built histograms and ordered local incidence. General
-selectors/sorts use bounded native callbacks over keyset candidate streams;
-they never acquire a graph provider or turn a budget refusal into a partial
-success. Each page re-executes the exact bounded LensResult, as native v7 does.
+Default focus reads owner-built histograms and ordered local incidence. Exact
+identity selectors use indexed keyset candidate streams; other selectors/sorts
+use bounded native callbacks over general candidate streams. They never acquire
+a graph provider or turn a budget refusal into a partial success. Each page
+re-executes the exact bounded LensResult, as native v7 does.
 """
 from __future__ import annotations
 
@@ -21,6 +22,13 @@ from .published_read_model import PublishedReadBudgetExceeded, PublishedReadMode
 
 _DIMENSIONS = {"node": ("source_graph", "kind_id", "type_id"),
                "relation": ("source_graph", "predicate_id", "relation_type_id")}
+_IDENTITY_INDEXES = {
+    "node": {"id": "sqlite_autoindex_knowledge_nodes_1",
+             "entity_id": "knowledge_nodes_identity_seek",
+             "native_id": "knowledge_nodes_native_idx"},
+    "relation": {"id": "sqlite_autoindex_knowledge_relations_1",
+                  "native_id": "knowledge_relations_native_idx"},
+}
 _INDEXES = {"knowledge_lens_order_sort", "knowledge_lens_order_from",
             "knowledge_lens_order_to", "knowledge_lens_order_pair"}
 _DEFAULT_SORT = [{"field": "id", "direction": "asc"}]
@@ -201,33 +209,148 @@ class _Plan:
                 args.extend((_compact(sorted(k.OVERVIEW_EXCLUDED_PREDICATES)), _compact(sorted(k.OVERVIEW_EXCLUDED_RELATION_TYPES))))
         return where, args
 
+    @staticmethod
+    def _identity_selector(kind, rule):
+        """Return a typed exact-identity selector, or None when it is not safe.
+
+        The selector is only a candidate reduction. Every selected packet still
+        goes through the source-owned matcher below, so negation, unknown
+        values, and semantic property bindings retain their native meaning.
+        Index columns stringify missing/false values, while native predicates
+        inspect the original packet. Non-string selectors therefore keep the
+        general path rather than losing a possible unknown-value match.
+        """
+        if rule.get("_property_binding") or rule.get("field") not in _IDENTITY_INDEXES[kind]:
+            return None
+        if rule.get("op") not in {"eq", "in"}:
+            return None
+        raw = rule.get("value")
+        if rule["op"] == "eq" and not isinstance(raw, str):
+            return None
+        values = raw if isinstance(raw, list) else [raw]
+        if any(not isinstance(value, str) for value in values):
+            return None
+        values = sorted(set(values))
+        return rule["field"], values, _IDENTITY_INDEXES[kind][rule["field"]]
+
+    def _identity_plan(self, kind, group):
+        """Find an exact candidate plan without weakening filter-group logic.
+
+        ``all`` may use any positive exact identity conjunct as a necessary
+        condition. ``any`` may use exact identity selectors only when every
+        disjunct is such a selector; otherwise a non-identity disjunct could
+        match an unrelated row and a full bounded scan is required.
+        """
+        if not group["filters"]:
+            return None
+        selectors = [self._identity_selector(kind, rule) for rule in group["filters"]]
+        if group["match"] == "all":
+            selectors = [selector for selector in selectors if selector is not None]
+            return {"mode": "all", "selectors": selectors} if selectors else None
+        if all(selector is not None for selector in selectors):
+            return {"mode": "any", "selectors": selectors}
+        return None
+
+    def _seed_plan(self, kind, node_ids):
+        if not node_ids:
+            return None
+        if kind != "node":
+            return None
+        values = sorted(set(node_ids))
+        return {"mode": "any", "selectors": [
+            (field, values, index) for field, index in _IDENTITY_INDEXES[kind].items()
+        ]}
+
+    @staticmethod
+    def _identity_condition(alias, plan):
+        parts = []
+        for field, values, _ in plan["selectors"]:
+            if not values:
+                parts.append("0")
+            else:
+                parts.append(f"{alias}.{field} IN (SELECT value FROM json_each(?))")
+        if not parts:
+            # An all-group with no positive identity filter is not a candidate
+            # plan; this guard keeps callers fail-closed if that invariant moves.
+            return "0", []
+        joiner = " AND " if plan["mode"] == "all" else " OR "
+        return joiner.join(parts), [_compact(values) for _, values, _ in plan["selectors"] if values]
+
+    def _identity_branch_scan(self, kind, plan, after):
+        """Yield one bounded keyset window per OR identity range.
+
+        A branch-local LIMIT is safe for a union's first global block: rows
+        after the first block of one branch cannot appear in that block's
+        globally ordered union. This keeps exact alias expansion from charging
+        unrelated rows to the native candidate budget.
+        """
+        alias = "r"
+        scope, scope_args = _source_where(alias, self.spec["sources"])
+        branches, args = [], []
+        for field, values, index in plan["selectors"]:
+            if not values:
+                continue
+            branches.append(
+                f"SELECT id FROM (SELECT {alias}.id FROM knowledge_{kind}s {alias} "
+                f"INDEXED BY {index} WHERE {alias}.{field} IN (SELECT value FROM json_each(?)) "
+                f"AND {alias}.id>? AND {scope} ORDER BY {alias}.id LIMIT ?)"
+            )
+            args.extend((_compact(values), after, *scope_args, self.block))
+        if not branches:
+            return []
+        rows = self.read.query(
+            "WITH candidates AS (" + " UNION ".join(branches) + ") "
+            "SELECT id FROM candidates ORDER BY id LIMIT ?",
+            (*args, self.block),
+        )
+        return rows
+
     def scan(self, kind, node_ids=()):
         # General native evaluation has an explicit finite candidate ceiling;
         # it is not a hidden materialized graph or an approximate selector.
         after = ""
-        where, args = _source_where("r", self.spec["sources"])
+        alias = "r"
+        where, args = _source_where(alias, self.spec["sources"])
+        group_plan = self._identity_plan(kind, self.spec[kind + "_query"])
+        seed_plan = self._seed_plan(kind, node_ids)
         while True:
-            if node_ids:
+            if seed_plan and group_plan is None:
                 # A selector seed means ALL exact/entity/native matches, unlike
                 # focus resolution's representative/ambiguity rules. Bound
                 # each identity range before the union; unrelated source rows
                 # must not consume the native candidate ceiling.
-                seed_json = _compact(sorted(node_ids))
-                scope, scope_args = _source_where('n', self.spec['sources'])
-                branches, seed_args = [], []
-                for field, index in (('id', 'sqlite_autoindex_knowledge_nodes_1'),
-                                     ('native_id', 'knowledge_nodes_native_idx'),
-                                     ('entity_id', 'knowledge_nodes_identity_seek')):
-                    branches.append('SELECT id FROM (SELECT n.id FROM knowledge_nodes n '
-                        f'INDEXED BY {index} WHERE n.{field} IN (SELECT value FROM json_each(?)) '
-                        f'AND n.id>? AND {scope} ORDER BY n.id LIMIT ?)')
-                    seed_args.extend((seed_json, after, *scope_args, self.block))
-                rows = self.read.query(
-                    'WITH candidates AS (' + ' UNION '.join(branches) + ') '
-                    'SELECT id FROM candidates ORDER BY id LIMIT ?', (*seed_args, self.block))
+                rows = self._identity_branch_scan(kind, seed_plan, after)
+            elif group_plan and not seed_plan and group_plan["mode"] == "any":
+                # The same bounded-union treatment applies to an all-positive
+                # OR group of exact identity filters.
+                rows = self._identity_branch_scan(kind, group_plan, after)
             else:
-                rows = self.read.query(f"SELECT r.id FROM knowledge_{kind}s r WHERE {where} AND r.id>? ORDER BY r.id LIMIT ?",
-                                       (*args, after, self.block))
+                combined = []
+                combined_args = []
+                if seed_plan:
+                    condition, condition_args = self._identity_condition(alias, seed_plan)
+                    combined.append(f"({condition})")
+                    combined_args.extend(condition_args)
+                if group_plan:
+                    condition, condition_args = self._identity_condition(alias, group_plan)
+                    combined.append(f"({condition})")
+                    combined_args.extend(condition_args)
+                scan_where = where
+                scan_args = list(args)
+                if combined:
+                    scan_where += " AND " + " AND ".join(combined)
+                    scan_args.extend(combined_args)
+                indexed = ""
+                if group_plan and not seed_plan and group_plan["mode"] == "all":
+                    # One exact conjunct is enough to make the candidate range
+                    # indexed; remaining conjuncts and all general filters are
+                    # checked against the decoded packet below.
+                    indexed = f" INDEXED BY {group_plan['selectors'][0][2]}"
+                rows = self.read.query(
+                    f"SELECT {alias}.id FROM knowledge_{kind}s {alias}{indexed} "
+                    f"WHERE {scan_where} AND {alias}.id>? ORDER BY {alias}.id LIMIT ?",
+                    (*scan_args, after, self.block),
+                )
             if not rows:
                 return
             items = self.payloads.load(kind, [row["id"] for row in rows])

@@ -22,7 +22,7 @@ from test_published_exploration import builder, write_fixture, ToSAccessCore
 from test_indexed_lens import graph_for, lens, scenarios
 from tos_access import knowledge as k
 from tos_access.http_server import build_handler
-from tos_access.published_lens import PublishedLensService, PublishedLensLimits
+from tos_access.published_lens import PublishedLensService, PublishedLensLimits, _Plan
 from tos_access.published_read_metadata import (
     TOP_KEY, LENS_META_KEY, READER_SCHEMA, LOCAL_READ_MODEL_SCHEMA, _compact, emitted_row_digest,
     published_row_digest_key, published_snapshot_binding, lens_order_row,
@@ -402,6 +402,106 @@ class PublishedLensTests(unittest.TestCase):
                     expected = k.execute_knowledge_lens(self.graph, spec)
                     actual = PublishedLensService(self.reader, limits=PublishedLensLimits(block_size=1)).execute(spec)
                     self.assertEqual(actual, expected)
+
+    def test_exact_identity_filters_push_down_without_charging_unrelated_rows(self):
+        cases = (
+            ('node', 'id', 'eq', 'repository:other', 1),
+            ('node', 'id', 'in', ['absent', 'repository:other'], 1),
+            ('node', 'native_id', 'eq', 'n12', 1),
+            ('node', 'entity_id', 'eq', 'tos.synthetic.subject.6', 3),
+            ('relation', 'id', 'eq', 'relation:İ39', 1),
+            ('relation', 'native_id', 'eq', 'r039', 1),
+        )
+        for kind, field, operation, value, max_candidates in cases:
+            with self.subTest(kind=kind, field=field, value=value):
+                query = {'filters': [{'field': field, 'op': operation, 'value': value}]}
+                spec = lens(
+                    node_query=query if kind == 'node' else {'enabled': False},
+                    relation_query=query if kind == 'relation' else {'enabled': False},
+                    composition={'endpoint_policy': 'independent'},
+                    limits={'nodes': 20, 'relations': 20},
+                )
+                expected = k.execute_knowledge_lens(self.graph, spec)
+                statements = []
+                original = _Read.query
+
+                def query_read(read, sql, args=()):
+                    statements.append(sql)
+                    return original(read, sql, args)
+
+                with patch.object(_Read, 'query', query_read):
+                    actual = PublishedLensService(
+                        self.reader,
+                        limits=PublishedLensLimits(max_candidates=max_candidates),
+                    ).execute(spec)
+                self.assertEqual(actual, expected)
+                table = 'knowledge_nodes' if kind == 'node' else 'knowledge_relations'
+                self.assertTrue(
+                    any(table in sql and 'json_each' in sql and f'{field} IN' in sql for sql in statements),
+                    statements,
+                )
+
+    def test_exact_identity_filter_groups_keep_native_boolean_semantics(self):
+        cases = (
+            {'match': 'all', 'filters': [
+                {'field': 'id', 'op': 'eq', 'value': 'philosophy:n12'},
+                {'field': 'native_id', 'op': 'neq', 'value': 'n11'},
+            ]},
+            {'match': 'any', 'filters': [
+                {'field': 'id', 'op': 'eq', 'value': 'repository:other'},
+                {'field': 'native_id', 'op': 'eq', 'value': 'n12'},
+            ]},
+            # The non-identity disjunct must keep the complete bounded scan;
+            # exact candidates cannot stand in for an OR branch.
+            {'match': 'any', 'filters': [
+                {'field': 'id', 'op': 'eq', 'value': 'repository:other'},
+                {'field': 'source_graph', 'op': 'eq', 'value': 'philosophy'},
+            ]},
+            {'match': 'all', 'filters': [
+                {'field': 'id', 'op': 'neq', 'value': 'absent'},
+            ]},
+            {'match': 'all', 'filters': [
+                {'field': 'id', 'op': 'in', 'value': []},
+            ]},
+            {'match': 'any', 'filters': [
+                {'field': 'id', 'op': 'in', 'value': []},
+            ]},
+            {'match': 'all', 'filters': [
+                {'field': 'id', 'op': 'eq', 'value': 0},
+            ]},
+        )
+        for number, query in enumerate(cases):
+            with self.subTest(node_case=number):
+                self.parity(lens(node_query=query, relation_query={'enabled': False}, limits={'nodes': 30, 'relations': 0}))
+
+        for field, value in (('id', 'relation:İ39'), ('native_id', 'r039')):
+            with self.subTest(relation_field=field):
+                self.parity(lens(
+                    node_query={'enabled': False},
+                    relation_query={'filters': [{'field': field, 'op': 'eq', 'value': value}]},
+                    composition={'endpoint_policy': 'independent'},
+                    limits={'nodes': 20, 'relations': 20},
+                ))
+
+    def test_non_string_identity_values_keep_native_unknown_semantics(self):
+        # Emitted index columns stringify missing fields; they cannot alone
+        # answer a predicate against null or another non-string packet value.
+        for field in ('id', 'native_id', 'entity_id'):
+            for operation, value in (('eq', None), ('eq', 0), ('eq', ['n12']),
+                                     ('in', ['n12', None]), ('in', [False])):
+                with self.subTest(field=field, operation=operation, value=value):
+                    rule = {'field': field, 'op': operation, 'value': value}
+                    self.assertIsNone(_Plan._identity_selector('node', rule))
+                    spec = lens(node_query={'filters': [rule]},
+                                relation_query={'enabled': False},
+                                limits={'nodes': 30, 'relations': 0})
+                    if operation == 'eq' and isinstance(value, list):
+                        with self.assertRaises(ValueError):
+                            k.execute_knowledge_lens(self.graph, spec)
+                        with self.assertRaises(ValueError):
+                            self.service.execute(spec)
+                    else:
+                        self.parity(spec)
 
     def test_complete_eligible_stream_cannot_hide_missing_order_rows(self):
         with closing(sqlite3.connect(self.path)) as db:
