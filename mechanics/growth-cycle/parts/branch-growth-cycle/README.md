@@ -793,6 +793,25 @@ Unicode rewriting, then checks absolute Unicode-code-point half-open anchors,
 span hashes, declared scope, coverage and gaps. Successful return is not proof
 of the original payload, OCR/transcription quality or linguistic correctness.
 
+The same resolver's explicit
+`read_public_unit(binding, max_return_bytes=65536)` is a separate
+read-only public-text route; `resolve()` remains text-free. It first verifies
+metadata and public packet/layer/transport gates, then requires applicable
+recorded redistribution `authorized` and derivative `allowed` postures before
+opening content. Conditional rights are refused pending their owner's explicit
+route. This consumes existing publication authority; it does not grant it.
+The `tos_native_public_unit_return_v1` result contains the unchanged verification
+summary, exact packet identity/version/digest, layer-record and representation
+digests, opaque rechecked closure fingerprint, and ordered `spans`. Each span
+has its native `anchor_ref`, unchanged absolute half-open Unicode-code-point
+`selector`, `exact_sha256`, and exact `text`. Discontinuous anchors stay separate;
+no inferred context, concatenation, Unicode/newline rewriting or partial output
+is supplied. No content locator or supporting rights record is exported.
+The complete compact UTF-8 JSON result must fit the requested limit (at most
+1 MiB). Input bounds and snapshot refusal remain unchanged. This library return
+is not itself an HTTP/MCP capability, fresh legal assessment, source admission,
+or acceptance of the unit's linguistic boundary.
+
 For protected configuration preparation, the same resolver's
 `assessment_records(binding, origin_id=..., verify_content=...,
 allow_private_content=...)` returns `records` and a text-free `summary`.

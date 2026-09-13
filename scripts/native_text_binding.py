@@ -1,8 +1,10 @@
 """Bounded return from a description to native TextUnit/Anchor evidence.
 
 The default read is metadata-only and works without local source text. Exact
-resolution is explicit, reads one frozen UTF-8 representation without newline
-or Unicode rewriting, and never returns its text. A caller must separately
+resolution is explicit and reads one frozen UTF-8 representation without newline
+or Unicode rewriting. resolve() stays text-free; read_public_unit() separately
+returns only the selected anchors under current unconditional public gates.
+A caller must separately
 hold authority to read private content. No mode admits a source, accepts a
 segmentation, authenticates a producer, grants publication, or executes a
 selector, model, command, URL or supplied code.
@@ -125,8 +127,9 @@ def _regular_bytes(path: Path, limit: int) -> bytes:
 class NativeTextBindingResolver:
     """One explicit dependency snapshot, without scanning the corpus.
 
-    Only schema digests are public. Native packet/anchor bodies, short-span
-    hashes, content locators and rights inputs stay in the opaque snapshot.
+    Metadata resolution exposes only schema digests. Native packet/anchor bodies,
+    content locators and rights inputs stay in the opaque snapshot. Explicit
+    public-unit return additionally exposes only selected public spans/fixity.
     Observed dependencies are never refreshed midway through a command.
     """
 
@@ -730,6 +733,52 @@ class NativeTextBindingResolver:
                               'layer_review_status': layer['admission']['review_status']},
             'assessment_applied': False,
         }
+
+    def read_public_unit(self, binding: dict, *, max_return_bytes=65_536) -> dict:
+        """Return ordered exact public spans, never a private-text capability.
+
+        Gates precede content reads. Conditional rights need another owner's
+        explicit route, not an inference that free-text terms were satisfied.
+        No implicit context, concatenation, normalization or truncation.
+        """
+        if type(max_return_bytes) is not int or not 1 <= max_return_bytes <= 1_048_576:
+            raise NativeTextBindingError('public unit return needs a bounded positive byte limit')
+        # Detach the request before user-supplied I/O callbacks can change it.
+        binding = _json(json.dumps(binding, allow_nan=False).encode('utf-8'))
+        summary = self.resolve(binding)
+        if not summary['public_content_declared']:
+            raise NativeTextBindingError('native public unit return requires public content authority')
+        layer = self._record(binding['text_layer']['record_ref'],
+                             expected=binding['text_layer']['record_sha256'])
+        rep = layer['representation']
+        exact_scope = {layer['layer_id'], rep['content_file_id']}
+        rights = [self._record(row['ref'], expected=row['sha256']) for row in rep['rights_record_refs']]
+        applicable = [row for row in rights if exact_scope.intersection(row['scope_refs'])] or rights
+        if any(row['redistribution_posture'] != 'authorized'
+               or row['derivative_posture'] != 'allowed' for row in applicable):
+            raise NativeTextBindingError('native public unit return requires unconditional recorded rights')
+        summary = self.resolve(binding, verify_content=True)
+        packet = self._record(binding['packet_ref'], expected=binding['packet_sha256'])
+        text = self._read(rep['content_ref'], expected=rep['content_sha256'], content=True).decode('utf-8')
+        anchors = {row['anchor_ref']: row for row in packet['anchors']}
+        spans = []
+        for ref in binding['ordered_anchor_refs']:
+            anchor = anchors[ref]
+            selector = anchor['selector']
+            spans.append({'anchor_ref': ref, 'selector': dict(selector),
+                          'exact_sha256': anchor['exact_sha256'],
+                          'text': text[selector['start']:selector['end']]})
+        result = {'schema_version': 'tos_native_public_unit_return_v1',
+                  'summary': summary,
+                  'packet': {'id': binding['packet_id'], 'version': binding['packet_version'],
+                             'sha256': binding['packet_sha256']},
+                  'layer_record_sha256': binding['text_layer']['record_sha256'],
+                  'representation_sha256': rep['content_sha256'],
+                  'spans': spans, 'closure_fingerprint': self.snapshot()}
+        if len(json.dumps(result, ensure_ascii=False, allow_nan=False,
+                          separators=(',', ':')).encode('utf-8')) > max_return_bytes:
+            raise NativeTextBindingError('native public unit return exceeds its output-byte budget')
+        return result
 
     def snapshot(self, *, read_bytes=None) -> str:
         """Recheck the exact closure; expose only an opaque fingerprint."""

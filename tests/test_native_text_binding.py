@@ -433,6 +433,61 @@ class NativeTextBindingTests(unittest.TestCase):
         self.fixture.refresh()
         self.assertFalse(self.resolve(verify_content=True, allow_private_content=True)["public_content_available"])
 
+    def test_public_unit_return_keeps_exact_selected_text_and_no_locators(self):
+        self.fixture.make_public()
+        result = NativeTextBindingResolver(self.root).read_public_unit(self.fixture.binding)
+        self.assertEqual(result['schema_version'], 'tos_native_public_unit_return_v1')
+        self.assertEqual(result['spans'], [{
+            'anchor_ref': self.fixture.token_id,
+            'selector': self.fixture.packet['anchors'][1]['selector'],
+            'exact_sha256': digest(self.fixture.text[3:8].encode('utf-8')),
+            'text': 'cafe\u0301',
+        }])
+        self.assertEqual(result['representation_sha256'], digest(self.fixture.content))
+        self.assertTrue(result['summary']['content_verified'])
+        self.assertFalse(result['summary']['assessment_applied'])
+        self.assertNotIn(self.fixture.content_ref, json.dumps(result))
+        self.assertNotIn('P\\r\\n', json.dumps(result))
+        self.assertNotIn('text', self.resolve(verify_content=True))
+        size = len(json.dumps(result, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
+        self.assertEqual(NativeTextBindingResolver(self.root).read_public_unit(
+            self.fixture.binding, max_return_bytes=size), result)
+        with self.assertRaisesRegex(NativeTextBindingError, 'output-byte budget'):
+            NativeTextBindingResolver(self.root).read_public_unit(self.fixture.binding, max_return_bytes=size - 1)
+
+    def test_public_unit_refuses_private_and_conditional_rights_before_content(self):
+        def reader(path, limit):
+            self.assertNotEqual(path, self.root / self.fixture.content_ref)
+            return path.read_bytes()[:limit + 1]
+        with self.assertRaisesRegex(NativeTextBindingError, 'public content authority'):
+            NativeTextBindingResolver(self.root, read_bytes=reader).read_public_unit(self.fixture.binding)
+        self.fixture.make_public()
+        for field, value in [('redistribution_posture', 'authorized_with_conditions'),
+                             ('derivative_posture', 'allowed_with_conditions')]:
+            old = self.fixture.rights[field]
+            self.fixture.rights[field] = value
+            self.fixture.refresh()
+            with self.subTest(field=field), self.assertRaisesRegex(NativeTextBindingError, 'unconditional'):
+                NativeTextBindingResolver(self.root, read_bytes=reader).read_public_unit(self.fixture.binding)
+            self.fixture.rights[field] = old
+        for limit in (True, 0, -1, 1_048_577):
+            with self.subTest(limit=limit), self.assertRaises(NativeTextBindingError):
+                NativeTextBindingResolver(self.root).read_public_unit(self.fixture.binding, max_return_bytes=limit)
+
+    def test_public_unit_return_rechecks_content_before_export(self):
+        self.fixture.make_public()
+        calls = 0
+        def reader(path, limit):
+            nonlocal calls
+            raw = path.read_bytes()[:limit + 1]
+            if path == self.root / self.fixture.content_ref:
+                calls += 1
+                if calls == 3:
+                    return raw + b'changed'
+            return raw
+        with self.assertRaisesRegex(NativeTextBindingError, 'dependency changed'):
+            NativeTextBindingResolver(self.root, read_bytes=reader).read_public_unit(self.fixture.binding)
+
     def test_closed_rights_cannot_be_hidden_by_public_packet_flags(self):
         self.fixture.make_public()
         self.fixture.rights.update(assessment_status="permission_requested", visibility="permission_requested")
@@ -474,6 +529,11 @@ class NativeTextBindingTests(unittest.TestCase):
         self.fixture.binding["ordered_anchor_refs"] = [self.fixture.token_id, second_id]
         self.fixture.refresh()
         self.assertTrue(self.resolve(verify_content=True, allow_private_content=True)["content_verified"])
+        self.fixture.make_public()
+        returned = NativeTextBindingResolver(self.root).read_public_unit(self.fixture.binding)
+        self.assertEqual([span['anchor_ref'] for span in returned['spans']],
+                         [self.fixture.token_id, second_id])
+        self.assertEqual([span['text'] for span in returned['spans']], ['ca', 'fe\u0301'])
         self.fixture.binding["ordered_anchor_refs"].reverse()
         with self.assertRaises(NativeTextBindingError):
             self.resolve()
