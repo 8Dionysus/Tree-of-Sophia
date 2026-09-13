@@ -1,10 +1,11 @@
 /** Compare exact source date envelopes, without parsing or historical judgment. */
 import { HttpError, stringArray, type Item } from './common.ts';
 import { KnowledgeRevisionConflict } from './lens-pagination.ts';
-import {NativeBudgetExceeded, nativeNumberInfo, pythonEquals, pythonMember, pythonStr, codePointCompare} from '../../../shared/native-semantics.ts';
+import {NativeBudgetExceeded, nativeNumberInfo, pythonEquals, pythonMember, codePointCompare} from '../../../shared/native-semantics.ts';
 import {nativeStrip} from '../../../shared/native-unicode.ts';
 import {nativeChild, nativeField, nativeKeys, parseNativeJson, nativePacketObject, derived,
   type NativeRef, type NativePacket} from './native-lens.ts';
+import {canonicalNativeJson} from './native-source-target.ts';
 
 type Selection = { node_id: string; content_revision: string };
 export type TemporalRequest = {
@@ -87,33 +88,6 @@ function sameJson(left: NativeRef, right: NativeRef): boolean {
   return equal(left,right);
 }
 
-/** Python json.dumps(sort_keys=True, ensure_ascii=False, allow_nan=False).
- * Numeric kind is retained; token spelling is normalized only for this digest,
- * never substituted into source carriers delivered to the caller. */
-function canonical(ref: NativeRef): string {
-  // Short legal float tokens (1e15 -> 1000000000000000.0) can expand
-  // during Python canonicalization. This work allowance is independent of
-  // the 262144-byte accepted source companion and 1 MiB input-row bounds.
-  let remaining = 8 * 1024 * 1024;
-  const emit = (text: string) => {
-    remaining -= text.length;
-    if (remaining < 0) throw new NativeBudgetExceeded('temporal canonical character-work budget');
-    return text;
-  };
-  function visit(value: NativeRef): string {
-    if (typeof value.value === 'number') return emit(pythonStr(value));
-    if (typeof value.value === 'string' && !value.value.isWellFormed()) throw new HttpError(503,'prepared response contains invalid JSON values');
-    if (value.value === null || typeof value.value === 'boolean' || typeof value.value === 'string') return emit(JSON.stringify(value.value));
-    const array = Array.isArray(value.value);
-    const keys = array ? nativeKeys(value) : [...nativeKeys(value)].sort(codePointCompare);
-    return emit(array ? '[' : '{') + keys.map((key,index) => {
-      if (!key.isWellFormed()) throw new HttpError(503,'prepared response contains invalid JSON values');
-      return (index ? emit(',') : '') + (array ? '' : emit(JSON.stringify(key)+':')) + visit(nativeChild(value,key));
-    }).join('') + emit(array ? ']' : '}');
-  }
-  return visit(ref);
-}
-
 function safeInteger(ref: NativeRef): boolean {
   return typeof ref.value === 'number' && Number.isSafeInteger(ref.value);
 }
@@ -150,15 +124,15 @@ async function documentCatalogueBinding(claimRef: NativeRef, valueRef: NativeRef
     return 'document-catalogue-subject-binding-inconsistent';
   }
   const inconsistent = 'document-catalogue-exact-source-binding-inconsistent';
-  const sourceText = canonical(sourceRef), rawText = canonical(rawRef);
+  const sourceText = canonicalNativeJson(sourceRef), rawText = canonicalNativeJson(rawRef);
   if (new TextEncoder().encode(sourceText).length > MAX_SOURCE_BYTES || semantics.source_canonical_json !== sourceText) return inconsistent;
   const digest = await hashText(sourceText), valueDigest = await hashText(rawText);
-  const literalDigest = await hashText('{"claim_ref":' + canonical(nativeField(sourceRef,'claim_id')) + ',"value":' + rawText + '}');
+  const literalDigest = await hashText('{"claim_ref":' + canonicalNativeJson(nativeField(sourceRef,'claim_id')) + ',"value":' + rawText + '}');
   const left = fields(claim.attributes), right = fields(value.attributes);
   const sourceLine = nativeField(claimRef,'attributes.source_line');
   if (left.source_sha256 !== digest || right.source_sha256 !== digest || right.value_sha256 !== valueDigest
-      || await hashText(canonical(nativeField(valueRef,'attributes.value'))) !== valueDigest
-      || await hashText(canonical(nativeField(timeRef,'raw'))) !== valueDigest
+      || await hashText(canonicalNativeJson(nativeField(valueRef,'attributes.value'))) !== valueDigest
+      || await hashText(canonicalNativeJson(nativeField(timeRef,'raw'))) !== valueDigest
       || value.native_id !== 'literal:sha256:' + literalDigest
       || typeof sourceLine.value !== 'number' || nativeNumberInfo(sourceLine).kind !== 'int'
       || BigInt(nativeNumberInfo(sourceLine).lexeme) < 1n

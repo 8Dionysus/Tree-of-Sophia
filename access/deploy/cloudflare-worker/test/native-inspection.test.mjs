@@ -23,17 +23,29 @@ from tos_access.published_read_metadata import published_reader_metadata,publish
 from build_runtime import compact_json
 values={'10':9007199254740993,'2':1.0,'01':-0.0,'x':[9007199254740992,False,None,1e-7],
         '__proto__':{'constructor':1.0,'10':-0.0,'2':9007199254740993}}
+metadata_record={'record_id':'tos.record.numeric','record_type':'document','record_version':1,
+                 'numbers':values,'unicode':'Δ😀\\"\\\\\\n'}
+claim_record={'claim_id':'tos.claim.numeric','claim_version':1,
+              'numbers':values,'unicode':'Δ😀\\"\\\\\\n'}
+composite_record={'schema_version':'tos_scholarly_composite_witness_v1','composite_id':'tos.composite.numeric','numbers':values}
+artifact_record={'schema_version':'tos_artifact_source_witness_v1','artifact_id':'tos.artifact.numeric','numbers':values}
 nodes=[]
 for source,name,native,entity in [('philosophy','a','shared-native','tos.entity.a'),('canon','b','shared-native','tos.entity.b'),
  ('philosophy','c','c','tos.entity.shared'),('source-navigation','d','d','tos.entity.shared'),
  ('philosophy','e','tos.entity.shared','tos.entity.e'),('philosophy','z','philosophy:a','tos.entity.z'),
  ('philosophy','\ue000','unicode','tos.entity.private'),('philosophy','😀','unicode','tos.entity.astral')]:
- n=_normalize_node({'node_id':name,'label':name,'properties':values,'source_ref':'test:inspection'},source)
+ properties=dict(values)
+ if name=='a': properties['source_record']=metadata_record
+ elif name=='b': properties['source_record']=composite_record
+ elif name=='c': properties['source_record']=artifact_record
+ elif name=='d': properties.update(source_record=metadata_record,source_claim=claim_record)
+ n=_normalize_node({'node_id':name,'label':name,'properties':properties,'source_ref':'test:inspection'},source)
  n['native_id']=native;n['entity_id']=entity;n['source_refs']=['test:inspection','',7,'😀','\ue000','test:inspection']
  n['unknown']={'10':1.0,'2':9007199254740993,'01':-0.0};nodes.append(n)
 relations=[]
 for source,name,a,b in [('philosophy','r',0,1),('canon','s',1,0),('philosophy','self',0,0),('philosophy','t',2,3)]:
- r=_normalize_relation({'edge_id':name,'from_id':nodes[a]['id'],'to_id':nodes[b]['id'],'predicate_id':'links','source_ref':'test:inspection'},source,{n['id']:n for n in nodes})
+ properties={'source_claim':claim_record} if name=='r' else {}
+ r=_normalize_relation({'edge_id':name,'from_id':nodes[a]['id'],'to_id':nodes[b]['id'],'predicate_id':'links','properties':properties,'source_ref':'test:inspection'},source,{n['id']:n for n in nodes})
  r['from_id']=nodes[a]['id'];r['to_id']=nodes[b]['id'];r['native_id']='relation-alias' if name in ('r','s') else name
  r['unknown']=values;r['source_refs']=['test:relation','',False,'😀'];relations.append(r)
 graph={'schema':'tos_knowledge_graph_v1','source_revision':'a'*64,'nodes':nodes,'relations':relations,
@@ -281,6 +293,33 @@ test('native inspection actual Worker HTTP equals published Python full packets,
     }
     const payloadReads=data.statements.filter(({sql})=>/WITH selected AS/.test(sql)&&/FROM knowledge_(nodes|relations)\s+WHERE id IN/.test(sql));
     assert.ok(payloadReads.length);assert.equal(data.statements.some(({sql,args})=>sql.includes('json_extract')||args.includes('knowledge_lens_top')||args.includes('knowledge_catalog')),false);
+  }finally{data.close();}
+});
+
+test('inspection exact source targets match Python canonical raw carriers and omit unsupported families',async()=>{
+  const data=database();try {
+    const nodeExpected=oracle(data,'node','philosophy:a'),nodeResult=await response(data,'node','philosophy:a');
+    assert.equal(nodeExpected.status,200,nodeExpected.error);assert.equal(nodeResult.status,200);
+    assertPackets(await nodeResult.text(),nodeExpected.raw);
+    const nodePacket=JSON.parse(nodeExpected.raw);
+    assert.deepEqual(Object.keys(nodePacket.source_read_targets),['philosophy:a','philosophy:r']);
+    assert.equal(nodePacket.source_read_targets['philosophy:a'].target.layer,'metadata_record');
+    assert.equal(nodePacket.source_read_targets['philosophy:r'].target.layer,'claim_record');
+    assert.equal(nodePacket.source_read_targets['philosophy:a'].target.record_ref.id,'tos.record.numeric');
+    assert.equal(nodePacket.source_read_targets['philosophy:r'].target.record_ref.id,'tos.claim.numeric');
+    const relationExpected=oracle(data,'relation','philosophy:r'),relationResult=await response(data,'relation','philosophy:r');
+    assert.equal(relationExpected.status,200,relationExpected.error);assert.equal(relationResult.status,200);
+    assertPackets(await relationResult.text(),relationExpected.raw);
+    assert.deepEqual(Object.keys(JSON.parse(relationExpected.raw).source_read_targets),['philosophy:a','philosophy:r']);
+    const unsupportedExpected=oracle(data,'node','tos.entity.shared'),unsupportedResult=await response(data,'node','tos.entity.shared');
+    assert.equal(unsupportedExpected.status,200,unsupportedExpected.error);assert.equal(unsupportedResult.status,200);
+    assertPackets(await unsupportedResult.text(),unsupportedExpected.raw);
+    assert.deepEqual(Object.keys(JSON.parse(unsupportedExpected.raw).source_read_targets),[]);
+    // Composite, artifact and ambiguous source carriers are intentionally not
+    // targetable by the current record-id/Claim owner ABI.
+    assert.equal(Object.hasOwn(nodePacket.source_read_targets,'philosophy:b'),false);
+    assert.equal(Object.hasOwn(nodePacket.source_read_targets,'philosophy:c'),false);
+    assert.equal(Object.hasOwn(nodePacket.source_read_targets,'philosophy:d'),false);
   }finally{data.close();}
 });
 

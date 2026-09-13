@@ -4,6 +4,7 @@ import {NativeBudgetExceeded, codePointCompare} from '../../../shared/native-sem
 import {nativeStrip} from '../../../shared/native-unicode.ts';
 import {NativeD1Read, NativeD1Rows, nativeD1Limits, readNativePublication, nativeUnavailable,
   type NativeKind} from './native-d1-read.ts';
+import {nativeSourceReadTargets} from './native-source-target.ts';
 import {arrayRefs, derived, nativeField, nativePacketArray, nativePacketObject,
   stringField, type NativeRef, type NativePacket} from './native-lens.ts';
 
@@ -66,6 +67,7 @@ class Inspection {
       ['related_relations',nativePacketArray(selected)],
       ['counts',derived({matches:matches.length,related_relations:total,returned_relations:selected.length})],
       ['source_refs',derived(refs([...matches,...selected]))], ['authority_boundary',nativeField(top,'authority_boundary')],
+      ['source_read_targets',await nativeSourceReadTargets([...matches,...selected],nativeField(top,'source_revision'))],
     ]);
   }
   async relation(id: string, top: NativeRef): Promise<NativePacket> {
@@ -83,6 +85,7 @@ class Inspection {
       ['matches',nativePacketArray(matches)], ['endpoints',nativePacketArray(endpoints)],
       ['counts',derived({matches:matches.length,endpoints:endpoints.length})],
       ['source_refs',derived(refs([...matches,...endpoints]))], ['authority_boundary',nativeField(top,'authority_boundary')],
+      ['source_read_targets',await nativeSourceReadTargets([...matches,...endpoints],nativeField(top,'source_revision'))],
     ]);
   }
 }
