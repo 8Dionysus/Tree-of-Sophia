@@ -46,6 +46,7 @@ from .temporal_comparison import compare_temporal_claims
 from .published_read_model import PublishedKnowledgeReadModel, PublishedReadModelError
 from .published_exploration import PublishedExplorationService
 from .published_lens import PublishedLensService
+from .source_read import SourceReadError, SourceReadService, contract_summary, unavailable_capabilities
 
 
 INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
@@ -63,6 +64,7 @@ PHILOSOPHY_AUDIT_RELATIVE_PATH = Path("ToS/philosophy/graph-workbench/review-pac
 EVIDENCE_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/epistemic_evidence_projection.min.json")
 WORD_ANALYSIS_PROVIDER_RELATIVE_PATH = Path("scripts/prepare_zarathustra_word_analysis_v1.py")
 SOURCE_GAP_LEDGER_RELATIVE_PATH = Path("ToS/source-witnesses/access-requests/public-ledger")
+SOURCE_READ_CONTRACT_RELATIVE_PATH = Path("access/contracts/source-read.v1.schema.json")
 KNOWLEDGE_CONTRACT_RELATIVE_PATHS = {
     "api": Path("access/contracts/knowledge-api.v1.json"),
     "knowledge_graph": Path("access/contracts/knowledge-graph.v1.schema.json"),
@@ -512,6 +514,7 @@ class ToSAccessCore:
     published_read_model_path: Path | None = None
     published_read_model_expected: dict[str, Any] | None = None
     published_exploration_checkpoint_path: Path | None = None
+    source_read_service: SourceReadService | None = None
     _prepared_reader: PublishedKnowledgeReadModel | None = field(default=None, init=False, repr=False, compare=False)
     _prepared_lens: PublishedLensService | None = field(default=None, init=False, repr=False, compare=False)
     _exploration: ExplorationService = field(init=False, repr=False, compare=False)
@@ -551,6 +554,8 @@ class ToSAccessCore:
             raise ValueError("prepared reader requires both a path and an exact expected snapshot binding")
         if self.published_exploration_checkpoint_path is not None and self.published_read_model_path is None:
             raise ValueError("persistent exploration checkpoints require an explicitly selected prepared reader")
+        if self.source_read_service is not None and not isinstance(self.source_read_service, SourceReadService):
+            raise TypeError("source_read_service must be an explicit SourceReadService")
         if self.published_read_model_path is not None:
             path = Path(self.published_read_model_path).expanduser()
             if not path.is_absolute():
@@ -613,6 +618,7 @@ class ToSAccessCore:
         published_read_model_path: str | Path | None = None,
         published_read_model_expected: dict[str, Any] | None = None,
         published_exploration_checkpoint_path: str | Path | None = None,
+        source_read_service: SourceReadService | None = None,
     ) -> "ToSAccessCore":
         """Select legacy carrier reads, or explicitly pin the prepared reader.
 
@@ -698,6 +704,7 @@ class ToSAccessCore:
             published_read_model_expected=published_read_model_expected,
             published_exploration_checkpoint_path=(Path(published_exploration_checkpoint_path)
                                                   if published_exploration_checkpoint_path is not None else None),
+            source_read_service=source_read_service,
         )
 
     def index_exists(self) -> bool:
@@ -1061,6 +1068,40 @@ class ToSAccessCore:
             "truncated": truncated,
             "authority_note": navigation.get("authority_boundary"),
         }
+
+    def source_read_capabilities(self) -> dict[str, Any]:
+        """Report the explicit exact-source owner binding, if selected."""
+        return (self.source_read_service.capabilities()
+                if self.source_read_service is not None else unavailable_capabilities())
+
+    def source_read_contract(self) -> dict[str, Any]:
+        """Return the transport contract without selecting or reading a source."""
+        contract = _read_json(self.tos_root / SOURCE_READ_CONTRACT_RELATIVE_PATH)
+        return {
+            "schema": "tos_source_read_contract_bundle_v1",
+            "contract": contract,
+            "descriptor": contract_summary(),
+            "source_ref": SOURCE_READ_CONTRACT_RELATIVE_PATH.as_posix(),
+            "authority_boundary": {
+                "is_source": False,
+                "writes_to_source": False,
+                "grants_current_use": False,
+                "source_owner": "Tree-of-Sophia/source-witnesses",
+                "note": "The contract transports owner-issued exact public metadata records; it does not authorize arbitrary source access, revalidate usage rights, or grant current use.",
+            },
+        }
+
+    def source_handle_discover(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Issue one exact source handle through the selected owner readers."""
+        if self.source_read_service is None:
+            raise SourceReadError("source-owner-reader-not-configured")
+        return self.source_read_service.discover(request)
+
+    def source_read(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Read one exact owner-selected source record through the ABI."""
+        if self.source_read_service is None:
+            raise SourceReadError("source-owner-reader-not-configured")
+        return self.source_read_service.read(request)
 
     def philosophy_projection_exists(self) -> bool:
         return self.philosophy_graph_projection_path.is_file()

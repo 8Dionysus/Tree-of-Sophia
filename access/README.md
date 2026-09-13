@@ -135,6 +135,28 @@ versions expose a gap, never current wording or a new assessment/admission.
 The [source reader contract](../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#read-only-exact-metadata-versions)
 states supported families and record-only (not whole-package) verification.
 
+Exact source reading has a separate opt-in
+[transport contract](contracts/source-read.v1.schema.json). Discover it with
+`GET /api/source/contracts` or `tos_source_read_contract`; check the selected
+owner with `GET /api/source/capabilities` or `tos_source_read_capabilities`.
+The default CLI/server selects no source owner and reports `available: false`.
+An embedding explicitly supplies `SourceReadService` to `ToSAccessCore.discover`.
+Its `SourceOwnerBinding.from_prepared_source` requires the actual source
+assembler's complete vector verification and addressed catalog/readers;
+constructing a vector object or copying a source revision is insufficient.
+
+For an explicitly bound owner, `POST /api/source/handles` /
+`tos_source_handle_discover` accepts a typed catalog selector or exact
+owner-issued target. `POST /api/source/read` / `tos_source_read` accepts the
+returned handle and `representation: "record"`. The same core returns exact
+public metadata or Claim content without accepting filesystem paths, byte
+ranges or a latest-version fallback. A well-formed selector absent from the
+catalog returns `missing`, with no fabricated target, digest or handle.
+Reads recheck the owner epoch and source bytes; handles grant no use rights.
+This seam does not yet connect the constructor's source panel, CLI owner
+selection, historical Claim reader, review-ledger reader or native text payload.
+Those remain distinct integration work, not implied by HTTP/MCP parity.
+
 The read-only operations are available through all backend adapters:
 
 - `GET /api/knowledge/contracts` returns the operation map, exact JSON

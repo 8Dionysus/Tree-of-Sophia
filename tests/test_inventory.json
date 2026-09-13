@@ -33,6 +33,21 @@
   ],
   "tests": [
     {
+      "path": "access/tests/test_source_read.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/source_read.py",
+      "protects": "explicit owner-bound exact source metadata, Claim and source-slot reads; complete source-vector verification, opaque handles, HTTP/MCP parity, public visibility and bounded negative outcomes; not semantic admission or native text access",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_source_read.py",
+      "failure_route": "Fix the exact source reader or its owner binding without guessing source paths, dropping version checks or widening disclosure authority.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/web/constructor/desktop/test_desktop.py",
       "home": "access",
       "home_scope": "product-local",

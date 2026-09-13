@@ -226,6 +226,37 @@ def build_server(
         return current_state().source_dossier(object_id=object_id, limit=limit)
 
     @mcp.tool()
+    def tos_source_read_capabilities() -> dict[str, Any]:
+        """Report whether an explicit owner-bound exact-source reader is selected."""
+        return current_state().source_read_capabilities()
+
+    @mcp.tool()
+    def tos_source_read_contract() -> dict[str, Any]:
+        """Return the bounded owner-issued source handle/read contract."""
+        return current_state().source_read_contract()
+
+    @mcp.tool()
+    def tos_source_handle_discover(
+        target: dict[str, Any] | None = None,
+        selector: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Issue one exact owner handle from a card target or typed catalog selector.
+
+        A selector is resolved only by the selected owner catalog; it cannot
+        name a path, range, digest, or ``latest`` fallback.
+        """
+        if (target is None) == (selector is None):
+            raise ValueError("provide exactly one owner target or typed selector")
+        return current_state().source_handle_discover(
+            {"target": target} if target is not None else {"selector": selector}
+        )
+
+    @mcp.tool()
+    def tos_source_read(handle: dict[str, Any], representation: str = "record") -> dict[str, Any]:
+        """Read one exact public metadata, Claim, or source-slot record; ranges and text payloads are unsupported."""
+        return current_state().source_read({"handle": handle, "representation": representation})
+
+    @mcp.tool()
     def tos_corpus_resources(
         resource_kind: str | None = None,
         owner_branch: str | None = None,

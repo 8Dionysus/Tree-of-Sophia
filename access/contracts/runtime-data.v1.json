@@ -4,6 +4,12 @@
   "publication_posture": "allowlist-only",
   "subjects": [
     {
+      "subject_id": "tos-source-read-contract-v1",
+      "source_path": "access/contracts/source-read.v1.schema.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "native-mcp"]
+    },
+    {
       "subject_id": "tos-exploration-request-contract-v2",
       "source_path": "access/contracts/exploration-request.v2.schema.json",
       "required": true,

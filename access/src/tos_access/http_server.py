@@ -21,9 +21,11 @@ from .published_read_model import PublishedReadModelError, PublishedReadBudgetEx
 from .published_checkpoints import PublishedCheckpointError
 from .compressed_search_store import SearchStaleBinding, SearchCursorExpired, SearchUnavailable, SearchBudgetExceeded
 from .doctor import web_root_for
+from .source_read import SourceReadBudgetExceeded, SourceReadError
 
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
 MAX_LENS_REQUEST_BYTES = 64 * 1024
+MAX_SOURCE_REQUEST_BYTES = 64 * 1024
 
 INDEX_TEMPLATE = """<!doctype html>
 <html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -288,6 +290,8 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 if path.startswith("/api/knowledge/lenses/"):
                     self._json(core.stored_knowledge_lens(unquote(path.removeprefix("/api/knowledge/lenses/")))); return
                 if path == "/api/source-gaps": self._json(core.source_gap_search(_single(query, "query"), _integer(query, "limit", 20, 1, 100))); return
+                if path == "/api/source/capabilities": self._json(core.source_read_capabilities()); return
+                if path == "/api/source/contracts": self._json(core.source_read_contract()); return
                 if path == "/api/zarathustra/word-analysis":
                     self._json(core.zarathustra_word_analysis_task(
                         _single(query, "query"),
@@ -400,38 +404,45 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
 
         def do_POST(self) -> None:  # noqa: N802
             parsed = urlparse(self.path)
-            if parsed.path not in {"/api/knowledge/lenses/compile", "/api/knowledge/explore", "/api/knowledge/temporal/compare"}:
+            if parsed.path not in {
+                "/api/knowledge/lenses/compile", "/api/knowledge/explore", "/api/knowledge/temporal/compare",
+                "/api/source/handles", "/api/source/read",
+            }:
                 self._json({"error": "standalone access is read-only"}, HTTPStatus.METHOD_NOT_ALLOWED)
                 return
             try:
+                request_label = "source request" if parsed.path.startswith("/api/source/") else "lens request"
                 if self.headers.get("Transfer-Encoding"):
-                    raise ValueError("streamed lens requests are not supported")
+                    raise ValueError(f"streamed {request_label}s are not supported")
                 content_type = self.headers.get_content_type()
                 if content_type != "application/json":
-                    self._json({"error": "lens request must use application/json"}, HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+                    self._json({"error": f"{request_label} must use application/json"}, HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
                     return
                 raw_length = self.headers.get("Content-Length")
                 if raw_length is None:
-                    raise ValueError("lens request requires Content-Length")
+                    raise ValueError(f"{request_label} requires Content-Length")
                 length = int(raw_length)
+                maximum = MAX_SOURCE_REQUEST_BYTES if parsed.path.startswith("/api/source/") else MAX_LENS_REQUEST_BYTES
                 if length < 1:
-                    raise ValueError(f"lens request must be between 1 and {MAX_LENS_REQUEST_BYTES} bytes")
-                if length > MAX_LENS_REQUEST_BYTES:
+                    raise ValueError(f"{request_label} must be between 1 and {maximum} bytes")
+                if length > maximum:
                     self._json(
-                        {"error": f"lens request must not exceed {MAX_LENS_REQUEST_BYTES} bytes"},
+                        {"error": f"{request_label} must not exceed {maximum} bytes"},
                         HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
                     )
                     return
                 body = self.rfile.read(length)
                 if len(body) != length:
-                    raise ValueError("incomplete lens request body")
+                    raise ValueError(f"incomplete {request_label} body")
                 spec = json.loads(body.decode("utf-8"))
                 if not isinstance(spec, dict):
-                    raise ValueError("lens spec must be an object")
+                    raise ValueError(f"{request_label} must be an object")
                 operation = getattr(core, {
                     '/api/knowledge/explore': 'knowledge_explore',
                     '/api/knowledge/temporal/compare': 'knowledge_temporal_compare',
                     '/api/knowledge/lenses/compile': 'compile_knowledge_lens',
+                    '/api/source/handles': 'source_handle_discover',
+                    '/api/source/read': 'source_read',
                 }[parsed.path])
                 self._json(operation(spec))
             except ExplorationExpired as exc:
@@ -440,6 +451,11 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 self._json({"error": str(exc)}, HTTPStatus.CONFLICT)
             except PublishedReadBudgetExceeded as exc:
                 self._json({"error": str(exc)}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+            except SourceReadBudgetExceeded as exc:
+                self._json({"error": str(exc)}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+            except SourceReadError as exc:
+                status = HTTPStatus.SERVICE_UNAVAILABLE if str(exc).endswith("not-configured") else HTTPStatus.BAD_REQUEST
+                self._json({"error": str(exc)}, status)
             except (TemporalReadModelInvalid, ExplorationReadModelInvalid, PublishedReadModelError, PublishedCheckpointError) as exc:
                 self._json({"error": str(exc)}, HTTPStatus.SERVICE_UNAVAILABLE)
             except KeyError as exc:
