@@ -77,7 +77,7 @@ def classify_scope(rows):
     for _ in grouped_uids: counts['deferred']+=1
     write(BATCH_ROOT/'dedup-review.json',{
         'schema_version':'tos_registry_global_dedup_review_v1','reviewed_at':datetime.now(timezone.utc).isoformat(),
-        'provider_pin':PIN,'scope':'AN1-11 and SN36-56','prior_wave_manifest_refs':prior_refs,
+        'provider_pin':PIN,'scope':'AN1-11 and SN36-56','prior_planting_manifest_refs':prior_refs,
         'candidate_uids_before_global_dedup':len(selected_uids),'candidate_files_before_global_dedup':len(rows),
         'all_paired_uids':2171,'all_paired_files':4342,'deferred_grouped_uids':len(grouped_uids),'deferred_files':len(grouped),
         'existing_work_ids_checked':len(existing_works),'existing_expression_ids_checked':len(existing_expr),'existing_item_ids_checked':len(existing_items),

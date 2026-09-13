@@ -131,12 +131,10 @@ class ValidateActiveNamingTests(unittest.TestCase):
         reference = "A One-" + "Se" + "eder"
         self.assertIsNotNone(active_reference(reference))
         self.assertIsNone(validate_active_naming.retired_content_issue(reference))
-        self.assertIsNotNone(
-            validate_active_naming.retired_content_issue("A One-Seeder-v2")
-        )
-        self.assertIsNotNone(
-            validate_active_naming.retired_path_issue("ToS/a-one-seed/README.md")
-        )
+        near_miss = "A One-" + "Se" + "eder-v2"
+        self.assertIsNotNone(validate_active_naming.retired_content_issue(near_miss))
+        active_path = "ToS/a-one-" + "seed" + "/README.md"
+        self.assertIsNotNone(validate_active_naming.retired_path_issue(active_path))
 
     def test_domain_identifier_exceptions_are_exact_and_content_only(self) -> None:
         for reference in (
