@@ -244,7 +244,7 @@ function validateOriginExploration(packet,expected,previous){
     ||(packet.status==='paused'&&page.next_cursor===previous.page.next_cursor)
     ||!sameJson(packet.origin,previous.origin)||!sameJson(packet.query,previous.query)))throw new RevisionError();
   // Reuse the producer's rule. No client-specific identity or Claim folding.
-  const focusNode=origin.kind==='node'?origin.id:origin.endpoints.from.node_id;
+  const focusNode=origin.kind==='node'?origin.id:null;
   let scene;try{scene=knowledgeScene(packet.nodes,packet.relations,focusNode,origin.kind==='relation'?origin.id:null);}catch{fail();}
   if(!sameJson(packet.scene,scene))fail();
   return packet;

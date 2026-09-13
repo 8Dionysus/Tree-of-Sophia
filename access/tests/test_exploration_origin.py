@@ -6,6 +6,8 @@ import asyncio
 import heapq
 import json
 import random
+import shutil
+import subprocess
 import sys
 import tempfile
 import threading
@@ -100,6 +102,28 @@ def origin_reference(graph, request):
 
 
 class ExplorationOriginTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('node'), 'Node is required for browser contract parity')
+    def test_native_origin_pages_are_accepted_by_browser_contract(self):
+        graph = origin_graph(size=4)
+        graph['authority_boundary']['is_canon'] = False
+        packets = []
+        for kind in ('node', 'relation'):
+            for depth in (0, 2):
+                service = ExplorationService(lambda: graph)
+                packet = service.explore(origin_query(graph, kind, max_depth=depth,
+                    page_nodes=2, page_relations=2))
+                self.assertEqual(packet['scene']['focus_vertex_id'] is None, kind == 'relation')
+                packets.append(packet)
+        client = ACCESS / 'web/src/observatory/knowledge-client.mjs'
+        script = ("import fs from 'node:fs';import {validateExploration} from "
+                  + json.dumps(client.as_uri()) + ";const packets=JSON.parse(fs.readFileSync(0,'utf8'));"
+                  + "for(const p of packets)validateExploration(p,p.source_revision);"
+                  + "process.stdout.write(String(packets.length));")
+        result = subprocess.run(['node', '--experimental-strip-types', '--input-type=module', '-e', script],
+            input=json.dumps(packets), text=True, capture_output=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, str(len(packets)))
+
     @classmethod
     def setUpClass(cls):
         cls.schemas = {p.name: json.loads(p.read_text()) for p in (ACCESS / 'contracts').glob('*.schema.json')}

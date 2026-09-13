@@ -16,7 +16,7 @@ function localView(nodes,relations=[],selection=null,originRow=nodes[0]){
     ...(relationOrigin?{endpoints:{from:endpoint(originRow.from_id),to:endpoint(originRow.to_id)}}:{})};
   const selected=selection??origin;
   const selectedRelation=selected.kind==='relation'?relations.find(raw=>raw.id===selected.id):null;
-  const focus=selectedRelation?.from_id??(selected.kind==='claim-path'?selected.claimId:selected.id);
+  const focus=selectedRelation?null:(selected.kind==='claim-path'?selected.claimId:selected.id);
   return {schema:'tos_browser_exploration_view_v1',source_revision:revision,snapshot_revision:'b'.repeat(64),
     execution_version:'tos-exploration-execution-v6',origin,selection,nodes,relations,
     scene:knowledgeScene(nodes,relations,focus,selectedRelation?.id??null),

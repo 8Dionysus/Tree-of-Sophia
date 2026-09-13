@@ -17,6 +17,22 @@ test('v2 preserves exact node and relation origin with declared scene and endpoi
   }
 });
 
+test('relation origin never invents a node focus from one of its endpoints',()=>{
+  const packet=pageFixture('relation');
+  assert.equal(packet.scene.focus_vertex_id,null);
+  assert.equal(validateExploration(packet,R),packet);
+  const cache=new ExplorationSceneCache(),ticket=cache.begin(packet.query);
+  const view=cache.accept(ticket,packet);
+  assert.deepEqual(view.selection,{kind:'relation',id:packet.origin.id});
+  assert.equal(view.scene.focus_vertex_id,null);
+  cache.select({kind:'node',id:packet.origin.endpoints.from.node_id});
+  const reselected=cache.select({kind:'relation',id:packet.origin.id});
+  assert.equal(reselected.scene.focus_vertex_id,null);
+  const falseFocus=structuredClone(packet);
+  falseFocus.scene=knowledgeScene(packet.nodes,packet.relations,packet.origin.endpoints.from.node_id,packet.origin.id);
+  assert.throws(()=>validateExploration(falseFocus,R),ContractError);
+});
+
 test('v2 refuses missing origins, invented endpoint bindings, altered scenes and partition gaps',()=>{
   for(const change of [
     p=>p.origin.id='absent',p=>p.origin.content_revision='0'.repeat(64),

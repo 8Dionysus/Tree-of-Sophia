@@ -22,7 +22,7 @@ function focusFor(selection,origin,nodes,relations){
   if(target.kind==='relation'){
     const relation=relations.get(target.id);
     if(!relation)throw new ContractError('The selected relation is absent from the reading space.');
-    return {node:relation.from_id,relation:relation.id};
+    return {node:null,relation:relation.id};
   }
   const id=target.kind==='claim-path'?target.claimId:target.id;
   if(!nodes.has(id))throw new ContractError('The selected object is absent from the reading space.');

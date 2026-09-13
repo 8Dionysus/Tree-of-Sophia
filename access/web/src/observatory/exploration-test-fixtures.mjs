@@ -23,7 +23,7 @@ export function pageFixture(kind='node'){
     inclusion:{authority:'query-execution-not-semantic-proof',nodes:Object.fromEntries(nodes.map((n,index)=>
       [n.id,{kind:kind==='relation'?'origin-endpoint':index===0?'origin':'context-endpoint'}])),
       relations:{[relations[0].id]:{kind:kind==='relation'?'origin':'incident'}}},
-    scene:knowledgeScene(nodes,relations,nodes[0].id,kind==='relation'?relations[0].id:null),
+    scene:knowledgeScene(nodes,relations,kind==='node'?nodes[0].id:null,kind==='relation'?relations[0].id:null),
     authority_boundary:{is_source:false,is_canon:false,writes_to_tree:false},writes_to_tree:false};
 }
 

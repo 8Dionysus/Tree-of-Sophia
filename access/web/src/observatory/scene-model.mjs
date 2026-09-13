@@ -118,7 +118,7 @@ function explorationFocusBinding(view,rawNodesById,rawRelationsById){
   requireScene(string(selection.id));
   if(selection.kind==='relation'){
     const relation=rawRelationsById.get(selection.id);requireScene(relation);
-    return {nodeId:relation.from_id,relationId:relation.id,pathId:null};
+    return {nodeId:null,relationId:relation.id,pathId:null};
   }
   const nodeId=selection.kind==='claim-path'?selection.claimId:selection.id;
   requireScene(string(nodeId)&&rawNodesById.has(nodeId));
@@ -349,7 +349,10 @@ function buildModel(packet,mode,limits,exploration){
     const sceneData=validateScene(packet,rawNodesById,rawRelationsById,focus,limits);
     const compactData=validateCompact(packet,sceneData,rawNodesById,rawRelationsById,focus,limits);
     if(exploration){
-      requireScene(compactData&&compactData.visibleIds.has(sceneData.carrierToSceneVertex.get(focus.nodeId)));
+      requireScene(compactData);
+      const focusNodes=focus.relationId===null?[focus.nodeId]:
+        ['from_id','to_id'].map(side=>rawRelationsById.get(focus.relationId)[side]);
+      requireScene(focusNodes.every(id=>compactData.visibleIds.has(sceneData.carrierToSceneVertex.get(id))));
       requireScene(focus.pathId===null||compactData.pathsById.get(focus.pathId)?.claim_node_id===focus.nodeId);
     }
     return sceneProjection(packet,sceneData,compactData,rawNodesById,rawRelationsById,focus,mode);
