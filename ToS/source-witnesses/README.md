@@ -333,6 +333,10 @@ or prove reverse dependency closure. A prepared publisher still must assemble
 the new Claim and affected shared contexts, update declarations and all reader
 lanes atomically, and verify source guards before its own commit. Catalog
 staging alone does not make a new Claim visible to a running human/agent reader.
+The separate [initial Claim publication composition](../../access/contracts/source-claim-publication.v1.md)
+joins this exact catalog candidate to complete affected incidence, new source
+declarations, singleton Claim contexts and all prepared lanes in one guarded
+transaction. Consumer switching and other mutation profiles remain separate.
 
 Evidence nodes carry a bounded readable `display` from owner metadata.
 An identity can reuse its catalog `preferred_label`. Direct Markdown

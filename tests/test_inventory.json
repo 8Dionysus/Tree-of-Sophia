@@ -213,6 +213,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_source_claim_publication.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "access/contracts/source-claim-publication.v1.md",
+      "protects": "source-created Claim publication across all prepared lanes, complete affected normalized union, independent old-reader visibility, detached observations, source/declaration/context continuity into Agent correction, late rollback and retry without source rollback",
+      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_source_claim_publication.py",
+      "failure_route": "Fix the source-owned Claim publication closure or transactional composition; never infer source admission or consumer activation from an uncommitted candidate.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_source_claim_catalog.py",
       "home": "tests",
       "home_scope": "root",

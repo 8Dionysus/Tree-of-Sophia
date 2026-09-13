@@ -140,7 +140,11 @@ class ClaimCatalogAddition:
         # This is not a selected-metadata transaction: do not invent a token or
         # masquerade as the previous Agent transaction. The detached addition
         # receipt below binds both roots and the exact creation request instead.
-        successor = {**header, 'claim_count': header['claim_count'] + len(claim_rows),
+        successor = {**header,
+                     'profile_bindings': {**header['profile_bindings'],
+                         'source': {**header['profile_bindings']['source'],
+                                    **{ref: self.capture.observed[ref] for ref in profiles.input_digests}}},
+                     'claim_count': header['claim_count'] + len(claim_rows),
                      'source_slot_count': header['source_slot_count'] + len(slots),
                      'last_transition': None}
         catalog._schema('header').validate(successor)
