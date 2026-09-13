@@ -91,7 +91,7 @@ but never retains reader state or authorizes disclosure on its own.
         binding = SourceOwnerBinding.from_prepared_source(self.inputs,
             catalog_snapshot=snapshot, metadata_reader=metadata_reader, claim_reader=claim_reader)
         declared = profiles.SourceRecordProfiles(self.source_root)
-        kinds = set(metadata.NATIVE_CATALOGS) | {"link"} | set(declared.profiles)
+        kinds = set(metadata.NATIVE_CATALOGS) | {"link", "artifact", "composite"} | set(declared.profiles)
         service = SourceReadService(binding, target_issuer=SourceCatalogTargetIssuer(snapshot),
                                     metadata_record_types=kinds)
         if hasattr(self, "epoch") and service.epoch != self.epoch:

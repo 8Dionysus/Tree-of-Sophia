@@ -182,9 +182,12 @@ The same selection works with `mcp` and the `source capabilities`, `source
 contracts`, `source discover REQUEST.json`, and `source read REQUEST.json` CLI
 commands. Discovery/read accept `-` for bounded JSON input from stdin.
 
-Historical Claim reading, native artifact/composite source identities,
-review-ledger reading and native text payloads remain separate integration
-work. A build or mocked client test alone does not establish the live
+Native artifact/composite metadata uses its schema-declared `artifact_id` or
+`composite_id`, not a fabricated `record_id`. Exact reads bind the existing
+metadata owner's native-witness descriptor, version, digest and public metadata
+scope; this does not expose scans, transcriptions or grant content-use rights.
+Historical Claim reading, review-ledger reading and native text payloads remain
+separate integration work. A build or mocked client test alone does not establish the live
 constructor-to-owner cycle.
 
 The read-only operations are available through all backend adapters:

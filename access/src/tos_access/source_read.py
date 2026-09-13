@@ -664,6 +664,25 @@ def _target(value: Any) -> dict[str, Any]:
     raise SourceReadError("source target layer is unsupported")
 
 
+def _metadata_identity(record: dict[str, Any]) -> tuple[str, str] | None:
+    native = {
+        "tos_scholarly_composite_witness_v1": ("composite", "composite_id"),
+        "tos_artifact_source_witness_v1": ("artifact", "artifact_id"),
+        "tos_artifact_source_witness_v2": ("artifact", "artifact_id"),
+    }
+    schema = record.get("schema_version")
+    if isinstance(schema, (dict, list)):
+        return None
+    if isinstance(schema, str) and schema in native:
+        kind, field = native[schema]
+        if "record_id" in record or "record_type" in record:
+            return None
+        identifier = record.get(field)
+        return (kind, field) if isinstance(identifier, str) and identifier.startswith("tos." + kind + ".") else None
+    kind = record.get("record_type")
+    return (kind, "record_id") if isinstance(kind, str) else None
+
+
 def exact_target_from_record(record: Any, *, layer: str) -> dict[str, Any] | None:
     """Project one complete raw owner record into the existing target ABI.
 
@@ -692,19 +711,11 @@ def exact_target_from_record(record: Any, *, layer: str) -> dict[str, Any] | Non
                 "content_revision": reference["digest"],
             })
 
-        # The current metadata-owner ABI is explicitly record_id based.  Native
-        # composite/artifact carriers use different identity fields and are
-        # intentionally omitted until their owner reader exposes a matching
-        # exact target/result contract; mapping them here would create an
-        # apparently usable target that ``_metadata_result`` cannot serve.
-        if record.get("schema_version") in {
-            "tos_scholarly_composite_witness_v1",
-            "tos_artifact_source_witness_v1",
-            "tos_artifact_source_witness_v2",
-        }:
+        identity = _metadata_identity(record)
+        if identity is None:
             return None
-        identifier = record.get("record_id")
-        record_type = record.get("record_type")
+        record_type, identity_field = identity
+        identifier = record.get(identity_field)
         version = record.get("record_version")
         if (
             type(identifier) is not str
@@ -1019,7 +1030,14 @@ class SourceReadService:
         owner_ref = result.get("exact_ref")
         if owner_ref != target["record_ref"]:
             raise SourceReadError("owner metadata reader did not return the requested exact reference")
-        if record.get("record_id") != target["record_ref"]["id"] or record.get("record_version") != target["record_ref"]["version"]:
+        identity = _metadata_identity(record)
+        if identity is None or identity[0] != target["record_type"]:
+            raise SourceReadError("owner metadata record type differs")
+        identity_field = identity[1]
+        if identity_field != "record_id" and (descriptor.get("adapter") != "native-witness"
+                or descriptor.get("identity_field") != identity_field):
+            raise SourceReadError("owner native metadata descriptor identity differs")
+        if record.get(identity_field) != target["record_ref"]["id"] or record.get("record_version") != target["record_ref"]["version"]:
             raise SourceReadError("owner metadata record identity or version differs")
         if "sha256:" + _canonical_digest(record) != target["content_revision"]:
             raise SourceReadError("owner metadata content digest differs")

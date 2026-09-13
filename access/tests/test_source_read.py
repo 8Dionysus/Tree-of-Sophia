@@ -298,6 +298,42 @@ def test_owner_handles_cover_agent_and_registry_declared_lexical_metadata() -> N
     assert unsupported["reason"] == "metadata-type-not-owner-declared"
 
 
+@pytest.mark.parametrize("schema,kind,field", [
+    ("tos_artifact_source_witness_v1", "artifact", "artifact_id"),
+    ("tos_artifact_source_witness_v2", "artifact", "artifact_id"),
+    ("tos_scholarly_composite_witness_v1", "composite", "composite_id"),
+])
+def test_native_witness_read_requires_matching_owner_identity_descriptor(schema, kind, field):
+    from tos_access.source_read import exact_target_from_record
+    record = {"schema_version": schema, field: "tos." + kind + ".fixture", "record_version": 1,
+              "visibility": "public_metadata_only", "unknown": {"preserved": True}}
+    target = exact_target_from_record(record, layer="metadata_record")
+
+    class NativeOwner:
+        descriptor = {"adapter": "native-witness", "record_type": kind, "identity_field": field}
+        def source_read_binding(self):
+            return _epoch().value()
+        def verify_current(self):
+            pass
+        def resolve_typed(self, reference):
+            assert reference == target["record_ref"]
+            return {"status": "available", "reason": "exact-current-version", "exact_ref": reference,
+                    "record": copy.deepcopy(record), "descriptor": self.descriptor,
+                    "provenance": {"source": {"source_ref": "ToS/source-witnesses/fixture/native.json"}}}
+
+    owner = NativeOwner()
+    service = SourceReadService(SourceOwnerBinding.from_owner_readers(metadata_reader=owner), metadata_record_types={kind})
+    discovered = service.discover({"target": target})
+    assert discovered["status"] == "available", discovered
+    read = service.read({"handle": discovered["handle"], "representation": "record"})
+    assert read["status"] == "available" and read["record"] == record
+    assert read["access"]["rights_revalidated"] is False
+    for descriptor in ({**owner.descriptor, "identity_field": "record_id"}, {**owner.descriptor, "adapter": "declared-profile"}):
+        owner.descriptor = descriptor
+        denied = service.discover({"target": target})
+        assert denied["status"] != "available" and denied["handle"] is None
+
+
 def _source_vector_for_catalog(view, token):
     """Owner-hashed complete tiny vector, not an arbitrary revision string."""
     from tos_access.projection_mutation import ProjectionSnapshotView

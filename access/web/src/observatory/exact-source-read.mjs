@@ -106,9 +106,14 @@ export async function readExactSource(client,selection,{signal,timeoutMs=SOURCE_
       requireContract(object(read.record)&&object(read.provenance)&&sameJson(read.access,discovered.handle.access)
         &&byteSize(read.record)<=1024*1024);
       const metadata=target.layer==='metadata_record';
-      requireContract(read.record[metadata?'record_id':'claim_id']===target.record_ref.id
+      const nativeFields={tos_scholarly_composite_witness_v1:['composite','composite_id'],
+        tos_artifact_source_witness_v1:['artifact','artifact_id'],tos_artifact_source_witness_v2:['artifact','artifact_id']};
+      const native=metadata&&Object.hasOwn(nativeFields,read.record.schema_version)?nativeFields[read.record.schema_version]:null;
+      if(native)requireContract(!Object.hasOwn(read.record,'record_id')&&!Object.hasOwn(read.record,'record_type')
+        &&target.record_type===native[0]&&target.record_ref.id.startsWith('tos.'+native[0]+'.'));
+      requireContract(read.record[metadata?(native?.[1]??'record_id'):'claim_id']===target.record_ref.id
         &&read.record[metadata?'record_version':'claim_version']===target.record_ref.version);
-      if(metadata)requireContract(read.record.record_type===target.record_type);
+      if(metadata&&!native)requireContract(read.record.record_type===target.record_type);
     }else requireContract(read.record===null);
     return {...read,selection:expected};
   }catch(error){

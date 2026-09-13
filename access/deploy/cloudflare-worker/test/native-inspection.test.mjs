@@ -27,8 +27,8 @@ metadata_record={'record_id':'tos.record.numeric','record_type':'document','reco
                  'numbers':values,'unicode':'Δ😀\\"\\\\\\n'}
 claim_record={'claim_id':'tos.claim.numeric','claim_version':1,
               'numbers':values,'unicode':'Δ😀\\"\\\\\\n'}
-composite_record={'schema_version':'tos_scholarly_composite_witness_v1','composite_id':'tos.composite.numeric','numbers':values}
-artifact_record={'schema_version':'tos_artifact_source_witness_v1','artifact_id':'tos.artifact.numeric','numbers':values}
+composite_record={'schema_version':'tos_scholarly_composite_witness_v1','composite_id':'tos.composite.numeric','record_version':1,'numbers':values}
+artifact_record={'schema_version':'tos_artifact_source_witness_v2','artifact_id':'tos.artifact.numeric','record_version':1,'numbers':values}
 nodes=[]
 for source,name,native,entity in [('philosophy','a','shared-native','tos.entity.a'),('canon','b','shared-native','tos.entity.b'),
  ('philosophy','c','c','tos.entity.shared'),('source-navigation','d','d','tos.entity.shared'),
@@ -296,7 +296,7 @@ test('native inspection actual Worker HTTP equals published Python full packets,
   }finally{data.close();}
 });
 
-test('inspection exact source targets match Python canonical raw carriers and omit unsupported families',async()=>{
+test('inspection exact source targets match Python native witness identities and omit ambiguous carriers',async()=>{
   const data=database();try {
     const nodeExpected=oracle(data,'node','philosophy:a'),nodeResult=await response(data,'node','philosophy:a');
     assert.equal(nodeExpected.status,200,nodeExpected.error);assert.equal(nodeResult.status,200);
@@ -310,13 +310,13 @@ test('inspection exact source targets match Python canonical raw carriers and om
     const relationExpected=oracle(data,'relation','philosophy:r'),relationResult=await response(data,'relation','philosophy:r');
     assert.equal(relationExpected.status,200,relationExpected.error);assert.equal(relationResult.status,200);
     assertPackets(await relationResult.text(),relationExpected.raw);
-    assert.deepEqual(Object.keys(JSON.parse(relationExpected.raw).source_read_targets),['philosophy:a','philosophy:r']);
+    assert.deepEqual(Object.keys(JSON.parse(relationExpected.raw).source_read_targets),['canon:b','philosophy:a','philosophy:r']);
     const unsupportedExpected=oracle(data,'node','tos.entity.shared'),unsupportedResult=await response(data,'node','tos.entity.shared');
     assert.equal(unsupportedExpected.status,200,unsupportedExpected.error);assert.equal(unsupportedResult.status,200);
     assertPackets(await unsupportedResult.text(),unsupportedExpected.raw);
-    assert.deepEqual(Object.keys(JSON.parse(unsupportedExpected.raw).source_read_targets),[]);
-    // Composite, artifact and ambiguous source carriers are intentionally not
-    // targetable by the current record-id/Claim owner ABI.
+    assert.deepEqual(Object.keys(JSON.parse(unsupportedExpected.raw).source_read_targets),['philosophy:c']);
+    assert.equal(JSON.parse(unsupportedExpected.raw).source_read_targets['philosophy:c'].target.record_type,'artifact');
+    // Absent and ambiguous raw source carriers never acquire guessed targets.
     assert.equal(Object.hasOwn(nodePacket.source_read_targets,'philosophy:b'),false);
     assert.equal(Object.hasOwn(nodePacket.source_read_targets,'philosophy:c'),false);
     assert.equal(Object.hasOwn(nodePacket.source_read_targets,'philosophy:d'),false);

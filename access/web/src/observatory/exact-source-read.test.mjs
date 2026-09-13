@@ -51,6 +51,21 @@ test('missing source target never guesses from graph ID, native ID or local refe
   assert.equal(result.status,'unsupported');assert.equal(result.record,null);assert.equal(calls.length,1);
 });
 
+test('native witness identities are exact without fabricated record fields',async()=>{
+  for(const [schema,kind,field] of [['tos_artifact_source_witness_v1','artifact','artifact_id'],
+    ['tos_artifact_source_witness_v2','artifact','artifact_id'],['tos_scholarly_composite_witness_v1','composite','composite_id']]){
+    const data=fixture(),target=data.discovery.target;
+    target.record_type=kind;target.record_ref.id='tos.'+kind+'.fixture';
+    data.read.record={schema_version:schema,[field]:target.record_ref.id,record_version:2,visibility:'public_metadata_only',unknown:{preserved:true}};
+    const result=await readExactSource(harness(data).client,selection);
+    assert.deepEqual(result.record,data.read.record);
+    for(const patch of [{record_id:target.record_ref.id},{record_type:kind},{[field]:'tos.agent.foreign'},{record_version:3}]){
+      const wrong=structuredClone(data);Object.assign(wrong.read.record,patch);
+      await assert.rejects(readExactSource(harness(wrong).client,selection),ContractError);
+    }
+  }
+});
+
 test('unknown source fields cannot silently round a large integer in an exact record',async()=>{
   const data=fixture();data.read.record.extension={values:['LARGE_INTEGER']};
   const {client}=harness(data,(packet,path)=>new Response(

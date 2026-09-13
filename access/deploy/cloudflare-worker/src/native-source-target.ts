@@ -16,10 +16,10 @@ const METADATA_ID = /^tos\.(?!claim\.)[a-z0-9]+(?:[.-][a-z0-9]+)*(?![\s\S])/;
 const CLAIM_ID = /^tos\.claim\.[a-z0-9]+(?:[.-][a-z0-9]+)*(?![\s\S])/;
 const RECORD_TYPE = /^[a-z][a-z0-9-]{0,63}(?![\s\S])/;
 const MAX_SAFE_INTEGER = 9007199254740991n;
-const UNSUPPORTED_METADATA_SCHEMAS = new Set([
-  'tos_scholarly_composite_witness_v1',
-  'tos_artifact_source_witness_v1',
-  'tos_artifact_source_witness_v2',
+const NATIVE_METADATA_SCHEMAS = new Map<string, readonly [string, string]>([
+  ['tos_scholarly_composite_witness_v1', ['composite', 'composite_id']],
+  ['tos_artifact_source_witness_v1', ['artifact', 'artifact_id']],
+  ['tos_artifact_source_witness_v2', ['artifact', 'artifact_id']],
 ]);
 
 const isObject = (ref: NativeRef): boolean => ref.value !== null && typeof ref.value === 'object' && !Array.isArray(ref.value);
@@ -68,18 +68,19 @@ function exactVersion(ref: NativeRef): NativeRef | null {
 async function exactTargetFromRecord(record: NativeRef, layer: 'metadata_record' | 'claim_record'): Promise<NativePacket | null> {
   if (!isObject(record)) return null;
   try {
+    let native: readonly [string, string] | undefined;
     if (layer === 'metadata_record') {
       const schema = nativeField(record, 'schema_version').value;
-      // Python set membership rejects unhashable schema values; omit those
-      // carriers as well as the explicitly unsupported native families.
       if (schema !== null && typeof schema === 'object') return null;
-      if (typeof schema === 'string' && UNSUPPORTED_METADATA_SCHEMAS.has(schema)) return null;
+      native = typeof schema === 'string' ? NATIVE_METADATA_SCHEMAS.get(schema) : undefined;
+      if (native && (nativeKeys(record).includes('record_id') || nativeKeys(record).includes('record_type'))) return null;
     }
-    const id = nativeField(record, layer === 'claim_record' ? 'claim_id' : 'record_id');
-    const type = layer === 'metadata_record' ? nativeField(record, 'record_type') : null;
+    const id = nativeField(record, layer === 'claim_record' ? 'claim_id' : native?.[1] ?? 'record_id');
+    const type = layer === 'metadata_record' ? native?.[0] ?? nativeField(record, 'record_type').value : null;
     const version = nativeField(record, layer === 'claim_record' ? 'claim_version' : 'record_version');
     if (typeof id.value !== 'string' || !(layer === 'claim_record' ? CLAIM_ID : METADATA_ID).test(id.value)) return null;
-    if (type !== null && (typeof type.value !== 'string' || !RECORD_TYPE.test(type.value))) return null;
+    if (layer === 'metadata_record' && (typeof type !== 'string' || !RECORD_TYPE.test(type))) return null;
+    if (native && !id.value.startsWith('tos.' + native[0] + '.')) return null;
     const exactVersionRef = exactVersion(version);
     if (!exactVersionRef) return null;
     const digest = 'sha256:' + await sha256(canonicalNativeJson(record));
@@ -91,7 +92,7 @@ async function exactTargetFromRecord(record: NativeRef, layer: 'metadata_record'
       ])
       : nativePacketObject([
         ['layer', 'metadata_record'],
-        ['record_type', type!.value as string],
+        ['record_type', type as string],
         ['record_ref', nativePacketObject([['id', id.value], ['version', exactVersionRef], ['digest', digest]])],
         ['content_revision', digest],
       ]);

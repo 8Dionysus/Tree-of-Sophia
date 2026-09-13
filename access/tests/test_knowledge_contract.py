@@ -2382,17 +2382,23 @@ class KnowledgeContractTests(unittest.TestCase):
         bare_packet = inspect_knowledge_node({**graph, 'nodes': [bare]}, bare['id'])
         self.assertEqual(bare_packet['source_read_targets'], {})
 
-        # Native composite/artifact records use a different owner identity
-        # ABI; until that owner exposes a matching metadata target/result,
-        # inspection must leave them unsupported rather than inventing one.
+        # Native witnesses retain their own identity fields; no record_id
+        # shadow or mismatched family is admitted by the exact target adapter.
         native = {
             'schema_version': 'tos_scholarly_composite_witness_v1',
             'composite_id': 'tos.composite.synthetic-source', 'record_version': 1,
             'title': 'Native composite carrier',
         }
-        self.assertIsNone(exact_target_from_record(native, layer='metadata_record'))
+        native_target = exact_target_from_record(native, layer='metadata_record')
+        self.assertEqual(native_target['record_type'], 'composite')
+        self.assertEqual(native_target['record_ref']['id'], native['composite_id'])
         shadow_native = {**native, 'record_id': 'tos.composite.synthetic-source', 'record_type': 'composite'}
         self.assertIsNone(exact_target_from_record(shadow_native, layer='metadata_record'))
+        for schema in ('tos_artifact_source_witness_v1', 'tos_artifact_source_witness_v2'):
+            artifact = {'schema_version': schema, 'artifact_id': 'tos.artifact.synthetic-source', 'record_version': 1}
+            self.assertEqual(exact_target_from_record(artifact, layer='metadata_record')['record_type'], 'artifact')
+            self.assertIsNone(exact_target_from_record({**artifact, 'artifact_id': 'tos.agent.wrong'}, layer='metadata_record'))
+            self.assertIsNone(exact_target_from_record({**artifact, 'record_version': True}, layer='metadata_record'))
         minimal_metadata = {
             'record_type': 'agent', 'record_id': 'tos.agent.synthetic-minimal',
             'record_version': 1, 'preferred_label': 'Minimal source agent',
