@@ -24,6 +24,52 @@ from incremental_runtime import (
 
 
 class IncrementalRuntimeTests(unittest.TestCase):
+    def test_full_only_sql_preserves_publication_and_explicit_posting_budget(self):
+        import build_runtime as builder
+        from test_access_contract import write_fixture
+        from tos_access.core import ToSAccessCore
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            with patch.object(builder, 'REPO_ROOT', root):
+                carriers = builder.ProducerCarrierSet.from_core(core)
+                revision = builder.data_revision(core, carriers)
+                legacy = root / 'legacy' / 'read-model.sql'
+                full = root / 'full' / 'read-model.sql'
+                expected = builder.build_read_model_sql(core, legacy, revision, carriers)
+                actual = builder.build_read_model_sql(core, full, revision, carriers,
+                    emit_delta_baseline=False,
+                    max_search_postings=expected['knowledge_search_postings'])
+                self.assertEqual(full.read_bytes(), legacy.read_bytes())
+                self.assertEqual({k: v for k, v in actual.items() if k != 'delta'},
+                                 {k: v for k, v in expected.items() if k != 'delta'})
+                self.assertIsNone(actual['delta'])
+                self.assertEqual({p.name for p in full.parent.iterdir()}, {'read-model.sql'})
+                with self.assertRaisesRegex(ValueError, 'fresh output'):
+                    builder.build_read_model_sql(core, full, revision, carriers, emit_delta_baseline=False)
+                self.assertEqual(full.read_bytes(), legacy.read_bytes())
+                refused = root / 'refused' / 'read-model.sql'
+                with self.assertRaisesRegex(RuntimeError, 'posting budget exceeded'):
+                    builder.build_read_model_sql(core, refused, revision, carriers,
+                        emit_delta_baseline=False,
+                        max_search_postings=expected['knowledge_search_postings'] - 1)
+                self.assertFalse(refused.exists())
+                self.assertFalse(refused.with_name('read-model.rows.json').exists())
+                invalid = root / 'invalid' / 'read-model.sql'
+                for budget in (0, -1, True, 1.5):
+                    with self.subTest(budget=budget), self.assertRaises(ValueError):
+                        builder.build_read_model_sql(core, invalid, revision, carriers,
+                            max_search_postings=budget)
+                self.assertFalse(invalid.parent.exists())
+                conflict = root / 'conflict' / 'read-model.sql'
+                conflict.parent.mkdir()
+                conflict.with_name('read-model.deployed.rows.json').write_text('existing')
+                with self.assertRaisesRegex(ValueError, 'fresh output'):
+                    builder.build_read_model_sql(core, conflict, revision, carriers, emit_delta_baseline=False)
+                self.assertFalse(conflict.exists())
+
     def test_data_revision_binds_catalog_even_when_graph_is_identical(self):
         import copy
         import build_runtime as builder

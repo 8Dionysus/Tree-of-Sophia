@@ -723,7 +723,23 @@ def build_read_model_sql(
     target: Path,
     revision: str,
     carrier_set: ProducerCarrierSet | None = None,
+    *,
+    max_search_postings: int = SEARCH_READ_MODEL_MAX_POSTINGS,
+    emit_delta_baseline: bool = True,
 ) -> dict[str, Any]:
+    # These are offline production budgets, not serving limits or changes to
+    # searchable content. A full-only bootstrap deliberately does not create
+    # a baseline for future delta imports; it must use a fresh output district.
+    if type(max_search_postings) is not int or max_search_postings < 1:
+        raise ValueError("max_search_postings must be a positive integer")
+    if type(emit_delta_baseline) is not bool:
+        raise ValueError("emit_delta_baseline must be a boolean")
+    if not emit_delta_baseline and any(path.exists() for path in (
+        target, target.with_name('read-model.rows.json'),
+        target.with_name('read-model.deployed.rows.json'),
+        target.with_name('read-model.delta.sql'),
+    )):
+        raise ValueError("full-only SQL requires fresh output paths without a delta baseline")
     # Capture/admit the complete pair before creating target-side SQL or row
     # index files.  A supplied set is the only route for external frozen
     # carriers; legacy callers retain the existing core discovery behavior.
@@ -764,7 +780,7 @@ def build_read_model_sql(
         baseline_path,
         READ_MODEL_SCHEMA_VERSION,
         target.with_name('read-model.baseline.sqlite'),
-    ) if baseline_path.is_file() else None)
+    ) if emit_delta_baseline and baseline_path.is_file() else None)
     index_pending = index_path.with_name(index_path.name + '.next')
     delta = DeltaRecorder(
         target.with_name('read-model.delta.sql'),
@@ -772,7 +788,7 @@ def build_read_model_sql(
         READ_MODEL_SCHEMA_VERSION,
         previous_index,
         index_store_path=target.with_name('read-model.rows.index.sqlite'),
-    )
+    ) if emit_delta_baseline else None
     statements = SqlStatementWriter(target, delta)
     statements.extend((
         "PRAGMA foreign_keys=OFF;",
@@ -1252,8 +1268,10 @@ def build_read_model_sql(
                     for offset in range(len(document) - SEARCH_NGRAM_SIZE + 1)
                 ))
                 search_posting_count += len(grams)
-                if search_posting_count > SEARCH_READ_MODEL_MAX_POSTINGS:
-                    raise RuntimeError("knowledge search posting budget exceeded")
+                if search_posting_count > max_search_postings:
+                    raise RuntimeError(
+                        f"knowledge search posting budget exceeded: {search_posting_count} > {max_search_postings}"
+                    )
                 for gram in grams:
                     search_gram_stats.add(kind, gram)
                 append_batched_inserts(
@@ -1332,12 +1350,11 @@ def build_read_model_sql(
     # publish helper then renames the SQL, delta, and row-index files together
     # with rollback if one local rename fails.
     statements.finish(publish=False)
-    delta.finish(index_output=index_pending, publish=False)
-    publish_prepared_files((
-        (statements.pending, statements.target),
-        (delta.pending_path, delta.target),
-        (index_pending, index_path),
-    ))
+    files = ((statements.pending, statements.target),)
+    if delta is not None:
+        delta.finish(index_output=index_pending, publish=False)
+        files += ((delta.pending_path, delta.target), (index_pending, index_path))
+    publish_prepared_files(files)
     return {
         "philosophy_nodes": len(philosophy_nodes),
         "philosophy_edges": len(philosophy_edges),
@@ -1352,7 +1369,7 @@ def build_read_model_sql(
         "knowledge_search_postings": search_posting_count,
         "knowledge_search_schema": SEARCH_READ_MODEL_SCHEMA_VERSION,
         "sql_statements": statements.count,
-        "delta": delta.summary(),
+        "delta": delta.summary() if delta is not None else None,
     }
 
 

@@ -91,6 +91,15 @@ D1 rows-read accounting is post-statement, not SQLite VM-step interruption.
 The local synthetic differential tests cover native packets; they do not claim
 full-corpus deployment or Cloudflare runtime acceptance.
 
+For an explicitly selected offline bootstrap, the Python producer's
+`build_read_model_sql` accepts `max_search_postings` (default 10,000,000)
+and `emit_delta_baseline=False`. The caller must measure/admit storage and
+resource demand before widening the posting budget. Full-only mode emits the
+same complete SQL, including all search postings, but no delta SQL or row-index
+companion; it requires fresh output paths without an existing/deployed baseline.
+It is not a delta deployment input or a substitute for remote D1 capacity
+admission. The ordinary build/CLI retains its existing defaults and companions.
+
 Lens and the other native published readers share a 64 KiB
 `knowledge_reader_top` boundary. It must match Python compact emitted framing,
 including numeric spelling and valid Unicode in every string and object key;
