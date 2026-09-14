@@ -9,6 +9,7 @@ import {build} from 'esbuild';
 import {executeKnowledgeLensD1, focusKnowledgeNodeD1} from '../src/knowledge-store.ts';
 import {executeNativeLensD1} from '../src/native-lens-store.ts';
 import {nativeLensResponse} from '../src/native-lens-response.ts';
+import {nativeCarrier} from '../src/native-lens-result.ts';
 import {parseNativeRequest, parseNativeJson, nativePacketJson, nativeField, compileNativeSpec, nativeDigest,
   derived, nativePacketObject, nativePacketArray, nativeChild} from '../src/native-lens.ts';
 import {NativeBudgetExceeded, nativeNumberInfo, nativeKeys} from '../../../shared/native-semantics.ts';
@@ -150,6 +151,23 @@ function publishCatalog(sqlite, raw) {
   top.catalog_sha256=createHash('sha256').update(raw).digest('hex');
   sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_reader_top'").run(JSON.stringify(top));
 }
+
+test('compact rendering seeds preserve the full-source Python and Worker carrier contract', () => {
+  const rows=python(String.raw`
+from tos_access.compact_lens_carrier import compact_lens_carrier
+from tos_access.knowledge import _lens_carrier
+from tos_access.published_read_metadata import _compact
+d=json.load(sys.stdin); result=[]
+for kind,key in [('node','nodes'),('relation','relations')]:
+ for raw in d[key]:
+  carrier=compact_lens_carrier(kind,raw)
+  for language in ('auto','ru','en','original'):
+   result.append({'name':kind+':'+carrier.identifier+':'+language,'seed':carrier.seed_json,
+                  'language':language,'expected':_compact(_lens_carrier(json.loads(raw),'compact',language=language))})
+print(json.dumps(result))`,{nodes:fixture.rawNodes,relations:fixture.rawRelations});
+  const packets=rows.map(row=>({...row,actual:nativePacketJson(nativeCarrier(parseNativeJson(row.seed),{detail:'compact',language:row.language}).packet)}));
+  assert.deepEqual(differences(packets).filter(row=>row.diff.length),[]);
+});
 
 test('generic native lens candidates seek the source index before ordering IDs', async () => {
   const {db,sqlite,statements}=database();

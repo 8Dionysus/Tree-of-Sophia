@@ -13,6 +13,8 @@ from collections import OrderedDict
 from dataclasses import dataclass
 
 from . import knowledge as k
+from . import compact_lens_store
+from .compact_lens_carrier import supports_compact_lens_carrier
 from .published_exploration import _Rows
 from .published_read_metadata import (
     LENS_EXECUTION_VERSION, LENS_META_KEY, LENS_METADATA_MAX_BYTES, LENS_READER_SCHEMA, LENS_READ_MODEL_SCHEMAS,
@@ -108,8 +110,9 @@ class _Worst:
 
 
 class _Payloads:
-    def __init__(self, read, budget):
+    def __init__(self, read, budget, compact=False):
         self.read, self.budget = read, budget
+        self.compact = compact
         self.cache, self.cache_bytes = OrderedDict(), 0
 
     def load(self, kind, ids):
@@ -127,8 +130,12 @@ class _Payloads:
         for start in range(0, len(missing), self.budget.limits.block_size):
             page = missing[start:start + self.budget.limits.block_size]
             sizes = []
-            items = self.read.items(kind, "id IN (SELECT value FROM json_each(?))", (_compact(page),), len(page),
-                                   before_parse=lambda raw: sizes.append(self.budget.decode(raw)))
+            before_parse = lambda raw: sizes.append(self.budget.decode(raw))
+            if self.compact:
+                items = compact_lens_store.read_items(self.read, kind, page, before_parse)
+            else:
+                items = self.read.items(kind, "id IN (SELECT value FROM json_each(?))", (_compact(page),), len(page),
+                                       before_parse=before_parse)
             if len(items) != len(page):
                 raise PublishedReadModelError("prepared lens selected row or endpoint is missing")
             ordering = {row["id"]: tuple(row) for row in self.read.query(
@@ -633,6 +640,8 @@ class PublishedLensService:
                 raise PublishedReadModelError("prepared lens ordered-index migration is unavailable")
             bound = k.bind_lens_query_properties(metadata["query_properties"], public)
             plan = _Plan(read, top, metadata, bound, self.limits, present)
+            if supports_compact_lens_carrier(bound):
+                plan.payloads.compact = compact_lens_store.validate_state(read.query, self.reader.snapshot_binding)
             return self._execute(plan, public)
         return self.reader._read(operation)
 

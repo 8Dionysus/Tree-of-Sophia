@@ -26,6 +26,46 @@ Older snapshots remain readable with the bounded legacy scan until this step
 is performed. The reader does not raise budgets or make broad native filters
 cheap merely because their source scope is indexed.
 
+### Compact lens rendering carrier
+
+`compact_lens_carrier.compact_lens_carrier(kind, emitted_json)` is the pure
+`tos_compact_lens_carrier_v1` input projection for compact rendering. It binds
+the exact complete source-row SHA-256 and its own seed SHA-256. `render(language)`
+uses the existing compact carrier and human-form selector; it has no full-record
+mode. It preserves unknown non-omitted fields and all form inputs, including
+invalid collections so that invalid/over-budget states cannot become "missing".
+The seed itself is internal and may retain form inputs in `attributes`; consumers
+receive `render()`, never the seed as a replacement normalized/source record.
+
+`supports_compact_lens_carrier(bound_spec)` excludes full output, full-text seed
+search, and predicates, path filters, grouping or sorting that need omitted
+attributes, source-record/readable sidecars or canonical Claim source text (or
+their parent containers). An omitted field is not a negative query result.
+The planner must use another exact plan or return its explicit bounded refusal.
+
+An optional local prepared store can be installed explicitly with
+`compact_lens_store.prepare_compact_lens_store_transaction(db,
+expected_binding=binding, limits=CompactStoreLimits(...))` inside a caller-owned
+offline transaction. Reserve storage and apply a SQLite file cap before a large
+installation. Input rows, source bytes and retained seed bytes have independent
+bounds; failure requires rollback of the complete transaction, including DDL.
+Installation verifies every source digest and preserves publication identity,
+epoch and full records. An existing store requires an explicit migration; it is
+never rebuilt by a read request.
+
+For covered compact requests the local lens reader selects this store, checking
+its snapshot/epoch binding and each selected source/seed digest. Full inspection,
+uncovered filters and full output retain the complete-row path. The local
+prepared delta writer maintains inserted, changed and deleted seeds atomically
+with complete records, search and the successor publication. Rollback covers all
+lanes. Base-table triggers invalidate compact state if an older writer changes
+records without maintaining it; compact reads and subsequent deltas then refuse
+the stale store instead of using it. Triggers do not compute or admit hashes.
+
+This does not yet provide indexed membership selection or a native D1 compact
+store. Broad stored lenses remain bounded by their existing candidate and query
+budgets. A carrier checksum is not source admission or index-completeness proof.
+
 ## Explicit bootstrap
 
 ```python

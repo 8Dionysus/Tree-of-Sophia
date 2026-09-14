@@ -756,6 +756,36 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_compact_lens_store.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/compact_lens_store.py",
+      "protects": "compact runtime byte parity, complete inspection, bounded offline preparation, atomic addressed update/insert/delete and rollback, stale-writer invalidation and seed corruption refusal",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_compact_lens_store.py",
+      "failure_route": "Fix compact publication and reader binding without serving stale derived data or replacing complete source inspection.",
+      "disposition": "keep"
+    },
+    {
+      "path": "access/tests/test_compact_lens_carrier.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/compact_lens_carrier.py",
+      "protects": "compact rendering seed parity with complete source rows, human forms and invalid states, native numeric kinds and source member order, and explicit exclusion of omitted-field or full-text queries",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_compact_lens_carrier.py",
+      "failure_route": "Fix the compact input projection without treating omitted source fields as absence, weakening human-form binding or substituting a compact carrier for full inspection.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_incremental_runtime.py",
       "home": "access",
       "home_scope": "product-local",
