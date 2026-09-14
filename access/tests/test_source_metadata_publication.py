@@ -11,10 +11,10 @@ import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
-for directory in ('scripts', 'access/src', 'access/tests', 'tests', 'mechanics/growth-cycle/tests'):
+for directory in ('scripts', 'access/src', 'access/tests', 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'):
     sys.path.insert(0, str(ROOT / directory))
 
-import test_source_agent_publication as fixtures
+import source_agent_publication_fixture as fixtures
 import source_metadata_publication as publication
 import source_commands as commands
 from tos_access import knowledge as k
