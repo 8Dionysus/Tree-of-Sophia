@@ -73,10 +73,22 @@ function sourceSubject(raw){
   const claim=object(attributes.source_claim)?attributes.source_claim:null;
   const record=claim|| (object(attributes.source_record)?attributes.source_record:null);
   if(!record)return null;
-  const id=claim?.claim_id??record.record_id??record.composite_id??record.artifact_id;
+  let id=claim?.claim_id??record.record_id??record.composite_id??record.artifact_id;
+  if(record.schema_version==='tos_canonical_node_v1'){
+    // Canon nodes have their own declared identity field. Never fall back to
+    // an outer graph ID, or silently skip subject verification for this layer.
+    const types=['source','concept','principle','lineage','event','state','support','context','analogy','synthesis'];
+    requireForm(types.includes(record.node_type)&&typeof record.node_id==='string'
+      &&/^tos\.(?:source|concept|principle|lineage|event|state|support|context|analogy|synthesis)\.[a-z0-9]+(?:[.-][a-z0-9]+)*$(?![\s\S])/.test(record.node_id)
+      &&record.node_id.startsWith('tos.'+record.node_type+'.')
+      &&!own(record,'record_id')
+      &&Number.isSafeInteger(record.record_version)&&record.record_version>=1);
+    id=record.node_id;
+  }
   const version=claim?.claim_version??record.record_version;
   const digest=attributes.source_sha256;
   const subject={id,version,digest:typeof digest==='string'?'sha256:'+digest:null};
+  if(record.schema_version==='tos_canonical_node_v1')requireForm(exactFormRef(subject));
   return exactFormRef(subject)?subject:null;
 }
 

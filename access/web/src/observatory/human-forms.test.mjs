@@ -79,6 +79,41 @@ test('exact inspection rejects a ref, subject, context or owner snapshot that no
   expect(()=>readingSnapshot({packet:formLens([raw]),match:raw},'node')).toThrow(FormContractError);
 });
 
+function canonicalFormNode(){
+  const raw=formNode(),id='tos.event.fixture.departure';
+  raw.entity_id=id;
+  raw.attributes.source_record={schema_version:'tos_canonical_node_v1',node_id:id,node_type:'event',record_version:1};
+  for(const packet of [...Object.values(raw.human_form_selection.roles).map(value=>value.packet),...raw.attributes.human_forms]){
+    packet.subject.id=id;packet.dependencies[0].id=id;packet.context[0].binding.record.id=id;
+  }
+  return raw;
+}
+
+test('native canonical identity binds both ready forms and exact over-budget inspection',()=>{
+  const raw=canonicalFormNode(),before=structuredClone(raw);
+  expect(validateHumanForms(raw).state).toBe('available');expect(raw).toEqual(before);
+  const selected=raw.human_form_selection.roles.grounds;
+  selected.state='over-budget';selected.reason='inspect-exact-form';selected.packet=null;
+  expect(inspectExactHumanForm(raw,'grounds').packet.subject.id).toBe(raw.attributes.source_record.node_id);
+});
+
+test.each([
+  ['missing native ID',raw=>delete raw.attributes.source_record.node_id],
+  ['wrong native ID',raw=>raw.attributes.source_record.node_id='tos.event.fixture.other'],
+  ['type and ID mismatch',raw=>raw.attributes.source_record.node_type='concept'],
+  ['undeclared native type',raw=>raw.attributes.source_record.node_type='future'],
+  ['ambiguous identity fields',raw=>raw.attributes.source_record.record_id=raw.entity_id],
+  ['boolean version',raw=>raw.attributes.source_record.record_version=true],
+  ['fractional version',raw=>raw.attributes.source_record.record_version=1.5],
+  ['unsafe version',raw=>raw.attributes.source_record.record_version=9007199254740992],
+  ['different source version',raw=>raw.attributes.source_record.record_version=2],
+  ['different source digest',raw=>raw.attributes.source_sha256='e'.repeat(64)],
+  ['missing source digest',raw=>delete raw.attributes.source_sha256],
+])('canonical form cannot bypass source subject verification: %s',(_label,mutate)=>{
+  const raw=canonicalFormNode();mutate(raw);
+  expect(()=>validateHumanForms(raw)).toThrow(FormContractError);
+});
+
 test('isolated reading uses a real full LensResult and rejects extra objects or another revision',async()=>{
   const raw=formNode(),packet=formLens([raw]);let sent;
   const client=new KnowledgeClient({fetcher:async(url,options)=>{sent={url,spec:JSON.parse(options.body)};return {ok:true,json:async()=>packet};}});
