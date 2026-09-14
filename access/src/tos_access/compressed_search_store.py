@@ -711,7 +711,7 @@ class SearchStore:
             db.close()
 
     @staticmethod
-    def _term(db: sqlite3.Connection, kind: str, phase: int, needle: str) -> int | None:
+    def _term(db: sqlite3.Connection, kind: str, phase: int, needle: str, *, full_text_bound: bool = False) -> int | None:
         if not needle:
             n, keys = 0, [b""]
         elif phase == 0:
@@ -730,6 +730,16 @@ class SearchStore:
             candidate = (row[1], key, row[0])
             if best is None or candidate < best:
                 best = candidate
+        if full_text_bound and needle and phase < 3:
+            # Every admitted hit must also match serialized text. Its rarest
+            # gram is therefore a safe candidate driver even for exact/prefix
+            # phases; verification still determines the actual minimal rank.
+            full = SearchStore._term(db, kind, 3, needle)
+            if full is None:
+                return None
+            count = db.execute('SELECT posting_count FROM search_terms WHERE term_id=?', (full,)).fetchone()[0]
+            if count < best[0]:
+                return full
         return best[2]
 
     @staticmethod
@@ -796,16 +806,20 @@ class SearchStore:
         return bytes(result)
 
     @classmethod
-    def _verify(cls, db: sqlite3.Connection, address: int, needle: bytes, state: dict, work: dict, max_work: int, max_bytes: int) -> bool | None:
+    def _verify(cls, db: sqlite3.Connection, address: int, needle: bytes, state: dict, work: dict, max_work: int, max_bytes: int, *, phase: int | None = None) -> bool | None:
         """Return full-text match, or None with resumable rank/text progress."""
         if state["stage"] == "matched":
             return True
         while work["operations"] < max_work:
             category, field, offset = state["stage"], state["field"], state["offset"]
+            if category == 'full' and phase is not None and state['rank'] != phase:
+                return False
             row = db.execute("SELECT field,byte_length FROM search_values WHERE doc_id=? AND category=? AND field>=? ORDER BY field LIMIT 1", (address, category, field)).fetchone()
             work["operations"] += 1
             if row is None:
                 if category == "identity":
+                    if phase is not None and (phase <= 1 or state['rank'] <= 1) and state['rank'] != phase:
+                        return False
                     state.update(stage="visible" if state["rank"] > 1 else "full", field=0, offset=0)
                 elif category == "visible":
                     state.update(stage="full", field=0, offset=0)
@@ -878,7 +892,9 @@ class SearchStore:
         query_frame = _bytes(_json([kind, needle, filters]))
         if len(query_frame) > MAX_QUERY_BYTES:
             raise ValueError("complete framed search query/filter exceeds 65536 bytes")
-        query_hash = hashlib.sha256(_bytes(header) + b"\0" + query_frame).hexdigest()
+        legacy_hash = hashlib.sha256(_bytes(header) + b"\0" + query_frame).hexdigest()
+        query_hash = hashlib.sha256(_bytes(header) + b"\0full-text-bound-v1\0" + query_frame).hexdigest()
+        full_text_bound = True
         work = {"candidates": 0, "operations": 0, "verification_bytes": 0, "blocks_decoded": 0, "posting_entries_read": 0, "metadata_bytes": 0, "metadata_rows": 0, "metadata_probes": 0, "directory_probes": 0, "response_bytes": 0}
         cursor_key = cls._check_header(db, header, generation, work)
         if cursor is None:
@@ -906,6 +922,11 @@ class SearchStore:
                 _cursor_integer(partial["field"], "cursor field", 0, MAX_DOCUMENT_BYTES)
                 _cursor_integer(partial["offset"], "cursor offset", 0, MAX_DOCUMENT_BYTES)
                 _cursor_integer(partial["rank"], "cursor rank", 0, 3)
+            if state['query'] == legacy_hash:
+                # Old authenticated continuations retain their original term
+                # stream, whose predecessor may not belong to the narrower one.
+                full_text_bound = False
+                query_hash = legacy_hash
             if state["query"] != query_hash:
                 raise SearchCursorError("search cursor query/snapshot mismatch")
             if state["expires"] <= time.time():
@@ -914,7 +935,7 @@ class SearchStore:
         match_bytes = 0
         while state["phase"] < 4 and len(matches) < page_size and work["operations"] < candidate_budget:
             phase = state["phase"]
-            term = cls._term(db, kind, phase, needle)
+            term = cls._term(db, kind, phase, needle, full_text_bound=full_text_bound)
             if term is None:
                 state.update(phase=phase + 1, after=0, partial=None)
                 continue
@@ -951,7 +972,8 @@ class SearchStore:
                     partial = state["partial"] or {"doc_id": address, "stage": "identity", "field": 0, "offset": 0, "rank": 3}
                     if partial["doc_id"] != address:
                         raise SearchUnavailable("cursor document no longer matches posting")
-                    found = True if not needle else cls._verify(db, address, _bytes(needle), partial, work, candidate_budget, verification_bytes)
+                    found = True if not needle else cls._verify(db, address, _bytes(needle), partial, work, candidate_budget, verification_bytes,
+                                                               phase=phase if full_text_bound else None)
                     if found is None:
                         state["partial"] = partial
                         break

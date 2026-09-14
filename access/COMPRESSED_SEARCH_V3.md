@@ -153,6 +153,25 @@ rank discard false positives and cross-phase duplicates. Empty query uses a
 rank-3 all-document stream. Python-codepoint byte keys preserve lower-ID order,
 including prefix, NUL and astral cases, followed only by the source-order token.
 
+Fresh queries additionally bound exact/prefix/visible candidates by the rarest
+full-text term when it has fewer members. Every admitted result must contain
+the complete query in serialized text, so this necessary-condition driver
+cannot remove a valid hit. Actual minimal-rank and full-substring verification
+still own admission; a rare gram alone proves neither. Once rank excludes a
+candidate from the current phase, verification skips its irrelevant full body.
+This prevents a long identifier beginning with a common three-character prefix
+from walking every identity in that prefix family. No new corpus index or
+publication is required, and the sorted candidate stream is never materialized.
+
+The query hash binds `full-text-bound-v1` for fresh streams. Previously issued,
+authenticated query hashes remain recognized and retain their original term
+driver and verifier for the rest of their existing 15-minute lifetime. Their
+predecessor is not silently moved into a different posting term. Header,
+incarnation, query/filter and MAC checks remain mandatory; this is bounded
+in-flight cursor compatibility, not acceptance across publications or a
+fallback from a damaged new stream. Counts, page boundaries and work may differ
+between equivalent plans; complete ranked results must agree.
+
 Results contain `schema: tos_knowledge_search_compressed_v3`, `matches`
 (`doc_id`, exact typed `id`, `rank`), `returned_count`, `total_matching`,
 `has_more`, `next_cursor` and measured `work`. These are addresses for a later

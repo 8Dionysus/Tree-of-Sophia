@@ -149,6 +149,25 @@ test('selected search delivery drives exact address seeks even with publisher id
  }finally{d.close();}
 });
 
+test('indexed candidate budgets and ranking start from the rare gram before source filters',async()=>{
+ const d=database();try{
+  d.sqlite.exec('CREATE INDEX search_filter_plan ON knowledge_search_documents(kind,source_graph,kind_id,position)');
+  for(const sources of [null,['philosophy']]){
+   const raw=await direct(d,'indexed','αβγ',{limit:1,sources});
+   assertPackets(raw,oracle('indexed','αβγ',{limit:1,...(sources?{sources}:{})})[0],true);
+  }
+  const selections=d.statements.filter(row=>row.sql.includes('FROM knowledge_search_grams g')&&
+   (row.sql.includes('invalid_budgets')||row.sql.includes('search_rank')));
+  assert.ok(selections.length>=2);
+  for(const {sql,args}of selections){
+   const plan=d.sqlite.prepare('EXPLAIN QUERY PLAN '+sql).all(...args).map(row=>row.detail);
+   assert.ok(plan.some(detail=>/SEARCH g .*\(kind=\? AND n=\? AND gram=\?\)/.test(detail)),JSON.stringify(plan));
+   assert.ok(plan.some(detail=>/SEARCH s .*\(kind=\? AND position=\?\)/.test(detail)),JSON.stringify(plan));
+   assert.equal(plan.some(detail=>/SCAN s\b|SEARCH s .*\(kind=\? AND source_graph=\?/.test(detail)),false);
+  }
+ }finally{d.close();}
+});
+
 test('addressed case-tie relocation preserves Worker search and continuation source order',async()=>{
  const change=python(String.raw`
 import sqlite3

@@ -1,11 +1,14 @@
 """Search-v3 behavior and physical delta checks on bounded synthetic carriers."""
 import copy
 from contextlib import closing
+import hashlib
+import hmac
 import json
 import os
 from pathlib import Path
 import sqlite3
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -166,6 +169,42 @@ class CompressedSearchStoreTests(unittest.TestCase):
                 with self.subTest(query=query, filters=filters):
                     actual, _ = self.drain(store, query, filters=filters)
                     self.assertEqual(actual, self.reference(items, query, filters=filters))
+
+    def test_long_shared_identity_prefix_uses_rare_full_term_without_corpus_walk(self):
+        needle = 'tos.zz-rare-target'
+        items = [self.item(f'tos.common-{i:03}', technical='unrelated ' * 1000) for i in range(300)]
+        items += [self.item(needle), self.item(needle + '-child')]
+        store, _, _ = self.publish(items)
+        page = store.query_page(kind='node', query=needle, page_size=10, candidate_budget=128)
+        self.assertFalse(page['has_more'])
+        self.assertEqual(page['matches'], self.reference(items, needle))
+        self.assertLessEqual(page['work']['candidates'], 8)
+        self.assertLess(page['work']['verification_bytes'], 8192)
+
+    def test_authenticated_legacy_cursor_keeps_its_original_candidate_stream(self):
+        needle = 'tos.rare-'
+        items = [self.item('tos.common-a'), self.item('tos.common-b'), self.item('tos.rare-target')]
+        store, _, _ = self.publish(items)
+        encode = lambda value: json.dumps(value, ensure_ascii=False, sort_keys=True).encode('utf-8', 'surrogatepass')
+        legacy = hashlib.sha256(store.header.encode('utf-8') + b'\0' + encode(['node', needle, {}])).hexdigest()
+        # A real former prefix-stream predecessor absent from the new rare
+        # full-text term: changing stream on resume would lose its bound member.
+        state = {'query': legacy, 'phase': 1, 'after': 1, 'partial': None, 'expires': int(time.time()) + 900}
+        cursor = {'state': state, 'mac': hmac.new(store.generation, encode(state), hashlib.sha256).hexdigest()}
+        matches = []
+        for _ in range(100):
+            page = SearchStore(self.path, binding=self.binding).query_page(kind='node', query=needle,
+                cursor=cursor, page_size=1, candidate_budget=16)
+            matches.extend(page['matches'])
+            cursor = page['next_cursor']
+            if cursor is None:
+                break
+            self.assertEqual(cursor['state']['query'], legacy)
+        else:
+            self.fail('legacy continuation did not exhaust')
+        self.assertEqual(matches, self.reference(items, needle))
+        first = store.query_page(kind='node', query=needle, candidate_budget=2)
+        self.assertNotEqual(first['next_cursor']['state']['query'], legacy)
 
     def test_relation_rank_and_typed_source_preservation(self):
         items = [{"id": f"r{i}", "source_graph": source, "predicate_id": "related", "display": {"label": {"en": title}, "statement": {"ru": "common statement"}}} for i, (source, title) in enumerate(((False, "common"), (0, "common prefix"), ("0", "other"), (None, "other")))]

@@ -144,6 +144,9 @@ bounded SQLite VM work, alongside atomic replay and missing-stage refusal.
 Selected search payload verification likewise drives `(kind, position)` seeks
 from the small selected-identity list. Optional publisher identity indexes must
 not cause SQLite to scan all documents of a kind while delivering one match.
+Indexed search preflight and ranking also start from the already budgeted rare
+gram posting set, then seek document addresses and exact row IDs. Source/type
+filter indexes must not reverse that order into a whole-source document walk.
 
 ### Joining an exact prepared transition to D1
 

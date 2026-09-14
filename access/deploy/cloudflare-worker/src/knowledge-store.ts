@@ -478,7 +478,7 @@ async function indexedKindPage(
   const preflightSql = `SELECT COUNT(*) AS candidate_rows, COALESCE(SUM(s.document_chars), 0) AS verified_chars,
     COALESCE(SUM(CASE WHEN typeof(s.document_chars)='integer' AND s.document_chars>=0 THEN 0 ELSE 1 END),0) AS invalid_budgets
     FROM knowledge_search_grams g
-    JOIN knowledge_search_documents s ON s.kind=g.kind AND s.position=g.position
+    CROSS JOIN knowledge_search_documents s ON s.kind=g.kind AND s.position=g.position
     WHERE ${filterSql.join(" AND ")}`;
   let preflight;
   try {
@@ -524,8 +524,8 @@ async function indexedKindPage(
     CASE WHEN typeof(s.id_lower)='text' AND length(CAST(s.id_lower AS BLOB))<=1048576 THEN s.id_lower ELSE NULL END AS id_lower,
     CASE WHEN typeof(s.position)='integer' THEN s.position ELSE NULL END AS position, ${rankExpression} AS search_rank
     FROM knowledge_search_grams g
-    JOIN knowledge_search_documents s ON s.kind=g.kind AND s.position=g.position
-    JOIN ${baseTable} b ON b.id=s.id
+    CROSS JOIN knowledge_search_documents s ON s.kind=g.kind AND s.position=g.position
+    CROSS JOIN ${baseTable} b ON b.id=s.id
     WHERE ${filterSql.join(" AND ")} AND instr(b.search_text, ?) > 0${continuationSql}
     ORDER BY search_rank, s.id_lower, s.position LIMIT ?`;
   const bindings: unknown[] = [...indexedRankBindings(needle), ...filterBindings, needle, ...continuationBindings, options.limit + 1];
