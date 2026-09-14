@@ -84,10 +84,12 @@ export class NativeSearchDelivery {
     const rows=await this.rows.load(kind==='nodes'?'node':'relation',ids);
     if(!ids.length)return [];
     const columns=['id','source_graph','kind_id','predicate_id','id_lower','native_id_lower','identity_values','visible_values','document_digest','document_chars'] as const;
+    // Keep the selected list outermost: a (kind,id) publisher index can make
+    // an ordinary JOIN scan the whole kind to satisfy ORDER BY s.id.
     const carriers=await this.read.textRows<Record<typeof columns[number],string>>(columns,['id'],
       `SELECT s.id,s.source_graph,s.kind_id,s.predicate_id,s.id_lower,s.native_id_lower,s.identity_values,s.visible_values,s.document_digest,
        CASE WHEN typeof(s.document_chars)='integer' AND s.document_chars>=0 THEN CAST(s.document_chars AS TEXT) ELSE NULL END AS document_chars
-       FROM json_each(?) wanted JOIN knowledge_search_documents s ON s.kind=? AND s.position=json_extract(wanted.value,'$.position')
+       FROM json_each(?) wanted CROSS JOIN knowledge_search_documents s ON s.kind=? AND s.position=json_extract(wanted.value,'$.position')
        WHERE s.id=json_extract(wanted.value,'$.id') ORDER BY s.id LIMIT ?`,JSON.stringify(selected),kind,ids.length+1);
     if(carriers.length!==ids.length||new Set(carriers.map(row=>row.id)).size!==ids.length)nativeUnavailable('selected search carrier closure is incomplete');
     for(const carrier of carriers){const ref=rows.get(carrier.id);if(!ref)nativeUnavailable('selected search carrier identity differs');

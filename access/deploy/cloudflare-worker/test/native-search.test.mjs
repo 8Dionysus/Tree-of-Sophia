@@ -128,6 +128,27 @@ if p['indexed']:
   packet.pop('work');packet['page']['cursor']=packet['page']['cursor'] is not None;packet['page']['next_cursor']=packet['page']['next_cursor'] is not None
 print(json.dumps(diff(a,b)))`,{actual,expected,indexed});assert.deepEqual(differences,[]);}
 
+test('selected search delivery drives exact address seeks even with publisher identity indexes',async()=>{
+ const d=database();try{
+  d.sqlite.exec('CREATE UNIQUE INDEX knowledge_search_address_id_idx ON knowledge_search_documents(kind,id)');
+  d.sqlite.exec('CREATE INDEX knowledge_search_address_tie_idx ON knowledge_search_documents(kind,id_lower,position)');
+  const insert=d.sqlite.prepare('INSERT INTO knowledge_search_documents VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
+  d.sqlite.exec('BEGIN');
+  for(let i=0;i<10000;i++)insert.run('nodes',100000+i,'unrelated-'+i,'philosophy','','','unrelated-'+i,'unrelated-'+i,'[]','[]',0,'unused');
+  d.sqlite.exec('COMMIT');
+  const raw=await direct(d,'indexed','αβγ',{limit:1});
+  assertPackets(raw,oracle('indexed','αβγ',{limit:1})[0],true);
+  const deliveries=d.statements.filter(row=>row.sql.includes('FROM json_each(?) wanted')&&row.sql.includes('knowledge_search_documents s'));
+  assert.ok(deliveries.length>0);
+  for(const {sql,args}of deliveries){
+   const plan=d.sqlite.prepare('EXPLAIN QUERY PLAN '+sql).all(...args).map(row=>row.detail);
+   assert.ok(plan.some(detail=>/SCAN wanted VIRTUAL TABLE/.test(detail)),JSON.stringify(plan));
+   assert.ok(plan.some(detail=>/SEARCH s .*\(kind=\? AND position=\?\)/.test(detail)),JSON.stringify(plan));
+   assert.equal(plan.some(detail=>/SCAN s\b|SEARCH s .*\(kind=\?\)$/.test(detail)),false);
+  }
+ }finally{d.close();}
+});
+
 test('addressed case-tie relocation preserves Worker search and continuation source order',async()=>{
  const change=python(String.raw`
 import sqlite3

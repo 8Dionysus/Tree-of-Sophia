@@ -195,6 +195,20 @@
       "disposition": "keep"
     },
     {
+      "path": "access/deploy/cloudflare-worker/scripts/prepared_delta_runtime.py",
+      "family": "projection_helper",
+      "organ_lane": "shared-library",
+      "owner_surface": "access/deploy/cloudflare-worker/README.md",
+      "source_truth": ["access/src/tos_access/prepared_source_binding.py", "access/deploy/cloudflare-worker/scripts/build_runtime.py"],
+      "reads": ["exact source-paired prepared transition and admitted D1 predecessor rows through bounded indexed snapshots"],
+      "writes": ["fresh forward and optional reverse delta SQL with exact transition-lineage receipt"],
+      "side_effects": "offline SQL capture only; no source mutation, full graph build, D1 import, consumer switch or deployment; retains failed diagnostic SQL",
+      "validation_lane": "standalone_access",
+      "ci_inclusion": "focused-tests",
+      "test_target": "access/tests/test_prepared_delta_runtime.py",
+      "disposition": "keep"
+    },
+    {
       "path": "access/deploy/cloudflare-worker/scripts/import_local_sqlite.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",

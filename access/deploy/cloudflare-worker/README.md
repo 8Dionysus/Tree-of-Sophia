@@ -141,6 +141,62 @@ This uses the registered producer's ordinary rowid tables and retains null-safe
 `IS` key matching. The revision guard, complete-stage check and single-statement
 publication remain unchanged. Focused tests enforce both the indexed plan and
 bounded SQLite VM work, alongside atomic replay and missing-stage refusal.
+Selected search payload verification likewise drives `(kind, position)` seeks
+from the small selected-identity list. Optional publisher identity indexes must
+not cause SQLite to scan all documents of a kind while delivering one match.
+
+### Joining an exact prepared transition to D1
+
+`scripts/prepared_delta_runtime.py::build_prepared_delta_sql` captures one
+committed, source-paired bibliographic `delta-history` transition from two
+caller-held prepared snapshots and the exact admitted D1 predecessor snapshot.
+The caller supplies `expected_d1_revision`, `before_binding`, `after_binding`,
+a fresh SQL `target`, and optionally a distinct fresh `rollback_target`.
+All three connections must already hold read transactions. Publisher address
+indexes must be explicitly prepared first. Capture does not commit, mutate D1,
+invoke source commands, build a graph, switch consumers or deploy anything.
+
+The initial full D1/prepared pairing is an independently verified caller
+prerequisite, not established by a few matching rows. Capture additionally
+checks reader/catalog/lens metadata and every affected predecessor row,
+digest, order row, search document and expected posting through exact keys.
+It does not globally scan for hidden corruption or recount all postings.
+Nonparticipating source roots and dependencies must remain unchanged; only
+source-catalog/bibliographic-claims and their explicit claim-publication
+profile may move. An unrelated corpus, philosophy, evidence, capability or
+schema migration must use its owning broader publication route. Source-pairing
+verification does not establish live source currentness or semantic acceptance.
+
+The complete changed rows and relocated case-tie members supply node/relation,
+digest, lens-order, search-document, posting, affected posting-count and shared
+metadata changes to the existing atomic staged publisher. No full row-index
+baseline is emitted: its selected-row comparison index is internal only. This
+also permits an explicitly admitted full-only bootstrap to receive an addressed
+successor without constructing a whole-corpus row-index companion.
+
+The target revision uses `tos_prepared_bibliographic_d1_delta_v1` lineage: exact
+base D1 revision, before/after prepared bindings and source-input digests, and
+the publisher implementation digest. This is distinct from the full producer's
+content-revision algorithm; it is not claimed to have the same hash for the
+same logical rows. Serving v9 semantics remain unchanged. A successful receipt
+records this lineage, counts, byte costs and the still-unapplied state.
+
+Default budgets are 512 changed rows, 100,000 old/new observed postings,
+200,000 retained old/new rows, 4 MiB per selected row, 32 MiB per metadata value,
+128 MiB cumulative reads, 128 MiB retained row bytes and 128 MiB total forward
+plus optional reverse SQL. SQL-side masking precedes selected text delivery.
+The caller separately admits runtime memory and storage; these byte counters
+are not claims about Python heap size or remote D1 capacity.
+
+The optional reverse package is built from the same exact selected predecessors
+before returning success. It requires the successor D1 revision, restores the
+old reader rows and metadata, and preserves new source records and prepared
+history. Forward and reverse replay use the existing CAS and complete-stage
+checks. Offline import remains an explicit caller operation with workerd
+stopped; remote publication is separate authorization. Failed capture retains
+diagnostic `.next` files; an interrupted pair rename may leave an unadmitted
+complete artifact. Only a successful receipt admits both packages. Do not
+reuse failed output paths or treat file existence alone as publication proof.
 
 Lens and the other native published readers share a 64 KiB
 `knowledge_reader_top` boundary. It must match Python compact emitted framing,
