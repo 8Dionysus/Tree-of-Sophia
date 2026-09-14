@@ -136,6 +136,32 @@ The supplied publication mutation cap includes the context-binding finalizer;
 source filesystem staging is accounted separately. Unsupported or oversized
 closure fails closed without full-build fallback.
 
+## Reviewed compatible execution bootstrap
+
+`bootstrap_reviewed_agent_execution_profile_transaction` is a separate offline
+owner route for a reviewed compatible implementation change. Before calling
+it, the source owner reviews the exact retained/current implementation bytes
+and determines whether the existing normalized records, declarations and
+context index can be reused. A content, dependency-enumeration, normalization
+or membership change needs its actual migration; this route cannot validate
+compatibility by itself. A matching hash, test result or review-ref string is
+not that assessment.
+
+The caller supplies both exact reviewed execution-profile hashes and the
+review reference. The helper checks the retained predecessor, the actually
+loaded current execution profile, and all other current registry/normalization
+profile requirements. It derives the new source revision itself, changes only
+the execution-profile dependency, and pairs unchanged roots, normalized rows,
+Claim declarations and context membership in one caller-owned transaction.
+The combined mutation budget reserves the context finalizer. Failed or stale
+transitions require complete rollback; old readers remain valid until commit.
+
+Receipts retain `compatibility_verified_by_helper=false` and the explicit
+review reference. The owner keeps its compatibility evidence and source/code
+guards through commit. Neither ordinary capture nor source publication invokes
+this bootstrap automatically. It grants no new source-command authority,
+semantic acceptance, rights or consumer activation.
+
 ## Explicit additive source addressing
 
 `bootstrap_agent_source_addressing_extension_transaction` joins the explicit

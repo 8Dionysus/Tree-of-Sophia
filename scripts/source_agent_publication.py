@@ -387,6 +387,66 @@ def bootstrap_agent_source_addressing_extension_transaction(db, *, expected_bind
             'execution_profile_current': before_source_inputs.value()['dependencies'].get('agent-publication-profile') == execution_profile_sha256()}
 
 
+def bootstrap_reviewed_agent_execution_profile_transaction(db, *, expected_binding,
+        before_source_inputs, before_inputs, reviewed_before_profile_sha256,
+        reviewed_after_profile_sha256, compatibility_review_ref, progress_owner,
+        publication_limits=None, dependency_limits=None, catalog_limits=None, semantic_limits=None):
+    """Pair an explicitly owner-reviewed compatible implementation transition.
+
+    The owner must first review the exact old/new implementation evidence.
+    This storage composition verifies the named pair, not that review's truth.
+    No source rows, root bytes, declarations, context members, other dependency
+    hashes or publication token change. A changed semantic/data contract needs
+    its actual migration, never this compatibility-only route. Caller owns
+    guards, commit and full rollback, including earlier caller writes.
+    """
+    _require_vector(before_source_inputs)
+    previous = before_source_inputs.value()
+    current_profile = execution_profile_sha256()
+    if (type(compatibility_review_ref) is not str or not compatibility_review_ref.strip()
+            or len(compatibility_review_ref.encode()) > 4096
+            or reviewed_before_profile_sha256 != previous['dependencies'].get('agent-publication-profile')
+            or reviewed_after_profile_sha256 != current_profile
+            or reviewed_before_profile_sha256 == reviewed_after_profile_sha256):
+        raise ValueError('exact reviewed execution profile transition and review reference required')
+    after = source_vector_inputs(roots=before_source_inputs.roots(),
+        dependencies={**previous['dependencies'], 'agent-publication-profile': current_profile},
+        source_publication=previous['source_publication'])
+    header = before_inputs.header
+    header['source_revision'] = after.value()['source_revision']
+    after_inputs = CatalogInputs(header, before_inputs.entity_type_registry, before_inputs.relation_type_registry,
+        before_inputs.lenses, source_order_profile=before_inputs.source_order_profile)
+    _profiles(after, after_inputs, previous['dependencies']['declaration-profile'])
+    publication_limits = publication_limits or PublicationLimits()
+    dependencies = dependency_limits or SourceDependencyLimits()
+    if publication_limits.max_mutations <= 1:
+        raise ValueError('execution profile bootstrap requires context finalizer allowance')
+    start = db.total_changes
+    with _operation(db, dependencies, progress_owner) as budget:
+        state = _state(budget, expected_binding, before_source_inputs)
+    result = apply_dependency_bound_prepared_delta_transaction(db, expected_binding=expected_binding,
+        before_source_inputs=before_source_inputs, after_source_inputs=after,
+        before_inputs=before_inputs, after_inputs=after_inputs, changes=(), dependency_changes=(),
+        declaration_profile_sha256=previous['dependencies']['declaration-profile'], progress_owner=progress_owner,
+        limits=replace(publication_limits, max_mutations=publication_limits.max_mutations - 1),
+        dependency_limits=dependencies, catalog_limits=catalog_limits, semantic_limits=semantic_limits)
+    with _operation(db, dependencies, progress_owner) as budget:
+        state.update(binding=result['binding'], source_inputs_sha256=after.digest)
+        raw = _json_bytes(state, budget.limits.max_state_bytes)
+        budget.execute('UPDATE agent_context_state SET json=?,sha256=? WHERE singleton=1', (raw.decode(), _digest(raw)))
+        if _state(budget, result['binding'], after) != state:
+            raise ValueError('execution profile context readback differs')
+    total = db.total_changes - start
+    if total > publication_limits.max_mutations:
+        raise ValueError('execution profile combined pairing budget exceeded; rollback required')
+    return {**result, 'sql_mutations': total, 'agent_context_selection_paired': True,
+        'agent_context_membership_changed': False, 'normalized_row_changes_supplied': 0,
+        'execution_profile_current': True, 'compatibility_review_ref': compatibility_review_ref,
+        'compatibility_verified_by_helper': False,
+        'before_execution_profile_sha256': reviewed_before_profile_sha256,
+        'after_execution_profile_sha256': current_profile}
+
+
 def _put_unique(target, key, value):
     if key in target and _row_sha(target[key]) != _row_sha(value):
         raise ValueError('source cohort contributors disagree')

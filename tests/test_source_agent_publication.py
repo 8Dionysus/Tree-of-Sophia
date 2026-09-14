@@ -402,5 +402,79 @@ class SourceAgentPublicationTests(unittest.TestCase):
             self.assertEqual(list(self.db.iterdump()), before)
 
 
+def test_reviewed_execution_profile_bootstrap_preserves_rows_and_following_command():
+    """Storage/command behavior; a fixture review ref is not compatibility proof."""
+    from dataclasses import replace
+    import pytest
+    fixture = SourceAgentPublicationTests()
+    old_profile = 'a' * 64
+    with patch.object(publication, 'execution_profile_sha256', return_value=old_profile):
+        fixture.setUp()
+    try:
+        current_profile = publication.execution_profile_sha256()
+        db = fixture.db
+        before = list(db.iterdump())
+        def migrate(**overrides):
+            options = dict(expected_binding=fixture.binding, before_source_inputs=fixture.source,
+                before_inputs=fixture.inputs, reviewed_before_profile_sha256=old_profile,
+                reviewed_after_profile_sha256=current_profile, compatibility_review_ref='test-only:reviewed-pair',
+                progress_owner=fixture.owner)
+            options.update(overrides)
+            return publication.bootstrap_reviewed_agent_execution_profile_transaction(db, **options)
+        with pytest.raises(ValueError, match='profile'):
+            fixture.capture()
+        for bad in ({'reviewed_before_profile_sha256': 'b' * 64},
+                    {'reviewed_after_profile_sha256': 'b' * 64}, {'compatibility_review_ref': ''}):
+            db.execute('BEGIN IMMEDIATE')
+            with pytest.raises(ValueError, match='review'):
+                migrate(**bad)
+            db.rollback()
+            assert list(db.iterdump()) == before
+        original = PublishedKnowledgeReadModel(fixture.path, fixture.binding)
+        original_catalog = original.catalog()
+        db.execute('BEGIN IMMEDIATE')
+        result = migrate()
+        assert original.catalog() == original_catalog
+        assert result['execution_profile_current'] and not result['compatibility_verified_by_helper']
+        assert result['normalized_row_changes_supplied'] == 0
+        required = result['sql_mutations']
+        db.rollback()
+        assert list(db.iterdump()) == before
+        db.execute('BEGIN IMMEDIATE')
+        with pytest.raises(ValueError, match='budget'):
+            migrate(publication_limits=replace(publication.PublicationLimits(), max_mutations=required - 1))
+        db.rollback()
+        assert list(db.iterdump()) == before
+        tables = ('knowledge_nodes', 'knowledge_relations', 'source_dependency_claims',
+                  'agent_context_nodes', 'agent_context_refs', 'agent_context_heads')
+        bodies = {name: db.execute('SELECT * FROM ' + name).fetchall() for name in tables}
+        db.execute('BEGIN IMMEDIATE')
+        result = migrate(publication_limits=replace(publication.PublicationLimits(), max_mutations=required))
+        after = publication.read_prepared_source_inputs_transaction(db, expected_binding=result['binding'])
+        assert after.roots() == fixture.source.roots()
+        assert after.value()['source_publication'] == fixture.source.value()['source_publication']
+        assert after.value()['dependencies'] == {**fixture.source.value()['dependencies'],
+                                               'agent-publication-profile': current_profile}
+        for name, rows in bodies.items():
+            assert db.execute('SELECT * FROM ' + name).fetchall() == rows
+        db.commit()
+        with pytest.raises(PublishedSnapshotConflict):
+            original.catalog()
+        fixture.binding, fixture.source = result['binding'], after
+        fixture.inputs = CatalogInputs(result['source_header'], fixture.entities, fixture.relations,
+            fixture.inputs.lenses, source_order_profile=CANONICAL_ORDER)
+        captured = fixture.capture()
+        transaction, token = fixture.helper.fixture.revise('Correction after reviewed execution bootstrap')
+        with publication.agent_correction_publication(captured, transaction_id=transaction,
+                expected_source_token=token, progress_owner=fixture.owner) as candidate:
+            db.execute('BEGIN IMMEDIATE')
+            changed = candidate.apply_transaction(db)
+            candidate.commit_transaction(db)
+        assert changed['reverse_dependent_claims'] == 2
+        assert PublishedKnowledgeReadModel(fixture.path, changed['binding']).catalog()
+    finally:
+        fixture.doCleanups()
+
+
 if __name__ == '__main__':
     unittest.main()

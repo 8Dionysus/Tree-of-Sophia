@@ -396,8 +396,9 @@ def test_real_full_prepared_csv_human_agent_return():
     from tos_access.http_server import make_server
     from tos_access.mcp_server import build_server
     root, prepared = Path(os.environ['TOS_REAL_SOURCE_ROOT']), Path(prepared_ref)
-    completed = json.loads((prepared / 'completed.json').read_text())
-    binding = json.loads((prepared / 'binding.json').read_text())
+    selection_path = Path(os.environ.get('TOS_REAL_PREPARED_SELECTION', prepared / 'completed.json'))
+    completed = json.loads(selection_path.read_text())
+    binding = json.loads(Path(completed.get('binding_path', prepared / 'binding.json')).read_text())
     assert completed['status'] == 'completed' and completed['binding'] == binding
     selected = SelectedSourceReadService(root, Path(completed['source_inputs_raw']['path']),
                                         expected_revision=binding['source_revision'])
