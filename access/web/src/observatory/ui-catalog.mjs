@@ -1,5 +1,6 @@
 // Authored interface text only. Content-language variants remain server-owned.
 export const UI_CATALOG={
+  "Читаемое представление этого контекста недоступно. Откройте точные данные контекста перед выводами.": {"en":"The readable presentation of this context is unavailable. Open the exact context data before drawing conclusions.","es":"La presentación legible de este contexto no está disponible. Abra los datos exactos del contexto antes de sacar conclusiones."},
   "Технические сведения контекста": {"en":"Context technical details","es":"Detalles técnicos del contexto"},
   "Не классифицировано; исходное значение сохранено.": {"en":"Unclassified; the source value is preserved.","es":"Sin clasificar; se conserva el valor original."},
   "Человекочитаемое представление контекста недоступно. Проверьте исходный контекст формы.": {"en":"The readable context presentation is unavailable. Check the form's source context.","es":"La presentación legible del contexto no está disponible. Consulte el contexto original de la forma."},

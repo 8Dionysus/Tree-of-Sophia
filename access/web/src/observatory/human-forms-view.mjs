@@ -165,6 +165,11 @@ export function renderClaimContext(resolved,readableContext=null){
         item.append(exactDetails(ui('Точная запись контекста утверждения'),context,`claim-context:assertion:${index}:raw`));
         section.append(item);return;
       }
+      if(readableContext){
+        item.append(contextPresentationGap(readableContext),
+          exactDetails(ui('Точная запись контекста утверждения'),context,`claim-context:assertion:${index}:raw`));
+        section.append(item);return;
+      }
       const fields=context&&typeof context==='object'&&context.fields&&typeof context.fields==='object'?context.fields:{};
       const values=el('dl','','sc-form-values');
       for(const [name,field] of Object.entries(fields)){
@@ -207,6 +212,8 @@ export function renderEssentialContext(context,readableContext=null){
     if(item.state==='available'){
       const classified=readableContext?.state==='complete'?readableContext.contexts.filter(value=>value.form===null&&value.origin_pointer===item.pointer):[];
       if(classified.length)entry.append(renderReadableContexts(classified,'record-context:'+index));
+      else if(readableContext)entry.append(contextPresentationGap(readableContext),
+        exactDetails(ui('Точные данные контекста'),item.value,'record-context:'+index+':raw'));
       else entry.append(renderContextData(item.value,'record-context:'+index));
     }
     else entry.append(el('p',ui('Объявленный контекст недоступен в этой версии ответа.'),'sc-reader-gap'));
@@ -218,4 +225,10 @@ export function renderEssentialContext(context,readableContext=null){
   });
   if(['unavailable','incomplete'].includes(context.state))section.append(el('p',ui('Чтобы проверить отсутствующий контекст, откройте источники материала.'),'sc-form-status'));
   return section;
+}
+
+function contextPresentationGap(readableContext){
+  const gap=el('p',ui('Читаемое представление этого контекста недоступно. Откройте точные данные контекста перед выводами.'),'sc-reader-gap');
+  gap.dataset.contextPresentation=readableContext.state==='complete'?'not-included':readableContext.state;
+  return gap;
 }
