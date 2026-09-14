@@ -1,5 +1,5 @@
 import {t,uiLanguage} from './ui-i18n.mjs';
-import {chooseKnowledgeSearchMode} from '../knowledge-search';
+import {chooseKnowledgeSearchMode} from '../knowledge-search.ts';
 import {displayForm} from './display-language.mjs';
 import {contentLanguage,validateHumanForms,claimPathFor,claimPathClosure,FormContractError} from './human-forms.mjs';
 import {verifyReadableContext} from './readable-context.mjs';

@@ -235,3 +235,16 @@ Earlier attempts exposed fixture/navigation selector errors, not source
 permission failures; their failed receipts are retained rather than counted
 as passes. Existing source-reader unit tests separately protect stale,
 corrupt, unsupported, conditional and bounded-text cases.
+
+## Native module loading parity
+
+CI run `34877144680` exposed a real packaging-independent seam: the
+observatory imported the shared search selector without its `.ts` extension.
+Vite resolved it, but the direct Node contract reader could not load the
+module. The source import now names the existing module exactly; no loader
+fallback, test skip or duplicate selector was added. The already existing
+node/relation origin parity test passes, as do TypeScript checking and the
+browser build (`source-import-parity-r1-resource.json`, 6.530 seconds,
+658.8 MiB peak, zero swap). Browser asset hashes are unchanged. This closes
+the observed direct-runtime import defect, not the still-pending new CI run
+or the broader Foundation acceptance.
