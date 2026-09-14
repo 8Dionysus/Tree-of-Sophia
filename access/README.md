@@ -518,6 +518,17 @@ and validate it with
 Validation requires the adjacent external `.zip.manifest.json` digest sidecar;
 use `--manifest` when the sidecar is stored under another path.
 
+The local builder always compiles its query store cold. Repo Validation may use
+the Product Shell's same-run CI handoff to avoid compiling the same store twice;
+that handoff is bound to the exact checkout ref, runtime input bindings,
+compiler dependency fingerprint, schema/version, complete SQLite snapshot,
+SHA-256, and byte size. It is a short-lived CI transfer, not a cross-run cache
+or a publication artifact, and a missing or stale handoff fails the candidate
+job rather than falling back silently. The consumer opens the SQLite snapshot
+read-only with immutable mode, rejects journals/WAL and links, and uses an
+owned same-filesystem hard link only to avoid a second full staging copy; the
+downloaded input is consumed after the archive is written.
+
 The archive contains the installable `access/` package, prebuilt web assets,
 and only the runtime data allowlist. It contains no Git metadata, sibling
 repository, restricted source payload, lexical projection, Neo4j database, or
