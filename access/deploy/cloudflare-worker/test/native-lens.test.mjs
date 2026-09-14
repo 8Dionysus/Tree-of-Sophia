@@ -152,6 +152,99 @@ function publishCatalog(sqlite, raw) {
   sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_reader_top'").run(JSON.stringify(top));
 }
 
+function installAuxiliary(sqlite) {
+  const source={ddl:sqlite.prepare("SELECT sql FROM sqlite_master WHERE type IN ('table','index') AND sql IS NOT NULL ORDER BY type DESC,name").all().map(row=>row.sql),
+    tables:Object.fromEntries(['edge_meta','knowledge_nodes','knowledge_relations','knowledge_exploration_clock'].map(table=>[table,sqlite.prepare(`SELECT * FROM ${table}`).all().map(row=>Object.values(row))]))};
+  const addon=python(String.raw`
+import sqlite3
+from tos_access.prepared_publication import _metadata
+from tos_access.published_read_metadata import TOP_KEY,published_snapshot_binding
+from tos_access.compact_lens_store import prepare_compact_lens_store_transaction
+from tos_access.lens_membership_index import prepare_membership_index_transaction
+from tos_access.published_read_model import PublishedReadModelError
+d=json.load(sys.stdin);db=sqlite3.connect(':memory:',isolation_level=None)
+for sql in d['ddl']:db.execute(sql)
+for table,rows in d['tables'].items():
+ for row in rows:db.execute('INSERT INTO '+table+' VALUES('+','.join('?' for _ in row)+')',row)
+binding=published_snapshot_binding(_metadata(db,TOP_KEY),db.execute('SELECT epoch FROM knowledge_exploration_clock').fetchone()[0])
+db.execute('BEGIN IMMEDIATE')
+for install in (prepare_compact_lens_store_transaction,prepare_membership_index_transaction):
+ try:install(db,expected_binding=binding)
+ except PublishedReadModelError:pass
+ else:raise AssertionError('D1 requires explicit schema selection')
+prepare_compact_lens_store_transaction(db,expected_binding=binding,expected_read_model_schema='tos_cloudflare_edge_read_model_v9')
+prepare_membership_index_transaction(db,expected_binding=binding,expected_read_model_schema='tos_cloudflare_edge_read_model_v9')
+db.commit()
+tables=['knowledge_compact_lens','knowledge_compact_lens_state','knowledge_lens_memberships','knowledge_lens_membership_state']
+ddl=[row[0] for row in db.execute("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND (tbl_name IN ('knowledge_compact_lens','knowledge_compact_lens_state','knowledge_lens_memberships','knowledge_lens_membership_state') OR name LIKE 'compact_lens_%' OR name LIKE 'membership_%') ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 ELSE 2 END,name")]
+print(json.dumps({'ddl':ddl,'tables':{table:db.execute('SELECT * FROM '+table).fetchall() for table in tables}}))
+`,source);
+  for (const sql of addon.ddl) sqlite.exec(sql);
+  for (const [table,rows] of Object.entries(addon.tables)) for (const row of rows) sqlite.prepare(`INSERT INTO ${table} VALUES(${row.map(()=>'?').join(',')})`).run(...row);
+}
+
+const auxiliaryFixture=python(String.raw`
+from tos_access.published_read_metadata import emitted_row_digest,published_row_digest_key
+from build_runtime import compact_json
+d=json.load(sys.stdin);g=json.loads(d['rawGraph'])
+for kind in ('node','relation'):
+ for n,item in enumerate(g[kind+'s']):
+  item['view_ids']=['common']+(['Свобода'] if n%2 else ['other']);item['graph_layers']=['alpha','beta']
+  d['metadata'][published_row_digest_key(kind,item['id'])]=compact_json(emitted_row_digest(compact_json(item)))
+ d['rawNodes' if kind=='node' else 'rawRelations']=[compact_json(item) for item in g[kind+'s']]
+d['rawGraph']=compact_json(g)
+print(json.dumps(d))
+`,fixture);
+
+test('native auxiliary stores preserve complete-source typed packets and exact membership', async () => {
+  const {db,sqlite,statements}=database(auxiliaryFixture);
+  try {
+    installAuxiliary(sqlite);
+    const packets=[];
+    for (const language of ['auto','ru','en','original']) {
+      const spec={schema_version:'tos_lens_spec_v1',lens_id:'aux',detail:'compact',language,sources:['philosophy'],
+        node_query:{filters:[{field:'view_ids',op:'contains',value:'common'}]},relation_query:{filters:[{field:'view_ids',op:'contains',value:'common'}]}};
+      const expected=python("from tos_access.knowledge import execute_knowledge_lens;d=json.load(sys.stdin);print(json.dumps(json.dumps(execute_knowledge_lens(json.loads(d['graph']),d['spec']))))",{graph:auxiliaryFixture.rawGraph,spec});
+      const result=await executeNativeLensD1(db,parseNativeRequest(JSON.stringify(spec)),{maxCandidates:1});
+      packets.push({name:language,expected,actual:await nativeLensResponse(result).text()});
+    }
+    assert.deepEqual(differences(packets).filter(item=>item.diff.length),[]);
+    assert.equal(statements.some(({sql})=>sql.includes('FROM knowledge_compact_lens c')),true);
+    assert.equal(statements.some(({sql})=>sql.includes('FROM knowledge_nodes\n') && sql.includes('json_bytes')),false);
+    assert.equal(statements.some(({sql})=>sql.includes('knowledge_lens_memberships_order')),true);
+    assert.equal(statements.every(({bindings})=>bindings.length<=100),true);
+    for (const [match,filters] of [
+      ['all',[{field:'view_ids',op:'contains',value:['common','Свобода']}]],
+      ['any',[{field:'view_ids',op:'eq',value:'Свобода'},{field:'graph_layers',op:'in',value:['beta','other']}]],
+    ]) {
+      const spec={schema_version:'tos_lens_spec_v1',lens_id:'boolean-aux',detail:'compact',sources:['philosophy'],node_query:{match,filters}};
+      const expected=python("from tos_access.knowledge import execute_knowledge_lens;d=json.load(sys.stdin);print(json.dumps(json.dumps(execute_knowledge_lens(json.loads(d['graph']),d['spec']))))",{graph:auxiliaryFixture.rawGraph,spec});
+      const result=await executeNativeLensD1(db,parseNativeRequest(JSON.stringify(spec)),{maxCandidates:1});
+      assert.deepEqual(differences([{name:match,expected,actual:await nativeLensResponse(result).text()}]).filter(item=>item.diff.length),[]);
+    }
+  } finally {sqlite.close();}
+});
+
+test('native auxiliary corruption, epoch drift and mid-query mutation refuse; uncovered reads stay complete', async () => {
+  const {db,sqlite}=database(auxiliaryFixture);
+  try {
+    installAuxiliary(sqlite);
+    const spec={schema_version:'tos_lens_spec_v1',lens_id:'aux',detail:'compact',sources:['philosophy']};
+    sqlite.prepare("UPDATE knowledge_compact_lens SET json=json||' ' WHERE kind='node'").run();
+    await assert.rejects(executeKnowledgeLensD1(db,parseNativeRequest(JSON.stringify(spec))),/checksum/);
+    sqlite.prepare("UPDATE knowledge_compact_lens SET json=substr(json,1,length(json)-1) WHERE kind='node'").run();
+    sqlite.prepare('UPDATE knowledge_exploration_clock SET epoch=epoch+1').run();
+    await assert.rejects(executeKnowledgeLensD1(db,parseNativeRequest(JSON.stringify(spec))),/stale/);
+    sqlite.prepare('UPDATE knowledge_exploration_clock SET epoch=epoch-1').run();
+    const wrapped={prepare(sql){const statement=db.prepare(sql);return {bind(...args){statement.bind(...args);return this;},async all(){const result=await statement.all();if(sql.includes('FROM knowledge_compact_lens c')) sqlite.prepare('UPDATE knowledge_compact_lens_state SET valid=0').run();return result;}};}};
+    await assert.rejects(executeNativeLensD1(wrapped,parseNativeRequest(JSON.stringify(spec))),error=>error.status===409);
+    const original=fixture.cases.find(item=>item.name==='eq-unsafe');
+    const expected=python("from tos_access.knowledge import execute_knowledge_lens;d=json.load(sys.stdin);print(json.dumps(json.dumps(execute_knowledge_lens(json.loads(d['graph']),json.loads(d['spec'])))))",{graph:auxiliaryFixture.rawGraph,spec:original.rawSpec});
+    const full=await executeNativeLensD1(db,parseNativeRequest(original.rawSpec));
+    assert.deepEqual(differences([{name:'uncovered',expected,actual:await nativeLensResponse(full).text()}]).filter(item=>item.diff.length),[]);
+  } finally {sqlite.close();}
+});
+
 test('compact rendering seeds preserve the full-source Python and Worker carrier contract', () => {
   const rows=python(String.raw`
 from tos_access.compact_lens_carrier import compact_lens_carrier

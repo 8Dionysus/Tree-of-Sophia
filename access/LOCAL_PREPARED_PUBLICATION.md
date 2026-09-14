@@ -63,8 +63,12 @@ records without maintaining it; compact reads and subsequent deltas then refuse
 the stale store instead of using it. Triggers do not compute or admit hashes.
 
 The separate optional membership index below can remove supported selectors
-from native candidate scanning. Neither component currently installs a native
-D1 compact store. Broad stored lenses remain bounded by all other reader and
+from native candidate scanning. Both installers default to local prepared v1;
+an explicitly selected v9 D1 SQLite snapshot additionally requires
+`expected_read_model_schema='tos_cloudflare_edge_read_model_v9'`. The same exact
+binding/digest admission and caller-owned offline transaction apply. This API
+does not import into D1, switch a consumer, or maintain an external D1 writer.
+Broad stored lenses remain bounded by all other reader and
 query budgets. A carrier checksum is not source admission or index-completeness
 proof.
 
@@ -90,6 +94,17 @@ prepared transaction, including metadata-only successors and rollback. Base
 record or direct index mutation invalidates membership state until the owner
 writer seals the exact successor. No request builds, repairs or re-admits an
 index. Existing snapshots without this optional lane remain readable.
+
+The native D1 lens reader admits these optional versioned stores against the
+exact v9 header digest, normalization binding, data/source revisions and
+publication epoch. It rechecks admitted state before returning a result, keeping
+mid-query invalidation separate from initially stale/unavailable data. Full
+inspection and uncovered predicates still read complete records. Boolean index
+plans have a smaller D1 parameter allowance than local SQLite; excessive plans
+retain the bounded native fallback. This is a reader/offline-preparation seam,
+not completed D1 full-builder or forward/reverse-delta integration: older D1
+writers invalidate the stores, and new compact reads refuse until the owner
+supplies matching stores. Do not deploy this as a complete D1 growth workflow.
 
 For both local and native D1 readers, endpoint policy `both` retains exact pair
 probes for small selected bases; above 64 nodes it scans actual outgoing

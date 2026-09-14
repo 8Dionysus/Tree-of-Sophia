@@ -7,6 +7,7 @@ import {nativeLower, nativeUnicodeVersion, nativeSortKey, codePointCompare, Nati
 import {arrayRefs, compileNativeSpec, derived, nativeMatchesGroup, nativeChild, nativeField, nativeKeys,
   nativePacketJson, parseNativeJson, stringField, type NativeFilter, type NativeRef, type NativeSpec, type NativeGroup, type NativeLensResult} from './native-lens.ts';
 import {finalizeNativeLens} from './native-lens-result.ts';
+import {admitAuxiliary,compactCovered,compileMembership,type NativeMembershipPlan} from './native-lens-auxiliary.ts';
 
 import {NativeD1Read as Read, NativeD1Rows, nativeD1Limits as nativeLensLimits, nativeBytes as bytes, nativeSha256 as sha256, nativeUnavailable as unavailable, readNativePublication, type NativeD1Limits as Limits} from './native-d1-read.ts';
 export {nativeD1Limits as nativeLensLimits} from './native-d1-read.ts';
@@ -31,6 +32,7 @@ class Plan extends NativeD1Rows {
   callbacks = 0; candidates = 0; sortBytes = 0; pathSteps = 0;
   matchedNodes = 0; matchedRelations = 0; genericRelations: Header[] | null = null;
   sources: Set<string>;
+  memberships: Partial<Record<Kind,NativeMembershipPlan>> = {};
   readonly metadata: LensMetadata; readonly spec: NativeSpec;
   constructor(read: Read, metadata: LensMetadata, spec: NativeSpec, limits: Limits) {
     super(read, limits); this.metadata = metadata; this.spec = spec; this.sources = new Set(spec.sources);
@@ -65,6 +67,8 @@ class Plan extends NativeD1Rows {
       if (this.spec.traversal.predicate_ids.length) {sql += ` AND ${alias}.predicate_id IN (SELECT value FROM json_each(?))`; args.push(compact(this.spec.traversal.predicate_ids));}
       if (this.spec.traversal.profile === 'overview') {sql += ` AND ${alias}.predicate_id NOT IN (SELECT value FROM json_each(?)) AND ${alias}.relation_type_id NOT IN (SELECT value FROM json_each(?))`; args.push(compact(OVERVIEW_EXCLUDED_PREDICATES), compact(OVERVIEW_EXCLUDED_RELATION_TYPES));}
     }
+    const membership=this.memberships[kind];
+    if (membership) {const condition=membership.condition(alias);sql+=' AND '+condition.sql;args.push(...condition.args);}
     return {sql, args};
   }
   identitySelector(kind: Kind, rule: NativeFilter): IdentitySelector | null {
@@ -170,6 +174,8 @@ class Plan extends NativeD1Rows {
     return 0;
   }
   async *ordered(kind: Kind, where = this.where(kind, kind === 'node' ? 'n' : 'r'), endpoint?: ['from' | 'to', string]): AsyncGenerator<Header> {
+    const membership=this.memberships[kind];
+    if (membership && !endpoint) {yield* membership.ordered(this.read,this.where(kind,'r'),this.limits.blockSize);return;}
     const alias = kind === 'node' ? 'n' : 'r', index = endpoint ? 'knowledge_lens_order_' + endpoint[0] : 'knowledge_lens_order_sort';
     let after = ['', ''], first = true;
     while (true) {
@@ -183,9 +189,9 @@ class Plan extends NativeD1Rows {
   async selectNodes(focus: NativeRef | null): Promise<{nodes: NativeRef[]; proofs: Map<string, unknown[]>}> {
     const spec = this.spec, group = spec.node_query, proofs = new Map<string, unknown[]>();
     if (!group.enabled) return {nodes: [], proofs};
-    const simple = this.dimensional('node', group) && !spec.seed.node_ids.length && !spec.seed.text_query && !spec.path_query.length;
+    const simple = (this.dimensional('node', group) || this.memberships.node) && !spec.seed.node_ids.length && !spec.seed.text_query && !spec.path_query.length;
     if (simple && defaultSort(spec.composition.sort_nodes)) {
-      this.matchedNodes = this.allowedCells('node', group).reduce((sum, cell) => sum + cell[3], 0);
+      this.matchedNodes = this.memberships.node ? await this.memberships.node.count(this.read,this.where('node','r')) : this.allowedCells('node', group).reduce((sum, cell) => sum + cell[3], 0);
       const ids: string[] = [];
       if (this.matchedNodes) for await (const row of this.ordered('node')) {ids.push(row.id); if (ids.length >= spec.limits.nodes) break;}
       if (ids.length !== Math.min(this.matchedNodes, spec.limits.nodes)) unavailable('native lens selector/count/order closure missing');
@@ -222,8 +228,8 @@ class Plan extends NativeD1Rows {
   async prepareRelations(): Promise<void> {
     const group = this.spec.relation_query;
     if (!group.enabled) {this.genericRelations = []; return;}
-    if (this.dimensional('relation', group) && defaultSort(this.spec.composition.sort_relations)) {
-      this.matchedRelations = this.allowedCells('relation', group).reduce((sum, cell) => sum + cell[3], 0); return;
+    if ((this.dimensional('relation', group) || this.memberships.relation) && defaultSort(this.spec.composition.sort_relations)) {
+      this.matchedRelations = this.memberships.relation ? await this.memberships.relation.count(this.read,this.where('relation','r')) : this.allowedCells('relation', group).reduce((sum, cell) => sum + cell[3], 0); return;
     }
     const headers: Header[] = [];
     for await (const ref of this.scan('relation')) if (this.regime({predicate_id: nativeField(ref, 'predicate_id').value, relation_type_id: nativeField(ref, 'relation_type_id').value}) && this.group(ref, group)) {
@@ -359,6 +365,13 @@ export async function executeNativeLensD1(db: D1Database, input: NativeRef, over
     || ['property_id','field','value_type'].some(key => typeof definition[key] !== 'string' || !definition[key]) || typeof definition.inherited !== 'boolean'
     || ['applies_to','operators'].some(key => !Array.isArray(definition[key]) || definition[key].some((value: unknown) => typeof value !== 'string' || !value)))) unavailable('native lens query property framing invalid');
   const compiled = compileNativeSpec(input, definitions as QueryProperty[]), plan = new Plan(read, metadata.ref.value as LensMetadata, compiled.spec, limits), spec = plan.spec;
+  const membershipPlans={node:compileMembership('node',spec.node_query),relation:compileMembership('relation',spec.relation_query)};
+  const auxiliary=await admitAuxiliary(read,top,[...(compactCovered(spec)?['compact' as const]:[]),
+    ...(membershipPlans.node||membershipPlans.relation?['membership' as const]:[])]);
+  plan.compact=auxiliary.installed.includes('compact');
+  if (auxiliary.installed.includes('membership')) for (const kind of ['node','relation'] as const) {
+    const candidate=membershipPlans[kind];if (candidate) plan.memberships[kind]=candidate;
+  }
   const focus = await plan.focus(), selection = await plan.selectNodes(focus);
   const selected = new Map<string, NativeRef>(), inclusion: Inclusion = {nodes: Object.create(null), relations: Object.create(null), authority: 'query-execution-not-semantic-proof'};
   if (focus) {selected.set(stringField(focus, 'id'), focus); inclusion.nodes[stringField(focus, 'id')] = {kind: 'focus'};}
@@ -396,6 +409,7 @@ export async function executeNativeLensD1(db: D1Database, input: NativeRef, over
   }
   if (exhausted && examined !== eligible.count) unavailable('native lens eligible/count/order closure incomplete');
   const relations = await plan.load('relation', relationIds);
+  await auxiliary.verify();
   return finalizeNativeLens(nativeField(top.ref, 'authority_boundary'), sourceRevision, spec, compiled.publicPacket, [...selected.values()], relationIds.map(id => relations.get(id)!), {
     available_nodes: plan.scopeCells('node').reduce((sum, cell) => sum + cell[3], 0), available_relations: plan.scopeCells('relation').reduce((sum, cell) => sum + cell[3], 0),
     matched_nodes: matchedNodes, matched_relations: plan.matchedRelations, eligible_relations: eligible.count, identity_expansion_limited: identityLimited,

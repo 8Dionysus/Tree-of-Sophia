@@ -55,7 +55,8 @@ def seal(db, binding):
     db.execute(f'UPDATE {STATE} SET binding=?,valid=1 WHERE singleton=1', (_compact(binding),))
 
 
-def prepare_compact_lens_store_transaction(db, *, expected_binding, limits=None):
+def prepare_compact_lens_store_transaction(db, *, expected_binding, limits=None,
+                                         expected_read_model_schema='tos_local_prepared_read_model_v1'):
     """Explicit, bounded complete bootstrap; caller MUST rollback on failure.
 
     Source bytes and digests are read together inside the caller's transaction.
@@ -68,7 +69,8 @@ def prepare_compact_lens_store_transaction(db, *, expected_binding, limits=None)
     limits = limits or CompactStoreLimits()
     top = _metadata(db, TOP_KEY)
     epoch = db.execute('SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1').fetchone()[0]
-    if (top['read_model_schema'] != PREPARED_SCHEMA
+    if (expected_read_model_schema not in {PREPARED_SCHEMA, 'tos_cloudflare_edge_read_model_v9'}
+            or top['read_model_schema'] != expected_read_model_schema
             or published_snapshot_binding(top, epoch) != expected_binding):
         raise PublishedReadModelError('compact store publication binding differs')
     if _exists(lambda sql, args=(): db.execute(sql, args).fetchall()):

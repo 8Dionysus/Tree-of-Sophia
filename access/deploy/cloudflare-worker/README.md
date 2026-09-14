@@ -25,7 +25,10 @@ content revisions, capability data, and the explicit read-model schema
 version. API, LensSpec grammar, catalog, documentation, and Worker-only code
 changes do not force a large row import when the rows are unchanged. Any
 producer change that alters normalized rows changes their content revisions; a
-structural SQL change must increment the read-model schema version.
+structural change to the base SQL model must increment its read-model schema
+version. Optional read stores have independent versioned admission and never
+silently become part of the base-model contract; see the bounded lens extension
+below.
 
 KAG is not a build input or runtime dependency. The edge build must not
 regenerate or silently strengthen any KAG surface.
@@ -78,6 +81,25 @@ ordering IDs, avoiding repeated global identity-index walks for a small source
 scope. Exact identity conjuncts keep their narrower identity indexes. Filters
 still run against digest-verified native rows; budgets and packet semantics
 are unchanged. This does not make broad non-indexed property filters cheap.
+
+The native lens reader can also consume explicitly installed, versioned compact
+seeds and exact `view_ids`/`graph_layers` membership indexes. Their offline owner
+API and transaction rules are in
+[`LOCAL_PREPARED_PUBLICATION.md`](../../LOCAL_PREPARED_PUBLICATION.md).
+The extension binds the complete v9 publication header and epoch. Missing
+optional stores retain the old bounded plan; stale or incompatible installed
+stores return 503, and invalidation observed during a read returns 409. Native
+numbers, source member order, human-form selection, full inspection and
+uncovered-field predicates retain their existing authority and representation.
+Positive membership groups use bounded indexed counts/keysets. SQL expansion
+respects D1's [100-parameter statement limit](https://developers.cloudflare.com/d1/platform/limits/).
+
+This extension is not yet emitted/maintained by the full D1 builder and its
+forward/reverse delta route. It is an explicit offline preparation/native-reader
+seam, tested locally, not a deployed full-corpus growth capability. Existing D1
+writer changes invalidate its old binding/state; a reader never repairs or
+silently re-admits it. Complete integration is required before enabling it in a
+publication workflow.
 Execution/response budget exhaustion returns 413 on lens compilation and
 stored-lens/focus GET/HEAD, matching the published Python adapter. Invalid
 compilation input remains 400; unavailable or damaged publication data is 503.

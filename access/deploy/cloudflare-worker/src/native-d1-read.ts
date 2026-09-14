@@ -103,6 +103,7 @@ export class NativeD1Read {
 }
 
 export class NativeD1Rows {
+  compact = false; // Enabled only by a covered lens after exact store admission.
   decoded = 0; cacheBytes = 0;
   cache = new Map<string, {ref: NativeRef; size: number}>();
   readonly read: NativeD1Read; readonly limits: NativeD1Limits; readonly verifyOrder: boolean;
@@ -118,19 +119,22 @@ export class NativeD1Rows {
     for (let offset = 0; offset < missing.length; offset += this.limits.blockSize) {
       const page = missing.slice(offset, offset + this.limits.blockSize);
       let allowance = 0;
-      const costs = [...IDENTITY[kind], 'json'].map(field => `coalesce(length(CAST(${field} AS BLOB)),0)`).join('+');
-      const valid = ["typeof(json)='text'", ...IDENTITY[kind].map(field => `typeof(${field})='text' AND length(CAST(${field} AS BLOB))<=1048576`)].join(' AND ');
+      const fields = [...IDENTITY[kind], 'json', ...(this.compact ? ['source_sha256','seed_sha256'] : [])];
+      const costs = fields.map(field => `coalesce(length(CAST(${field} AS BLOB)),0)`).join('+');
+      const valid = ["typeof(json)='text'", ...IDENTITY[kind].map(field => `typeof(${field})='text' AND length(CAST(${field} AS BLOB))<=1048576`),
+        ...(this.compact ? ['source_sha256','seed_sha256'].map(field=>`typeof(${field})='text' AND length(${field})=64`) : [])].join(' AND ');
       const permitted = valid + ' AND json_bytes<=1048576 AND delivered_bytes<=?';
-      const fields = [...IDENTITY[kind], 'json'];
+      const selection = this.compact
+        ? `SELECT ${IDENTITY[kind].map(key=>`n.${key} AS ${key}`).join(',')},c.json,c.source_sha256,c.seed_sha256,length(CAST(c.json AS BLOB)) AS json_bytes FROM knowledge_compact_lens c LEFT JOIN knowledge_${kind}s n ON n.id=c.id WHERE c.kind=? AND c.id IN (SELECT value FROM json_each(?)) ORDER BY c.id LIMIT ?`
+        : `SELECT ${fields.join(',')},length(CAST(json AS BLOB)) AS json_bytes FROM knowledge_${kind}s WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id LIMIT ?`;
       const items = await this.read.query<Record<string, unknown>>(() => {
         allowance = Math.min(this.limits.maxDecodedBytes - this.read.deliveredBytes, this.limits.maxDecodedBytes - this.decoded);
         return {sql: `WITH selected AS (
-        SELECT ${fields.join(',')},length(CAST(json AS BLOB)) AS json_bytes FROM knowledge_${kind}s
-        WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id LIMIT ?), framed AS (
+        ${selection}), framed AS (
         SELECT *,sum(${costs}) OVER (ORDER BY id ROWS UNBOUNDED PRECEDING) AS delivered_bytes FROM selected)
         SELECT ${fields.map(field => `CASE WHEN ${permitted} THEN ${field} ELSE NULL END AS ${field}`).join(',')},
         json_bytes,CASE WHEN ${valid} THEN 1 ELSE 0 END AS json_valid,delivered_bytes FROM framed ORDER BY id`,
-        args: [compact(page), Math.min(page.length + 1, this.limits.maxRows - this.read.returned + 1), ...fields.map(() => allowance)]};
+        args: [...(this.compact ? [kind] : []), compact(page), Math.min(page.length + 1, this.limits.maxRows - this.read.returned + 1), ...fields.map(() => allowance)]};
       });
       const orders = this.verifyOrder ? await this.read.textRows<{kind: string; id: string; sort_key: string; from_id: string; to_id: string}>(['kind','id','sort_key','from_id','to_id'], ['id'], 'SELECT kind,id,sort_key,from_id,to_id FROM knowledge_lens_order WHERE kind=? AND id IN (SELECT value FROM json_each(?)) LIMIT ?', kind, compact(page), page.length + 1) : [];
       if (items.length !== page.length || (this.verifyOrder && orders.length !== page.length)) nativeUnavailable('native lens selected payload/order closure missing');
@@ -144,7 +148,9 @@ export class NativeD1Rows {
         this.decoded += size;
         if (this.decoded > this.limits.maxDecodedBytes) throw new NativeBudgetExceeded('native lens decoded-byte budget');
         const expected = await this.read.metadata(`knowledge_${kind}_digest:${row.id}`, 1024);
-        if (nativeKeys(expected.ref).join(',') !== 'sha256' || nativeField(expected.ref, 'sha256').value !== await nativeSha256(raw)) nativeUnavailable('emitted knowledge row checksum differs');
+        const rawDigest = await nativeSha256(raw);
+        if (nativeKeys(expected.ref).join(',') !== 'sha256' || nativeField(expected.ref, 'sha256').value !== (this.compact ? row.source_sha256 : rawDigest)
+          || (this.compact && (typeof row.source_sha256!=='string' || !/^[a-f0-9]{64}$/.test(row.source_sha256) || row.seed_sha256!==rawDigest))) nativeUnavailable('emitted knowledge row or compact seed checksum differs');
         let ref: NativeRef;
         try {ref = parseNativeJson(raw);} catch {return nativeUnavailable('native lens source row invalid');}
         if (!ref.value || typeof ref.value !== 'object' || Array.isArray(ref.value) || IDENTITY[kind].some(key => nativeField(ref, key).value !== row[key])) nativeUnavailable('knowledge row identity/index columns differ');

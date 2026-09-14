@@ -52,7 +52,8 @@ def seal(db, binding):
 
 
 def prepare_membership_index_transaction(db, *, expected_binding, max_rows=200000,
-                                         max_source_bytes=64*1024**2, max_entries=1000000):
+                                         max_source_bytes=64*1024**2, max_entries=1000000,
+                                         expected_read_model_schema='tos_local_prepared_read_model_v1'):
     """Bounded complete installation; reserve storage and rollback on failure."""
     from .prepared_publication import _metadata, SCHEMA as PREPARED_SCHEMA
     if not db.in_transaction:
@@ -61,7 +62,9 @@ def prepare_membership_index_transaction(db, *, expected_binding, max_rows=20000
         raise ValueError('membership budgets must be positive integers')
     top = _metadata(db, TOP_KEY)
     epoch = db.execute('SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1').fetchone()[0]
-    if top['read_model_schema'] != PREPARED_SCHEMA or published_snapshot_binding(top, epoch) != expected_binding:
+    if (expected_read_model_schema not in {PREPARED_SCHEMA,'tos_cloudflare_edge_read_model_v9'}
+            or top['read_model_schema'] != expected_read_model_schema
+            or published_snapshot_binding(top, epoch) != expected_binding):
         raise PublishedReadModelError('membership publication binding differs')
     if db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (STATE,)).fetchone():
         raise ValueError('membership index already exists; explicit migration required')

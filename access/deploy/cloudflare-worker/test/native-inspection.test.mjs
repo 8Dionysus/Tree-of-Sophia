@@ -64,6 +64,8 @@ const schema = `CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRI
  CREATE INDEX knowledge_nodes_native_idx ON knowledge_nodes(native_id);
  CREATE INDEX knowledge_nodes_entity_idx ON knowledge_nodes(entity_id);
  CREATE INDEX knowledge_relations_native_idx ON knowledge_relations(native_id);
+ CREATE INDEX knowledge_nodes_source_kind_idx ON knowledge_nodes(source_graph,kind_id);
+ CREATE INDEX knowledge_relations_source_predicate_idx ON knowledge_relations(source_graph,predicate_id);
  CREATE TABLE knowledge_lens_order(kind TEXT,id TEXT,sort_key TEXT,from_id TEXT,to_id TEXT,PRIMARY KEY(kind,id));
  CREATE INDEX knowledge_lens_order_sort ON knowledge_lens_order(kind,sort_key,id);
  CREATE INDEX knowledge_lens_order_from ON knowledge_lens_order(kind,from_id,sort_key,id);
@@ -149,6 +151,11 @@ function lensDatabase() {
     replaceRow(data,kind,item.id,()=>raw);
     data.sqlite.prepare('INSERT INTO knowledge_lens_order VALUES (?,?,?,?,?)').run(kind,item.id,item.id.toLowerCase(),kind==='relation'?item.from_id:'',kind==='relation'?item.to_id:'');
   }
+  // Stored-lens authority is the published D1 catalog, not a per-request asset.
+  const catalog=JSON.stringify({schema:'tos_knowledge_catalog_v1',source_revision:'a'.repeat(64),lenses:[lensSpec]});
+  data.sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_catalog'").run(catalog);
+  const raw=data.sqlite.prepare("SELECT json_chunk FROM edge_meta WHERE key='knowledge_reader_top'").get().json_chunk;
+  header(data,raw.replace(/"catalog_sha256":"[a-f0-9]{64}"/,`"catalog_sha256":"${sha(catalog)}"`));
   return data;
 }
 const lensSpec={schema_version:'tos_lens_spec_v1',lens_id:'header-probe',sources:['philosophy','canon','source-navigation'],detail:'full',
@@ -171,7 +178,7 @@ except Exception as e:
 async function lensResponse(data,route='compile',spec=lensSpec,method='GET') {
   const path=route==='compile'?'/api/knowledge/lenses/compile':route==='focus'?'/api/knowledge/focus/philosophy%3Aa?depth=0&profile=all':'/api/knowledge/lenses/header-probe';
   return (await worker()).fetch(new Request('https://tos.test'+path,route==='compile'?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(spec)}:{method}),
-    {DB:data.db,ASSETS:{fetch:async()=>new Response(JSON.stringify({lenses:[spec]}))}},{});
+    {DB:data.db,ASSETS:{fetch(){throw new Error('published lens must not use static assets');}}},{});
 }
 function header(data,raw) {data.sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_reader_top'").run(raw);}
 function padded(raw,size) {
@@ -180,12 +187,12 @@ function padded(raw,size) {
 
 test('published lens header admission preserves complete native packets and continuation through Worker HTTP',async()=>{
   const data=lensDatabase();try {
+    const first=lensOracle(data),stored=await lensResponse(data,'stored');assert.equal(stored.status,200);assertPackets(await stored.text(),first.raw,true);
+    const head=await lensResponse(data,'stored',lensSpec,'HEAD');assert.equal(head.status,200);assert.equal(await head.text(),'');
     let spec=lensSpec;
     for(let page=0;page<8;page++) {
       const expected=lensOracle(data,spec);assert.equal(expected.status,200,expected.error);
       const result=await lensResponse(data,'compile',spec);const raw=await result.text();assert.equal(result.status,200,raw.slice(0,1000));assertPackets(raw,expected.raw,true);
-      const stored=await lensResponse(data,'stored',spec);assert.equal(stored.status,200);assertPackets(await stored.text(),expected.raw,true);
-      const head=await lensResponse(data,'stored',spec,'HEAD');assert.equal(head.status,200);assert.equal(await head.text(),'');
       const cursor=JSON.parse(expected.raw).page.next_cursor;if(!cursor)break;spec={...spec,pagination:{...spec.pagination,cursor}};
       assert.ok(page<7,'bounded fixture must exhaust');
     }
@@ -199,7 +206,7 @@ test('shared emitted-header framing rejects whitespace, numeric spelling and all
     raw=>raw.replace('"unknown":{','"unknown":{"\\udfff":null,'),
     raw=>raw.replace('"unknown":{','"unknown":{"nested":[{"x":"\\ud800"}],')];
   for(const change of changes){const data=lensDatabase();try {
-    header(data,change(fixture.metadata.knowledge_reader_top));const expected=lensOracle(data);assert.equal(expected.status,503,expected.error);
+    header(data,change(data.sqlite.prepare("SELECT json_chunk FROM edge_meta WHERE key='knowledge_reader_top'").get().json_chunk));const expected=lensOracle(data);assert.equal(expected.status,503,expected.error);
     for(const route of ['compile','stored','focus'])assert.equal((await lensResponse(data,route)).status,503,route);
     assert.equal((await lensResponse(data,'stored',lensSpec,'HEAD')).status,503);
     assert.equal((await response(data,'node','philosophy:a')).status,503,'same guard owns inspection admission');
@@ -212,7 +219,7 @@ test('published lens header, digest and row exact limits and one-byte-over statu
     const size={header:65536,digest:1024,row:1048576}[kind]+extra;
     if(kind==='header') {
       // Preserve Python number spelling and source member order while padding.
-      const raw=fixture.metadata.knowledge_reader_top.replace('"authority_boundary":{','"authority_boundary":{"padding":"",');
+      const raw=data.sqlite.prepare("SELECT json_chunk FROM edge_meta WHERE key='knowledge_reader_top'").get().json_chunk.replace('"authority_boundary":{','"authority_boundary":{"padding":"",');
       header(data,raw.replace('"padding":""','"padding":"'+'x'.repeat(size-Buffer.byteLength(raw))+'"'));
     } else if(kind==='digest') {
       const key='knowledge_node_digest:philosophy:a',raw=data.sqlite.prepare('SELECT json_chunk FROM edge_meta WHERE key=?').get(key).json_chunk;
