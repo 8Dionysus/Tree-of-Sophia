@@ -1,6 +1,6 @@
 # Explicit local source-command transport
 
-`scripts/source_command_http.py` exposes the existing source-command front door
+`../scripts/source_command_http.py` exposes the existing source-command front door
 on **127.0.0.1 only**. This is a separately started source-owner service, not an
 extension of read-only access, HTTP `/api`, WebMCP or native access MCP. It does
 not create delegations, source targets, identities, assessment or admission.
