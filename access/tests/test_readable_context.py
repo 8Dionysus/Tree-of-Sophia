@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
 
@@ -49,9 +50,14 @@ def real_freedom_graph(*, numeric_control=False):
 def real_canonical_graph():
     """The two opted-in canonical source nodes; never a whole-corpus build."""
     from tos_corpus_index_common import build_nodes
-    with canonical_node_fixture() as (_, paths):
+    with canonical_node_fixture() as (fixture_root, paths):
         diagnostics = []
-        nodes = build_nodes(diagnostics, paths)
+        # The real index builder reports repository-relative source refs.  Keep
+        # that contract while pointing its test-local root at exact snapshots,
+        # rather than making sparse CI depend on the authored canon checkout.
+        import tos_corpus_index_common as corpus_index
+        with patch.object(corpus_index, 'REPO_ROOT', fixture_root):
+            nodes = build_nodes(diagnostics, paths)
         if diagnostics or len(nodes) != 2:
             raise AssertionError('exact canonical source fixtures failed to build: ' + repr(diagnostics))
     corpus = {'nodes': nodes}
