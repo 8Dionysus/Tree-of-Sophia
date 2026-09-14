@@ -7,9 +7,12 @@ from __future__ import annotations
 
 import copy
 import json
+import os
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from test_native_text_binding import (
     NativeTextBindingError,
@@ -19,6 +22,8 @@ from test_native_text_binding import (
     digest,
 )
 from source_owner_context import OwnerLocalSourceContext
+from source_owner_context import _canonical
+from native_text_return import PrivateTextReadSelection, LocalTextReadError, read_private_unit, read_public_unit
 
 
 SCHEMA_REF = "ToS/contracts/owner-local-source-context.schema.json"
@@ -84,6 +89,99 @@ class SourceOwnerContextTests(unittest.TestCase):
 
     def resolve(self, context=None, **kwargs):
         return self.resolver(context).resolve(self.binding, **kwargs)
+
+    def private_selection(self):
+        now = datetime.now(timezone.utc)
+        value = {'schema_version': 'tos_native_private_text_read_v1', 'source_root': str(self.public),
+                 'owner_uid': os.getuid(), 'issuer': 'agent:synthetic-test',
+                 'issued_at': (now-timedelta(minutes=1)).isoformat(), 'expires_at': (now+timedelta(hours=1)).isoformat(),
+                 'external_publication_authorized': False, 'transport_scope': 'owner_process_only',
+                 'owner_context': {'path': str(self.config_path), 'sha256': digest(self.config_path.read_bytes())},
+                 'mandate': {'path': str(self.public/self.fixture.authority_ref),
+                             'sha256': self.fixture.file_digest(self.fixture.authority_ref), 'scope': 'Synthetic test, not rights evidence.'},
+                 'selections': [{'binding_sha256': digest(_canonical(self.binding)),
+                                 'rights_record_refs': copy.deepcopy(self.fixture.layer['representation']['rights_record_refs']),
+                                 'condition_review': 'Synthetic unconditional local research; no redistribution.'}]}
+        path = self.base/'private-reading.json'
+        path.write_text(json.dumps(value), encoding='utf-8'); path.chmod(0o600)
+        return path, value
+
+    def test_protected_private_delivery_preserves_exact_spans_and_rights_without_public_fallback(self):
+        path, _ = self.private_selection()
+        selected = PrivateTextReadSelection(path, self.public)
+        result = read_private_unit(selected, self.binding)
+        self.assertEqual('tos_native_private_unit_return_v1', result['schema_version'])
+        self.assertTrue(result['summary']['content_verified'])
+        self.assertFalse(result['summary']['public_content_available'])
+        selector = self.fixture.packet['anchors'][1]['selector']
+        self.assertEqual(self.fixture.text[selector['start']:selector['end']], result['spans'][0]['text'])
+        self.assertEqual(self.fixture.rights, result['rights_records'][0]['record'])
+        self.assertFalse(result['authority']['external_publication_authorized'])
+        self.assertFalse((self.public/self.fixture.original_ref).exists())
+        with self.assertRaises(NativeTextBindingError):
+            read_public_unit(self.resolver(), self.binding)
+        with self.assertRaises(LocalTextReadError):
+            read_private_unit(selected, self.binding, max_return_bytes=100)
+
+    def test_private_delivery_rejects_unselected_binding_before_source_metadata(self):
+        path, _ = self.private_selection()
+        selected = PrivateTextReadSelection(path, self.public)
+        changed = {**self.binding, 'unit_version': 2}
+        with patch.object(NativeTextBindingResolver, 'resolve', side_effect=AssertionError('must not open source metadata')):
+            with self.assertRaises(LocalTextReadError):
+                read_private_unit(selected, changed)
+
+    def test_private_delivery_selection_owner_expiry_context_and_scope_are_closed(self):
+        for case in ('mode', 'expired', 'context', 'owner', 'publication', 'transport', 'duplicate', 'revoked', 'changed'):
+            with self.subTest(case=case):
+                path, value = self.private_selection()
+                selected = PrivateTextReadSelection(path, self.public)
+                if case == 'mode': path.chmod(0o644)
+                elif case == 'revoked': path.unlink()
+                else:
+                    if case == 'expired': value['expires_at'] = value['issued_at']
+                    elif case == 'context': value['owner_context']['sha256'] = '0'*64
+                    elif case == 'owner': value['owner_uid'] += 1
+                    elif case == 'publication': value['external_publication_authorized'] = True
+                    elif case == 'transport': value['transport_scope'] = 'http'
+                    elif case == 'duplicate': value['selections'] *= 2
+                    else: value['issuer'] += '-changed'
+                    path.write_text(json.dumps(value), encoding='utf-8')
+                with patch.object(NativeTextBindingResolver, 'resolve', side_effect=AssertionError('must not open source metadata')):
+                    with self.assertRaises(LocalTextReadError): read_private_unit(selected, self.binding)
+                if case not in ('revoked', 'changed'):
+                    with self.assertRaises(LocalTextReadError): PrivateTextReadSelection(path, self.public)
+
+    def test_private_delivery_rights_refusal_precedes_content_even_with_fresh_exact_grant(self):
+        import native_text_binding
+        for field, value in [('derivative_posture', 'permission_required'), ('derivative_posture', 'allowed_with_conditions'),
+                             ('assessment_status', 'permission_denied'), ('review_status', 'superseded')]:
+            with self.subTest(field=field, value=value):
+                original = copy.deepcopy(self.fixture.rights)
+                self.fixture.rights[field] = value
+                self.fixture.refresh()
+                self.write_private(self.packet, (self.public/self.fixture.packet_ref).read_bytes())
+                self.binding = {**copy.deepcopy(self.fixture.binding), 'packet_ref': REF}
+                path, _ = self.private_selection()
+                reader = native_text_binding._regular_bytes
+                def no_content(path, limit):
+                    self.assertNotEqual(path, self.public/self.fixture.content_ref)
+                    return reader(path, limit)
+                with patch('native_text_binding._regular_bytes', side_effect=no_content):
+                    with self.assertRaises(LocalTextReadError):
+                        read_private_unit(PrivateTextReadSelection(path, self.public), self.binding)
+                self.fixture.rights = original
+
+    def test_private_delivery_rechecks_selection_after_exact_content_io(self):
+        import native_text_binding
+        path, _ = self.private_selection()
+        selected = PrivateTextReadSelection(path, self.public)
+        reader = native_text_binding._regular_bytes
+        def revoke_on_content(target, limit):
+            if target == self.public/self.fixture.content_ref and path.exists(): path.unlink()
+            return reader(target, limit)
+        with patch('native_text_binding._regular_bytes', side_effect=revoke_on_content):
+            with self.assertRaises(LocalTextReadError): read_private_unit(selected, self.binding)
 
     def test_exact_private_resolution_preserves_native_bytes_and_public_dependencies(self):
         context = self.load()

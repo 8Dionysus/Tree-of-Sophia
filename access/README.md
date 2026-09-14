@@ -221,6 +221,23 @@ Configuration, mandate, rights, closure and notice changes fail closed;
 revocation/expiry requires explicit owner reselection, never a public fallback.
 HTTP remains loopback-only. No remote Worker or external publication is enabled.
 
+Private source-owner reading is a separate lower-level contract:
+`ToS/contracts/native-private-text-read.schema.json` and
+`scripts/native_text_return.py` expose `PrivateTextReadSelection` plus
+`read_private_unit(selection, binding)`. The protected selection pins a distinct
+`OwnerLocalSourceContext`, the current account and mandate, a maximum one-day
+validity, and each exact binding and rights-record digest. It permits only the
+already recorded unconditional local-research route, returns unchanged selected
+spans with complete rights records, and rechecks revocation and dependency
+fixity before returning. It does not read the original Item payload, assess
+translation or content, or change private visibility and redistribution rules.
+
+This private return is **not yet connected to HTTP, MCP or the constructor**.
+Those adapters must supply their own explicit owner-local transport boundary
+and respect any recorded server-transfer prohibition. Neither a public metadata
+handle nor the existing `native_local_unit` request selects a private store or
+inherits this permission. Never turn its packet into a public source response.
+
 Historical Claim and review-ledger reading remain separate integration work.
 A build or mocked client test alone does not establish the live
 constructor-to-owner cycle.
