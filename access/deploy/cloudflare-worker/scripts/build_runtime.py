@@ -50,6 +50,9 @@ CORPUS_COLLECTIONS = ("nodes", "resources", "manifests", "branches", "graph_view
 STATIC_PHILOSOPHY_LIMITS = (1, 1000)
 STATIC_CORPUS_LIMITS = (1, 100, 700, 1000)
 SQL_CHUNK_BYTES = 32_000
+# A byte-only bound still permits thousands of short VALUES rows and can
+# exhaust the D1 statement compiler. Bound the shape as well as encoded bytes.
+MAX_D1_SQL_INSERT_ROWS = 512
 READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v9"
 READ_MODEL_CONTENT_VERSION = "tos_cloudflare_edge_content_v2"
 SEARCH_READ_MODEL_SCHEMA_VERSION = "tos_knowledge_search_read_model_v3"
@@ -650,7 +653,7 @@ def append_batched_inserts(
     for values in rows:
         value_sql = "(" + ",".join(values) + ")"
         extra = len(value_sql.encode("utf-8")) + (1 if batch else 0)
-        if batch and size + extra + 1 > MAX_D1_SQL_STATEMENT_BYTES:
+        if batch and (len(batch) >= MAX_D1_SQL_INSERT_ROWS or size + extra + 1 > MAX_D1_SQL_STATEMENT_BYTES):
             writer.append(prefix + ",".join(batch) + ";")
             batch = []
             size = len(prefix.encode("utf-8")) + 1

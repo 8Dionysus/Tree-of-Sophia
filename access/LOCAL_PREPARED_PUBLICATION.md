@@ -101,10 +101,21 @@ publication epoch. It rechecks admitted state before returning a result, keeping
 mid-query invalidation separate from initially stale/unavailable data. Full
 inspection and uncovered predicates still read complete records. Boolean index
 plans have a smaller D1 parameter allowance than local SQLite; excessive plans
-retain the bounded native fallback. This is a reader/offline-preparation seam,
-not completed D1 full-builder or forward/reverse-delta integration: older D1
-writers invalidate the stores, and new compact reads refuse until the owner
-supplies matching stores. Do not deploy this as a complete D1 growth workflow.
+retain the bounded native fallback. The addressed prepared-to-D1 delta route
+also maintains explicitly installed stores: it verifies the selected old seeds
+and complete membership rows, stages only changed rows and seals both stores
+inside the same revision-guarded publication trigger. Reverse publication seals
+the restored data against a new actual epoch; it does not reuse an old publication
+identity. The existing v7 lens continuation fingerprint still lacks this epoch:
+an unchanged bounded result can accept its cursor across publication/rollback.
+That reader-contract gap remains open; the writer epoch check alone does not
+prove continuation isolation.
+Staging alone leaves the previous stores readable, and partial staging or
+intervening invalidation aborts the whole publication. Capture/read/retention
+and SQL budgets include the auxiliary rows. No query or delta capture installs
+the optional tables. Initial full-builder emission and the legacy full-producer
+delta route remain unintegrated; older writers invalidate the old store binding
+instead of silently repairing it. This is not yet a complete D1 growth workflow.
 
 For both local and native D1 readers, endpoint policy `both` retains exact pair
 probes for small selected bases; above 64 nodes it scans actual outgoing

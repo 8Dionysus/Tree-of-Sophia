@@ -28,6 +28,22 @@ from incremental_runtime import (
 
 
 class IncrementalRuntimeTests(unittest.TestCase):
+    def test_posting_insert_shape_and_bytes_are_both_bounded_without_row_loss(self):
+        import build_runtime as builder
+        from incremental_runtime import INSERT, sql_value_rows, sql_value_literals
+        rows = [("'nodes'", '3', builder.sql_text(str(i)), str(i)) for i in range(4901)]
+        rows += [("'nodes'", '3', builder.sql_text('🌳' * 8000), '4901')]
+        output = []
+        builder.append_batched_inserts(output, 'knowledge_search_gram_stats_next',
+                                      ('kind', 'n', 'gram', 'postings'), rows)
+        actual = []
+        for statement in output:
+            self.assertLessEqual(len(statement.encode('utf-8')), builder.MAX_D1_SQL_STATEMENT_BYTES)
+            values = sql_value_rows(INSERT.match(statement).group(3))
+            self.assertLessEqual(len(values), builder.MAX_D1_SQL_INSERT_ROWS)
+            actual.extend(tuple(sql_value_literals(value)) for value in values)
+        self.assertEqual(actual, rows)
+
     def test_full_only_sql_preserves_publication_and_explicit_posting_budget(self):
         import build_runtime as builder
         from test_access_contract import write_fixture

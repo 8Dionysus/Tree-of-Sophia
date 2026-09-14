@@ -267,6 +267,23 @@ test('lens source-size checks remain selected-only and lens-metadata chunk bound
   }finally{data.close();}}
 });
 
+test('full producer bounds short posting INSERTs for the real D1 compiler without losing rows',async()=>{
+  const statements=python(String.raw`
+from build_runtime import append_batched_inserts,sql_text
+rows=[("'nodes'",'3',sql_text(str(i)),str(i)) for i in range(4901)]
+output=[]
+append_batched_inserts(output,'knowledge_search_gram_stats_next',('kind','n','gram','postings'),rows)
+print(json.dumps(output))`);
+  const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:'export default {fetch(){return new Response("fixture")}}',compatibilityDate:'2026-09-03',d1Databases:['DB']}));
+  try{
+    await mf.ready;const db=await mf.getD1Database('DB');
+    await db.prepare('CREATE TABLE knowledge_search_gram_stats_next(kind TEXT,n INTEGER,gram TEXT,postings INTEGER,PRIMARY KEY(kind,n,gram))').run();
+    for(const sql of statements)await db.prepare(sql).run();
+    const result=await db.prepare('SELECT count(*) AS count,sum(postings) AS total FROM knowledge_search_gram_stats_next').first();
+    assert.equal(result.count,4901);assert.equal(result.total,4900*4901/2);
+  }finally{await mf.dispose();}
+});
+
 test('real Miniflare D1 lens uses the shared header/status guard before first HTTP serialization',async()=>{
   const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
   const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-09-03',d1Databases:['DB']}));

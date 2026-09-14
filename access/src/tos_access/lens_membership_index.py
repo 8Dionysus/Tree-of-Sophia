@@ -29,10 +29,10 @@ def validate_state(query, binding):
     return True
 
 
-def put(db, kind, identifier, raw):
-    db.execute(f'DELETE FROM {TABLE} WHERE kind=? AND id=?', (kind, identifier))
+def membership_rows(kind, identifier, raw):
+    """Pure exact membership projection shared by local and D1 publishers."""
     if raw is None:
-        return 0
+        return []
     item = _json(raw)
     if item.get('id') != identifier:
         raise PublishedReadModelError('membership index identity differs')
@@ -43,6 +43,12 @@ def put(db, kind, identifier, raw):
                 or any(not isinstance(value, str) or len(value.encode('utf-8')) > 4096 for value in values)):
             raise PublishedReadModelError('membership index requires bounded normalized string arrays')
         rows.extend((kind, field, value, identifier, identifier.lower()) for value in sorted(set(values)))
+    return rows
+
+
+def put(db, kind, identifier, raw):
+    rows = membership_rows(kind, identifier, raw)
+    db.execute(f'DELETE FROM {TABLE} WHERE kind=? AND id=?', (kind, identifier))
     db.executemany(f'INSERT INTO {TABLE} VALUES(?,?,?,?,?)', rows)
     return len(rows)
 

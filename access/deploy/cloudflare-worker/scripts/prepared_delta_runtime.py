@@ -11,7 +11,8 @@ import json
 from pathlib import Path
 
 import build_runtime as full
-from incremental_runtime import DeltaRecorder, PRIMARY_KEYS, plan_search_addresses_transaction, _search_address_revision
+import lens_auxiliary_runtime as auxiliary
+from incremental_runtime import DeltaRecorder, REGISTERED_KEYS as PRIMARY_KEYS, plan_search_addresses_transaction, _search_address_revision
 from tos_access.prepared_source_binding import PreparedSourceInputs
 from tos_access.published_read_model import _json
 from tos_access.published_read_metadata import (
@@ -33,6 +34,7 @@ COLUMNS = {'edge_meta': ('key', 'part', 'json_chunk'), 'knowledge_nodes': NODE_C
     'knowledge_search_grams': ('kind', 'n', 'gram', 'position'),
     'knowledge_search_gram_stats': ('kind', 'n', 'gram', 'postings'),
     'knowledge_lens_order': ('kind', 'id', 'sort_key', 'from_id', 'to_id')}
+COLUMNS.update(auxiliary.COLUMNS)
 
 
 @dataclass(frozen=True)
@@ -205,6 +207,10 @@ def execution_profile():
     refs = ('access/deploy/cloudflare-worker/scripts/prepared_delta_runtime.py',
             'access/deploy/cloudflare-worker/scripts/incremental_runtime.py',
             'access/deploy/cloudflare-worker/scripts/build_runtime.py',
+            'access/deploy/cloudflare-worker/scripts/lens_auxiliary_runtime.py',
+            'access/src/tos_access/compact_lens_carrier.py',
+            'access/src/tos_access/lens_membership_index.py',
+            'access/src/tos_access/knowledge.py', 'access/src/tos_access/human_form_codec.py',
             'access/src/tos_access/search_read_model.py', 'access/src/tos_access/published_read_metadata.py',
             'access/src/tos_access/portable_paths.py')
     values = {}
@@ -252,6 +258,7 @@ def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_rev
             k: v for k, v in header.items() if k not in ('source_revision', 'counts')}:
         raise ValueError('prepared header profile changed; explicit migration required')
     d1_top = capture.metadata(db, TOP_KEY)[0]
+    installed_auxiliary = auxiliary.admit(db, capture, d1_top)
     ignored = {'data_revision', 'read_model_schema'}
     if (d1_top['read_model_schema'] != full.READ_MODEL_SCHEMA_VERSION
             or {k: v for k, v in d1_top.items() if k not in ignored}
@@ -321,6 +328,8 @@ def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_rev
                 before_rows.put('knowledge_' + kind + 's', actual)
             if new is not None:
                 after_rows.put('knowledge_' + kind + 's', _node_row(kind, new))
+            for table in installed_auxiliary:
+                auxiliary.capture_change(db, capture, table, kind, identifier, old, new, before_rows, after_rows)
             for table, old_value, new_value in (
                 ('knowledge_lens_order', None if old is None else lens_order_row(kind, old), None if new is None else lens_order_row(kind, new)),
             ):
@@ -396,7 +405,9 @@ def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_rev
             transitions.append((rollback_target, after_rows, before_rows, revision, expected_d1_revision))
         for path, prior, successor, base, destination in transitions:
             path.parent.mkdir(parents=True, exist_ok=True)
-            recorder = DeltaRecorder(path, destination, full.READ_MODEL_SCHEMA_VERSION, prior.index(base))
+            tops = (d1_top, metadata[TOP_KEY]) if path == target else (metadata[TOP_KEY], d1_top)
+            recorder = DeltaRecorder(path, destination, full.READ_MODEL_SCHEMA_VERSION, prior.index(base),
+                auxiliary_bindings={table: tops for table in installed_auxiliary})
             recorders.append(recorder)
             for table, rows in successor.data.items():
                 for values in rows.values():
@@ -426,4 +437,5 @@ def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_rev
             'posting_rows_observed': posting_count, 'sql_bytes': target.stat().st_size,
             'rollback_sql_bytes': 0 if rollback_target is None else rollback_target.stat().st_size,
             'prepared_source_pairing_verified': True, 'global_source_currentness_verified': False,
+            'maintained_auxiliary_stores': installed_auxiliary,
             'd1_applied': False, 'consumer_switched': False, 'semantic_acceptance': False}

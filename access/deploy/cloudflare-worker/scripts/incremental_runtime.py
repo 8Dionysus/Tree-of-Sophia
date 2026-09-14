@@ -12,6 +12,7 @@ import json
 import re
 import sqlite3
 from pathlib import Path
+from lens_auxiliary_runtime import PRIMARY_KEYS as AUXILIARY_KEYS, publication_operations
 
 PRIMARY_KEYS = {
     'edge_meta': ('key', 'part'), 'philosophy_nodes': ('id',), 'philosophy_edges': ('id',),
@@ -26,6 +27,7 @@ PRIMARY_KEYS = {
     'knowledge_search_gram_stats': ('kind', 'n', 'gram'),
     'knowledge_lens_order': ('kind', 'id'),
 }
+REGISTERED_KEYS = {**PRIMARY_KEYS, **AUXILIARY_KEYS}
 # Keep this producer limit in the same module as the delta parser and import it
 # into build_runtime.  A valid producer statement is no larger than this many
 # UTF-8 bytes; the row-index limits below are derived from that contract rather
@@ -365,7 +367,7 @@ class DiskRowIndex:
             stream.write(",\"revision\":")
             stream.write(json.dumps(revision, ensure_ascii=False, separators=(",", ":")))
             stream.write(",\"rows\":{")
-            for table_index, table in enumerate(PRIMARY_KEYS):
+            for table_index, table in enumerate(REGISTERED_KEYS):
                 if table_index:
                     stream.write(",")
                 stream.write(json.dumps(table, ensure_ascii=False, separators=(",", ":")))
@@ -643,7 +645,13 @@ class DeltaRecorder:
         previous: dict | None = None,
         *,
         index_store_path: Path | None = None,
+        auxiliary_bindings: dict | None = None,
     ):
+        self.auxiliary_bindings = auxiliary_bindings or {}
+        if not set(self.auxiliary_bindings) <= set(AUXILIARY_KEYS):
+            raise ValueError('unknown auxiliary publication store')
+        self.tables = {table: keys for table, keys in REGISTERED_KEYS.items()
+                       if table not in AUXILIARY_KEYS or table in self.auxiliary_bindings}
         self.target = target
         self.revision = revision
         self.schema = schema
@@ -653,10 +661,10 @@ class DeltaRecorder:
         else:
             self.previous = previous if previous and previous.get('schema') == schema else None
         self._disk_index = DiskRowIndex(index_store_path) if index_store_path is not None else None
-        self.index: dict[str, dict[str, dict]] = ({table: {} for table in PRIMARY_KEYS}
+        self.index: dict[str, dict[str, dict]] = ({table: {} for table in self.tables}
                                                    if self._disk_index is None else {})
-        self.staged_counts = {table: 0 for table in PRIMARY_KEYS}
-        self.key_counts = {table: 0 for table in PRIMARY_KEYS}
+        self.staged_counts = {table: 0 for table in self.tables}
+        self.key_counts = {table: 0 for table in self.tables}
         self.pending: tuple[str, str, list[str], list[str]] | None = None
         self.changed_rows = 0
         self.reused_rows = 0
@@ -668,7 +676,7 @@ class DeltaRecorder:
         self.finished = False
         self.published = False
         if self.previous:
-            for table, keys in PRIMARY_KEYS.items():
+            for table, keys in self.tables.items():
                 stage = self.stage(table)
                 self.write(f'DROP TABLE IF EXISTS {stage};')
                 self.write(f'CREATE TABLE {stage} AS SELECT * FROM {table} WHERE 0;')
@@ -709,10 +717,10 @@ class DeltaRecorder:
         if match:
             self.flush()
             table, columns_text, values_text = match.groups()
-            if table not in PRIMARY_KEYS:
+            if table not in self.tables:
                 raise ValueError('unregistered incremental table: ' + table)
             columns = [col.strip() for col in columns_text.split(',')]
-            positions = [columns.index(key) for key in PRIMARY_KEYS[table]]
+            positions = [columns.index(key) for key in self.tables[table]]
             rows = sql_value_rows(values_text)
             if len(rows) == 1:
                 values = sql_value_literals(rows[0])
@@ -778,16 +786,18 @@ class DeltaRecorder:
             else:
                 baseline_tables = self.previous['rows'].items()
             for table, prior_rows in baseline_tables:
-                if table not in PRIMARY_KEYS:
+                if table not in REGISTERED_KEYS:
                     raise ValueError('baseline contains an unknown table')
                 rows = (prior_rows.items() if self._disk_baseline is None else
                         ((key, {'digest': digest, 'values': json.loads(values_json)})
                          for key, digest, values_json in prior_rows))
                 for key, before in rows:
+                    if table not in self.tables:
+                        raise ValueError('auxiliary baseline requires explicit publication bindings')
                     present = (self._disk_index.contains(table, key)
                                if self._disk_index is not None else key in self.index[table])
                     if not present:
-                        if len(before['values']) != len(PRIMARY_KEYS[table]) or any(not re.fullmatch(r"'(?:''|[^'])*'|-?[0-9]+|NULL", value, re.S) for value in before['values']):
+                        if len(before['values']) != len(self.tables[table]) or any(not re.fullmatch(r"'(?:''|[^'])*'|-?[0-9]+|NULL", value, re.S) for value in before['values']):
                             raise ValueError('invalid baseline key literal')
                         self.removed_rows += 1
                         self.key_counts[table] += 1
@@ -801,20 +811,23 @@ class DeltaRecorder:
             self.write('CREATE TABLE IF NOT EXISTS tos_delta_publications (revision TEXT PRIMARY KEY, base_revision TEXT NOT NULL);')
             self.write(f'DROP TRIGGER IF EXISTS {publication};')
             operations = [f"SELECT CASE WHEN {current_revision} IS NOT '{base}' THEN RAISE(ABORT, 'stale delta baseline') END;"]
-            for table, keys in PRIMARY_KEYS.items():
+            guards, seals = publication_operations(self.auxiliary_bindings)
+            operations.extend(guards)
+            for table, keys in self.tables.items():
                 if not self.key_counts[table]:
                     continue
                 stage = self.stage(table)
                 operations.append(f"SELECT CASE WHEN (SELECT count(*) FROM {stage}) != {self.staged_counts[table]} OR (SELECT count(*) FROM {stage}_keys) != {self.key_counts[table]} THEN RAISE(ABORT, 'incomplete delta staging') END;")
                 operations.append(delete_staged_keys_sql(table, stage + '_keys'))
                 operations.append(f'INSERT INTO {table} SELECT * FROM {stage};')
+            operations.extend(seals)
             operations.append(f"SELECT CASE WHEN {current_revision} IS NOT '{self.revision}' THEN RAISE(ABORT, 'delta revision mismatch') END;")
             self.write(f'CREATE TRIGGER {publication} AFTER INSERT ON tos_delta_publications WHEN NEW.revision = \'{self.revision}\' BEGIN ' + ' '.join(operations) + ' END;')
             # Retry skips only when the actual serving revision is the target.
             # A historical publication receipt alone is never currentness.
             self.write(f"INSERT OR REPLACE INTO tos_delta_publications SELECT '{self.revision}', '{base}' WHERE {current_revision} IS NOT '{self.revision}';")
             self.write(f'DROP TRIGGER {publication};')
-            for table in PRIMARY_KEYS:
+            for table in self.tables:
                 self.write(f'DROP TABLE {self.stage(table)};')
                 self.write(f'DROP TABLE {self.stage(table)}_keys;')
         self.stream.flush()
@@ -864,8 +877,8 @@ def delete_staged_keys_sql(table: str, keys_table: str) -> str:
     primary keys. CROSS JOIN pins the small key stage as the lookup driver;
     the outer DELETE addresses only the found rowids, not the entire corpus.
     """
-    if table not in PRIMARY_KEYS or not re.fullmatch('[a-z][a-z0-9_]*', keys_table):
+    if table not in REGISTERED_KEYS or not re.fullmatch('[a-z][a-z0-9_]*', keys_table):
         raise ValueError('registered delta table and exact stage identifier required')
-    equal = ' AND '.join(f'target.{key} IS changed.{key}' for key in PRIMARY_KEYS[table])
+    equal = ' AND '.join(f'target.{key} IS changed.{key}' for key in REGISTERED_KEYS[table])
     return (f'DELETE FROM {table} WHERE rowid IN (SELECT target.rowid FROM {keys_table} AS changed '
             f'CROSS JOIN {table} AS target WHERE {equal});')

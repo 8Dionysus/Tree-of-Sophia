@@ -123,7 +123,83 @@ class PreparedD1DeltaTests(unittest.TestCase):
 
     def serving_rows(self):
         return {table: self.d1.execute(f'SELECT * FROM {table} ORDER BY ' + ','.join(delta.PRIMARY_KEYS[table])).fetchall()
-                for table in delta.COLUMNS}
+                for table in delta.COLUMNS if self.d1.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone()}
+
+    def install_auxiliary(self, db):
+        from tos_access.compact_lens_store import prepare_compact_lens_store_transaction
+        from tos_access.lens_membership_index import prepare_membership_index_transaction
+        from tos_access.prepared_publication import _metadata
+        top = _metadata(db, delta.TOP_KEY)
+        binding = delta.published_snapshot_binding(top, db.execute('SELECT epoch FROM knowledge_exploration_clock').fetchone()[0])
+        db.execute('BEGIN IMMEDIATE')
+        prepare_compact_lens_store_transaction(db, expected_binding=binding, expected_read_model_schema=full.READ_MODEL_SCHEMA_VERSION)
+        prepare_membership_index_transaction(db, expected_binding=binding, expected_read_model_schema=full.READ_MODEL_SCHEMA_VERSION)
+        db.commit()
+
+    def assert_auxiliary_current(self):
+        from tos_access.prepared_publication import _metadata
+        top = _metadata(self.d1, delta.TOP_KEY)
+        epoch = self.d1.execute('SELECT epoch FROM knowledge_exploration_clock').fetchone()[0]
+        for table, (state, schema) in delta.auxiliary.STORES.items():
+            self.assertEqual(self.d1.execute(f'SELECT schema,binding,valid FROM {state}').fetchall(),
+                [(schema, delta._compact(delta.published_snapshot_binding(top, epoch)), 1)])
+        return epoch
+
+    def test_auxiliary_addressed_publication_reverse_and_atomic_refusal(self):
+        self.install_auxiliary(self.d1)
+        original, epoch = self.serving_rows(), self.assert_auxiliary_current()
+        graph, result = self.change()
+        receipt = self.capture(result, rollback_target=self.root / 'rollback.sql')
+        self.assertEqual(receipt['maintained_auxiliary_stores'], list(delta.auxiliary.STORES))
+        oracle = self.full(graph, result['catalog'], receipt['target_d1_revision'], 'aux-oracle')
+        self.install_auxiliary(oracle)
+        sql = (self.root / 'delta.sql').read_text()
+        publish = 'INSERT OR REPLACE INTO tos_delta_publications SELECT'
+        stage, rest = sql.split(publish, 1)
+        self.d1.executescript(stage)
+        self.assertEqual(self.serving_rows(), original)
+        self.assertEqual(self.assert_auxiliary_current(), epoch)
+        staged = 'tos_delta_' + receipt['target_d1_revision'][:16] + '_knowledge_compact_lens'
+        self.d1.execute(f'DELETE FROM {staged} WHERE id="new"')
+        self.d1.commit()
+        with self.assertRaisesRegex(sqlite3.IntegrityError, 'incomplete delta staging'):
+            self.d1.executescript(publish + rest)
+        self.assertEqual(self.serving_rows(), original)
+        self.assertEqual(self.assert_auxiliary_current(), epoch)
+        self.d1.executescript(sql)
+        advanced = self.assert_auxiliary_current()
+        self.assertGreater(advanced, epoch)
+        published = self.serving_rows()
+        for table in delta.auxiliary.STORES:
+            order = ','.join(delta.PRIMARY_KEYS[table])
+            self.assertEqual(self.d1.execute(f'SELECT * FROM {table} ORDER BY {order}').fetchall(),
+                             oracle.execute(f'SELECT * FROM {table} ORDER BY {order}').fetchall())
+        self.d1.executescript(sql)
+        self.assertEqual(self.assert_auxiliary_current(), advanced)
+        rollback = (self.root / 'rollback.sql').read_text()
+        self.d1.executescript(rollback)
+        reversed_epoch = self.assert_auxiliary_current()
+        self.assertGreater(reversed_epoch, advanced)
+        self.assertEqual(self.serving_rows(), original)
+        self.d1.executescript(rollback)
+        self.assertEqual(self.assert_auxiliary_current(), reversed_epoch)
+        self.d1.executescript(sql)
+        self.assertGreater(self.assert_auxiliary_current(), reversed_epoch)
+        self.assertEqual(self.serving_rows(), published)
+        self.assertIsNotNone(self.f.db.execute("SELECT json FROM knowledge_nodes WHERE id='new'").fetchone())
+
+    def test_auxiliary_stale_capture_and_intervening_invalidation_refuse(self):
+        self.install_auxiliary(self.d1)
+        _, result = self.change()
+        self.capture(result)
+        self.d1.execute('UPDATE knowledge_lens_membership_state SET valid=0')
+        self.d1.commit()
+        original = self.serving_rows()
+        with self.assertRaisesRegex(ValueError, 'stale lens auxiliary publication'):
+            self.capture(result, 'stale.sql')
+        with self.assertRaisesRegex(sqlite3.IntegrityError, 'stale lens auxiliary publication'):
+            self.d1.executescript((self.root / 'delta.sql').read_text())
+        self.assertEqual(self.serving_rows(), original)
 
     def test_atomic_refusal_recovery_and_exact_reverse_without_source_rollback(self):
         _, result = self.change()

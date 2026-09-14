@@ -94,12 +94,23 @@ uncovered-field predicates retain their existing authority and representation.
 Positive membership groups use bounded indexed counts/keysets. SQL expansion
 respects D1's [100-parameter statement limit](https://developers.cloudflare.com/d1/platform/limits/).
 
-This extension is not yet emitted/maintained by the full D1 builder and its
-forward/reverse delta route. It is an explicit offline preparation/native-reader
-seam, tested locally, not a deployed full-corpus growth capability. Existing D1
-writer changes invalidate its old binding/state; a reader never repairs or
-silently re-admits it. Complete integration is required before enabling it in a
-publication workflow.
+The addressed `prepared_delta_runtime.py` route maintains explicitly installed
+stores in its forward/reverse transaction. Exact predecessor seeds, complete
+selected memberships and current store bindings are checked before publication;
+the successor is sealed only after base/search/metadata updates, using the actual
+publication epoch. Rollback restores source-derived content with a fresh epoch.
+Partial staging or a store invalidated since capture refuses atomically. The
+existing capture, retention and SQL budgets include these added rows. Missing
+stores keep the older base-only path; this route never installs tables.
+
+Initial full-builder emission and the legacy full-producer delta route are still
+unintegrated. Their changes invalidate old store bindings; a reader never repairs
+or silently re-admits them. The bounded locally tested writer/reader seam is not
+a deployed full-corpus growth capability.
+Full SQL posting/statistics INSERTs are bounded both by encoded bytes and by
+512 VALUES rows. A small encoded statement can still contain enough short rows
+to exhaust D1's statement compiler; the row cap preserves every posting while
+bounding that preparation pressure. This is not a whole-import memory budget.
 Execution/response budget exhaustion returns 413 on lens compilation and
 stored-lens/focus GET/HEAD, matching the published Python adapter. Invalid
 compilation input remains 400; unavailable or damaged publication data is 503.
