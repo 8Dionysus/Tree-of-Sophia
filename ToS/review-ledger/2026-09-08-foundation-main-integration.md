@@ -16,8 +16,8 @@ remaining delivery boundary. This is not Foundation, CI or merge acceptance.
   profile-routing paragraph introduced by automatic merge was removed.
 - Foundation's unlanded lens and registry decision IDs collided with those
   independently landed records. The explicit source-metadata correction uses
-  [TOS-D-0058](../../docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md)
-  and [TOS-D-0059](../../docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md).
+  [TOS-D-0060](../../docs/decisions/TOS-D-0060-backend-defined-knowledge-lenses.md)
+  and [TOS-D-0061](../../docs/decisions/TOS-D-0061-stable-semantic-interchange-registry.md).
   Each retains its date, posture, rationale and immutable former commit/path;
   active links were migrated and dated reviews received explanatory addenda.
   Neither semantic entity IDs nor accepted main decision IDs changed.

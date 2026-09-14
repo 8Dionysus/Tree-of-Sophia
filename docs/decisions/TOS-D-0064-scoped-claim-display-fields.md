@@ -34,7 +34,7 @@ public Claim revision configurations may opt into explicit
 authority. Application and retry check the new selector and exact current or
 retained predecessor, not only the preparer's field selection.
 
-This is additive to TOS-D-0057, TOS-D-0062 and TOS-D-0063. It does not turn
+This is additive to TOS-D-0057, TOS-D-0067 and TOS-D-0063. It does not turn
 navigation text, catalogue dates or a mechanically ready form into a standalone
 assertion or assessed knowledge.
 

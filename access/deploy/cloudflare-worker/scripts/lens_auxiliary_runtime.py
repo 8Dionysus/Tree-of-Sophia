@@ -85,7 +85,9 @@ def projected_rows(table, kind, identifier, raw):
         return membership_rows(kind, identifier, raw)
     if table != 'knowledge_compact_lens':
         raise ValueError('unknown lens auxiliary store')
-    seed = compact_lens_carrier(kind, raw)
+    # Offline production may ingest a retained overflow value; the derived
+    # seed and every request still retain their existing 1 MiB row bound.
+    seed = compact_lens_carrier(kind, raw, max_source_bytes=8 * 1024 * 1024)
     if seed.identifier != identifier:
         raise ValueError('compact auxiliary identity differs')
     return [(kind, identifier, seed.source_sha256, seed.seed_sha256, seed.seed_json)]

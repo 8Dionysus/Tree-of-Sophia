@@ -6,7 +6,7 @@ Reviewed against `e4b9fd12fa11d51dd0850fee0b288df55a10fa99` the version-2 opt-in
 historical-time source-wording adapter in the existing Claim-navigation template.
 The relation registry moves from version 41 to 42; the reader's six-slot syntax
 and nonstandalone purpose remain unchanged. The initial identity-only decision
-is retained in TOS-D-0057 with a dated successor link; TOS-D-0062 records only
+is retained in TOS-D-0057 with a dated successor link; TOS-D-0067 (branch-local TOS-D-0062 when reviewed) records only
 this explicit eligibility extension.
 
 The real `tos.claim.jenseits-1886-commission.date` now contributes its exact

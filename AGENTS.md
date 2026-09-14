@@ -69,9 +69,9 @@ Root human orientation remains in [README](README.md); current direction in
   overwrite an earlier layer to make a later result appear clean.
 - Paths provide navigation; stable ToS IDs own corpus identity. Moves require
   explicit reference migration.
-- Only source-item `payload/` bytes may use the corpus ignore. Metadata,
-  fixity, provenance, rights, forensic evidence, and catalog membership remain
-  tracked.
+- Only source-item and exact scholarly-composite representation `payload/`
+  bytes may use the corpus ignore. Metadata, fixity, provenance, rights,
+  forensic evidence, and catalog membership remain tracked.
 - ToS-owned standalone projection access routes to `access/`; ecosystem stack
   orchestration and runtime authority route to their owning AoA layers.
 - Source-visible assessment by an authorized, competent human or agent owns
@@ -115,8 +115,11 @@ mechanical validator coverage.
 
 Branch, PR, CI, merge, post-landing synchronization, and publication procedure
 lives in `docs/RELEASING.md`. `.github/AGENTS.md` owns only GitHub-native
-support surfaces. `Repo Validation` includes the explicit registry-change
-baseline and initial-introduction boundaries documented in that release route.
+support surfaces. Under TOS-D-0062, `Repo Validation` protects software and
+applicable authored changes. Production corpus compilation, full KAG/stats
+integration and generated documentation currentness are separate operations,
+not prerequisites for every software merge or release. Preserve exact inputs
+and validation evidence at the corresponding data/integration boundary.
 If remote status or permissions cannot be observed, report
 the exact blocker rather than inferring success.
 

@@ -555,9 +555,9 @@ async function indexedKindPage(
     FROM knowledge_search_grams g
     CROSS JOIN knowledge_search_documents s ON s.kind=g.kind AND s.position=g.position
     CROSS JOIN ${baseTable} b ON b.id=s.id
-    WHERE ${filterSql.join(" AND ")} AND instr(b.search_text, ?) > 0${continuationSql}
+    WHERE ${filterSql.join(" AND ")} AND ${knowledgeTextMatch(kind === 'nodes' ? 'node' : 'relation', 'b')}${continuationSql}
     ORDER BY search_rank, s.id_lower, s.position LIMIT ?`;
-  const bindings: unknown[] = [...indexedRankBindings(needle), ...filterBindings, needle, ...continuationBindings, options.limit + 1];
+  const bindings: unknown[] = [...indexedRankBindings(needle), ...filterBindings, needle, needle, ...continuationBindings, options.limit + 1];
   let result;
   try {
     result = await delivery.select(sql,bindings);
@@ -715,12 +715,12 @@ async function knowledgeSearchD1Unchecked(
   const nodeWhere = joinFragments([
     sourceFragment("n", sources),
     ...(options.kindIds.length ? [{ sql: "n.kind_id IN (SELECT value FROM json_each(?))", bindings: [JSON.stringify(options.kindIds)] }] : []),
-    ...(needle ? [{ sql: "instr(n.search_text, ?) > 0", bindings: [needle] }] : []),
+    ...(needle ? [{ sql: knowledgeTextMatch('node', 'n'), bindings: [needle, needle] }] : []),
   ]);
   const relationWhere = joinFragments([
     sourceFragment("r", sources),
     ...(options.predicateIds.length ? [{ sql: "r.predicate_id IN (SELECT value FROM json_each(?))", bindings: [JSON.stringify(options.predicateIds)] }] : []),
-    ...(needle ? [{ sql: "instr(r.search_text, ?) > 0", bindings: [needle] }] : []),
+    ...(needle ? [{ sql: knowledgeTextMatch('relation', 'r'), bindings: [needle, needle] }] : []),
   ]);
   const selected = async(kind:'nodes'|'relations',alias:string,where:SqlFragment) => {
     // Legacy exact count/selection retains its existing global work shape.
@@ -753,6 +753,12 @@ async function knowledgeSearchD1Unchecked(
     relations: relationRows,
     authority_boundary: null,
   },nodeRows,relationRows);
+}
+
+function knowledgeTextMatch(kind: 'node'|'relation', alias: string): string {
+  return `(instr(${alias}.search_text, ?) > 0 OR (${alias}.json='' AND EXISTS(
+    SELECT 1 FROM edge_meta overflow WHERE overflow.key='knowledge_${kind}_search:' || ${alias}.id
+    AND instr(overflow.json_chunk, ?) > 0)))`;
 }
 
 function searchQuery(value:string,indexed:boolean):{query:string;needle:string} {

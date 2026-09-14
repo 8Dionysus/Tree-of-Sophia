@@ -28,6 +28,12 @@ PRIMARY_KEYS = {
     'knowledge_search_grams': ('kind', 'n', 'gram', 'position'),
     'knowledge_search_gram_stats': ('kind', 'n', 'gram'),
     'knowledge_lens_order': ('kind', 'id'),
+    'source_navigation_nodes': ('node_id',),
+    'source_navigation_node_payload': ('id', 'part'),
+    'source_navigation_edges': ('edge_id',),
+    'source_navigation_edge_payload': ('id', 'part'),
+    'source_navigation_rights': ('rights_id',),
+    'source_navigation_rights_payload': ('id', 'part'),
 }
 REGISTERED_KEYS = {**PRIMARY_KEYS, **AUXILIARY_KEYS}
 # Keep this producer limit in the same module as the delta parser and import it

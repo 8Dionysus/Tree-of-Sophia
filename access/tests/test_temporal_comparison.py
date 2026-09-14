@@ -29,6 +29,7 @@ from tos_access.temporal_comparison import (
     compare_temporal_claims, compare_temporal_operands, normalize_temporal_comparison_request,
     TemporalReadModelInvalid,
 )
+from source_assembly_fixture import SourceAssemblyFixture
 
 
 def date(value, **changes):
@@ -332,9 +333,10 @@ class TemporalComparisonTests(unittest.TestCase):
         The copied Letter is a Document identity. Dates, catalogue wording and
         arbitrary numeric extensions below are synthetic, never source evidence.
         """
-        sys.path.insert(0, str(ROOT / 'tests'))
-        from test_source_witness_bibliographic_graph import SourceWitnessBibliographicGraphTest
-        fixture = SourceWitnessBibliographicGraphTest()
+        fixture = SourceAssemblyFixture(
+            code_root=ROOT,
+            source_root=ACCESS / 'tests' / 'fixtures' / 'source-assembly',
+        )
         with fixture.historical_fixture() as (root, history, _, claims, rebuild):
             for name in ('source-claim-record', 'document-record', 'source-metadata-record', 'document-catalogue-claim'):
                 ref = f'ToS/contracts/{name}.schema.json'
@@ -342,7 +344,7 @@ class TemporalComparisonTests(unittest.TestCase):
             ref = 'ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json'
             path = root / ref
             path.parent.mkdir(parents=True)
-            path.write_bytes((ROOT / ref).read_bytes())
+            path.write_bytes((fixture.source_root / ref).read_bytes())
             letter = json.loads(path.read_bytes())
             baseline = copy.deepcopy(claims[0])
             claims.clear()
@@ -550,10 +552,11 @@ class TemporalComparisonTests(unittest.TestCase):
             self.assertFalse(validator.is_valid(value))
 
     def basel_fixture(self):
-        path = ROOT / 'ToS/source-witnesses/relations/basel-biography-research/source-claims.jsonl'
+        source_root = ACCESS / 'tests' / 'fixtures' / 'source-assembly'
+        path = source_root / 'ToS/source-witnesses/relations/basel-biography-research/source-claims.jsonl'
         claims = {claim['claim_id']: claim for line in path.read_text().splitlines() if line.strip() for claim in [json.loads(line)]}
         selected = [claims['tos.claim.basel-research.' + suffix] for suffix in ('phase-dating', 'period-dating')]
-        base = ROOT / 'ToS/source-witnesses/history/basel-research'
+        base = source_root / 'ToS/source-witnesses/history/basel-research'
         subjects = [json.loads((base / path).read_text()) for path in (
             'basel-teaching/biographical-phase.json', 'basel-chair-turnover-period/historical-period.json')]
         return self.fixture(source_claims=selected, source_subjects={record['record_id']: record for record in subjects})

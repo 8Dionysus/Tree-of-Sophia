@@ -17,7 +17,7 @@ The existing Document identity correctly keeps dates and places outside its
 metadata, while `historical_dating` and `historical_place` describe historical
 situations. Reusing those predicates would turn a catalogue's attribution into
 an assertion about composition, dispatch, receipt or a separate commissioning
-event. The previous typed-time navigation decision TOS-D-0062 covers historical
+event. The previous typed-time navigation decision TOS-D-0067 covers historical
 time only; it does not authorize this different meaning or its source writes.
 
 ## Decision
@@ -40,7 +40,7 @@ the entire qualified Claim. Source comparison requires exact profile, current
 operand revision, Document subject and full Claim/value/file binding. It
 compares only equal time roles and never infers missing calendars/numbering.
 
-This adds a distinct successor capability to TOS-D-0062, without changing its
+This adds a distinct successor capability to TOS-D-0067, without changing its
 historical reader or the prior template's meaning.
 
 ## Options Considered

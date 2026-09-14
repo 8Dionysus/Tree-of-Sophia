@@ -70,7 +70,8 @@ def build_server(
     # Default discovery retains its existing server-local dynamic graph route.
     # An explicitly supplied core owns its query engine and checkpoint policy.
     from .exploration import ExplorationService
-    exploration = ExplorationService(lambda: current_state().knowledge_graph()) if core is None else None
+    exploration = ExplorationService(lambda: current_state().knowledge_graph(),
+        query_store_provider=lambda: current_state()._query_store()) if core is None else None
 
     @mcp.tool()
     def tos_knowledge_explore(request: dict[str, Any]) -> dict[str, Any]:

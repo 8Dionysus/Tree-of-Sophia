@@ -34,7 +34,7 @@ class CompactLensCarrier:
         return k._lens_carrier(seed, 'compact', language=language)
 
 
-def compact_lens_carrier(kind, raw):
+def compact_lens_carrier(kind, raw, *, max_source_bytes=MAX_ROW_BYTES):
     """Project exact admitted row bytes without touching the source or its digest.
 
     Keep form inputs intact, including malformed/over-budget collections: their
@@ -45,7 +45,9 @@ def compact_lens_carrier(kind, raw):
     if kind not in {'node', 'relation'} or not isinstance(raw, str):
         raise ValueError('exact normalized node/relation JSON required')
     source = raw.encode('utf-8')
-    if len(source) > MAX_ROW_BYTES:
+    if type(max_source_bytes) is not int or not 1 <= max_source_bytes <= 8 * 1024 * 1024:
+        raise ValueError('compact source budget must be between 1 byte and 8 MiB')
+    if len(source) > max_source_bytes:
         raise PublishedReadModelError('compact lens source row exceeds byte budget')
     item = _json(raw)
     if (not isinstance(item, dict) or not isinstance(item.get('id'), str)

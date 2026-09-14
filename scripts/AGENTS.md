@@ -43,7 +43,7 @@ translation, rights, canon, or runtime acceptance.
 | role | deterministic generator, validator, or lane helper |
 | input | source, contract, manifest, decision, topology, or generated companion |
 | output | bounded artifact, parity result, route diagnostic, or validation signal |
-| owner | exact source surface plus the script's inventory entry |
+| owner | exact source surface; inventory entries provide optional navigation |
 | next route | source owner -> script -> generated companion/validator -> review or release lane |
 | tools | local Python, schema, manifest, unittest, and generated-parity checks |
 | check | nearest lane first; use `scripts/release_check.py` for release-visible changes |
@@ -72,9 +72,10 @@ those facts affect admission.
 
 Do not hide command order in Python. `scripts/release_check.py` runs the
 `release_check` sequence from `docs/validation/validation_lanes.json`.
-`docs/validation/script_inventory.json` must cover every active script and
-describes owner, source truth, reads, writes, side effects, lane, CI posture,
-and focused test target; it is not command authority.
+`docs/validation/script_inventory.json` describes owner routes and side effects.
+Under TOS-D-0062, adding code does not require a registry row or regenerating an
+inventory. Update a navigation entry when its actual consumer needs that route;
+software validation follows executable code and tests, not inventory parity.
 
 Generated indexes, catalogs, graph packets, public mirrors, and route
 currentness are read models subordinate to their authored source. A green

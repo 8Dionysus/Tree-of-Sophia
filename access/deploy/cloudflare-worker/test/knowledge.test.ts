@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
+import { createHash } from "node:crypto";
 import test from "node:test";
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -7,7 +8,8 @@ import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { knowledgeSearchD1 as nativeSearchD1, knowledgeSearchD1Indexed as nativeSearchD1Indexed, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
-import {nativePacketJson} from '../src/native-lens.ts';
+import {nativeChild, nativeField, nativePacketJson, parseNativeJson} from '../src/native-lens.ts';
+import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 
 import {executePublishedFixtureLens, executePublishedFixturePythonLens, publishNativeLensFixture, publishNativeSearchFixture} from './native-lens-fixture.ts';
 import { executeKnowledgeLens, focusKnowledgeNode, knowledgeScene, normalizeLensSpec, selectDisplayForm, type KnowledgeGraph } from "../src/knowledge.ts";
@@ -48,7 +50,7 @@ function hasHttpStatus(status: number) {
 
 function realFormNode(): KnowledgeGraph['nodes'][number] {
   return JSON.parse(execFileSync('python3', ['-c',
-    "import sys,json,pathlib;sys.path.insert(0,'access/src');from tos_access.knowledge import _normalize_node;g=json.loads(pathlib.Path('ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text());n=next(n for n in g['nodes'] if n['properties'].get('identity_ref')=='tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese');print(json.dumps(_normalize_node(n,'source-claims')))"],
+    "import sys,json,pathlib;sys.path.insert(0,'access/src');from tos_access.knowledge import _normalize_node;p=pathlib.Path('access/tests/fixtures/worker-form-node.json');n=json.loads(p.read_text());print(json.dumps(_normalize_node(n,'source-claims')))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding:'utf8'}));
 }
 
@@ -69,18 +71,9 @@ function assessedFormNode(): KnowledgeGraph['nodes'][number] {
 function claimFormNode(): KnowledgeGraph['nodes'][number] {
   // A disposable source-copy form of the real, unreviewed letter Claim;
   // not a new historical assertion or an assessed source form.
-  return JSON.parse(execFileSync('python3', ['-c', [
-    "import sys,json,pathlib;sys.path[:0]=['access/src','mechanics/growth-cycle/parts/branch-growth-cycle/scripts']",
-    'from source_commands import prepare_claim_change, materialize_claim_forms',
-    'from tos_access.knowledge import _normalize_node',
-    "g=json.loads(pathlib.Path('ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text())",
-    "n=next(n for n in g['nodes'] if n['properties'].get('claim_ref')=='tos.claim.nietzsche-letter-705.sender')",
-    "c=n['properties']['source_claim']",
-    "f=prepare_claim_change(c,None,'software:test-only','tos.form.test.claim','claim.statement')['form']",
-    "s={'schema_version':'tos_human_form_set_v1','subject':f['subject'],'forms':[f],'prior_forms':[]}",
-    "n['properties'].update(human_forms=materialize_claim_forms(c,s,access_allowed=True),human_forms_source_ref='test-only:source-copy')",
-    "print(json.dumps(_normalize_node(n,'source-claims')))"
-  ].join(';')], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding:'utf8'}));
+  return JSON.parse(execFileSync('python3', ['-c',
+    "import sys,json,pathlib;sys.path.insert(0,'access/src');from tos_access.knowledge import _normalize_node;p=pathlib.Path('access/tests/fixtures/worker-claim-form-node.json');n=json.loads(p.read_text());print(json.dumps(_normalize_node(n,'source-claims')))",
+  ], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding:'utf8'}));
 }
 
 function claimNavigationFixture(): {graph: KnowledgeGraph; fullGraph: KnowledgeGraph; fullScene: unknown;
@@ -91,13 +84,13 @@ function claimNavigationFixture(): {graph: KnowledgeGraph; fullGraph: KnowledgeG
   return JSON.parse(execFileSync('python3', ['-c', `
 import copy, json, pathlib, sys
 sys.path[:0] = ['access/src', 'scripts']
-from source_witness_bibliographic_graph_common import build_claim_navigation_descriptor
+from claim_navigation import build_claim_navigation_descriptor
 from tos_access.knowledge import (_entity_registry_indexes, _relation_registry_indexes,
     _validate_claim_navigation_carriers, _normalize_node, _normalize_relation,
     _source_claim_kind, _finalize_knowledge_node, _stable_digest, _exact_record_digest,
     execute_knowledge_lens, knowledge_scene)
 root = pathlib.Path('.')
-raw = json.loads((root / 'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text())
+fixture = json.loads((root / 'access/tests/fixtures/worker-claim-navigation.json').read_text())
 entities = json.loads((root / 'ToS/doctrine/semantic-interchange/entity-types.v1.json').read_text())
 relations = json.loads((root / 'ToS/doctrine/semantic-interchange/relation-types.v1.json').read_text())
 claim_ids = {
@@ -105,12 +98,15 @@ claim_ids = {
     'tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments',
     'tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments',
 }
-traces = [trace for trace in raw['claim_traces'] if trace['claim_ref'] in claim_ids]
+traces_by_ref = {trace['claim_ref']: trace for trace in fixture['claim_traces']}
+traces = [traces_by_ref[key] for key in sorted(claim_ids)]
 assert len(traces) == len(claim_ids)
 selected_ids = {trace[key] for trace in traces for key in ('claim_node_id', 'subject_node_id', 'object_node_id')}
-incident_edges = [edge for edge in raw['edges'] if edge['claim_ref'] in claim_ids]
+edges_by_id = {edge['edge_id']: edge for edge in fixture['edges']}
+incident_edges = [edges_by_id[key] for key in sorted({key for trace in traces for key in trace['edge_ids']})]
 full_ids = selected_ids | {edge[key] for edge in incident_edges for key in ('from_id', 'to_id')}
-selected = [copy.deepcopy(node) for node in raw['nodes'] if node['node_id'] in full_ids]
+nodes_by_id = {node['node_id']: node for node in fixture['nodes']}
+selected = [copy.deepcopy(nodes_by_id[key]) for key in sorted(full_ids)]
 by_native = {node['node_id']: node for node in selected}
 entity_entries, entity_mappings, entity_fallback = _entity_registry_indexes(entities)
 relation_entries, relation_mappings, relation_fallback = _relation_registry_indexes(relations)
@@ -185,7 +181,7 @@ print(json.dumps({'graph': graph, 'fullGraph': full_graph,
     'claims': sorted('source-claims:claim:' + identity for identity in claim_ids),
     'versions': sorted(node['id'] for node in derived_versions),
     'cases': [{'spec': spec, 'expected': execute_knowledge_lens(graph, spec)} for spec in specs]}))
-`], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding: 'utf8', maxBuffer: 4 * 1024 * 1024}));
+`], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding: 'utf8', maxBuffer: 32 * 1024 * 1024}));
 }
 
 const graph: KnowledgeGraph = {
@@ -339,7 +335,11 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     await db.batch([
       db.prepare("CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)"),
       db.prepare("CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, search_text TEXT, json TEXT)"),
+      db.prepare("CREATE TABLE knowledge_node_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
+      db.prepare("CREATE TABLE knowledge_node_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))"),
       db.prepare("CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)"),
+      db.prepare("CREATE TABLE knowledge_relation_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
+      db.prepare("CREATE TABLE knowledge_relation_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))"),
       db.prepare("CREATE INDEX kn_from ON knowledge_relations(from_id)"),
       db.prepare("CREATE INDEX kn_to ON knowledge_relations(to_id)"),
       db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?) ").bind(JSON.stringify({sha256: graph.source_revision})),
@@ -1207,7 +1207,11 @@ test('Claim navigation and exact Claim/metadata versions survive RU/EN compact/f
     await db.batch([
       db.prepare('CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)'),
       db.prepare('CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, search_text TEXT, json TEXT)'),
+      db.prepare('CREATE TABLE knowledge_node_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))'),
+      db.prepare('CREATE TABLE knowledge_node_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))'),
       db.prepare('CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)'),
+      db.prepare('CREATE TABLE knowledge_relation_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))'),
+      db.prepare('CREATE TABLE knowledge_relation_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))'),
       db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({sha256: source.source_revision})),
       db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({source_revision: source.source_revision, authority_boundary: source.authority_boundary})),
       ...source.nodes.map(n => db.prepare('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)').bind(
@@ -1578,4 +1582,331 @@ test("focus is explicit and closure cannot escape the requested neighborhood", a
     composition: { sort_nodes: [{ field: "id", direction: "asc" }] },
   });
   assert.equal((sortedByEntity.focus as { node_id: string }).node_id, "source-navigation:tos.concept.a");
+});
+
+test("D1 reconstructs oversized knowledge payloads without losing search", async () => {
+  // Legacy payload-only rows without a bound published reader header are not
+  // an alternate native storage contract. The consumer must fail closed
+  // instead of treating an unbound payload table as a JSON fallback.
+  const legacyMf = new Miniflare(convertV4MiniflareOptions({
+    modules: true,
+    script: "export default {fetch(){return new Response()}}",
+    d1Databases: ["DB"],
+  }));
+  try {
+    const legacyDb = await legacyMf.getD1Database("DB");
+    await legacyDb.batch([
+      legacyDb.prepare("CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)"),
+      legacyDb.prepare("CREATE TABLE knowledge_exploration_clock (singleton INTEGER PRIMARY KEY CHECK(singleton=1), epoch INTEGER NOT NULL)"),
+      legacyDb.prepare("CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, summary_text TEXT, search_text TEXT, json TEXT)"),
+      legacyDb.prepare("CREATE TABLE knowledge_node_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
+      legacyDb.prepare("CREATE TABLE knowledge_node_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))"),
+      legacyDb.prepare("CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)"),
+      legacyDb.prepare("CREATE TABLE knowledge_relation_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
+      legacyDb.prepare("CREATE TABLE knowledge_relation_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))"),
+      legacyDb.prepare("INSERT INTO knowledge_exploration_clock VALUES (1,0)"),
+      legacyDb.prepare("INSERT INTO edge_meta VALUES ('data_revision',0,?)").bind(JSON.stringify({sha256: "a".repeat(64)})),
+      legacyDb.prepare("INSERT INTO edge_meta VALUES ('knowledge_top',0,?)").bind(JSON.stringify({source_revision: "a".repeat(64), authority_boundary: {}})),
+      legacyDb.prepare("INSERT INTO knowledge_nodes VALUES ('legacy','legacy','legacy','source-claims','event','tos.entity.event','legacy','','','{}')"),
+      legacyDb.prepare("INSERT INTO knowledge_node_payload VALUES ('legacy',0,'{}')"),
+      legacyDb.prepare("INSERT INTO knowledge_node_search_chunks VALUES ('legacy',0,'legacy')"),
+    ]);
+    await assert.rejects(() => knowledgeNodeD1(legacyDb, "legacy", 0), hasHttpStatus(503));
+  } finally {
+    await legacyMf.dispose();
+  }
+
+  const bundle = await build({
+    entryPoints: [fileURLToPath(new URL("../src/index.ts", import.meta.url))],
+    bundle: true,
+    write: false,
+    format: "esm",
+    platform: "browser",
+    target: "es2022",
+  });
+  const mf = new Miniflare(convertV4MiniflareOptions({
+    modules: true,
+    script: bundle.outputFiles[0]!.text,
+    d1Databases: ["DB"],
+  }));
+  try {
+    const db = await mf.getD1Database("DB");
+    const unicodeNeedle = "ПЕРЕХОД-Σ-РУС";
+    const full = {
+      id: "source-claims:provenance_event:oversized",
+      entity_id: "tos.event.oversized",
+      native_id: "tos.event.oversized",
+      source_graph: "source-claims",
+      kind_id: "provenance-event",
+      type_id: "tos.entity.provenance-event",
+      display: { title: { default: "Oversized event" } },
+      attributes: { event_type: "annotation" },
+      source_record: { payload: { token: "needle-only-in-payload", boundary: "", filler: "x".repeat(120_000) } },
+    };
+    const emptyBoundaryJson = JSON.stringify(full);
+    const boundaryValueOffset = emptyBoundaryJson.indexOf('"boundary":""') + '"boundary":"'.length;
+    const markerStart = 32_000 - Math.ceil(unicodeNeedle.length / 2);
+    full.source_record.payload.boundary = "x".repeat(Math.max(1, markerStart - boundaryValueOffset)) + unicodeNeedle + "suffix";
+    const fullJson = JSON.stringify(full);
+    const markerOffset = Buffer.byteLength(fullJson.slice(0, fullJson.indexOf(unicodeNeedle)), 'utf8');
+    assert(markerOffset < 32_000);
+    assert(markerOffset + Buffer.byteLength(unicodeNeedle, 'utf8') > 32_000);
+    await db.batch([
+      db.prepare("CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (key, part))"),
+      db.prepare("CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, summary_text TEXT, search_text TEXT, json TEXT)"),
+      db.prepare("CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)"),
+    ]);
+    await applyKnowledgeExplorationMigration(db);
+    await db.batch([
+      db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({sha256: "a".repeat(64)})),
+      db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({
+        source_revision: "a".repeat(64),
+        authority_boundary: {source_owner: "Tree-of-Sophia", is_source: false, is_canon: false, writes_to_tree: false},
+      })),
+    ]);
+    // Use the producer's bounded SQL append path for the serving row. The
+    // native consumer reads this one complete row; payload-only legacy tables
+    // above are intentionally not used as an unsupported fallback.
+    const rowSql = execFileSync('python3', ['-B', '-c', String.raw`
+import json, sys
+sys.path.insert(0, 'access/deploy/cloudflare-worker/scripts')
+from build_runtime import append_chunkable_insert, sql_text
+payload = json.load(sys.stdin)
+columns = ('id', 'entity_id', 'native_id', 'source_graph', 'kind_id', 'type_id',
+           'title_text', 'summary_text', 'search_text', 'json')
+class Writer:
+    def __init__(self):
+        self.statements = []
+    def append(self, statement):
+        self.statements.append(statement)
+writer = Writer()
+append_chunkable_insert(
+    writer,
+    'knowledge_nodes',
+    columns,
+    tuple(sql_text(payload[column]) for column in columns),
+    selector_sql='id = ' + sql_text(payload['id']),
+    chunked_text={'json': payload['json']},
+)
+print('\n'.join(writer.statements))
+`], {
+      cwd: fileURLToPath(new URL('../../../../', import.meta.url)),
+      input: JSON.stringify({
+        id: full.id,
+        entity_id: full.entity_id,
+        native_id: full.native_id,
+        source_graph: full.source_graph,
+        kind_id: full.kind_id,
+        type_id: full.type_id,
+        title_text: 'oversized event',
+        summary_text: '',
+        search_text: '',
+        json: fullJson,
+      }),
+      encoding: 'utf8',
+      maxBuffer: 4 * 1024 * 1024,
+    });
+    const statements = rowSql.trim().split(/\n+/);
+    assert.ok(statements.length > 1, 'the bounded producer path must chunk this serving row');
+    assert.ok(statements.every(statement => Buffer.byteLength(statement, 'utf8') <= 100_000),
+      'every producer SQL statement stays within the D1 bound');
+    await db.exec(rowSql);
+    await publishNativeSearchFixture(db);
+    const packet = JSON.parse(nativePacketJson(await knowledgeNodeD1(db, full.id, 0)));
+    assert.deepEqual(packet.matches, [full]);
+    const search = await knowledgeSearchD1(db, {
+      query: "needle-only-in-payload",
+      sources: ["source-claims"],
+      kindIds: [],
+      predicateIds: [],
+      offset: 0,
+      limit: 10,
+    });
+    assert.deepEqual(search.nodes, [full]);
+    const unicodeSearch = await knowledgeSearchD1(db, {
+      query: unicodeNeedle,
+      sources: ["source-claims"],
+      kindIds: [],
+      predicateIds: [],
+      offset: 0,
+      limit: 10,
+    });
+    assert.deepEqual(unicodeSearch.nodes, [full]);
+  } finally {
+    await mf.dispose();
+  }
+});
+
+test("v5 native overflow rows preserve exact packets and bounded payload search", async () => {
+  const mf = new Miniflare(convertV4MiniflareOptions({
+    modules: true,
+    script: "export default {fetch(){return new Response()}}",
+    d1Databases: ["DB"],
+  }));
+  try {
+    const db = await mf.getD1Database("DB");
+    await db.batch([
+      db.prepare("CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (key, part))"),
+      db.prepare("CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, search_text TEXT, json TEXT)"),
+      db.prepare("CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)"),
+      db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({sha256: graph.source_revision})),
+      db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({source_revision: graph.source_revision, authority_boundary: graph.authority_boundary})),
+      ...graph.nodes.map(n => db.prepare("INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)").bind(
+        n.id, n.entity_id, n.native_id, n.source_graph, n.kind_id, n.type_id,
+        n.display.title.default.toLowerCase(), JSON.stringify(n).toLowerCase(), JSON.stringify(n))),
+      ...graph.relations.map(r => db.prepare("INSERT INTO knowledge_relations VALUES (?,?,?,?,?,?,?,?,?,?)").bind(
+        r.id, r.native_id, r.source_graph, r.from_id, r.to_id, r.predicate_id, r.relation_type_id,
+        r.display.label.default.toLowerCase(), JSON.stringify(r).toLowerCase(), JSON.stringify(r))),
+    ]);
+    await applyKnowledgeExplorationMigration(db);
+    // Let the existing fixture publish all ordinary rows and their complete
+    // v9 indexes first; this case adds one v5 overflow row afterwards.
+    await publishNativeSearchFixture(db);
+
+    const nodeId = "source-claims:provenance_event:v5-oversized";
+    const entityId = "tos.event.v5-oversized";
+    const boundaryNeedle = "payload-only-boundary-needle";
+    const makeRaw = (fillerLength: number): string => [
+      '{"id":', JSON.stringify(nodeId),
+      ',"entity_id":', JSON.stringify(entityId),
+      ',"native_id":', JSON.stringify(entityId),
+      ',"source_graph":"source-claims","kind_id":"provenance-event","type_id":"tos.entity.provenance-event"',
+      ',"display":{"title":{"default":"Oversized native event"}}',
+      ',"attributes":{"unsafe_integer":9007199254740993,"negative_zero":-0.0}',
+      ',"source_record":{"payload":{"text":',
+      JSON.stringify("x".repeat(fillerLength) + boundaryNeedle + "-suffix"),
+      '}}}',
+    ].join("");
+    const searchText = (raw: string): string => execFileSync("python3", ["-B", "-c", String.raw`
+import json, sys
+sys.path.insert(0, 'access/src')
+from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S
+print(S._searchable(json.loads(sys.stdin.read())))
+`], {
+      cwd: fileURLToPath(new URL("../../../../", import.meta.url)),
+      input: raw,
+      encoding: "utf8",
+      maxBuffer: 4 * 1024 * 1024,
+    }).trim();
+    const searchInfo = (raw: string) => JSON.parse(execFileSync("python3", ["-B", "-c", String.raw`
+import hashlib, json, sys
+sys.path.insert(0, 'access/src')
+from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S
+raw = sys.stdin.read()
+item = json.loads(raw)
+text = S._searchable(item)
+id_lower, native_id_lower, identity_values, visible_values = S._rank_fields(item, relation=False)
+print(json.dumps({'text': text, 'id_lower': id_lower, 'native_id_lower': native_id_lower,
+    'identity_values': identity_values, 'visible_values': visible_values,
+    'document_chars': len(text), 'document_digest': hashlib.sha256(text.encode('utf-8')).hexdigest()}))
+`], {
+      cwd: fileURLToPath(new URL("../../../../", import.meta.url)),
+      input: raw,
+      encoding: "utf8",
+      maxBuffer: 4 * 1024 * 1024,
+    }));
+    const chunk = (value: string, size: number, overlap: number): string[] => {
+      const result: string[] = [];
+      for (let start = 0; start < value.length; start += size - overlap) {
+        result.push(value.slice(start, start + size));
+        if (start + size >= value.length) break;
+      }
+      return result;
+    };
+
+    const stride = 8192 - 256;
+    let fillerLength = 145000;
+    let raw = makeRaw(fillerLength);
+    let searchable = searchText(raw);
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const start = searchable.indexOf(boundaryNeedle);
+      assert.ok(start >= 0, "the payload-only search needle must be in the native document");
+      // Place the needle across a plain 8192-codepoint boundary.  The
+      // published fragments advance by 7936, so this makes the positive
+      // result depend on the explicitly stored 256-codepoint overlap.
+      const boundary = Math.floor(start / 8192) * 8192 + 8192;
+      const target = boundary - Math.floor(boundaryNeedle.length / 2);
+      const delta = target - start;
+      if (delta > 0) fillerLength += delta;
+      else fillerLength += 8192;
+      raw = makeRaw(fillerLength);
+      searchable = searchText(raw);
+      const adjusted = searchable.indexOf(boundaryNeedle);
+      if (adjusted >= 0 && adjusted % 8192 > 8192 - boundaryNeedle.length && adjusted % 8192 < 8192) break;
+    }
+    const searchFragments = chunk(searchable, 8192, 256);
+    assert.ok(Buffer.byteLength(raw, "utf8") > 140_000 && Buffer.byteLength(raw, "utf8") < 200_000);
+    assert.ok(searchFragments.length > 10);
+    assert.equal(searchFragments.some(fragment => fragment.includes(boundaryNeedle)), true);
+    assert.equal(Array.from({length: Math.ceil(searchable.length / 8192)}, (_, i) => searchable.slice(i * 8192, (i + 1) * 8192))
+      .some(fragment => fragment.includes(boundaryNeedle)), false,
+    "the positive match must rely on the 256-character fragment overlap");
+
+    const info = searchInfo(raw);
+    const nodePosition = graph.nodes.length;
+    const payloadChunks = chunk(raw, 8192, 0);
+    const searchRows = searchFragments.map((fragment, part) =>
+      db.prepare("INSERT INTO edge_meta VALUES (?,?,?)").bind(`knowledge_node_search:${nodeId}`, part, fragment));
+    await db.batch([
+      db.prepare("INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)").bind(
+        nodeId, entityId, entityId, "source-claims", "provenance-event", "tos.entity.provenance-event", "", "", ""),
+      db.prepare("INSERT INTO knowledge_lens_order VALUES (?,?,?,?,?)").bind("node", nodeId, nodeId.toLowerCase(), "", ""),
+      db.prepare("INSERT INTO knowledge_search_documents VALUES (?,?,?,?,?,?,?,?,?,?,?,?)").bind(
+        "nodes", nodePosition, nodeId, "source-claims", "provenance-event", "", info.id_lower,
+        info.native_id_lower, info.identity_values, info.visible_values, info.document_chars, info.document_digest),
+      db.prepare("INSERT INTO edge_meta VALUES (?,?,?)").bind(
+        `knowledge_node_digest:${nodeId}`, 0,
+        JSON.stringify({sha256: createHash("sha256").update(raw).digest("hex")})),
+      ...payloadChunks.map((value, part) => db.prepare("INSERT INTO edge_meta VALUES (?,?,?)")
+        .bind(`knowledge_node_payload:${nodeId}`, part, value)),
+      ...searchRows,
+    ]);
+    const grams = new Set(Array.from(searchable).map((_, index) => searchable.slice(index, index + 3)).filter(value => value.length === 3));
+    const gramStatements: D1PreparedStatement[] = [];
+    for (const gram of grams) {
+      gramStatements.push(db.prepare("INSERT INTO knowledge_search_grams VALUES (?,?,?,?)")
+        .bind("nodes", 3, gram, nodePosition));
+      gramStatements.push(db.prepare("INSERT INTO knowledge_search_gram_stats VALUES (?,?,?,?) ON CONFLICT(kind,n,gram) DO UPDATE SET postings=postings+1")
+        .bind("nodes", 3, gram, 1));
+    }
+    for (let at = 0; at < gramStatements.length; at += 64) await db.batch(gramStatements.slice(at, at + 64));
+    assert.equal((await db.prepare("SELECT json,search_text FROM knowledge_nodes WHERE id=?").bind(nodeId).first<{json:string;search_text:string}>()).json, "");
+
+    const inspectedRaw = nativePacketJson(await knowledgeNodeD1(db, nodeId, 0));
+    assert.ok(inspectedRaw.includes(raw), "inspection must carry the exact overflow source row");
+    const inspected = parseNativeJson(inspectedRaw);
+    const match = nativeChild(nativeField(inspected, "matches"), 0);
+    assert.equal(nativeField(match, "attributes.unsafe_integer").number?.lexeme, "9007199254740993");
+    assert.equal(nativeField(match, "attributes.negative_zero").number?.lexeme, "-0.0");
+    assert.ok(inspectedRaw.indexOf('"unsafe_integer"') < inspectedRaw.indexOf('"negative_zero"'));
+
+    const request = {query: boundaryNeedle, sources: ["source-claims"], kindIds: [], predicateIds: [], offset: 0, limit: 10};
+    const indexedRequest = {...request, limit: 10, cursor: null};
+    assert.ok(nativePacketJson(await nativeSearchD1(db, request)).includes(raw));
+    assert.ok(nativePacketJson(await nativeSearchD1Indexed(db, indexedRequest)).includes(raw));
+
+    const firstPayload = payloadChunks[0]!;
+    await db.prepare("DELETE FROM edge_meta WHERE key=?").bind(`knowledge_node_payload:${nodeId}`).run();
+    await assert.rejects(() => knowledgeNodeD1(db, nodeId, 0), hasHttpStatus(503));
+    await db.batch(payloadChunks.map((value, part) => db.prepare("INSERT INTO edge_meta VALUES (?,?,?)")
+      .bind(`knowledge_node_payload:${nodeId}`, part, value)));
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key=? AND part=0")
+      .bind(firstPayload + "corrupt", `knowledge_node_payload:${nodeId}`).run();
+    await assert.rejects(() => knowledgeNodeD1(db, nodeId, 0), hasHttpStatus(503));
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key=? AND part=0")
+      .bind(firstPayload, `knowledge_node_payload:${nodeId}`).run();
+
+    const overBudgetRaw = makeRaw(1_100_000);
+    const overBudgetChunks = chunk(overBudgetRaw, 8192, 0);
+    await db.prepare("DELETE FROM edge_meta WHERE key=?").bind(`knowledge_node_payload:${nodeId}`).run();
+    await db.batch(overBudgetChunks.map((value, part) => db.prepare("INSERT INTO edge_meta VALUES (?,?,?)")
+      .bind(`knowledge_node_payload:${nodeId}`, part, value)));
+    await assert.rejects(() => knowledgeNodeD1(db, nodeId, 0), error => error instanceof NativeBudgetExceeded || hasHttpStatus(413)(error));
+    await db.prepare("DELETE FROM edge_meta WHERE key=?").bind(`knowledge_node_payload:${nodeId}`).run();
+    await db.batch(payloadChunks.map((value, part) => db.prepare("INSERT INTO edge_meta VALUES (?,?,?)")
+      .bind(`knowledge_node_payload:${nodeId}`, part, value)));
+    assert.ok(nativePacketJson(await knowledgeNodeD1(db, "philosophy:a", 0)).includes('"id":"philosophy:a"'));
+  } finally {
+    await mf.dispose();
+  }
 });

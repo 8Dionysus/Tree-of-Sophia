@@ -1,9 +1,12 @@
 """Private declaration storage integrity, not source or semantic admission."""
 from contextlib import closing
 from dataclasses import replace
+import copy
 import hashlib
+from pathlib import Path
 import sqlite3
 import unittest
+from unittest.mock import patch
 
 from tos_access import prepared_source_dependencies as index
 from tos_access import prepared_source_publication as joined
@@ -11,6 +14,7 @@ from tos_access.prepared_publication import PublicationLimits, PreparedChange
 from tos_access.projection_mutation import _json_bytes
 from tos_access.published_read_model import PublishedKnowledgeReadModel, PublishedSnapshotConflict
 import test_prepared_source_binding as fixtures
+from source_assembly_fixture import SourceAssemblyFixture
 
 
 class PreparedSourceDependencyTests(unittest.TestCase):
@@ -500,16 +504,30 @@ class PreparedSourceDependencyTests(unittest.TestCase):
         # The SQLite/root fixture remains synthetic. This checks the actual
         # enumerator ABI, not whether that root covers these real source bytes.
         import json
-        import test_bibliographic_claim_projector as source_fixture
         import source_witness_bibliographic_graph_common as source
-        fixture = source_fixture.BibliographicClaimProjectorTest()
-        fixture.setUp()
-        with fixture.fixture.historical_fixture() as (root, _history, real, claims, rebuild):
+        fixture = SourceAssemblyFixture(
+            code_root=Path(__file__).resolve().parents[2],
+            source_root=Path(__file__).resolve().parent / 'fixtures' / 'source-assembly',
+        )
+
+        def capture(rebuild):
+            inputs = []
+            project = source.project_bibliographic_claim
+
+            def render(value):
+                inputs.append(copy.deepcopy(value))
+                return project(value)
+
+            with patch.object(source, 'project_bibliographic_claim', side_effect=render):
+                payload = rebuild()
+            return payload, inputs
+
+        with fixture.historical_fixture() as (root, _history, real, claims, rebuild):
             agent_id = real[0]['record_id']
             claims[1]['maker'] = {'maker_type': 'human', 'agent_ref': agent_id}
             claims[2]['evidence_refs'] = [agent_id]
             def declarations():
-                _graph, inputs = fixture.capture(rebuild)
+                _graph, inputs = capture(rebuild)
                 return [index.SourceClaimDependencies(claim_id=value.source_claim['claim_id'],
                     source_entry=value.entry, input_sha256=value.entry['claim_sha256'],
                     dependencies=source.enumerate_bibliographic_claim_dependencies(value)) for value in inputs]

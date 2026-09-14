@@ -110,8 +110,8 @@
 - [TOS-D-0044 - TOS-D-0044 End the Temporary KAG Freeze](../TOS-D-0044-end-temporary-kag-freeze.md) (`docs/decisions/TOS-D-0044-end-temporary-kag-freeze.md`)
 - [TOS-D-0045 - Incremental read-model publication](../TOS-D-0045-incremental-read-model-publication.md) (`docs/decisions/TOS-D-0045-incremental-read-model-publication.md`)
 - [TOS-D-0046 - Resumable neighborhood checkpoints](../TOS-D-0046-resumable-neighborhood-checkpoints.md) (`docs/decisions/TOS-D-0046-resumable-neighborhood-checkpoints.md`)
-- [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
-- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
+- [TOS-D-0060 - Backend-defined knowledge lenses](../TOS-D-0060-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0060-backend-defined-knowledge-lenses.md`)
+- [TOS-D-0061 - Stable semantic interchange registry](../TOS-D-0061-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0061-stable-semantic-interchange-registry.md`)
 
 ## 2026-09-05
 
@@ -132,14 +132,20 @@
 - [TOS-D-0055 - Explicit confidential source contexts](../TOS-D-0055-explicit-confidential-source-contexts.md) (`docs/decisions/TOS-D-0055-explicit-confidential-source-contexts.md`)
 - [TOS-D-0056 - Claim-scoped reference values](../TOS-D-0056-claim-scoped-reference-values.md) (`docs/decisions/TOS-D-0056-claim-scoped-reference-values.md`)
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
-- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
+- [TOS-D-0058 - Traceable research registry imports and local source planting](../TOS-D-0058-research-registry-import-and-local-source-planting.md) (`docs/decisions/TOS-D-0058-research-registry-import-and-local-source-planting.md`)
+- [TOS-D-0065 - TOS-D-0065 Bounded Segmented KAG Provider Pin](../TOS-D-0065-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0065-bounded-segmented-kag-provider-pin.md`)
 
 ## 2026-09-09
 
-- [TOS-D-0061 - TOS-D-0061 Landed Segmented KAG Provider Pin](../TOS-D-0061-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0061-landed-segmented-kag-provider-pin.md`)
+- [TOS-D-0066 - TOS-D-0066 Landed Segmented KAG Provider Pin](../TOS-D-0066-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0066-landed-segmented-kag-provider-pin.md`)
 
 ## 2026-09-10
 
-- [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
+- [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 - [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 - [TOS-D-0064 - Explicit Claim display fields retain source and permission boundaries](../TOS-D-0064-scoped-claim-display-fields.md) (`docs/decisions/TOS-D-0064-scoped-claim-display-fields.md`)
+- [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
+
+## 2026-09-14
+
+- [TOS-D-0062 - TOS-D-0062 Independent Software, Corpus and Integration Releases](../TOS-D-0062-independent-software-corpus-and-integration-releases.md) (`docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md`)

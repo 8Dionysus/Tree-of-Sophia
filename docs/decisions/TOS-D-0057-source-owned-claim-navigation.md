@@ -93,7 +93,7 @@ remain with the source owner; CI, merge and deployment are separate outcomes.
 
 ## Dated successor: 2026-09-10
 
-[TOS-D-0062](TOS-D-0062-typed-time-claim-navigation.md) supersedes only the initial
+[TOS-D-0067](TOS-D-0067-typed-time-claim-navigation.md) supersedes only the initial
 identity-only eligibility limit when a version-2 template explicitly opts into
 the historical-time source-wording adapter. This record's original v1 decision
 and its nonstandalone/source-context boundary remain historical facts; templates

@@ -1,0 +1,216 @@
+{
+  "node_id": "claim:tos.claim.nietzsche-letter-705.sender",
+  "node_kind": "claim",
+  "properties": {
+    "assertion_layer": "bibliographic_assertion",
+    "claim_id": "tos.claim.nietzsche-letter-705.sender",
+    "claim_ref": "tos.claim.nietzsche-letter-705.sender",
+    "claim_type": "relation",
+    "claim_version": 1,
+    "confidence": null,
+    "epistemic_status": "reported",
+    "evidence_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md"
+    ],
+    "human_forms": [
+      {
+        "schema_version": "tos_human_form_materialization_v1",
+        "form": {
+          "id": "tos.form.test.claim",
+          "version": 1,
+          "digest": "sha256:94e9523b7fab3d79c34b030fcd94ac7c891ced0ed42268b8999807a4fd0634c8"
+        },
+        "subject": {
+          "id": "tos.claim.nietzsche-letter-705.sender",
+          "version": 1,
+          "digest": "sha256:bb3496c05896464a63bd8d130d67f55dad84ce78fe7d0c3c76c7622ff7fa4ad6"
+        },
+        "state": "ready",
+        "display_text": "В eKGWB письмо № 705 представлено как письмо Фридриха Ницше; его опубликованный текст завершается подписью Ницше. Утверждение относится к указанному отправителю, а не к почерку или факту доставки.",
+        "context": [
+          {
+            "slot": "context-0",
+            "binding": {
+              "record": {
+                "id": "tos.claim.nietzsche-letter-705.sender",
+                "version": 1,
+                "digest": "sha256:bb3496c05896464a63bd8d130d67f55dad84ce78fe7d0c3c76c7622ff7fa4ad6"
+              },
+              "pointer": ""
+            },
+            "value": {
+              "assertion_layer": "bibliographic_assertion",
+              "claim_id": "tos.claim.nietzsche-letter-705.sender",
+              "claim_type": "relation",
+              "claim_version": 1,
+              "epistemic_status": "reported",
+              "evidence_refs": [
+                "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md"
+              ],
+              "maker": {
+                "agent_ref": "model:codex",
+                "maker_type": "model"
+              },
+              "object": "tos.agent.friedrich-nietzsche",
+              "predicate": "correspondence_sender",
+              "provenance_event_ref": "tos.event.source-creation.nietzsche-letter-705-claims.2026-09-07",
+              "qualifiers": {
+                "attribution": "eKGWB BVN-1886,705: editorial correspondence identification and closing signature",
+                "does_not_establish": [
+                  "physical_handwriting_attribution",
+                  "dispatch",
+                  "delivery",
+                  "actual_reading"
+                ],
+                "evidence_posture": "source-reading note with public source locator; not immutable capture of the external text",
+                "provenance_scope": "serialization-only; upstream source reading is not independently execution-attested",
+                "source_url": "https://www.nietzschesource.org/texts/eKGWB/BVN-1886",
+                "statement": "В eKGWB письмо № 705 представлено как письмо Фридриха Ницше; его опубликованный текст завершается подписью Ницше. Утверждение относится к указанному отправителю, а не к почерку или факту доставки.",
+                "statement_language": "ru"
+              },
+              "review_status": "unreviewed",
+              "schema_version": "tos_source_relation_claim_v1",
+              "subject_ref": "tos.letter.nietzsche-naumann-1886-705",
+              "visibility": "public_metadata_only"
+            }
+          }
+        ],
+        "issues": [],
+        "admission": null,
+        "performs_semantic_assessment": false,
+        "role": "statement",
+        "language": "ru",
+        "script": null,
+        "derivation": "source-copy",
+        "dependencies": [
+          {
+            "id": "tos.claim.nietzsche-letter-705.sender",
+            "version": 1,
+            "digest": "sha256:bb3496c05896464a63bd8d130d67f55dad84ce78fe7d0c3c76c7622ff7fa4ad6"
+          }
+        ],
+        "standalone_reading": false
+      }
+    ],
+    "human_forms_source_ref": "test-only:source-copy",
+    "maker": {
+      "agent_ref": "model:codex",
+      "maker_type": "model"
+    },
+    "navigation_descriptor": {
+      "claim": {
+        "id": "tos.claim.nietzsche-letter-705.sender",
+        "sha256": "bb3496c05896464a63bd8d130d67f55dad84ce78fe7d0c3c76c7622ff7fa4ad6",
+        "version": 1
+      },
+      "object": {
+        "identity_ref": "tos.agent.friedrich-nietzsche",
+        "label": "Friedrich Nietzsche",
+        "label_pointer": "/preferred_label",
+        "node_id": "identity:tos.agent.friedrich-nietzsche",
+        "record_version": 2,
+        "sha256": "06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33",
+        "source_ref": "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json"
+      },
+      "predicate": {
+        "id": "correspondence_sender",
+        "mapping_sha256": "b02f0af0bd0de839cd5969e9332ce80df986bdc113a8e1fc1cf2d659881e2511",
+        "relation_type_id": "tos.relation.correspondence-sender",
+        "sha256": "ef7033396a9f2fc534b6ac0e221b372c95e8ece25fb0eb3d4885d13259c7d84f"
+      },
+      "purpose": "claim-navigation-only",
+      "reason": null,
+      "schema_version": "tos_claim_navigation_descriptor_v1",
+      "standalone": false,
+      "state": "ready",
+      "statuses": {
+        "epistemic_status": {
+          "present": true,
+          "value": "reported"
+        },
+        "review_status": {
+          "present": true,
+          "value": "unreviewed"
+        }
+      },
+      "subject": {
+        "identity_ref": "tos.letter.nietzsche-naumann-1886-705",
+        "label": "Письмо Ницше Науманну, № 705 в eKGWB",
+        "label_pointer": "/preferred_label",
+        "node_id": "identity:tos.letter.nietzsche-naumann-1886-705",
+        "record_version": 1,
+        "sha256": "848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5",
+        "source_ref": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json"
+      },
+      "template": {
+        "id": "tos.navigation-template.claim-reference",
+        "sha256": "75bd37e91014d5d1289382a42f9beaae9fd36f51155f4e79d0147c03694dba98",
+        "version": 1
+      },
+      "title": {
+        "default": "Запись утверждения · связь: имеет указанного отправителя [сообщено источником; исходная запись не оценена] · субъект: Письмо Ницше Науманну, № 705 в eKGWB · объект: Friedrich Nietzsche",
+        "en": "Claim record · relation: has attributed sender [source-reported; source record unreviewed] · subject: Письмо Ницше Науманну, № 705 в eKGWB · object: Friedrich Nietzsche",
+        "ru": "Запись утверждения · связь: имеет указанного отправителя [сообщено источником; исходная запись не оценена] · субъект: Письмо Ницше Науманну, № 705 в eKGWB · объект: Friedrich Nietzsche"
+      }
+    },
+    "object": "tos.agent.friedrich-nietzsche",
+    "predicate": "correspondence_sender",
+    "provenance_event_ref": "tos.event.source-creation.nietzsche-letter-705-claims.2026-09-07",
+    "qualifiers": {
+      "attribution": "eKGWB BVN-1886,705: editorial correspondence identification and closing signature",
+      "does_not_establish": [
+        "physical_handwriting_attribution",
+        "dispatch",
+        "delivery",
+        "actual_reading"
+      ],
+      "evidence_posture": "source-reading note with public source locator; not immutable capture of the external text",
+      "provenance_scope": "serialization-only; upstream source reading is not independently execution-attested",
+      "source_url": "https://www.nietzschesource.org/texts/eKGWB/BVN-1886",
+      "statement": "В eKGWB письмо № 705 представлено как письмо Фридриха Ницше; его опубликованный текст завершается подписью Ницше. Утверждение относится к указанному отправителю, а не к почерку или факту доставки.",
+      "statement_language": "ru"
+    },
+    "review_status": "unreviewed",
+    "schema_version": "tos_source_relation_claim_v1",
+    "source_claim": {
+      "assertion_layer": "bibliographic_assertion",
+      "claim_id": "tos.claim.nietzsche-letter-705.sender",
+      "claim_type": "relation",
+      "claim_version": 1,
+      "epistemic_status": "reported",
+      "evidence_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md"
+      ],
+      "maker": {
+        "agent_ref": "model:codex",
+        "maker_type": "model"
+      },
+      "object": "tos.agent.friedrich-nietzsche",
+      "predicate": "correspondence_sender",
+      "provenance_event_ref": "tos.event.source-creation.nietzsche-letter-705-claims.2026-09-07",
+      "qualifiers": {
+        "attribution": "eKGWB BVN-1886,705: editorial correspondence identification and closing signature",
+        "does_not_establish": [
+          "physical_handwriting_attribution",
+          "dispatch",
+          "delivery",
+          "actual_reading"
+        ],
+        "evidence_posture": "source-reading note with public source locator; not immutable capture of the external text",
+        "provenance_scope": "serialization-only; upstream source reading is not independently execution-attested",
+        "source_url": "https://www.nietzschesource.org/texts/eKGWB/BVN-1886",
+        "statement": "В eKGWB письмо № 705 представлено как письмо Фридриха Ницше; его опубликованный текст завершается подписью Ницше. Утверждение относится к указанному отправителю, а не к почерку или факту доставки.",
+        "statement_language": "ru"
+      },
+      "review_status": "unreviewed",
+      "schema_version": "tos_source_relation_claim_v1",
+      "subject_ref": "tos.letter.nietzsche-naumann-1886-705",
+      "visibility": "public_metadata_only"
+    },
+    "subject_ref": "tos.letter.nietzsche-naumann-1886-705",
+    "visibility": "public_metadata_only"
+  },
+  "source_line": 1,
+  "source_ref": "ToS/source-witnesses/relations/nietzsche-letter-705/source-claims.jsonl",
+  "source_sha256": "bb3496c05896464a63bd8d130d67f55dad84ce78fe7d0c3c76c7622ff7fa4ad6"
+}

@@ -684,7 +684,8 @@ class HistoricalCreationTests(unittest.TestCase):
     def test_creation_refuses_form_identity_already_owned_by_a_declared_claim(self):
         from build_source_witness_catalog import collect_claims
         with self.native_creation() as (root, owner, config, request, rebuild, fixture):
-            for name in ('semantic-relation-type-registry', 'source-claim-record', 'source-relation-claim'):
+            for name in ('semantic-relation-type-registry', 'source-claim-record', 'source-relation-claim',
+                         'claim-display-fields'):
                 ref = f'ToS/contracts/{name}.schema.json'
                 (root / ref).write_bytes((ROOT / ref).read_bytes())
             claim = json.loads((ROOT / 'ToS/source-witnesses/relations/nietzsche-letter-705/source-claims.jsonl').read_text().splitlines()[0])
@@ -693,7 +694,7 @@ class HistoricalCreationTests(unittest.TestCase):
             self.assertIn(claim['claim_id'], {row['claim_id'] for row in collect_claims(root)})
             change = commands.prepare_claim_change(claim, None, config['principal_id'],
                 request['forms'][0]['form_id'], 'claim.statement')
-            forms = commands._apply(None, Record.from_payload(claim['claim_id'], 1, claim), [change])
+            forms = commands._apply(None, Record.from_payload(claim['claim_id'], claim['claim_version'], claim), [change])
             commands.claim_forms_path(path, claim['claim_id']).write_text(json.dumps(forms))
             with self.assertRaisesRegex(commands.JournalConflict, 'form identity already exists'):
                 commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',

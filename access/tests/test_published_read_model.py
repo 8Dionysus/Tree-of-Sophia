@@ -31,6 +31,12 @@ def metadata(db, key):
         "SELECT json_chunk FROM edge_meta WHERE key=? ORDER BY part", (key,))))
 
 
+def source_subprocess_environment():
+    source = str(Path(__file__).resolve().parents[1] / "src")
+    pythonpath = os.pathsep.join(path for path in (source, os.environ.get("PYTHONPATH")) if path)
+    return {**os.environ, "PYTHONPATH": pythonpath, "PYTHONDONTWRITEBYTECODE": "1"}
+
+
 class PublishedReadModelTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -103,6 +109,32 @@ class PublishedReadModelTests(unittest.TestCase):
         self.assertFalse(any("knowledge_top" in sql for sql in statements))
         self.assertFalse(any(sql.startswith(("INSERT", "UPDATE", "CREATE", "DELETE")) for sql in statements))
 
+    def test_overflow_carriers_preserve_exact_packets_and_fail_closed(self):
+        expected = []
+        with closing(sqlite3.connect(self.path)) as db:
+            for kind in ('node', 'relation'):
+                identifier, raw = db.execute(f'SELECT id,json FROM knowledge_{kind}s ORDER BY id LIMIT 1').fetchone()
+                key = f'knowledge_{kind}_payload:{identifier}'
+                expected.append((kind, identifier, key))
+                db.execute(f"UPDATE knowledge_{kind}s SET json='' WHERE id=?", (identifier,))
+                db.executemany('INSERT INTO edge_meta VALUES(?,?,?)',
+                    [(key, part, raw[start:start + 400]) for part, start in enumerate(range(0, len(raw), 400))])
+            db.commit()
+        for kind, identifier, _ in expected:
+            with self.subTest(kind=kind):
+                actual = (self.reader.node(identifier, 1) if kind == 'node' else self.reader.relation(identifier))
+                oracle = (inspect_knowledge_node(self.graph, identifier, 1) if kind == 'node'
+                          else inspect_knowledge_relation(self.graph, identifier))
+                self.assertEqual(actual, oracle)
+        limited = PublishedKnowledgeReadModel(self.path, self.binding, limits=PublishedReadLimits(max_row_bytes=128))
+        with self.assertRaises(PublishedReadBudgetExceeded):
+            limited.node(expected[0][1], 1)
+        # A missing chunk cannot be replaced by the compact seed or accepted
+        # merely because a parseable prefix happened to survive.
+        self.mutate('DELETE FROM edge_meta WHERE key=? AND part=1', (expected[0][2],))
+        with self.assertRaises(PublishedReadModelError):
+            self.reader.node(expected[0][1], 1)
+
     def test_prepared_inspection_projects_retained_raw_source_target(self):
         from tos_access.knowledge import _content_revision, _exact_record_digest, _stable_digest
 
@@ -172,7 +204,7 @@ with patch('tos_access.core.build_knowledge_graph', side_effect=AssertionError('
 """
         outcome = subprocess.run([sys.executable, "-c", program, str(self.root), str(self.path),
                                   json.dumps(self.binding), self.graph["nodes"][0]["id"], self.graph["relations"][0]["id"]],
-                                 capture_output=True, text=True, timeout=20, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+                                 capture_output=True, text=True, timeout=20, env=source_subprocess_environment())
         self.assertEqual(outcome.returncode, 0, outcome.stderr)
         with self.assertRaises(ValueError):
             ToSAccessCore.discover(self.root, published_read_model_path=self.path)

@@ -25,7 +25,8 @@ internal lane membership and command order. This file explains selection;
 | public entry or local KAG provider | `public_entry` or `local_kag_provider` |
 | owner-local statistics | `local_stats_port` |
 | cross-family documentation | `cross_corpus_documentation` |
-| release-visible change | `release` through `scripts/release_check.py` |
+| standalone software | `release` through `scripts/release_check.py`; `software_browser` for browser behavior after the software build |
+| full historical integration snapshot | explicit `scripts/release_check.py --integration-audit` |
 
 Use the nearest district `VALIDATION.md` when it names a narrower external
 owner, mutation-bearing builder, or package-specific procedure.
@@ -44,7 +45,7 @@ Execute one selected internal sequence:
 python scripts/validation_lanes.py --run route_docs
 ```
 
-Execute the complete repository gate:
+Execute software contracts and fixture-based behavior:
 
 ```bash
 python scripts/release_check.py
@@ -53,3 +54,8 @@ python scripts/release_check.py
 Run the narrowest relevant route first. A green command proves only its named
 mechanical contract; source review, rights, semantics, canon, external-owner
 acceptance, CI, publication, and runtime health remain separate claims.
+
+Under TOS-D-0062, blocking owner lanes block their selected admission or artifact
+publication. They are not universal merge obligations. KAG, stats, corpus
+currentness and generated inventory parity do not belong to the software gate.
+See `docs/RELEASING.md` for the separate data and integration operations.

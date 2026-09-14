@@ -167,6 +167,8 @@ class _Read:
         result = []
         for row in selected:
             raw = self.text(row["json"], self.limits.max_row_bytes)
+            if raw == "":
+                raw, _ = self.metadata(f"knowledge_{kind}_payload:{row['id']}", self.limits.max_row_bytes)
             _, expected = self.metadata(published_row_digest_key(kind, row["id"]), 1024)
             if (not isinstance(expected, dict) or set(expected) != {"sha256"}
                     or expected != emitted_row_digest(raw)):

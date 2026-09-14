@@ -8,7 +8,7 @@
 
 ## agent interface
 
-- [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
+- [TOS-D-0060 - Backend-defined knowledge lenses](../TOS-D-0060-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0060-backend-defined-knowledge-lenses.md`)
 
 ## agent lane
 
@@ -33,8 +33,8 @@
 
 ## bounded generated family
 
-- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
-- [TOS-D-0061 - TOS-D-0061 Landed Segmented KAG Provider Pin](../TOS-D-0061-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0061-landed-segmented-kag-provider-pin.md`)
+- [TOS-D-0065 - TOS-D-0065 Bounded Segmented KAG Provider Pin](../TOS-D-0065-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0065-bounded-segmented-kag-provider-pin.md`)
+- [TOS-D-0066 - TOS-D-0066 Landed Segmented KAG Provider Pin](../TOS-D-0066-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0066-landed-segmented-kag-provider-pin.md`)
 
 ## claim
 
@@ -50,10 +50,10 @@
 ## claim graph
 
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
-- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
-- [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
+- [TOS-D-0061 - Stable semantic interchange registry](../TOS-D-0061-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0061-stable-semantic-interchange-registry.md`)
 - [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 - [TOS-D-0064 - Explicit Claim display fields retain source and permission boundaries](../TOS-D-0064-scoped-claim-display-fields.md) (`docs/decisions/TOS-D-0064-scoped-claim-display-fields.md`)
+- [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
 
 ## command lane
 
@@ -84,7 +84,7 @@
 - [TOS-D-0048 - Incremental normalization dependencies](../TOS-D-0048-incremental-normalization-dependencies.md) (`docs/decisions/TOS-D-0048-incremental-normalization-dependencies.md`)
 - [TOS-D-0049 - Content-verified build stages](../TOS-D-0049-content-verified-build-stages.md) (`docs/decisions/TOS-D-0049-content-verified-build-stages.md`)
 - [TOS-D-0050 - Incremental checks with disposable bounded cache](../TOS-D-0050-incremental-checks-bounded-cache.md) (`docs/decisions/TOS-D-0050-incremental-checks-bounded-cache.md`)
-- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
+- [TOS-D-0061 - Stable semantic interchange registry](../TOS-D-0061-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0061-stable-semantic-interchange-registry.md`)
 
 ## context
 
@@ -106,10 +106,12 @@
 
 - [TOS-D-0039 - Reviewed Open-Work Candidate Loop](../TOS-D-0039-reviewed-open-work-candidate-loop.md) (`docs/decisions/TOS-D-0039-reviewed-open-work-candidate-loop.md`)
 - [TOS-D-0040 - File-Backed Scholarly Composite Representations](../TOS-D-0040-file-backed-scholarly-composite-representations.md) (`docs/decisions/TOS-D-0040-file-backed-scholarly-composite-representations.md`)
+- [TOS-D-0058 - Traceable research registry imports and local source planting](../TOS-D-0058-research-registry-import-and-local-source-planting.md) (`docs/decisions/TOS-D-0058-research-registry-import-and-local-source-planting.md`)
+- [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 
 ## declarative lens
 
-- [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
+- [TOS-D-0060 - Backend-defined knowledge lenses](../TOS-D-0060-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0060-backend-defined-knowledge-lenses.md`)
 
 ## deployment route
 
@@ -122,7 +124,7 @@
 
 ## entity registry
 
-- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
+- [TOS-D-0061 - Stable semantic interchange registry](../TOS-D-0061-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0061-stable-semantic-interchange-registry.md`)
 
 ## era
 
@@ -155,6 +157,7 @@
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
 - [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
+- [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 
 ## generated export
 
@@ -171,6 +174,7 @@
 ## graph projection
 
 - [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
+- [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 
 ## growth route
 
@@ -181,14 +185,14 @@
 
 ## human display
 
-- [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
+- [TOS-D-0060 - Backend-defined knowledge lenses](../TOS-D-0060-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0060-backend-defined-knowledge-lenses.md`)
 
 ## human forms
 
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
-- [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
 - [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 - [TOS-D-0064 - Explicit Claim display fields retain source and permission boundaries](../TOS-D-0064-scoped-claim-display-fields.md) (`docs/decisions/TOS-D-0064-scoped-claim-display-fields.md`)
+- [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
 
 ## incremental projection
 
@@ -239,7 +243,7 @@
 ## navigation descriptor
 
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
-- [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
+- [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
 
 ## none
 
@@ -249,10 +253,11 @@
 - [TOS-D-0027 - Same-Day Campaign Release Consolidation](../TOS-D-0027-same-day-campaign-release-consolidation.md) (`docs/decisions/TOS-D-0027-same-day-campaign-release-consolidation.md`)
 - [TOS-D-0038 - Standalone Access Is A ToS Product Boundary](../TOS-D-0038-standalone-access-product-boundary.md) (`docs/decisions/TOS-D-0038-standalone-access-product-boundary.md`)
 - [TOS-D-0044 - TOS-D-0044 End the Temporary KAG Freeze](../TOS-D-0044-end-temporary-kag-freeze.md) (`docs/decisions/TOS-D-0044-end-temporary-kag-freeze.md`)
+- [TOS-D-0062 - TOS-D-0062 Independent Software, Corpus and Integration Releases](../TOS-D-0062-independent-software-corpus-and-integration-releases.md) (`docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md`)
 
 ## normalized knowledge graph
 
-- [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
+- [TOS-D-0060 - Backend-defined knowledge lenses](../TOS-D-0060-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0060-backend-defined-knowledge-lenses.md`)
 
 ## owner handoff
 
@@ -280,8 +285,8 @@
 
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
-- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
-- [TOS-D-0061 - TOS-D-0061 Landed Segmented KAG Provider Pin](../TOS-D-0061-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0061-landed-segmented-kag-provider-pin.md`)
+- [TOS-D-0065 - TOS-D-0065 Bounded Segmented KAG Provider Pin](../TOS-D-0065-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0065-bounded-segmented-kag-provider-pin.md`)
+- [TOS-D-0066 - TOS-D-0066 Landed Segmented KAG Provider Pin](../TOS-D-0066-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0066-landed-segmented-kag-provider-pin.md`)
 
 ## public edge
 
@@ -332,7 +337,7 @@
 
 ## relation registry
 
-- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
+- [TOS-D-0061 - Stable semantic interchange registry](../TOS-D-0061-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0061-stable-semantic-interchange-registry.md`)
 
 ## review
 
@@ -340,8 +345,8 @@
 
 ## rollback carrier
 
-- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
-- [TOS-D-0061 - TOS-D-0061 Landed Segmented KAG Provider Pin](../TOS-D-0061-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0061-landed-segmented-kag-provider-pin.md`)
+- [TOS-D-0065 - TOS-D-0065 Bounded Segmented KAG Provider Pin](../TOS-D-0065-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0065-bounded-segmented-kag-provider-pin.md`)
+- [TOS-D-0066 - TOS-D-0066 Landed Segmented KAG Provider Pin](../TOS-D-0066-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0066-landed-segmented-kag-provider-pin.md`)
 
 ## root topology
 
@@ -360,9 +365,9 @@
 ## semantic interchange
 
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
-- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
-- [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
+- [TOS-D-0061 - Stable semantic interchange registry](../TOS-D-0061-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0061-stable-semantic-interchange-registry.md`)
 - [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
+- [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
 
 ## skill helper boundary
 
@@ -388,6 +393,7 @@
 - [TOS-D-0040 - File-Backed Scholarly Composite Representations](../TOS-D-0040-file-backed-scholarly-composite-representations.md) (`docs/decisions/TOS-D-0040-file-backed-scholarly-composite-representations.md`)
 - [TOS-D-0055 - Explicit confidential source contexts](../TOS-D-0055-explicit-confidential-source-contexts.md) (`docs/decisions/TOS-D-0055-explicit-confidential-source-contexts.md`)
 - [TOS-D-0056 - Claim-scoped reference values](../TOS-D-0056-claim-scoped-reference-values.md) (`docs/decisions/TOS-D-0056-claim-scoped-reference-values.md`)
+- [TOS-D-0058 - Traceable research registry imports and local source planting](../TOS-D-0058-research-registry-import-and-local-source-planting.md) (`docs/decisions/TOS-D-0058-research-registry-import-and-local-source-planting.md`)
 
 ## source release
 

@@ -6,6 +6,7 @@ import asyncio
 import http.client
 import importlib.util
 import json
+import os
 import shutil
 import sqlite3
 import subprocess
@@ -31,6 +32,12 @@ from tos_access.published_read_model import (
     PublishedKnowledgeReadModel, PublishedReadBudgetExceeded, PublishedReadModelError,
     PublishedSnapshotConflict, _Read,
 )
+
+
+def source_subprocess_environment():
+    source = str(Path(__file__).resolve().parents[1] / "src")
+    pythonpath = os.pathsep.join(path for path in (source, os.environ.get("PYTHONPATH")) if path)
+    return {**os.environ, "PYTHONPATH": pythonpath, "PYTHONDONTWRITEBYTECODE": "1"}
 
 
 class PublishedLensTests(unittest.TestCase):
@@ -98,7 +105,10 @@ class PublishedLensTests(unittest.TestCase):
             statements.append((sql, args))
             return original(read, sql, args)
 
-        with patch.object(_Read, 'query', query_read):
+        # Exercise the generic fallback deliberately: an admitted membership
+        # index may answer an empty view selector without scanning relations.
+        with patch.object(_Read, 'query', query_read), patch(
+                'tos_access.published_lens.lens_membership_index.compile_plan', return_value=None):
             self.parity(spec)
         with closing(sqlite3.connect(self.path)) as db:
             for index in ('knowledge_nodes_source_kind_idx', 'knowledge_relations_source_predicate_idx'):
@@ -588,7 +598,8 @@ with patch('tos_access.core.build_knowledge_graph', side_effect=AssertionError('
 '''
         spec = lens(seed={'text_query': 'Узел'}, limits={'nodes': 4, 'relations': 5})
         result = subprocess.run([sys.executable, '-c', program, str(self.path), _compact(self.binding), _compact(spec)],
-                                check=False, capture_output=True, text=True, timeout=20)
+                                check=False, capture_output=True, text=True, timeout=20,
+                                env=source_subprocess_environment())
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout), k.execute_knowledge_lens(self.graph, spec))
 

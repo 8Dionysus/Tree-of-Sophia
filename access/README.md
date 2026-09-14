@@ -11,13 +11,23 @@ changes review state, or writes to the corpus.
 
 ## Development install
 
-Create a local environment with `python -m venv .venv`, install the product
-with `.venv/bin/python -m pip install -e 'access[mcp,dev]'`, then use
-`.venv/bin/tos doctor`, `.venv/bin/tos serve`, or `.venv/bin/tos mcp`.
+Create a local environment with `python -m venv .venv` and install with
+`.venv/bin/python -m pip install -e 'access[mcp,dev]'`. Install and build browser
+assets with `npm ci --prefix access/web` and `npm run build --prefix access/web`.
+Program development and tests need no production corpus or AbyssOS installation.
 
-`tos serve` is loopback-only by default and serves the checked-in production
-web assets plus the JSON API. `tos mcp` uses stdio unless a loopback-only
-streamable HTTP transport is selected with `TOS_MCP_TRANSPORT`.
+To read production data, explicitly select an existing compatible snapshot:
+`export TOS_DATA_ROOT=/path/to/data`. Then run `.venv/bin/tos doctor`,
+`.venv/bin/tos serve`, or `.venv/bin/tos mcp`. The reader does not search parent
+directories for data. Software-owned contracts and browser assets do not come
+from the selected dataset. Compiling or admitting new data is a separate data
+operation; software edits do not trigger it.
+
+`tos serve` is loopback-only by default. `tos mcp` uses stdio unless an explicit
+loopback-only HTTP transport is selected with `TOS_MCP_TRANSPORT`.
+The software-only artifact and verification route live in
+[RELEASING](../docs/RELEASING.md); `data_included: false` distinguishes it from
+older combined bundles. Browser build outputs are no longer Git companions.
 
 The backend exposes two source-navigation operations over the same corpus
 index. `tos.source.descend` / `GET /api/source/navigation/{node_id}` walks from
@@ -289,7 +299,12 @@ The read-only operations are available through all backend adapters:
   over-budget candidate sets fail closed rather than silently falling back to a
   full scan. The projection page keeps its separate `tos.page.search` v1
   semantics, while the browser exposes the indexed route as
-  `tos.page.knowledge-search`.
+  `tos.page.knowledge-search`. An explicitly compiled query store uses its
+  existing FTS5 trigram index directly, with snapshot/query-bound keyset
+  cursors and candidate/verification budgets; this route never reconstructs
+  the graph or creates another search index during a request. A scan-only
+  compiled store reports indexed search unavailable while retaining the
+  explicitly separate legacy search route.
 - `GET /api/knowledge/focus/{node_id}` resolves an exact normalized ID, a
   stable entity ID, or one unambiguous native ID and returns a bounded radial neighborhood with an
   explicit `focus` object. Ambiguous native IDs fail closed so the caller can
@@ -858,11 +873,14 @@ change (including normalized content under an unchanged source revision) returns
 **400**. Restart from focus on 409/410; no historical data is silently substituted.
 MCP communicates the corresponding errors as tool failures, not HTTP statuses.
 
-The local core indexes one immutable normalized snapshot once and reads local
-adjacency thereafter. It still loads that snapshot in memory; checkpoint copying
+For partitioned corpus and bibliographic inputs, the local core reads an
+explicitly compiled SQLite snapshot through indexed identity and adjacency
+queries. Requests never assemble the complete graph or compile a missing store.
+Short substring and unindexed property selectors can scan disk rows; request
+state and returned packets still follow the declared limits. Checkpoint copying
 and serialization scale with visited state. The serialized checkpoint cache is
-bounded to 128 entries / 32 MiB, separately from the graph and adjacency index.
-This is not multi-process durable storage or production load qualification.
+bounded to 128 entries / 32 MiB. This is not multi-process durable checkpoint
+storage or production load qualification.
 No tree records, source payloads or review decisions are written. The local
 service does not write files. The Worker writes only a disposable D1 cache:
 128 checkpoints / 32 MiB total, at most 1 MiB per stored state or response.
@@ -876,8 +894,35 @@ D1 publications increment a monotonic clock to reject even A -> B -> A changes
 during a multi-query read. Concurrent continuations atomically select one replay
 response and successor. See the [edge route](deploy/cloudflare-worker/README.md).
 
-The offline builder now schedules a resumable dependency DAG for normalization:
-source/type -> node -> endpoint title -> relation. Unchanged intermediate output
+Compile the read model explicitly after rebuilding its source projections:
+
+```bash
+PYTHONPATH=access/src python -m tos_access.knowledge_compile --root .
+```
+
+The default output is `ToS/derived-exports/runtime/knowledge.sqlite3`, an ignored
+build artifact. Its exact input manifests, registries and compiler version bind
+the completed snapshot. Missing, stale or incompatible stores report
+`query store build required`. The compiler requires SQLite FTS5 trigram support;
+Foundation's `tos_offline_knowledge_v2` compiler includes typed-time and readable
+context semantics. An older v1 compiled store must be explicitly rebuilt; a
+software update alone does not relabel its contents as compatible.
+`--search-accelerator scan` explicitly chooses the bounded-memory scan fallback.
+Standalone packaging compiles its own artifact, includes the exact projection
+closures, and records separate source/compiler and output identities. Compilation
+runs in a fresh interpreter and checks the inputs and compiler against the
+staged package before publication. ZIP and wheel writers stream runtime files;
+installation validation separates wheel building from installation to release
+the disposable build copy before creating the installed snapshot. See
+[partitioned projection storage](../ToS/derived-exports/PARTITIONED_PROJECTIONS.md)
+and the [runtime data allowlist](contracts/runtime-data.v1.json).
+
+The legacy offline normalization path schedules a resumable dependency DAG:
+
+source/type -> node -> endpoint title -> relation. Partitioned compilation uses
+the same normalization and semantic construction rules with disk-backed
+collections; it does not currently reuse that legacy DAG cache. In the legacy
+path, unchanged intermediate output
 stops downstream recomputation; completed steps survive failed builds. Final node
 materialization and per-node, per-relation and per-Claim checks now reuse results
 bound to actual input and dependency digests. Changed or missing evidence, review
@@ -994,19 +1039,27 @@ every item, value type and source. These optimizations do not skip semantic
 validation or turn the build-time processing cache into a query dependency.
 
 
-## Standalone archive
+## Software archive
 
-Build a release candidate with
-`python access/packaging/build_standalone_bundle.py --output dist/tos-standalone.zip`
-and validate it with
-`python access/packaging/validate_standalone.py --bundle dist/tos-standalone.zip`.
-Validation requires the adjacent external `.zip.manifest.json` digest sidecar;
-use `--manifest` when the sidecar is stored under another path.
+After building the browser, package the exact reviewed Git commit:
+`python access/packaging/build_software_bundle.py --source-ref HEAD_SHA --output dist/tos-software.zip`.
+Validate it with
+`python access/packaging/validate_software_bundle.py --bundle dist/tos-software.zip`.
+The adjacent external `.zip.manifest.json` binds the archive digest, while the
+embedded manifest binds every member's path, size and hash. Local dirty builds
+must use `--allow-dirty` and retain `source_dirty: true`.
 
-The archive contains the installable `access/` package, prebuilt web assets,
-and only the runtime data allowlist. It contains no Git metadata, sibling
-repository, restricted source payload, lexical projection, Neo4j database, or
-AbyssOS runtime dependency.
+The archive contains installable Python code, API contracts, static schemas and
+built browser assets. It contains no corpus data, tests, Git metadata, sibling
+repository, source payload, compiled query store or AbyssOS runtime dependency.
+Verification installs a wheel in an isolated environment outside the checkout.
+Select a compatible dataset separately with `TOS_DATA_ROOT` before reading it.
+
+`build_standalone_bundle.py` and the older `validate_standalone.py --bundle`
+remain explicit combined software/data tools during migration. Their compiled
+input integrity checks remain active when those tools are selected. They are
+not invoked by Repo Validation or ordinary software packaging. The same-run
+Product Shell query-store handoff is no longer part of software CI.
 
 The full local Tree may additionally expose a source-bound Zarathustra word
 analysis capability. It resolves a German, Russian, or English query to one
@@ -1017,14 +1070,14 @@ same read-only core operation. The standalone archive deliberately omits the
 local provider and exact text, so the call returns an explicit
 `available: false` packet rather than fabricating weaker evidence.
 
-After extraction, install the full standalone profile from any location:
-`python -m pip install '/path/to/tree-of-sophia-standalone/access[mcp]'`. Then
-run `tos verify --profile standalone`, `tos serve`, or `tos mcp`.
+After extraction, install from any location with
+`python -m pip install '/path/to/extracted/access[mcp]'`. Select data explicitly,
+then run `tos verify --profile standalone`, `tos serve`, or `tos mcp`.
 
 ## Contracts
 
 - `contracts/runtime-manifest.v1.json` defines dual runtime posture.
-- `contracts/runtime-data.v1.json` is the publication/bundle allowlist.
+- `contracts/runtime-data.v1.json` is the data publication allowlist; the software archive has a separate code-only member contract.
 - `contracts/query-operations.v1.json` owns transport-neutral read operations.
 - `contracts/knowledge-api.v1.json` maps the knowledge catalog, search,
   inspection, stored-lens, and compile operations across HTTP, MCP, and CLI.
@@ -1064,6 +1117,19 @@ this repository after changes land in `main`. Workers Static Assets carry the
 web application and precomputed bounded packets; D1 carries a generated
 read-only query model. The public site therefore does not depend on an
 operator laptop or another always-on origin host.
+
+The v9 D1 row schema with content revision v5 retains oversized knowledge
+values in ordered `edge_meta` payload chunks. Empty inline JSON is an explicit
+overflow sentinel, never a reduced substitute for the source. The native
+reader reconstructs only within its existing 1 MiB row/request budgets and
+checks the emitted-row digest before use; exceeding a delivery budget is an
+explicit refusal, not a partial packet. Offline production admits at most
+8 MiB per overflow value and still bounds every SQL row and statement.
+Overlapping search fragments preserve substring matches across chunk seams,
+including Unicode lower-case expansion. Compact seeds keep their existing
+size and semantic limits independently of the retained full source value.
+These extra metadata rows participate in the existing atomic full/delta
+publication. Older readers are not a compatible overflow-delivery route.
 
 The older route under
 [`deploy/cloudflare-tunnel/`](deploy/cloudflare-tunnel/README.md) remains a

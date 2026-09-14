@@ -3,17 +3,21 @@ from __future__ import annotations
 import json
 import copy
 import hashlib
+import os
 import random
 import tempfile
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
+import pytest
 from referencing import Registry, Resource
 
 
 ACCESS_ROOT = Path(__file__).resolve().parents[1]
+FIXTURE_ROOT = ACCESS_ROOT / "tests" / "fixtures"
 sys.path.insert(0, (ACCESS_ROOT / "src").as_posix())
 
 from tos_access.knowledge import (  # noqa: E402
@@ -28,19 +32,26 @@ from tos_access.knowledge import (  # noqa: E402
     _normalize_node,
     _normalized_time,
 )
+from tos_access.core import ToSAccessCore  # noqa: E402
+from tos_access.query_store import QueryStore  # noqa: E402
+from fixture_support import (  # noqa: E402
+    canonical_node_fixture,
+    knowledge_fixture_path,
+    load_knowledge_fixture,
+)
 
 
 class KnowledgeContractTests(unittest.TestCase):
     def test_real_canonical_nodes_keep_id_navigation_distinct_from_source_wording(self):
         sys.path.insert(0, str(self.repo_root / 'scripts'))
-        from tos_corpus_index_common import build_nodes
+        import tos_corpus_index_common as corpus_index
         from tos_access.knowledge import _lens_carrier
 
-        paths = [self.repo_root / f'ToS/canon/{kind}/friedrich-nietzsche/'
-                 f'thus-spoke-zarathustra/prologue-1/{leaf}/node.json'
-                 for kind, leaf in (('support', 'zarathustra'), ('event', 'departure-from-origin'))]
-        diagnostics = []
-        nodes = build_nodes(diagnostics, tuple(paths))
+        with canonical_node_fixture() as (fixture_root, paths), patch.object(
+            corpus_index, 'REPO_ROOT', fixture_root
+        ), patch.object(corpus_index, 'TOS_ROOT', fixture_root / 'ToS'):
+            diagnostics = []
+            nodes = corpus_index.build_nodes(diagnostics, tuple(paths))
         self.assertEqual(diagnostics, [])
         self.assertEqual(len(nodes), 2)
         original = copy.deepcopy(nodes)
@@ -543,7 +554,27 @@ class KnowledgeContractTests(unittest.TestCase):
     def _claim_navigation_fixture(self, claim_ref=None):
         sys.path.insert(0, str(self.repo_root / 'scripts'))
         from source_witness_bibliographic_graph_common import build_claim_navigation_descriptor
-        payload = json.loads((self.repo_root / 'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text())
+        if claim_ref == 'tos.claim.jenseits-1886-commission.date':
+            payload = load_knowledge_fixture('temporal-jenseits-date.json')
+            source_claim = json.loads(
+                knowledge_fixture_path(
+                    'ToS/source-witnesses/history/friedrich-nietzsche/'
+                    'jenseits-1886-commission/historical-claims.jsonl'
+                ).read_text(encoding='utf-8').splitlines()[0]
+            )
+            claim_node = next(
+                node for node in payload['nodes']
+                if node['node_id'] == 'claim:tos.claim.jenseits-1886-commission.date'
+            )
+            self.assertEqual(claim_node['properties']['source_claim'], source_claim)
+        else:
+            fixture_cache = getattr(type(self), '_claim_navigation_fixture_cache', None)
+            if fixture_cache is None:
+                fixture_cache = json.loads(
+                    (FIXTURE_ROOT / 'claim-navigation.json').read_text(encoding='utf-8')
+                )
+                type(self)._claim_navigation_fixture_cache = fixture_cache
+            payload = copy.deepcopy(fixture_cache)
         trace = next(value for value in payload['claim_traces']
                      if (value['claim_ref'] == claim_ref if claim_ref else value['predicate'] == 'translated_by'))
         edges = [edge for edge in payload['edges'] if edge.get('claim_ref') == trace['claim_ref']]
@@ -1652,7 +1683,7 @@ class KnowledgeContractTests(unittest.TestCase):
                         self.assertEqual(select_human_forms(bad, 'fr')['state'], 'invalid')
 
     def test_versioned_canonical_projection_binds_record_digest_separately_from_file_bytes(self):
-        source = json.loads((self.repo_root / 'ToS/public-compatibility/support_node.example.json').read_text())
+        source = load_knowledge_fixture('ToS/public-compatibility/support_node.example.json')
         source.update(schema_version='tos_canonical_node_v1', record_version=1, preferred_label='Synthetic name')
         digest = hashlib.sha256(json.dumps(source, ensure_ascii=False, sort_keys=True,
             separators=(',', ':'), allow_nan=False).encode()).hexdigest()
@@ -2635,9 +2666,11 @@ class KnowledgeContractTests(unittest.TestCase):
 
     def test_non_zarathustra_annotation_keeps_source_claim_evidence_route(self):
         sys.path.insert(0, str(self.repo_root / "scripts"))
-        from tos_corpus_index_common import project_text_packet
+        from text_packet_projection import project_text_packet
         ref = "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-b-competing-sign-proposals.json"
-        packet = json.loads((self.repo_root / ref).read_text())
+        packet = json.loads(
+            (FIXTURE_ROOT / "semantic-annotation-synthetic.json").read_text(encoding="utf-8")
+        )
         original = copy.deepcopy(packet)
         nodes, edges = project_text_packet(packet, ref)
         work = packet['source_scope']['work_ref']
@@ -2685,9 +2718,11 @@ class KnowledgeContractTests(unittest.TestCase):
 
     def test_native_annotation_lexeme_and_sense_keep_their_declared_payloads(self):
         sys.path.insert(0, str(self.repo_root / 'scripts'))
-        from tos_corpus_index_common import project_text_packet
+        from text_packet_projection import project_text_packet
         ref = 'ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-b-competing-sign-proposals.json'
-        packet = json.loads((self.repo_root / ref).read_text())
+        packet = json.loads(
+            (FIXTURE_ROOT / 'semantic-annotation-synthetic.json').read_text(encoding='utf-8')
+        )
         # Native synthetic entities use only their existing stand-off contract.
         # They are not completed with invented authored-description fields.
         native = []
@@ -2759,6 +2794,7 @@ class KnowledgeContractTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        super().setUpClass()
         cls.schemas = {
             name: json.loads((ACCESS_ROOT / "contracts" / name).read_text(encoding="utf-8"))
             for name in (
@@ -2785,6 +2821,26 @@ class KnowledgeContractTests(unittest.TestCase):
                 / "ToS/doctrine/semantic-interchange/relation-types.v1.json"
             ).read_text(encoding="utf-8")
         )
+        cls._claim_navigation_fixture_cache = None
+        cls._compiled_store = None
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._compiled_store = None
+        super().tearDownClass()
+
+    @classmethod
+    def _real_query_store(cls) -> QueryStore:
+        """Read the snapshot explicitly compiled by the validation lane."""
+        try:
+            data_root = os.environ["TOS_DATA_ROOT"]
+        except KeyError as error:
+            raise RuntimeError("TOS_DATA_ROOT is required for data-release tests") from error
+        if cls._compiled_store is None:
+            cls._compiled_store = ToSAccessCore.discover(tos_root=data_root)._query_store()
+            if cls._compiled_store is None:
+                raise RuntimeError('compile the repository query snapshot before real-corpus tests')
+        return cls._compiled_store
 
     def fixture(self) -> tuple[dict[str, object], dict[str, object]]:
         corpus: dict[str, object] = {
@@ -3252,31 +3308,16 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertEqual(relation["predicate_mapping"]["status"], "unmapped")
 
     def candidate_mapping_slice(self):
-        """Eight exact authored endpoints and five relations, no corpus read."""
+        """Eight exact authored endpoints and five relations from a bounded snapshot."""
+        fixture = load_knowledge_fixture('candidate-mapping.json')
         relation_ids = {
             "table-i-a35-relation-019", "table-i-a35-relation-020", "table-i-a35-relation-021",
             "table-ii-t2-05-relation-027", "table-ii-t2-56-relation-002",
         }
-        owner = self.repo_root / "ToS/philosophy/graph-workbench"
-        relations, nodes = [], []
-        for table in ("table-i", "table-ii"):
-            path = owner / "proposed-relations" / f"{table}-prepared-dossiers.jsonl"
-            with path.open(encoding="utf-8") as stream:
-                for line in stream:
-                    if any(identifier in line for identifier in relation_ids):
-                        record = json.loads(line)
-                        if record["candidate_id"] in relation_ids:
-                            relations.append(record)
+        relations = fixture['relations']
         self.assertEqual({row["candidate_id"] for row in relations}, relation_ids)
         node_ids = {row[key] for row in relations for key in ("source_candidate_id", "target_candidate_id")}
-        for table in ("table-i", "table-ii"):
-            path = owner / "proposed-nodes" / f"{table}-prepared-dossiers.jsonl"
-            with path.open(encoding="utf-8") as stream:
-                for line in stream:
-                    if any(identifier in line for identifier in node_ids):
-                        record = json.loads(line)
-                        if record["candidate_id"] in node_ids:
-                            nodes.append(record)
+        nodes = fixture['nodes']
         self.assertEqual(len(nodes), 8)
         self.assertEqual({row["candidate_id"] for row in nodes}, node_ids)
         # A bounded test carrier preserves complete owner records. It does not
@@ -3382,33 +3423,13 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertEqual(mappings[("philosophy", "translated_into", "edge")], "tos.relation.philosophy-transmission")
         self.assertEqual(mappings.get(("philosophy", "future_candidate_predicate", "edge"), fallback), fallback)
 
+    @pytest.mark.data_release
     def test_current_repository_projection_has_complete_registry_coverage(self) -> None:
-        corpus = json.loads(
-            (self.repo_root / "ToS/derived-exports/tos_corpus_index.min.json").read_text(
-                encoding="utf-8"
-            )
-        )
-        philosophy = json.loads(
-            (
-                self.repo_root
-                / "ToS/derived-exports/philosophy_graph_projection.min.json"
-            ).read_text(encoding="utf-8")
-        )
-        bibliographic = json.loads(
-            (
-                self.repo_root
-                / "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json"
-            ).read_text(encoding="utf-8")
-        )
-
-        graph = build_knowledge_graph(
-            corpus,
-            philosophy,
-            bibliographic,
-            self.entity_type_registry,
-            self.relation_type_registry,
-        )
-        mapping = graph["counts"]["semantic_mapping"]
+        # The repository projections are large and the corpus/bibliography
+        # roots are partitioned. The lane explicitly compiled the SQLite read
+        # model; every assertion below retrieves only the rows it needs.
+        store = self._real_query_store()
+        mapping = store.header["counts"]["semantic_mapping"]
         self.assertEqual(mapping["unmapped_nodes"], 0)
         # Registry 44 maps the five retained edges to distinct candidate-only
         # relations. Mapping does not accept their source claims or change
@@ -3500,26 +3521,32 @@ class KnowledgeContractTests(unittest.TestCase):
             self.assertEqual(properties["authority_posture"], expected["authority_posture"])
             self.assertEqual(properties["canon_status"], expected["canon_status"])
         self.assertGreater(mapping["cross_layer_relations"], 0)
-        self.assertEqual(graph["counts"]["semantic_validation"]["violations"], [])
+        self.assertEqual(store.header["counts"]["semantic_validation"]["violations"], [])
 
-        nodes_by_id = {node['id']: node for node in graph['nodes']}
+        def one(table: str, where: str, params=()):
+            value = next(store.rows(table, where, params, limit=1), None)
+            self.assertIsNotNone(value, f"missing {table} row for {where}")
+            return value
+
         # Every source-owned metadata form travels into the ordinary reader,
         # not only the original Jenseits example. Do not freeze corpus counts.
-        for source_node in bibliographic['nodes']:
+        for source_node in store.raw('bibliographic/nodes'):
             forms = source_node['properties'].get('human_forms')
             if forms is None:
                 continue
-            projected = nodes_by_id['source-claims:' + source_node['node_id']]
+            projected = one('knowledge_nodes', 'id=?',
+                            ('source-claims:' + source_node['node_id'],))
             self.assertEqual(projected['attributes']['human_forms'], forms)
             self.assertEqual(projected['attributes']['human_forms_source_ref'],
                              source_node['properties']['human_forms_source_ref'])
         # The real source form set travels through the existing graph and full
         # inspection. It is not yet a scene/hover selection contract.
-        from tos_access.knowledge import inspect_knowledge_node
         form_subject = 'tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese'
-        source_identity = next(node for node in bibliographic['nodes']
-                               if node['properties'].get('identity_ref') == form_subject)
-        packet = inspect_knowledge_node(graph, form_subject, relation_limit=0)
+        source_identity = next(
+            node for node in store.raw('bibliographic/nodes')
+            if node['properties'].get('identity_ref') == form_subject
+        )
+        packet = store.inspect_node(form_subject, relation_limit=0)
         projected_identity = next(node for node in packet['matches'] if node['source_graph'] == 'source-claims')
         self.assertEqual(projected_identity['attributes']['human_forms'], source_identity['properties']['human_forms'])
         self.assertEqual(len(projected_identity['attributes']['human_forms']), 3)
@@ -3537,11 +3564,11 @@ class KnowledgeContractTests(unittest.TestCase):
                          source_identity['properties']['human_forms'][2])
         Draft202012Validator({'$ref': self.schemas['knowledge-graph.v1.schema.json']['$id'] + '#/$defs/node'},
                             registry=self.registry).validate(selected_identity)
-        claims = [node for node in graph['nodes'] if node['type_id'] == 'tos.entity.claim']
         from tos_access.knowledge import _ASSERTION_FIELDS, _lens_carrier
         contexts_by_claim = {}
-        for claim in claims:
-            target = nodes_by_id[claim['semantics']['claim']['object_node_id']]
+        for claim in store.rows('knowledge_nodes', 'type_id=?', ('tos.entity.claim',)):
+            target = one('knowledge_nodes', 'id=?',
+                         (claim['semantics']['claim']['object_node_id'],))
             self.assertNotEqual(claim['entity_id'], target['entity_id'])
             context, = claim['semantics']['assertion_contexts']
             source = claim['source_record']['payload']['properties']['source_claim']
@@ -3551,22 +3578,46 @@ class KnowledgeContractTests(unittest.TestCase):
             self.assertEqual(context['conflicts'], [])
             self.assertEqual(_lens_carrier(claim, 'compact')['semantics']['assertion_contexts'], [context])
             contexts_by_claim[source['claim_id']] = context
-        for relation in graph['relations']:
+        for relation in store.rows('knowledge_relations'):
             claim_ref = relation['attributes'].get('claim_ref')
             if relation['source_graph'] != 'source-claims' or claim_ref not in contexts_by_claim:
                 continue
             governed, = [context for context in _lens_carrier(relation, 'compact')['semantics']['assertion_contexts']
                          if context['binding_role'] == 'referenced-claim']
             self.assertEqual(governed, {**contexts_by_claim[claim_ref], 'binding_role': 'referenced-claim'})
-        subject_edge = next(edge for edge in graph['relations'] if edge['relation_type_id'] == 'tos.relation.has-subject')
-        graph['relations'].append({**subject_edge, 'id': subject_edge['id'] + ':duplicate-subject'})
-        report = validate_knowledge_semantics(graph, self.entity_type_registry, self.relation_type_registry)
+
+        # Re-run the cardinality guard over one complete Claim neighborhood;
+        # this preserves the mutation assertion without reconstructing the
+        # repository graph in Python memory.
+        subject_edge = next(store.rows(
+            'knowledge_relations', 'relation_type_id=?',
+            ('tos.relation.has-subject',)
+        ))
+        claim_node = one('knowledge_nodes', 'id=?', (subject_edge['from_id'],))
+        claim_edges = list(store.rows(
+            'knowledge_relations', 'from_id=?', (claim_node['id'],)
+        ))
+        endpoint_ids = {
+            claim_node['id'],
+            *(endpoint for edge in claim_edges for endpoint in
+              (edge.get('from_id'), edge.get('to_id')) if endpoint),
+            *(claim_node.get('semantics', {}).get('claim', {}).get('evidence_node_ids', [])),
+        }
+        id_clause, id_params = store.membership('id', sorted(endpoint_ids))
+        neighborhood_nodes = list(store.rows('knowledge_nodes', id_clause, id_params))
+        mutated_edges = [*claim_edges, {**subject_edge, 'id': subject_edge['id'] + ':duplicate-subject'}]
+        neighborhood = {
+            **store.header,
+            'nodes': neighborhood_nodes,
+            'relations': mutated_edges,
+        }
+        report = validate_knowledge_semantics(
+            neighborhood, self.entity_type_registry, self.relation_type_registry
+        )
         self.assertFalse(report['valid'])
         self.assertTrue(any('exactly one' in issue or 'per_subject_max' in issue for issue in report['violations']))
-        graph['relations'].pop()
 
-        focused = focus_knowledge_node(
-            graph,
+        focused = store.focus(
             "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
             sources=[
                 "canon",

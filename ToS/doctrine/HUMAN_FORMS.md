@@ -613,7 +613,7 @@ wording string does not make a dating exact or accepted. Missing wording, an
 unknown adapter/type, wrong range, ambiguous literal, stale binding or over-budget
 title still produces no partial ready descriptor. A version-1 template without
 the adapter retains identity-only behavior. The explicit successor rationale is
-[TOS-D-0062](../../docs/decisions/TOS-D-0062-typed-time-claim-navigation.md).
+[TOS-D-0067](../../docs/decisions/TOS-D-0067-typed-time-claim-navigation.md).
 
 Template version 3 additionally opts into
 `document-catalogue-time-source-wording-v1` only for the separate

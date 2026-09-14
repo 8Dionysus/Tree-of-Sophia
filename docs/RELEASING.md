@@ -1,102 +1,100 @@
-# Releasing `Tree-of-Sophia`
+# Releasing Tree of Sophia
 
-`Tree-of-Sophia` is released as a source-first knowledge repository with a bounded public entry route.
+Software, corpus admission, data snapshots and ecosystem integration have
+separate release boundaries under
+[TOS-D-0062](decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md).
+A software change can land and ship without rebuilding the production corpus,
+KAG indexes, stats projections or documentation currentness carriers.
 
-See also:
+## Software changes and merge
 
-- [README](../README.md)
-- [CHANGELOG](../CHANGELOG.md)
-- [REVIEW_CHECKLIST](../mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md)
+1. Use a clean branch/worktree from the current remote `main`. Preserve other
+   sessions' dirty work; another working session is not a global release lock.
+2. Install Python test dependencies from `requirements-dev.txt`, the MCP extra,
+   and locked browser dependencies with `npm ci --prefix access/web`. Review the
+   changed behavior and source contracts. Run `python scripts/release_check.py`
+   to check contracts, build browser assets and run program fixture tests.
+   This command does not inspect production data or fetch sibling repositories.
+3. For browser changes, install the locked dependencies with
+   `npm ci --prefix access/web`, then run the software check above and
+   `python scripts/validation_lanes.py --run software_browser`.
+   Browser tests require Playwright and Chromium. They create their own small
+   dataset. `access/web/dist` is a build output, not a Git companion.
+4. For Worker code, run its locked dependency install, `npm run typecheck
+   --prefix access/deploy/cloudflare-worker` and `npm test --prefix
+   access/deploy/cloudflare-worker`. This does not import D1 or deploy.
+5. Build and verify an installable candidate from the reviewed commit:
 
-## Recommended release flow
+   ```sh
+   python access/packaging/build_software_bundle.py --source-ref HEAD_SHA --output dist/tree-of-sophia-software.zip
+   python access/packaging/validate_software_bundle.py --bundle dist/tree-of-sophia-software.zip
+   ```
 
-1. Confirm that no other session is changing the repository, canonical `main`
-   is clean, and local/remote `main` agree before preparing a release branch.
-2. Reconstruct the release from the complete previous-tag-to-`main`
-   first-parent history, changed paths, source/mechanics owners, decisions,
-   generated companions, and PR metadata. Do not treat the existing
-   `[Unreleased]` prose as a complete inventory.
-3. Update `CHANGELOG.md` with a dated section containing `Summary`,
-   `Validation`, and `Notes`, and align the release marker in `README.md`,
-   `ROADMAP.md`, and release-contour tests.
-4. Regenerate owner-required companions and run the repo-level verifier:
-   - `python scripts/release_check.py`
-5. Land through a PR and GitHub Repo Validation, then rerun the same gate on
-   the resulting `main` commit before creating a tag.
-6. Run the strict official preflight from a clean workspace whose
-   `Tree-of-Sophia` checkout is on `main` and whose dependency roots are the
-   intended validation inputs:
-   - `aoa release audit <workspace-root> --phase preflight --repo Tree-of-Sophia --strict --json`
-7. Publish only through the official helper:
-   - `aoa release publish <workspace-root> --repo Tree-of-Sophia --confirm --json`
-8. Run strict postpublish audit and verify the remote tag, latest GitHub
-   Release, changelog-derived body, and clean synchronized `main`.
+   Replace `HEAD_SHA` with the exact Git commit; build the browser first.
+   Dirty development builds require `--allow-dirty` and record that posture.
+   The validator checks exact file digests and installs a wheel in an isolated
+   environment outside the checkout, without a corpus or AoA installation.
+6. Complete the ordinary checkpoint review for the exact repo, commit and
+   session; open a PR. Required **Repo Validation** covers software contracts,
+   Python behavior, browser behavior, Worker contracts and the installed
+   software artifact. Failed, cancelled or skipped required work cannot pass.
+7. Merge only after review and required CI succeed. Verify the resulting remote
+   `main` commit and its checks; synchronize clean dependent worktrees without
+   resetting another session's dirty checkout. Record the merge commit and
+   the software candidate identity separately.
 
-## Validation path
+The workflow uploads `tree-of-sophia-software.zip` and its digest manifest.
+It contains program code, API contracts, static schemas and browser assets;
+`data_included` is false. CI candidate publication is not a production deploy.
+Tags and public releases require their intended scope and authorization; an
+AbyssOS release helper is not a prerequisite for standalone ToS software.
 
-`scripts/release_check.py` runs the `release_check` command sequence from
-`docs/validation/validation_lanes.json`. That manifest is the command-authority
-surface; inventories only describe coverage. GitHub may execute the
-complementary `checks` and `tests` phases in parallel, while the default command
-continues to run the complete ordered sequence for local and official release
-use.
+## Data and corpus operations
 
-The checks phase (and the default full gate) requires an explicitly selected
-pre-change `TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT=FULL_COMMIT_OID` in the caller's
-environment. The commit must be present locally; evolution also requires its
-registry/contract objects. Export that exact input before `python scripts/release_check.py` or the
-official release helper; no previous commit or floating branch is selected
-automatically. Repo Validation provides the exact PR-base or push-before SHA
-from its event. The tests-only phase and current-snapshot readers need no Git
-baseline. See the [semantic registry transition
-contract](../ToS/doctrine/semantic-interchange/README.md) for the focused lane
-and the limits of this mechanical change check. A genuinely first introduction
-also needs the explicit `TOS_SEMANTIC_REGISTRY_ALLOW_INITIAL_INTRODUCTION=1`
-permission; absent/partial or deleted history never silently becomes a valid
-previous registry.
+Select data explicitly through `TOS_DATA_ROOT` or `--root`; the reader does not
+search the current working directory or sibling repositories. Existing
+`TOS_ROOT` and `AOA_TOS_ROOT` remain explicit legacy selections during migration.
+Code-owned API schemas and browser assets always come from the software.
+A UI change does not require rebuilding a compatible selected query store.
 
-The current bounded route battery covers validation authority, source-home and
-mechanics topology, Experience contracts, generated parity, graph exports,
-canon contracts, intake contracts, public entry, questbook surface, route-card
-structure, decision records, and repo-local tests. Keep the exact command order
-in the lane manifest, then run it through `python scripts/release_check.py`.
+Corpus identity, provenance, fixity, rights, review and admission remain with
+`ToS/` owners. Changing a source record requires its affected owner validation;
+passing software CI does not admit that record or publish it. Full dataset
+coverage tests are marked `data_release` and require a separately selected
+`TOS_DATA_ROOT`. They do not run as software tests.
 
-Repo-local KAG index-family parity is an explicit GitHub gate. TOS-D-0044
-ended the temporary freeze; the blocking `local_kag_provider` lane checks
-source currentness and integrity under [`kag/AGENTS.md`](../kag/AGENTS.md).
-The current ToS carrier is the v5 bounded segmented family, selected only by
-the exact `kag/provider_pin.json` checkout. When tracked sources change,
-regenerate its segments with the pinned `aoa-kag` revision and verify full,
-incremental, family-contract, bounded-provider, and compatibility checks before
-the final PR commit. v3/v4 readers remain explicit rollback carriers and are
-never a silent fallback. Follow [`kag/VALIDATION.md`](../kag/VALIDATION.md);
-regeneration does not activate a downstream runtime or grant semantic or
-artifact authority.
+The second migration delivery moves bulk records and derived artifacts into
+versioned local storage and private Cloudflare R2 with restore evidence. Until
+that verified migration lands, existing tracked records remain preserved.
+The accepted payload custody is permanent local storage plus private R2;
+local-only records do not gain upload or public rights through this change.
+No history rewrite or deletion of unique corpus evidence is part of release.
 
-After all `Repo Validation` gates pass, the workflow also builds and validates
-the standalone access product and uploads `tree-of-sophia-standalone.zip` with
-its external digest manifest. That downloadable artifact is a commit-bound
-release candidate for ordinary-user acceptance. It does not replace the
-official tag/publication flow above and does not imply AbyssOS artifact
-admission.
+## Integration and historical audits
 
-## Federated dependency identities
+A KAG or stats artifact names its exact ToS source/data revision and external
+owner revision, validates its own integrity and compatibility, and blocks its
+own publication on failure. It does not block unrelated source/software merge.
+Consumers must expose revision and staleness rather than claim that an older
+integration follows the latest source. See `kag/VALIDATION.md` for KAG checks.
 
-The consolidated `v0.5.0` release records the published direct provider edges
-here so release evidence cannot silently fall back to an ancestor or a moving
-branch. Current source and CI pins are named separately and must not be
-presented as published release identities. The superseded same-day provider
-identities remain immutable historical evidence in `CHANGELOG.md` and the
-task-local reconciliation ledger.
+For an intentional audit of a fully materialized historical repository snapshot:
 
-| Edge | Published provider identity | Current source/CI identity | Exactness rule |
-| --- | --- | --- | --- |
-| `aoa-stats` → `Tree-of-Sophia` | `aoa-stats@v0.2.0`, commit `88ff38b1b38eef939f2c5b4541cbe8363a05fc8d` | `.github/workflows/repo-validation.yml` `AOA_STATS_REVISION` | The fetched provider `HEAD` must equal the published commit; an ancestor is not sufficient. |
-| `aoa-kag` → `Tree-of-Sophia` | `aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57` | current provider/action source snapshot `1a0342087b18d0a1f5630036937a548b6526e0e9`; `kag/provider_pin.json` and workflow action `8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@1a0342087b18d0a1f5630036937a548b6526e0e9` | Keep the published provider body, current source/action pin, and segmented consumer adapter explicit and distinct; `1a034208` is the landed successor pin, not a retagged `v0.5.0`. |
+```sh
+python scripts/release_check.py --integration-audit
+```
 
-These are source and CI release identities, not claims about runtime health,
-KAG freshness, semantic acceptance, or artifact trust. A production consumer
-artifact remains `manual_review_required` until the OS Abyss owner trust gate
-independently admits it; no release helper may infer `allow` from these pins.
-Any v0.5.0 generated-readmodel artifact must bind its own exact landed Tree
-source ref and retain each artifact-consumer verdict separately.
+This explicit route retains the former aggregate while the data migration is
+completed. It requires the relevant corpus and external owner inputs; it is
+neither the default release command nor a software CI dependency. Individual
+owner routes remain available through `scripts/validation_lanes.py`.
+
+Historical v0.5.0 provider release identities remain in `CHANGELOG.md`:
+`aoa-stats@v0.2.0` (`88ff38b1b38eef939f2c5b4541cbe8363a05fc8d`) and
+`aoa-kag@v0.5.0` (`f46f146cc79a26fa81ad0f400b9c5774df293e57`). The later KAG
+source pin `14ee1e33e43749d23c557b3ef526eca7edb36196` is not a retagged release
+or a current software CI dependency. AbyssOS consumer admission remains with
+its own owner when that integration is explicitly selected.
+
+Public site, Worker and D1 activation remain deferred. Local preparation,
+fixture tests and a validated software artifact do not authorize activation.

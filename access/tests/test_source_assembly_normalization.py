@@ -2,6 +2,7 @@
 import copy
 from dataclasses import replace
 import json
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 
@@ -9,12 +10,14 @@ from tos_access import knowledge as k
 from tos_access.source_assembly_normalization import (
     AssemblyNormalizationLimits, normalize_source_assembly_candidate)
 from tos_access.normalization_cache import active_cache
-import test_source_witness_bibliographic_graph as fixtures
+from source_assembly_fixture import SourceAssemblyFixture
 
 
 class SourceAssemblyNormalizationTests(unittest.TestCase):
     def setUp(self):
-        self.fixture = fixtures.SourceWitnessBibliographicGraphTest()
+        code_root = Path(__file__).resolve().parents[2]
+        source_root = Path(__file__).resolve().parent / "fixtures" / "source-assembly"
+        self.fixture = SourceAssemblyFixture(code_root=code_root, source_root=source_root)
 
     def arguments(self, projection, graph, entities, relations, selected=None):
         by_id = {node['id']: node for node in graph['nodes']}

@@ -144,7 +144,13 @@ export class NativeD1Rows {
         if (row.json_bytes > 1048576) this.read.sourceSizeExceeded('native lens row JSON is not bounded text');
         if (typeof row.delivered_bytes !== 'number' || row.delivered_bytes > allowance) throw new NativeBudgetExceeded('native lens payload delivery-byte budget');
         if (typeof row.json !== 'string') nativeUnavailable('native lens row JSON is not text');
-        const raw = row.json as string, size = nativeBytes(raw);
+        // Overflow is still the exact emitted native value, not a JSON.parse
+        // compatibility projection. Metadata delivery enforces the same row
+        // and request budgets before reconstruction and digest admission.
+        const raw = row.json === '' && !this.compact
+          ? (await this.read.metadata(`knowledge_${kind}_payload:${row.id}`, 1048576)).raw
+          : row.json as string;
+        const size = nativeBytes(raw);
         this.decoded += size;
         if (this.decoded > this.limits.maxDecodedBytes) throw new NativeBudgetExceeded('native lens decoded-byte budget');
         const expected = await this.read.metadata(`knowledge_${kind}_digest:${row.id}`, 1024);

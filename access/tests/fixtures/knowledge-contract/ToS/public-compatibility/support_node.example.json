@@ -1,0 +1,55 @@
+{
+  "schema_version": "tos_canonical_node_v1",
+  "record_version": 1,
+  "preferred_label": "Zarathustra",
+  "variant_labels": [
+    {
+      "value": "Заратустра",
+      "language": "ru",
+      "script": "Cyrl",
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/prologue-1/Z_1_1_1_de_ru_en.md",
+      "status": "unverified"
+    },
+    {
+      "value": "Zarathustra",
+      "language": "en",
+      "script": "Latn",
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/prologue-1/Z_1_1_1_de_ru_en.md",
+      "status": "unverified"
+    }
+  ],
+  "field_languages": {
+    "preferred_label": {
+      "language": "de",
+      "script": "Latn"
+    },
+    "distilled_thesis": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "node_id": "tos.support.thus-spoke-zarathustra.prologue.zarathustra",
+  "node_type": "support",
+  "source_anchor": "Friedrich Nietzsche, Also sprach Zarathustra, Zarathustra's Vorrede 1, route-local support surface grounded through tos.source.thus-spoke-zarathustra.prologue and first anchored at seg.1.1.1.1 (1,1,1,1)",
+  "key_terms": [
+    "zarathustra",
+    "speaker",
+    "descent"
+  ],
+  "distilled_thesis": "Zarathustra is the bounded route's acting and undergoing center, the one whose solitude ripens, descends, speaks, and returns toward the human.",
+  "relations": [
+    {
+      "relation": "commentary-on",
+      "target_ref": "tos.source.thus-spoke-zarathustra.prologue"
+    },
+    {
+      "relation": "parallel",
+      "target_ref": "tos.lineage.thus-spoke-zarathustra.prologue.becoming-to-overcoming"
+    }
+  ],
+  "interpretation_layers": [
+    "source_linked",
+    "distilled_thesis",
+    "commentary"
+  ]
+}

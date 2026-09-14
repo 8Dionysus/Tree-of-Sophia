@@ -8,6 +8,7 @@ import hashlib
 import http.client
 import importlib.util
 import json
+import os
 import random
 import shutil
 import sqlite3
@@ -35,6 +36,12 @@ from tos_access.published_exploration import PublishedExplorationService
 from tos_access.published_checkpoints import PublishedCheckpointError, PublishedCheckpointClockRollback, _Transaction
 from tos_access.published_read_metadata import TOP_KEY, _compact, published_snapshot_binding
 from tos_access.published_read_model import PublishedKnowledgeReadModel, PublishedReadBudgetExceeded, PublishedReadLimits, _Read
+
+
+def source_subprocess_environment():
+    source = str(Path(__file__).resolve().parents[1] / "src")
+    pythonpath = os.pathsep.join(path for path in (source, os.environ.get("PYTHONPATH")) if path)
+    return {**os.environ, "PYTHONPATH": pythonpath, "PYTHONDONTWRITEBYTECODE": "1"}
 
 
 class PublishedExplorationTests(unittest.TestCase):
@@ -410,7 +417,8 @@ with patch.object(ExplorationService, '_index', side_effect=AssertionError('cold
         def cold_process(_):
             run = subprocess.run([sys.executable, "-c", program, str(self.path), json.dumps(self.binding),
                                   str(services[0].checkpoints.path), json.dumps(following)],
-                                 check=True, capture_output=True, text=True, timeout=10)
+                                 check=True, capture_output=True, text=True, timeout=10,
+                                 env=source_subprocess_environment())
             return json.loads(run.stdout)
         with concurrent.futures.ThreadPoolExecutor(2) as pool:
             cold_packets = list(pool.map(cold_process, range(2)))

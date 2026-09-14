@@ -25,7 +25,9 @@ replace eval/proof authority.
 
 ## Boundaries
 
-- Keep test meaning tied to the owner surface named in `test_inventory.json`.
+- Keep test meaning tied to the behavior or contract it protects. Existing
+  `test_inventory.json` entries help navigation; an inventory row is not an
+  admission requirement for a test or software change under TOS-D-0062.
 - Keep home scopes aligned with `docs/testing/TEST_TOPOLOGY.md`.
 - Keep eval verdicts, scoring doctrine, and proof authority with `aoa-evals`.
 - Keep generated drift checks routed through builders and validators before

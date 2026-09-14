@@ -13,6 +13,7 @@ from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .core import ToSAccessCore
+from .query_store import QueryStoreRequired
 from .lens_pagination import KnowledgeRevisionConflict
 from .temporal_comparison import TemporalReadModelInvalid
 from .exploration import ExplorationExpired
@@ -184,7 +185,7 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                     knowledge_schema: str | None = None
                     knowledge_counts: dict[str, Any] = {}
                     try:
-                        index = core.index()
+                        index = core.corpus_header()
                         if index.get("schema_version") != "tos_corpus_index_v1":
                             errors.append("unsupported corpus index schema")
                         else:
@@ -209,9 +210,8 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                     except (KeyError, OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
                         errors.append(f"philosophy projection invalid: {exc}")
                     try:
-                        snapshot = core.knowledge_snapshot()
-                        knowledge = snapshot["graph"]
-                        catalog = snapshot["catalog"]
+                        knowledge = core.knowledge_header()
+                        catalog = core.knowledge_catalog()
                         counts = knowledge.get("counts", {})
                         coverage = counts.get("display_coverage", {}) if isinstance(counts, dict) else {}
                         knowledge_schema = str(knowledge.get("schema") or "")
@@ -386,6 +386,8 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 if path.startswith("/api/philosophy/views/"):
                     view_id = unquote(path.removeprefix("/api/philosophy/views/").split("/", 1)[0]); self._json(core.philosophy_view(view_id, _integer(query, "limit", 1000, 1, 1000))); return
                 self._json({"error": "not found", "path": path}, HTTPStatus.NOT_FOUND)
+            except QueryStoreRequired as exc:
+                self._json({'error': str(exc), 'code': 'query_store_build_required'}, HTTPStatus.SERVICE_UNAVAILABLE)
             except (KnowledgeRevisionConflict, PublishedSnapshotConflict, SearchStaleBinding) as exc:
                 self._json({"error": str(exc)}, HTTPStatus.CONFLICT)
             except SearchCursorExpired as exc:
@@ -445,6 +447,8 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                     '/api/source/read': 'source_read',
                 }[parsed.path])
                 self._json(operation(spec))
+            except QueryStoreRequired as exc:
+                self._json({'error': str(exc), 'code': 'query_store_build_required'}, HTTPStatus.SERVICE_UNAVAILABLE)
             except ExplorationExpired as exc:
                 self._json({"error": str(exc), "code": "exploration_expired"}, HTTPStatus.GONE)
             except (KnowledgeRevisionConflict, PublishedSnapshotConflict) as exc:

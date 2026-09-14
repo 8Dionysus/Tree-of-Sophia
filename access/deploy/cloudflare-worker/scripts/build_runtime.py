@@ -25,6 +25,7 @@ if ACCESS_SRC.as_posix() not in sys.path:
 from tos_access.core import ToSAccessCore, KNOWLEDGE_CONTRACT_RELATIVE_PATHS  # noqa: E402
 from tos_access.portable_paths import normalize_paths  # noqa: E402
 from tos_access import core as access_core  # noqa: E402
+from tos_access.projection_store import ProjectionReader, is_partitioned  # noqa: E402
 from tos_access.normalization_cache import NormalizationCache, normalization_processor_digest  # noqa: E402
 from tos_access.processing import DEFAULT_CACHE_BYTES, DEFAULT_CACHE_ENTRIES  # noqa: E402
 from tos_access.search_read_model import SEARCH_NGRAM_SIZE, SQLiteKnowledgeSearchReadModel  # noqa: E402
@@ -54,7 +55,7 @@ STATIC_PHILOSOPHY_LIMITS = (1, 1000)
 STATIC_CORPUS_LIMITS = (1, 100, 700, 1000)
 SQL_CHUNK_BYTES = 32_000
 READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v9"
-READ_MODEL_CONTENT_VERSION = "tos_cloudflare_edge_content_v2"
+READ_MODEL_CONTENT_VERSION = "tos_cloudflare_edge_content_v5"
 SEARCH_READ_MODEL_SCHEMA_VERSION = "tos_knowledge_search_read_model_v3"
 SEARCH_READ_MODEL_MAX_POSTINGS = 10_000_000
 PRODUCER_LOGICAL_BINDINGS_VERSION = "tos_producer_logical_bindings_v1"
@@ -83,6 +84,82 @@ def object_list(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, dict)]
+
+
+def iter_objects(value: Any) -> Iterable[dict[str, Any]]:
+    """Yield object rows without turning a compiled snapshot into a list."""
+    if isinstance(value, dict) or isinstance(value, (str, bytes)) or value is None:
+        return
+    if isinstance(value, list):
+        for item in value:
+            if isinstance(item, dict):
+                yield item
+        return
+    try:
+        iterator = iter(value)
+    except TypeError:
+        return
+    for item in iterator:
+        if isinstance(item, dict):
+            yield item
+
+
+def projection_closure_paths(core: ToSAccessCore) -> list[Path]:
+    """Return source roots and exact partition parts used by this producer."""
+    result: dict[str, Path] = {}
+    for root in (core.index_path, core.bibliographic_graph_path):
+        if not root.is_file():
+            result[str(root.resolve())] = root
+            continue
+        if is_partitioned(root):
+            for member in ProjectionReader(root).closure_paths():
+                path = Path(member).resolve()
+                result[path.as_posix()] = path
+        else:
+            path = root.resolve()
+            result[path.as_posix()] = path
+    return [result[key] for key in sorted(result)]
+
+
+def partitioned_inputs(core: ToSAccessCore) -> bool:
+    return any(path.is_file() and is_partitioned(path)
+               for path in (core.index_path, core.bibliographic_graph_path))
+
+
+def compile_query_store_for_build(core: ToSAccessCore, output: Path) -> Path:
+    """Build one explicit offline query snapshot before importing D1 rows."""
+    try:
+        from tos_access.knowledge_compile import compile_knowledge_store
+    except ImportError as exc:
+        raise RuntimeError(
+            "partitioned Worker build requires the explicit offline query-store compiler"
+        ) from exc
+    output = output.resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    # The compiler is deliberately the only owner of graph assembly at this
+    # boundary.  ``allow_legacy`` applies to the existing bounded philosophy
+    # projection; corpus and bibliography still require partitioned inputs.
+    result = compile_knowledge_store(core.tos_root, output, allow_legacy=True)
+    candidate = output
+    if isinstance(result, dict) and isinstance(result.get("output"), str):
+        candidate = Path(result["output"])
+    elif isinstance(result, (str, Path)):
+        candidate = Path(result)
+    if not candidate.is_file():
+        raise RuntimeError(f"offline query-store compiler did not publish {output}")
+    return candidate.resolve()
+
+
+def query_store_for_build(core: ToSAccessCore, runtime: Path):
+    """Select a ready SQL snapshot, compiling it only at this offline boundary."""
+    if not partitioned_inputs(core):
+        return None
+    query_path = compile_query_store_for_build(core, runtime / "knowledge.sqlite3")
+    os.environ["TOS_QUERY_STORE_PATH"] = query_path.as_posix()
+    store = core._query_store()
+    if store is None:
+        raise RuntimeError("partitioned Worker build could not open its compiled query snapshot")
+    return store
 
 
 def string_list(value: Any) -> list[str]:
@@ -122,15 +199,14 @@ def item_identity(item: dict[str, Any], fallback: str) -> str:
 def _legacy_carrier_paths(core: ToSAccessCore) -> tuple[tuple[str, Path], ...]:
     """Return the historical carrier order with producer-relative labels.
 
-    This compatibility path is intentionally limited to carriers underneath
-    the implementation root.  An owner-supplied scratch carrier set must use
+    This compatibility path is limited to carriers underneath the explicitly
+    selected data root. An owner-supplied scratch carrier set must use
     explicit logical labels, so it never needs to derive a label with
     ``Path.relative_to(REPO_ROOT)``.
     """
     paths = (
-        core.index_path,
+        *projection_closure_paths(core),
         core.philosophy_graph_projection_path,
-        core.bibliographic_graph_path,
         core.entity_type_registry_path,
         core.relation_type_registry_path,
         core.evidence_projection_path,
@@ -141,10 +217,10 @@ def _legacy_carrier_paths(core: ToSAccessCore) -> tuple[tuple[str, Path], ...]:
     for path in paths:
         path = Path(path).expanduser()
         try:
-            label = path.relative_to(REPO_ROOT).as_posix()
+            label = path.relative_to(core.tos_root).as_posix()
         except ValueError as error:
             raise ValueError(
-                "legacy core carriers must be under the producer implementation root; "
+                "legacy core carriers must be under the selected data root; "
                 "use ProducerCarrierSet.admit for external scratch paths"
             ) from error
         result.append((label, path))
@@ -290,6 +366,22 @@ class ProducerCarrierSet:
         ):
             if not isinstance(getattr(self, name), dict):
                 raise ValueError(f"producer {name} carrier must be an object")
+        # Captured carriers are repeatable list-shaped snapshots. A one-shot
+        # generator can otherwise disappear between row, lens and search
+        # production. Compiled QueryStore streams use their separate pinned
+        # input route, never this admission contract.
+        for owner, fields in (
+            (self.corpus, (*CORPUS_COLLECTIONS, 'relation_edges', 'relation_packs')),
+            (self.philosophy, ('nodes', 'edges', 'clusters', 'views', 'review_packets', 'graph_layers')),
+            (self.knowledge, ('nodes', 'relations')),
+            (self.corpus.get('source_navigation') or {}, ('nodes', 'edges', 'rights')),
+        ):
+            if not isinstance(owner, dict):
+                raise ValueError('producer source-navigation carrier must be an object')
+            for field in fields:
+                if field in owner and (not isinstance(owner[field], list)
+                                       or any(not isinstance(row, dict) for row in owner[field])):
+                    raise ValueError(f'producer {field} requires repeatable object rows in a list')
         source_revision = self.knowledge.get("source_revision")
         if type(source_revision) is not str or not source_revision:
             raise ValueError("producer graph requires an exact source revision")
@@ -375,7 +467,17 @@ def write_text(root: Path, relative: str, value: str) -> None:
     target.write_text(value, encoding="utf-8")
 
 
-def build_static_assets(core: ToSAccessCore, output: Path) -> dict[str, Any]:
+def source_navigation_for_build(core: ToSAccessCore) -> dict[str, Any]:
+    """Assemble the legacy bounded static navigation packet."""
+    return core.source_navigation(bibliographic_only=True)
+
+
+def source_navigation_top(store) -> dict[str, Any]:
+    """Return only source-navigation metadata for the D1 edge read model."""
+    return dict(store.metadata.get("source_navigation_header") or {})
+
+
+def build_static_assets(core: ToSAccessCore, output: Path, *, store=None) -> dict[str, Any]:
     web_dist = REPO_ROOT / "access" / "web" / "dist"
     if not (web_dist / "index.html").is_file():
         raise RuntimeError("missing access/web/dist; run the web build first")
@@ -416,7 +518,12 @@ def build_static_assets(core: ToSAccessCore, output: Path) -> dict[str, Any]:
     write_json(output, "__edge/knowledge/exploration-contracts.json",
                {key: value for key, value in exploration_contracts.items() if key != "capabilities"})
     write_json(output, "__edge/source-gaps/all.json", normalize_paths(core.source_gap_search("", limit=100), REPO_ROOT))
-    write_json(output, "__edge/source-navigation/all.json", normalize_paths(core.source_navigation(bibliographic_only=True), REPO_ROOT))
+    if store is None:
+        # Legacy bounded projections retain the static adapter. Partitioned
+        # source navigation is served from D1 rows emitted by the read-model
+        # stage, so materializing all 38k+ nodes and 52k+ edges into one asset
+        # would defeat the partitioned input boundary.
+        write_json(output, "__edge/source-navigation/all.json", normalize_paths(source_navigation_for_build(core), REPO_ROOT))
     for view_id in corpus_status.get("graph_views", []):
         for limit in STATIC_CORPUS_LIMITS:
             packet = normalize_paths(core.graph_view(str(view_id), limit=limit), REPO_ROOT)
@@ -644,6 +751,105 @@ def append_chunkable_insert(
             )
 
 
+def append_payload_chunks(
+    writer: SqlStatementWriter,
+    table: str,
+    item_id: str,
+    value: str,
+) -> int:
+    """Keep one lossless JSON value in bounded, independently sized rows."""
+    chunks = chunk_text(value)
+    for part, chunk in enumerate(chunks):
+        writer.append(
+            sql_insert(
+                table,
+                ("id", "part", "json_chunk"),
+                (sql_text(item_id), str(part), sql_text(chunk)),
+            )
+        )
+    return len(chunks)
+
+
+def prepare_native_knowledge_row(writer, kind, columns, values, raw, search):
+    """Overflow is retained, never replaced with a lossy query JSON object.
+
+    An empty inline JSON cell is the sole overflow sentinel. The full source
+    value remains bound by the ordinary emitted-row digest. Search fragments
+    overlap beyond the admitted query length including Unicode lower-case
+    expansion, preserving boundary matches.
+    Existing edge_meta row keys make these carriers part of atomic full/delta
+    publication without introducing an untracked side store.
+    """
+    if sum(len(value.encode('utf-8')) for value in values) + 1024 <= MAX_D1_SQL_ROW_VALUE_BYTES:
+        return values
+    if len(raw.encode('utf-8')) > 8 * 1024 * 1024:
+        raise RuntimeError('native knowledge source exceeds the producer payload budget')
+    identifier = json.loads(raw)['id']
+    reduced = list(values)
+    for column in ('json', 'search_text'):
+        reduced[columns.index(column)] = sql_text('')
+    if sum(len(value.encode('utf-8')) for value in reduced) + 1024 > MAX_D1_SQL_ROW_VALUE_BYTES:
+        raise RuntimeError('native knowledge selection fields exceed the D1 row budget')
+    for carrier, chunks in (
+        ('payload', chunk_text(raw)),
+        ('search', [search[max(0, offset - 1023):offset + 8192]
+                    for offset in range(0, len(search), 8192)]),
+    ):
+        key = f'knowledge_{kind}_{carrier}:{identifier}'
+        for part, chunk in enumerate(chunks):
+            writer.append(sql_insert('edge_meta_next', ('key', 'part', 'json_chunk'),
+                (sql_text(key), str(part), sql_text(chunk))))
+    return tuple(reduced)
+
+
+def prepare_source_navigation_row(
+    values: tuple[str, ...],
+    item_json: str,
+    *,
+    json_position: int,
+    properties_position: int,
+) -> tuple[tuple[str, ...], str | None]:
+    """Keep source-navigation selection fields bounded and payload lossless.
+
+    D1 limits the eventual row to 2 MiB. A large source-navigation record is
+    therefore inserted with empty JSON selection fields and reconstructed from
+    independently bounded payload chunks. The full ``properties`` object is
+    never copied into a second large row; it remains part of the one lossless
+    source JSON payload.
+    """
+    row_size = lambda candidate: sum(len(value.encode("utf-8")) for value in candidate) + 1024
+    if row_size(values) <= MAX_D1_SQL_ROW_VALUE_BYTES:
+        return values, None
+
+    compact_values = list(values)
+    compact_values[json_position] = sql_text("")
+    # A large properties object is a selection hint only. If retaining it
+    # would breach the row budget, leave it empty and let the full source JSON
+    # payload carry the object exactly once.
+    if row_size(tuple(compact_values)) > MAX_D1_SQL_ROW_VALUE_BYTES:
+        compact_values[properties_position] = sql_text("{}")
+    if row_size(tuple(compact_values)) > MAX_D1_SQL_ROW_VALUE_BYTES:
+        raise RuntimeError("source-navigation selection fields exceed the D1 row budget")
+    return tuple(compact_values), item_json
+
+
+def source_navigation_selection_properties(item: dict[str, Any]) -> dict[str, Any]:
+    """Keep only fields used to select source-navigation rows.
+
+    The complete properties object stays in the source JSON payload. These
+    hints let the edge filter dense text-packet carriers and determine Link
+    availability without storing a second copy of a potentially large object.
+    """
+    properties = item.get("properties")
+    if not isinstance(properties, dict):
+        return {}
+    return {
+        key: properties[key]
+        for key in ("packet_id", "access_status")
+        if key in properties
+    }
+
+
 def append_batched_inserts(
     writer: SqlStatementWriter,
     table: str,
@@ -725,12 +931,26 @@ class PostingStatsStore:
             self.path.unlink(missing_ok=True)
 
 
+class _StoreRows:
+    """Repeatable bounded row stream pinned to one immutable query snapshot."""
+
+    def __init__(self, store, table):
+        self.store, self.table = store, table
+
+    def __iter__(self):
+        return iter(self.store.rows(self.table, order="id"))
+
+    def __len__(self):
+        return self.store.count(self.table)
+
+
 def build_read_model_sql(
     core: ToSAccessCore,
     target: Path,
     revision: str,
     carrier_set: ProducerCarrierSet | None = None,
     *,
+    store=None,
     max_search_postings: int = SEARCH_READ_MODEL_MAX_POSTINGS,
     emit_delta_baseline: bool = True,
     max_lens_auxiliary_bytes: int = 1024**3,
@@ -740,7 +960,7 @@ def build_read_model_sql(
     # explicitly on every exit, including cancellation; never rely on GC.
     with ExitStack() as resources:
         return _build_read_model_sql(core, target, revision, carrier_set,
-            resources=resources, max_search_postings=max_search_postings,
+            resources=resources, store=store, max_search_postings=max_search_postings,
             emit_delta_baseline=emit_delta_baseline,
             max_lens_auxiliary_bytes=max_lens_auxiliary_bytes,
             max_lens_memberships=max_lens_memberships)
@@ -748,7 +968,7 @@ def build_read_model_sql(
 
 def _build_read_model_sql(
     core: ToSAccessCore, target: Path, revision: str,
-    carrier_set: ProducerCarrierSet | None, *, resources: ExitStack,
+    carrier_set: ProducerCarrierSet | None, *, resources: ExitStack, store,
     max_search_postings: int, emit_delta_baseline: bool,
     max_lens_auxiliary_bytes: int, max_lens_memberships: int,
 ) -> dict[str, Any]:
@@ -770,17 +990,40 @@ def _build_read_model_sql(
     # Capture/admit the complete pair before creating target-side SQL or row
     # index files.  A supplied set is the only route for external frozen
     # carriers; legacy callers retain the existing core discovery behavior.
-    carriers = ProducerCarrierSet.from_core(core) if carrier_set is None else carrier_set
-    if not isinstance(carriers, ProducerCarrierSet):
-        raise TypeError("carrier_set must be a ProducerCarrierSet")
-    carriers.validate()
-    philosophy = carriers.philosophy
-    corpus = carriers.corpus
-    knowledge = carriers.knowledge
-    knowledge_catalog = carriers.knowledge_catalog
-    evidence = carriers.evidence
-    audit = carriers.philosophy_audit
-    word_analysis_capability = carriers.word_analysis_capability
+    if store is not None and carrier_set is not None:
+        raise ValueError("select one compiled snapshot or one explicit producer carrier set")
+    if store is None:
+        carriers = ProducerCarrierSet.from_core(core) if carrier_set is None else carrier_set
+        if not isinstance(carriers, ProducerCarrierSet):
+            raise TypeError("carrier_set must be a ProducerCarrierSet")
+        carriers.validate()
+        philosophy = carriers.philosophy
+        corpus = carriers.corpus
+        knowledge = carriers.knowledge
+        knowledge_catalog = carriers.knowledge_catalog
+        evidence = carriers.evidence
+        audit = carriers.philosophy_audit
+        word_analysis_capability = carriers.word_analysis_capability
+        corpus_rows = lambda name: iter_objects(corpus.get(name))
+        navigation = corpus.get("source_navigation") or {}
+        navigation_header = {key: value for key, value in navigation.items()
+                             if key not in {"nodes", "edges", "rights"}}
+        navigation_rows = lambda name: iter_objects(navigation.get(name))
+    else:
+        philosophy = core.philosophy_projection()
+        corpus = dict(store.metadata.get("corpus_header") or {})
+        knowledge = dict(store.header)
+        knowledge_catalog = store.metadata["catalog"]
+        if knowledge_catalog.get("source_revision") != knowledge.get("source_revision"):
+            raise ValueError("producer graph/catalog source revisions do not match")
+        evidence = core.evidence_projection()
+        audit = core.philosophy_audit_payload() if core.philosophy_audit_exists() else {}
+        word_analysis_capability = core.zarathustra_word_analysis_public_capability()
+        corpus_rows = lambda name: store.raw(f"corpus/{name}")
+        navigation_header = source_navigation_top(store)
+        navigation_rows = lambda name: store.rows("source_" + name, order="id")
+    knowledge_nodes = _StoreRows(store, "knowledge_nodes") if store is not None else object_list(knowledge.get("nodes"))
+    knowledge_relations = _StoreRows(store, "knowledge_relations") if store is not None else object_list(knowledge.get("relations"))
     if word_analysis_capability.get("available") is True:
         raise RuntimeError(
             "the local Zarathustra word-analysis provider is available but has no Cloudflare edge adapter"
@@ -863,6 +1106,12 @@ def _build_read_model_sql(
         "DROP TABLE IF EXISTS knowledge_search_grams_next;",
         "DROP TABLE IF EXISTS knowledge_search_gram_stats_next;",
         "DROP TABLE IF EXISTS knowledge_lens_order_next;",
+        "DROP TABLE IF EXISTS source_navigation_nodes_next;",
+        "DROP TABLE IF EXISTS source_navigation_node_payload_next;",
+        "DROP TABLE IF EXISTS source_navigation_edges_next;",
+        "DROP TABLE IF EXISTS source_navigation_edge_payload_next;",
+        "DROP TABLE IF EXISTS source_navigation_rights_next;",
+        "DROP TABLE IF EXISTS source_navigation_rights_payload_next;",
         "CREATE TABLE edge_meta_next (key TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY (key, part));",
         "CREATE TABLE philosophy_nodes_next (id TEXT PRIMARY KEY, ord INTEGER NOT NULL, view_mask INTEGER NOT NULL, layer_mask INTEGER NOT NULL, json TEXT NOT NULL, search_text TEXT NOT NULL);",
         "CREATE TABLE philosophy_edges_next (id TEXT PRIMARY KEY, ord INTEGER NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, predicate_id TEXT NOT NULL, view_mask INTEGER NOT NULL, layer_mask INTEGER NOT NULL, json TEXT NOT NULL, search_text TEXT NOT NULL);",
@@ -880,6 +1129,12 @@ def _build_read_model_sql(
         "CREATE TABLE knowledge_search_grams_next (kind TEXT NOT NULL, n INTEGER NOT NULL, gram TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY (kind, n, gram, position));",
         "CREATE TABLE knowledge_search_gram_stats_next (kind TEXT NOT NULL, n INTEGER NOT NULL, gram TEXT NOT NULL, postings INTEGER NOT NULL, PRIMARY KEY (kind, n, gram));",
         "CREATE TABLE knowledge_lens_order_next (kind TEXT NOT NULL, id TEXT NOT NULL, sort_key TEXT NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, PRIMARY KEY (kind, id));",
+        "CREATE TABLE source_navigation_nodes_next (node_id TEXT PRIMARY KEY, ord INTEGER NOT NULL, node_kind TEXT NOT NULL, source_ref TEXT NOT NULL, label TEXT NOT NULL, identity_status TEXT NOT NULL, properties_json TEXT NOT NULL, json TEXT NOT NULL);",
+        "CREATE TABLE source_navigation_node_payload_next (id TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY (id, part));",
+        "CREATE TABLE source_navigation_edges_next (edge_id TEXT PRIMARY KEY, ord INTEGER NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, edge_kind TEXT NOT NULL, predicate_id TEXT NOT NULL, review_status TEXT NOT NULL, source_refs_json TEXT NOT NULL, json TEXT NOT NULL);",
+        "CREATE TABLE source_navigation_edge_payload_next (id TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY (id, part));",
+        "CREATE TABLE source_navigation_rights_next (rights_id TEXT PRIMARY KEY, ord INTEGER NOT NULL, scope_refs_json TEXT NOT NULL, json TEXT NOT NULL);",
+        "CREATE TABLE source_navigation_rights_payload_next (id TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY (id, part));",
     ))
     statements.extend(lens_auxiliary.staging_schema())
 
@@ -928,6 +1183,7 @@ def _build_read_model_sql(
         },
     }
     metadata.update(reader_metadata)
+    metadata["source_navigation_top"] = normalize_paths(navigation_header, REPO_ROOT)
     for key, value in metadata.items():
         for part, chunk in enumerate(chunk_text(compact_json(value))):
             statements.append(
@@ -1099,7 +1355,7 @@ def _build_read_model_sql(
 
     corpus_items_count = 0
     for collection in CORPUS_COLLECTIONS:
-        for order, item in enumerate(object_list(corpus.get(collection))):
+        for order, item in enumerate(corpus_rows(collection)):
             item_json = compact_json(normalize_paths(item, REPO_ROOT))
             columns = (
                 "collection",
@@ -1131,13 +1387,14 @@ def _build_read_model_sql(
 
     pack_paths = {
         str(pack.get("pack_id")): str(pack.get("path"))
-        for pack in object_list(corpus.get("relation_packs"))
+        for pack in corpus_rows("relation_packs")
         if isinstance(pack.get("pack_id"), str) and isinstance(pack.get("path"), str)
     }
-    corpus_edges = [
+    corpus_edges = (
         edge_with_corpus_source_ref(item, pack_paths)
-        for item in object_list(corpus.get("relation_edges"))
-    ]
+        for item in corpus_rows("relation_edges")
+    )
+    corpus_edges_count = 0
     for order, item in enumerate(corpus_edges):
         item_json = compact_json(normalize_paths(item, REPO_ROOT))
         columns = ("id", "ord", "from_id", "to_id", "pack_id", "owner_branch", "json")
@@ -1158,9 +1415,10 @@ def _build_read_model_sql(
             selector_sql=f"ord = {order}",
             chunked_text={"json": item_json},
         )
+        corpus_edges_count += 1
 
-    corpus_packs = object_list(corpus.get("relation_packs"))
-    for order, item in enumerate(corpus_packs):
+    corpus_packs_count = 0
+    for order, item in enumerate(corpus_rows("relation_packs")):
         item_id = str(item.get("pack_id") or "")
         item_json = compact_json(normalize_paths(item, REPO_ROOT))
         append_chunkable_insert(
@@ -1171,6 +1429,157 @@ def _build_read_model_sql(
             selector_sql=f"id = {sql_text(item_id)}",
             chunked_text={"json": item_json},
         )
+        corpus_packs_count += 1
+
+    source_navigation_nodes_count = 0
+    source_navigation_edges_count = 0
+    source_navigation_rights_count = 0
+    source_navigation_node_payload_chunks = 0
+    source_navigation_edge_payload_chunks = 0
+    source_navigation_rights_payload_chunks = 0
+    # Partitioned source navigation is too large for one static asset. It
+    # is emitted as bounded D1 rows; the full source record is chunked only
+    # when it would exceed D1's 2 MiB row limit.
+    for order, item in enumerate(navigation_rows("nodes")):
+        normalized = normalize_paths(item, REPO_ROOT)
+        item_json = compact_json(normalized)
+        properties_json = compact_json(source_navigation_selection_properties(normalized))
+        item_id = str(normalized.get("node_id") or "")
+        columns = (
+            "node_id",
+            "ord",
+            "node_kind",
+            "source_ref",
+            "label",
+            "identity_status",
+            "properties_json",
+            "json",
+        )
+        values = (
+            sql_text(item_id),
+            str(order),
+            sql_text(str(normalized.get("node_kind") or "")),
+            sql_text(str(normalized.get("source_ref") or "")),
+            sql_text(str(normalized.get("label") or "")),
+            sql_text(str(normalized.get("identity_status") or "")),
+            sql_text(properties_json),
+            sql_text(item_json),
+        )
+        row_values, payload_json = prepare_source_navigation_row(
+            values,
+            item_json,
+            json_position=7,
+            properties_position=6,
+        )
+        if payload_json is not None:
+            statements.append(sql_insert("source_navigation_nodes_next", columns, row_values))
+            source_navigation_node_payload_chunks += append_payload_chunks(
+                statements,
+                "source_navigation_node_payload_next",
+                item_id,
+                payload_json,
+            )
+        else:
+            append_chunkable_insert(
+                statements,
+                "source_navigation_nodes_next",
+                columns,
+                row_values,
+                selector_sql=f"node_id = {sql_text(item_id)}",
+                chunked_text={"properties_json": properties_json, "json": item_json},
+            )
+        source_navigation_nodes_count += 1
+
+    for order, item in enumerate(navigation_rows("edges")):
+        normalized = normalize_paths(item, REPO_ROOT)
+        item_json = compact_json(normalized)
+        source_refs = normalized.get("source_refs")
+        source_refs_json = compact_json(source_refs if isinstance(source_refs, list) else [])
+        item_id = str(normalized.get("edge_id") or "")
+        columns = (
+            "edge_id",
+            "ord",
+            "from_id",
+            "to_id",
+            "edge_kind",
+            "predicate_id",
+            "review_status",
+            "source_refs_json",
+            "json",
+        )
+        values = (
+            sql_text(item_id),
+            str(order),
+            sql_text(str(normalized.get("from_id") or "")),
+            sql_text(str(normalized.get("to_id") or "")),
+            sql_text(str(normalized.get("edge_kind") or "")),
+            sql_text(str(normalized.get("predicate_id") or "")),
+            sql_text(str(normalized.get("review_status") or "")),
+            sql_text(source_refs_json),
+            sql_text(item_json),
+        )
+        row_values, payload_json = prepare_source_navigation_row(
+            values,
+            item_json,
+            json_position=8,
+            properties_position=7,
+        )
+        if payload_json is not None:
+            statements.append(sql_insert("source_navigation_edges_next", columns, row_values))
+            source_navigation_edge_payload_chunks += append_payload_chunks(
+                statements,
+                "source_navigation_edge_payload_next",
+                item_id,
+                payload_json,
+            )
+        else:
+            append_chunkable_insert(
+                statements,
+                "source_navigation_edges_next",
+                columns,
+                row_values,
+                selector_sql=f"edge_id = {sql_text(item_id)}",
+                chunked_text={"source_refs_json": source_refs_json, "json": item_json},
+            )
+        source_navigation_edges_count += 1
+
+    for order, item in enumerate(navigation_rows("rights")):
+        normalized = normalize_paths(item, REPO_ROOT)
+        item_json = compact_json(normalized)
+        scope_refs = normalized.get("scope_refs")
+        scope_refs_json = compact_json(scope_refs if isinstance(scope_refs, list) else [])
+        item_id = str(normalized.get("rights_id") or "")
+        columns = ("rights_id", "ord", "scope_refs_json", "json")
+        values = (
+            sql_text(item_id),
+            str(order),
+            sql_text(scope_refs_json),
+            sql_text(item_json),
+        )
+        row_values, payload_json = prepare_source_navigation_row(
+            values,
+            item_json,
+            json_position=3,
+            properties_position=2,
+        )
+        if payload_json is not None:
+            statements.append(sql_insert("source_navigation_rights_next", columns, row_values))
+            source_navigation_rights_payload_chunks += append_payload_chunks(
+                statements,
+                "source_navigation_rights_payload_next",
+                item_id,
+                payload_json,
+            )
+        else:
+            append_chunkable_insert(
+                statements,
+                "source_navigation_rights_next",
+                columns,
+                row_values,
+                selector_sql=f"rights_id = {sql_text(item_id)}",
+                chunked_text={"scope_refs_json": scope_refs_json, "json": item_json},
+            )
+        source_navigation_rights_count += 1
 
     auxiliary_bytes = compact_rows = membership_rows = 0
 
@@ -1194,7 +1603,6 @@ def _build_read_model_sql(
                 append_batched_inserts(statements, table + '_next', lens_auxiliary.COLUMNS[table],
                                        (tuple(sql_text(value) for value in row) for row in rows))
 
-    knowledge_nodes = object_list(knowledge.get("nodes"))
     for item in knowledge_nodes:
         normalized = normalize_paths(item, REPO_ROOT)
         item_json = compact_json(normalized)
@@ -1217,6 +1625,7 @@ def _build_read_model_sql(
             sql_text(search_text),
             sql_text(item_json),
         )
+        values = prepare_native_knowledge_row(statements, 'node', columns, values, item_json, search_text)
         append_chunkable_insert(
             statements,
             "knowledge_nodes_next",
@@ -1225,8 +1634,8 @@ def _build_read_model_sql(
             selector_sql=f"id = {sql_text(item_id)}",
             chunked_text={
                 "summary_text": summary_text,
-                "search_text": search_text,
-                "json": item_json,
+                "search_text": search_text if values[-1] != sql_text('') else '',
+                "json": item_json if values[-1] != sql_text('') else '',
             },
         )
         emit_lens_auxiliary('node', item_id, item_json)
@@ -1240,7 +1649,6 @@ def _build_read_model_sql(
                 )
             )
 
-    knowledge_relations = object_list(knowledge.get("relations"))
     for item in knowledge_relations:
         normalized = normalize_paths(item, REPO_ROOT)
         item_json = compact_json(normalized)
@@ -1264,6 +1672,7 @@ def _build_read_model_sql(
             sql_text(search_text),
             sql_text(item_json),
         )
+        values = prepare_native_knowledge_row(statements, 'relation', columns, values, item_json, search_text)
         append_chunkable_insert(
             statements,
             "knowledge_relations_next",
@@ -1272,8 +1681,8 @@ def _build_read_model_sql(
             selector_sql=f"id = {sql_text(item_id)}",
             chunked_text={
                 "explanation_text": explanation_text,
-                "search_text": search_text,
-                "json": item_json,
+                "search_text": search_text if values[-1] != sql_text('') else '',
+                "json": item_json if values[-1] != sql_text('') else '',
             },
         )
         emit_lens_auxiliary('relation', item_id, item_json)
@@ -1375,6 +1784,12 @@ def _build_read_model_sql(
         "knowledge_search_gram_stats",
         "knowledge_lens_order",
         *lens_auxiliary.STORES,
+        "source_navigation_nodes",
+        "source_navigation_node_payload",
+        "source_navigation_edges",
+        "source_navigation_edge_payload",
+        "source_navigation_rights",
+        "source_navigation_rights_payload",
     ):
         statements.append(f"DROP TABLE IF EXISTS {table};")
         statements.append(f"ALTER TABLE {table}_next RENAME TO {table};")
@@ -1406,6 +1821,16 @@ def _build_read_model_sql(
             "CREATE INDEX knowledge_lens_order_from ON knowledge_lens_order(kind,from_id,sort_key,id);",
             "CREATE INDEX knowledge_lens_order_to ON knowledge_lens_order(kind,to_id,sort_key,id);",
             "CREATE INDEX knowledge_lens_order_pair ON knowledge_lens_order(kind,from_id,to_id,id);",
+            "CREATE INDEX source_navigation_nodes_kind_idx ON source_navigation_nodes(node_kind);",
+            "CREATE INDEX source_navigation_nodes_packet_idx ON source_navigation_nodes(json_extract(properties_json, '$.packet_id'));",
+            # Source routes use (endpoint, stable-id) keyset seeks.  The
+            # composite indexes keep later pages bounded even for a dense
+            # source node; endpoint-only indexes would rescan and resort the
+            # whole high-degree adjacency list on every request page.
+            "CREATE INDEX source_navigation_edges_from_seek_idx ON source_navigation_edges(from_id, edge_id);",
+            "CREATE INDEX source_navigation_edges_to_seek_idx ON source_navigation_edges(to_id, edge_id);",
+            "CREATE INDEX source_navigation_edges_predicate_idx ON source_navigation_edges(predicate_id);",
+            "CREATE INDEX source_navigation_rights_scope_idx ON source_navigation_rights(scope_refs_json);",
             "PRAGMA optimize;",
         )
     )
@@ -1430,8 +1855,8 @@ def _build_read_model_sql(
         "philosophy_cluster_node_memberships": cluster_node_memberships,
         "philosophy_cluster_edge_memberships": cluster_edge_memberships,
         "corpus_items": corpus_items_count,
-        "corpus_edges": len(corpus_edges),
-        "corpus_packs": len(corpus_packs),
+        "corpus_edges": corpus_edges_count,
+        "corpus_packs": corpus_packs_count,
         "knowledge_nodes": len(knowledge_nodes),
         "knowledge_relations": len(knowledge_relations),
         "knowledge_search_postings": search_posting_count,
@@ -1440,18 +1865,34 @@ def _build_read_model_sql(
         "knowledge_lens_memberships": membership_rows,
         "knowledge_lens_auxiliary_bytes": auxiliary_bytes,
         "auxiliary_migration": auxiliary_migration,
+        "source_navigation_nodes": source_navigation_nodes_count,
+        "source_navigation_node_payload_chunks": source_navigation_node_payload_chunks,
+        "source_navigation_edges": source_navigation_edges_count,
+        "source_navigation_edge_payload_chunks": source_navigation_edge_payload_chunks,
+        "source_navigation_rights": source_navigation_rights_count,
+        "source_navigation_rights_payload_chunks": source_navigation_rights_payload_chunks,
         "sql_statements": statements.count,
         "delta": delta.summary() if delta is not None else None,
     }
 
 
-def data_revision(core: ToSAccessCore, carrier_set: ProducerCarrierSet | None = None) -> str:
+def data_revision(core: ToSAccessCore, carrier_set: ProducerCarrierSet | None = None, *, store=None) -> str:
     digest = hashlib.sha256()
     digest.update(READ_MODEL_SCHEMA_VERSION.encode("utf-8"))
     digest.update(READ_MODEL_CONTENT_VERSION.encode("utf-8"))
     digest.update(SEARCH_READ_MODEL_SCHEMA_VERSION.encode("utf-8"))
     digest.update(b"\0")
-    if carrier_set is None:
+    if store is not None and carrier_set is not None:
+        raise ValueError("select one compiled snapshot or one explicit producer carrier set")
+    if store is not None:
+        knowledge = dict(store.header)
+        knowledge_catalog = store.metadata["catalog"]
+        capability = core.zarathustra_word_analysis_public_capability()
+        carrier_paths = _legacy_carrier_paths(core)
+        logical_bindings = ()
+        digest.update(str(store.revision).encode("utf-8"))
+        digest.update(b"\0")
+    elif carrier_set is None:
         knowledge_snapshot = core.knowledge_snapshot()
         knowledge = knowledge_snapshot["graph"]
         knowledge_catalog = knowledge_snapshot["catalog"]
@@ -1491,8 +1932,7 @@ def data_revision(core: ToSAccessCore, carrier_set: ProducerCarrierSet | None = 
     # Keep this compact graph header in the revision so metadata-only changes
     # cannot leave an older reader header deployed when row bytes are stable.
     reader_graph = {
-        key: knowledge.get(key)
-        for key in ("schema", "source_revision", "normalization_binding", "authority_boundary")
+        key: value for key, value in knowledge.items() if key not in {"nodes", "relations"}
     }
     digest.update(compact_json(normalize_paths(reader_graph, REPO_ROOT)).encode("utf-8"))
     digest.update(b"\0")
@@ -1514,7 +1954,9 @@ def data_revision(core: ToSAccessCore, carrier_set: ProducerCarrierSet | None = 
         digest.update(label.encode("utf-8"))
         digest.update(b"\0")
         if path.is_file():
-            digest.update(path.read_bytes())
+            with path.open("rb") as stream:
+                for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                    digest.update(chunk)
         digest.update(b"\0")
     return digest.hexdigest()
 
@@ -1541,7 +1983,7 @@ def build_inputs(core: ToSAccessCore) -> dict:
     Directory membership catches additions and removals as well as byte changes.
     """
     paths = {str(path.resolve()): path for path in (
-        core.index_path, core.philosophy_graph_projection_path, core.bibliographic_graph_path,
+        *projection_closure_paths(core), core.philosophy_graph_projection_path,
         core.entity_type_registry_path, core.relation_type_registry_path,
         core.evidence_projection_path, core.philosophy_post_planting_audit_path,
         *(core.tos_root / path for path in KNOWLEDGE_CONTRACT_RELATIVE_PATHS.values()),
@@ -1560,14 +2002,51 @@ def build_inputs(core: ToSAccessCore) -> dict:
 
 
 def build(core: ToSAccessCore, output: Path, runtime: Path, *, cache_options=None) -> dict:
+    """Build under the runtime lock without leaking a temporary store path."""
+    previous_query_store_path = os.environ.get("TOS_QUERY_STORE_PATH")
+    try:
+        return _build(core, output, runtime, cache_options=cache_options)
+    finally:
+        if previous_query_store_path is None:
+            os.environ.pop("TOS_QUERY_STORE_PATH", None)
+        else:
+            os.environ["TOS_QUERY_STORE_PATH"] = previous_query_store_path
+
+
+def _build(core: ToSAccessCore, output: Path, runtime: Path, *, cache_options=None) -> dict:
     """Called under the runtime lock; completion manifests are written last."""
     stages = BuildStages(runtime / 'build-stages.json')
     processing = None
     normalization = None
+    store = None
+
+    def ensure_query_store():
+        nonlocal store
+        if store is None:
+            store = query_store_for_build(core, runtime)
+        return store
 
     def prepare_graph():
         nonlocal processing, normalization
         if processing is None:
+            active_store = ensure_query_store()
+            if active_store is not None:
+                # Partitioned sources are assembled once by the explicit
+                # offline compiler.  Re-entering core.knowledge_graph here
+                # would defeat the bounded source path and duplicate work.
+                processing = {
+                    'status': 'not-run',
+                    'reason': 'partitioned-query-store-compiler-owned',
+                    'executed': 0,
+                    'reused': 0,
+                    'is_semantic_acceptance': False,
+                }
+                normalization = {
+                    'reused_steps': 0,
+                    'computed_steps': 0,
+                    'reason': 'offline-query-store-compiler-owned',
+                }
+                return
             # The process-local input cache is keyed by the complete source
             # state, so embedded builders reread bytes after a content-based
             # invalidation even when an editor preserved file size and mtime;
@@ -1588,14 +2067,19 @@ def build(core: ToSAccessCore, output: Path, runtime: Path, *, cache_options=Non
 
     def sql_stage():
         prepare_graph()
-        revision = data_revision(core)
-        counts = build_read_model_sql(core, runtime / 'read-model.sql', revision)
+        revision = data_revision(core, store=store)
+        if store is None:
+            counts = build_read_model_sql(core, runtime / 'read-model.sql', revision)
+        else:
+            counts = build_read_model_sql(core, runtime / 'read-model.sql', revision, store=store)
         return {'data_revision': revision, 'counts': counts,
                 'processing': processing, 'normalization_cache': normalization}
 
     def static_stage():
         prepare_graph()
-        return build_static_assets(core, output)
+        if store is None:
+            return build_static_assets(core, output)
+        return build_static_assets(core, output, store=store)
 
     # These are exact generated completion markers, not source or cache history.
     # A partial/failed build cannot be deployed using a previous success manifest.
@@ -1621,15 +2105,15 @@ def build(core: ToSAccessCore, output: Path, runtime: Path, *, cache_options=Non
         "build_stages": stages.report,
         "source_owner": "Tree-of-Sophia",
         "source_paths": [
-            core.index_path.relative_to(REPO_ROOT).as_posix(),
-            core.philosophy_graph_projection_path.relative_to(REPO_ROOT).as_posix(),
-            core.bibliographic_graph_path.relative_to(REPO_ROOT).as_posix(),
-            core.entity_type_registry_path.relative_to(REPO_ROOT).as_posix(),
-            core.relation_type_registry_path.relative_to(REPO_ROOT).as_posix(),
-            core.evidence_projection_path.relative_to(REPO_ROOT).as_posix(),
-            core.philosophy_post_planting_audit_path.relative_to(REPO_ROOT).as_posix(),
+            core.index_path.relative_to(core.tos_root).as_posix(),
+            core.philosophy_graph_projection_path.relative_to(core.tos_root).as_posix(),
+            core.bibliographic_graph_path.relative_to(core.tos_root).as_posix(),
+            core.entity_type_registry_path.relative_to(core.tos_root).as_posix(),
+            core.relation_type_registry_path.relative_to(core.tos_root).as_posix(),
+            core.evidence_projection_path.relative_to(core.tos_root).as_posix(),
+            core.philosophy_post_planting_audit_path.relative_to(core.tos_root).as_posix(),
             *[
-                path.relative_to(REPO_ROOT).as_posix()
+                path.relative_to(core.tos_root).as_posix()
                 for path in sorted((core.tos_root / "ToS/source-witnesses/access-requests/public-ledger").glob("*.access-request.json"))
             ],
         ],
@@ -1644,10 +2128,14 @@ def build(core: ToSAccessCore, output: Path, runtime: Path, *, cache_options=Non
             "access/src/tos_access/published_read_model.py",
             "access/src/tos_access/knowledge.py",
             "access/src/tos_access/human_form_codec.py",
+            "access/src/tos_access/knowledge_compile.py",
             "access/src/tos_access/normalization_cache.py",
             "access/src/tos_access/published_read_metadata.py",
             "access/src/tos_access/processing.py",
             "access/src/tos_access/search_read_model.py",
+            "access/src/tos_access/projection_store.py",
+            "access/src/tos_access/query_store.py",
+            "access/src/tos_access/disk_collections.py",
         ],
         "contract_refs": [
             "access/contracts/knowledge-api.v1.json",

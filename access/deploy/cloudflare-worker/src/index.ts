@@ -27,7 +27,8 @@ import {
   knowledgeCatalogD1,
   storedKnowledgeLensD1,
 } from "./knowledge-store";
-import { SourceNavigationError, sourceDescend, sourceDossier } from "./source-navigation";
+import { SourceNavigationError } from "./source-navigation";
+import { sourceDescendD1, sourceDossierD1 } from "./source-navigation-store";
 import { metaItem } from "./store";
 import { KnowledgeRevisionConflict } from "./lens-pagination";
 import { exploreD1, explorationCapabilitiesD1 } from "./exploration";
@@ -89,10 +90,6 @@ async function sourceGapResponse(request: Request, env: Env, search: URLSearchPa
   const all = Array.isArray(packet.gaps) ? packet.gaps as Array<Record<string, unknown>> : [];
   const gaps = all.filter((gap) => !needle || JSON.stringify(gap).toLocaleLowerCase().includes(needle)).slice(0, limit);
   return jsonResponse({ ...packet, query, result_count: gaps.length, gaps }, 200, request.method);
-}
-
-async function sourceNavigationPayload(request: Request, env: Env): Promise<Item> {
-  return staticItem(env, request, "source-navigation/all.json");
 }
 
 async function lensCompileResponse(request: Request, env: Env, operation: 'lens' | 'exploration' | 'temporal' = 'lens'): Promise<Response> {
@@ -196,8 +193,8 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   const sourceNavigationPrefix = "/api/source/navigation/";
   if (path.startsWith(sourceNavigationPrefix)) {
     return jsonResponse(
-      sourceDescend(
-        await sourceNavigationPayload(request, env),
+      await sourceDescendD1(
+        env.DB,
         segment(path, sourceNavigationPrefix),
         boundedInt(search.get("max_depth"), 8, 1, 8),
         boundedInt(search.get("limit"), 300, 1, 300),
@@ -209,8 +206,8 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   const sourceDossierPrefix = "/api/source/dossiers/";
   if (path.startsWith(sourceDossierPrefix)) {
     return jsonResponse(
-      sourceDossier(
-        await sourceNavigationPayload(request, env),
+      await sourceDossierD1(
+        env.DB,
         segment(path, sourceDossierPrefix),
         boundedInt(search.get("limit"), 300, 1, 300),
       ),
@@ -305,6 +302,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
     const lensId = segment(path, knowledgeLensPrefix);
     return nativeLensResponse(await storedKnowledgeLensD1(env.DB, lensId), 200, method);
   }
+
 
   if (path === "/api/philosophy/review-packet") {
     const viewId = (search.get("view_id") || "chronology").trim();

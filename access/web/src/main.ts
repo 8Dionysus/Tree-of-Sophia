@@ -2192,7 +2192,7 @@ function renderInspector(): void {
       if (inspectorSelectionAllowed()) selectItem(state.results[Number(button.dataset.result)]);
     });
   });
-  byId("knowledge-search-more")?.addEventListener("click", () => {
+  document.getElementById("knowledge-search-more")?.addEventListener("click", () => {
     const cursor = state.knowledgeSearchNextCursor;
     if (!cursor || !state.knowledgeSearchQuery) return;
     invokePageCommandFromUi("tos.page.knowledge-search", { query: state.knowledgeSearchQuery, cursor });

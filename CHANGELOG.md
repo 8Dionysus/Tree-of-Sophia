@@ -9,6 +9,17 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Changed
 
+- Separates standalone software build, tests, packaging and merge from corpus
+  admission, full data snapshots, KAG currentness and stats federation under
+  TOS-D-0062. Required Repo Validation builds and installs a software-only
+  archive and tests program behavior against bounded fixtures. Public
+  site/Worker/D1 activation remains deferred.
+
+- Delivers the integrated knowledge reader, browser and Worker contracts
+  independently of the pending bulk corpus migration. Data selection is
+  explicit; selected data cannot override program schemas or web assets.
+  Browser build output is no longer committed to Git.
+
 - Runs the root validation collection once through pytest, retaining all
   `unittest.TestCase` coverage while including the eight top-level pytest
   regressions previously omitted by unittest discovery; the same route emits

@@ -14,6 +14,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'deploy/cloudflare-worker/scripts'))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from incremental_runtime import (
     DiskRowBaseline,
     DiskRowIndex,
@@ -371,6 +372,55 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 finally:
                     captured.knowledge_catalog["source_revision"] = mismatch
 
+    def test_explicit_producer_carriers_reject_one_shot_collections_before_sql(self):
+        import build_runtime as builder
+        from test_prepared_publication import fixture as publication_fixture
+
+        graph, catalog = publication_fixture()
+        packs = [{'pack_id': 'fixture-pack', 'path': 'ToS/fixture/edges.csv'}]
+        edges = [{'edge_id': 'fixture-edge', 'pack_id': 'fixture-pack',
+                  'from_id': 'a', 'to_id': 'b'}]
+        base = {
+            'philosophy': {}, 'evidence': {}, 'philosophy_audit': {},
+            'word_analysis_capability': {'available': False}, 'carrier_paths': {},
+            'logical_bindings': {'source_revision': graph['source_revision']},
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cases = (
+                ('relation-packs',
+                 {**graph},
+                 {'relation_packs': (item for item in packs), 'relation_edges': edges}),
+                ('knowledge-nodes',
+                 {**graph, 'nodes': (item for item in graph['nodes'])},
+                 {'relation_packs': packs, 'relation_edges': edges}),
+            )
+            for name, bad_graph, bad_corpus in cases:
+                target = root / name / 'read-model.sql'
+                with self.subTest(case=name), self.assertRaisesRegex(ValueError, r'producer .*list'):
+                    carriers = builder.ProducerCarrierSet.admit(
+                        corpus=bad_corpus, knowledge=bad_graph, knowledge_catalog=catalog, **base
+                    )
+                    builder.build_read_model_sql(
+                        None, target, 'c' * 64, carriers, emit_delta_baseline=False
+                    )
+                self.assertFalse(target.exists())
+
+            valid = builder.ProducerCarrierSet.admit(
+                corpus={'relation_packs': packs, 'relation_edges': edges},
+                knowledge=graph, knowledge_catalog=catalog, **base
+            )
+            target = root / 'valid' / 'read-model.sql'
+            result = builder.build_read_model_sql(
+                None, target, 'c' * 64, valid, emit_delta_baseline=False
+            )
+            self.assertEqual(result['corpus_packs'], 1)
+            self.assertEqual(result['corpus_edges'], 1)
+            with closing(sqlite3.connect(':memory:')) as database:
+                database.executescript(target.read_text(encoding='utf-8'))
+                self.assertEqual(database.execute('SELECT count(*) FROM corpus_packs').fetchone()[0], 1)
+                self.assertEqual(database.execute('SELECT count(*) FROM corpus_edges').fetchone()[0], 1)
+
     def test_cache_budget_cli_and_real_builder_admission(self):
         import build_runtime as builder
         from test_access_contract import write_fixture
@@ -444,6 +494,12 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 self.assertNotEqual(builder.build_inputs(core),before)
 
     def test_real_builder_search_delta_add_edit_delete_replay_and_stale_guard(self):
+        self._check_builder_search_delta(overflow=False)
+
+    def test_native_overflow_joins_atomic_delta_replay_and_full_equivalence(self):
+        self._check_builder_search_delta(overflow=True)
+
+    def _check_builder_search_delta(self, *, overflow):
         import copy
         import build_runtime as builder
         import lens_auxiliary_runtime as auxiliary
@@ -474,6 +530,10 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 projected = []
                 for kind in ('node', 'relation'):
                     for identifier, raw in database.execute(f'SELECT id,json FROM knowledge_{kind}s'):
+                        if raw == '':
+                            raw = ''.join(row[0] for row in database.execute(
+                                'SELECT json_chunk FROM edge_meta WHERE key=? ORDER BY part',
+                                (f'knowledge_{kind}_payload:{identifier}',)))
                         projected.extend(auxiliary.projected_rows(table, kind, identifier, raw))
                 self.assertEqual(sorted(snapshot[table]), sorted(projected))
             return snapshot
@@ -502,6 +562,8 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 graph_v2 = copy.deepcopy(graph_v1)
                 graph_v2['source_revision'] = 'b' * 64
                 graph_v2['nodes'][0]['display']['title']['default'] = 'Edited fixture node'
+                if overflow:
+                    graph_v2['nodes'][0]['attributes']['overflow_probe'] = 'payload seam-' + 'x' * 2_100_000
                 deleted_id = graph_v2['nodes'][1]['id']
                 graph_v2['nodes'] = [graph_v2['nodes'][0], graph_v2['nodes'][2]]
                 added = copy.deepcopy(graph_v1['nodes'][1])
@@ -583,6 +645,13 @@ class IncrementalRuntimeTests(unittest.TestCase):
                     edited_json = database.execute(
                         "SELECT json FROM knowledge_nodes WHERE id=?", (graph_v2["nodes"][0]["id"],)
                     ).fetchone()[0]
+                    if overflow:
+                        self.assertEqual(edited_json, '')
+                        edited_json = ''.join(row[0] for row in database.execute(
+                            'SELECT json_chunk FROM edge_meta WHERE key=? ORDER BY part',
+                            (f"knowledge_node_payload:{graph_v2['nodes'][0]['id']}",)))
+                        self.assertEqual(json.loads(edited_json)['attributes']['overflow_probe'],
+                                         graph_v2['nodes'][0]['attributes']['overflow_probe'])
                     self.assertNotEqual(
                         hashlib.sha256(edited_json.encode("utf-8")).hexdigest(),
                         node_digest["sha256"],
@@ -624,6 +693,96 @@ class IncrementalRuntimeTests(unittest.TestCase):
                         database.execute("SELECT json_chunk FROM edge_meta WHERE key='data_revision' AND part=0").fetchone()[0],
                         json.dumps({'sha256': 'f' * 64}),
                     )
+
+
+    def test_partitioned_worker_emits_source_navigation_tables_and_chunks_large_rows(self):
+        import build_runtime as builder
+        from test_access_contract import write_fixture
+        from scripts.partitioned_projection_common import write_partitioned_payload
+        from tos_access.core import ToSAccessCore
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture(root)
+            philosophy = root / 'ToS/derived-exports/philosophy_graph_projection.min.json'
+            philosophy_payload = json.loads(philosophy.read_text())
+            philosophy_payload['review_packets'].append({'view_id': 'direct-only', 'unresolved_diagnostics': []})
+            philosophy.write_text(json.dumps(philosophy_payload))
+
+            index = root / 'ToS/derived-exports/tos_corpus_index.min.json'
+            index_payload = json.loads(index.read_text())
+            large_note = 'needle-' + ('x' * 2_100_000)
+            index_payload['source_navigation']['nodes'][1]['properties']['large_note'] = large_note
+            write_partitioned_payload(index, index_payload)
+
+            bibliography = root / 'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json'
+            bibliography_payload = json.loads(bibliography.read_text())
+            bibliography_payload['input_digests'] = {}
+            write_partitioned_payload(bibliography, bibliography_payload)
+            (root / 'access/web/dist/index.html').write_text(
+                '<script src="/static/assets/tos-graph.js"></script>'
+            )
+
+            core = ToSAccessCore.discover(root)
+            with patch.object(builder, 'REPO_ROOT', root):
+                manifest = builder.build(core, root / 'dist', root / 'runtime')
+
+            self.assertEqual(manifest['read_model_schema'], 'tos_cloudflare_edge_read_model_v9')
+            self.assertFalse((root / 'dist/__edge/source-navigation/all.json').exists())
+            self.assertEqual(manifest['counts']['source_navigation_nodes'], 7)
+            self.assertGreater(manifest['counts']['source_navigation_node_payload_chunks'], 0)
+
+            with closing(sqlite3.connect(':memory:')) as database:
+                database.executescript((root / 'runtime/read-model.sql').read_text())
+                self.assertEqual(
+                    database.execute('SELECT count(*) FROM source_navigation_nodes').fetchone()[0],
+                    7,
+                )
+                self.assertEqual(
+                    database.execute('SELECT count(*) FROM source_navigation_edges').fetchone()[0],
+                    6,
+                )
+                properties, inline_json = database.execute(
+                    "SELECT properties_json, json FROM source_navigation_nodes WHERE node_id='tos.work.fixture'"
+                ).fetchone()
+                self.assertEqual(json.loads(properties), {})
+                self.assertEqual(inline_json, '')
+                payload = ''.join(
+                    row[0]
+                    for row in database.execute(
+                        "SELECT json_chunk FROM source_navigation_node_payload "
+                        "WHERE id='tos.work.fixture' ORDER BY part"
+                    )
+                )
+                self.assertEqual(json.loads(payload)['properties']['large_note'], large_note)
+                # The shared knowledge projection must retain the same full
+                # source value, even though native request budgets may refuse
+                # its delivery. Overflow is not a lossy replacement object.
+                identifier, inline = database.execute(
+                    "SELECT id,json FROM knowledge_nodes WHERE native_id='tos.work.fixture' "
+                    "AND source_graph='source-navigation'"
+                ).fetchone()
+                self.assertEqual(inline, '')
+                retained = ''.join(row[0] for row in database.execute(
+                    'SELECT json_chunk FROM edge_meta WHERE key=? ORDER BY part',
+                    ('knowledge_node_payload:' + identifier,)))
+                self.assertEqual(json.loads(retained)['attributes']['large_note'], large_note)
+                digest = json.loads(database.execute(
+                    'SELECT json_chunk FROM edge_meta WHERE key=? AND part=0',
+                    ('knowledge_node_digest:' + identifier,)).fetchone()[0])
+                self.assertEqual(digest, {'sha256': hashlib.sha256(retained.encode()).hexdigest()})
+                search_fragments = [row[0] for row in database.execute(
+                    'SELECT json_chunk FROM edge_meta WHERE key=? ORDER BY part',
+                    ('knowledge_node_search:' + identifier,))]
+                self.assertTrue(any('needle-' in chunk for chunk in search_fragments))
+                self.assertTrue(all(len(chunk.encode()) < 100_000 for chunk in search_fragments))
+                top = json.loads(
+                    database.execute(
+                        "SELECT group_concat(json_chunk, '') FROM edge_meta WHERE key='source_navigation_top'"
+                    ).fetchone()[0]
+                )
+                self.assertEqual(top['schema_version'], 'tos_source_navigation_v1')
+
 
     def test_build_stage_restart_integrity_inputs_and_lock(self):
         from build_stages import BuildStages, build_lock, fingerprint, tree_paths

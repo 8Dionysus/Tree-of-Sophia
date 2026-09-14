@@ -1,0 +1,2590 @@
+{
+  "nodes": [
+    {
+      "node_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "node_kind": "claim",
+      "properties": {
+        "assertion_layer": "bibliographic_assertion",
+        "claim_id": "tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+        "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+        "claim_type": "bibliographic",
+        "claim_version": 1,
+        "confidence": null,
+        "epistemic_status": "observed",
+        "evidence_refs": [
+          "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/resource-inventory.json",
+          "ToS/source-witnesses/discovery/runs/nani-1899-parallel-fragment-source-witness.2026-08-01.v1.json",
+          "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md"
+        ],
+        "maker": {
+          "agent_ref": "model:codex",
+          "maker_type": "model"
+        },
+        "navigation_descriptor": {
+          "claim": {
+            "id": "tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+            "sha256": "82a46a348882fb658f1be3cb9f3be3a5282d8d7b8080cb195e86a78c761dfa4c",
+            "version": 1
+          },
+          "object": {
+            "identity_ref": "tos.agent.s-p-nani",
+            "label": "С. П. Нани",
+            "label_pointer": "/preferred_label",
+            "node_id": "identity:tos.agent.s-p-nani",
+            "record_version": 1,
+            "sha256": "6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+            "source_ref": "ToS/source-witnesses/agents/s-p-nani/agent.json"
+          },
+          "predicate": {
+            "id": "translated_by",
+            "mapping_sha256": "e2b6a44b6a0760db3713e48298f6d96c07531974ec4cb8833faa5512d9688a79",
+            "relation_type_id": "tos.relation.translated-by",
+            "sha256": "a4203576d45ae5a8d1938bd63b1be93c7e7036eb21e3882a6717f71b6e27ef5a"
+          },
+          "purpose": "claim-navigation-only",
+          "reason": null,
+          "schema_version": "tos_claim_navigation_descriptor_v1",
+          "standalone": false,
+          "state": "ready",
+          "statuses": {
+            "epistemic_status": {
+              "present": true,
+              "value": "observed"
+            },
+            "review_status": {
+              "present": true,
+              "value": "unreviewed"
+            }
+          },
+          "subject": {
+            "identity_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+            "label": "Такъ говорилъ Заратустра — девять русских отрывков в переводе С. П. Нани, 1899",
+            "label_pointer": "/preferred_label",
+            "node_id": "identity:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+            "record_version": 1,
+            "sha256": "927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+            "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.json"
+          },
+          "template": {
+            "id": "tos.navigation-template.claim-reference",
+            "sha256": "75bd37e91014d5d1289382a42f9beaae9fd36f51155f4e79d0147c03694dba98",
+            "version": 1
+          },
+          "title": {
+            "default": "Запись утверждения · связь: переведено [обозначено как наблюдение; исходная запись не оценена] · субъект: Такъ говорилъ Заратустра — девять русских отрывков в переводе С. П. Нани, 1899 · объект: С. П. Нани",
+            "en": "Claim record · relation: translated by [declared observation; source record unreviewed] · subject: Такъ говорилъ Заратустра — девять русских отрывков в переводе С. П. Нани, 1899 · object: С. П. Нани",
+            "ru": "Запись утверждения · связь: переведено [обозначено как наблюдение; исходная запись не оценена] · субъект: Такъ говорилъ Заратустра — девять русских отрывков в переводе С. П. Нани, 1899 · объект: С. П. Нани"
+          }
+        },
+        "object": "tos.agent.s-p-nani",
+        "predicate": "translated_by",
+        "provenance_event_ref": "tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+        "qualifiers": null,
+        "review_status": "unreviewed",
+        "reviews": [],
+        "schema_version": "tos_claim_packet_v1",
+        "source_claim": {
+          "assertion_layer": "bibliographic_assertion",
+          "claim_id": "tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+          "claim_type": "bibliographic",
+          "claim_version": 1,
+          "epistemic_status": "observed",
+          "evidence_refs": [
+            "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/resource-inventory.json",
+            "ToS/source-witnesses/discovery/runs/nani-1899-parallel-fragment-source-witness.2026-08-01.v1.json",
+            "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md"
+          ],
+          "maker": {
+            "agent_ref": "model:codex",
+            "maker_type": "model"
+          },
+          "object": "tos.agent.s-p-nani",
+          "predicate": "translated_by",
+          "provenance_event_ref": "tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+          "review_status": "unreviewed",
+          "reviews": [],
+          "schema_version": "tos_claim_packet_v1",
+          "subject_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+          "supersedes_claim_ref": null,
+          "visibility": "public_metadata_only"
+        },
+        "subject_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+        "supersedes_claim_ref": null,
+        "visibility": "public_metadata_only"
+      },
+      "source_line": 1,
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/responsibility-claims.jsonl",
+      "source_sha256": "82a46a348882fb658f1be3cb9f3be3a5282d8d7b8080cb195e86a78c761dfa4c"
+    },
+    {
+      "node_id": "claim:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "node_kind": "claim",
+      "properties": {
+        "assertion_layer": "bibliographic_assertion",
+        "claim_id": "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+        "claim_ref": "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+        "claim_type": "bibliographic",
+        "claim_version": 1,
+        "confidence": null,
+        "epistemic_status": "observed",
+        "evidence_refs": [
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/edition.json"
+        ],
+        "maker": {
+          "agent_ref": "model:codex",
+          "maker_type": "model"
+        },
+        "navigation_descriptor": {
+          "claim": {
+            "id": "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+            "sha256": "bcc13c90e0ff7c908183a50080a8e3d1781169e9d69e7a8735f188d41bbee5b3",
+            "version": 1
+          },
+          "object": {
+            "identity_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+            "label": "Такъ говорилъ Заратустра: девять отрывков, типография М. М. Стасюлевича, Санкт-Петербург, 1899",
+            "label_pointer": "/preferred_label",
+            "node_id": "identity:tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+            "record_version": 1,
+            "sha256": "c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+            "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/edition.json"
+          },
+          "predicate": {
+            "id": "embodied_by",
+            "mapping_sha256": "07c34ff0cc5646d79febfd752c5ffaff96a34e1fa059fd6d86937feef42f35f5",
+            "relation_type_id": "tos.relation.embodied-by",
+            "sha256": "cfde7e82cb8e03fa4e5075447f2f341621d586c7bc8565c25a9193abd4eff4c9"
+          },
+          "purpose": "claim-navigation-only",
+          "reason": null,
+          "schema_version": "tos_claim_navigation_descriptor_v1",
+          "standalone": false,
+          "state": "ready",
+          "statuses": {
+            "epistemic_status": {
+              "present": true,
+              "value": "observed"
+            },
+            "review_status": {
+              "present": true,
+              "value": "unreviewed"
+            }
+          },
+          "subject": {
+            "identity_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+            "label": "Такъ говорилъ Заратустра — девять русских отрывков в переводе С. П. Нани, 1899",
+            "label_pointer": "/preferred_label",
+            "node_id": "identity:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+            "record_version": 1,
+            "sha256": "927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+            "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.json"
+          },
+          "template": {
+            "id": "tos.navigation-template.claim-reference",
+            "sha256": "75bd37e91014d5d1289382a42f9beaae9fd36f51155f4e79d0147c03694dba98",
+            "version": 1
+          },
+          "title": {
+            "default": "Запись утверждения · связь: воплощено изданием [обозначено как наблюдение; исходная запись не оценена] · субъект: Такъ говорилъ Заратустра — девять русских отрывков в переводе С. П. Нани, 1899 · объект: Такъ говорилъ Заратустра: девять отрывков, типография М. М. Стасюлевича, Санкт-Петербург, 1899",
+            "en": "Claim record · relation: embodied by [declared observation; source record unreviewed] · subject: Такъ говорилъ Заратустра — девять русских отрывков в переводе С. П. Нани, 1899 · object: Такъ говорилъ Заратустра: девять отрывков, типография М. М. Стасюлевича, Санкт-Петербург, 1899",
+            "ru": "Запись утверждения · связь: воплощено изданием [обозначено как наблюдение; исходная запись не оценена] · субъект: Такъ говорилъ Заратустра — девять русских отрывков в переводе С. П. Нани, 1899 · объект: Такъ говорилъ Заратустра: девять отрывков, типография М. М. Стасюлевича, Санкт-Петербург, 1899"
+          }
+        },
+        "object": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+        "predicate": "embodied_by",
+        "provenance_event_ref": "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31",
+        "qualifiers": null,
+        "review_status": "unreviewed",
+        "reviews": [],
+        "schema_version": "tos_claim_packet_v1",
+        "source_claim": {
+          "assertion_layer": "bibliographic_assertion",
+          "claim_id": "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+          "claim_type": "bibliographic",
+          "claim_version": 1,
+          "epistemic_status": "observed",
+          "evidence_refs": [
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.json",
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/edition.json"
+          ],
+          "maker": {
+            "agent_ref": "model:codex",
+            "maker_type": "model"
+          },
+          "object": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+          "predicate": "embodied_by",
+          "provenance_event_ref": "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31",
+          "review_status": "unreviewed",
+          "reviews": [],
+          "schema_version": "tos_claim_packet_v1",
+          "subject_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+          "supersedes_claim_ref": null,
+          "visibility": "public_metadata_only"
+        },
+        "subject_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+        "supersedes_claim_ref": null,
+        "visibility": "public_metadata_only"
+      },
+      "source_line": 13,
+      "source_ref": "ToS/source-witnesses/relations/expression-edition/expression-edition-claims.jsonl",
+      "source_sha256": "bcc13c90e0ff7c908183a50080a8e3d1781169e9d69e7a8735f188d41bbee5b3"
+    },
+    {
+      "node_id": "claim:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+      "node_kind": "claim",
+      "properties": {
+        "assertion_layer": "bibliographic_assertion",
+        "claim_id": "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+        "claim_ref": "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+        "claim_type": "bibliographic",
+        "claim_version": 1,
+        "confidence": null,
+        "epistemic_status": "observed",
+        "evidence_refs": [
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.json"
+        ],
+        "maker": {
+          "agent_ref": "model:codex",
+          "maker_type": "model"
+        },
+        "navigation_descriptor": {
+          "claim": {
+            "id": "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+            "sha256": "dabaa4ddb55f8059ddf5880a2cdd1260c97b81eeef5a951370b5a77a64265926",
+            "version": 1
+          },
+          "object": {
+            "identity_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+            "label": "Такъ говорилъ Заратустра — девять русских отрывков в переводе С. П. Нани, 1899",
+            "label_pointer": "/preferred_label",
+            "node_id": "identity:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+            "record_version": 1,
+            "sha256": "927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+            "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.json"
+          },
+          "predicate": {
+            "id": "has_expression",
+            "mapping_sha256": "c1650b3eac7d0fc2dfbf0fa258e5e2d394cb0c7de725629e4fae61a720988a25",
+            "relation_type_id": "tos.relation.has-expression",
+            "sha256": "8e0c2a3568af8803bce119271ec2d84a45015b1ef1d285698843fce826b0798d"
+          },
+          "purpose": "claim-navigation-only",
+          "reason": null,
+          "schema_version": "tos_claim_navigation_descriptor_v1",
+          "standalone": false,
+          "state": "ready",
+          "statuses": {
+            "epistemic_status": {
+              "present": true,
+              "value": "observed"
+            },
+            "review_status": {
+              "present": true,
+              "value": "unreviewed"
+            }
+          },
+          "subject": {
+            "identity_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+            "label": "Also sprach Zarathustra",
+            "label_pointer": "/preferred_label",
+            "node_id": "identity:tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+            "record_version": 10,
+            "sha256": "eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+            "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.json"
+          },
+          "template": {
+            "id": "tos.navigation-template.claim-reference",
+            "sha256": "75bd37e91014d5d1289382a42f9beaae9fd36f51155f4e79d0147c03694dba98",
+            "version": 1
+          },
+          "title": {
+            "default": "Запись утверждения · связь: имеет выражение [обозначено как наблюдение; исходная запись не оценена] · субъект: Also sprach Zarathustra · объект: Такъ говорилъ Заратустра — девять русских отрывков в переводе С. П. Нани, 1899",
+            "en": "Claim record · relation: has expression [declared observation; source record unreviewed] · subject: Also sprach Zarathustra · object: Такъ говорилъ Заратустра — девять русских отрывков в переводе С. П. Нани, 1899",
+            "ru": "Запись утверждения · связь: имеет выражение [обозначено как наблюдение; исходная запись не оценена] · субъект: Also sprach Zarathustra · объект: Такъ говорилъ Заратустра — девять русских отрывков в переводе С. П. Нани, 1899"
+          }
+        },
+        "object": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+        "predicate": "has_expression",
+        "provenance_event_ref": "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31",
+        "qualifiers": null,
+        "review_status": "unreviewed",
+        "reviews": [],
+        "schema_version": "tos_claim_packet_v1",
+        "source_claim": {
+          "assertion_layer": "bibliographic_assertion",
+          "claim_id": "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+          "claim_type": "bibliographic",
+          "claim_version": 1,
+          "epistemic_status": "observed",
+          "evidence_refs": [
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.json",
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.json"
+          ],
+          "maker": {
+            "agent_ref": "model:codex",
+            "maker_type": "model"
+          },
+          "object": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+          "predicate": "has_expression",
+          "provenance_event_ref": "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31",
+          "review_status": "unreviewed",
+          "reviews": [],
+          "schema_version": "tos_claim_packet_v1",
+          "subject_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+          "supersedes_claim_ref": null,
+          "visibility": "public_metadata_only"
+        },
+        "subject_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+        "supersedes_claim_ref": null,
+        "visibility": "public_metadata_only"
+      },
+      "source_line": 13,
+      "source_ref": "ToS/source-witnesses/relations/work-expression/work-expression-claims.jsonl",
+      "source_sha256": "dabaa4ddb55f8059ddf5880a2cdd1260c97b81eeef5a951370b5a77a64265926"
+    },
+    {
+      "node_id": "evidence:sha256:14a107d152bc5f13f63348169353f384686a208681710badcfcb90afc0834228",
+      "node_kind": "evidence",
+      "properties": {
+        "evidence_kind": "repo_path",
+        "evidence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/edition.json",
+        "resolved": true
+      },
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/edition.json",
+      "source_sha256": "da9ca87ce947e7daab0e413fef947c526cae7e36d71a9aaf4756a730acde108e"
+    },
+    {
+      "node_id": "evidence:sha256:2cfefbe0b408c99be3e33c999f7a1095be92d0b4789fb75b777e5e4ab5f7f8a4",
+      "node_kind": "evidence",
+      "properties": {
+        "evidence_kind": "repo_path",
+        "evidence_ref": "ToS/source-witnesses/discovery/runs/nani-1899-parallel-fragment-source-witness.2026-08-01.v1.json",
+        "resolved": true
+      },
+      "source_ref": "ToS/source-witnesses/discovery/runs/nani-1899-parallel-fragment-source-witness.2026-08-01.v1.json",
+      "source_sha256": "fdba319af43f35bb270604d0e315fa54f7f9d030fea0ef0b28d746f850072e41"
+    },
+    {
+      "node_id": "evidence:sha256:3b9e840716fe231f0ed6960a5adccbebc9a7c57d445f14d4e646a7aefa331ce9",
+      "node_kind": "evidence",
+      "properties": {
+        "evidence_kind": "repo_path",
+        "evidence_ref": "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md",
+        "resolved": true
+      },
+      "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md",
+      "source_sha256": "a3c234d52af6a9aed8a7d8318065ff05f518628042a135d85ac45ebfa9fed1dc"
+    },
+    {
+      "node_id": "evidence:sha256:4b8bed48e481bda03e2e5c0903342e242868dcd9312e2fb27ad01cc4a816156b",
+      "node_kind": "evidence",
+      "properties": {
+        "evidence_kind": "repo_path",
+        "evidence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.json",
+        "resolved": true
+      },
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.json",
+      "source_sha256": "1474b247dbf4e21346295a1be5bc096f5320bc05c80319f2887715165ae86e60"
+    },
+    {
+      "node_id": "evidence:sha256:981767c7ab8fee5a5cf7da98ce26f6687a3237508994f04883b82eb945df7503",
+      "node_kind": "evidence",
+      "properties": {
+        "anchor_id": "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+        "anchor_status": "proposed",
+        "anchor_version": 1,
+        "evidence_kind": "anchor",
+        "evidence_ref": "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+        "file_id": "tos.file.sha256.044be8c36536c751d1f846109b4e99534323138b7ad829e6266ef3150d1e5704",
+        "file_ref": "tos.file.sha256.044be8c36536c751d1f846109b4e99534323138b7ad829e6266ef3150d1e5704",
+        "file_sha256": "044be8c36536c751d1f846109b4e99534323138b7ad829e6266ef3150d1e5704",
+        "item_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+        "passage_id": null,
+        "provenance_event_ref": "tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+        "resolved": true,
+        "review_ref": null,
+        "schema_version": "tos_source_anchor_v1",
+        "selector_method": {
+          "configuration_ref": "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md",
+          "maker_type": "model",
+          "method": "source-visible whole-page parallel title, fragment-count, translation-responsibility, manufacture, place, and year statement selection",
+          "version": "1"
+        },
+        "selectors": [
+          {
+            "coordinate_space": "normalized_0_1",
+            "height": 1,
+            "page": 1,
+            "type": "page_region",
+            "width": 1,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "source_anchor": {
+          "anchor_id": "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+          "anchor_version": 1,
+          "file_id": "tos.file.sha256.044be8c36536c751d1f846109b4e99534323138b7ad829e6266ef3150d1e5704",
+          "file_sha256": "044be8c36536c751d1f846109b4e99534323138b7ad829e6266ef3150d1e5704",
+          "item_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+          "passage_id": null,
+          "provenance_event_ref": "tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+          "review_ref": null,
+          "schema_version": "tos_source_anchor_v1",
+          "selector_method": {
+            "configuration_ref": "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md",
+            "maker_type": "model",
+            "method": "source-visible whole-page parallel title, fragment-count, translation-responsibility, manufacture, place, and year statement selection",
+            "version": "1"
+          },
+          "selectors": [
+            {
+              "coordinate_space": "normalized_0_1",
+              "height": 1,
+              "page": 1,
+              "type": "page_region",
+              "width": 1,
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "status": "proposed",
+          "supersedes_anchor_ref": null
+        },
+        "status": "proposed",
+        "supersedes_anchor_ref": null
+      },
+      "source_line": 1,
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/structure/source-statements/anchors.jsonl",
+      "source_sha256": "f1b2154d3913ac3b71d05e6fe07f92290f6cc1678ebd45552b6f8167bbb5e87f"
+    },
+    {
+      "node_id": "evidence:sha256:f7e4a7e462ccda6e29d975b762fdcf5be64864e25df49563b9b7484252e579e4",
+      "node_kind": "evidence",
+      "properties": {
+        "evidence_kind": "repo_path",
+        "evidence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/resource-inventory.json",
+        "resolved": true
+      },
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/resource-inventory.json",
+      "source_sha256": "c97fc1f54c1f8aa22566e1ab17e5e5a97d35439d4130a63f0b76b8708968c049"
+    },
+    {
+      "node_id": "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9",
+      "node_kind": "evidence",
+      "properties": {
+        "evidence_kind": "repo_path",
+        "evidence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.json",
+        "resolved": true
+      },
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.json",
+      "source_sha256": "8213cefea54b6f1d75546464536b45f78f3b13c1b16a1f5c7c0aeef5ff6a56c8"
+    },
+    {
+      "node_id": "identity:tos.agent.s-p-nani",
+      "node_kind": "identity",
+      "properties": {
+        "external_identifiers": [],
+        "human_forms": [
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+                    "id": "tos.agent.s-p-nani",
+                    "version": 1
+                  }
+                },
+                "slot": "context-0",
+                "value": "provisional"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+                    "id": "tos.agent.s-p-nani",
+                    "version": 1
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+                "id": "tos.agent.s-p-nani",
+                "version": 1
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "С. П. Нани",
+            "form": {
+              "digest": "sha256:2c5d6d03b022ea6fb653721b6faec5d432ad68388866db36d07158bb3d9ff641",
+              "id": "tos.form.metadata.3221a4938c292d2cc0935dbdf1f4c7109e7b4e9cb69ea12157ee5800e7af2399",
+              "version": 1
+            },
+            "issues": [],
+            "language": null,
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+              "id": "tos.agent.s-p-nani",
+              "version": 1
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+                    "id": "tos.agent.s-p-nani",
+                    "version": 1
+                  }
+                },
+                "slot": "context-0",
+                "value": "provisional"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+                    "id": "tos.agent.s-p-nani",
+                    "version": 1
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+                "id": "tos.agent.s-p-nani",
+                "version": 1
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "The exact parallel title pages credit С. П. Нани / S. P. Nani as translator of nine selected Zarathustra fragments. Current institutional, specialist, scholarly, and general-web checks did not establish a full personal name or authority identifier. The Agent therefore preserves printed initials only and is not equated with any similarly named Person.",
+            "form": {
+              "digest": "sha256:f56d80d2be9807d497b8ae89c94dae5b7fa579cf790c2a1c5993d5913ed5d4ae",
+              "id": "tos.form.metadata.33ba7c40cdce7285a3668968ba291cf277ed9cf6f9c74702c14da90fe2dcb2c3",
+              "version": 1
+            },
+            "issues": [],
+            "language": null,
+            "performs_semantic_assessment": false,
+            "role": "hover",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+              "id": "tos.agent.s-p-nani",
+              "version": 1
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+                    "id": "tos.agent.s-p-nani",
+                    "version": 1
+                  }
+                },
+                "slot": "context-0",
+                "value": "provisional"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+                    "id": "tos.agent.s-p-nani",
+                    "version": 1
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/0/language",
+                  "record": {
+                    "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+                    "id": "tos.agent.s-p-nani",
+                    "version": 1
+                  }
+                },
+                "slot": "context-2",
+                "value": "de"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/0/source_ref",
+                  "record": {
+                    "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+                    "id": "tos.agent.s-p-nani",
+                    "version": 1
+                  }
+                },
+                "slot": "context-3",
+                "value": "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/0/status",
+                  "record": {
+                    "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+                    "id": "tos.agent.s-p-nani",
+                    "version": 1
+                  }
+                },
+                "slot": "context-4",
+                "value": "unverified"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+                "id": "tos.agent.s-p-nani",
+                "version": 1
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "S. P. Nani",
+            "form": {
+              "digest": "sha256:b2bbb5085c35d69053b9a4eab32c8d96d275b1c4654baa6a8b8339623803be00",
+              "id": "tos.form.metadata.f73455c46217e0299d62cad46938150bd7df6f895147b9d845b0d6f7708a7b1c",
+              "version": 1
+            },
+            "issues": [],
+            "language": "de",
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+              "id": "tos.agent.s-p-nani",
+              "version": 1
+            }
+          }
+        ],
+        "human_forms_source_ref": "ToS/source-witnesses/agents/s-p-nani/agent.human-forms.json",
+        "identity_kind": "agent",
+        "identity_ref": "tos.agent.s-p-nani",
+        "identity_status": "provisional",
+        "notes": "The exact parallel title pages credit С. П. Нани / S. P. Nani as translator of nine selected Zarathustra fragments. Current institutional, specialist, scholarly, and general-web checks did not establish a full personal name or authority identifier. The Agent therefore preserves printed initials only and is not equated with any similarly named Person.",
+        "preferred_label": "С. П. Нани",
+        "record_id": "tos.agent.s-p-nani",
+        "record_type": "agent",
+        "record_version": 1,
+        "same_as_posture": "no_equivalence_claim",
+        "schema_version": "tos_corpus_record_v1",
+        "source_record": {
+          "external_identifiers": [],
+          "identity_status": "provisional",
+          "notes": "The exact parallel title pages credit С. П. Нани / S. P. Nani as translator of nine selected Zarathustra fragments. Current institutional, specialist, scholarly, and general-web checks did not establish a full personal name or authority identifier. The Agent therefore preserves printed initials only and is not equated with any similarly named Person.",
+          "preferred_label": "С. П. Нани",
+          "record_id": "tos.agent.s-p-nani",
+          "record_type": "agent",
+          "record_version": 1,
+          "same_as_posture": "no_equivalence_claim",
+          "schema_version": "tos_corpus_record_v1",
+          "source_refs": [
+            "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+            "ToS/source-witnesses/discovery/runs/nani-1899-parallel-fragment-source-witness.2026-08-01.v1.json",
+            "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md",
+            "https://rusneb.ru/catalog/000199_000009_003689091/",
+            "https://search.rsl.ru/ru/record/01003689091"
+          ],
+          "supersedes_ref": null,
+          "variant_labels": [
+            {
+              "language": "de",
+              "source_ref": "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+              "status": "unverified",
+              "value": "S. P. Nani"
+            }
+          ]
+        },
+        "source_refs": [
+          "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+          "ToS/source-witnesses/discovery/runs/nani-1899-parallel-fragment-source-witness.2026-08-01.v1.json",
+          "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md",
+          "https://rusneb.ru/catalog/000199_000009_003689091/",
+          "https://search.rsl.ru/ru/record/01003689091"
+        ],
+        "supersedes_ref": null,
+        "variant_labels": [
+          {
+            "language": "de",
+            "source_ref": "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+            "status": "unverified",
+            "value": "S. P. Nani"
+          }
+        ]
+      },
+      "source_ref": "ToS/source-witnesses/agents/s-p-nani/agent.json",
+      "source_sha256": "6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389"
+    },
+    {
+      "node_id": "identity:tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "node_kind": "identity",
+      "properties": {
+        "edition_statement": null,
+        "embodies_expression_refs": [
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments"
+        ],
+        "exemplar_claim_refs": [
+          "tos.claim.topology.edition-item.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments.exemplified-by.rsl-rusneb-parallel-scan-pdf"
+        ],
+        "external_identifiers": [
+          {
+            "scheme": "RuNEB record",
+            "source_ref": "https://rusneb.ru/catalog/000199_000009_003689091/",
+            "status": "verified",
+            "value": "000199_000009_003689091"
+          },
+          {
+            "scheme": "RSL record",
+            "source_ref": "https://search.rsl.ru/ru/record/01003689091",
+            "status": "verified",
+            "value": "01003689091"
+          }
+        ],
+        "human_forms": [
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+                    "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+                    "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+                "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+                "version": 1
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Такъ говорилъ Заратустра: девять отрывков, типография М. М. Стасюлевича, Санкт-Петербург, 1899",
+            "form": {
+              "digest": "sha256:ce8e20258bbb57c766a3598a42fba66779cd2337ac770e3da8c2f7fb8b2aad33",
+              "id": "tos.form.metadata.f3edf2c9cb5e596833edb726a60c1b00652594914a035486d15db3eb0b5f190f",
+              "version": 1
+            },
+            "issues": [],
+            "language": null,
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+              "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+              "version": 1
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+                    "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+                    "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+                "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+                "version": 1
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Parallel title pages and current RSL/RuNEB records establish this Saint Petersburg 1899 nine-fragment Edition and its manufacture statement. The institutional extent is XIV, [2], 105 pages; the acquired PDF exposes terminal numbered page 103 followed by an unnumbered contents surface. Edition completeness, a publisher role, print run, source German edition, and textual equivalence remain unasserted.",
+            "form": {
+              "digest": "sha256:dcfc3f136731caa2beaac89f62af40af644716c9ed6bc9a3629290bb174654a9",
+              "id": "tos.form.metadata.c1d505372643bfa8fa84a317029914a66658dd887bfe69b9ee7daa2038e79f23",
+              "version": 1
+            },
+            "issues": [],
+            "language": null,
+            "performs_semantic_assessment": false,
+            "role": "hover",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+              "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+              "version": 1
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+                    "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+                    "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/0/language",
+                  "record": {
+                    "digest": "sha256:c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+                    "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-2",
+                "value": "de"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/0/source_ref",
+                  "record": {
+                    "digest": "sha256:c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+                    "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-3",
+                "value": "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/0/status",
+                  "record": {
+                    "digest": "sha256:c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+                    "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-4",
+                "value": "unverified"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+                "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+                "version": 1
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Also sprach Zarathustra: neun Fragmente, ins Russische übertragen von S. P. Nani",
+            "form": {
+              "digest": "sha256:11f2268b11a5ea54d0ec22609fa9f4134b6d1039bf3dc108bcee54bb88e5f052",
+              "id": "tos.form.metadata.70e60552a096855febce65675fc0b55e44ccceec8516dba05c60360eb099e56a",
+              "version": 1
+            },
+            "issues": [],
+            "language": "de",
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556",
+              "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+              "version": 1
+            }
+          }
+        ],
+        "human_forms_source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/edition.human-forms.json",
+        "identity_kind": "edition",
+        "identity_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+        "identity_status": "verified",
+        "notes": "Parallel title pages and current RSL/RuNEB records establish this Saint Petersburg 1899 nine-fragment Edition and its manufacture statement. The institutional extent is XIV, [2], 105 pages; the acquired PDF exposes terminal numbered page 103 followed by an unnumbered contents surface. Edition completeness, a publisher role, print run, source German edition, and textual equivalence remain unasserted.",
+        "preferred_label": "Такъ говорилъ Заратустра: девять отрывков, типография М. М. Стасюлевича, Санкт-Петербург, 1899",
+        "provision_activity_claim_refs": [
+          "tos.claim.edition.also-sprach-zarathustra.nani-1899-nine-fragments.provision-manufacture"
+        ],
+        "publication_claim_refs": [],
+        "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+        "record_type": "edition",
+        "record_version": 1,
+        "same_as_posture": "no_equivalence_claim",
+        "schema_version": "tos_corpus_record_v1",
+        "source_record": {
+          "edition_statement": null,
+          "embodies_expression_refs": [
+            "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments"
+          ],
+          "exemplar_claim_refs": [
+            "tos.claim.topology.edition-item.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments.exemplified-by.rsl-rusneb-parallel-scan-pdf"
+          ],
+          "external_identifiers": [
+            {
+              "scheme": "RuNEB record",
+              "source_ref": "https://rusneb.ru/catalog/000199_000009_003689091/",
+              "status": "verified",
+              "value": "000199_000009_003689091"
+            },
+            {
+              "scheme": "RSL record",
+              "source_ref": "https://search.rsl.ru/ru/record/01003689091",
+              "status": "verified",
+              "value": "01003689091"
+            }
+          ],
+          "identity_status": "verified",
+          "notes": "Parallel title pages and current RSL/RuNEB records establish this Saint Petersburg 1899 nine-fragment Edition and its manufacture statement. The institutional extent is XIV, [2], 105 pages; the acquired PDF exposes terminal numbered page 103 followed by an unnumbered contents surface. Edition completeness, a publisher role, print run, source German edition, and textual equivalence remain unasserted.",
+          "preferred_label": "Такъ говорилъ Заратустра: девять отрывков, типография М. М. Стасюлевича, Санкт-Петербург, 1899",
+          "provision_activity_claim_refs": [
+            "tos.claim.edition.also-sprach-zarathustra.nani-1899-nine-fragments.provision-manufacture"
+          ],
+          "publication_claim_refs": [],
+          "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+          "record_type": "edition",
+          "record_version": 1,
+          "same_as_posture": "no_equivalence_claim",
+          "schema_version": "tos_corpus_record_v1",
+          "source_refs": [
+            "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/forensic-report.md",
+            "ToS/source-witnesses/discovery/runs/nani-1899-parallel-fragment-source-witness.2026-08-01.v1.json",
+            "https://rusneb.ru/catalog/000199_000009_003689091/",
+            "https://search.rsl.ru/ru/record/01003689091"
+          ],
+          "supersedes_ref": null,
+          "variant_labels": [
+            {
+              "language": "de",
+              "source_ref": "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+              "status": "unverified",
+              "value": "Also sprach Zarathustra: neun Fragmente, ins Russische übertragen von S. P. Nani"
+            }
+          ]
+        },
+        "source_refs": [
+          "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/forensic-report.md",
+          "ToS/source-witnesses/discovery/runs/nani-1899-parallel-fragment-source-witness.2026-08-01.v1.json",
+          "https://rusneb.ru/catalog/000199_000009_003689091/",
+          "https://search.rsl.ru/ru/record/01003689091"
+        ],
+        "supersedes_ref": null,
+        "variant_labels": [
+          {
+            "language": "de",
+            "source_ref": "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+            "status": "unverified",
+            "value": "Also sprach Zarathustra: neun Fragmente, ins Russische übertragen von S. P. Nani"
+          }
+        ]
+      },
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/edition.json",
+      "source_sha256": "c45931e6012416457ba1fad8d499cc6818903f953104f304372178f0e6c1d556"
+    },
+    {
+      "node_id": "identity:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+      "node_kind": "identity",
+      "properties": {
+        "derivation_claim_refs": [],
+        "embodiment_claim_refs": [
+          "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments"
+        ],
+        "expression_role": "translation",
+        "external_identifiers": [],
+        "human_forms": [
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+                    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+                    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+                "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+                "version": 1
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Такъ говорилъ Заратустра — девять русских отрывков в переводе С. П. Нани, 1899",
+            "form": {
+              "digest": "sha256:d1e48030200dd4d04fd355c8327649c1a8412e0f9e03e89682fc050ba1ca6647",
+              "id": "tos.form.metadata.4791a949a70e3c142bfb4ef81fc677c5dc90aa61d28399ac75a79bcf2c3f377d",
+              "version": 1
+            },
+            "issues": [],
+            "language": null,
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+              "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+              "version": 1
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+                    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+                    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+                "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+                "version": 1
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "The exact parallel title pages establish a Russian translation state consisting of nine selected fragments and credit only С. П. Нани / S. P. Nani. The parallel German pages are source-visible but are not admitted here as an identified German Expression or accepted text. No source edition, completeness, derivation, equivalence, translation quality, or semantic relation is asserted.",
+            "form": {
+              "digest": "sha256:8e632e2c3d814d570a36fb30cba0558e6af1cc184c23bd9553b37caae63e5c28",
+              "id": "tos.form.metadata.df9492d223fdb638d0172b075bc7137919744edbcc378a72cb071d170f50090d",
+              "version": 1
+            },
+            "issues": [],
+            "language": null,
+            "performs_semantic_assessment": false,
+            "role": "hover",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+              "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+              "version": 1
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+                    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+                    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/0/language",
+                  "record": {
+                    "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+                    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-2",
+                "value": "ru"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/0/source_ref",
+                  "record": {
+                    "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+                    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-3",
+                "value": "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/0/status",
+                  "record": {
+                    "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+                    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+                    "version": 1
+                  }
+                },
+                "slot": "context-4",
+                "value": "unverified"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+                "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+                "version": 1
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Девять отрывковъ въ переводѣ С. П. Нани",
+            "form": {
+              "digest": "sha256:844271669d25cab4e5aaefd62048d9dc6fc49041c0b41a2524951d16801b77ea",
+              "id": "tos.form.metadata.d81e3b843903b9d57b033d39dea23f643948b035417bace12ff4cd1c94463945",
+              "version": 1
+            },
+            "issues": [],
+            "language": "ru",
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+              "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+              "version": 1
+            }
+          }
+        ],
+        "human_forms_source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.human-forms.json",
+        "identity_kind": "expression",
+        "identity_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+        "identity_status": "verified",
+        "language": "ru",
+        "notes": "The exact parallel title pages establish a Russian translation state consisting of nine selected fragments and credit only С. П. Нани / S. P. Nani. The parallel German pages are source-visible but are not admitted here as an identified German Expression or accepted text. No source edition, completeness, derivation, equivalence, translation quality, or semantic relation is asserted.",
+        "preferred_label": "Такъ говорилъ Заратустра — девять русских отрывков в переводе С. П. Нани, 1899",
+        "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+        "record_type": "expression",
+        "record_version": 1,
+        "responsibility_claim_refs": [
+          "tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani"
+        ],
+        "same_as_posture": "no_equivalence_claim",
+        "schema_version": "tos_corpus_record_v1",
+        "source_record": {
+          "derivation_claim_refs": [],
+          "embodiment_claim_refs": [
+            "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments"
+          ],
+          "expression_role": "translation",
+          "external_identifiers": [],
+          "identity_status": "verified",
+          "language": "ru",
+          "notes": "The exact parallel title pages establish a Russian translation state consisting of nine selected fragments and credit only С. П. Нани / S. P. Nani. The parallel German pages are source-visible but are not admitted here as an identified German Expression or accepted text. No source edition, completeness, derivation, equivalence, translation quality, or semantic relation is asserted.",
+          "preferred_label": "Такъ говорилъ Заратустра — девять русских отрывков в переводе С. П. Нани, 1899",
+          "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+          "record_type": "expression",
+          "record_version": 1,
+          "responsibility_claim_refs": [
+            "tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani"
+          ],
+          "same_as_posture": "no_equivalence_claim",
+          "schema_version": "tos_corpus_record_v1",
+          "source_refs": [
+            "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+            "ToS/source-witnesses/discovery/runs/nani-1899-parallel-fragment-source-witness.2026-08-01.v1.json",
+            "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md",
+            "https://rusneb.ru/catalog/000199_000009_003689091/",
+            "https://search.rsl.ru/ru/record/01003689091"
+          ],
+          "supersedes_ref": null,
+          "variant_labels": [
+            {
+              "language": "ru",
+              "source_ref": "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+              "status": "unverified",
+              "value": "Девять отрывковъ въ переводѣ С. П. Нани"
+            }
+          ],
+          "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+        },
+        "source_refs": [
+          "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+          "ToS/source-witnesses/discovery/runs/nani-1899-parallel-fragment-source-witness.2026-08-01.v1.json",
+          "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md",
+          "https://rusneb.ru/catalog/000199_000009_003689091/",
+          "https://search.rsl.ru/ru/record/01003689091"
+        ],
+        "supersedes_ref": null,
+        "variant_labels": [
+          {
+            "language": "ru",
+            "source_ref": "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+            "status": "unverified",
+            "value": "Девять отрывковъ въ переводѣ С. П. Нани"
+          }
+        ],
+        "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+      },
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.json",
+      "source_sha256": "927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2"
+    },
+    {
+      "node_id": "identity:tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "node_kind": "identity",
+      "properties": {
+        "chronology_claim_refs": [
+          "tos.claim.work.also-sprach-zarathustra.first-publication-chronology"
+        ],
+        "expression_claim_refs": [
+          "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.de-naumann-1891-part-4",
+          "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.de-naumann-1893",
+          "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.de-schmeitzner-1883-part-1",
+          "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.de-schmeitzner-1883-part-2",
+          "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.de-schmeitzner-1884-part-3",
+          "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-1900",
+          "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-1903",
+          "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-1907",
+          "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-1911",
+          "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-1913",
+          "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-cultural-revolution",
+          "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-mysl-1996",
+          "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+          "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-reader-1899-uncredited"
+        ],
+        "external_identifiers": [
+          {
+            "scheme": "GND",
+            "source_ref": "https://d-nb.info/gnd/4099324-3",
+            "status": "verified",
+            "value": "4099324-3"
+          }
+        ],
+        "human_forms": [
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                    "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                    "version": 10
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                    "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                    "version": 10
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                "version": 10
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Also sprach Zarathustra",
+            "form": {
+              "digest": "sha256:875ff04d2a679d4376ea071eb6f835431f11117829cf12e74f6280f4f08050cf",
+              "id": "tos.form.metadata.7e54d4b50dfb8392fb54e603b3d561d431d90351e78b419a09ae2224b0e3539e",
+              "version": 1
+            },
+            "issues": [],
+            "language": null,
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+              "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+              "version": 10
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                    "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                    "version": 10
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                    "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                    "version": 10
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                "version": 10
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "One work identity connects distinct German publication and manuscript routes plus translation expressions without treating their texts as identical. The current authorial-witness route preserves region-level notebook attribution, D 17 for part IV, the separate corrected GSA 71/25a private-print ensemble, and eKGWB critical addresses without creating a remote Item, synthetic author-final text, rights clearance, or semantic authority. The provisional uncredited Russian Reader Expression and the distinct exact Nani nine-fragment Expression preserve separate 1899 routes; neither creates derivation, equivalence, completeness, accepted text, translation quality, or semantic authority.",
+            "form": {
+              "digest": "sha256:b5fddcc2eb90b0540f8e46210571f912e5a83df339eb03d7d1ec83695aa835f4",
+              "id": "tos.form.metadata.ac634ab56fa7f4a53f3c7acbb822a47812e8ec87a1e8bab9c5df98eade481903",
+              "version": 1
+            },
+            "issues": [],
+            "language": null,
+            "performs_semantic_assessment": false,
+            "role": "hover",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+              "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+              "version": 10
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                    "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                    "version": 10
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                    "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                    "version": 10
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/0/language",
+                  "record": {
+                    "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                    "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                    "version": 10
+                  }
+                },
+                "slot": "context-2",
+                "value": "ru"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/0/source_ref",
+                  "record": {
+                    "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                    "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                    "version": 10
+                  }
+                },
+                "slot": "context-3",
+                "value": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/0/status",
+                  "record": {
+                    "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                    "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                    "version": 10
+                  }
+                },
+                "slot": "context-4",
+                "value": "verified"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                "version": 10
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Так говорил Заратустра",
+            "form": {
+              "digest": "sha256:55efde938c762ede6aacfa27cf21fee913de4b318b607d0793a5806a5a73b60f",
+              "id": "tos.form.metadata.2ca33d411b591bbf5dec03e2e6529f88e4b22e56b3a12868ee18d0d780db170d",
+              "version": 1
+            },
+            "issues": [],
+            "language": "ru",
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+              "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+              "version": 10
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                    "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                    "version": 10
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                    "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                    "version": 10
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/1/language",
+                  "record": {
+                    "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                    "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                    "version": 10
+                  }
+                },
+                "slot": "context-2",
+                "value": "en"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/1/source_ref",
+                  "record": {
+                    "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                    "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                    "version": 10
+                  }
+                },
+                "slot": "context-3",
+                "value": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/1/status",
+                  "record": {
+                    "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                    "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                    "version": 10
+                  }
+                },
+                "slot": "context-4",
+                "value": "verified"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+                "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+                "version": 10
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Thus Spoke Zarathustra",
+            "form": {
+              "digest": "sha256:56924948b893668e4e17eded60a39259de830c9ce4a71d243d838e5a4e56670c",
+              "id": "tos.form.metadata.f294864a06f08e3da9e47d186557c00f8b8853581eb3f810ec32c6c36b24d8ec",
+              "version": 1
+            },
+            "issues": [],
+            "language": "en",
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077",
+              "id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+              "version": 10
+            }
+          }
+        ],
+        "human_forms_source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.human-forms.json",
+        "identity_kind": "work",
+        "identity_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+        "identity_status": "verified",
+        "notes": "One work identity connects distinct German publication and manuscript routes plus translation expressions without treating their texts as identical. The current authorial-witness route preserves region-level notebook attribution, D 17 for part IV, the separate corrected GSA 71/25a private-print ensemble, and eKGWB critical addresses without creating a remote Item, synthetic author-final text, rights clearance, or semantic authority. The provisional uncredited Russian Reader Expression and the distinct exact Nani nine-fragment Expression preserve separate 1899 routes; neither creates derivation, equivalence, completeness, accepted text, translation quality, or semantic authority.",
+        "preferred_label": "Also sprach Zarathustra",
+        "record_id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+        "record_type": "work",
+        "record_version": 10,
+        "responsibility_claim_refs": [
+          "tos.claim.work.also-sprach-zarathustra.authored-by-friedrich-nietzsche"
+        ],
+        "same_as_posture": "no_equivalence_claim",
+        "schema_version": "tos_corpus_record_v1",
+        "source_record": {
+          "chronology_claim_refs": [
+            "tos.claim.work.also-sprach-zarathustra.first-publication-chronology"
+          ],
+          "expression_claim_refs": [
+            "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.de-naumann-1891-part-4",
+            "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.de-naumann-1893",
+            "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.de-schmeitzner-1883-part-1",
+            "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.de-schmeitzner-1883-part-2",
+            "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.de-schmeitzner-1884-part-3",
+            "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-1900",
+            "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-1903",
+            "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-1907",
+            "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-1911",
+            "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-1913",
+            "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-cultural-revolution",
+            "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-antonovsky-mysl-1996",
+            "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+            "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-reader-1899-uncredited"
+          ],
+          "external_identifiers": [
+            {
+              "scheme": "GND",
+              "source_ref": "https://d-nb.info/gnd/4099324-3",
+              "status": "verified",
+              "value": "4099324-3"
+            }
+          ],
+          "identity_status": "verified",
+          "notes": "One work identity connects distinct German publication and manuscript routes plus translation expressions without treating their texts as identical. The current authorial-witness route preserves region-level notebook attribution, D 17 for part IV, the separate corrected GSA 71/25a private-print ensemble, and eKGWB critical addresses without creating a remote Item, synthetic author-final text, rights clearance, or semantic authority. The provisional uncredited Russian Reader Expression and the distinct exact Nani nine-fragment Expression preserve separate 1899 routes; neither creates derivation, equivalence, completeness, accepted text, translation quality, or semantic authority.",
+          "preferred_label": "Also sprach Zarathustra",
+          "record_id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+          "record_type": "work",
+          "record_version": 10,
+          "responsibility_claim_refs": [
+            "tos.claim.work.also-sprach-zarathustra.authored-by-friedrich-nietzsche"
+          ],
+          "same_as_posture": "no_equivalence_claim",
+          "schema_version": "tos_corpus_record_v1",
+          "source_refs": [
+            "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/forensic-report.md",
+            "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1.2026-07-28.v1.json",
+            "ToS/source-witnesses/discovery/runs/zarathustra-authorial-witness-route.2026-07-30.v1.json",
+            "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md",
+            "https://d-nb.info/gnd/4099324-3"
+          ],
+          "supersedes_ref": null,
+          "variant_labels": [
+            {
+              "language": "ru",
+              "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+              "status": "verified",
+              "value": "Так говорил Заратустра"
+            },
+            {
+              "language": "en",
+              "source_ref": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+              "status": "verified",
+              "value": "Thus Spoke Zarathustra"
+            }
+          ]
+        },
+        "source_refs": [
+          "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/forensic-report.md",
+          "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1.2026-07-28.v1.json",
+          "ToS/source-witnesses/discovery/runs/zarathustra-authorial-witness-route.2026-07-30.v1.json",
+          "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md",
+          "https://d-nb.info/gnd/4099324-3"
+        ],
+        "supersedes_ref": null,
+        "variant_labels": [
+          {
+            "language": "ru",
+            "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+            "status": "verified",
+            "value": "Так говорил Заратустра"
+          },
+          {
+            "language": "en",
+            "source_ref": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+            "status": "verified",
+            "value": "Thus Spoke Zarathustra"
+          }
+        ]
+      },
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.json",
+      "source_sha256": "eb29933f8115eda97c8430d68a78330517663682647c23ebcbc0f9030dcca077"
+    },
+    {
+      "node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "node_kind": "maker",
+      "properties": {
+        "agent_ref": "model:codex",
+        "identity_node_id": null,
+        "maker_type": "model",
+        "source_maker": {
+          "agent_ref": "model:codex",
+          "maker_type": "model"
+        }
+      },
+      "source_ref": "ToS/source-witnesses/catalog/claims.jsonl",
+      "source_sha256": "ec0b46d91412e32128a165b839b070564ab42059a36b7fcf20b93ef62ee027f4"
+    },
+    {
+      "node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+      "node_kind": "provenance_event",
+      "properties": {
+        "agent_refs": [
+          "model:codex",
+          "software:poppler-26.01.0",
+          "software:curl-8.18.0"
+        ],
+        "ended_at": "2026-08-01T20:36:00-06:00",
+        "event_ref": "tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+        "event_type": "annotation",
+        "event_version": 1,
+        "method": {
+          "artifact_digest": null,
+          "configuration": {
+            "canon_promotion_performed": false,
+            "cross_expression_derivation_asserted": false,
+            "cross_expression_equivalence_asserted": false,
+            "edition_completeness_asserted": false,
+            "existing_places_reused": 1,
+            "german_expression_created": false,
+            "human_review_performed": false,
+            "inspected_pdf_pages": [
+              1,
+              2,
+              59,
+              60
+            ],
+            "payload_bytes_published": false,
+            "provision_claims_materialized": 1,
+            "provisional_agents_created": 1,
+            "provisional_organizations_created": 1,
+            "responsibility_claims_materialized": 1,
+            "semantic_claims_created": 0,
+            "source_page_anchor_count": 3,
+            "source_text_admitted": false,
+            "translation_quality_assessed": false,
+            "translator_full_identity_asserted": false
+          },
+          "device": "abyss-machine",
+          "maker_type": "mixed",
+          "name": "source-visible parallel-fragment responsibility and provision materialization",
+          "prompt_or_instruction_ref": "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md",
+          "runtime": "Codex; Poppler 26.01.0; curl 8.18.0",
+          "version": "1"
+        },
+        "schema_version": "tos_provenance_event_v1",
+        "source_event": {
+          "agent_refs": [
+            "model:codex",
+            "software:poppler-26.01.0",
+            "software:curl-8.18.0"
+          ],
+          "ended_at": "2026-08-01T20:36:00-06:00",
+          "event_id": "tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+          "event_type": "annotation",
+          "event_version": 1,
+          "inputs": [
+            {
+              "ref": "tos.file.sha256.044be8c36536c751d1f846109b4e99534323138b7ad829e6266ef3150d1e5704",
+              "role": "fixity-verified-local-parallel-source-payload",
+              "sha256": "044be8c36536c751d1f846109b4e99534323138b7ad829e6266ef3150d1e5704"
+            },
+            {
+              "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/resource-inventory.json",
+              "role": "text-free-pdf-resource-inventory",
+              "sha256": "c97fc1f54c1f8aa22566e1ab17e5e5a97d35439d4130a63f0b76b8708968c049"
+            },
+            {
+              "ref": "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md",
+              "role": "ordered-source-witness-research",
+              "sha256": "a3c234d52af6a9aed8a7d8318065ff05f518628042a135d85ac45ebfa9fed1dc"
+            },
+            {
+              "ref": "ToS/contracts/source-anchor.schema.json",
+              "role": "source-anchor-contract",
+              "sha256": "6b493f99d06aa76e3254eb2cd3f46907969a3ad43416e100333ead20f6244e8c"
+            },
+            {
+              "ref": "ToS/contracts/claim-packet.schema.json",
+              "role": "claim-packet-contract",
+              "sha256": "cc982ceeaa3a62dc8cb1367cd4b10cc76073b252a1ac5c9977f6b0ee6d47588c"
+            },
+            {
+              "ref": "ToS/source-witnesses/places/saint-petersburg/place.json",
+              "role": "existing-provisional-normalized-manufacture-place",
+              "sha256": "0e6c84caa4266f93aecfb07385bfe1f4132676a1ff7ab9434019b43bdf6a4df5"
+            }
+          ],
+          "method": {
+            "artifact_digest": null,
+            "configuration": {
+              "canon_promotion_performed": false,
+              "cross_expression_derivation_asserted": false,
+              "cross_expression_equivalence_asserted": false,
+              "edition_completeness_asserted": false,
+              "existing_places_reused": 1,
+              "german_expression_created": false,
+              "human_review_performed": false,
+              "inspected_pdf_pages": [
+                1,
+                2,
+                59,
+                60
+              ],
+              "payload_bytes_published": false,
+              "provision_claims_materialized": 1,
+              "provisional_agents_created": 1,
+              "provisional_organizations_created": 1,
+              "responsibility_claims_materialized": 1,
+              "semantic_claims_created": 0,
+              "source_page_anchor_count": 3,
+              "source_text_admitted": false,
+              "translation_quality_assessed": false,
+              "translator_full_identity_asserted": false
+            },
+            "device": "abyss-machine",
+            "maker_type": "mixed",
+            "name": "source-visible parallel-fragment responsibility and provision materialization",
+            "prompt_or_instruction_ref": "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md",
+            "runtime": "Codex; Poppler 26.01.0; curl 8.18.0",
+            "version": "1"
+          },
+          "outputs": [
+            {
+              "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/structure/source-statements/anchors.jsonl",
+              "role": "proposed-source-page-anchors",
+              "sha256": "75934fa38131c35bada5e77d6e8ab67173acf9b469ec0920acadc0481b5c51e5"
+            },
+            {
+              "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/responsibility-claims.jsonl",
+              "role": "unreviewed-evidence-bearing-responsibility-claims",
+              "sha256": "6dac63ceaf331669d2d2251ba62b1df7967ff161510e0d3f4bba398b344c1f36"
+            },
+            {
+              "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/provision-activity-claims.jsonl",
+              "role": "unreviewed-evidence-bearing-provision-activity-claims",
+              "sha256": "9625f9ac0a8412357b83fd7302e29bde89bc9a0f636bc9afff6b912c2e9aebc9"
+            },
+            {
+              "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.json",
+              "role": "exact-selected-russian-translation-expression",
+              "sha256": "8213cefea54b6f1d75546464536b45f78f3b13c1b16a1f5c7c0aeef5ff6a56c8"
+            },
+            {
+              "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/edition.json",
+              "role": "exact-nani-1899-parallel-fragment-edition",
+              "sha256": "da9ca87ce947e7daab0e413fef947c526cae7e36d71a9aaf4756a730acde108e"
+            },
+            {
+              "ref": "ToS/source-witnesses/agents/s-p-nani/agent.json",
+              "role": "provisional-initials-only-translator-agent",
+              "sha256": "e84f6959311e9121330b661d0051a6d0ab8bb358f829b25febb4b5dafe563e16"
+            },
+            {
+              "ref": "ToS/source-witnesses/organizations/m-m-stasyulevich-printing-saint-petersburg/organization.json",
+              "role": "provisional-source-visible-printer-organization",
+              "sha256": "35b49ba5546b0240f6470d056110c946d3b61551b518046b7b41e8189acca7b5"
+            }
+          ],
+          "receipt_refs": [
+            "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md",
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/structure/source-statements/anchors.jsonl",
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/responsibility-claims.jsonl",
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/provision-activity-claims.jsonl"
+          ],
+          "rights_basis_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/rights.json",
+          "schema_version": "tos_provenance_event_v1",
+          "started_at": "2026-08-01T20:16:30-06:00",
+          "status": "completed_with_warnings",
+          "supersedes_event_ref": null,
+          "warnings": [
+            "All anchors and claims are model-made and unreviewed; source-visible inspection was not human review.",
+            "The translator is retained only as printed initials; no full Person identity is asserted.",
+            "The printer is not modeled as publisher or a Person/legal successor.",
+            "The censor date is not publication date and the dedication creates no relation.",
+            "Parallel German text does not create a German Expression, accepted source text, or equivalence edge.",
+            "Catalog extent and source-visible terminal numbering remain unresolved.",
+            "No OCR, accepted text, collation, translation quality, derivation, equivalence, semantics, rights clearance, human acceptance, or canon promotion is created."
+          ]
+        },
+        "started_at": "2026-08-01T20:16:30-06:00",
+        "status": "completed_with_warnings"
+      },
+      "source_line": 1,
+      "source_ref": "ToS/source-witnesses/provision-activities/nani-1899/provision-activity-provenance.jsonl",
+      "source_sha256": "f35bc5b640368e2935a94bc64cc7ec19933dac867644c98beb40ec0fdcf2e487"
+    },
+    {
+      "node_id": "provenance_event:tos.event.synthetic.worker-claim-navigation",
+      "node_kind": "provenance_event",
+      "properties": {
+        "agent_refs": [
+          "model:codex"
+        ],
+        "ended_at": "2026-09-12T18:09:25.949589+00:00",
+        "event_ref": "tos.event.synthetic.worker-claim-navigation",
+        "event_type": "annotation",
+        "event_version": 2485,
+        "method": {
+          "artifact_digest": null,
+          "configuration": {
+            "canon_promotion_performed": false,
+            "edition_item_claims_materialized": 7240,
+            "expression_edition_claims_materialized": 7249,
+            "human_review_performed": false,
+            "semantic_claims_created": 0,
+            "source_text_admitted": false,
+            "textual_equivalence_claims_created": 0,
+            "topology_claims_reviewed": 0,
+            "work_expression_claims_materialized": 7249
+          },
+          "device": "abyss-machine",
+          "maker_type": "model",
+          "name": "declared-bibliographic-topology-materialization",
+          "prompt_or_instruction_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+          "runtime": "Codex; deterministic claim-packet serialization",
+          "version": "1"
+        },
+        "schema_version": "tos_provenance_event_v1",
+        "source_event": {
+          "agent_refs": [
+            "model:codex"
+          ],
+          "ended_at": "2026-09-12T18:09:25.949589+00:00",
+          "event_id": "tos.event.synthetic.worker-claim-navigation",
+          "event_type": "annotation",
+          "event_version": 2485,
+          "inputs": [
+            {
+              "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/edition.json",
+              "role": "declared-edition-topology-record",
+              "sha256": "e4eace472893ac7e149b0ae8dea1c7a54df605b51cab2c25ebd892266a4377c9"
+            },
+            {
+              "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/item.json",
+              "role": "declared-item-topology-record",
+              "sha256": "67d5f93d79935d78db5c6558c2e462d3125b91905aa6aad0106064849adf5dd2"
+            }
+          ],
+          "method": {
+            "artifact_digest": null,
+            "configuration": {
+              "canon_promotion_performed": false,
+              "edition_item_claims_materialized": 7240,
+              "expression_edition_claims_materialized": 7249,
+              "human_review_performed": false,
+              "semantic_claims_created": 0,
+              "source_text_admitted": false,
+              "textual_equivalence_claims_created": 0,
+              "topology_claims_reviewed": 0,
+              "work_expression_claims_materialized": 7249
+            },
+            "device": "abyss-machine",
+            "maker_type": "model",
+            "name": "declared-bibliographic-topology-materialization",
+            "prompt_or_instruction_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+            "runtime": "Codex; deterministic claim-packet serialization",
+            "version": "1"
+          },
+          "outputs": [
+            {
+              "ref": "ToS/source-witnesses/relations/work-expression/work-expression-claims.jsonl",
+              "role": "unreviewed-work-expression-topology-claims",
+              "sha256": "62d4f09c9338ccbbdc7e20303d0aacbefc02710878c12d3ec62ba72bdc461b2a"
+            },
+            {
+              "ref": "ToS/source-witnesses/relations/expression-edition/expression-edition-claims.jsonl",
+              "role": "unreviewed-expression-edition-topology-claims",
+              "sha256": "08a27c7c6c968bedaee1925578d778443631b2b0cf53394486c1dbc6eb4a65f9"
+            },
+            {
+              "ref": "ToS/source-witnesses/relations/edition-item/edition-item-claims.jsonl",
+              "role": "unreviewed-edition-item-topology-claims",
+              "sha256": "dc80009a6f070572bc8d6c141cfb1bff7c13d39e5a4f37306a06d50fb39ac65b"
+            }
+          ],
+          "receipt_refs": [
+            "ToS/source-witnesses/relations/edition-item/edition-item-claims.jsonl",
+            "ToS/source-witnesses/relations/expression-edition/expression-edition-claims.jsonl",
+            "ToS/source-witnesses/relations/work-expression/work-expression-claims.jsonl"
+          ],
+          "rights_basis_ref": null,
+          "schema_version": "tos_provenance_event_v1",
+          "started_at": "2026-07-31T09:00:00-06:00",
+          "status": "completed_with_warnings",
+          "supersedes_event_ref": null,
+          "warnings": [
+            "All 79 claims are model-made materializations of declared corpus-record links or evidence-bearing responsibility assertions and remain unreviewed.",
+            "Work to Expression, Expression to Edition, and Edition to Item remain separate predicates and claim families.",
+            "The Goodwin 1874 scholarly route is distinct from Papyrus Harris 500, the reported Recto 6-7 song, the provisional Harper's Songs composite, and current scholarship.",
+            "No source text, translation judgment, semantic relation, rights clearance, human review, graph truth, or canon promotion is created.",
+            "Synthetic transport fixture: historical batch input list reduced to two representative inputs; not source admission."
+          ]
+        },
+        "started_at": "2026-07-31T09:00:00-06:00",
+        "status": "completed_with_warnings"
+      },
+      "source_line": 1,
+      "source_ref": "test:synthetic-worker-claim-navigation-event",
+      "source_sha256": "97e1203821f9995664c37b8ee0fc0d0d7f8afc8fac5a0454027e3c07910d0c40"
+    }
+  ],
+  "edges": [
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "claim_sha256": "82a46a348882fb658f1be3cb9f3be3a5282d8d7b8080cb195e86a78c761dfa4c",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:generated_by:004",
+      "edge_kind": "generated_by",
+      "evidence_node_ids": [
+        "evidence:sha256:2cfefbe0b408c99be3e33c999f7a1095be92d0b4789fb75b777e5e4ab5f7f8a4",
+        "evidence:sha256:3b9e840716fe231f0ed6960a5adccbebc9a7c57d445f14d4e646a7aefa331ce9",
+        "evidence:sha256:981767c7ab8fee5a5cf7da98ce26f6687a3237508994f04883b82eb945df7503",
+        "evidence:sha256:f7e4a7e462ccda6e29d975b762fdcf5be64864e25df49563b9b7484252e579e4"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01"
+    },
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "claim_sha256": "82a46a348882fb658f1be3cb9f3be3a5282d8d7b8080cb195e86a78c761dfa4c",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:has_object:002",
+      "edge_kind": "has_object",
+      "evidence_node_ids": [
+        "evidence:sha256:2cfefbe0b408c99be3e33c999f7a1095be92d0b4789fb75b777e5e4ab5f7f8a4",
+        "evidence:sha256:3b9e840716fe231f0ed6960a5adccbebc9a7c57d445f14d4e646a7aefa331ce9",
+        "evidence:sha256:981767c7ab8fee5a5cf7da98ce26f6687a3237508994f04883b82eb945df7503",
+        "evidence:sha256:f7e4a7e462ccda6e29d975b762fdcf5be64864e25df49563b9b7484252e579e4"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "identity:tos.agent.s-p-nani"
+    },
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "claim_sha256": "82a46a348882fb658f1be3cb9f3be3a5282d8d7b8080cb195e86a78c761dfa4c",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:has_subject:001",
+      "edge_kind": "has_subject",
+      "evidence_node_ids": [
+        "evidence:sha256:2cfefbe0b408c99be3e33c999f7a1095be92d0b4789fb75b777e5e4ab5f7f8a4",
+        "evidence:sha256:3b9e840716fe231f0ed6960a5adccbebc9a7c57d445f14d4e646a7aefa331ce9",
+        "evidence:sha256:981767c7ab8fee5a5cf7da98ce26f6687a3237508994f04883b82eb945df7503",
+        "evidence:sha256:f7e4a7e462ccda6e29d975b762fdcf5be64864e25df49563b9b7484252e579e4"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "identity:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments"
+    },
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "claim_sha256": "82a46a348882fb658f1be3cb9f3be3a5282d8d7b8080cb195e86a78c761dfa4c",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:made_by:003",
+      "edge_kind": "made_by",
+      "evidence_node_ids": [
+        "evidence:sha256:2cfefbe0b408c99be3e33c999f7a1095be92d0b4789fb75b777e5e4ab5f7f8a4",
+        "evidence:sha256:3b9e840716fe231f0ed6960a5adccbebc9a7c57d445f14d4e646a7aefa331ce9",
+        "evidence:sha256:981767c7ab8fee5a5cf7da98ce26f6687a3237508994f04883b82eb945df7503",
+        "evidence:sha256:f7e4a7e462ccda6e29d975b762fdcf5be64864e25df49563b9b7484252e579e4"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d"
+    },
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "claim_sha256": "82a46a348882fb658f1be3cb9f3be3a5282d8d7b8080cb195e86a78c761dfa4c",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:supported_by:005",
+      "edge_kind": "supported_by",
+      "evidence_node_ids": [
+        "evidence:sha256:2cfefbe0b408c99be3e33c999f7a1095be92d0b4789fb75b777e5e4ab5f7f8a4",
+        "evidence:sha256:3b9e840716fe231f0ed6960a5adccbebc9a7c57d445f14d4e646a7aefa331ce9",
+        "evidence:sha256:981767c7ab8fee5a5cf7da98ce26f6687a3237508994f04883b82eb945df7503",
+        "evidence:sha256:f7e4a7e462ccda6e29d975b762fdcf5be64864e25df49563b9b7484252e579e4"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "evidence:sha256:2cfefbe0b408c99be3e33c999f7a1095be92d0b4789fb75b777e5e4ab5f7f8a4"
+    },
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "claim_sha256": "82a46a348882fb658f1be3cb9f3be3a5282d8d7b8080cb195e86a78c761dfa4c",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:supported_by:006",
+      "edge_kind": "supported_by",
+      "evidence_node_ids": [
+        "evidence:sha256:2cfefbe0b408c99be3e33c999f7a1095be92d0b4789fb75b777e5e4ab5f7f8a4",
+        "evidence:sha256:3b9e840716fe231f0ed6960a5adccbebc9a7c57d445f14d4e646a7aefa331ce9",
+        "evidence:sha256:981767c7ab8fee5a5cf7da98ce26f6687a3237508994f04883b82eb945df7503",
+        "evidence:sha256:f7e4a7e462ccda6e29d975b762fdcf5be64864e25df49563b9b7484252e579e4"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "evidence:sha256:3b9e840716fe231f0ed6960a5adccbebc9a7c57d445f14d4e646a7aefa331ce9"
+    },
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "claim_sha256": "82a46a348882fb658f1be3cb9f3be3a5282d8d7b8080cb195e86a78c761dfa4c",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:supported_by:007",
+      "edge_kind": "supported_by",
+      "evidence_node_ids": [
+        "evidence:sha256:2cfefbe0b408c99be3e33c999f7a1095be92d0b4789fb75b777e5e4ab5f7f8a4",
+        "evidence:sha256:3b9e840716fe231f0ed6960a5adccbebc9a7c57d445f14d4e646a7aefa331ce9",
+        "evidence:sha256:981767c7ab8fee5a5cf7da98ce26f6687a3237508994f04883b82eb945df7503",
+        "evidence:sha256:f7e4a7e462ccda6e29d975b762fdcf5be64864e25df49563b9b7484252e579e4"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "evidence:sha256:981767c7ab8fee5a5cf7da98ce26f6687a3237508994f04883b82eb945df7503"
+    },
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "claim_sha256": "82a46a348882fb658f1be3cb9f3be3a5282d8d7b8080cb195e86a78c761dfa4c",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:supported_by:008",
+      "edge_kind": "supported_by",
+      "evidence_node_ids": [
+        "evidence:sha256:2cfefbe0b408c99be3e33c999f7a1095be92d0b4789fb75b777e5e4ab5f7f8a4",
+        "evidence:sha256:3b9e840716fe231f0ed6960a5adccbebc9a7c57d445f14d4e646a7aefa331ce9",
+        "evidence:sha256:981767c7ab8fee5a5cf7da98ce26f6687a3237508994f04883b82eb945df7503",
+        "evidence:sha256:f7e4a7e462ccda6e29d975b762fdcf5be64864e25df49563b9b7484252e579e4"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "evidence:sha256:f7e4a7e462ccda6e29d975b762fdcf5be64864e25df49563b9b7484252e579e4"
+    },
+    {
+      "claim_ref": "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "claim_sha256": "bcc13c90e0ff7c908183a50080a8e3d1781169e9d69e7a8735f188d41bbee5b3",
+      "edge_id": "edge:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments:generated_by:004",
+      "edge_kind": "generated_by",
+      "evidence_node_ids": [
+        "evidence:sha256:14a107d152bc5f13f63348169353f384686a208681710badcfcb90afc0834228",
+        "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+      ],
+      "from_id": "claim:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.synthetic.worker-claim-navigation",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/relations/expression-edition/expression-edition-claims.jsonl",
+      "source_claim_line": 13,
+      "to_id": "provenance_event:tos.event.synthetic.worker-claim-navigation"
+    },
+    {
+      "claim_ref": "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "claim_sha256": "bcc13c90e0ff7c908183a50080a8e3d1781169e9d69e7a8735f188d41bbee5b3",
+      "edge_id": "edge:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments:has_object:002",
+      "edge_kind": "has_object",
+      "evidence_node_ids": [
+        "evidence:sha256:14a107d152bc5f13f63348169353f384686a208681710badcfcb90afc0834228",
+        "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+      ],
+      "from_id": "claim:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.synthetic.worker-claim-navigation",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/relations/expression-edition/expression-edition-claims.jsonl",
+      "source_claim_line": 13,
+      "to_id": "identity:tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments"
+    },
+    {
+      "claim_ref": "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "claim_sha256": "bcc13c90e0ff7c908183a50080a8e3d1781169e9d69e7a8735f188d41bbee5b3",
+      "edge_id": "edge:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments:has_subject:001",
+      "edge_kind": "has_subject",
+      "evidence_node_ids": [
+        "evidence:sha256:14a107d152bc5f13f63348169353f384686a208681710badcfcb90afc0834228",
+        "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+      ],
+      "from_id": "claim:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.synthetic.worker-claim-navigation",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/relations/expression-edition/expression-edition-claims.jsonl",
+      "source_claim_line": 13,
+      "to_id": "identity:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments"
+    },
+    {
+      "claim_ref": "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "claim_sha256": "bcc13c90e0ff7c908183a50080a8e3d1781169e9d69e7a8735f188d41bbee5b3",
+      "edge_id": "edge:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments:made_by:003",
+      "edge_kind": "made_by",
+      "evidence_node_ids": [
+        "evidence:sha256:14a107d152bc5f13f63348169353f384686a208681710badcfcb90afc0834228",
+        "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+      ],
+      "from_id": "claim:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.synthetic.worker-claim-navigation",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/relations/expression-edition/expression-edition-claims.jsonl",
+      "source_claim_line": 13,
+      "to_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d"
+    },
+    {
+      "claim_ref": "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "claim_sha256": "bcc13c90e0ff7c908183a50080a8e3d1781169e9d69e7a8735f188d41bbee5b3",
+      "edge_id": "edge:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments:supported_by:005",
+      "edge_kind": "supported_by",
+      "evidence_node_ids": [
+        "evidence:sha256:14a107d152bc5f13f63348169353f384686a208681710badcfcb90afc0834228",
+        "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+      ],
+      "from_id": "claim:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.synthetic.worker-claim-navigation",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/relations/expression-edition/expression-edition-claims.jsonl",
+      "source_claim_line": 13,
+      "to_id": "evidence:sha256:14a107d152bc5f13f63348169353f384686a208681710badcfcb90afc0834228"
+    },
+    {
+      "claim_ref": "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "claim_sha256": "bcc13c90e0ff7c908183a50080a8e3d1781169e9d69e7a8735f188d41bbee5b3",
+      "edge_id": "edge:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments:supported_by:006",
+      "edge_kind": "supported_by",
+      "evidence_node_ids": [
+        "evidence:sha256:14a107d152bc5f13f63348169353f384686a208681710badcfcb90afc0834228",
+        "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+      ],
+      "from_id": "claim:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.synthetic.worker-claim-navigation",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/relations/expression-edition/expression-edition-claims.jsonl",
+      "source_claim_line": 13,
+      "to_id": "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+    },
+    {
+      "claim_ref": "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+      "claim_sha256": "dabaa4ddb55f8059ddf5880a2cdd1260c97b81eeef5a951370b5a77a64265926",
+      "edge_id": "edge:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments:generated_by:004",
+      "edge_kind": "generated_by",
+      "evidence_node_ids": [
+        "evidence:sha256:4b8bed48e481bda03e2e5c0903342e242868dcd9312e2fb27ad01cc4a816156b",
+        "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+      ],
+      "from_id": "claim:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.synthetic.worker-claim-navigation",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/relations/work-expression/work-expression-claims.jsonl",
+      "source_claim_line": 13,
+      "to_id": "provenance_event:tos.event.synthetic.worker-claim-navigation"
+    },
+    {
+      "claim_ref": "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+      "claim_sha256": "dabaa4ddb55f8059ddf5880a2cdd1260c97b81eeef5a951370b5a77a64265926",
+      "edge_id": "edge:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments:has_object:002",
+      "edge_kind": "has_object",
+      "evidence_node_ids": [
+        "evidence:sha256:4b8bed48e481bda03e2e5c0903342e242868dcd9312e2fb27ad01cc4a816156b",
+        "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+      ],
+      "from_id": "claim:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.synthetic.worker-claim-navigation",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/relations/work-expression/work-expression-claims.jsonl",
+      "source_claim_line": 13,
+      "to_id": "identity:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments"
+    },
+    {
+      "claim_ref": "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+      "claim_sha256": "dabaa4ddb55f8059ddf5880a2cdd1260c97b81eeef5a951370b5a77a64265926",
+      "edge_id": "edge:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments:has_subject:001",
+      "edge_kind": "has_subject",
+      "evidence_node_ids": [
+        "evidence:sha256:4b8bed48e481bda03e2e5c0903342e242868dcd9312e2fb27ad01cc4a816156b",
+        "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+      ],
+      "from_id": "claim:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.synthetic.worker-claim-navigation",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/relations/work-expression/work-expression-claims.jsonl",
+      "source_claim_line": 13,
+      "to_id": "identity:tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+    },
+    {
+      "claim_ref": "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+      "claim_sha256": "dabaa4ddb55f8059ddf5880a2cdd1260c97b81eeef5a951370b5a77a64265926",
+      "edge_id": "edge:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments:made_by:003",
+      "edge_kind": "made_by",
+      "evidence_node_ids": [
+        "evidence:sha256:4b8bed48e481bda03e2e5c0903342e242868dcd9312e2fb27ad01cc4a816156b",
+        "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+      ],
+      "from_id": "claim:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.synthetic.worker-claim-navigation",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/relations/work-expression/work-expression-claims.jsonl",
+      "source_claim_line": 13,
+      "to_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d"
+    },
+    {
+      "claim_ref": "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+      "claim_sha256": "dabaa4ddb55f8059ddf5880a2cdd1260c97b81eeef5a951370b5a77a64265926",
+      "edge_id": "edge:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments:supported_by:005",
+      "edge_kind": "supported_by",
+      "evidence_node_ids": [
+        "evidence:sha256:4b8bed48e481bda03e2e5c0903342e242868dcd9312e2fb27ad01cc4a816156b",
+        "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+      ],
+      "from_id": "claim:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.synthetic.worker-claim-navigation",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/relations/work-expression/work-expression-claims.jsonl",
+      "source_claim_line": 13,
+      "to_id": "evidence:sha256:4b8bed48e481bda03e2e5c0903342e242868dcd9312e2fb27ad01cc4a816156b"
+    },
+    {
+      "claim_ref": "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+      "claim_sha256": "dabaa4ddb55f8059ddf5880a2cdd1260c97b81eeef5a951370b5a77a64265926",
+      "edge_id": "edge:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments:supported_by:006",
+      "edge_kind": "supported_by",
+      "evidence_node_ids": [
+        "evidence:sha256:4b8bed48e481bda03e2e5c0903342e242868dcd9312e2fb27ad01cc4a816156b",
+        "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+      ],
+      "from_id": "claim:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.synthetic.worker-claim-navigation",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/relations/work-expression/work-expression-claims.jsonl",
+      "source_claim_line": 13,
+      "to_id": "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+    }
+  ],
+  "claim_traces": [
+    {
+      "alternative_claim_refs": [],
+      "assertion_layer": "bibliographic_assertion",
+      "claim_node_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani",
+      "claim_sha256": "82a46a348882fb658f1be3cb9f3be3a5282d8d7b8080cb195e86a78c761dfa4c",
+      "confidence": null,
+      "counterevidence_node_ids": [],
+      "counterevidence_refs": [],
+      "edge_ids": [
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:generated_by:004",
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:has_object:002",
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:has_subject:001",
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:made_by:003",
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:supported_by:005",
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:supported_by:006",
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:supported_by:007",
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani:supported_by:008"
+      ],
+      "epistemic_status": "observed",
+      "evidence_node_ids": [
+        "evidence:sha256:2cfefbe0b408c99be3e33c999f7a1095be92d0b4789fb75b777e5e4ab5f7f8a4",
+        "evidence:sha256:3b9e840716fe231f0ed6960a5adccbebc9a7c57d445f14d4e646a7aefa331ce9",
+        "evidence:sha256:981767c7ab8fee5a5cf7da98ce26f6687a3237508994f04883b82eb945df7503",
+        "evidence:sha256:f7e4a7e462ccda6e29d975b762fdcf5be64864e25df49563b9b7484252e579e4"
+      ],
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "normalized_identity_node_ids": [],
+      "object_node_id": "identity:tos.agent.s-p-nani",
+      "predicate": "translated_by",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-nani-1899.source-statements.2026-08-01",
+      "qualifiers": null,
+      "review_node_ids": [],
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "source_claim_sha256": "82a46a348882fb658f1be3cb9f3be3a5282d8d7b8080cb195e86a78c761dfa4c",
+      "subject_node_id": "identity:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+      "supersedes_claim_ref": null,
+      "visibility": "public_metadata_only"
+    },
+    {
+      "alternative_claim_refs": [],
+      "assertion_layer": "bibliographic_assertion",
+      "claim_node_id": "claim:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "claim_ref": "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "claim_sha256": "bcc13c90e0ff7c908183a50080a8e3d1781169e9d69e7a8735f188d41bbee5b3",
+      "confidence": null,
+      "counterevidence_node_ids": [],
+      "counterevidence_refs": [],
+      "edge_ids": [
+        "edge:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments:generated_by:004",
+        "edge:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments:has_object:002",
+        "edge:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments:has_subject:001",
+        "edge:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments:made_by:003",
+        "edge:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments:supported_by:005",
+        "edge:tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments:supported_by:006"
+      ],
+      "epistemic_status": "observed",
+      "evidence_node_ids": [
+        "evidence:sha256:14a107d152bc5f13f63348169353f384686a208681710badcfcb90afc0834228",
+        "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+      ],
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "normalized_identity_node_ids": [],
+      "object_node_id": "identity:tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "predicate": "embodied_by",
+      "provenance_event_node_id": "provenance_event:tos.event.synthetic.worker-claim-navigation",
+      "qualifiers": null,
+      "review_node_ids": [],
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/relations/expression-edition/expression-edition-claims.jsonl",
+      "source_claim_line": 13,
+      "source_claim_sha256": "bcc13c90e0ff7c908183a50080a8e3d1781169e9d69e7a8735f188d41bbee5b3",
+      "subject_node_id": "identity:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+      "supersedes_claim_ref": null,
+      "visibility": "public_metadata_only"
+    },
+    {
+      "alternative_claim_refs": [],
+      "assertion_layer": "bibliographic_assertion",
+      "claim_node_id": "claim:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+      "claim_ref": "tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments",
+      "claim_sha256": "dabaa4ddb55f8059ddf5880a2cdd1260c97b81eeef5a951370b5a77a64265926",
+      "confidence": null,
+      "counterevidence_node_ids": [],
+      "counterevidence_refs": [],
+      "edge_ids": [
+        "edge:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments:generated_by:004",
+        "edge:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments:has_object:002",
+        "edge:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments:has_subject:001",
+        "edge:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments:made_by:003",
+        "edge:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments:supported_by:005",
+        "edge:tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments:supported_by:006"
+      ],
+      "epistemic_status": "observed",
+      "evidence_node_ids": [
+        "evidence:sha256:4b8bed48e481bda03e2e5c0903342e242868dcd9312e2fb27ad01cc4a816156b",
+        "evidence:sha256:f8197909fb247e5dedce39c9126382336720c99ed9569736017d2573cbb4ecc9"
+      ],
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "normalized_identity_node_ids": [],
+      "object_node_id": "identity:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+      "predicate": "has_expression",
+      "provenance_event_node_id": "provenance_event:tos.event.synthetic.worker-claim-navigation",
+      "qualifiers": null,
+      "review_node_ids": [],
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/relations/work-expression/work-expression-claims.jsonl",
+      "source_claim_line": 13,
+      "source_claim_sha256": "dabaa4ddb55f8059ddf5880a2cdd1260c97b81eeef5a951370b5a77a64265926",
+      "subject_node_id": "identity:tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "supersedes_claim_ref": null,
+      "visibility": "public_metadata_only"
+    }
+  ]
+}

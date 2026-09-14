@@ -126,6 +126,11 @@ _TEMPORAL_CLAIM_PREDICATES = {
 
 
 def _objects(value: Any) -> list[dict[str, Any]]:
+    # Explicit build-owned row stores are validated on insertion, not a public
+    # relaxation of the array/object contracts. Query JSON remains ordinary.
+    from .disk_collections import DiskSequence, GroupRows
+    if isinstance(value, (DiskSequence, GroupRows)):
+        return value
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, dict)]
@@ -2067,7 +2072,7 @@ def _normalize_relation(
     return normalized
 
 
-def _validate_retained_object_link_contexts(navigation, raw_nodes):
+def _validate_retained_object_link_contexts(navigation, raw_nodes, *, _storage=None):
     """Check exact legacy carrier agreement, not v1 source/write admission.
 
     The source adapter owns schema validation. A portable projection cannot
@@ -2076,7 +2081,7 @@ def _validate_retained_object_link_contexts(navigation, raw_nodes):
     """
     source_ref = 'ToS/source-witnesses/relations/object-link/object-link-claims.jsonl'
     schema_ref = 'ToS/contracts/object-link-claim.schema.json'
-    retained = {}
+    retained = _storage.mapping() if _storage else {}
 
     def context(item):
         properties = item.get('properties')
@@ -2123,15 +2128,16 @@ def _validate_retained_object_link_contexts(navigation, raw_nodes):
 
 
 def _validate_reference_claim_carriers(bibliographic, raw_nodes, nodes_by_id,
-                                       entity_entries, relation_entries, relation_mappings):
+                                       entity_entries, relation_entries, relation_mappings, *, _storage=None):
     """Check the declared fixed-slot ABI without IO or inferred references.
 
     Access consumes exported JSON, not the source validator's rebuild. A
     missing derived carrier cannot weaken the retained source Claim. Ordinary
     structured values and their opaque extensions keep their existing reader.
     """
-    by_native = {row.get('node_id'): row for row in raw_nodes if isinstance(row.get('node_id'), str)}
-    traces, members_from, members_for = defaultdict(list), defaultdict(list), defaultdict(list)
+    sequence, mapping, groups = _build_collections(_storage)
+    by_native = mapping((row.get('node_id'), row) for row in raw_nodes if isinstance(row.get('node_id'), str))
+    traces, members_from, members_for = groups(), groups(), groups()
     for trace in _objects(bibliographic.get('claim_traces')):
         if isinstance(trace.get('claim_node_id'), str):
             traces[trace['claim_node_id']].append(trace)
@@ -2413,9 +2419,10 @@ def _expected_claim_navigation(
         'mapping_sha256': _validation_digest(mapping)}}
 
 
-def _validate_claim_navigation_carriers(bibliographic_nodes, registry, entity_entries, entity_mappings):
-    by_identity = defaultdict(list)
-    by_literal = defaultdict(list)
+def _validate_claim_navigation_carriers(bibliographic_nodes, registry, entity_entries, entity_mappings, *, _storage=None):
+    sequence, mapping, groups = _build_collections(_storage)
+    by_identity = groups()
+    by_literal = groups()
     for node in bibliographic_nodes:
         properties = node.get('properties') or {}
         if node.get('node_kind') == 'identity' and isinstance(properties.get('identity_ref'), str):
@@ -2453,6 +2460,13 @@ def _validate_claim_navigation_carriers(bibliographic_nodes, registry, entity_en
                                               registry, entity_entries, entity_mappings)
         if _validation_digest(properties['navigation_descriptor']) != _validation_digest(expected):
             raise ValueError(f"claim navigation carrier differs from source-bound syntax: {claim['claim_id']}")
+
+
+def _build_collections(storage):
+    """Keep one semantic algorithm with explicit offline disk intermediates."""
+    if storage is None:
+        return list, dict, lambda: defaultdict(list)
+    return storage.sequence, storage.mapping, storage.groups
 
 
 def _normalization_binding(
@@ -2539,10 +2553,10 @@ def _claim_context_group_value(values, claim_ref):
     return result
 
 
-def _prepare_claim_context_groups(nodes):
+def _prepare_claim_context_groups(nodes, *, _storage=None):
     """Keep encounter order and conflicts; retain only small context projections."""
     cache = active_cache.get()
-    groups = {}
+    groups = _storage.groups() if _storage else {}
     for node in nodes:
         if node['kind_id'] not in {'claim', 'annotation-claim'}:
             continue
@@ -2594,9 +2608,9 @@ def _accumulate_view_contribution(result, contribution):
     result.update(contribution)
 
 
-def _prepare_inherited_views(relations):
+def _prepare_inherited_views(relations, *, _storage=None):
     cache = active_cache.get()
-    contributions = {}
+    contributions = _storage.groups() if _storage else {}
     for relation in relations:
         if cache:
             cache.reduce('relation-views', relation['id'], [
@@ -2612,9 +2626,10 @@ def _prepare_inherited_views(relations):
                 contributions.setdefault(endpoint, []).append(contribution)
             elif contribution:
                 _accumulate_view_contribution(contributions.setdefault(endpoint, set()), contribution)
-    return {endpoint: (cache.reduce('inherited-views', endpoint, values, None, _inherited_view_value)
+    mapping = _storage.mapping if _storage else dict
+    return mapping((endpoint, (cache.reduce('inherited-views', endpoint, values, None, _inherited_view_value)
                        if cache else _inherited_view_value([values], None))
-            for endpoint, values in contributions.items()}
+                   ) for endpoint, values in contributions.items())
 
 
 def _claim_policy_index_value(values, _):
@@ -2684,9 +2699,10 @@ def _accumulate_literal_context(result, contribution):
     return result
 
 
-def _prepare_claim_finalization(nodes_by_id, traces, context_groups, registry, raw_nodes):
+def _prepare_claim_finalization(nodes_by_id, traces, context_groups, registry, raw_nodes, *, _storage=None):
     cache = active_cache.get()
-    updates, literals = {}, {}
+    mapping = _storage.mapping if _storage else dict
+    updates, literals = mapping(), mapping()
     if not traces:
         return updates, literals
     if cache:
@@ -2737,9 +2753,9 @@ def _prepare_claim_finalization(nodes_by_id, traces, context_groups, registry, r
             claim_ref = update[0]['claim_id']
             cache.reduce('claim-finalization', claim_id,
                 [cache.scheduler.definitions['claim-update:' + claim_ref]], None, _single_value)
-    return updates, {identifier: (cache.reduce('literal-claim-contexts', identifier, contributions, None, _literal_context_value)
+    return updates, mapping((identifier, (cache.reduce('literal-claim-contexts', identifier, contributions, None, _literal_context_value)
                                   if cache else contributions)
-                     for identifier, contributions in literals.items()}
+                            ) for identifier, contributions in literals.items())
 
 
 def _single_value(values, _):
@@ -2813,7 +2829,11 @@ def build_knowledge_graph(
     bibliographic_claims: dict[str, Any] | None = None,
     entity_type_registry: dict[str, Any] | None = None,
     relation_type_registry: dict[str, Any] | None = None,
+    *, _storage=None, _source_revision=None,
 ) -> dict[str, Any]:
+    sequence, mapping, groups = _build_collections(_storage)
+    if _storage is not None and active_cache.get() is not None:
+        raise ValueError('offline disk build and incremental normalization cache are separate execution profiles')
     bibliographic = bibliographic_claims if isinstance(bibliographic_claims, dict) else {}
     entity_registry = entity_type_registry if isinstance(entity_type_registry, dict) else {}
     relation_registry = relation_type_registry if isinstance(relation_type_registry, dict) else {}
@@ -2826,14 +2846,14 @@ def build_knowledge_graph(
             raise ValueError("invalid semantic registry: " + "; ".join(registry_report["violations"]))
     entity_entries, entity_mappings, fallback_type_id = _entity_registry_indexes(entity_registry)
     relation_entries, relation_mappings, fallback_relation_type_id = _relation_registry_indexes(relation_registry)
-    source_revision = knowledge_source_revision(
+    source_revision = _source_revision or knowledge_source_revision(
         corpus,
         philosophy,
         bibliographic,
         entity_registry,
         relation_registry,
     )
-    nodes: list[dict[str, Any]] = []
+    nodes = sequence()
     for item in _objects(philosophy.get("nodes")):
         nodes.append(
             _normalize_node(
@@ -2877,27 +2897,27 @@ def build_knowledge_graph(
                 fallback_type_id=fallback_type_id,
             )
         )
-    claim_traces = {
-        str(item.get("claim_ref")): item
+    claim_traces = mapping(
+        (str(item.get("claim_ref")), item)
         for item in _objects(bibliographic.get("claim_traces"))
         if _string(item.get("claim_ref"))
-    }
+    )
     if active_cache.get():
         for claim_ref, trace in claim_traces.items():
             active_cache.get().scheduler.evaluate(Input('source-claim-trace:' + claim_ref, trace))
-    claim_predicates_by_object = {
-        str(item.get("object_node_id")): str(item.get("predicate"))
+    claim_predicates_by_object = mapping(
+        (str(item.get("object_node_id")), str(item.get("predicate")))
         for item in claim_traces.values()
         if _string(item.get("object_node_id")) and _string(item.get("predicate"))
-    }
+    )
     bibliographic_nodes = _objects(bibliographic.get("nodes"))
-    bibliographic_nodes_by_native = {
-        str(item.get("node_id")): item
+    bibliographic_nodes_by_native = mapping(
+        (str(item.get("node_id")), item)
         for item in bibliographic_nodes
         if _string(item.get("node_id"))
-    }
-    _validate_retained_object_link_contexts(navigation, bibliographic_nodes)
-    _validate_claim_navigation_carriers(bibliographic_nodes, relation_registry, entity_entries, entity_mappings)
+    )
+    _validate_retained_object_link_contexts(navigation, bibliographic_nodes, _storage=_storage)
+    _validate_claim_navigation_carriers(bibliographic_nodes, relation_registry, entity_entries, entity_mappings, _storage=_storage)
     for item in bibliographic_nodes:
         native = _string(item.get("node_id")) or "unnamed"
         predicate = claim_predicates_by_object.get(native)
@@ -2920,6 +2940,10 @@ def build_knowledge_graph(
                 fallback_type_id=fallback_type_id,
             )
         )
+    # The object-to-predicate adapter has served the claim-node normalization
+    # pass.  It is a build-owned disk map; keep the source projection itself
+    # alive, but release this redundant index before relation materialization.
+    del claim_predicates_by_object
     repository_root = _normalize_node(
         {
             "node_id": "tree-of-sophia",
@@ -2937,7 +2961,7 @@ def build_knowledge_graph(
         fallback_type_id=fallback_type_id,
     )
     nodes.append(repository_root)
-    repository_items: list[tuple[str, int, dict[str, Any], str, str]] = []
+    repository_items = sequence()
     for collection, kind in (("branches", "repository-branch"), ("manifests", "repository-manifest"), ("resources", "repository-resource")):
         for order, item in enumerate(_objects(corpus.get(collection))):
             native = _string(item.get("id")) or _string(item.get("path")) or f"{collection}:{order}"
@@ -2960,16 +2984,20 @@ def build_knowledge_graph(
             )
             repository_items.append((collection, order, material, native, identity))
 
-    nodes_by_id = {node["id"]: node for node in nodes}
+    nodes_by_id = mapping((node["id"], node) for node in nodes)
     _validate_reference_claim_carriers(bibliographic, bibliographic_nodes, nodes_by_id,
-                                       entity_entries, relation_entries, relation_mappings)
-    relation_sources: list[tuple[str, dict[str, Any], str | None]] = []
+                                       entity_entries, relation_entries, relation_mappings, _storage=_storage)
+    # The first endpoint index exists only for the carrier check.  Releasing
+    # it here matters for large snapshots because the next phase allocates a
+    # second index over the same normalized node set.
+    del nodes_by_id
+    relation_sources = sequence()
     relation_sources.extend(("philosophy", item, None) for item in _objects(philosophy.get("edges")))
-    pack_paths = {
-        str(item.get("pack_id")): str(item.get("path"))
+    pack_paths = mapping(
+        (str(item.get("pack_id")), str(item.get("path")))
         for item in _objects(corpus.get("relation_packs"))
         if _string(item.get("pack_id")) and _string(item.get("path"))
-    }
+    )
     for item in _objects(corpus.get("relation_edges")):
         material = dict(item)
         pack_path = pack_paths.get(str(item.get("pack_id") or ""))
@@ -2986,12 +3014,13 @@ def build_knowledge_graph(
         identity = f"{pack_id}:{edge_native}" if pack_id and edge_native else None
         relation_source = "canon" if material.get("owner_branch") == "ToS/canon" else "candidate-intake"
         relation_sources.append((relation_source, material, identity))
+    del pack_paths
 
     # Canon node-local relations are authored semantic assertions too.  The
     # compact corpus index preserves the complete node contract in
     # ``properties``; materialize those relations instead of making consumers
     # reverse-engineer them from an opaque payload.
-    canon_nodes_by_source_path: dict[str, str] = {}
+    canon_nodes_by_source_path = mapping()
     for item in _objects(corpus.get("nodes")):
         source_path = _string(item.get("source_path"))
         node_id = _string(item.get("node_id"))
@@ -3031,11 +3060,11 @@ def build_knowledge_graph(
             item, claim_traces, bibliographic_nodes_by_native), None))
 
     branch_items = _objects(corpus.get("branches"))
-    branch_by_path = {
-        str(item.get("path")): str(item.get("id"))
+    branch_by_path = mapping(
+        (str(item.get("path")), str(item.get("id")))
         for item in branch_items
         if _string(item.get("path")) and _string(item.get("id"))
-    }
+    )
 
     def owning_branch_id(item: dict[str, Any]) -> str | None:
         owner = _string(item.get("owner_branch")) or _string(item.get("declared_path")) or _string(item.get("path"))
@@ -3098,20 +3127,25 @@ def build_knowledge_graph(
                 None,
             )
         )
+    # These indexes and adapter records are consumed by relation construction;
+    # their serialized rows should not survive into endpoint normalization.
+    del owning_branch_id, branch_by_path, repository_items
 
-    nodes_by_id = {node["id"]: node for node in nodes}
-    representations_by_entity: dict[str, dict[str, list[dict[str, Any]]]] = {}
+    nodes_by_id = mapping((node["id"], node) for node in nodes)
+    representations = groups()
+    entity_ids = mapping()
     for node in nodes:
         entity_id = _string(node.get("entity_id"))
-        if not entity_id or not entity_id.startswith("tos."):
-            continue
-        representations_by_entity.setdefault(entity_id, {}).setdefault(str(node["source_graph"]), []).append(node)
-    representation_pairs = [
-        (entity_id, claim, navigation)
-        for entity_id, representations in sorted(representations_by_entity.items())
-        for claim in representations.get("source-claims", [])
-        for navigation in representations.get("source-navigation", [])
-    ]
+        if entity_id and entity_id.startswith("tos."):
+            representations[(entity_id, node['source_graph'])].append(node)
+            entity_ids[entity_id] = True
+    def pairs():
+        identities = entity_ids.sorted_keys() if _storage else sorted(entity_ids)
+        for entity_id in identities:
+            for claim in representations.get((entity_id, 'source-claims'), []):
+                for navigation_node in representations.get((entity_id, 'source-navigation'), []):
+                    yield entity_id, claim, navigation_node
+    representation_pairs = pairs()
     for entity_id, claim_representation, navigation_representation in representation_pairs:
         _require_assessed_carrier_parity(claim_representation, navigation_representation)
         relation_sources.append(
@@ -3142,6 +3176,7 @@ def build_knowledge_graph(
                 None,
             )
         )
+    del representation_pairs, pairs, representations, entity_ids
 
     # A source-witness record can explicitly cite an authored canon node.  An
     # exact path match is strong enough to expose a grounding route, but not to
@@ -3196,6 +3231,7 @@ def build_knowledge_graph(
                     None,
                 )
             )
+    del canon_nodes_by_source_path
 
     # Relation endpoints are part of the public graph even when the compact
     # corpus index has no full node payload for them.
@@ -3223,19 +3259,24 @@ def build_knowledge_graph(
             nodes.append(placeholder)
             nodes_by_id[identifier] = placeholder
 
-    claim_context_index = _prepare_claim_context_groups(nodes)
+    claim_context_index = _prepare_claim_context_groups(nodes, _storage=_storage)
 
     def referenced_contexts(source_graph: str, item: dict[str, Any]) -> list[dict[str, Any]] | None:
         claim_ref = item.get('claim_ref')
         # An unknown extension shape remains in the source record. It is not
         # a valid join key and must not crash or be coerced into a reference.
-        return claim_context_index.get((source_graph, claim_ref)) if isinstance(claim_ref, str) else None
+        return list(claim_context_index.get((source_graph, claim_ref), [])) if isinstance(claim_ref, str) else None
 
-    relations = [
+    # Relation display reads endpoint titles only. Keep that index separate
+    # from lossless records so a high-degree provenance event is not decoded
+    # in full for every incident relation during the offline build.
+    display_nodes = mapping((node['id'], {'display': {'title': node['display']['title']}})
+                            for node in nodes) if _storage else nodes_by_id
+    relations = sequence(
         _normalize_relation(
             item,
             source_graph,
-            nodes_by_id,
+            display_nodes,
             claim_contexts=referenced_contexts(source_graph, item),
             identity_id=identity,
             relation_type_entries=relation_entries,
@@ -3243,27 +3284,35 @@ def build_knowledge_graph(
             fallback_relation_type_id=fallback_relation_type_id,
         )
         for source_graph, item, identity in relation_sources
-    ]
+    )
+    # Relation normalization has fully consumed both the raw relation adapter
+    # and the title-only endpoint index.
+    del relation_sources, display_nodes, referenced_contexts
 
     claim_updates, literal_contexts = _prepare_claim_finalization(
         nodes_by_id, claim_traces, claim_context_index, relation_registry,
-        bibliographic_nodes_by_native)
-    inherited_views = _prepare_inherited_views(relations)
+        bibliographic_nodes_by_native, _storage=_storage)
+    inherited_views = _prepare_inherited_views(relations, _storage=_storage)
     # These assembly indexes refer to base nodes, not the final graph. Do not
     # retain a superseded node generation through context compilation and
     # semantic validation (the opt-in cache owns its own dependency lifetime).
-    del nodes_by_id, representations_by_entity, representation_pairs
-    del relation_sources, claim_context_index, referenced_contexts
+    del nodes_by_id
+    del claim_context_index
     owned_nodes = active_cache.get() is None
-    for index, node in enumerate(nodes):
-        nodes[index] = _finalize_knowledge_node(
+    def finalize(node):
+        return _finalize_knowledge_node(
             node, claim_updates.get(node['id']),
             inherited_views.get(node['id'], []),
             literal_contexts.get(node['id']), _owned=owned_nodes)
+    if _storage:
+        nodes = sequence(finalize(node) for node in nodes)
+    else:
+        for index, node in enumerate(nodes):
+            nodes[index] = finalize(node)
     del claim_updates, literal_contexts, inherited_views
     context_compiler = ReadableContextCompiler(entity_registry, digest=_stable_digest)
-    nodes = [_attach_readable_context(node, context_compiler, 'node') for node in nodes]
-    relations = [_attach_readable_context(relation, context_compiler, 'relation') for relation in relations]
+    nodes = sequence(_attach_readable_context(node, context_compiler, 'node') for node in nodes)
+    relations = sequence(_attach_readable_context(relation, context_compiler, 'relation') for relation in relations)
     nodes.sort(key=lambda item: (str(item["source_graph"]), str(item["id"])))
     relations.sort(key=lambda item: (str(item["source_graph"]), str(item["id"])))
     source_counts = Counter(str(item["source_graph"]) for item in nodes)
@@ -3318,7 +3367,7 @@ def build_knowledge_graph(
         },
     }
     if entity_registry and relation_registry:
-        semantic_report = validate_knowledge_semantics(graph, entity_registry, relation_registry)
+        semantic_report = validate_knowledge_semantics(graph, entity_registry, relation_registry, _storage=_storage)
         if not semantic_report["valid"]:
             raise ValueError("knowledge semantic invariant violation: " + "; ".join(semantic_report["violations"][:20]))
         graph["counts"]["semantic_validation"] = semantic_report
@@ -3360,6 +3409,20 @@ def _addressed_query_properties(entity_registry: dict[str, Any]) -> list[dict[st
         and all(key in definition for key in
                 ("property_id", "field", "value_type", "applies_to", "inherited", "operators"))
     ]
+
+
+class _BoundedBuildDiagnostics(list):
+    """Fail explicitly if an offline snapshot cannot keep its report bounded."""
+    limit = 1000
+
+    def append(self, value):
+        if len(self) >= self.limit:
+            raise ValueError("offline semantic diagnostics exceed 1000 entries; resolve source violations before compilation")
+        super().append(value)
+
+    def extend(self, values):
+        for value in values:
+            self.append(value)
 
 
 def _addressed_graph_counts(
@@ -4154,22 +4217,25 @@ def validate_knowledge_semantics(
     graph: Any,
     entity_registry: Any,
     relation_registry: Any,
+    *, _storage=None,
 ) -> dict[str, Any]:
     """Check registry binding and endpoint contracts for the complete read model."""
 
     registry_report = validate_semantic_registries(entity_registry, relation_registry)
-    violations = list(registry_report["violations"])
+    sequence, mapping, groups = _build_collections(_storage)
+    diagnostics = _BoundedBuildDiagnostics if _storage else list
+    violations = diagnostics(registry_report["violations"])
     entity_entries, _entity_mappings, fallback_type_id = _entity_registry_indexes(entity_registry)
     relation_entries, _relation_mappings, fallback_relation_type_id = _relation_registry_indexes(relation_registry)
     nodes = _objects(graph.get("nodes")) if isinstance(graph, dict) else []
     relations = _objects(graph.get("relations")) if isinstance(graph, dict) else []
-    nodes_by_id: dict[str, dict[str, Any]] = {}
-    outgoing: dict[tuple[str, str], list[dict[str, Any]]] = {}
-    claims_by_entity = {}
+    nodes_by_id = mapping()
+    outgoing = groups()
+    claims_by_entity = mapping()
     validate_node, validate_relation, validate_claim = _semantic_validation_kernels(
-        entity_registry, relation_registry, nodes_by_id, claims_by_entity, outgoing)
+        entity_registry, relation_registry, nodes_by_id, claims_by_entity, outgoing, diagnostic_list=diagnostics)
 
-    node_occurrences = Counter(str(n.get('id')) for n in nodes)
+    node_occurrences = (_storage.counts if _storage else Counter)(str(n.get('id')) for n in nodes)
     incremental = active_cache.get() is not None
     node_digests = {str(n.get('id')): _validation_digest(n) for n in nodes} if incremental else {}
     registry_digest = _validation_digest([entity_registry, relation_registry]) if incremental else None
@@ -4196,12 +4262,12 @@ def validate_knowledge_semantics(
                                   lambda node=node: validate_node(node),
                                   unique=bool(identifier) and node_occurrences[identifier] == 1))
 
-    relation_ids: set[str] = set()
-    incoming: dict[tuple[str, str], list[dict[str, Any]]] = {}
-    claims_by_entity.update({str(n.get("entity_id")): n for n in nodes if n.get("type_id") == "tos.entity.claim"})
-    gaps: list[dict[str, str]] = []
+    relation_ids = mapping() if _storage else set()
+    incoming = groups()
+    claims_by_entity.update((str(n.get("entity_id")), n) for n in nodes if n.get("type_id") == "tos.entity.claim")
+    gaps = sequence()
 
-    relation_occurrences = Counter(str(r.get('id')) for r in relations)
+    relation_occurrences = (_storage.counts if _storage else Counter)(str(r.get('id')) for r in relations)
     relation_digests = {str(r.get('id')): _validation_digest(r) for r in relations} if incremental else {}
     for relation in relations:
         identifier = _string(relation.get('id')) or '<missing relation id>'
@@ -4209,9 +4275,18 @@ def validate_knowledge_semantics(
         if relation_type in relation_entries:
             if identifier in relation_ids or identifier == '<missing relation id>':
                 violations.append(f"duplicate or missing relation id {identifier}")
-            relation_ids.add(identifier)
-            outgoing.setdefault((str(relation.get('from_id')), relation_type), []).append(relation)
-            incoming.setdefault((str(relation.get('to_id')), relation_type), []).append(relation)
+            if _storage:
+                relation_ids[identifier] = True
+            else:
+                relation_ids.add(identifier)
+            # Offline incidence checks consume only the target and assertion
+            # scope. Retaining full display/source bodies twice per relation
+            # amplifies the scratch store without strengthening validation.
+            incidence = ({'to_id': relation.get('to_id'),
+                          'attributes': {'claim_ref': (relation.get('attributes') or {}).get('claim_ref')}}
+                         if _storage and not incremental else relation)
+            outgoing.setdefault((str(relation.get('from_id')), relation_type), []).append(incidence)
+            incoming.setdefault((str(relation.get('to_id')), relation_type), []).append(incidence)
         attrs = relation.get('attributes') or {}
         supporting = claims_by_entity.get(str(attrs.get('claim_ref'))) or {}
         evidence = supporting.get('semantics', {}).get('claim', {}).get('evidence_node_ids', [])
@@ -4228,7 +4303,7 @@ def validate_knowledge_semantics(
         for (endpoint, relation_type), edges in table.items():
             # Semantic cardinality constrains one assertion context. Distinct
             # conflicting claims are preserved, not forced into one global fact.
-            scoped_counts = Counter((e.get('attributes') or {}).get('claim_ref') if relation_entries[relation_type].get('assertion_mode') == 'reified-claim' else None for e in edges)
+            scoped_counts = (_storage.counts if _storage else Counter)((e.get('attributes') or {}).get('claim_ref') if relation_entries[relation_type].get('assertion_mode') == 'reified-claim' else None for e in edges)
             error = _semantic_cardinality_violation(endpoint, relation_type, maximum_key,
                                                     max(scoped_counts.values()), relation_entries)
             if error is not None:
@@ -4759,6 +4834,7 @@ def _short_digest_string(value: str) -> bytes:
 
 
 def _stable_digest(value: Any) -> str:
+    from .disk_collections import DiskSequence
     digest = hashlib.sha256()
     write = digest.update
 
@@ -4788,7 +4864,7 @@ def _stable_digest(value: Any) -> str:
             write(b"d")
             write(struct.pack(">d", number).hex().encode("ascii"))
             write(b";")
-        elif isinstance(item, list):
+        elif isinstance(item, (list, DiskSequence)):
             write(b"a")
             write(str(len(item)).encode("ascii"))
             write(b"[")
@@ -5570,16 +5646,43 @@ def _display_field_catalog(items: list[dict[str, Any]], kind: str) -> list[dict[
     return surface_catalog(items, kind, 'display')
 
 
+def _facet_catalog(items: list[dict[str, Any]], fields: Iterable[str]) -> dict[str, list[dict[str, Any]]]:
+    # Decode each source record once, preserving per-field encounter order for
+    # the existing stable casefold sort and exact list-value multiplicities.
+    field_counts = {field: Counter() for field in fields}
+    for item in items:
+        for field, counts in field_counts.items():
+            raw = _field(item, field)
+            values = raw if isinstance(raw, list) else [raw]
+            counts.update(str(value) for value in values if value is not None and str(value))
+    return {
+        field: [{"value": value, "count": count}
+                for value, count in sorted(counts.items(), key=lambda pair: pair[0].casefold())]
+        for field, counts in field_counts.items()
+    }
+
+
 def knowledge_catalog(
     graph: dict[str, Any],
     corpus: dict[str, Any],
     philosophy: dict[str, Any],
     entity_type_registry: Any = None,
     relation_type_registry: Any = None,
+    *, _storage=None,
 ) -> dict[str, Any]:
     from .catalog_semantics import memory_catalog
+    from .disk_collections import DiskSequence
+    # The explicit disk compiler persists large diagnostic collections before
+    # catalog production. Small standalone disk builds can carry their bounded
+    # header inline; never implicitly materialize an unbounded gap collection.
+    report = (graph.get('counts') or {}).get('semantic_validation')
+    if isinstance(report, dict) and isinstance(report.get('gaps'), DiskSequence):
+        gaps = report['gaps']
+        if len(gaps) > 1000:
+            raise ValueError('persist disk semantic diagnostics before catalog production')
+        graph = {**graph, 'counts': {**graph['counts'],
+                 'semantic_validation': {**report, 'gaps': list(gaps)}}}
     return memory_catalog(graph, corpus, philosophy, entity_type_registry, relation_type_registry)
-
 
 
 def _normalized_source_filter(sources: Any) -> set[str]:

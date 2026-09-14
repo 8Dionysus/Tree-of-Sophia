@@ -17,12 +17,16 @@ from tos_access.knowledge import (_normalize_node, _stable_digest, knowledge_cat
 from tos_access.readable_context import (ReadableContextCompiler, ReadableContextError,
     build_readable_context, presentation_catalog, validate_sidecar, validate_vocabulary, vocabulary_digest)
 from source_witness_human_forms import materialize_metadata_forms
+from fixture_support import canonical_node_fixture, knowledge_fixture_path
 
 
 def real_freedom():
-    path = ROOT / 'ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json'
+    path = knowledge_fixture_path(
+        'ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json')
     record = json.loads(path.read_text())
-    forms = json.loads(path.with_suffix('.human-forms.json').read_text())
+    forms = json.loads(knowledge_fixture_path(
+        'ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.human-forms.json')
+        .read_text())
     return _normalize_node({'node_id': 'identity:' + record['record_id'], 'node_type': record['record_type'],
         'properties': {'source_record': record,
                        'human_forms': materialize_metadata_forms(record, forms, access_allowed=True)}}, 'source-navigation')
@@ -45,12 +49,11 @@ def real_freedom_graph(*, numeric_control=False):
 def real_canonical_graph():
     """The two opted-in canonical source nodes; never a whole-corpus build."""
     from tos_corpus_index_common import build_nodes
-    paths = tuple(ROOT / f'ToS/canon/{kind}/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/{leaf}/node.json'
-                  for kind, leaf in (('support', 'zarathustra'), ('event', 'departure-from-origin')))
-    diagnostics = []
-    nodes = build_nodes(diagnostics, paths)
-    if diagnostics or len(nodes) != 2:
-        raise AssertionError('exact canonical source fixtures failed to build: ' + repr(diagnostics))
+    with canonical_node_fixture() as (_, paths):
+        diagnostics = []
+        nodes = build_nodes(diagnostics, paths)
+        if diagnostics or len(nodes) != 2:
+            raise AssertionError('exact canonical source fixtures failed to build: ' + repr(diagnostics))
     corpus = {'nodes': nodes}
     entities = json.loads((ROOT / 'ToS/doctrine/semantic-interchange/entity-types.v1.json').read_text())
     relations = json.loads((ROOT / 'ToS/doctrine/semantic-interchange/relation-types.v1.json').read_text())
@@ -201,7 +204,8 @@ class ReadableContextTests(unittest.TestCase):
         self.assertTrue(all(e['category'] == 'unclassified' for e in self.build(item)['contexts'][0]['entries']))
 
     def test_retained_historical_claim_gets_known_labels_without_reinterpreting_values(self):
-        source = ROOT / 'ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl'
+        source = knowledge_fixture_path(
+            'ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl')
         record = next(json.loads(line) for line in source.read_text().splitlines()
                       if json.loads(line)['claim_id'] == 'tos.claim.jenseits-1886-commission.date')
         item = _normalize_node({'node_id': 'claim:' + record['claim_id'], 'node_type': 'claim',
