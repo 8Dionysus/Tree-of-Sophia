@@ -4,6 +4,7 @@ import { createWebMCPAdapter, type WebMCPDocument } from "./webmcp";
 
 type RegisteredTool = {
   name: string;
+  inputSchema?: Record<string, unknown>;
   execute: (input: Record<string, unknown>, options: { signal: AbortSignal }) => Promise<unknown>;
 };
 
@@ -128,7 +129,7 @@ describe("WebMCP page-command binding", () => {
       path_start_node_id: null, active_layers: [], active_predicates: [], deep_link: "http://tos.local/",
       research_workspace: workspaceSummary(),
     };
-    const cursor = "cursor:" + "x".repeat(5000);
+    const cursor = "x".repeat(65536);
     const registry = createPageCommandRegistry(() => current, {
       "tos.page.knowledge-search": (input) => ({
         schema: "tos_knowledge_search_compressed_v3",
@@ -155,11 +156,12 @@ describe("WebMCP page-command binding", () => {
     const adapter = createWebMCPAdapter(registry, { modelContext } as unknown as WebMCPDocument);
     await adapter.start();
     const tool = tools.get("tos.page.knowledge-search")!;
-    const first = JSON.parse((await tool.execute({ query: "fate" }, { signal: new AbortController().signal }) as { content: Array<{ text: string }> }).content[0].text);
+    expect(tool.inputSchema).toMatchObject({properties:{query:{minLength:1},cursor:{maxLength:65536}}});
+    const first = JSON.parse((await tool.execute({ query: "道", search_mode: "compressed" }, { signal: new AbortController().signal }) as { content: Array<{ text: string }> }).content[0].text);
     expect(first.nodes.map((item: { id: string }) => item.id)).toEqual(["node:first"]);
     expect(first.next_cursor).toBe(cursor);
     expect(first.search_mode).toBe("compressed");
-    const second = JSON.parse((await tool.execute({ query: "fate", cursor: first.next_cursor, search_mode: first.search_mode }, { signal: new AbortController().signal }) as { content: Array<{ text: string }> }).content[0].text);
+    const second = JSON.parse((await tool.execute({ query: "道", cursor: first.next_cursor, search_mode: first.search_mode }, { signal: new AbortController().signal }) as { content: Array<{ text: string }> }).content[0].text);
     expect(second.search_mode).toBe("compressed");
     expect(second.nodes.map((item: { id: string }) => item.id)).toEqual(["node:later"]);
     expect(second.next_cursor).toBeNull();

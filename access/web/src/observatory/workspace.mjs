@@ -4,6 +4,7 @@ import {createResearchWorkspace,createLocalStoragePersistence} from '../research
 import {localized,RequestSlots} from './knowledge-client.mjs';
 import {refreshIcons} from './icons';
 import {stageObservation} from './research-actions';
+import {readExactSource,exactSourceRepresentations} from './exact-source-read.mjs';
 
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);uiText(node, text);node.className=className;return node;};
 const button=(label,action)=>{const b=el('button',label);b.type='button';b.addEventListener('click',action);return b;};
@@ -11,7 +12,7 @@ function link(ref){
   if(/^https?:\/\//i.test(ref)){try{const url=new URL(ref);const a=el('a',url.hostname+url.pathname,'sc-source-ref');a.href=url.href;a.target='_blank';a.rel='noreferrer noopener';return a;}catch{/* Render invalid references as text. */}}
   return el('span',ref,'sc-source-ref');
 }
-export function createTools(root,scene,{data:{queries},selected,panels,onChange}){
+export function createTools(root,scene,{data:{queries,client},selected,panels,onChange}){
   let persistence=false;
   try{persistence=createLocalStoragePersistence(localStorage,'tos-research-workspace-v1');}catch{/* Workspace remains usable in memory. */}
   const workspace=createResearchWorkspace({sessionId:'tos-local-research',persistence});
@@ -97,6 +98,55 @@ export function createTools(root,scene,{data:{queries},selected,panels,onChange}
     const provenance=el('details');uiChildren(provenance, "append", el('summary',ui("Происхождение и статус")));
     for(const [label,value]of [[ui("Слой"),source.epistemic?.authority_layer],[ui("Рассмотрение"),source.epistemic?.review_posture],[ui("Канон"),source.epistemic?.canon_status]])uiChildren(provenance, "append", el('p',label+': '+(value&&value!=='not-recorded'?value:ui("не указан")),'sc-muted'));
     for(const ref of source.source_refs)uiChildren(provenance, "append", link(ref));uiChildren(body, "append", provenance);
+    const sourceRevision=scene.port.packet?.source_revision,kind=sourceKind;
+    const exact=el('section','','sc-exact-source');
+    const isCurrent=()=>!panel.hidden&&active==='sources'&&rawSource===source&&scene.port.packet?.source_revision===sourceRevision;
+    async function openExact(representation='record',output=exact){
+      output.dataset.sourceReadStatus='loading';
+      uiChildren(output,"replaceChildren",el('p',ui("Читаю точную исходную запись…"),'sc-muted'));
+      try{
+        const response=await requests.run('exact-source-'+representation,signal=>readExactSource(client,
+          {kind,id:source.id,source_revision:sourceRevision,content_revision:source.content_revision},{signal,representation}));
+        if(!response.current||!isCurrent()||!output.isConnected)return;
+        const read=response.value;output.dataset.sourceReadStatus=read.status;
+        uiChildren(output,"replaceChildren");
+        if(read.status!=='available'){
+          uiChildren(output,"append",el('p',ui("Запрошенное представление не выдано. Статус: {0}. Причина: {1}.",[read.status,read.reason]),'sc-muted'));scene.invalidate();return;
+        }
+        const detail=(title,value)=>{const section=el('details');uiChildren(section,"append",el('summary',title),el('pre',JSON.stringify(value,null,2),'sc-source-text'));return section;};
+        if(representation!=='record'){
+          uiChildren(output,"append",el('p',ui("Точные символы исходной единицы; это не принятие интерпретации.")));
+          for(const span of read.native_unit.spans){const text=el('pre',span.text,'sc-source-text');text.lang=read.native_unit.summary.language;text.style.whiteSpace='pre-wrap';uiChildren(output,"append",text);}
+          if(read.native_unit.local_conditions){
+            uiChildren(output,"append",el('p',ui("Только локальное чтение на указанных условиях; внешняя публикация не разрешена.")));
+            for(const notice of read.native_unit.local_conditions.notices){const text=el('pre',notice.text,'sc-source-text');text.style.whiteSpace='pre-wrap';uiChildren(output,"append",el('h4',notice.role),text);}
+          }
+          uiChildren(output,"append",detail(ui("Происхождение и статус"),{source_revision:read.source_revision,record_ref:read.record_ref,text_access:read.text_access,summary:read.native_unit.summary,local_conditions:read.native_unit.local_conditions}));
+        }else{
+          uiChildren(exact,"append",el('p',ui("Точная публичная запись источника; её чтение не даёт допуска содержанию или прав на текст носителя.")));
+          if(typeof read.record.preferred_label==='string')uiChildren(exact,"append",el('h4',read.record.preferred_label));
+          const notes=read.layer==='authored_csv_record'?read.record.note:read.record.notes;
+          if(typeof notes==='string'&&notes.trim())uiChildren(exact,"append",el('p',notes,'sc-source-text'));
+          uiChildren(exact,"append",detail(ui("Точная исходная запись"),read.record),detail(ui("Происхождение и статус"),
+            {source_revision:read.source_revision,record_ref:read.record_ref,content_revision:read.content_revision,access:read.access,provenance:read.provenance}));
+          if(read.record.native_text_binding){
+            const choices=el('div','','sc-native-source-choices');uiChildren(exact,"append",choices);
+            const response=await requests.run('source-representations',signal=>exactSourceRepresentations(client,sourceRevision,signal));
+            if(!response.current||!isCurrent()||!choices.isConnected)return;
+            for(const representation of response.value){
+              const native=el('section','','sc-native-source');native.dataset.representation=representation;
+              const label=representation==='native_local_unit'?ui("Открыть точный текст на локальных условиях"):ui("Открыть точный публичный текст");
+              uiChildren(choices,"append",actions(button(label,()=>void openExact(representation,native))),native);
+            }
+          }
+        }
+        reading.restore();scene.invalidate();
+      }catch(error){if(!isCurrent()||!output.isConnected)return;
+        if(output.dataset.sourceReadStatus==='loading'){output.dataset.sourceReadStatus='error';uiChildren(output,"replaceChildren",el('p',error.message,'sc-muted'));}
+        else uiChildren(output,"append",el('p',error.message,'sc-muted'));
+        scene.invalidate();}
+    }
+    uiChildren(body,"append",actions(button(ui("Открыть исходную запись"),()=>void openExact())),exact);
     if(sourceKind==='relation')return;
     // The access packet advertises the exact source-navigation owner handle.
     // A transport-native id (for example identity:tos.expression...) is not a

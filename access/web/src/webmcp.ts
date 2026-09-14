@@ -448,11 +448,11 @@ function stableTools(registry: PageCommandRegistry): WebMCPTool[] {
     }, undefined, compactSearchResult),
     commandTool(registry, "tos.page.knowledge-search", {
       name: "tos.page.knowledge-search",
-      title: "Search the indexed ToS knowledge carrier",
+      title: "Search the ToS knowledge carrier",
       description: "Search normalized Tree of Sophia nodes and relations through a source-revision-bound engine advertised by the selected backend. Keep returned search_mode with an opaque continuation cursor. This is a derived access view; projection search remains available through tos.page.search.",
       inputSchema: objectSchema({
-        query: { type: "string", minLength: 3, maxLength: 256 },
-        cursor: { type: "string", maxLength: 8192 },
+        query: { type: "string", minLength: 1, maxLength: 256 },
+        cursor: { type: "string", maxLength: 65536 },
         search_mode: { type: "string", enum: ["indexed", "compressed"] },
         limit: { type: "integer", minimum: 1, maximum: 6, default: 6 },
       }, ["query"]),

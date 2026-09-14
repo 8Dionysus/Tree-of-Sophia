@@ -14,6 +14,19 @@ const requireContract=condition=>{if(!condition)throw new ContractError(t('Не�
 const readonly=value=>value.grants_current_use===false&&value.performs_assessment===false&&value.writes_to_source===false;
 const byteSize=value=>new TextEncoder().encode(JSON.stringify(value)).byteLength;
 
+// Discovery only advertises transport choices. Each exact read still checks
+// the selected record, current rights and (for local text) owner conditions.
+export async function exactSourceRepresentations(client,revision,signal){
+  const packet=await client.request('/api/source/capabilities',{signal,maxResponseBytes:65536});
+  requireContract(object(packet)&&packet.schema_version==='tos_source_read_capabilities_v1'
+    &&typeof packet.available==='boolean');
+  if(!packet.available)return [];
+  if(packet.source_epoch?.source_revision!==revision)throw new RevisionError();
+  requireContract(packet.authority?.writes_to_source===false&&packet.authority?.grants_current_use===false
+    &&Array.isArray(packet.representations)&&packet.representations.every(value=>typeof value==='string'));
+  return packet.representations.filter(value=>['native_public_unit','native_local_unit'].includes(value));
+}
+
 function requireRepresentableNumbers(packet){
   // JSON.parse rounds integers outside JavaScript's safe range, including in
   // unknown extensions. Never present that decoded value as an exact record.

@@ -1,5 +1,14 @@
 // Authored interface text only. Content-language variants remain server-owned.
 export const UI_CATALOG={
+  "Читаю точную исходную запись…": {"en":"Reading the exact source record…","es":"Leyendo el registro fuente exacto…"},
+  "Запрошенное представление не выдано. Статус: {0}. Причина: {1}.": {"en":"Requested representation not delivered. Status: {0}. Reason: {1}.","es":"No se entregó la representación solicitada. Estado: {0}. Motivo: {1}."},
+  "Открыть точный текст на локальных условиях": {"en":"Open exact text under local conditions","es":"Abrir el texto exacto bajo condiciones locales"},
+  "Только локальное чтение на указанных условиях; внешняя публикация не разрешена.": {"en":"Local reading under the stated conditions only; external publication is not authorized.","es":"Solo lectura local bajo las condiciones indicadas; no se autoriza la publicación externa."},
+  "Точные символы исходной единицы; это не принятие интерпретации.": {"en":"Exact source-unit characters; this does not admit an interpretation.","es":"Caracteres exactos de la unidad fuente; esto no admite una interpretación."},
+  "Точная публичная запись источника; её чтение не даёт допуска содержанию или прав на текст носителя.": {"en":"Exact public source record; reading it does not admit its content or grant rights to the carrier text.","es":"Registro fuente público exacto; leerlo no admite su contenido ni otorga derechos sobre el texto del soporte."},
+  "Точная исходная запись": {"en":"Exact source record","es":"Registro fuente exacto"},
+  "Открыть точный публичный текст": {"en":"Open exact public text","es":"Abrir el texto público exacto"},
+  "Открыть исходную запись": {"en":"Open source record","es":"Abrir el registro fuente"},
   "Читаемое представление этого контекста недоступно. Откройте точные данные контекста перед выводами.": {"en":"The readable presentation of this context is unavailable. Open the exact context data before drawing conclusions.","es":"La presentación legible de este contexto no está disponible. Abra los datos exactos del contexto antes de sacar conclusiones."},
   "Технические сведения контекста": {"en":"Context technical details","es":"Detalles técnicos del contexto"},
   "Не классифицировано; исходное значение сохранено.": {"en":"Unclassified; the source value is preserved.","es":"Sin clasificar; se conserva el valor original."},

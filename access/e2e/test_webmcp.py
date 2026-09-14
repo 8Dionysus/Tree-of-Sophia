@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+import copy
 import hashlib
 import json
 import os
@@ -22,9 +23,83 @@ from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright  
 
 from tos_access.core import ToSAccessCore  # noqa: E402
 from tos_access.http_server import make_server  # noqa: E402
+from tos_access.source_read import (  # noqa: E402
+    PUBLICATION_PROTOCOL,
+    SourceOwnerBinding,
+    SourceReadService,
+    _canonical_digest,
+)
 from fixture_support import write_fixture  # noqa: E402
 
 CHROMIUM = os.environ.get("TOS_E2E_CHROMIUM") or shutil.which("chromium-browser") or shutil.which("chromium")
+SOURCE_RECORD_RELATIVE = Path(
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json"
+)
+SOURCE_RECORD_PATH = REPO_ROOT / "access/tests/fixtures/source-assembly" / SOURCE_RECORD_RELATIVE
+
+
+class _E2EMetadataOwner:
+    """Small owner-bound reader for one exact public metadata fixture.
+
+    The browser fixture carries the real frozen source record as a normalized
+    source target.  The reader below models the source owner that must issue
+    the matching epoch and re-check that exact id/version/digest; it does not
+    infer a path or expose native text.
+    """
+
+    def __init__(self, record: dict, source_revision: str):
+        self.record = copy.deepcopy(record)
+        self.source_revision = source_revision
+
+    def source_read_binding(self) -> dict:
+        return {
+            "source_revision": self.source_revision,
+            "catalog_root_sha256": "b" * 64,
+            "catalog_namespace": "tos.catalog.e2e.fixture",
+            "source_publication": {
+                "protocol": PUBLICATION_PROTOCOL,
+                "token": "sha256:" + "c" * 64,
+                "generation": 1,
+            },
+        }
+
+    def verify_current(self) -> None:
+        return None
+
+    def resolve_typed(self, exact_ref: dict) -> dict:
+        expected_ref = {
+            "id": self.record["record_id"],
+            "version": self.record["record_version"],
+            "digest": "sha256:" + _canonical_digest(self.record),
+        }
+        if exact_ref != expected_ref:
+            return {
+                "status": "stale",
+                "reason": "exact-version-digest-mismatch",
+                "exact_ref": copy.deepcopy(exact_ref),
+                "record": None,
+                "record_digest": None,
+                "provenance": None,
+            }
+        return {
+            "status": "available",
+            "reason": "exact-current-version",
+            "exact_ref": copy.deepcopy(exact_ref),
+            "record": copy.deepcopy(self.record),
+            "record_digest": exact_ref["digest"],
+            "provenance": {
+                "catalog": {
+                    "record_key": self.record["record_id"],
+                    "row_sha256": "d" * 64,
+                },
+                "source": {"source_ref": SOURCE_RECORD_RELATIVE.as_posix()},
+            },
+            "descriptor": {
+                "adapter": "native-corpus",
+                "record_type": self.record["record_type"],
+                "source_scope": "public_metadata_only",
+            },
+        }
 
 MODEL_CONTEXT_INIT = r"""
 (() => {
@@ -80,6 +155,20 @@ def access_base_url(tmp_path_factory: pytest.TempPathFactory, request: pytest.Fi
     root = tmp_path_factory.mktemp("access-e2e")
     write_fixture(root)
     projection_path = root / "ToS/derived-exports/philosophy_graph_projection.min.json"
+    projection_bytes = projection_path.read_bytes()
+    projection = json.loads(projection_bytes)
+    source_record = None
+    if getattr(request, "param", None) == "source":
+        source_record = json.loads(SOURCE_RECORD_PATH.read_text(encoding="utf-8"))
+        for node in projection.get("nodes", []):
+            if node.get("node_id") == "a":
+                properties = node.setdefault("properties", {})
+                properties["source_record"] = copy.deepcopy(source_record)
+                node["source_ref"] = SOURCE_RECORD_RELATIVE.as_posix()
+                break
+        else:
+            raise AssertionError("synthetic source fixture node a is missing")
+        projection_path.write_text(json.dumps(projection), encoding="utf-8")
     projection_bytes = projection_path.read_bytes()
     projection = json.loads(projection_bytes)
     projection_digest = hashlib.sha256(projection_bytes).hexdigest()
@@ -193,6 +282,16 @@ def access_base_url(tmp_path_factory: pytest.TempPathFactory, request: pytest.Fi
         }
         (ledger / f"{request_id}.access-request.json").write_text(json.dumps(record), encoding="utf-8")
     core = ToSAccessCore.discover(tos_root=root)
+    if source_record is not None:
+        # The graph projection owns the selected snapshot revision.  Pin the
+        # fixture reader to that revision before exposing the HTTP route.
+        source_revision = core.knowledge_graph()["source_revision"]
+        owner = _E2EMetadataOwner(source_record, source_revision)
+        source_read_service = SourceReadService(
+            SourceOwnerBinding.from_owner_readers(metadata_reader=owner),
+            metadata_record_types={source_record["record_type"]},
+        )
+        core = ToSAccessCore.discover(tos_root=root, source_read_service=source_read_service)
     if getattr(request, "param", None) == "prepared":
         from tos_access.prepared_publication import publish_prepared
         snapshot = core.knowledge_snapshot()
@@ -384,6 +483,51 @@ def test_real_browser_source_gap_research_stages_reviewable_route(webmcp_page: P
     }))
     assert staged["proposal"]["status"] == "pending_review"
     assert staged["authority"] == {"source": False, "reviewed": False, "canon": False}
+
+
+@pytest.mark.parametrize("access_base_url", ["source"], indirect=True)
+def test_real_browser_sources_panel_reads_frozen_metadata_record(
+    webmcp_page: Page, access_base_url: str
+) -> None:
+    page = webmcp_page
+    edge_id, node_id = first_edge_and_node(page)
+    del edge_id
+    normalized_id = "philosophy:" + node_id
+    page.goto(f"{access_base_url}/?focus={normalized_id}&ui=en", wait_until="domcontentloaded", timeout=30_000)
+    wait_for(page, "window.__TOS_E2E.names().includes('tos.page.context')")
+    wait_for(page, "window.__TOS_E2E.names().includes('tos.page.select')")
+    wait_for(page, "document.querySelector('#sophia-gestures')?.dataset.dataState === 'ready'")
+    invoke(page, "tos.page.select", {"item_id": normalized_id})
+    wait_for(page, "window.__TOS_E2E.names().includes('tos.page.inspect-selection')")
+
+    node_packet = page.evaluate(
+        """async id => (await (await fetch('/api/knowledge/nodes/' + encodeURIComponent(id) + '?relation_limit=0')).json())""",
+        normalized_id,
+    )
+    source_target = node_packet["source_read_targets"][normalized_id]["target"]
+    source_record = json.loads(SOURCE_RECORD_PATH.read_text(encoding="utf-8"))
+    expected_digest = "sha256:" + _canonical_digest(source_record)
+    assert source_target["layer"] == "metadata_record"
+    assert source_target["record_type"] == source_record["record_type"] == "work"
+    assert source_target["record_ref"] == {
+        "id": source_record["record_id"],
+        "version": source_record["record_version"],
+        "digest": expected_digest,
+    }
+    assert source_target["content_revision"] == expected_digest
+
+    page.get_by_role("button", name="Открыть источники", exact=True).click()
+    page.get_by_role("button", name="Открыть исходную запись", exact=True).click()
+    wait_for(page, "document.querySelector('.sc-exact-source')?.dataset.sourceReadStatus === 'available'")
+
+    exact = page.locator(".sc-exact-source")
+    for index in range(exact.locator("details").count()):
+        exact.locator("details").nth(index).locator("summary").click()
+    exact_text = exact.inner_text()
+    assert source_record["record_id"] in exact_text
+    assert source_record["preferred_label"] in exact_text
+    assert f'"record_version": {source_record["record_version"]}' in exact_text
+    assert SOURCE_RECORD_RELATIVE.as_posix() in exact_text
 
 
 def test_real_browser_cancellation_reload_and_deep_link(webmcp_page: Page) -> None:

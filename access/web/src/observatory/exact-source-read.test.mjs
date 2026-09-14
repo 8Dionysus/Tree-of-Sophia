@@ -1,10 +1,12 @@
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 import {KnowledgeClient,ContractError,RevisionError,RequestError} from './knowledge-client.mjs';
-import {readExactSource,validateExactSourceTarget,SOURCE_READ_RESPONSE_BYTES} from './exact-source-read.mjs';
+import {exactSourceRepresentations,readExactSource,validateExactSourceTarget,SOURCE_READ_RESPONSE_BYTES} from './exact-source-read.mjs';
 
 const R='a'.repeat(64),C='b'.repeat(64),D='sha256:'+'c'.repeat(64);
 const selection={kind:'node',id:'source-claims:identity:tos.agent.fixture',source_revision:R,content_revision:C};
+const capabilities=({available=true,sourceRevision=R,representations=['record','native_public_unit','native_local_unit'],authority={writes_to_source:false,grants_current_use:false},...rest}={})=>({
+  schema_version:'tos_source_read_capabilities_v1',available,source_epoch:{source_revision:sourceRevision},representations,authority,...rest});
 function fixture(){
   const target={layer:'metadata_record',record_type:'agent',record_ref:{id:'tos.agent.fixture',version:2,digest:D},content_revision:D};
   const access={scope:'public-metadata-record',visibility:'public_metadata_only',visibility_verified:true,
@@ -25,6 +27,43 @@ function fixture(){
     source_read_targets:{[selection.id]:{source_revision:R,target}}};
   return {inspection,discovery,read};
 }
+
+test('source capabilities preserve advertised native public/local choices while filtering future representations',async()=>{
+  const calls=[],packet=capabilities({representations:['future_unit','native_local_unit','record','native_public_unit','future_other']});
+  const client={request:async(path,options)=>{calls.push({path,options});return packet;}};
+  assert.deepEqual(await exactSourceRepresentations(client,R),['native_local_unit','native_public_unit']);
+  assert.equal(calls.length,1);assert.equal(calls[0].path,'/api/source/capabilities');
+});
+
+test('unavailable source capabilities are an explicit empty representation set',async()=>{
+  const packet=capabilities({available:false,sourceRevision:'0'.repeat(64),representations:[],authority:null});
+  assert.deepEqual(await exactSourceRepresentations({request:async()=>packet},R),[]);
+});
+
+test('source capability revision and contract or authority mutations fail closed',async()=>{
+  const stale=capabilities({sourceRevision:'0'.repeat(64)});
+  await assert.rejects(exactSourceRepresentations({request:async()=>stale},R),RevisionError);
+  for(const mutate of [
+    packet=>packet.schema_version='tos_source_read_capabilities_v_future',
+    packet=>packet.available='yes',
+    packet=>packet.representations=['native_public_unit',17],
+    packet=>packet.authority=null,
+    packet=>packet.authority.writes_to_source=true,
+    packet=>packet.authority.grants_current_use=true,
+  ]){
+    const packet=capabilities();mutate(packet);
+    await assert.rejects(exactSourceRepresentations({request:async()=>packet},R),ContractError);
+  }
+});
+
+test('source capability discovery forwards the caller signal and fixed 64 KiB response budget',async()=>{
+  const controller=new AbortController();let seen=null;
+  const client={request:async(path,options)=>{seen={path,options};return capabilities();}};
+  await exactSourceRepresentations(client,R,controller.signal);
+  assert.equal(seen.path,'/api/source/capabilities');assert.equal(seen.options.signal,controller.signal);
+  assert.equal(seen.options.maxResponseBytes,65536);
+});
+
 function harness(data=fixture(),decorate=packet=>new Response(JSON.stringify(packet))){
   const calls=[];
   const client=new KnowledgeClient({fetcher:async(path,options)=>{

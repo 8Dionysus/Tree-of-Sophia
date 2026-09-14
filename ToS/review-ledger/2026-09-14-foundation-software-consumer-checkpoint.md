@@ -118,3 +118,120 @@ added to software CI. The affected Python module passes 16 tests / 112
 subtests; the exact Worker case passes. The required aggregate is unchanged:
 it still requires every software job to succeed, and the full CI run remains
 the separate landing check.
+
+## Default-shell exact source return
+
+The default observatory Sources panel now consumes the existing exact source
+reader for arbitrary selected nodes and relations. It takes the target from
+version-bound backend inspection; it neither derives paths from IDs nor needs
+a record-specific screen. Metadata, native text and bibliographic navigation
+remain distinct. The selected owner's capabilities advertise public/local
+text choices; each requested representation still validates its own binding
+and rights. A refused text request preserves the available metadata record.
+Local returns keep complete selected notices next to their unchanged spans.
+No permission is created or extended by this UI change.
+
+On the retained full corpus, the real project-authored Occurrence
+`tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6` opened its exact public
+record and original English notes. The public-text request correctly returned
+`access-restricted/native-unit-public-rights-not-satisfied`: its separate output
+rights are conditional, and this reader has no current local selection.
+The metadata remained available, no local-reading button was advertised,
+and native WebMCP reinspection retained the same occurrence and source path.
+Browser error collection was empty. This note is not a Nietzsche witness;
+these observations close the tested G6/G9 exact-record seam, not positive
+native-text delivery or the complete K2 historical/concept routes.
+
+The live observation is `observatory-source-return-live-r2.json`; it binds
+source revision `46f6f4b830ab3d5b419462907f94044b53910cdee916924cf0de7265829f8fb4`,
+the dirty successor of software `18cda4ccdbacc9d68b2b74405a66f8925ee0e129`,
+and exact source/browser byte hashes. Its browser asset has SHA-256
+`5571e5ed551dd40534a96bebe03436f6e07b5640b48eab6969d966ee93e0cb97`.
+Typecheck, 17 targeted exact-reader/localization tests and production build
+passed; `observatory-source-return-build-r2-resource.json` has SHA-256
+`f8ca66ad11a5f0e8fa8b4380c45cf218404da8085217a63df0987a77c5425dd4`.
+Earlier adequate full-corpus and search checks were not repeated.
+
+The `18cda4ccdb` Worker CI job passed. Its software job stopped before browser
+execution because the independent page-command expectation lacked the newly
+registered `tos.page.knowledge-search`. That exact expectation is updated;
+strict equality and required job aggregation remain intact. Local standalone
+software validation passed. This repairs contract-test drift, not a relaxation
+of the command surface. The successor still needs its exact package and CI.
+
+Review: source return, version/identity retention, source-language authority,
+read-only ownership and access boundaries are preserved. Historical meaning,
+canon, assessment and translation admission are unchanged and not inferred
+from these tests. There is no scene/camera/gesture redesign or new corpus
+normalization. Outstanding K2 source completeness, K3 measurements and the
+authorized landing remain with the master; the goal stays active.
+
+The same consumer review found legacy indexed-only limits in the advertised
+WebMCP search input: a three-character minimum and an 8 KiB cursor ceiling.
+The adapter now admits nonempty queries and up to the compressed reader's
+64 KiB opaque cursor; the chosen engine still validates the actual query.
+The existing round-trip test now checks a one-character query and a complete
+64 KiB cursor against both the published tool schema and the returned token.
+All 17 WebMCP tests, typecheck and the updated production build passed;
+`observatory-source-return-build-r4-resource.json` has SHA-256
+`0d9a5832b21e862044b0961ec598e55c40becf29146809af3c5e4ee6b38a77d0`.
+This later build changes WebMCP declarations, not the source-panel logic
+observed above. The full D1 corpus was not rebuilt for either adapter change.
+
+On the updated real browser, native `tos.page.knowledge-search` with query
+`道`, compressed mode and limit 2 returned `dao 道` and
+`Daoxue 道學 / Learning of the Way`, plus two relation records, in the shared
+human search panel. Matching totals remained unknown and continuation remained
+available. Candidate posture was not promoted. The selected occurrence stayed
+unchanged. `observatory-short-search-live-r1.json` records this G5/G6/G9 check
+and the exact final browser asset digest; it is not semantic acceptance of
+these corpus candidates. New source-panel actions also reuse the existing
+button container styling after a visual review, with no layout redesign.
+
+## Retained full-corpus query cost
+
+Five independent fresh Python processes each constructed one reader and ran
+the same operation twice on that same core. The exact normalized freedom ID
+was used for focus, exploration and inspection; inspection returned one match.
+No source or database copy, normalization, cache dropping, service restart or
+fallback was used. The selected source/data revisions remain the retained
+`46f6f4b8…` / `18f51b1d…` publication, not a new data release.
+
+| Operation | First / repeated query, ms | Returned bytes |
+| --- | --- | --- |
+| Catalog | 102.039 / 86.494 | 3,407,484 |
+| Compressed search, `freedom`, limit 4 | 29.875 / 11.414 | 129,069 |
+| Focus, depth 1, 16/32 node/relation limits | 55.232 / 28.263 | 586,381 |
+| Exploration, depth 1, page 8/16 | 44.229 / 23.389 | 141,301 |
+| Exact inspection, relation limit 16 | 5.585 / 6.015 | 177,462 |
+
+These are core-call timings, not HTTP transfer, serialization, browser paint
+or cold-OS latency. Fresh-process setup took 314–459 ms separately; the launch
+reported 100.3 MiB peak memory and no swap. The receipt records limits from
+the actual reader/search/lens/exploration instances rather than a copied list.
+Owner APIs enforce those bounds; this measurement is not an independent
+proof of every limit. Search used 66 rows, 243,777 read bytes and 13,500 SQLite
+VM steps in the retained fresh-process observation. The 3.4 MB catalog remains
+an initial vocabulary carrier, not the size of each graph-scene change.
+
+`k3-retained-prepared-warm-benchmark-r2.json` has SHA-256
+`7e897be37d41d1dbde3fb71234bf11d19a206501fcb9fc904cd04b2d4c10ad75`.
+Its original r1 receipt remains separate: that run repeated fresh processes,
+not warm calls, and used an entity alias returning two distinct carriers.
+This closes the named current-publication query-cost measurement portion of
+G7/K3. It does not close remaining mutation, growth-cost, access-transition or
+full K3 acceptance requirements, nor replace existing recovery evidence.
+
+The persistent Sources browser regression also passes on the final built
+shell: native page selection, backend exact target, human Sources action,
+record read, and expansion of exact record/provenance details. It reuses one
+existing frozen Work record with a test-local metadata owner, not production
+corpus or native text. The successful run took 5.01 seconds with 679.4 MiB peak
+memory and no swap. Its log SHA-256 is
+`33729b4e995b961003215f4ddece859ae1a0466b50f0a2df4e2fc46e18e2cda9`;
+`sources-panel-e2e-r6-resource.json` has SHA-256
+`ea8ce7745918e6142d6b50b37c465b211419774a5efdbcb6a423bde0074d8519`.
+Earlier attempts exposed fixture/navigation selector errors, not source
+permission failures; their failed receipts are retained rather than counted
+as passes. Existing source-reader unit tests separately protect stale,
+corrupt, unsupported, conditional and bounded-text cases.

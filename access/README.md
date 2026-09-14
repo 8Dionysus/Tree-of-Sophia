@@ -265,6 +265,16 @@ Configuration, mandate, rights, closure and notice changes fail closed;
 revocation/expiry requires explicit owner reselection, never a public fallback.
 HTTP remains loopback-only. No remote Worker or external publication is enabled.
 
+The default observatory's Sources panel uses this same exact reader for a
+selected node or relation, not only bibliographic dossiers. Open the source
+record to see its unchanged fields and version-bound provenance. When it has
+a native-text binding, the panel discovers the selected owner's advertised
+public/local representations. Each explicit text request still rechecks its
+own access conditions; neither discovery nor metadata visibility is a grant.
+A text refusal leaves the metadata record readable. Local text retains the
+complete license and attribution notices alongside its separate spans.
+The panel never reconstructs a source path or substitutes another revision.
+
 Private source-owner reading is a separate lower-level contract:
 `ToS/contracts/native-private-text-read.schema.json` and
 `scripts/native_text_return.py` expose `PrivateTextReadSelection` plus

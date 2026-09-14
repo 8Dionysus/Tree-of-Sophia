@@ -37,6 +37,7 @@ EXPECTED_PAGE_COMMANDS = {
     "tos.page.context",
     "tos.page.open-view",
     "tos.page.search",
+    "tos.page.knowledge-search",
     "tos.page.find-source-gaps",
     "tos.page.prepare-word-analysis",
     "tos.page.select",
