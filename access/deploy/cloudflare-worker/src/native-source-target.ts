@@ -120,7 +120,29 @@ async function targetForItem(item: NativeRef): Promise<NativePacket | null> {
   const rawMetadata = nativeField(properties, 'source_record'), rawClaim = nativeField(properties, 'source_claim');
   if (rawMetadata.value !== null && rawClaim.value !== null) return null;
   if (rawClaim.value !== null) return exactTargetFromRecord(rawClaim, 'claim_record');
-  if (rawMetadata.value !== null) return exactTargetFromRecord(rawMetadata, 'metadata_record');
+  if (rawMetadata.value !== null) {
+    const payload = nativeField(envelope, 'payload');
+    if (nativeKeys(payload).includes('pack_id') || nativeKeys(payload).includes('edge_id')) {
+      const pack = nativeField(payload, 'pack_id').value, edge = nativeField(payload, 'edge_id').value;
+      const ordinal = exactVersion(nativeField(properties, 'source_row'));
+      const fileDigest = nativeField(properties, 'source_file_sha256').value;
+      const bytes = (value: string) => new TextEncoder().encode(value).length;
+      if (typeof pack !== 'string' || !pack.isWellFormed() || bytes(pack) > 2048 || !/^(canon\/relations\/|candidate-intake\/)/.test(pack)
+          || pack.split('/').some(part => !part || part.startsWith('.') || part === 'payload')
+          || /[\\\u0000]/.test(pack) || typeof edge !== 'string' || !edge.isWellFormed() || !edge || bytes(edge) > 2048 || edge.includes('\0')
+          || !ordinal || typeof fileDigest !== 'string' || !BARE_DIGEST.test(fileDigest) || !isObject(rawMetadata)) return null;
+      for (const key of nativeKeys(rawMetadata)) {
+        const value = nativeChild(rawMetadata, key).value;
+        if (value !== null && typeof value !== 'string') return null;
+      }
+      try {
+        return nativePacketObject([['layer', 'authored_csv_record'], ['pack_id', pack], ['edge_id', edge],
+          ['source_row', ordinal], ['source_file_sha256', fileDigest],
+          ['content_revision', 'sha256:' + await sha256(canonicalNativeJson(rawMetadata))]]);
+      } catch { return null; }
+    }
+    return exactTargetFromRecord(rawMetadata, 'metadata_record');
+  }
   return null;
 }
 

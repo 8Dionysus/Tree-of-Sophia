@@ -90,11 +90,33 @@
         "content_revision": {"$ref": "#/$defs/digest"}
       }
     },
+    "csvTarget": {
+      "type": "object", "additionalProperties": false,
+      "required": ["layer", "pack_id", "edge_id", "source_row", "source_file_sha256", "content_revision"],
+      "properties": {
+        "layer": {"const": "authored_csv_record"},
+        "pack_id": {"type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^(canon/relations/|candidate-intake/)"},
+        "edge_id": {"type": "string", "minLength": 1, "maxLength": 2048},
+        "source_row": {"$ref": "#/$defs/safeInteger", "minimum": 1},
+        "source_file_sha256": {"$ref": "#/$defs/bareDigest"},
+        "content_revision": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "csvSelector": {
+      "type": "object", "additionalProperties": false,
+      "required": ["layer", "pack_id", "edge_id"],
+      "properties": {
+        "layer": {"const": "authored_csv_record"},
+        "pack_id": {"type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^(canon/relations/|candidate-intake/)"},
+        "edge_id": {"type": "string", "minLength": 1, "maxLength": 2048}
+      }
+    },
     "target": {
       "oneOf": [
         {"$ref": "#/$defs/metadataTarget"},
         {"$ref": "#/$defs/claimTarget"},
-        {"$ref": "#/$defs/slotTarget"}
+        {"$ref": "#/$defs/slotTarget"},
+        {"$ref": "#/$defs/csvTarget"}
       ]
     },
     "metadataSelector": {
@@ -130,7 +152,8 @@
       "oneOf": [
         {"$ref": "#/$defs/metadataSelector"},
         {"$ref": "#/$defs/claimSelector"},
-        {"$ref": "#/$defs/slotSelector"}
+        {"$ref": "#/$defs/slotSelector"},
+        {"$ref": "#/$defs/csvSelector"}
       ]
     },
     "discoveryRequest": {
@@ -153,7 +176,7 @@
       "additionalProperties": false,
       "required": ["scope", "visibility", "visibility_verified", "rights_revalidated", "rights_scope", "authority"],
       "properties": {
-        "scope": {"enum": ["public-metadata-record", "public-claim-record", "public-source-slot-metadata"]},
+        "scope": {"enum": ["public-metadata-record", "public-claim-record", "public-source-slot-metadata", "public-authored-csv-record"]},
         "visibility": {"enum": ["public", "public_metadata_only"]},
         "visibility_verified": {"const": true},
         "rights_revalidated": {"const": false},
@@ -164,10 +187,13 @@
     "handle": {
       "type": "object",
       "additionalProperties": false,
+      "allOf": [{"if": {"properties": {"target": {"properties": {"layer": {"const": "authored_csv_record"}}}}},
+        "then": {"properties": {"issuer": {"const": "Tree-of-Sophia/authored-corpus"}, "access": {"properties": {"scope": {"const": "public-authored-csv-record"}}}}},
+        "else": {"properties": {"issuer": {"const": "Tree-of-Sophia/source-witnesses"}, "access": {"properties": {"scope": {"not": {"const": "public-authored-csv-record"}}}}}}}],
       "required": ["schema_version", "issuer", "epoch", "target", "access", "handle_digest"],
       "properties": {
         "schema_version": {"const": "tos_source_read_handle_v1"},
-        "issuer": {"const": "Tree-of-Sophia/source-witnesses"},
+        "issuer": {"enum": ["Tree-of-Sophia/source-witnesses", "Tree-of-Sophia/authored-corpus"]},
         "epoch": {"$ref": "#/$defs/epoch"},
         "target": {"$ref": "#/$defs/target"},
         "access": {"$ref": "#/$defs/access"},
@@ -250,8 +276,8 @@
         "handle": {"$ref": "#/$defs/handle"},
         "source_revision": {"$ref": "#/$defs/bareDigest"},
         "content_revision": {"$ref": "#/$defs/digest"},
-        "layer": {"enum": ["metadata_record", "claim_record", "source_slot"]},
-        "record_kind": {"enum": ["metadata", "claim", "source_slot"]},
+        "layer": {"enum": ["metadata_record", "claim_record", "source_slot", "authored_csv_record"]},
+        "record_kind": {"enum": ["metadata", "claim", "source_slot", "authored_csv"]},
         "record_ref": {"anyOf": [{"$ref": "#/$defs/metadataRef"}, {"$ref": "#/$defs/claimRef"}, {"type": "null"}]},
         "record": {"anyOf": [{"type": "object"}, {"type": "null"}]},
         "provenance": {"anyOf": [{"type": "object"}, {"type": "null"}]},

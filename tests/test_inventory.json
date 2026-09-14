@@ -39,7 +39,7 @@
       "family": "standalone_access_contract",
       "validation_lane": "standalone_access",
       "owner_surface": "access/src/tos_access/source_read_owner.py",
-      "protects": "explicit source-owner selection, matching prepared revision, request-local reader lifetimes, bounded concurrency and CLI input; optional real metadata/Claim inspection-target-read seam without full publication or semantic acceptance claims",
+      "protects": "explicit source-owner selection, matching prepared revision, request-local reader lifetimes, bounded concurrency and CLI input; selected authored CSV membership, exact cells/bytes and no path fallback; optional real metadata/Claim/CSV inspection-target-read seam without full publication or semantic acceptance claims",
       "coverage_authority": "access/AGENTS.md standalone access validation",
       "mode": "blocking",
       "runtime_cost": "fast",

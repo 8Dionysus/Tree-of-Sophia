@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
+from dataclasses import replace
 from pathlib import Path
 import sys
 from threading import BoundedSemaphore
@@ -100,9 +101,18 @@ but never retains reader state or authorizes disclosure on its own.
             catalog.SourceCatalogSourceReader(self.source_root, catalog_snapshot=snapshot))
         binding = SourceOwnerBinding.from_prepared_source(self.inputs,
             catalog_snapshot=snapshot, metadata_reader=metadata_reader, claim_reader=claim_reader)
+        authored = None
+        authored_view = self.inputs.roots().get('authored-corpus')
+        if authored_view is not None:
+            for name in ('tos_corpus_index_common', 'source_metadata_snapshot'):
+                _module_at(name, Path(__file__).resolve().parents[3] / 'scripts' / (name + '.py'))
+            module = _module_at('authored_corpus_source_read',
+                Path(__file__).resolve().parents[3] / 'scripts/authored_corpus_source_read.py')
+            authored = module.AuthoredCorpusReader(self.source_root, authored_view, binding.epoch)
+            binding = replace(binding, authored_reader=authored)
         declared = profiles.SourceRecordProfiles(self.source_root)
         kinds = set(metadata.NATIVE_CATALOGS) | {"link", "artifact", "composite"} | set(declared.profiles)
-        service = SourceReadService(binding, target_issuer=SourceCatalogTargetIssuer(snapshot),
+        service = SourceReadService(binding, target_issuer=SourceCatalogTargetIssuer(snapshot, authored_reader=authored),
                                     metadata_record_types=kinds)
         if hasattr(self, "epoch") and service.epoch != self.epoch:
             raise SourceReadError("source owner epoch changed; explicit reselection required")

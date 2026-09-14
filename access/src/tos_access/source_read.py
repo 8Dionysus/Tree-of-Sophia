@@ -27,6 +27,7 @@ DISCOVERY_SCHEMA = "tos_source_handle_discovery_v1"
 RESULT_SCHEMA = "tos_source_read_result_v1"
 CAPABILITIES_SCHEMA = "tos_source_read_capabilities_v1"
 ISSUER = "Tree-of-Sophia/source-witnesses"
+AUTHORED_ISSUER = "Tree-of-Sophia/authored-corpus"
 PUBLICATION_PROTOCOL = "tos_selected_source_metadata_v1"
 
 MAX_SAFE_INTEGER = 9_007_199_254_740_991
@@ -49,7 +50,8 @@ STATUSES = frozenset(
 METADATA_LAYER = "metadata_record"
 CLAIM_LAYER = "claim_record"
 SLOT_LAYER = "source_slot"
-SUPPORTED_LAYERS = frozenset({METADATA_LAYER, CLAIM_LAYER, SLOT_LAYER})
+CSV_LAYER = "authored_csv_record"
+SUPPORTED_LAYERS = frozenset({METADATA_LAYER, CLAIM_LAYER, SLOT_LAYER, CSV_LAYER})
 SLOT_KINDS = frozenset({"claim", "provenance_event", "anchor"})
 PUBLIC_VISIBILITIES = frozenset({"public", "public_metadata_only"})
 
@@ -135,6 +137,11 @@ def _selector(value: Any) -> dict[str, Any]:
     if type(value) is not dict or "layer" not in value:
         raise SourceReadError("source selector requires one exact typed layer")
     layer = value.get("layer")
+    if layer == CSV_LAYER:
+        if set(value) != {'layer', 'pack_id', 'edge_id'}:
+            raise SourceReadError('authored CSV selector has an invalid closed envelope')
+        pack, edge = _csv_identity(value.get('pack_id'), value.get('edge_id'))
+        return {'layer': CSV_LAYER, 'pack_id': pack, 'edge_id': edge}
     if layer == METADATA_LAYER:
         if set(value) != {"layer", "record_type", "record_id"}:
             raise SourceReadError("metadata selector has an invalid closed envelope")
@@ -162,6 +169,32 @@ def _selector(value: Any) -> dict[str, Any]:
             raise SourceReadError("Claim source-slot selector requires an exact Claim identity")
         return {"layer": SLOT_LAYER, "slot_kind": slot_kind, "identity": identity}
     raise SourceReadError("source selector layer is unsupported")
+
+
+def _csv_identity(pack, edge):
+    if (type(pack) is not str or len(pack.encode('utf-8')) > 2048
+            or not pack.startswith(('canon/relations/', 'candidate-intake/'))
+            or any(part in {'', '.', '..', 'payload'} or part.startswith('.') for part in pack.split('/'))
+            or any(char in pack for char in ('\\', '\x00'))
+            or type(edge) is not str or not edge or len(edge.encode('utf-8')) > 2048 or '\x00' in edge):
+        raise SourceReadError('authored CSV requires exact bounded pack and edge identities')
+    return pack, edge
+
+
+def exact_csv_target(payload):
+    """Pure projection of a complete retained corpus-index row, not admission."""
+    try:
+        if type(payload) is not dict or type(payload.get('properties')) is not dict:
+            return None
+        fields = payload['properties']
+        record = fields.get('source_record')
+        if (type(record) is not dict or any(type(k) is not str or (v is not None and type(v) is not str) for k,v in record.items())):
+            return None
+        return _target({'layer': CSV_LAYER, 'pack_id': payload.get('pack_id'), 'edge_id': payload.get('edge_id'),
+                        'source_row': fields.get('source_row'), 'source_file_sha256': fields.get('source_file_sha256'),
+                        'content_revision': 'sha256:' + _canonical_digest(record)})
+    except (SourceReadError, UnicodeError, TypeError, ValueError, RecursionError):
+        return None
 
 
 @dataclass(frozen=True)
@@ -257,6 +290,7 @@ class SourceOwnerBinding:
     metadata_reader: Any | None = None
     claim_reader: Any | None = None
     slot_reader: Any | None = None
+    authored_reader: Any | None = None
     catalog_snapshot: Any | None = None
     source_inputs: Any | None = None
     binding_kind: str = "owner-issued-reader"
@@ -264,7 +298,7 @@ class SourceOwnerBinding:
     def __post_init__(self) -> None:
         if type(self.epoch) is not SourceEpoch:
             raise TypeError("owner binding requires a validated SourceEpoch")
-        if not any(reader is not None for reader in (self.metadata_reader, self.claim_reader, self.slot_reader)):
+        if not any(reader is not None for reader in (self.metadata_reader, self.claim_reader, self.slot_reader, self.authored_reader)):
             raise SourceReadError("owner binding requires at least one reader")
         if type(self.binding_kind) is not str or self.binding_kind not in {"owner-issued-reader", "prepared-source-vector"}:
             raise SourceReadError("owner binding kind is not supported")
@@ -419,6 +453,14 @@ class SourceOwnerBinding:
                 if issued != self.epoch:
                     raise SourceReadError("owner reader issued another source epoch")
             _verify_reader(reader)
+        if self.authored_reader is not None:
+            if self.source_inputs is None:
+                raise SourceReadError('authored reader requires an explicit prepared source vector')
+            selected = self.source_inputs.roots().get('authored-corpus')
+            view = getattr(self.authored_reader, 'view', None)
+            if (selected is None or view != selected or _reader_binding(self.authored_reader) != self.epoch):
+                raise SourceReadError('authored reader differs from selected source vector')
+            _verify_reader(self.authored_reader)
 
 
 class SourceCatalogTargetIssuer:
@@ -431,7 +473,7 @@ class SourceCatalogTargetIssuer:
     to the same snapshot as the owner readers.
     """
 
-    def __init__(self, catalog_snapshot: Any):
+    def __init__(self, catalog_snapshot: Any, *, authored_reader: Any | None = None):
         if catalog_snapshot is None:
             raise TypeError("an addressed source catalog snapshot is required")
         root = getattr(catalog_snapshot, "root_sha256", None)
@@ -439,6 +481,7 @@ class SourceCatalogTargetIssuer:
         if type(root) is not str or _HEX.fullmatch(root) is None or not isinstance(header, dict):
             raise SourceReadError("target issuer requires an addressed owner catalog")
         self.catalog_snapshot = catalog_snapshot
+        self.authored_reader = authored_reader
         self._root_sha256 = root
         self._header = _copy(header)
 
@@ -453,6 +496,13 @@ class SourceCatalogTargetIssuer:
         self.verify_current()
         selector = _selector(selector)
         try:
+            if selector['layer'] == CSV_LAYER:
+                if self.authored_reader is None:
+                    raise _OwnerUnavailable('unsupported', 'authored-corpus-owner-unconfigured')
+                target = self.authored_reader.issue(selector['pack_id'], selector['edge_id'])
+                if target is None:
+                    raise _OwnerUnavailable('missing', 'authored-corpus-target-missing')
+                return _target(target)
             if selector["layer"] == METADATA_LAYER:
                 row = self.catalog_snapshot.lookup(selector["record_id"])
                 if row is None:
@@ -598,7 +648,7 @@ class SourceReadLimits:
 
 def _access(scope: str, visibility: str, *, visibility_verified: bool) -> dict[str, Any]:
     if type(scope) is not str or scope not in {
-        "public-metadata-record", "public-claim-record", "public-source-slot-metadata"
+        "public-metadata-record", "public-claim-record", "public-source-slot-metadata", "public-authored-csv-record"
     }:
         raise SourceReadError("source access scope is not supported")
     if type(visibility) is not str or visibility not in PUBLIC_VISIBILITIES:
@@ -620,6 +670,16 @@ def _target(value: Any) -> dict[str, Any]:
     if type(value) is not dict or "layer" not in value:
         raise SourceReadError("source target requires one exact layer")
     layer = value.get("layer")
+    if layer == CSV_LAYER:
+        if set(value) != {'layer', 'pack_id', 'edge_id', 'source_row', 'source_file_sha256', 'content_revision'}:
+            raise SourceReadError('authored CSV target has an invalid closed envelope')
+        pack, edge = _csv_identity(value.get('pack_id'), value.get('edge_id'))
+        ordinal = value.get('source_row')
+        if type(ordinal) is not int or not 1 <= ordinal <= MAX_SAFE_INTEGER:
+            raise SourceReadError('authored CSV target requires an exact logical row ordinal')
+        return {'layer': CSV_LAYER, 'pack_id': pack, 'edge_id': edge, 'source_row': ordinal,
+                'source_file_sha256': _bare_digest(value.get('source_file_sha256'), field='authored file digest'),
+                'content_revision': _sha_digest(value.get('content_revision'), field='authored record digest')}
     if layer == METADATA_LAYER:
         if set(value) != {"layer", "record_type", "record_ref", "content_revision"}:
             raise SourceReadError("metadata target has an invalid closed envelope")
@@ -751,6 +811,7 @@ def _handle_access(value: Any, target: dict[str, Any]) -> dict[str, Any]:
         METADATA_LAYER: "public-metadata-record",
         CLAIM_LAYER: "public-claim-record",
         SLOT_LAYER: "public-source-slot-metadata",
+        CSV_LAYER: "public-authored-csv-record",
     }[target["layer"]]
     if value.get("scope") != expected_scope or value.get("authority") != "source-owner-public-metadata-contract":
         raise SourceReadError("source handle access scope does not match its typed layer")
@@ -764,10 +825,13 @@ def _handle_core(value: Any) -> dict[str, Any]:
         "schema_version", "issuer", "epoch", "target", "access", "handle_digest"
     }:
         raise SourceReadError("source handle has an invalid closed envelope")
-    if value.get("schema_version") != HANDLE_SCHEMA or value.get("issuer") != ISSUER:
+    if value.get("schema_version") != HANDLE_SCHEMA:
         raise SourceReadError("source handle issuer or schema is not supported")
     epoch = SourceEpoch.from_value(value.get("epoch"))
     target = _target(value.get("target"))
+    issuer = AUTHORED_ISSUER if target['layer'] == CSV_LAYER else ISSUER
+    if value.get('issuer') != issuer:
+        raise SourceReadError('source handle issuer differs from its owner layer')
     access = _handle_access(value.get("access"), target)
     digest = _sha_digest(value.get("handle_digest"), field="source handle digest")
     unsigned = {key: _copy(value[key]) for key in ("schema_version", "issuer", "epoch", "target", "access")}
@@ -776,7 +840,7 @@ def _handle_core(value: Any) -> dict[str, Any]:
         raise SourceReadError("source handle digest does not bind its exact target and epoch")
     return {
         "schema_version": HANDLE_SCHEMA,
-        "issuer": ISSUER,
+        "issuer": issuer,
         # Keep the validated wire form here.  Internal SourceEpoch objects
         # must never leak into budget/error serialization paths.
         "epoch": epoch.value(),
@@ -800,7 +864,7 @@ def validate_handle(value: Any, *, limits: SourceReadLimits | None = None) -> di
 def _make_handle(epoch: SourceEpoch, target: dict[str, Any], access: dict[str, Any], limits: SourceReadLimits) -> dict[str, Any]:
     unsigned = {
         "schema_version": HANDLE_SCHEMA,
-        "issuer": ISSUER,
+        "issuer": AUTHORED_ISSUER if target['layer'] == CSV_LAYER else ISSUER,
         "epoch": epoch.value(),
         "target": _copy(target),
         "access": _copy(access),
@@ -896,7 +960,7 @@ def _base_result(epoch: SourceEpoch, handle: dict[str, Any]) -> dict[str, Any]:
         "content_revision": target["content_revision"],
         "layer": target["layer"],
         "record_kind": "metadata" if target["layer"] == METADATA_LAYER else
-        "claim" if target["layer"] == CLAIM_LAYER else "source_slot",
+        "claim" if target["layer"] == CLAIM_LAYER else "authored_csv" if target['layer'] == CSV_LAYER else "source_slot",
         "record_ref": _copy(target.get("record_ref")) if "record_ref" in target else None,
         "record": None,
         "provenance": None,
@@ -957,6 +1021,9 @@ class SourceReadService:
         self.metadata_reader = binding.metadata_reader
         self.claim_reader = binding.claim_reader
         self.slot_reader = binding.slot_reader
+        self.authored_reader = binding.authored_reader
+        if target_issuer is not None and getattr(target_issuer, 'authored_reader', None) is not binding.authored_reader:
+            raise SourceReadError('authored target issuer differs from selected owner reader')
         self.target_issuer = target_issuer
         self.limits = SourceReadLimits() if limits is None else limits
         if not isinstance(self.limits, SourceReadLimits):
@@ -971,7 +1038,11 @@ class SourceReadService:
         self._verify_target_issuer()
 
     def _verify_target_issuer(self) -> None:
+        if self.authored_reader is not self.binding.authored_reader:
+            raise SourceReadError('authored reader changed after owner binding')
         if self.target_issuer is not None:
+            if getattr(self.target_issuer, 'authored_reader', None) is not self.authored_reader:
+                raise SourceReadError('authored issuer changed after owner binding')
             try:
                 self.target_issuer.verify_current()
             except SourceReadError:
@@ -982,12 +1053,13 @@ class SourceReadService:
     def capabilities(self) -> dict[str, Any]:
         return {
             "schema_version": CAPABILITIES_SCHEMA,
-            "available": bool(self.metadata_reader or self.claim_reader or self.slot_reader),
+            "available": bool(self.metadata_reader or self.claim_reader or self.slot_reader or self.authored_reader),
             "issuer": ISSUER,
             "layers": {
                 METADATA_LAYER: sorted(self.metadata_record_types) if self.metadata_reader else [],
                 CLAIM_LAYER: bool(self.claim_reader),
                 SLOT_LAYER: bool(self.slot_reader),
+                CSV_LAYER: bool(self.authored_reader),
             },
             "limits": {
                 "max_handle_bytes": self.limits.max_handle_bytes,
@@ -1139,6 +1211,25 @@ class SourceReadService:
         return payload, provenance, _access("public-source-slot-metadata", visibility, visibility_verified=True)
 
     def _owner_target(self, target: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+        if target['layer'] == CSV_LAYER:
+            if self.authored_reader is None:
+                raise SourceReadError('authored-corpus-owner-unconfigured')
+            try:
+                returned = self.authored_reader.read(target)
+            except SourceReadBudgetExceeded:
+                raise
+            except FileNotFoundError:
+                raise
+            except ValueError as error:
+                raise SourceReadError('authored-csv-source-binding-not-verified') from error
+            if returned is None:
+                raise _OwnerUnavailable('missing', 'authored-corpus-target-missing')
+            record, provenance = returned
+            _record_size(record, self.limits)
+            if 'sha256:' + _canonical_digest(record) != target['content_revision']:
+                raise SourceReadError('authored CSV content digest differs')
+            self.binding.verify()
+            return record, _provenance(provenance, self.limits), _access('public-authored-csv-record', 'public_metadata_only', visibility_verified=True)
         if target["layer"] == METADATA_LAYER:
             return self._metadata_result(target)
         if target["layer"] == CLAIM_LAYER:
@@ -1176,6 +1267,8 @@ class SourceReadService:
         try:
             record, provenance, access = self._owner_target(target)
             handle = _make_handle(self.epoch, target, access, self.limits)
+            if target['layer'] == CSV_LAYER:
+                provenance = {key: value for key, value in provenance.items() if key != 'raw_record'}
             response = {
                 **result,
                 "status": "available",
@@ -1218,7 +1311,7 @@ class SourceReadService:
         self._verify_target_issuer()
         result = _base_result(self.epoch, {
             "schema_version": HANDLE_SCHEMA,
-            "issuer": ISSUER,
+            "issuer": handle['issuer'],
             "epoch": _copy(handle["epoch"]),
             "target": handle["target"],
             "access": handle["access"],
@@ -1272,7 +1365,7 @@ def unavailable_capabilities() -> dict[str, Any]:
         "schema_version": CAPABILITIES_SCHEMA,
         "available": False,
         "issuer": ISSUER,
-        "layers": {METADATA_LAYER: [], CLAIM_LAYER: False, SLOT_LAYER: False},
+        "layers": {METADATA_LAYER: [], CLAIM_LAYER: False, SLOT_LAYER: False, CSV_LAYER: False},
         "limits": {
             "max_handle_bytes": MAX_HANDLE_BYTES,
             "max_request_bytes": MAX_REQUEST_BYTES,

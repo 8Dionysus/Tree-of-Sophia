@@ -1,7 +1,7 @@
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 import {KnowledgeClient,ContractError,RevisionError,RequestError} from './knowledge-client.mjs';
-import {readExactSource,SOURCE_READ_RESPONSE_BYTES} from './exact-source-read.mjs';
+import {readExactSource,validateExactSourceTarget,SOURCE_READ_RESPONSE_BYTES} from './exact-source-read.mjs';
 
 const R='a'.repeat(64),C='b'.repeat(64),D='sha256:'+'c'.repeat(64);
 const selection={kind:'node',id:'source-claims:identity:tos.agent.fixture',source_revision:R,content_revision:C};
@@ -44,6 +44,31 @@ test('exact card inspection supplies the only source target; three bounded read-
   assert.deepEqual(calls[1].body,{target:data.discovery.target});
   assert.deepEqual(calls[2].body,{handle:data.discovery.handle,representation:'record'});
   assert.deepEqual(result.selection,selection);assert.equal(result.access.rights_revalidated,false);
+});
+
+test('authored CSV has a separate owner, exact null/string cells and no path or metadata-handle fallback',async()=>{
+  const data=fixture(),record={'10':'ten','2':'two',edge_id:'m001',note:'строка\nещё',missing:null,'\ue000':'bmp','😀':'astral'};
+  const raw='{"10":"ten","2":"two","edge_id":"m001","missing":null,"note":"строка\\nещё","\ue000":"bmp","😀":"astral"}';
+  const sha=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw))),b=>b.toString(16).padStart(2,'0')).join('');
+  const target={layer:'authored_csv_record',pack_id:'canon/relations/fixture',edge_id:'m001',source_row:1,
+    source_file_sha256:'1'.repeat(64),content_revision:'sha256:'+sha};
+  data.discovery.target=target;data.discovery.content_revision=target.content_revision;
+  data.discovery.handle.target=target;data.discovery.handle.issuer='Tree-of-Sophia/authored-corpus';
+  data.discovery.access.scope='public-authored-csv-record';
+  data.inspection.source_read_targets[selection.id].target=target;
+  Object.assign(data.read,{layer:target.layer,record_kind:'authored_csv',record_ref:null,record,content_revision:target.content_revision,
+    provenance:{source_row:1,source_file_sha256:target.source_file_sha256}});
+  assert.deepEqual((await readExactSource(harness(data).client,selection)).record,record);
+  for(const mutate of [d=>d.read.record.note='changed',d=>d.read.record.missing='',d=>d.read.record['2']=2,
+    d=>d.discovery.handle.issuer='Tree-of-Sophia/source-witnesses',d=>d.discovery.access.scope='public-metadata-record',
+    d=>d.read.provenance.source_row=2]){
+    const bad=structuredClone(data);mutate(bad);
+    await assert.rejects(readExactSource(harness(bad).client,selection),ContractError);
+  }
+  for(const bad of [{...target,path:'ToS/private'}, {...target,source_row:1.5},
+    {...target,pack_id:'canon/relations/../hidden'}, {...target,pack_id:'candidate-intake/payload/x'},
+    {...target,pack_id:'canon/relations/\ud800'}, {...target,edge_id:'\0'}])
+    assert.throws(()=>validateExactSourceTarget(bad),ContractError);
 });
 
 test('native text is a separate gated request; bind exact IDs, span offsets and UTF-8 digest without normalizing',async()=>{

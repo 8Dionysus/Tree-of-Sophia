@@ -163,6 +163,20 @@ the read, with a 15-second overall deadline and a 2 MiB response ceiling.
 Original notes and explicit gaps remain distinct from technical fields, carrier
 text, assessment and use rights. An unconfigured owner reports unavailability.
 
+Authored relation CSVs use the separate `authored_csv_record` layer and issuer
+`Tree-of-Sophia/authored-corpus`, not a fabricated source-witness record/version.
+Its selector contains only `layer`, `pack_id` and `edge_id`. Exact targets also
+bind logical `source_row`, `source_file_sha256` and canonical parsed-cell
+`content_revision`; handles belong to the same selected source epoch.
+Activation requires an explicitly bootstrapped `authored-corpus` addressed root
+in that source vector. An older vector without it reports `unsupported`.
+The record preserves every original string/null cell; provenance returns raw
+CSV text, byte offset/count, raw-row hash and the distinct canon/intake owner
+posture. This is source disclosure, not semantic assessment or a rights grant.
+Python/native inspection projects the exact target; the human source reader
+and MCP use the same handle/read operations. A source-vector addition still
+needs matching prepared publication and separate live UI verification.
+
 For local source-owner selection, pass all four exact inputs:
 
 ```bash

@@ -66,8 +66,17 @@ Multiline cells do not change logical row numbering. Default file/record read
 budgets are 8 MiB/1 MiB; stale hashes, wrong rows, malformed CSV and exceeded
 budgets refuse without rewriting source or index. This helper does **not**
 admit a caller path, establish selected-index membership or grant publication
-rights. A source-owner adapter must establish those boundaries before invoking
-it. It is not yet exposed as a `source_read_targets` handle or UI/MCP operation.
+rights. `scripts/authored_corpus_source_read.py` supplies the optional addressed
+adapter: explicit bootstrap verifies all rows of each selected tracked pack
+against the existing corpus index and writes an unselected immutable root.
+Selecting that root as `authored-corpus` in the source vector enables exact
+`authored_csv_record` handles through the common source-read contract. This
+changes the vector revision; old prepared readers cannot acquire the root by
+silent attachment. Source files and canon/intake posture remain unchanged.
+Serving looks up one selected pack/edge member and then rechecks its exact CSV
+bytes, without a corpus scan or accepting a caller path. Bootstrap is bounded
+to 4,096 packs, 65,536 rows and 64 MiB of selected input; a larger bootstrap
+requires an explicitly designed owner route, not raised serving budgets.
 
 The philosophy atlas projection turns `ToS/philosophy/atlas/` into a first
 reviewable tree/graph read model for visualization and graph switching.

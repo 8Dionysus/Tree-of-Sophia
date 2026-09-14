@@ -347,6 +347,33 @@ test('inspection exact source targets match Python native witness identities and
   }finally{data.close();}
 });
 
+test('authored CSV target preserves string/null cells and rejects malformed or ambiguous exact bindings',async()=>{
+  const {parseNativeJson,nativeChild}=await import('../../../shared/native-semantics.ts');
+  const {nativeSourceReadTargets}=await import('../src/native-source-target.ts');
+  const {nativePacketJson}=await import('../src/native-lens.ts');
+  const row={id:'canon:fixture:m001',source_record:{digest:'a'.repeat(64),transform_version:'tos-knowledge-normalization-v2',field_map:{},
+    payload:{pack_id:'canon/relations/fixture',edge_id:'m001',properties:{source_row:1,source_file_sha256:'b'.repeat(64),
+      source_record:{edge_id:'m001','10':'ten','2':'two',missing:null,note:'строка\nещё','😀':'astral','\ue000':'bmp'}}}}};
+  const inputs=[row];
+  for(const mutate of [r=>r.source_record.payload.properties.source_record.missing=4,
+    r=>r.source_record.payload.pack_id='candidate-intake/payload/private',
+    r=>r.source_record.payload.pack_id='canon/relations/../private',
+    r=>r.source_record.payload.properties.source_row=0,
+    r=>r.source_record.payload.properties.source_file_sha256='b'.repeat(64)+'\n',
+    r=>r.source_record.payload.properties.source_claim={},
+    r=>r.source_record.payload.edge_id='\ud800',
+    r=>r.source_record.payload.properties.source_record.note='\ud800']){
+    const wrong=structuredClone(row);mutate(wrong);inputs.push(wrong);
+  }
+  for(let i=0;i<inputs.length;i++){
+    const item=inputs[i],native=parseNativeJson(JSON.stringify({item,revision:'c'.repeat(64)}));
+    const actual=JSON.parse(nativePacketJson(await nativeSourceReadTargets([nativeChild(native,'item')],nativeChild(native,'revision'))));
+    const expected=python("from tos_access.source_read_projection import source_read_targets;p=json.load(sys.stdin);print(json.dumps(source_read_targets([p['item']],p['revision'])))",{item,revision:'c'.repeat(64)});
+    assert.deepEqual(actual,expected);
+    assert.equal(Object.keys(actual).length,i===0?1:0);
+  }
+});
+
 test('inspection identifier Unicode stripping, unknown IDs and HEAD status agree with published Python',async()=>{
   const data=database();try {
     for(const kind of ['node','relation'])for(const id of ['', 'not-found','x'.repeat(4097), '\u0085'+(kind==='node'?'philosophy:a':'philosophy:r')+'\u001c', '\ufeff'+(kind==='node'?'philosophy:a':'philosophy:r')+'\ufeff']) {

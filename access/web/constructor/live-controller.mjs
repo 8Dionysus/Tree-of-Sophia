@@ -272,13 +272,15 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
         language==='ru'?'Читать по локальным условиям':'Read under local conditions',
         ()=>void openSourceRecord(snapshot,'native_local_unit'),'source-link'));
       if(typeof result.record.preferred_label==='string')body.append(el('h3',result.record.preferred_label,'minor-title'));
-      if(typeof result.record.notes==='string'&&result.record.notes.trim()){
+      const sourceNote=result.layer==='authored_csv_record'?result.record.note:result.record.notes;
+      if(typeof sourceNote==='string'&&sourceNote.trim()){
         body.append(el('h3',t('sourceRecordWords'),'minor-title'));
-        const notes=el('p',result.record.notes,'body');
+        const notes=el('p',sourceNote,'body');
         if(typeof result.record.language==='string')notes.lang=result.record.language;
         body.append(notes);
       }else body.append(el('p',t('sourceRecordNoWords'),'muted'));
-      body.append(detail(t('sourceIdentity'),{source_revision:result.source_revision,content_revision:result.content_revision,record_ref:result.record_ref}),
+      body.append(detail(t('sourceIdentity'),{source_revision:result.source_revision,content_revision:result.content_revision,
+        ...(result.layer==='authored_csv_record'?{target:result.handle.target}:{record_ref:result.record_ref})}),
         detail(t('sourceRights'),result.access),detail(t('technical'),result.record),detail(t('sourceRefs'),result.provenance));
     }catch(error){if(!disposed&&surface===surfaceGeneration)body.replaceChildren(el('p',error?.message??t('sourceRecordUnavailable'),'body'));}
   }

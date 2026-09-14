@@ -29,7 +29,18 @@ function requireRepresentableNumbers(packet){
 }
 
 export function validateExactSourceTarget(target){
-  requireContract(object(target)&&['metadata_record','claim_record'].includes(target.layer));
+  requireContract(object(target)&&['metadata_record','claim_record','authored_csv_record'].includes(target.layer));
+  if(target.layer==='authored_csv_record'){
+    requireContract(keys(target,['layer','pack_id','edge_id','source_row','source_file_sha256','content_revision'])
+      &&typeof target.pack_id==='string'&&target.pack_id.isWellFormed()&&new TextEncoder().encode(target.pack_id).length<=2048
+      &&/^(canon\/relations\/|candidate-intake\/)/.test(target.pack_id)
+      &&!target.pack_id.split('/').some(part=>!part||part.startsWith('.')||part==='payload')
+      &&!/[\\\u0000]/.test(target.pack_id)&&typeof target.edge_id==='string'&&target.edge_id.length>0
+      &&target.edge_id.isWellFormed()&&new TextEncoder().encode(target.edge_id).length<=2048&&!target.edge_id.includes('\0')
+      &&Number.isSafeInteger(target.source_row)&&target.source_row>=1&&hash(target.source_file_sha256)
+      &&digest(target.content_revision)&&byteSize(target)<=16384);
+    return target;
+  }
   const metadata=target.layer==='metadata_record';
   requireContract(keys(target,metadata?['layer','record_type','record_ref','content_revision']:['layer','record_ref','content_revision']));
   const ref=target.record_ref;
@@ -49,14 +60,15 @@ function validateStatus(packet,schema,revision,target){
 
 function validateHandle(handle,target,revision){
   requireContract(keys(handle,['schema_version','issuer','epoch','target','access','handle_digest'])
-    &&handle.schema_version==='tos_source_read_handle_v1'&&handle.issuer==='Tree-of-Sophia/source-witnesses'
+    &&handle.schema_version==='tos_source_read_handle_v1'
+    &&handle.issuer===(target.layer==='authored_csv_record'?'Tree-of-Sophia/authored-corpus':'Tree-of-Sophia/source-witnesses')
     &&sameJson(handle.target,target)&&digest(handle.handle_digest)&&byteSize(handle)<=16384);
   const epoch=handle.epoch,access=handle.access;
   requireContract(object(epoch)&&epoch.source_revision===revision&&hash(epoch.catalog_root_sha256)
     &&typeof epoch.catalog_namespace==='string'&&object(epoch.source_publication)
     &&epoch.source_publication.protocol==='tos_selected_source_metadata_v1'
     &&digest(epoch.source_publication.token)&&Number.isSafeInteger(epoch.source_publication.generation)&&epoch.source_publication.generation>=0);
-  requireContract(object(access)&&access.scope===(target.layer==='claim_record'?'public-claim-record':'public-metadata-record')
+  requireContract(object(access)&&access.scope===({claim_record:'public-claim-record',metadata_record:'public-metadata-record',authored_csv_record:'public-authored-csv-record'})[target.layer]
     &&['public','public_metadata_only'].includes(access.visibility)&&access.visibility_verified===true
     &&access.rights_revalidated===false&&access.rights_scope==='metadata-disclosure-only'
     &&access.authority==='source-owner-public-metadata-contract');
@@ -101,11 +113,23 @@ export async function readExactSource(client,selection,{signal,timeoutMs=SOURCE_
     const read=await withAbort(client.request('/api/source/read',{...options,body:{handle:discovered.handle,representation:'record'}}),controller.signal);
     controller.signal.throwIfAborted();
     validateStatus(read,'tos_source_read_result_v1',expected.source_revision,target);
-    requireContract(sameJson(read.handle,discovered.handle)&&sameJson(read.record_ref,target.record_ref)&&read.layer===target.layer);
+    requireContract(sameJson(read.handle,discovered.handle)&&sameJson(read.record_ref,target.record_ref??null)&&read.layer===target.layer);
     if(read.status==='available'){
       requireRepresentableNumbers(read);
       requireContract(object(read.record)&&object(read.provenance)&&sameJson(read.access,discovered.handle.access)
         &&byteSize(read.record)<=1024*1024);
+      if(target.layer==='authored_csv_record'){
+        requireContract(Object.values(read.record).every(value=>value===null||typeof value==='string')
+          &&read.record_kind==='authored_csv'&&read.provenance.source_row===target.source_row
+          &&read.provenance.source_file_sha256===target.source_file_sha256);
+        // CSV cells have only string/null values. Serialize sorted code-point
+        // keys directly, preserving numeric-looking keys and unknown columns.
+        const compare=(a,b)=>{const x=Array.from(a),y=Array.from(b);for(let i=0;i<Math.min(x.length,y.length);i++){
+          const diff=x[i].codePointAt(0)-y[i].codePointAt(0);if(diff)return diff;}return x.length-y.length;};
+        const exact='{'+Object.keys(read.record).sort(compare).map(key=>JSON.stringify(key)+':'+JSON.stringify(read.record[key])).join(',')+'}';
+        const raw=await withAbort(crypto.subtle.digest('SHA-256',new TextEncoder().encode(exact)),controller.signal);
+        requireContract('sha256:'+Array.from(new Uint8Array(raw),b=>b.toString(16).padStart(2,'0')).join('')===target.content_revision);
+      }else{
       const metadata=target.layer==='metadata_record';
       const nativeFields={tos_scholarly_composite_witness_v1:['composite','composite_id'],
         tos_artifact_source_witness_v1:['artifact','artifact_id'],tos_artifact_source_witness_v2:['artifact','artifact_id']};
@@ -115,13 +139,14 @@ export async function readExactSource(client,selection,{signal,timeoutMs=SOURCE_
       requireContract(read.record[metadata?(native?.[1]??'record_id'):'claim_id']===target.record_ref.id
         &&read.record[metadata?'record_version':'claim_version']===target.record_ref.version);
       if(metadata&&!native)requireContract(read.record.record_type===target.record_type);
+      }
     }else requireContract(read.record===null);
     if(representation!=='record'&&read.status==='available'){
       const unitRead=await withAbort(client.request('/api/source/read',{...options,
         body:{handle:discovered.handle,representation}}),controller.signal);
       controller.signal.throwIfAborted();
       validateStatus(unitRead,'tos_source_native_unit_read_result_v1',expected.source_revision,target);
-      requireContract(sameJson(unitRead.handle,discovered.handle)&&sameJson(unitRead.record_ref,target.record_ref)
+      requireContract(sameJson(unitRead.handle,discovered.handle)&&sameJson(unitRead.record_ref,target.record_ref??null)
         &&unitRead.layer===target.layer&&unitRead.record===null);
       if(unitRead.status==='available'){
         requireRepresentableNumbers(unitRead);

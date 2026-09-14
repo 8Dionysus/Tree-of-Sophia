@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from typing import Any, Iterable
 
-from .source_read import exact_target_from_record
+from .source_read import exact_target_from_record, exact_csv_target
 
 
 _NORMALIZATION_TRANSFORM = "tos-knowledge-normalization-v2"
@@ -54,6 +54,8 @@ def source_read_target_for_item(item: Any) -> dict[str, Any] | None:
     if raw_claim is not None:
         return exact_target_from_record(raw_claim, layer="claim_record")
     if raw_metadata is not None:
+        if 'pack_id' in payload or 'edge_id' in payload:
+            return exact_csv_target(payload)
         return exact_target_from_record(raw_metadata, layer="metadata_record")
     return None
 
