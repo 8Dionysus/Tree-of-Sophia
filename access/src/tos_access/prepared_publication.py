@@ -36,6 +36,32 @@ _COLUMNS = {
 }
 _DIMENSIONS = {"node": ("source_graph", "kind_id", "type_id"),
                "relation": ("source_graph", "predicate_id", "relation_type_id")}
+_SOURCE_INDEXES = {
+    "knowledge_nodes_source_kind_idx": ("knowledge_nodes", ("source_graph", "kind_id")),
+    "knowledge_relations_source_predicate_idx": ("knowledge_relations", ("source_graph", "predicate_id")),
+}
+
+
+def ensure_source_scope_indexes(db):
+    """Explicit offline additive optimization, inside the caller's transaction.
+
+    Does not change rows, revision/epoch, cursors or source admission. Existing
+    snapshots remain readable without these indexes; requests never build them.
+    """
+    if not db.in_transaction:
+        raise ValueError("source index preparation requires an explicit transaction")
+    created = []
+    for name, (table, columns) in _SOURCE_INDEXES.items():
+        existing = db.execute("SELECT tbl_name FROM sqlite_master WHERE type='index' AND name=?", (name,)).fetchone()
+        if existing:
+            actual = tuple(row[2] for row in db.execute(f"PRAGMA index_info({name})"))
+            options = next(row for row in db.execute(f"PRAGMA index_list({table})") if row[1] == name)
+            if existing[0] != table or actual != columns or options[2] or options[4]:
+                raise ValueError("source scope index definition differs: " + name)
+        else:
+            db.execute(f"CREATE INDEX {name} ON {table} ({','.join(columns)})")
+            created.append(name)
+    return created
 
 
 @dataclass(frozen=True)
@@ -147,6 +173,8 @@ def _ddl(db):
     statements.extend(f"CREATE INDEX {name} ON {body}" for name, body in indices.items())
     for sql in statements:
         db.execute(sql)
+    # Initial publication has its own explicit transaction.
+    ensure_source_scope_indexes(db)
 
 
 def _put_row(db, kind, item, raw, limits):

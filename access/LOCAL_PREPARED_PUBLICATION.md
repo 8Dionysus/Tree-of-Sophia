@@ -14,6 +14,18 @@ The common lens-v2 reader header binds this distinct local schema. Search text
 uses Python default JSON separators with sorted keys and lower(), preserving
 the existing search reference; it is not the compact carrier representation.
 
+Generic lens scans use the source-scope indexes before sorting candidate IDs,
+so unrelated source graphs do not consume every page's SQLite work budget.
+New publications include these indexes. An existing selected snapshot can be
+upgraded explicitly with `ensure_source_scope_indexes(db)` from
+`tos_access.prepared_publication`, inside a caller-owned offline transaction.
+Reserve index/storage work before invoking it on a large file. It validates
+existing index definitions and is idempotent; it does not alter source rows,
+metadata, publication epoch, data revision or cursors. No request creates DDL.
+Older snapshots remain readable with the bounded legacy scan until this step
+is performed. The reader does not raise budgets or make broad native filters
+cheap merely because their source scope is indexed.
+
 ## Explicit bootstrap
 
 ```python

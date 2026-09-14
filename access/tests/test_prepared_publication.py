@@ -55,6 +55,34 @@ class PreparedPublicationTests(unittest.TestCase):
         self.binding = publish_prepared(self.path, graph=self.graph, catalog=self.catalog)
         return PublishedKnowledgeReadModel(self.path, self.binding)
 
+    def test_optional_source_indexes_preserve_old_reader_and_publication_identity(self):
+        reader = self.publish()
+        spec = lens(node_query={'filters': [{'field': 'view_ids', 'op': 'contains', 'value': 'missing'}]})
+        expected = PublishedLensService(reader).execute(spec)
+        with closing(sqlite3.connect(self.path)) as db:
+            for name in publication._SOURCE_INDEXES:
+                db.execute(f'DROP INDEX {name}')
+            db.commit()
+            before = db.execute('SELECT key,part,json_chunk FROM edge_meta ORDER BY key,part').fetchall()
+            clock = db.execute('SELECT * FROM knowledge_exploration_clock').fetchall()
+            with self.assertRaisesRegex(ValueError, 'explicit transaction'):
+                publication.ensure_source_scope_indexes(db)
+            self.assertEqual(PublishedLensService(reader).execute(spec), expected)
+            db.execute('BEGIN IMMEDIATE')
+            self.assertEqual(set(publication.ensure_source_scope_indexes(db)), set(publication._SOURCE_INDEXES))
+            self.assertEqual(publication.ensure_source_scope_indexes(db), [])
+            db.commit()
+            self.assertEqual(db.execute('SELECT key,part,json_chunk FROM edge_meta ORDER BY key,part').fetchall(), before)
+            self.assertEqual(db.execute('SELECT * FROM knowledge_exploration_clock').fetchall(), clock)
+            self.assertEqual(PublishedLensService(reader).execute(spec), expected)
+            db.execute('DROP INDEX knowledge_nodes_source_kind_idx')
+            db.execute('CREATE INDEX knowledge_nodes_source_kind_idx ON knowledge_nodes(id)')
+            db.commit()
+            db.execute('BEGIN IMMEDIATE')
+            with self.assertRaisesRegex(ValueError, 'definition differs'):
+                publication.ensure_source_scope_indexes(db)
+            db.rollback()
+
     def header(self, revision="c"):
         result = {key: copy.deepcopy(value) for key, value in self.graph.items() if key not in ("nodes", "relations")}
         result["source_revision"] = revision * 64

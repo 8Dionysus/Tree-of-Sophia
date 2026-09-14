@@ -86,6 +86,28 @@ class PublishedLensTests(unittest.TestCase):
         self.assertEqual(actual, expected)
         return actual
 
+    def test_generic_candidates_seek_source_before_ordering(self):
+        spec = lens(
+            node_query={'filters': [{'field': 'attributes.probe', 'op': 'exists', 'value': True}]},
+            relation_query={'filters': [{'field': 'view_ids', 'op': 'contains', 'value': 'missing-view'}]},
+        )
+        statements = []
+        original = _Read.query
+
+        def query_read(read, sql, args=()):
+            statements.append((sql, args))
+            return original(read, sql, args)
+
+        with patch.object(_Read, 'query', query_read):
+            self.parity(spec)
+        with closing(sqlite3.connect(self.path)) as db:
+            for index in ('knowledge_nodes_source_kind_idx', 'knowledge_relations_source_predicate_idx'):
+                scans = [(sql, args) for sql, args in statements if 'INDEXED BY ' + index in sql]
+                self.assertTrue(scans)
+                for sql, args in scans:
+                    plan = db.execute('EXPLAIN QUERY PLAN ' + sql, args).fetchall()
+                    self.assertTrue(any(index in row[3] and 'source_graph=?' in row[3] for row in plan))
+
     def prepared_core(self):
         return ToSAccessCore.discover(self.root, published_read_model_path=self.path,
                                      published_read_model_expected=self.binding)

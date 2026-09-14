@@ -73,6 +73,11 @@ source rows reject duplicates. The public result remains plain LensResult JSON,
 with a 16 MiB response ceiling. Generic scans, decoded bytes, callbacks, sorting,
 cache and path work have explicit bounds, documented in
 [`NATIVE_SEMANTICS.md`](../../shared/NATIVE_SEMANTICS.md).
+Generic candidate scans explicitly use the published source indexes before
+ordering IDs, avoiding repeated global identity-index walks for a small source
+scope. Exact identity conjuncts keep their narrower identity indexes. Filters
+still run against digest-verified native rows; budgets and packet semantics
+are unchanged. This does not make broad non-indexed property filters cheap.
 Execution/response budget exhaustion returns 413 on lens compilation and
 stored-lens/focus GET/HEAD, matching the published Python adapter. Invalid
 compilation input remains 400; unavailable or damaged publication data is 503.

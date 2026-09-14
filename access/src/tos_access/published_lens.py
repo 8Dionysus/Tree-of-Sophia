@@ -31,6 +31,7 @@ _IDENTITY_INDEXES = {
 }
 _INDEXES = {"knowledge_lens_order_sort", "knowledge_lens_order_from",
             "knowledge_lens_order_to", "knowledge_lens_order_pair"}
+_SOURCE_INDEXES = {"knowledge_nodes_source_kind_idx", "knowledge_relations_source_predicate_idx"}
 _DEFAULT_SORT = [{"field": "id", "direction": "asc"}]
 
 
@@ -158,12 +159,13 @@ def _source_where(alias, sources):
 
 
 class _Plan:
-    def __init__(self, read, top, metadata, spec, limits):
+    def __init__(self, read, top, metadata, spec, limits, indexes=()):
         self.read, self.top, self.metadata, self.spec = read, top, metadata, spec
         self.budget = _Budget(limits)
         self.payloads = _Payloads(read, self.budget)
         self.block = limits.block_size
         self.sources = set(spec["sources"])
+        self.indexes = set(indexes)
         self.generic_relations = None
         self.matched_nodes = 0
         self.matched_relations = 0
@@ -340,12 +342,16 @@ class _Plan:
                 if combined:
                     scan_where += " AND " + " AND ".join(combined)
                     scan_args.extend(combined_args)
-                indexed = ""
+                # ORDER BY id otherwise walks the global identity index before
+                # source filtering on every page. Keep generic work in scope.
+                index = ("knowledge_nodes_source_kind_idx" if kind == "node"
+                         else "knowledge_relations_source_predicate_idx")
                 if group_plan and not seed_plan and group_plan["mode"] == "all":
                     # One exact conjunct is enough to make the candidate range
                     # indexed; remaining conjuncts and all general filters are
                     # checked against the decoded packet below.
-                    indexed = f" INDEXED BY {group_plan['selectors'][0][2]}"
+                    index = group_plan['selectors'][0][2]
+                indexed = f" INDEXED BY {index}" if index not in _SOURCE_INDEXES or index in self.indexes else ""
                 rows = self.read.query(
                     f"SELECT {alias}.id FROM knowledge_{kind}s {alias}{indexed} "
                     f"WHERE {scan_where} AND {alias}.id>? ORDER BY {alias}.id LIMIT ?",
@@ -621,11 +627,12 @@ class PublishedLensService:
                 raise PublishedReadModelError("prepared lens metadata checksum differs")
             validate_lens_metadata(metadata, top["source_revision"])
             indexes = read.query("SELECT name FROM sqlite_master WHERE type='index' AND name IN (SELECT value FROM json_each(?))",
-                                 (_compact(sorted(_INDEXES)),))
-            if {row["name"] for row in indexes} != _INDEXES:
+                                 (_compact(sorted(_INDEXES | _SOURCE_INDEXES)),))
+            present = {row["name"] for row in indexes}
+            if not _INDEXES.issubset(present):
                 raise PublishedReadModelError("prepared lens ordered-index migration is unavailable")
             bound = k.bind_lens_query_properties(metadata["query_properties"], public)
-            plan = _Plan(read, top, metadata, bound, self.limits)
+            plan = _Plan(read, top, metadata, bound, self.limits, present)
             return self._execute(plan, public)
         return self.reader._read(operation)
 

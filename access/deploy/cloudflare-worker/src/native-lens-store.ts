@@ -24,7 +24,8 @@ const IDENTITY_INDEXES: Record<Kind, Partial<Record<IdentityField, string>>> = {
   relation: {id: 'sqlite_autoindex_knowledge_relations_1', native_id: 'knowledge_relations_native_idx'},
 };
 
-const INDEXES = ['knowledge_lens_order_sort', 'knowledge_lens_order_from', 'knowledge_lens_order_to', 'knowledge_lens_order_pair'];
+const INDEXES = ['knowledge_lens_order_sort', 'knowledge_lens_order_from', 'knowledge_lens_order_to', 'knowledge_lens_order_pair',
+  'knowledge_nodes_source_kind_idx', 'knowledge_relations_source_predicate_idx'];
 
 class Plan extends NativeD1Rows {
   callbacks = 0; candidates = 0; sortBytes = 0; pathSteps = 0;
@@ -144,7 +145,12 @@ class Plan extends NativeD1Rows {
         const conditions: string[] = [], conditionArgs: unknown[] = [];
         if (seedPlan) {const condition = this.identityCondition(alias, seedPlan); conditions.push('(' + condition.sql + ')'); conditionArgs.push(...condition.args);}
         if (groupPlan) {const condition = this.identityCondition(alias, groupPlan); conditions.push('(' + condition.sql + ')'); conditionArgs.push(...condition.args);}
-        const indexed = groupPlan && !seedPlan && groupPlan.mode === 'all' ? ` INDEXED BY ${groupPlan.selectors[0]!.index}` : '';
+        // ORDER BY id otherwise makes SQLite walk the global identity index
+        // before applying source scope on every page. The published source
+        // index keeps generic candidate work inside the selected corpus.
+        const index = groupPlan && !seedPlan && groupPlan.mode === 'all' ? groupPlan.selectors[0]!.index
+          : kind === 'node' ? 'knowledge_nodes_source_kind_idx' : 'knowledge_relations_source_predicate_idx';
+        const indexed = ` INDEXED BY ${index}`;
         rows = await this.read.textRows(['id'], ['id'], `SELECT ${alias}.id FROM knowledge_${kind}s ${alias}${indexed} WHERE ${scope.sql}${conditions.length ? ' AND ' + conditions.join(' AND ') : ''} AND ${alias}.id>? ORDER BY ${alias}.id LIMIT ?`, ...scope.args, ...conditionArgs, after, block);
       }
       if (!rows.length) return;

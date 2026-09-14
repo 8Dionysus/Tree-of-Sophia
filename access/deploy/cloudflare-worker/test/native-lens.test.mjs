@@ -102,7 +102,9 @@ function database(data = fixture, metadataPrimaryKey = true) {
     CREATE INDEX knowledge_lens_order_to ON knowledge_lens_order(kind,to_id,sort_key,id);
     CREATE INDEX knowledge_lens_order_pair ON knowledge_lens_order(kind,from_id,to_id,id);
     CREATE INDEX knowledge_nodes_native_idx ON knowledge_nodes(native_id);
-    CREATE INDEX knowledge_relations_native_idx ON knowledge_relations(native_id);`);
+    CREATE INDEX knowledge_relations_native_idx ON knowledge_relations(native_id);
+    CREATE INDEX knowledge_nodes_source_kind_idx ON knowledge_nodes(source_graph,kind_id);
+    CREATE INDEX knowledge_relations_source_predicate_idx ON knowledge_relations(source_graph,predicate_id);`);
   sqlite.exec(readFileSync(new URL('../migrations/0001-exploration.sql', import.meta.url), 'utf8'));
   for (const [key, raw] of Object.entries(data.metadata)) sqlite.prepare('INSERT INTO edge_meta VALUES (?,0,?)').run(key, raw);
   for (const kind of ['node', 'relation']) for (const raw of data[kind === 'node' ? 'rawNodes' : 'rawRelations']) {
@@ -148,6 +150,25 @@ function publishCatalog(sqlite, raw) {
   top.catalog_sha256=createHash('sha256').update(raw).digest('hex');
   sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_reader_top'").run(JSON.stringify(top));
 }
+
+test('generic native lens candidates seek the source index before ordering IDs', async () => {
+  const {db,sqlite,statements}=database();
+  const spec={schema_version:'tos_lens_spec_v1',lens_id:'scoped-generic',sources:['philosophy'],
+    node_query:{filters:[{field:'attributes.value',op:'exists',value:true}]},
+    relation_query:{filters:[{field:'view_ids',op:'contains',value:'missing-view'}]}};
+  try{
+    const actual=nativePacketJson((await executeKnowledgeLensD1(db,parseNativeRequest(JSON.stringify(spec)))).packet);
+    const expected=python("from tos_access.knowledge import execute_knowledge_lens;d=json.load(sys.stdin);print(json.dumps(json.dumps(execute_knowledge_lens(json.loads(d['graph']),d['spec']))))",{graph:fixture.rawGraph,spec});
+    assert.deepEqual(differences([{name:'scoped-generic',actual,expected}])[0].diff,[]);
+    for(const index of ['knowledge_nodes_source_kind_idx','knowledge_relations_source_predicate_idx']){
+      const scans=statements.filter(row=>row.sql.includes('INDEXED BY '+index));assert.ok(scans.length);
+      for(const row of scans){
+        const plan=sqlite.prepare('EXPLAIN QUERY PLAN '+row.sql).all(...row.bindings);
+        assert.ok(plan.some(item=>item.detail.includes(index)&&item.detail.includes('source_graph=?')));
+      }
+    }
+  }finally{sqlite.close();}
+});
 
 test('published catalog and stored lens use the D1 snapshot instead of stale static assets', async () => {
   const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
