@@ -298,8 +298,10 @@ class Plan extends NativeD1Rows {
     }
     if (policy === 'independent') return {count: this.matchedRelations, stream: this.relations()};
     const where = this.where('relation', 'r'), basisJson = compact([...basis]), traversedJson = compact([...traversed]);
-    const ids = policy === 'both'
+    const ids = policy === 'both' && basis.size <= 64
       ? "SELECT l.id FROM json_each(?) a CROSS JOIN json_each(?) b CROSS JOIN knowledge_lens_order l INDEXED BY knowledge_lens_order_pair WHERE l.kind='relation' AND l.from_id=a.value AND l.to_id=b.value UNION SELECT value AS id FROM json_each(?)"
+      : policy === 'both'
+      ? 'SELECT id FROM knowledge_relations INDEXED BY knowledge_relations_from_seek WHERE from_id IN (SELECT value FROM json_each(?)) AND to_id IN (SELECT value FROM json_each(?)) UNION SELECT value AS id FROM json_each(?)'
       : 'SELECT id FROM knowledge_relations INDEXED BY knowledge_relations_from_seek WHERE from_id IN (SELECT value FROM json_each(?)) UNION SELECT id FROM knowledge_relations INDEXED BY knowledge_relations_to_seek WHERE to_id IN (SELECT value FROM json_each(?)) UNION SELECT value AS id FROM json_each(?)';
     const args = [basisJson, basisJson, traversedJson];
     const count = (await this.read.query<{total: number}>(`WITH eligible AS (${ids}) SELECT count(*) AS total FROM eligible e CROSS JOIN knowledge_relations r ON r.id=e.id WHERE ${where.sql}`, ...args, ...where.args))[0]!.total;

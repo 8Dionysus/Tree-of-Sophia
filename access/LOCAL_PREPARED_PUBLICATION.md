@@ -62,9 +62,40 @@ lanes. Base-table triggers invalidate compact state if an older writer changes
 records without maintaining it; compact reads and subsequent deltas then refuse
 the stale store instead of using it. Triggers do not compute or admit hashes.
 
-This does not yet provide indexed membership selection or a native D1 compact
-store. Broad stored lenses remain bounded by their existing candidate and query
-budgets. A carrier checksum is not source admission or index-completeness proof.
+The separate optional membership index below can remove supported selectors
+from native candidate scanning. Neither component currently installs a native
+D1 compact store. Broad stored lenses remain bounded by all other reader and
+query budgets. A carrier checksum is not source admission or index-completeness
+proof.
+
+### Exact view/layer membership
+
+`lens_membership_index.prepare_membership_index_transaction(db,
+expected_binding=binding, ...)` explicitly installs the complete local index
+for normalized `view_ids` and `graph_layers` string arrays. It verifies source
+digests, refuses malformed or over-budget arrays, bounds source rows/bytes and
+index entries, and requires caller-owned transaction, storage reservation/file
+cap and rollback on failure. Full records and publication identity do not move.
+
+The reader compiles positive `contains`, scalar `eq` and `in` conditions in
+`all`/`any` groups to exact indexed counts and ordered keyset windows. It retains
+case-sensitive list semantics, source scope and relation traversal regime.
+Empty/negative predicates, array equality, property bindings, mixed unsupported
+groups or over-budget Boolean SQL expansion keep the bounded native path; they
+are not approximated by an empty posting. Generic sorts/path/seed constraints
+also retain their existing native evaluation where required.
+
+Membership entries and compact seeds participate in the existing addressed
+prepared transaction, including metadata-only successors and rollback. Base
+record or direct index mutation invalidates membership state until the owner
+writer seals the exact successor. No request builds, repairs or re-admits an
+index. Existing snapshots without this optional lane remain readable.
+
+For both local and native D1 readers, endpoint policy `both` retains exact pair
+probes for small selected bases; above 64 nodes it scans actual outgoing
+incidence with a from-only index instead of enumerating every possible pair.
+External degree still consumes the existing work budget. Index availability
+alone is not proof that a full wide result fits row, byte or VM budgets.
 
 ## Explicit bootstrap
 

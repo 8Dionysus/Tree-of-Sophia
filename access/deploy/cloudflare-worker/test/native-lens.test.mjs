@@ -207,6 +207,34 @@ test('published catalog and stored lens use the D1 snapshot instead of stale sta
   }finally{sqlite.close();}
 });
 
+test('large selected bases use actual incidence rather than quadratic pair probes', async () => {
+  const data=python(String.raw`
+import copy
+from tos_access.knowledge import execute_knowledge_lens
+from tos_access.published_read_metadata import published_lens_metadata, published_reader_metadata, emitted_row_digest, published_row_digest_key
+from build_runtime import compact_json
+g=json.loads(json.load(sys.stdin)['graph']);node=g['nodes'][0];relation=g['relations'][0]
+g['nodes']=[{**copy.deepcopy(node),'id':f'n{i:03}','native_id':f'n{i:03}','entity_id':f'e{i:03}'} for i in range(100)]
+g['relations']=[{**copy.deepcopy(relation),'id':f'r{i:03}','from_id':f'n{i:03}','to_id':f'n{i+1:03}'} for i in range(99)]
+g['counts']={'nodes':100,'relations':99}
+catalog={'schema':'tos_knowledge_catalog_v1','source_revision':g['source_revision'],'lenses':[]}
+metadata=published_reader_metadata(g,catalog,'tos_cloudflare_edge_read_model_v9','c'*64,lens_metadata=published_lens_metadata(g))
+metadata['data_revision']={'sha256':'c'*64};metadata['knowledge_top']={key:g[key] for key in ('source_revision','authority_boundary')}
+raw={kind:[compact_json(item) for item in g[kind+'s']] for kind in ('node','relation')}
+for kind in raw:
+ for item,emitted in zip(g[kind+'s'],raw[kind]):metadata[published_row_digest_key(kind,item['id'])]=emitted_row_digest(emitted)
+spec={'schema_version':'tos_lens_spec_v1','lens_id':'wide-basis','sources':['philosophy'],'detail':'compact','limits':{'nodes':100,'relations':100,'groups':8}}
+print(json.dumps({'rawNodes':raw['node'],'rawRelations':raw['relation'],'metadata':{key:compact_json(value) for key,value in metadata.items()},'spec':spec,'expected':compact_json(execute_knowledge_lens(g,spec))}))
+`,{graph:fixture.rawGraph});
+  const {db,sqlite,statements}=database(data);
+  try {
+    const result=await executeKnowledgeLensD1(db,parseNativeRequest(JSON.stringify(data.spec)));
+    assert.deepEqual(differences([{name:'wide-basis',expected:data.expected,actual:await nativeLensResponse(result).text()}]).filter(item=>item.diff.length),[]);
+    assert.equal(statements.some(({sql})=>sql.includes('CROSS JOIN json_each(?) b')),false);
+    assert.equal(statements.some(({sql})=>sql.includes('knowledge_relations_from_seek') && sql.includes('AND to_id IN')),true);
+  } finally {sqlite.close();}
+});
+
 test('D1 native-v7 complete wire packets equal Python values, kinds, source order and fingerprints', async () => {
   const {db,sqlite,statements} = database(), packets=[];
   try {

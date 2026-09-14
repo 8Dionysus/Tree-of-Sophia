@@ -397,8 +397,10 @@ def apply_prepared_delta_transaction(db: sqlite3.Connection, *, expected_binding
         raise ValueError("prepared/search address high-water differs")
     maximum = _cap(db, limits, retained)
     before = db.total_changes
-    from . import compact_lens_store
+    from . import compact_lens_store, lens_membership_index
     compact_store = compact_lens_store.validate_state(
+        lambda sql, args=(): db.execute(sql, args).fetchall(), expected_binding)
+    memberships = lens_membership_index.validate_state(
         lambda sql, args=(): db.execute(sql, args).fetchall(), expected_binding)
     lens = _metadata(db, LENS_META_KEY)
     validate_lens_metadata(lens, top["source_revision"])
@@ -465,6 +467,8 @@ def apply_prepared_delta_transaction(db: sqlite3.Connection, *, expected_binding
                 relations.append(change.item)
         if compact_store:
             compact_lens_store.put(db, change.kind, change.identifier, raw)
+        if memberships:
+            lens_membership_index.put(db, change.kind, change.identifier, raw)
         for item, adjustment in ((old, -1), (change.item, 1)):
             if item is not None:
                 cell = tuple(str(item.get(field) or "") for field in _DIMENSIONS[change.kind])
@@ -488,6 +492,8 @@ def apply_prepared_delta_transaction(db: sqlite3.Connection, *, expected_binding
     binding = _publish_header(db, header, catalog, lens, descriptor, epoch + 1, limits)
     if compact_store:
         compact_lens_store.seal(db, binding)
+    if memberships:
+        lens_membership_index.seal(db, binding)
     SearchStore.apply_delta_transaction(db, expected_binding=expected_binding, new_binding=binding,
                                        changes=search_changes, max_mutations=limits.max_mutations)
     if db.execute("SELECT high_water FROM search_header WHERE singleton=1").fetchone()[0] != high_water:

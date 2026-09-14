@@ -13,7 +13,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 
 from . import knowledge as k
-from . import compact_lens_store
+from . import compact_lens_store, lens_membership_index
 from .compact_lens_carrier import supports_compact_lens_carrier
 from .published_exploration import _Rows
 from .published_read_metadata import (
@@ -174,6 +174,7 @@ class _Plan:
         self.sources = set(spec["sources"])
         self.indexes = set(indexes)
         self.generic_relations = None
+        self.memberships = {}
         self.matched_nodes = 0
         self.matched_relations = 0
 
@@ -216,6 +217,10 @@ class _Plan:
             if traversal["profile"] == "overview":
                 where += f" AND {alias}.predicate_id NOT IN (SELECT value FROM json_each(?)) AND {alias}.relation_type_id NOT IN (SELECT value FROM json_each(?))"
                 args.extend((_compact(sorted(k.OVERVIEW_EXCLUDED_PREDICATES)), _compact(sorted(k.OVERVIEW_EXCLUDED_RELATION_TYPES))))
+        if kind in self.memberships:
+            condition, values = self.memberships[kind].condition(alias)
+            where += ' AND ' + condition
+            args.extend(values)
         return where, args
 
     @staticmethod
@@ -386,6 +391,12 @@ class _Plan:
         return self.payloads.get("node", item["id"])
 
     def _ordered(self, kind, where, args, *, endpoint=None, extra="", extra_args=()):
+        if kind in self.memberships and endpoint is None and not extra:
+            # Membership ranges drive ordering; unrelated global rows never
+            # precede source/filter selection in each keyset window.
+            where, args = self.where(kind, 'r')
+            yield from self.memberships[kind].ordered(self.read, where, args, self.block)
+            return
         after, first = ("", ""), True
         alias = "n" if kind == "node" else "r"
         index = "knowledge_lens_order_sort" if endpoint is None else "knowledge_lens_order_" + endpoint[0]
@@ -412,11 +423,14 @@ class _Plan:
         group, seed = self.spec["node_query"], self.spec["seed"]
         if not group["enabled"]:
             return [], {}
-        simple = self.dimensional("node", group) and not seed["node_ids"] and not seed["text_query"] and not self.spec["path_query"]
+        simple = (self.dimensional("node", group) or 'node' in self.memberships) and not seed["node_ids"] and not seed["text_query"] and not self.spec["path_query"]
         limit = self.spec["limits"]["nodes"]
         if simple and self.spec["composition"]["sort_nodes"] == _DEFAULT_SORT:
-            cells = self.allowed_cells("node", group)
-            self.matched_nodes = sum(cell[3] for cell in cells)
+            if 'node' in self.memberships:
+                self.matched_nodes = self.memberships['node'].count(self.read, *self.where('node', 'r'))
+            else:
+                cells = self.allowed_cells("node", group)
+                self.matched_nodes = sum(cell[3] for cell in cells)
             if not self.matched_nodes:
                 return [], {}
             where, args = self.where("node", "n")
@@ -463,8 +477,11 @@ class _Plan:
         group = self.spec["relation_query"]
         if not group["enabled"]:
             self.generic_relations = []
-        elif self.dimensional("relation", group) and self.spec["composition"]["sort_relations"] == _DEFAULT_SORT:
-            self.matched_relations = sum(cell[3] for cell in self.allowed_cells("relation", group))
+        elif (self.dimensional("relation", group) or 'relation' in self.memberships) and self.spec["composition"]["sort_relations"] == _DEFAULT_SORT:
+            if 'relation' in self.memberships:
+                self.matched_relations = self.memberships['relation'].count(self.read, *self.where('relation', 'r'))
+            else:
+                self.matched_relations = sum(cell[3] for cell in self.allowed_cells("relation", group))
         else:
             values = []
             for relation in self.scan("relation"):
@@ -567,7 +584,7 @@ class _Plan:
             return self.matched_relations, self.relations()
         where, args = self.where("relation", "r")
         basis_json, traversed_json = _compact(sorted(basis)), _compact(sorted(traversed))
-        if policy == "both":
+        if policy == "both" and len(basis) <= 64:
             # SQLite can use only the from prefix for two IN predicates and
             # scan an arbitrarily large external degree. Fixed equality probes
             # keep work dependent on this bounded selected basis and eligible
@@ -577,6 +594,14 @@ class _Plan:
                    "CROSS JOIN knowledge_lens_order l INDEXED BY knowledge_lens_order_pair "
                    "WHERE l.kind='relation' AND l.from_id=a.value AND l.to_id=b.value "
                    "UNION SELECT value AS id FROM json_each(?)")
+            id_args = [basis_json, basis_json, traversed_json]
+        elif policy == 'both':
+            # Large bases make pair probing quadratic. Scan actual outgoing
+            # incidence with the from-only index and test the other endpoint;
+            # the read VM budget still bounds unusually large external degree.
+            ids = ('SELECT id FROM knowledge_relations INDEXED BY knowledge_relations_from_seek '
+                   'WHERE from_id IN (SELECT value FROM json_each(?)) AND to_id IN (SELECT value FROM json_each(?)) '
+                   'UNION SELECT value AS id FROM json_each(?)')
             id_args = [basis_json, basis_json, traversed_json]
         else:
             ids = ("SELECT id FROM knowledge_relations INDEXED BY knowledge_relations_from_seek WHERE from_id IN (SELECT value FROM json_each(?)) "
@@ -640,6 +665,10 @@ class PublishedLensService:
                 raise PublishedReadModelError("prepared lens ordered-index migration is unavailable")
             bound = k.bind_lens_query_properties(metadata["query_properties"], public)
             plan = _Plan(read, top, metadata, bound, self.limits, present)
+            memberships = {kind: candidate for kind in ('node', 'relation')
+                           if (candidate := lens_membership_index.compile_plan(kind, bound[kind + '_query'])) is not None}
+            if memberships and lens_membership_index.validate_state(read.query, self.reader.snapshot_binding):
+                plan.memberships = memberships
             if supports_compact_lens_carrier(bound):
                 plan.payloads.compact = compact_lens_store.validate_state(read.query, self.reader.snapshot_binding)
             return self._execute(plan, public)
