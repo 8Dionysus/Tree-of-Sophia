@@ -21,13 +21,14 @@ tree.
 | output | local manifest, portable records, source-return projection, validation receipt |
 | owner | `kag/AGENTS.md`, `kag/README.md`, `kag/manifest.json` |
 | next route | source surface -> derived export validator -> `aoa-kag` registry/composition |
-| validation | local KAG provider validator, derived KAG seam validator, and repo release check |
+| validation | local provider and export checks for the selected KAG artifact; independent of software merge |
 
-The portable family follows current tracked ToS sources. Regenerate it through
-the pinned `aoa-kag` builder after source changes, then validate source refs,
-content hashes, shard integrity and canonical parity. TOS-D-0044 ends the
-temporary freeze; no automatic refreeze or stale-source exception remains.
-Regeneration does not activate any downstream service or grant semantic authority.
+TOS-D-0062 supersedes the universal source-currentness merge obligation in
+TOS-D-0044. Build KAG from an explicitly selected immutable ToS source/data
+revision, record that revision and the provider revision, and validate source
+refs, hashes, shards and parity before publishing that KAG artifact. A stale
+integration remains visibly stale; it does not become current because software
+CI passed. No regeneration is required for an unrelated software PR.
 
 ## Source Routes
 
@@ -38,13 +39,10 @@ Regeneration does not activate any downstream service or grant semantic authorit
 
 ## Validation
 
-Select the full local KAG provider, `public_entry`, or release route in
-[`kag/VALIDATION.md`](VALIDATION.md) after the source export and intended claim
-are known. `local_kag_provider` is a blocking source-currentness and integrity
-guard. KAG export regeneration remains with
-`mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md` and its
-source builder; local provider procedure stays in the district validation
-route.
+Use [`kag/VALIDATION.md`](VALIDATION.md) for the selected integration.
+`local_kag_provider` blocks publication of an invalid or falsely current KAG
+artifact, not standalone software merge or release. Source exports remain
+owned by their source builders and review routes.
 
 ## Closeout
 

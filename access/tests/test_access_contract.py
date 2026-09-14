@@ -4,16 +4,21 @@ import importlib.util
 import hashlib
 import json
 import os
+import shutil
 import socket
+import sqlite3
 import sys
 import tempfile
 import threading
 import tomllib
 import unittest
+from contextlib import closing
 from unittest.mock import patch
 import urllib.error
 import urllib.request
 from pathlib import Path
+import zipfile
+from fixture_support import write_fixture
 
 from jsonschema import Draft202012Validator
 
@@ -44,186 +49,438 @@ validate_standalone = load_script(
     "validate_standalone",
     ACCESS_ROOT / "packaging/validate_standalone.py",
 )
-
-
-def write_fixture(root: Path) -> None:
-    derived = root / "ToS/derived-exports"
-    audit = root / "ToS/philosophy/graph-workbench/review-packets"
-    derived.mkdir(parents=True)
-    audit.mkdir(parents=True)
-    index = {
-        "schema_version": "tos_corpus_index_v1",
-        "owner_repo": "Tree-of-Sophia",
-        "surface_kind": "derived",
-        "counts": {"nodes": 1},
-        "nodes": [{"node_id": "a", "label": "Alpha", "source_ref": "ToS/canon/a.json"}],
-        "resources": [],
-        "manifests": [],
-        "branches": [],
-        "relation_edges": [],
-        "relation_packs": [],
-        "graph_views": [{"view_id": "corpus-topology", "title": "Corpus"}],
-        "authority_order": ["ToS/canon"],
-        "runtime_projection_boundary": {"runtime_owner": "abyss-stack"},
-        "source_navigation": {
-            "schema_version": "tos_source_navigation_v1",
-            "authority_boundary": "fixture source authority",
-            "counts": {"nodes": 5, "edges": 4, "rights": 1},
-            "nodes": [
-                {"node_id": "philosophy.eras.fixture", "node_kind": "era", "label": "Fixture era", "source_ref": "ToS/philosophy/eras/fixture/branch.manifest.json", "identity_status": "not_applicable", "properties": {}},
-                {"node_id": "tos.work.fixture", "node_kind": "work", "label": "Fixture Work", "source_ref": "ToS/source-witnesses/works/fixture/work.json", "identity_status": "verified", "properties": {}},
-                {"node_id": "tos.item.fixture", "node_kind": "item", "label": "Fixture Item", "source_ref": "ToS/source-witnesses/works/fixture/item.json", "identity_status": "verified", "properties": {}},
-                {"node_id": "tos.file.sha256.fixture", "node_kind": "file", "label": "fixture.pdf", "source_ref": "ToS/source-witnesses/works/fixture/item.manifest.json", "identity_status": "content_addressed", "properties": {}},
-                {"node_id": "tos.link.fixture.download", "node_kind": "link", "label": "Fixture download", "source_ref": "ToS/source-witnesses/links/fixture/link.json", "identity_status": "verified", "properties": {"uri": "https://example.test/fixture.pdf", "access_status": "open_download"}},
-            ],
-            "edges": [
-                {"edge_id": "sn1", "from_id": "philosophy.eras.fixture", "predicate_id": "grounds", "to_id": "tos.work.fixture", "edge_kind": "authored_source_planting", "review_status": "unreviewed", "source_refs": ["ToS/philosophy/eras/fixture/source-planting.json"]},
-                {"edge_id": "sn2", "from_id": "tos.work.fixture", "predicate_id": "exemplified_by", "to_id": "tos.item.fixture", "edge_kind": "evidence_claim", "review_status": "unreviewed", "source_refs": ["ToS/source-witnesses/relations/fixture.jsonl"]},
-                {"edge_id": "sn3", "from_id": "tos.item.fixture", "predicate_id": "has_file", "to_id": "tos.file.sha256.fixture", "edge_kind": "authored_item_manifest", "review_status": "not_applicable", "source_refs": ["ToS/source-witnesses/works/fixture/item.manifest.json"]},
-                {"edge_id": "sn4", "from_id": "tos.item.fixture", "predicate_id": "downloadable_at", "to_id": "tos.link.fixture.download", "edge_kind": "evidence_claim", "review_status": "unreviewed", "source_refs": ["ToS/source-witnesses/relations/object-link-claims.jsonl"]},
-            ],
-            "rights": [
-                {"rights_id": "tos.rights.fixture", "scope_refs": ["tos.item.fixture", "tos.file.sha256.fixture"], "assessment_status": "licensed", "review_status": "unreviewed", "redistribution_posture": "authorized_with_conditions", "derivative_posture": "allowed_with_conditions", "server_processing_posture": "authorized_with_conditions", "visibility": "public_payload", "license_uri": "https://example.test/license", "rights_statement_uri": "https://example.test/metadata", "restrictions": ["attribution"], "source_ref": "ToS/source-witnesses/works/fixture/rights.json"}
-            ],
-        },
-    }
-    graph = {
-        "schema_version": "tos_philosophy_graph_projection_v2",
-        "owner_repo": "Tree-of-Sophia",
-        "surface_kind": "derived",
-        "counts": {"nodes": 3, "edges": 3},
-        "nodes": [
-            {"node_id": "a", "label": "Alpha", "graph_layers": ["source-relation"], "source_ref": "ToS/canon/a.json"},
-            {"node_id": "b", "label": "Beta", "graph_layers": ["source-relation"], "source_ref": "ToS/canon/b.json"},
-            {"node_id": "c", "label": "Gamma", "graph_layers": ["source-relation"], "source_ref": "ToS/canon/c.json"},
-        ],
-        "edges": [
-            {
-                "edge_id": "e2",
-                "from_id": "a",
-                "to_id": "c",
-                "predicate_id": "relates",
-                "graph_layers": ["source-relation"],
-                "source_ref": "ToS/canon/relations.json",
-            },
-            {
-                "edge_id": "e",
-                "from_id": "a",
-                "to_id": "b",
-                "predicate_id": "relates",
-                "graph_layers": ["source-relation"],
-                "source_ref": "ToS/canon/relations.json",
-            },
-            {
-                "edge_id": "e3",
-                "from_id": "c",
-                "to_id": "b",
-                "predicate_id": "relates",
-                "graph_layers": ["source-relation"],
-                "source_ref": "ToS/canon/relations.json",
-            },
-        ],
-        "views": [
-            {
-                "view_id": "chronology",
-                "title": "Chronology",
-                "node_ids": ["a", "b", "c"],
-                "edge_ids": ["e2", "e", "e3"],
-                "graph_layers": ["source-relation"],
-                "source_refs": ["ToS/philosophy/graph-workbench/views/chronology.graph.md"],
-            },
-            {
-                "view_id": "direct-only",
-                "title": "Direct only",
-                "node_ids": ["a", "b"],
-                "edge_ids": ["e"],
-                "graph_layers": ["source-relation"],
-                "source_refs": ["ToS/philosophy/graph-workbench/views/direct-only.graph.md"],
-            },
-        ],
-        "clusters": [
-            {
-                "cluster_id": "c",
-                "cluster_kind": "region",
-                "label": "Fixture",
-                "view_ids": ["chronology"],
-                "member_node_ids": ["a", "b", "c", "outside"],
-                "member_edge_ids": ["e2", "e", "outside-edge"],
-                "graph_layers": ["source-relation"],
-                "source_ref": "ToS/philosophy/graph-workbench/clusters/cluster-contracts.json",
-            }
-        ],
-        "review_packets": [{"view_id": "chronology", "unresolved_diagnostics": []}],
-        "graph_layers": [{"layer_id": "source-relation"}],
-        "layer_counts": [],
-        "source_refs": {"source_view_contract_ref": "ToS/philosophy/graph-workbench/view-contracts.json"},
-        "runtime_projection_boundary": {"runtime_owner": "abyss-stack"},
-        "snapshot_review": {"snapshot_schema_version": "tos_philosophy_graph_projection_snapshot_v1"},
-        "unresolved_review_surfaces": [],
-    }
-    (derived / "tos_corpus_index.min.json").write_text(json.dumps(index), encoding="utf-8")
-    (derived / "philosophy_graph_projection.min.json").write_text(json.dumps(graph), encoding="utf-8")
-    (derived / "epistemic_evidence_projection.min.json").write_text(
-        json.dumps(
-            {
-                "schema_version": "tos_epistemic_evidence_projection_v1",
-                "owner_repo": "Tree-of-Sophia",
-                "surface_kind": "derived_public_evidence_navigation",
-                "scenes": [
-                    {
-                        "scene_id": "fixture-scene",
-                        "selections": [
-                            {"mode": "philosophy", "view_id": "chronology", "item_ids": ["a"]}
-                        ],
-                        "selection_ids": ["a"],
-                        "posture": "contested-pre-canon",
-                        "finding": "Fixture evidence route remains open.",
-                        "conclusion": {
-                            "can_conclude": False,
-                            "canon_membership": False,
-                            "claim_evidence_closed": False,
-                            "allowed": ["the selection is present in the projection"],
-                            "not_allowed": ["semantic truth"],
-                        },
-                        "source_anchors": [],
-                        "routes": [
-                            {
-                                "route_kind": "candidate",
-                                "ref": "ToS/canon/a.json",
-                                "status": "fixture",
-                                "exists": True,
-                            }
-                        ],
-                        "gaps": ["review"],
-                        "source_refs": ["ToS/canon/a.json"],
-                    }
-                ],
-                "authority_boundary": {
-                    "is_source": False,
-                    "is_canon": False,
-                    "is_semantic_truth": False,
-                    "is_rights_clearance": False,
-                    "note": "Fixture authority remains with the referenced source.",
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
-    (audit / "table-i-post-planting-audit.json").write_text(
-        json.dumps({"schema_version": "tos_philosophy_post_planting_audit_v1"}),
-        encoding="utf-8",
-    )
-    web_assets = root / "access/web/dist/assets"
-    web_assets.mkdir(parents=True)
-    (web_assets / "tos-graph.js").write_text("console.log('fixture')", encoding="utf-8")
-    (web_assets / "tos-graph.css").write_text("", encoding="utf-8")
-    contracts = root / "access/contracts"
-    contracts.mkdir(parents=True)
-    for name in ("runtime-manifest.v1.json", "runtime-data.v1.json", "web-actions.v1.json"):
-        (contracts / name).write_text("{}\n", encoding="utf-8")
+build_standalone = load_script(
+    "build_standalone_bundle",
+    ACCESS_ROOT / "packaging/build_standalone_bundle.py",
+)
+edge_build = load_script(
+    "edge_build_runtime",
+    ACCESS_ROOT / "deploy/cloudflare-worker/scripts/build_runtime.py",
+)
 
 
 class CoreContractTests(unittest.TestCase):
+    def test_core_inspection_reuses_and_replaces_one_snapshot_index(self) -> None:
+        from concurrent.futures import ThreadPoolExecutor
+        from copy import deepcopy
+        from tos_access.knowledge import KnowledgeGraphIndex, inspect_knowledge_node, inspect_knowledge_relation
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            initial = core.knowledge_graph()
+            identifier = initial['nodes'][0]['id']
+            relation_id = initial['relations'][0]['id']
+            changed = deepcopy(initial)
+            changed['nodes'][0]['display']['title']['default'] = 'New snapshot title'
+            # A new normalization snapshot may share the source revision. Bind
+            # the immutable graph instance, not just that convenient string.
+            with patch('tos_access.core.KnowledgeGraphIndex', wraps=KnowledgeGraphIndex) as prepare:
+                for graph, count in ((initial, 1), (changed, 2)):
+                    with patch.object(ToSAccessCore, 'knowledge_graph', return_value=graph):
+                        with ThreadPoolExecutor(max_workers=4) as pool:
+                            packets = list(pool.map(core.knowledge_node, [identifier] * 8))
+                        self.assertTrue(all(packet == inspect_knowledge_node(graph, identifier)
+                                            for packet in packets))
+                        for limit in (0, 3):
+                            self.assertEqual(core.knowledge_node(identifier, limit),
+                                             inspect_knowledge_node(graph, identifier, limit))
+                            self.assertEqual(core.knowledge_relation(relation_id),
+                                             inspect_knowledge_relation(graph, relation_id))
+                        self.assertEqual(prepare.call_count, count)
+                        self.assertIs(core._graph_index.graph, graph)
+
+    def test_core_search_reuses_only_its_current_snapshot(self) -> None:
+        from unittest.mock import patch
+        from copy import deepcopy
+        from tos_access.knowledge import KnowledgeSearchIndex, search_knowledge_graph
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            initial = core.knowledge_graph()
+            changed = deepcopy(initial)
+            changed['nodes'][0]['attributes']['search_probe'] = 'new-snapshot-only'
+            with patch('tos_access.core.KnowledgeSearchIndex', wraps=KnowledgeSearchIndex) as prepare:
+                with patch.object(ToSAccessCore, 'knowledge_graph', return_value=initial):
+                    for query in ('Alpha', 'Альфа', 'missing'):
+                        self.assertEqual(core.knowledge_search(query), search_knowledge_graph(initial, query))
+                    self.assertEqual(prepare.call_count, 1)
+                with patch.object(ToSAccessCore, 'knowledge_graph', return_value=changed):
+                    packet = core.knowledge_search('new-snapshot-only')
+                    self.assertEqual(packet, search_knowledge_graph(changed, 'new-snapshot-only'))
+                    self.assertEqual(packet['counts']['matching_nodes'], 1)
+                    self.assertEqual(prepare.call_count, 2)
+
+    def test_knowledge_graph_normalizes_every_item_for_humans_and_agents(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+
+            graph = core.knowledge_graph()
+
+            self.assertEqual(graph["schema"], "tos_knowledge_graph_v1")
+            self.assertIn("philosophy:a", {node["id"] for node in graph["nodes"]})
+            self.assertIn("canon:a", {node["id"] for node in graph["nodes"]})
+            philosophy_alpha = next(node for node in graph["nodes"] if node["id"] == "philosophy:a")
+            self.assertEqual(philosophy_alpha["kind_id"], "concept")
+            self.assertEqual(philosophy_alpha["type_id"], "tos.entity.concept")
+            self.assertEqual(philosophy_alpha["type_mapping"]["status"], "mapped")
+            self.assertEqual(philosophy_alpha["display"]["title"]["ru"], "Альфа")
+            self.assertEqual(philosophy_alpha["epistemic"]["canon_status"], "pre-canon")
+            for node in graph["nodes"]:
+                self.assertTrue(node["display"]["title"]["default"])
+                self.assertTrue(node["display"]["kind_label"]["default"])
+                self.assertTrue(node["display"]["summary"]["default"])
+                self.assertIn(node["display"]["summary_state"], {"authored", "source-derived", "metadata-synthesis", "missing"})
+                self.assertTrue(node["source_refs"])
+            for relation in graph["relations"]:
+                self.assertTrue(relation["display"]["label"]["default"])
+                self.assertTrue(relation["display"]["statement"]["default"])
+                self.assertTrue(relation["display"]["explanation"]["default"])
+                self.assertIn(relation["display"]["explanation_state"], {"authored", "source-derived", "metadata-synthesis", "missing"})
+                self.assertTrue(relation["source_refs"])
+
+    def test_arbitrary_lens_spec_is_compiled_without_a_known_view_id(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+            spec = {
+                "schema_version": "tos_lens_spec_v1",
+                "lens_id": "operator.concepts-with-context",
+                "title": {"default": "Concepts with context", "ru": "Понятия с контекстом", "en": "Concepts with context"},
+                "sources": ["philosophy"],
+                "node_query": {
+                    "match": "all",
+                    "filters": [{"field": "kind_id", "op": "eq", "value": "concept"}],
+                },
+                "relation_query": {
+                    "match": "all",
+                    "filters": [{"field": "predicate_id", "op": "eq", "value": "relates"}],
+                },
+                "traversal": {"depth": 1, "direction": "either", "predicate_ids": ["relates"]},
+                "composition": {
+                    "endpoint_policy": "either",
+                    "group_by": ["kind_id"],
+                    "sort_nodes": [{"field": "display.title.default", "direction": "asc"}],
+                    "sort_relations": [{"field": "id", "direction": "asc"}],
+                },
+                "presentation": {
+                    "layout": "semantic",
+                    "color_by": "kind_id",
+                    "lane_by": "epistemic.canon_status",
+                    "size_by": None,
+                    "inspector_fields": ["display.summary", "epistemic", "source_refs"],
+                },
+                "limits": {"nodes": 20, "relations": 20, "groups": 20},
+            }
+
+            result = core.compile_knowledge_lens(spec)
+
+            self.assertEqual(result["schema"], "tos_lens_result_v1")
+            self.assertEqual(result["lens"]["lens_id"], "operator.concepts-with-context")
+            self.assertEqual(result["presentation"]["layout"], "semantic")
+            self.assertEqual(
+                {node["id"] for node in result["nodes"]},
+                {"philosophy:a", "philosophy:b", "philosophy:c"},
+            )
+            self.assertEqual(
+                {relation["id"] for relation in result["relations"]},
+                {"philosophy:e", "philosophy:e2", "philosophy:e3"},
+            )
+            self.assertEqual(result["groups"][0]["field"], "kind_id")
+            self.assertEqual(len(result["fingerprint"]), 64)
+            self.assertEqual(result["fingerprint"], core.compile_knowledge_lens(spec)["fingerprint"])
+            self.assertFalse(result["authority_boundary"]["is_source"])
+
+    def test_knowledge_catalog_exposes_saved_lenses_and_safe_composition_grammar(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+
+            catalog = core.knowledge_catalog()
+
+            self.assertEqual(catalog["schema"], "tos_knowledge_catalog_v1")
+            self.assertIn("chronology", {lens["lens_id"] for lens in catalog["lenses"]})
+            self.assertIn("concept", {kind["kind_id"] for kind in catalog["node_kinds"]})
+            self.assertIn("relates", {predicate["predicate_id"] for predicate in catalog["predicates"]})
+            self.assertIn("contains", catalog["capabilities"]["filter_operators"])
+            self.assertEqual(catalog["capabilities"]["maximums"]["traversal_depth"], 5)
+            self.assertEqual(catalog["counts"]["display_coverage"]["node_titles"], catalog["counts"]["nodes"])
+            contracts = core.knowledge_contracts()
+            self.assertEqual(contracts["schema"], "tos_knowledge_contract_bundle_v1")
+            self.assertEqual(
+                set(contracts["contracts"]),
+                {
+                    "api",
+                    "knowledge_graph",
+                    "lens_spec",
+                    "lens_result",
+                    "entity_type_registry_schema",
+                    "relation_type_registry_schema",
+                    "entity_type_registry",
+                    "relation_type_registry",
+                },
+            )
+            self.assertEqual(
+                contracts["contracts"]["lens_spec"]["title"],
+                "Tree of Sophia declarative LensSpec v1",
+            )
+
+            with self.assertRaisesRegex(ValueError, "unsupported node filter field"):
+                core.compile_knowledge_lens(
+                    {
+                        "schema_version": "tos_lens_spec_v1",
+                        "lens_id": "unsafe",
+                        "node_query": {"match": "all", "filters": [{"field": "__proto__.polluted", "op": "eq", "value": "yes"}]},
+                    }
+                )
+
+            with self.assertRaisesRegex(ValueError, "unsupported node filter field"):
+                core.compile_knowledge_lens(
+                    {
+                        "schema_version": "tos_lens_spec_v1",
+                        "lens_id": "unsafe-nested",
+                        "node_query": {"match": "all", "filters": [{"field": "attributes.safe.constructor.name", "op": "eq", "value": "x"}]},
+                    }
+                )
+
+    def test_edge_data_revision_ignores_api_only_changes_but_tracks_rows_and_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            source_paths = [
+                root / name
+                for name in (
+                    "index.json",
+                    "philosophy.json",
+                    "bibliographic.json",
+                    "entity-registry.json",
+                    "relation-registry.json",
+                    "evidence.json",
+                    "audit.json",
+                )
+            ]
+            for index, source_path in enumerate(source_paths):
+                source_path.write_text(json.dumps({"revision": index}), encoding="utf-8")
+            contract = root / "access/contracts/lens-spec.v1.schema.json"
+            contract.parent.mkdir(parents=True)
+            contract.write_text('{"revision":1}', encoding="utf-8")
+            graph = {
+                "source_revision": "a" * 64,
+                "nodes": [{"id": "n", "content_revision": "b" * 64}],
+                "relations": [{"id": "r", "content_revision": "c" * 64}],
+                "catalog_hint": "first",
+            }
+
+            class FakeCore:
+                tos_root = root
+                (
+                    index_path,
+                    philosophy_graph_projection_path,
+                    bibliographic_graph_path,
+                    entity_type_registry_path,
+                    relation_type_registry_path,
+                    evidence_projection_path,
+                    philosophy_post_planting_audit_path,
+                ) = source_paths
+
+                @staticmethod
+                def knowledge_graph() -> dict[str, object]:
+                    return graph
+
+                @staticmethod
+                def zarathustra_word_analysis_public_capability() -> dict[str, object]:
+                    return {"available": False, "reason": "fixture"}
+
+            with patch.object(edge_build, "REPO_ROOT", root):
+                baseline = edge_build.data_revision(FakeCore())
+                contract.write_text('{"revision":2}', encoding="utf-8")
+                graph["catalog_hint"] = "second"
+                self.assertEqual(edge_build.data_revision(FakeCore()), baseline)
+
+                graph["nodes"][0]["content_revision"] = "d" * 64
+                self.assertNotEqual(edge_build.data_revision(FakeCore()), baseline)
+                graph["nodes"][0]["content_revision"] = "b" * 64
+
+                graph['query_properties'] = [{'property_id': 'tos.property.test', 'field': 'attributes.test'}]
+                self.assertNotEqual(edge_build.data_revision(FakeCore()), baseline)
+                graph.pop('query_properties')
+                self.assertEqual(edge_build.data_revision(FakeCore()), baseline)
+
+                source_paths[0].write_text('{"revision":"changed"}', encoding="utf-8")
+                self.assertNotEqual(edge_build.data_revision(FakeCore()), baseline)
+
+    def test_edge_sql_preserves_oversized_lossless_json_in_bounded_statements(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            target = Path(raw) / "read-model.sql"
+            writer = edge_build.SqlStatementWriter(target)
+            writer.append(
+                "CREATE TABLE knowledge_nodes_next "
+                "(id TEXT PRIMARY KEY, search_text TEXT NOT NULL, json TEXT NOT NULL);"
+            )
+            item_json = json.dumps(
+                {"source_payload": ("Zarathustra's Überfluss — " * 6_000)},
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+            edge_build.append_chunkable_insert(
+                writer,
+                "knowledge_nodes_next",
+                ("id", "search_text", "json"),
+                (
+                    edge_build.sql_text("fixture:large"),
+                    edge_build.sql_text(item_json.lower()),
+                    edge_build.sql_text(item_json),
+                ),
+                selector_sql=f"id = {edge_build.sql_text('fixture:large')}",
+                chunked_text={"search_text": item_json.lower(), "json": item_json},
+            )
+            writer.finish()
+
+            statements = target.read_text(encoding="utf-8").splitlines()
+            self.assertTrue(
+                all(
+                    len(statement.encode("utf-8"))
+                    <= edge_build.MAX_D1_SQL_STATEMENT_BYTES
+                    for statement in statements
+                )
+            )
+            with closing(sqlite3.connect(":memory:")) as database:
+                database.executescript(target.read_text(encoding="utf-8"))
+                stored = database.execute(
+                    "SELECT search_text, json FROM knowledge_nodes_next WHERE id = ?",
+                    ("fixture:large",),
+                ).fetchone()
+            self.assertEqual(stored, (item_json.lower(), item_json))
+
+    def test_relation_first_lenses_and_unified_inspection_need_no_legacy_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+            result = core.compile_knowledge_lens(
+                {
+                    "schema_version": "tos_lens_spec_v1",
+                    "lens_id": "relations-first",
+                    "sources": ["philosophy"],
+                    "node_query": {"enabled": False, "match": "all", "filters": []},
+                    "relation_query": {
+                        "match": "all",
+                        "filters": [{"field": "predicate_id", "op": "eq", "value": "relates"}],
+                    },
+                    "composition": {"endpoint_policy": "independent"},
+                    "limits": {"nodes": 10, "relations": 10, "groups": 10},
+                }
+            )
+            self.assertEqual({item["id"] for item in result["relations"]}, {"philosophy:e", "philosophy:e2", "philosophy:e3"})
+            self.assertEqual({item["id"] for item in result["nodes"]}, {"philosophy:a", "philosophy:b", "philosophy:c"})
+
+            search = core.knowledge_search("Альфа", sources=["philosophy"], limit=5)
+            self.assertEqual(search["nodes"][0]["id"], "philosophy:a")
+            exact = core.knowledge_node("philosophy:a")
+            self.assertFalse(exact["ambiguous_native_id"])
+            ambiguous = core.knowledge_node("a")
+            self.assertTrue(ambiguous["ambiguous_native_id"])
+            relation = core.knowledge_relation("philosophy:e")
+            self.assertEqual({item["id"] for item in relation["endpoints"]}, {"philosophy:a", "philosophy:b"})
+            focused = core.knowledge_focus("philosophy:a", sources=["philosophy"], depth=1)
+            self.assertEqual(focused["focus"]["node_id"], "philosophy:a")
+            self.assertEqual(focused["presentation"]["layout"], "radial")
+
+    def test_http_accepts_only_read_only_lens_compilation_post(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            server = make_server(ToSAccessCore.discover(tos_root=root), port=0)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                spec = json.dumps(
+                    {
+                        "schema_version": "tos_lens_spec_v1",
+                        "lens_id": "http.fixture",
+                        "sources": ["philosophy"],
+                        "node_query": {"match": "all", "filters": []},
+                        "limits": {"nodes": 2, "relations": 2, "groups": 10},
+                    }
+                ).encode("utf-8")
+                request = urllib.request.Request(
+                    f"http://127.0.0.1:{server.server_port}/api/knowledge/lenses/compile",
+                    data=spec,
+                    method="POST",
+                    headers={"Content-Type": "application/json"},
+                )
+                packet = json.load(urllib.request.urlopen(request))
+                self.assertEqual(packet["schema"], "tos_lens_result_v1")
+                self.assertEqual(packet["lens"]["lens_id"], "http.fixture")
+
+                base = f"http://127.0.0.1:{server.server_port}"
+                catalog = json.load(urllib.request.urlopen(base + "/api/knowledge/catalog"))
+                contracts = json.load(urllib.request.urlopen(base + "/api/knowledge/contracts"))
+                search = json.load(urllib.request.urlopen(base + "/api/knowledge/search?query=Alpha&sources=philosophy"))
+                node = json.load(urllib.request.urlopen(base + "/api/knowledge/nodes/philosophy%3Aa"))
+                relation = json.load(urllib.request.urlopen(base + "/api/knowledge/relations/philosophy%3Ae"))
+                focused = json.load(urllib.request.urlopen(
+                    base + "/api/knowledge/focus/philosophy%3Aa?sources=philosophy&depth=5"
+                ))
+                self.assertEqual(catalog["schema"], "tos_knowledge_catalog_v1")
+                self.assertEqual(contracts["schema"], "tos_knowledge_contract_bundle_v1")
+                self.assertEqual(search["nodes"][0]["id"], "philosophy:a")
+                self.assertEqual(node["matches"][0]["id"], "philosophy:a")
+                self.assertEqual(relation["matches"][0]["id"], "philosophy:e")
+                self.assertEqual(focused["focus"]["node_id"], "philosophy:a")
+                self.assertEqual(focused["lens"]["traversal"]["depth"], 5)
+                for inspected in (search, node, relation):
+                    self.assertEqual(inspected['source_revision'], focused['source_revision'])
+                paged_spec = {**json.loads(spec), 'pagination': {'nodes': 1, 'relations': 1}}
+                def compile_page(value):
+                    return urllib.request.urlopen(urllib.request.Request(base + '/api/knowledge/lenses/compile',
+                        data=json.dumps(value).encode(), headers={'Content-Type': 'application/json'}))
+                with compile_page(paged_spec) as response:
+                    page = json.load(response)
+                self.assertTrue(page['page']['next_cursor'])
+                paged_spec['pagination']['cursor'] = page['page']['next_cursor']
+                paged_spec['lens_id'] = 'different-query'
+                with self.assertRaises(urllib.error.HTTPError) as conflict:
+                    compile_page(paged_spec)
+                self.assertEqual(conflict.exception.code, 409)
+                conflict.exception.close()
+
+                health = json.load(urllib.request.urlopen(base + "/health"))
+                self.assertTrue(health["ok"])
+                self.assertEqual(health["knowledge_schema"], "tos_knowledge_graph_v1")
+                knowledge_counts = health["knowledge_counts"]
+                coverage = knowledge_counts["display_coverage"]
+                self.assertEqual(coverage["node_summaries"], knowledge_counts["nodes"])
+                self.assertEqual(coverage["relation_explanations"], knowledge_counts["relations"])
+
+                oversized = urllib.request.Request(
+                    base + "/api/knowledge/lenses/compile",
+                    data=b"x" * (64 * 1024 + 1),
+                    method="POST",
+                    headers={"Content-Type": "application/json"},
+                )
+                with self.assertRaises(urllib.error.HTTPError) as caught:
+                    urllib.request.urlopen(oversized)
+                self.assertEqual(caught.exception.code, 413)
+                caught.exception.close()
+
+                forbidden = urllib.request.Request(
+                    f"http://127.0.0.1:{server.server_port}/api/corpus/status",
+                    data=b"{}",
+                    method="POST",
+                    headers={"Content-Type": "application/json"},
+                )
+                with self.assertRaises(urllib.error.HTTPError) as caught:
+                    urllib.request.urlopen(forbidden)
+                self.assertEqual(caught.exception.code, 405)
+                caught.exception.close()
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
     def test_source_navigation_and_dossiers_keep_access_separate_from_rights(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -278,13 +535,13 @@ class CoreContractTests(unittest.TestCase):
                     },
                 ]
             )
-            navigation["counts"] = {"nodes": 7, "edges": 6, "rights": 1}
+            navigation["counts"] = {"nodes": 9, "edges": 8, "rights": 1}
             index_path.write_text(json.dumps(index), encoding="utf-8")
             core = ToSAccessCore.discover(tos_root=root)
 
             descent = core.source_descend("philosophy.eras.fixture")
-            self.assertEqual(descent["counts"], {"nodes": 7, "edges": 6})
-            self.assertEqual(descent["nodes"][-1]["depth"], 3)
+            self.assertEqual(descent["counts"], {"nodes": 9, "edges": 8})
+            self.assertEqual(descent["nodes"][-1]["depth"], 5)
             dossier = core.source_dossier("tos.link.fixture.download")
             self.assertEqual(dossier["agent_summary"]["technical_access"], "downloadable")
             self.assertEqual(dossier["agent_summary"]["rights_posture"], "candidate_requires_human_review")
@@ -394,7 +651,13 @@ class CoreContractTests(unittest.TestCase):
                 thread.join(timeout=5)
 
     def test_standalone_validator_accepts_split_web_contracts(self) -> None:
-        validate_standalone._validate_contracts(REPO_ROOT)
+        # The repository's partitioned source path has a multi-gigabyte
+        # compiled snapshot.  Validation must stream its row schemas and must
+        # never fall back to the explicit full graph/export routes.
+        with patch.object(ToSAccessCore, "knowledge_graph", side_effect=AssertionError("validator exported full graph")), \
+                patch("tos_access.projection_store.ProjectionReader.materialize", side_effect=AssertionError("validator materialized projection")), \
+                patch.object(validate_standalone._QueryStoreRows, "__getitem__", side_effect=AssertionError("validator used random row access")):
+            validate_standalone._validate_contracts(REPO_ROOT)
 
     def test_projection_v2_materializes_global_membership(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -1173,6 +1436,364 @@ class CoreContractTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "archive digest"):
                 validate_standalone.validate_bundle(bundle)
 
+    def test_standalone_zip_streams_payloads_and_preserves_determinism(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            stage = root / "stage"
+            stage.mkdir()
+            payload = b"query-store-bytes\0" * 100000
+            (stage / "knowledge.sqlite3").write_bytes(payload)
+            (stage / "run.py").write_text("pass\n")
+            first, second = root / "first.zip", root / "second.zip"
+            with patch.object(Path, "read_bytes", side_effect=AssertionError("whole-file read")):
+                build_standalone._write_deterministic_zip(stage, first)
+                build_standalone._write_deterministic_zip(stage, second)
+            self.assertEqual(first.read_bytes(), second.read_bytes())
+            with zipfile.ZipFile(first) as archive:
+                self.assertEqual(archive.read("knowledge.sqlite3"), payload)
+                self.assertEqual(archive.getinfo("run.py").external_attr >> 16, 0o755)
+                self.assertEqual(archive.getinfo("knowledge.sqlite3").date_time, build_standalone.FIXED_ZIP_TIME)
+
+    def test_standalone_builder_compiles_a_partitioned_query_store_fixture(self) -> None:
+        from scripts.partitioned_projection_common import write_partitioned_payload
+        from tos_access.query_store import QueryStore
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+
+            # Keep the fixture's source shape realistic: corpus and
+            # bibliography are manifest roots with content-addressed parts,
+            # while the philosophy projection remains a bounded legacy input.
+            for relative in (
+                "ToS/derived-exports/tos_corpus_index.min.json",
+                "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+            ):
+                path = root / relative
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                if payload.get("schema_version") == "tos_source_witness_bibliographic_graph_v1":
+                    payload["input_digests"] = {}
+                write_partitioned_payload(path, payload)
+
+            # The package builder fingerprints and ships the access source.
+            # Copy only the owner package and its delivery inputs so this
+            # remains a small bounded fixture instead of a repository copy.
+            fixture_access = root / "access"
+            shutil.copytree(ACCESS_ROOT / "src", fixture_access / "src", dirs_exist_ok=True)
+            shutil.copytree(ACCESS_ROOT / "contracts", fixture_access / "contracts", dirs_exist_ok=True)
+            shutil.copytree(ACCESS_ROOT / "profiles", fixture_access / "profiles", dirs_exist_ok=True)
+            shutil.copytree(ACCESS_ROOT / "web/dist", fixture_access / "web/dist", dirs_exist_ok=True)
+            for name in ("pyproject.toml", "README.md"):
+                shutil.copy2(ACCESS_ROOT / name, fixture_access / name)
+
+            allowlist = {
+                "schema_version": "tos_access_runtime_data_allowlist_v1",
+                "owner_repo": "Tree-of-Sophia",
+                "publication_posture": "fixture-only",
+                "partitioned_subject_policy": {
+                    "format": "tos_partitioned_projection_v1",
+                    "inclusion": "exact-verified-manifest-closure",
+                    "discovery_glob_allowed": False,
+                    "source_authority": "fixture-only",
+                },
+                "subjects": [
+                    {
+                        "subject_id": "fixture-corpus-index",
+                        "source_path": "ToS/derived-exports/tos_corpus_index.min.json",
+                        "required": True,
+                    },
+                    {
+                        "subject_id": "fixture-philosophy-graph",
+                        "source_path": "ToS/derived-exports/philosophy_graph_projection.min.json",
+                        "required": True,
+                    },
+                    {
+                        "subject_id": "fixture-bibliographic-graph",
+                        "source_path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+                        "required": True,
+                    },
+                    {
+                        "subject_id": "fixture-entity-types",
+                        "source_path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+                        "required": True,
+                    },
+                    {
+                        "subject_id": "fixture-relation-types",
+                        "source_path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+                        "required": True,
+                    },
+                ],
+                "compiled_subjects": [
+                    {
+                        "subject_id": "tos-compiled-query-store",
+                        "output_path": "ToS/derived-exports/runtime/knowledge.sqlite3",
+                        "builder_module": "tos_access.knowledge_compile",
+                        "required_when": "partitioned_projection_inputs",
+                        "input_subject_ids": [
+                            "fixture-corpus-index",
+                            "fixture-philosophy-graph",
+                            "fixture-bibliographic-graph",
+                            "fixture-entity-types",
+                            "fixture-relation-types",
+                        ],
+                        "consumer_roles": ["query-core", "http-reader", "native-mcp"],
+                        "identity_rule": "exact input manifest digests and packaged compiler identity; output digest recorded separately",
+                        "authority": "disposable read model, no source or semantic admission",
+                    }
+                ],
+            }
+            (fixture_access / "contracts/runtime-data.v1.json").write_text(
+                json.dumps(allowlist, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            for generated in ("build/lib/stale.bin", "deploy/cloudflare-worker/runtime/stale.sqlite3", ".wrangler/state/stale.sqlite3"):
+                path = fixture_access / generated
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"must not enter package")
+            bundle = root / "fixture-standalone.zip"
+            compile_original = build_standalone._compile_query_store
+
+            def compile_with_changed_binding(*args):
+                path, metadata = compile_original(*args)
+                metadata["input_bindings"] = {**metadata["input_bindings"], "changed": "digest"}
+                return path, metadata
+
+            with patch.object(build_standalone, "_compile_query_store", side_effect=compile_with_changed_binding):
+                with self.assertRaisesRegex(RuntimeError, "inputs differ from staged"):
+                    build_standalone.build_bundle(root, bundle, "partitioned-fixture-ref")
+            self.assertFalse(bundle.exists())
+            with patch("tos_access.knowledge_compile.compile_knowledge_store", side_effect=AssertionError("preloaded compiler used")):
+                manifest = build_standalone.build_bundle(root, bundle, "partitioned-fixture-ref")
+            self.assertTrue(bundle.is_file())
+            self.assertEqual(manifest["source_ref"], "partitioned-fixture-ref")
+            self.assertIn("query-compiler-v4", manifest["source_fingerprint_scope"])
+
+            query_subject = next(
+                item for item in manifest["subjects"]
+                if item.get("subject_id") == "tos-compiled-query-store"
+            )
+            self.assertTrue(query_subject["generated"])
+            self.assertEqual(
+                query_subject["source_path"],
+                "ToS/derived-exports/runtime/knowledge.sqlite3",
+            )
+            self.assertEqual(
+                query_subject["compiler"]["compiler_paths"],
+                list(build_standalone.QUERY_STORE_COMPILER_PATHS),
+            )
+
+            # A Product Shell producer can hand off the exact compiled bytes
+            # to the standalone job. Reuse must preserve the cold bundle's
+            # subject identity and must never invoke the compiler again.
+            from tos_access import knowledge_compile
+
+            producer_store = root / "ToS/derived-exports/runtime/knowledge.sqlite3"
+            producer_store.parent.mkdir(parents=True, exist_ok=True)
+            knowledge_compile.compile_knowledge_store(root, producer_store, allow_legacy=True)
+            producer_manifest = root / "query-store.ci-manifest.json"
+            build_standalone.write_query_store_artifact_manifest(
+                root,
+                producer_store,
+                producer_manifest,
+                "partitioned-fixture-ref",
+                "fixture-query-store",
+            )
+
+            # The capacity-saving hard-link is an owned staging optimization,
+            # not a writable SQLite workspace. A mutation through the source
+            # inode during byte validation must fail closed, and every reuse
+            # SQLite open must be immutable/read-only.
+            hazard_source = root / "hazard-source.sqlite3"
+            hazard_source.write_bytes(producer_store.read_bytes())
+            hazard_stage = root / "hazard-stage/knowledge.sqlite3"
+            expected_hazard_sha256 = hashlib.sha256(hazard_source.read_bytes()).hexdigest()
+            expected_hazard_size = hazard_source.stat().st_size
+            hash_original = build_standalone.sha256_file
+            mutation_seen = False
+
+            def mutate_shared_inode(path: Path) -> str:
+                nonlocal mutation_seen
+                if path == hazard_stage and not mutation_seen:
+                    mutation_seen = True
+                    self.assertEqual(hazard_source.stat().st_ino, path.stat().st_ino)
+                    with hazard_source.open("r+b") as stream:
+                        original_byte = stream.read(1)
+                        stream.seek(0)
+                        stream.write(bytes([original_byte[0] ^ 0x01]))
+                        stream.flush()
+                        os.fsync(stream.fileno())
+                return hash_original(path)
+
+            with patch.object(build_standalone, "sha256_file", side_effect=mutate_shared_inode):
+                with self.assertRaisesRegex(RuntimeError, "changed during staged byte validation"):
+                    build_standalone._materialize_prebuilt_query_store(
+                        hazard_source,
+                        hazard_stage,
+                        expected_sha256=expected_hazard_sha256,
+                        expected_size=expected_hazard_size,
+                        require_hardlink=True,
+                    )
+
+            reused_bundle = root / "fixture-standalone-reused.zip"
+            sqlite_connect = build_standalone.sqlite3.connect
+
+            def immutable_connect(database: object, *args: object, **kwargs: object):
+                self.assertIn("?mode=ro&immutable=1", str(database))
+                return sqlite_connect(database, *args, **kwargs)
+
+            with patch.object(
+                build_standalone,
+                "_compile_query_store",
+                side_effect=AssertionError("reuse invoked cold compiler"),
+            ), patch.object(build_standalone.sqlite3, "connect", side_effect=immutable_connect):
+                reused_manifest = build_standalone.build_bundle(
+                    root,
+                    reused_bundle,
+                    "partitioned-fixture-ref",
+                    prebuilt_query_store=producer_store,
+                    prebuilt_query_store_manifest=producer_manifest,
+                    prebuilt_query_store_artifact_name="fixture-query-store",
+                    require_prebuilt_query_store_hardlink=True,
+                )
+            reused_subject = next(
+                item for item in reused_manifest["subjects"]
+                if item.get("subject_id") == "tos-compiled-query-store"
+            )
+            self.assertEqual(reused_subject["sha256"], query_subject["sha256"])
+            self.assertEqual(reused_subject["size_bytes"], query_subject["size_bytes"])
+            self.assertTrue(producer_store.is_file())
+
+            # Handoff admission is fail-closed for the exact source ref,
+            # compiler bytes, source bindings, mutable SQLite sidecars, and
+            # corrupt payloads. Restore every fixture mutation immediately.
+            active_subject, _ = build_standalone._active_compiled_subject(
+                root,
+                allowlist,
+            )
+            self.assertIsNotNone(active_subject)
+            handoff = json.loads(producer_manifest.read_text(encoding="utf-8"))
+
+            def write_handoff(payload: dict[str, object]) -> None:
+                producer_manifest.write_text(
+                    json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+
+            wrong_ref = dict(handoff)
+            wrong_ref["source_ref"] = "wrong-ref"
+            write_handoff(wrong_ref)
+            with self.assertRaisesRegex(RuntimeError, "source ref"):
+                build_standalone._validate_prebuilt_query_store(
+                    root,
+                    producer_store,
+                    producer_manifest,
+                    "fixture-query-store",
+                    "partitioned-fixture-ref",
+                    allowlist,
+                    active_subject,
+                )
+            write_handoff(handoff)
+
+            wrong_compiler = dict(handoff)
+            wrong_compiler["compiler_sha256"] = "0" * 64
+            write_handoff(wrong_compiler)
+            with self.assertRaisesRegex(RuntimeError, "compiler bytes are stale"):
+                build_standalone._validate_prebuilt_query_store(
+                    root,
+                    producer_store,
+                    producer_manifest,
+                    "fixture-query-store",
+                    "partitioned-fixture-ref",
+                    allowlist,
+                    active_subject,
+                )
+            write_handoff(handoff)
+
+            input_path = root / "ToS/derived-exports/tos_corpus_index.min.json"
+            original_input = input_path.read_bytes()
+            try:
+                input_path.write_bytes(original_input + b"\n")
+                with self.assertRaisesRegex(RuntimeError, "source inputs are stale"):
+                    build_standalone._validate_prebuilt_query_store(
+                        root,
+                        producer_store,
+                        producer_manifest,
+                        "fixture-query-store",
+                        "partitioned-fixture-ref",
+                        allowlist,
+                        active_subject,
+                    )
+            finally:
+                input_path.write_bytes(original_input)
+
+            journal = Path(str(producer_store) + "-journal")
+            journal.write_bytes(b"mutable journal")
+            try:
+                with self.assertRaisesRegex(RuntimeError, "journal"):
+                    build_standalone._validate_prebuilt_query_store(
+                        root,
+                        producer_store,
+                        producer_manifest,
+                        "fixture-query-store",
+                        "partitioned-fixture-ref",
+                        allowlist,
+                        active_subject,
+                    )
+            finally:
+                journal.unlink()
+
+            corrupt_dir = root / "corrupt-handoff"
+            corrupt_dir.mkdir()
+            corrupt_store = corrupt_dir / producer_store.name
+            corrupt_bytes = bytearray(producer_store.read_bytes())
+            corrupt_bytes[0] ^= 0x01
+            corrupt_store.write_bytes(corrupt_bytes)
+            with self.assertRaisesRegex(RuntimeError, "SQLite snapshot|readable SQLite"):
+                build_standalone._validate_prebuilt_query_store(
+                    root,
+                    corrupt_store,
+                    producer_manifest,
+                    "fixture-query-store",
+                    "partitioned-fixture-ref",
+                    allowlist,
+                    active_subject,
+                )
+
+            linked_store = root / "linked-query-store.sqlite3"
+            linked_store.symlink_to(producer_store)
+            try:
+                with self.assertRaisesRegex(RuntimeError, "symlink"):
+                    build_standalone._validate_prebuilt_query_store(
+                        root,
+                        linked_store,
+                        producer_manifest,
+                        "fixture-query-store",
+                        "partitioned-fixture-ref",
+                        allowlist,
+                        active_subject,
+                    )
+            finally:
+                linked_store.unlink()
+
+            with tempfile.TemporaryDirectory() as extracted_raw:
+                extracted = Path(extracted_raw)
+                with zipfile.ZipFile(bundle) as archive:
+                    self.assertFalse(any("stale." in name for name in archive.namelist()))
+                    archive.extractall(extracted)
+                subjects = json.loads(
+                    (extracted / "bundle.manifest.json").read_text(encoding="utf-8")
+                )["subjects"]
+                partitioned = [item for item in subjects if item.get("closure")]
+                self.assertTrue(partitioned)
+                self.assertTrue(any(len(item["closure"]) > 1 for item in partitioned))
+
+                validate_standalone._validate_query_store_artifact(extracted, subjects)
+                query_path = extracted / query_subject["bundle_path"]
+                store = QueryStore(query_path)
+                self.assertEqual(store.metadata["schema"], "tos_query_store_v1")
+                self.assertTrue(store.search("Alpha")["nodes"])
+
     @unittest.skipUnless(importlib.util.find_spec("mcp"), "mcp dependency is not installed")
     def test_native_mcp_builds_over_portable_root(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -1182,15 +1803,25 @@ class CoreContractTests(unittest.TestCase):
 
 
 class AuthoredContractTests(unittest.TestCase):
-    def test_repo_validation_publishes_a_validated_standalone_candidate(self) -> None:
-        workflow = (REPO_ROOT / ".github/workflows/repo-validation.yml").read_text(encoding="utf-8")
-        self.assertIn("playwright install --with-deps chromium", workflow)
-        self.assertIn("access/e2e/test_webmcp.py", workflow)
-        self.assertIn("build_standalone_bundle.py", workflow)
-        self.assertIn("validate_standalone.py --bundle", workflow)
-        self.assertIn("actions/upload-artifact@", workflow)
-        self.assertIn("tree-of-sophia-standalone.zip.manifest.json", workflow)
-        self.assertIn("if-no-files-found: error", workflow)
+    def test_required_software_gate_rejects_failed_or_skipped_work(self) -> None:
+        import subprocess
+        import yaml
+        workflow = yaml.safe_load((REPO_ROOT / ".github/workflows/repo-validation.yml").read_text())
+        gate = workflow["jobs"]["required_gate"]
+        required = gate["needs"]
+        self.assertTrue(required)
+        self.assertEqual(gate["if"], "${{ always() }}")
+        command = gate["steps"][0]["run"]
+        for failed_job in [None, *required]:
+            for state in ("failure", "cancelled", "skipped"):
+                with self.subTest(job=failed_job, state=state):
+                    script = command
+                    for job in required:
+                        expression = "${{ needs." + job + ".result }}"
+                        self.assertIn(expression, command)
+                        script = script.replace(expression, state if job == failed_job else "success")
+                    result = subprocess.run(["bash", "-e", "-c", script], capture_output=True)
+                    self.assertEqual(result.returncode == 0, failed_job is None)
 
     def test_release_workflow_installs_standalone_mcp_extra(self) -> None:
         workflow = (REPO_ROOT / ".github/workflows/repo-validation.yml").read_text(encoding="utf-8")

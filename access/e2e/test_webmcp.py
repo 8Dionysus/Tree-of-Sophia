@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
+import hashlib
 import json
 import os
 import shutil
+import tempfile
 import threading
 from pathlib import Path
 
@@ -12,12 +15,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 import sys
 
 sys.path.insert(0, str(REPO_ROOT / "access/src"))
+sys.path.insert(0, str(REPO_ROOT / "access/tests"))
 
 playwright = pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright  # noqa: E402
 
 from tos_access.core import ToSAccessCore  # noqa: E402
 from tos_access.http_server import make_server  # noqa: E402
+from fixture_support import write_fixture  # noqa: E402
 
 CHROMIUM = os.environ.get("TOS_E2E_CHROMIUM") or shutil.which("chromium-browser") or shutil.which("chromium")
 
@@ -71,8 +76,123 @@ MODEL_CONTEXT_INIT = r"""
 
 
 @pytest.fixture(scope="session")
-def access_base_url() -> str:
-    server = make_server(ToSAccessCore.discover(tos_root=REPO_ROOT), port=0)
+def access_base_url(tmp_path_factory: pytest.TempPathFactory) -> str:
+    root = tmp_path_factory.mktemp("access-e2e")
+    write_fixture(root)
+    projection_path = root / "ToS/derived-exports/philosophy_graph_projection.min.json"
+    projection_bytes = projection_path.read_bytes()
+    projection = json.loads(projection_bytes)
+    projection_digest = hashlib.sha256(projection_bytes).hexdigest()
+    count_digest = hashlib.sha256(
+        json.dumps(projection.get("counts", {}), sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    view_fingerprints = []
+    for view in projection.get("views", []):
+        view_id = str(view.get("view_id") or "synthetic")
+        view_fingerprints.append(
+            {
+                "view_id": view_id,
+                "fingerprint": hashlib.sha256(
+                    json.dumps(view, sort_keys=True, separators=(",", ":")).encode("utf-8")
+                ).hexdigest(),
+                "node_count": len(view.get("node_ids", [])),
+                "edge_count": len(view.get("edge_ids", [])),
+                "cluster_count": sum(view_id in cluster.get("view_ids", []) for cluster in projection.get("clusters", [])),
+                "source_ref_count": len(view.get("source_refs", [])),
+            }
+        )
+    projection["snapshot_review"] = {
+        "snapshot_schema_version": "tos_philosophy_graph_projection_snapshot_v1",
+        "current_snapshot": {
+            # Synthetic pre-review fixture identity only; this is not a production fingerprint.
+            "projection_fingerprint": projection_digest,
+            "count_fingerprint": count_digest,
+            "view_fingerprints": view_fingerprints,
+        },
+        "diff_route": {
+            "mode": "fingerprint-ready",
+            "changed_subgraph_available": False,
+            "previous_snapshot_ref": None,
+            "next_route": "synthetic browser fixture only",
+        },
+    }
+    projection_path.write_text(json.dumps(projection), encoding="utf-8")
+
+    ledger = root / "ToS/source-witnesses/access-requests/public-ledger"
+    ledger.mkdir(parents=True, exist_ok=True)
+    permission_states = {
+        "local_access": "unknown",
+        "ocr_or_transcription": "unknown",
+        "indexing": "unknown",
+        "embeddings": "unknown",
+        "quotation": "unknown",
+        "metadata_publication": "unknown",
+        "derivative_publication": "unknown",
+        "server_processing": "unknown",
+        "source_redistribution": "unknown",
+    }
+    for request_id, title in (
+        ("fixture.nietzsche.lexicon", "Nietzsche-Wörterbuch (synthetic test fixture)"),
+        ("fixture.nietzsche.edition", "Nietzsche edition (synthetic test fixture)"),
+    ):
+        record = {
+            "$schema": "https://tree-of-sophia.local/ToS/contracts/access-request.schema.json",
+            "schema_version": "tos_access_request_v1",
+            "request_id": request_id,
+            "material": {
+                "title": title,
+                "responsibility": "synthetic browser fixture",
+                "edition_or_resource": "synthetic browser fixture",
+                "requested_portion": "synthetic browser fixture",
+                "identifiers": [],
+                "tos_refs": ["a"],
+                "discovery_refs": ["ToS/canon/a.json"],
+            },
+            "rights_holder_or_institution": {
+                "name": "Synthetic fixture institution",
+                "role": "unknown",
+                "identification_evidence_urls": ["https://example.test/synthetic-fixture"],
+                "identity_status": "unknown",
+            },
+            "contact_route": {
+                "channel_type": "unknown",
+                "public_institutional_url": "https://example.test/synthetic-fixture",
+                "refreshed_at": "2026-09-14T00:00:00Z",
+                "personal_contact_committed": False,
+            },
+            "project_description_ref": "synthetic browser fixture",
+            "research_purpose": "synthetic browser fixture",
+            "requested_format": "synthetic browser fixture",
+            "requested_permissions": permission_states,
+            "local_storage_conditions": {
+                "access_controlled": True,
+                "source_payload_gitignored": True,
+                "location_class": "operator-controlled-local-ToS-storage",
+                "retention_posture": "synthetic browser fixture only",
+                "removal_supported": True,
+            },
+            "non_redistribution_without_permission": True,
+            "technical_access_bypass_used": False,
+            "access_status": "unknown",
+            "request_status": "draft",
+            "human_send_approval": False,
+            "sent_at": None,
+            "response": {
+                "state": "none",
+                "received_at": None,
+                "permission_expires_at": None,
+                "conditions": [],
+                "safe_evidence_refs": [],
+            },
+            "private_correspondence_ref": None,
+            "redacted_public_receipt_ref": None,
+            "personal_or_confidential_data_committed": False,
+            "rights_record_refs": [],
+            "provenance_event_refs": ["tos.event.fixture.synthetic"],
+            "record_version": 1,
+        }
+        (ledger / f"{request_id}.access-request.json").write_text(json.dumps(record), encoding="utf-8")
+    server = make_server(ToSAccessCore.discover(tos_root=root), port=0)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -83,22 +203,40 @@ def access_base_url() -> str:
         thread.join(timeout=5)
 
 
+@contextmanager
+def short_chromium_tmp():
+    with tempfile.TemporaryDirectory(prefix="tos-e2e-", dir="/tmp") as browser_tmp:
+        previous_tmpdir = os.environ.get("TMPDIR")
+        previous_tempdir = tempfile.tempdir
+        os.environ["TMPDIR"] = browser_tmp
+        tempfile.tempdir = browser_tmp
+        try:
+            yield
+        finally:
+            tempfile.tempdir = previous_tempdir
+            if previous_tmpdir is None:
+                os.environ.pop("TMPDIR", None)
+            else:
+                os.environ["TMPDIR"] = previous_tmpdir
+
+
 @pytest.fixture()
 def webmcp_page(access_base_url: str):
-    with sync_playwright() as p:
-        launch_options = {"headless": True, "args": ["--no-sandbox"]}
-        if CHROMIUM:
-            launch_options["executable_path"] = CHROMIUM
-        browser: Browser = p.chromium.launch(**launch_options)
-        context: BrowserContext = browser.new_context()
-        context.add_init_script(MODEL_CONTEXT_INIT)
-        page = context.new_page()
-        page.goto(f"{access_base_url}/?mode=philosophy&view=chronology&graph=nodes", wait_until="domcontentloaded", timeout=30_000)
-        wait_for(page, "window.__TOS_E2E.names().includes('tos.page.context')")
-        wait_for(page, "Boolean(document.getElementById('current-view-title')?.textContent)")
-        yield page
-        context.close()
-        browser.close()
+    with short_chromium_tmp():
+        with sync_playwright() as p:
+            launch_options = {"headless": True, "args": ["--no-sandbox"]}
+            if CHROMIUM:
+                launch_options["executable_path"] = CHROMIUM
+            browser: Browser = p.chromium.launch(**launch_options)
+            context: BrowserContext = browser.new_context(locale="en-US")
+            context.add_init_script(MODEL_CONTEXT_INIT)
+            page = context.new_page()
+            page.goto(f"{access_base_url}/?mode=philosophy&view=chronology&graph=nodes&ui=en", wait_until="domcontentloaded", timeout=30_000)
+            wait_for(page, "window.__TOS_E2E.names().includes('tos.page.context')")
+            wait_for(page, "Boolean(document.getElementById('current-view-title')?.textContent)")
+            yield page
+            context.close()
+            browser.close()
 
 
 def invoke(page: Page, name: str, input: dict | None = None) -> dict:
@@ -262,23 +400,24 @@ def test_real_browser_cancellation_reload_and_deep_link(webmcp_page: Page) -> No
 
 
 def test_real_browser_graceful_without_webmcp(access_base_url: str) -> None:
-    with sync_playwright() as p:
-        launch_options = {"headless": True, "args": ["--no-sandbox"]}
-        if CHROMIUM:
-            launch_options["executable_path"] = CHROMIUM
-        browser = p.chromium.launch(**launch_options)
-        context = browser.new_context()
-        page = context.new_page()
-        page.goto(f"{access_base_url}/?mode=philosophy&view=chronology", wait_until="domcontentloaded", timeout=30_000)
-        wait_for(page, "Boolean(document.getElementById('current-view-title')?.textContent)")
-        page.wait_for_timeout(500)
-        assert page.evaluate("document.modelContext === undefined")
-        assert page.locator("#app").count() == 1
-        assert page.locator("#agent-surface").get_attribute("data-webmcp-state") == "unavailable"
-        fallback = page.locator("#agent-surface").inner_text()
-        assert "Codex WebMCP unavailable" in fallback
-        assert "no API key or model API is required" in fallback
-        assert "Optional off-page access" in fallback
-        assert "Tree of Sophia" in page.locator("body").inner_text()
-        context.close()
-        browser.close()
+    with short_chromium_tmp():
+        with sync_playwright() as p:
+            launch_options = {"headless": True, "args": ["--no-sandbox"]}
+            if CHROMIUM:
+                launch_options["executable_path"] = CHROMIUM
+            browser = p.chromium.launch(**launch_options)
+            context = browser.new_context(locale="en-US")
+            page = context.new_page()
+            page.goto(f"{access_base_url}/?mode=philosophy&view=chronology&ui=en", wait_until="domcontentloaded", timeout=30_000)
+            wait_for(page, "Boolean(document.getElementById('current-view-title')?.textContent)")
+            page.wait_for_timeout(500)
+            assert page.evaluate("document.modelContext === undefined")
+            assert page.locator("#app").count() == 1
+            assert page.locator("#agent-surface").get_attribute("data-webmcp-state") == "unavailable"
+            fallback = page.locator("#agent-surface").inner_text()
+            assert "Codex WebMCP unavailable" in fallback
+            assert "no API key or model API is required" in fallback
+            assert "Optional off-page access" in fallback
+            assert "Tree of Sophia" in page.locator("body").inner_text()
+            context.close()
+            browser.close()

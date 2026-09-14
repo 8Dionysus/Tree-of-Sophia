@@ -1,0 +1,311 @@
+{
+  "node_id": "identity:tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+  "node_kind": "identity",
+  "properties": {
+    "chronology_claim_refs": [
+      "tos.claim.work.jenseits-von-gut-und-boese.first-publication-chronology"
+    ],
+    "expression_claim_refs": [
+      "tos.claim.topology.work-expression.friedrich-nietzsche.jenseits-von-gut-und-boese.has-expression.de-naumann-1886",
+      "tos.claim.topology.work-expression.friedrich-nietzsche.jenseits-von-gut-und-boese.has-expression.ru-polilov-mysl-1996"
+    ],
+    "external_identifiers": [
+      {
+        "scheme": "GND",
+        "source_ref": "https://d-nb.info/gnd/4211811-6",
+        "status": "verified",
+        "value": "4211811-6"
+      }
+    ],
+    "human_forms": [
+      {
+        "admission": null,
+        "context": [
+          {
+            "binding": {
+              "pointer": "/identity_status",
+              "record": {
+                "digest": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+                "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+                "version": 5
+              }
+            },
+            "slot": "identity_status",
+            "value": "verified"
+          },
+          {
+            "binding": {
+              "pointer": "/same_as_posture",
+              "record": {
+                "digest": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+                "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+                "version": 5
+              }
+            },
+            "slot": "same_as_posture",
+            "value": "no_equivalence_claim"
+          }
+        ],
+        "dependencies": [
+          {
+            "digest": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+            "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+            "version": 5
+          }
+        ],
+        "derivation": "source-copy",
+        "display_text": "Jenseits von Gut und Böse",
+        "form": {
+          "digest": "sha256:35289ee8d48afe94753bfacc70d33a69b07565a6c608655a7e2f7b8815dfeab5",
+          "id": "tos.form.jenseits-von-gut-und-boese.name-original",
+          "version": 1
+        },
+        "issues": [],
+        "language": null,
+        "performs_semantic_assessment": false,
+        "role": "name",
+        "schema_version": "tos_human_form_materialization_v1",
+        "script": null,
+        "standalone_reading": false,
+        "state": "ready",
+        "subject": {
+          "digest": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+          "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+          "version": 5
+        }
+      },
+      {
+        "admission": null,
+        "context": [
+          {
+            "binding": {
+              "pointer": "/identity_status",
+              "record": {
+                "digest": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+                "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+                "version": 5
+              }
+            },
+            "slot": "identity_status",
+            "value": "verified"
+          },
+          {
+            "binding": {
+              "pointer": "/same_as_posture",
+              "record": {
+                "digest": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+                "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+                "version": 5
+              }
+            },
+            "slot": "same_as_posture",
+            "value": "no_equivalence_claim"
+          },
+          {
+            "binding": {
+              "pointer": "/variant_labels/0/language",
+              "record": {
+                "digest": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+                "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+                "version": 5
+              }
+            },
+            "slot": "source_language",
+            "value": "ru"
+          },
+          {
+            "binding": {
+              "pointer": "/variant_labels/0/source_ref",
+              "record": {
+                "digest": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+                "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+                "version": 5
+              }
+            },
+            "slot": "source_return",
+            "value": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json"
+          },
+          {
+            "binding": {
+              "pointer": "/variant_labels/0/status",
+              "record": {
+                "digest": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+                "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+                "version": 5
+              }
+            },
+            "slot": "source_status",
+            "value": "verified"
+          }
+        ],
+        "dependencies": [
+          {
+            "digest": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+            "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+            "version": 5
+          }
+        ],
+        "derivation": "source-copy",
+        "display_text": "По ту сторону добра и зла",
+        "form": {
+          "digest": "sha256:b2781265136fc8654ecdcfd1a2b4b7ac026eb83bf82b074c74167199644e9aac",
+          "id": "tos.form.jenseits-von-gut-und-boese.name-ru",
+          "version": 1
+        },
+        "issues": [],
+        "language": "ru",
+        "performs_semantic_assessment": false,
+        "role": "name",
+        "schema_version": "tos_human_form_materialization_v1",
+        "script": null,
+        "standalone_reading": false,
+        "state": "ready",
+        "subject": {
+          "digest": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+          "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+          "version": 5
+        }
+      },
+      {
+        "admission": null,
+        "context": [
+          {
+            "binding": {
+              "pointer": "/identity_status",
+              "record": {
+                "digest": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+                "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+                "version": 5
+              }
+            },
+            "slot": "identity_status",
+            "value": "verified"
+          },
+          {
+            "binding": {
+              "pointer": "/same_as_posture",
+              "record": {
+                "digest": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+                "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+                "version": 5
+              }
+            },
+            "slot": "same_as_posture",
+            "value": "no_equivalence_claim"
+          }
+        ],
+        "dependencies": [
+          {
+            "digest": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+            "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+            "version": 5
+          }
+        ],
+        "derivation": "source-copy",
+        "display_text": "Work identity follows the current GND work authority. Its 1886 German first-print item and Russian Polilov/Mysl expression are represented separately. The metadata-only authorial route now distinguishes region-specific W I 3-W I 8 and loose-leaf material, the reassembled D 18 print manuscript, HAAB C 4615 and C 4619 correction witnesses, the historical first print, and stable eKGWB critical addresses. It creates no remote Item, whole-notebook work-membership claim, accepted German, author-final synthesis, semantic authority, or publication permission.",
+        "form": {
+          "digest": "sha256:b07d8d3a6d99a002efd33dbaa58d3afc991d901c72b38b4d69b56b5156686818",
+          "id": "tos.form.jenseits-von-gut-und-boese.hover-source-note",
+          "version": 1
+        },
+        "issues": [],
+        "language": null,
+        "performs_semantic_assessment": false,
+        "role": "hover",
+        "schema_version": "tos_human_form_materialization_v1",
+        "script": null,
+        "standalone_reading": false,
+        "state": "ready",
+        "subject": {
+          "digest": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+          "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+          "version": 5
+        }
+      }
+    ],
+    "human_forms_source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.human-forms.json",
+    "identity_kind": "work",
+    "identity_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+    "identity_status": "verified",
+    "notes": "Work identity follows the current GND work authority. Its 1886 German first-print item and Russian Polilov/Mysl expression are represented separately. The metadata-only authorial route now distinguishes region-specific W I 3-W I 8 and loose-leaf material, the reassembled D 18 print manuscript, HAAB C 4615 and C 4619 correction witnesses, the historical first print, and stable eKGWB critical addresses. It creates no remote Item, whole-notebook work-membership claim, accepted German, author-final synthesis, semantic authority, or publication permission.",
+    "preferred_label": "Jenseits von Gut und Böse",
+    "record_id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+    "record_type": "work",
+    "record_version": 5,
+    "responsibility_claim_refs": [
+      "tos.claim.work.jenseits-von-gut-und-boese.authored-by-friedrich-nietzsche"
+    ],
+    "same_as_posture": "no_equivalence_claim",
+    "schema_version": "tos_corpus_record_v1",
+    "source_record": {
+      "chronology_claim_refs": [
+        "tos.claim.work.jenseits-von-gut-und-boese.first-publication-chronology"
+      ],
+      "expression_claim_refs": [
+        "tos.claim.topology.work-expression.friedrich-nietzsche.jenseits-von-gut-und-boese.has-expression.de-naumann-1886",
+        "tos.claim.topology.work-expression.friedrich-nietzsche.jenseits-von-gut-und-boese.has-expression.ru-polilov-mysl-1996"
+      ],
+      "external_identifiers": [
+        {
+          "scheme": "GND",
+          "source_ref": "https://d-nb.info/gnd/4211811-6",
+          "status": "verified",
+          "value": "4211811-6"
+        }
+      ],
+      "identity_status": "verified",
+      "notes": "Work identity follows the current GND work authority. Its 1886 German first-print item and Russian Polilov/Mysl expression are represented separately. The metadata-only authorial route now distinguishes region-specific W I 3-W I 8 and loose-leaf material, the reassembled D 18 print manuscript, HAAB C 4615 and C 4619 correction witnesses, the historical first print, and stable eKGWB critical addresses. It creates no remote Item, whole-notebook work-membership claim, accepted German, author-final synthesis, semantic authority, or publication permission.",
+      "preferred_label": "Jenseits von Gut und Böse",
+      "record_id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "record_type": "work",
+      "record_version": 5,
+      "responsibility_claim_refs": [
+        "tos.claim.work.jenseits-von-gut-und-boese.authored-by-friedrich-nietzsche"
+      ],
+      "same_as_posture": "no_equivalence_claim",
+      "schema_version": "tos_corpus_record_v1",
+      "source_refs": [
+        "ToS/source-witnesses/discovery/runs/nietzsche-mysl-volume-2-member-works.2026-07-28.v1.json",
+        "ToS/source-witnesses/discovery/runs/jenseits-authorial-witness-route.2026-07-30.v1.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_AUTHORIAL_WITNESS_ROUTE.md",
+        "https://d-nb.info/gnd/4211811-6",
+        "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75093",
+        "https://opac.lbs-weimar.gbv.de/DB=2/XMLPRS=N/PPN?PPN=30939905X",
+        "http://www.nietzschesource.org/DFGA/D-18",
+        "http://www.nietzschesource.org/eKGWB/JGB",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json"
+      ],
+      "supersedes_ref": null,
+      "variant_labels": [
+        {
+          "language": "ru",
+          "source_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+          "status": "verified",
+          "value": "По ту сторону добра и зла"
+        }
+      ]
+    },
+    "source_refs": [
+      "ToS/source-witnesses/discovery/runs/nietzsche-mysl-volume-2-member-works.2026-07-28.v1.json",
+      "ToS/source-witnesses/discovery/runs/jenseits-authorial-witness-route.2026-07-30.v1.json",
+      "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_AUTHORIAL_WITNESS_ROUTE.md",
+      "https://d-nb.info/gnd/4211811-6",
+      "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75093",
+      "https://opac.lbs-weimar.gbv.de/DB=2/XMLPRS=N/PPN?PPN=30939905X",
+      "http://www.nietzschesource.org/DFGA/D-18",
+      "http://www.nietzschesource.org/eKGWB/JGB",
+      "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json"
+    ],
+    "supersedes_ref": null,
+    "variant_labels": [
+      {
+        "language": "ru",
+        "source_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+        "status": "verified",
+        "value": "По ту сторону добра и зла"
+      }
+    ]
+  },
+  "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json",
+  "source_sha256": "a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456"
+}

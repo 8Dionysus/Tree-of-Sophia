@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.com/contracts/lens-result.v1.schema.json",
+  "title": "Tree of Sophia declarative lens result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "source_revision", "lens", "fingerprint", "presentation", "focus", "nodes", "relations",
+    "groups", "facets", "counts", "source_refs", "warnings", "authority_boundary", "agent_summary"
+  ],
+  "properties": {
+    "schema": {"const": "tos_lens_result_v1"},
+    "source_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "lens": {"$ref": "lens-spec.v1.schema.json"},
+    "fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "presentation": {"type": "object"},
+    "scene": {"$ref": "knowledge-graph.v1.schema.json#/$defs/scene"},
+    "page": {
+      "type": "object", "additionalProperties": false,
+      "required": ["next_cursor", "has_more", "primary_node_ids", "context_node_ids", "returned_nodes", "returned_relations", "scope", "counts_scope"],
+      "properties": {
+        "next_cursor": {"type": ["string", "null"]}, "has_more": {"type": "boolean"},
+        "primary_node_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "context_node_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "returned_nodes": {"type": "integer", "minimum": 0}, "returned_relations": {"type": "integer", "minimum": 0},
+        "scope": {"const": "bounded-lens-result"}, "counts_scope": {"const": "complete-bounded-result"}
+      }
+    },
+    "inclusion": {
+      "type": "object", "additionalProperties": false, "required": ["nodes", "relations", "authority"],
+      "properties": {
+        "nodes": {"type": "object", "additionalProperties": {"type": "object"}},
+        "relations": {"type": "object", "additionalProperties": {"type": "object"}},
+        "authority": {"const": "query-execution-not-semantic-proof"}
+      }
+    },
+    "focus": {
+      "anyOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["requested_id", "resolved_by", "node_id", "entity_id", "native_id", "source_graph", "kind_id", "type_id", "display"],
+          "properties": {
+            "requested_id": {"type": "string", "minLength": 1},
+            "resolved_by": {"enum": ["id", "entity_id", "native_id"]},
+            "node_id": {"type": "string", "minLength": 1},
+            "entity_id": {"type": "string", "minLength": 1},
+            "native_id": {"type": "string", "minLength": 1},
+            "source_graph": {"enum": ["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"]},
+            "kind_id": {"type": "string", "minLength": 1},
+            "type_id": {"type": "string", "minLength": 1},
+            "display": {"$ref": "knowledge-graph.v1.schema.json#/$defs/nodeDisplay"}
+          }
+        }
+      ]
+    },
+    "nodes": {"type": "array", "items": {"$ref": "knowledge-graph.v1.schema.json#/$defs/node"}},
+    "relations": {"type": "array", "items": {"$ref": "knowledge-graph.v1.schema.json#/$defs/relation"}},
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "value", "node_ids", "relation_ids", "node_count", "relation_count"],
+        "properties": {
+          "field": {"type": "string", "minLength": 1},
+          "value": {},
+          "node_ids": {"type": "array", "items": {"type": "string"}},
+          "relation_ids": {"type": "array", "items": {"type": "string"}},
+          "node_count": {"type": "integer", "minimum": 0},
+          "relation_count": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "facets": {"type": "object"},
+    "counts": {"type": "object"},
+    "source_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "authority_boundary": {"$ref": "knowledge-graph.v1.schema.json#/$defs/authorityBoundary"},
+    "agent_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lens_id", "focus_node_id", "node_count", "relation_count", "group_count", "source_ref_count", "is_source", "writes_to_tree"],
+      "properties": {
+        "lens_id": {"type": "string", "minLength": 1},
+        "focus_node_id": {"type": ["string", "null"]},
+        "node_count": {"type": "integer", "minimum": 0},
+        "relation_count": {"type": "integer", "minimum": 0},
+        "group_count": {"type": "integer", "minimum": 0},
+        "source_ref_count": {"type": "integer", "minimum": 0},
+        "is_source": {"const": false},
+        "writes_to_tree": {"const": false}
+      }
+    }
+  }
+}

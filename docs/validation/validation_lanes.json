@@ -6,7 +6,8 @@
   "notes": [
     "This manifest is the executable command-authority surface for ToS validation lanes.",
     "scripts/validation_lanes.py is a loader and checker only.",
-    "Inventories describe coverage and do not own command execution."
+    "Inventories describe coverage and do not own command execution.",
+    "TOS-D-0062: release_check is software-only; integration_snapshot_audit is an explicit historical snapshot audit, never a prerequisite of software merge or release. Blocking mode applies only inside the selected owner operation."
   ],
   "lanes": {
     "validation_authority": {
@@ -323,7 +324,7 @@
       "layer": "release",
       "mode": "blocking",
       "owner_surface": "docs/RELEASING.md",
-      "purpose": "Run the current bounded ToS release gate from explicit lane authority.",
+      "purpose": "Validate standalone software contracts and fixture-based program behavior. Full corpus and integration audits are separate explicit operations.",
       "command_sequence": "release_check",
       "entrypoint": "scripts/release_check.py",
       "covers_lanes": [
@@ -350,9 +351,11 @@
       ],
       "failure_route": "docs/RELEASING.md",
       "does_not_own": [
-        "GitHub publication",
-        "federation release audit",
-        "future graph runtime checks"
+        "corpus admission",
+        "data snapshot publication",
+        "KAG freshness",
+        "stats federation",
+        "public deployment"
       ]
     }
   },
@@ -360,513 +363,1030 @@
     "validation_authority": [
       {
         "label": "validate validation lane manifest",
-        "command": ["python", "scripts/validation_lanes.py", "--check"]
+        "command": [
+          "python",
+          "scripts/validation_lanes.py",
+          "--check"
+        ]
       }
     ],
     "source_home": [
       {
         "label": "validate ToS source home",
-        "command": ["python", "scripts/validate_tos_source_home.py"]
+        "command": [
+          "python",
+          "scripts/validate_tos_source_home.py"
+        ]
       },
       {
         "label": "validate lived-witness private route",
-        "command": ["python", "scripts/validate_lived_witness_route.py"]
+        "command": [
+          "python",
+          "scripts/validate_lived_witness_route.py"
+        ]
       }
     ],
     "source_witness_foundation": [
       {
+        "label": "validate complete research registry normalization",
+        "command": [
+          "python",
+          "scripts/validate_source_registry_normalization.py"
+        ]
+      },
+      {
         "label": "check reviewed open-work candidate queue parity",
-        "command": ["python", "scripts/build_open_work_candidate_queue.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_open_work_candidate_queue.py",
+          "--check"
+        ]
       },
       {
         "label": "validate reviewed open-work candidate queue",
-        "command": ["python", "scripts/validate_open_work_candidate_queue.py"]
+        "command": [
+          "python",
+          "scripts/validate_open_work_candidate_queue.py"
+        ]
       },
       {
         "label": "check source-witness catalog parity",
-        "command": ["python", "scripts/build_source_witness_catalog.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_source_witness_catalog.py",
+          "--check"
+        ]
       },
       {
         "label": "validate source-witness evidence spine",
-        "command": ["python", "scripts/validate_source_witness_foundation.py"]
+        "command": [
+          "python",
+          "scripts/validate_source_witness_foundation.py"
+        ]
       },
       {
         "label": "validate witness-structure correspondence",
-        "command": ["python", "scripts/validate_witness_structure_correspondence.py"]
+        "command": [
+          "python",
+          "scripts/validate_witness_structure_correspondence.py"
+        ]
       },
       {
         "label": "validate Nietzsche transfer source routes",
-        "command": ["python", "scripts/validate_nietzsche_transfer_source_routes.py"]
+        "command": [
+          "python",
+          "scripts/validate_nietzsche_transfer_source_routes.py"
+        ]
       },
       {
         "label": "validate golden-kernel transfer target passages",
-        "command": ["python", "scripts/validate_golden_kernel_transfer_target_passages.py"]
+        "command": [
+          "python",
+          "scripts/validate_golden_kernel_transfer_target_passages.py"
+        ]
       },
       {
         "label": "validate golden-kernel transfer source passages",
-        "command": ["python", "scripts/validate_golden_kernel_transfer_source_passages.py"]
+        "command": [
+          "python",
+          "scripts/validate_golden_kernel_transfer_source_passages.py"
+        ]
       },
       {
         "label": "check golden-kernel transfer route readiness",
-        "command": ["python", "scripts/build_golden_kernel_transfer_route_readiness.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_golden_kernel_transfer_route_readiness.py",
+          "--check"
+        ]
       },
       {
         "label": "validate golden-kernel transfer route readiness",
-        "command": ["python", "scripts/validate_golden_kernel_transfer_route_readiness.py"]
+        "command": [
+          "python",
+          "scripts/validate_golden_kernel_transfer_route_readiness.py"
+        ]
       },
       {
         "label": "validate Zarathustra lexical projection",
-        "command": ["python", "scripts/validate_zarathustra_lexical_index.py"]
+        "command": [
+          "python",
+          "scripts/validate_zarathustra_lexical_index.py"
+        ]
       },
       {
         "label": "check Zarathustra exact-form recurrence projection",
-        "command": ["python", "scripts/build_zarathustra_recurrence_projection.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_zarathustra_recurrence_projection.py",
+          "--check"
+        ]
       }
     ],
     "philosophy_topology": [
       {
         "label": "validate philosophy topology",
-        "command": ["python", "scripts/validate_philosophy_topology.py"]
+        "command": [
+          "python",
+          "scripts/validate_philosophy_topology.py"
+        ]
       }
     ],
     "mechanics_topology": [
       {
         "label": "validate mechanics topology",
-        "command": ["python", "scripts/validate_mechanics_topology.py"]
+        "command": [
+          "python",
+          "scripts/validate_mechanics_topology.py"
+        ]
       }
     ],
     "experience_contracts": [
       {
         "label": "validate Experience contracts",
-        "command": ["python", "-m", "unittest", "discover", "-s", "mechanics/experience/tests", "-p", "test*.py"]
+        "command": [
+          "python",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "mechanics/experience/tests",
+          "-p",
+          "test*.py"
+        ]
       }
     ],
     "active_naming": [
       {
         "label": "validate active naming",
-        "command": ["python", "scripts/validate_active_naming.py"]
+        "command": [
+          "python",
+          "scripts/validate_active_naming.py"
+        ]
       }
     ],
     "generated_parity": [
       {
         "label": "check root entry map",
-        "command": ["python", "scripts/build_root_entry_map.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_root_entry_map.py",
+          "--check"
+        ]
       },
       {
         "label": "validate root entry map",
-        "command": ["python", "scripts/validate_root_entry_map.py"]
+        "command": [
+          "python",
+          "scripts/validate_root_entry_map.py"
+        ]
       },
       {
         "label": "validate ToS corpus index",
-        "command": ["python", "scripts/validate_tos_corpus_index.py"]
+        "command": [
+          "python",
+          "scripts/validate_tos_corpus_index.py"
+        ]
       },
       {
         "label": "check source-witness bibliographic graph",
-        "command": ["python", "scripts/build_source_witness_bibliographic_graph.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_source_witness_bibliographic_graph.py",
+          "--check"
+        ]
       },
       {
         "label": "validate source-witness bibliographic graph",
-        "command": ["python", "scripts/validate_source_witness_bibliographic_graph.py"]
+        "command": [
+          "python",
+          "scripts/validate_source_witness_bibliographic_graph.py"
+        ]
       },
       {
         "label": "check philosophy atlas projection",
-        "command": ["python", "scripts/build_philosophy_atlas_projection.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_philosophy_atlas_projection.py",
+          "--check"
+        ]
       },
       {
         "label": "validate philosophy atlas projection",
-        "command": ["python", "scripts/validate_philosophy_atlas_projection.py"]
+        "command": [
+          "python",
+          "scripts/validate_philosophy_atlas_projection.py"
+        ]
       },
       {
         "label": "check philosophy graph views",
-        "command": ["python", "scripts/build_philosophy_graph_views.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_philosophy_graph_views.py",
+          "--check"
+        ]
       },
       {
         "label": "validate philosophy graph views",
-        "command": ["python", "scripts/validate_philosophy_graph_views.py"]
+        "command": [
+          "python",
+          "scripts/validate_philosophy_graph_views.py"
+        ]
       },
       {
         "label": "validate philosophy graph projection",
-        "command": ["python", "scripts/validate_philosophy_graph_projection.py"]
+        "command": [
+          "python",
+          "scripts/validate_philosophy_graph_projection.py"
+        ]
       },
       {
         "label": "check epistemic evidence projection",
-        "command": ["python", "scripts/build_epistemic_evidence_projection.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_epistemic_evidence_projection.py",
+          "--check"
+        ]
       },
       {
         "label": "validate epistemic evidence projection",
-        "command": ["python", "scripts/validate_epistemic_evidence_projection.py"]
+        "command": [
+          "python",
+          "scripts/validate_epistemic_evidence_projection.py"
+        ]
       },
       {
         "label": "check philosophy post-planting audit",
-        "command": ["python", "scripts/build_philosophy_post_planting_audit.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_philosophy_post_planting_audit.py",
+          "--check"
+        ]
       },
       {
         "label": "validate philosophy post-planting audit",
-        "command": ["python", "scripts/validate_philosophy_post_planting_audit.py"]
+        "command": [
+          "python",
+          "scripts/validate_philosophy_post_planting_audit.py"
+        ]
       },
       {
         "label": "check decision indexes",
-        "command": ["python", "scripts/generate_decision_indexes.py", "--check"]
+        "command": [
+          "python",
+          "scripts/generate_decision_indexes.py",
+          "--check"
+        ]
       },
       {
         "label": "validate decision records",
-        "command": ["python", "scripts/validate_decision_records.py"]
+        "command": [
+          "python",
+          "scripts/validate_decision_records.py"
+        ]
       }
     ],
     "canon_contracts": [
       {
         "label": "validate tree node contracts",
-        "command": ["python", "scripts/validate_tree_node_contracts.py"]
+        "command": [
+          "python",
+          "scripts/validate_tree_node_contracts.py"
+        ]
       },
       {
         "label": "validate tree relation packs",
-        "command": ["python", "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py"]
+        "command": [
+          "python",
+          "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py"
+        ]
       },
       {
         "label": "validate public example sync",
-        "command": ["python", "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py"]
+        "command": [
+          "python",
+          "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py"
+        ]
       }
     ],
     "intake_contracts": [
       {
         "label": "validate intake pack",
-        "command": ["python", "scripts/validate_intake_pack.py"]
+        "command": [
+          "python",
+          "scripts/validate_intake_pack.py"
+        ]
       }
     ],
     "route_docs": [
       {
         "label": "check AGENTS route-card currentness",
-        "command": ["python", "scripts/build_agents_route_currentness.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_agents_route_currentness.py",
+          "--check"
+        ]
       },
       {
         "label": "validate route-card structure",
-        "command": ["python", "scripts/validate_nested_agents.py"]
+        "command": [
+          "python",
+          "scripts/validate_nested_agents.py"
+        ]
       },
       {
         "label": "run deterministic AGENTS task route harness",
-        "command": ["python", "scripts/agents_route_harness.py", "--check"]
+        "command": [
+          "python",
+          "scripts/agents_route_harness.py",
+          "--check"
+        ]
       }
     ],
     "agent_surface": [
       {
         "label": "check agent-surface currentness",
-        "command": ["python", "scripts/build_agent_surface_currentness.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_agent_surface_currentness.py",
+          "--check"
+        ]
       },
       {
         "label": "validate agent-surface routes",
-        "command": ["python", "scripts/validate_agent_surface.py", "--check", "--fetch-budget-bases"]
+        "command": [
+          "python",
+          "scripts/validate_agent_surface.py",
+          "--check",
+          "--fetch-budget-bases"
+        ]
       }
     ],
     "cross_corpus_documentation": [
       {
         "label": "check documentation family currentness",
-        "command": ["python", "scripts/build_documentation_family_currentness.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_documentation_family_currentness.py",
+          "--check"
+        ]
       },
       {
         "label": "validate cross-corpus documentation guards",
-        "command": ["python", "scripts/validate_documentation_cross_corpus.py"]
+        "command": [
+          "python",
+          "scripts/validate_documentation_cross_corpus.py"
+        ]
       }
     ],
     "public_entry": [
       {
         "label": "validate tiny entry route",
-        "command": ["python", "scripts/validate_tiny_entry_route.py"]
+        "command": [
+          "python",
+          "scripts/validate_tiny_entry_route.py"
+        ]
       }
     ],
     "local_kag_provider": [
       {
         "label": "validate current ToS KAG provider and source family",
-        "command": ["python", "scripts/validate_local_kag_provider.py"]
+        "command": [
+          "python",
+          "scripts/validate_local_kag_provider.py"
+        ]
       }
     ],
     "local_stats_port": [
       {
         "label": "validate local stats port",
-        "command": ["python", "scripts/validate_local_stats_port.py"]
+        "command": [
+          "python",
+          "scripts/validate_local_stats_port.py"
+        ]
       }
     ],
     "questbook_surface": [
       {
         "label": "validate questbook surface",
-        "command": ["python", "mechanics/questbook/scripts/validate_questbook_surface.py"]
+        "command": [
+          "python",
+          "mechanics/questbook/scripts/validate_questbook_surface.py"
+        ]
       }
     ],
     "graph_exports": [
       {
         "label": "validate ToS corpus index",
-        "command": ["python", "scripts/validate_tos_corpus_index.py"]
+        "command": [
+          "python",
+          "scripts/validate_tos_corpus_index.py"
+        ]
       },
       {
         "label": "check source-witness bibliographic graph",
-        "command": ["python", "scripts/build_source_witness_bibliographic_graph.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_source_witness_bibliographic_graph.py",
+          "--check"
+        ]
       },
       {
         "label": "validate source-witness bibliographic graph",
-        "command": ["python", "scripts/validate_source_witness_bibliographic_graph.py"]
+        "command": [
+          "python",
+          "scripts/validate_source_witness_bibliographic_graph.py"
+        ]
       },
       {
         "label": "check philosophy atlas projection",
-        "command": ["python", "scripts/build_philosophy_atlas_projection.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_philosophy_atlas_projection.py",
+          "--check"
+        ]
       },
       {
         "label": "validate philosophy atlas projection",
-        "command": ["python", "scripts/validate_philosophy_atlas_projection.py"]
+        "command": [
+          "python",
+          "scripts/validate_philosophy_atlas_projection.py"
+        ]
       },
       {
         "label": "check philosophy graph views",
-        "command": ["python", "scripts/build_philosophy_graph_views.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_philosophy_graph_views.py",
+          "--check"
+        ]
       },
       {
         "label": "validate philosophy graph views",
-        "command": ["python", "scripts/validate_philosophy_graph_views.py"]
+        "command": [
+          "python",
+          "scripts/validate_philosophy_graph_views.py"
+        ]
       },
       {
         "label": "validate philosophy graph projection",
-        "command": ["python", "scripts/validate_philosophy_graph_projection.py"]
+        "command": [
+          "python",
+          "scripts/validate_philosophy_graph_projection.py"
+        ]
       },
       {
         "label": "check epistemic evidence projection",
-        "command": ["python", "scripts/build_epistemic_evidence_projection.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_epistemic_evidence_projection.py",
+          "--check"
+        ]
       },
       {
         "label": "validate epistemic evidence projection",
-        "command": ["python", "scripts/validate_epistemic_evidence_projection.py"]
+        "command": [
+          "python",
+          "scripts/validate_epistemic_evidence_projection.py"
+        ]
       },
       {
         "label": "check philosophy post-planting audit",
-        "command": ["python", "scripts/build_philosophy_post_planting_audit.py", "--check"]
+        "command": [
+          "python",
+          "scripts/build_philosophy_post_planting_audit.py",
+          "--check"
+        ]
       },
       {
         "label": "validate philosophy post-planting audit",
-        "command": ["python", "scripts/validate_philosophy_post_planting_audit.py"]
+        "command": [
+          "python",
+          "scripts/validate_philosophy_post_planting_audit.py"
+        ]
       }
     ],
     "standalone_access": [
       {
+        "label": "compile standalone query snapshot",
+        "command": [
+          "python",
+          "access/src/tos_access/knowledge_compile.py",
+          "--root",
+          "."
+        ]
+      },
+      {
         "label": "run standalone access contract tests",
-        "command": ["python", "-m", "unittest", "discover", "-s", "access/tests"]
+        "command": [
+          "python",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "access/tests"
+        ]
       },
       {
         "label": "validate standalone access source profile",
-        "command": ["python", "access/packaging/validate_standalone.py"]
+        "command": [
+          "python",
+          "access/packaging/validate_standalone.py"
+        ]
       }
     ],
     "artifact_bundles": [
       {
         "label": "validate OS Abyss generated readmodel artifact bundle",
-        "command": ["python", "mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py"]
+        "command": [
+          "python",
+          "mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py"
+        ]
       }
     ],
     "release_check": [
       {
-        "label": "validate validation lane manifest",
-        "command": ["python", "scripts/validation_lanes.py", "--check"]
+        "label": "software contracts",
+        "command": [
+          "python",
+          "access/packaging/validate_standalone.py",
+          "--software"
+        ]
       },
       {
-        "label": "validate ToS source home",
-        "command": ["python", "scripts/validate_tos_source_home.py"]
-      },
-      {
-        "label": "check source-witness catalog parity",
-        "command": ["python", "scripts/build_source_witness_catalog.py", "--check"]
-      },
-      {
-        "label": "validate source-witness evidence spine",
-        "command": ["python", "scripts/validate_source_witness_foundation.py"]
-      },
-      {
-        "label": "validate witness-structure correspondence",
-        "command": ["python", "scripts/validate_witness_structure_correspondence.py"]
-      },
-      {
-        "label": "validate Nietzsche transfer source routes",
-        "command": ["python", "scripts/validate_nietzsche_transfer_source_routes.py"]
-      },
-      {
-        "label": "validate golden-kernel transfer target passages",
-        "command": ["python", "scripts/validate_golden_kernel_transfer_target_passages.py"]
-      },
-      {
-        "label": "validate golden-kernel transfer source passages",
-        "command": ["python", "scripts/validate_golden_kernel_transfer_source_passages.py"]
-      },
-      {
-        "label": "check golden-kernel transfer route readiness",
-        "command": ["python", "scripts/build_golden_kernel_transfer_route_readiness.py", "--check"]
-      },
-      {
-        "label": "validate golden-kernel transfer route readiness",
-        "command": ["python", "scripts/validate_golden_kernel_transfer_route_readiness.py"]
-      },
-      {
-        "label": "validate Zarathustra lexical projection",
-        "command": ["python", "scripts/validate_zarathustra_lexical_index.py"]
-      },
-      {
-        "label": "check Zarathustra exact-form recurrence projection",
-        "command": ["python", "scripts/build_zarathustra_recurrence_projection.py", "--check"]
-      },
-      {
-        "label": "validate philosophy topology",
-        "command": ["python", "scripts/validate_philosophy_topology.py"]
-      },
-      {
-        "label": "validate mechanics topology",
-        "command": ["python", "scripts/validate_mechanics_topology.py"]
-      },
-      {
-        "label": "run mechanics-local checks",
-        "command": ["python", "scripts/run_mechanics_local_tests.py"]
-      },
-      {
-        "label": "validate Experience contracts",
-        "command": ["python", "-m", "unittest", "discover", "-s", "mechanics/experience/tests", "-p", "test*.py"]
-      },
-      {
-        "label": "validate active naming",
-        "command": ["python", "scripts/validate_active_naming.py"]
-      },
-      {
-        "label": "check root entry map",
-        "command": ["python", "scripts/build_root_entry_map.py", "--check"]
-      },
-      {
-        "label": "validate root entry map",
-        "command": ["python", "scripts/validate_root_entry_map.py"]
-      },
-      {
-        "label": "validate ToS corpus index",
-        "command": ["python", "scripts/validate_tos_corpus_index.py"]
-      },
-      {
-        "label": "check source-witness bibliographic graph",
-        "command": ["python", "scripts/build_source_witness_bibliographic_graph.py", "--check"]
-      },
-      {
-        "label": "validate source-witness bibliographic graph",
-        "command": ["python", "scripts/validate_source_witness_bibliographic_graph.py"]
-      },
-      {
-        "label": "check philosophy atlas projection",
-        "command": ["python", "scripts/build_philosophy_atlas_projection.py", "--check"]
-      },
-      {
-        "label": "validate philosophy atlas projection",
-        "command": ["python", "scripts/validate_philosophy_atlas_projection.py"]
-      },
-      {
-        "label": "check philosophy graph views",
-        "command": ["python", "scripts/build_philosophy_graph_views.py", "--check"]
-      },
-      {
-        "label": "validate philosophy graph views",
-        "command": ["python", "scripts/validate_philosophy_graph_views.py"]
-      },
-      {
-        "label": "validate philosophy graph projection",
-        "command": ["python", "scripts/validate_philosophy_graph_projection.py"]
-      },
-      {
-        "label": "check epistemic evidence projection",
-        "command": ["python", "scripts/build_epistemic_evidence_projection.py", "--check"]
-      },
-      {
-        "label": "validate epistemic evidence projection",
-        "command": ["python", "scripts/validate_epistemic_evidence_projection.py"]
-      },
-      {
-        "label": "run standalone access contract tests",
-        "command": ["python", "-m", "unittest", "discover", "-s", "access/tests"]
-      },
-      {
-        "label": "validate standalone access source profile",
-        "command": ["python", "access/packaging/validate_standalone.py"]
-      },
-      {
-        "label": "check philosophy post-planting audit",
-        "command": ["python", "scripts/build_philosophy_post_planting_audit.py", "--check"]
-      },
-      {
-        "label": "validate philosophy post-planting audit",
-        "command": ["python", "scripts/validate_philosophy_post_planting_audit.py"]
-      },
-      {
-        "label": "validate tree node contracts",
-        "command": ["python", "scripts/validate_tree_node_contracts.py"]
-      },
-      {
-        "label": "validate tree relation packs",
-        "command": ["python", "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py"]
-      },
-      {
-        "label": "validate public example sync",
-        "command": ["python", "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py"]
-      },
-      {
-        "label": "validate intake pack",
-        "command": ["python", "scripts/validate_intake_pack.py"]
-      },
-      {
-        "label": "validate tiny entry route",
-        "command": ["python", "scripts/validate_tiny_entry_route.py"]
-      },
-      {
-        "label": "validate ToS KAG provider integrity and source currentness",
-        "command": ["python", "scripts/validate_local_kag_provider.py"]
-      },
-      {
-        "label": "validate local stats port",
-        "command": ["python", "scripts/validate_local_stats_port.py"]
-      },
-      {
-        "label": "validate questbook surface",
-        "command": ["python", "mechanics/questbook/scripts/validate_questbook_surface.py"]
-      },
-      {
-        "label": "check AGENTS route-card currentness",
-        "command": ["python", "scripts/build_agents_route_currentness.py", "--check"]
-      },
-      {
-        "label": "validate route-card structure",
-        "command": ["python", "scripts/validate_nested_agents.py"]
-      },
-      {
-        "label": "run deterministic AGENTS task route harness",
-        "command": ["python", "scripts/agents_route_harness.py", "--check"]
-      },
-      {
-        "label": "check agent-surface currentness",
-        "command": ["python", "scripts/build_agent_surface_currentness.py", "--check"]
-      },
-      {
-        "label": "validate agent-surface routes",
-        "command": ["python", "scripts/validate_agent_surface.py", "--check", "--fetch-budget-bases"]
-      },
-      {
-        "label": "check documentation family currentness",
-        "command": ["python", "scripts/build_documentation_family_currentness.py", "--check"]
-      },
-      {
-        "label": "validate cross-corpus documentation guards",
-        "command": ["python", "scripts/validate_documentation_cross_corpus.py"]
-      },
-      {
-        "label": "check decision indexes",
-        "command": ["python", "scripts/generate_decision_indexes.py", "--check"]
-      },
-      {
-        "label": "validate decision records",
-        "command": ["python", "scripts/validate_decision_records.py"]
+        "label": "build software browser assets",
+        "command": [
+          "npm",
+          "run",
+          "build",
+          "--prefix",
+          "access/web"
+        ]
       },
       {
         "label": "run tests",
-        "command": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "--durations=20", "tests"]
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "-p",
+          "no:cacheprovider",
+          "--strict-markers",
+          "-m",
+          "not data_release",
+          "access/tests",
+          "tests/test_validation_lanes.py"
+        ]
       }
     ],
     "mechanics_local": [
       {
         "label": "run mechanics-local checks",
-        "command": ["python", "scripts/run_mechanics_local_tests.py"]
+        "command": [
+          "python",
+          "scripts/run_mechanics_local_tests.py"
+        ]
+      }
+    ],
+    "integration_snapshot_audit": [
+      {
+        "label": "validate complete research registry normalization",
+        "command": [
+          "python",
+          "scripts/validate_source_registry_normalization.py"
+        ]
+      },
+      {
+        "label": "validate validation lane manifest",
+        "command": [
+          "python",
+          "scripts/validation_lanes.py",
+          "--check"
+        ]
+      },
+      {
+        "label": "validate ToS source home",
+        "command": [
+          "python",
+          "scripts/validate_tos_source_home.py"
+        ]
+      },
+      {
+        "label": "check source-witness catalog parity",
+        "command": [
+          "python",
+          "scripts/build_source_witness_catalog.py",
+          "--check"
+        ]
+      },
+      {
+        "label": "validate source-witness evidence spine",
+        "command": [
+          "python",
+          "scripts/validate_source_witness_foundation.py"
+        ]
+      },
+      {
+        "label": "validate witness-structure correspondence",
+        "command": [
+          "python",
+          "scripts/validate_witness_structure_correspondence.py"
+        ]
+      },
+      {
+        "label": "validate Nietzsche transfer source routes",
+        "command": [
+          "python",
+          "scripts/validate_nietzsche_transfer_source_routes.py"
+        ]
+      },
+      {
+        "label": "validate golden-kernel transfer target passages",
+        "command": [
+          "python",
+          "scripts/validate_golden_kernel_transfer_target_passages.py"
+        ]
+      },
+      {
+        "label": "validate golden-kernel transfer source passages",
+        "command": [
+          "python",
+          "scripts/validate_golden_kernel_transfer_source_passages.py"
+        ]
+      },
+      {
+        "label": "check golden-kernel transfer route readiness",
+        "command": [
+          "python",
+          "scripts/build_golden_kernel_transfer_route_readiness.py",
+          "--check"
+        ]
+      },
+      {
+        "label": "validate golden-kernel transfer route readiness",
+        "command": [
+          "python",
+          "scripts/validate_golden_kernel_transfer_route_readiness.py"
+        ]
+      },
+      {
+        "label": "validate Zarathustra lexical projection",
+        "command": [
+          "python",
+          "scripts/validate_zarathustra_lexical_index.py"
+        ]
+      },
+      {
+        "label": "check Zarathustra exact-form recurrence projection",
+        "command": [
+          "python",
+          "scripts/build_zarathustra_recurrence_projection.py",
+          "--check"
+        ]
+      },
+      {
+        "label": "validate philosophy topology",
+        "command": [
+          "python",
+          "scripts/validate_philosophy_topology.py"
+        ]
+      },
+      {
+        "label": "validate mechanics topology",
+        "command": [
+          "python",
+          "scripts/validate_mechanics_topology.py"
+        ]
+      },
+      {
+        "label": "run mechanics-local checks",
+        "command": [
+          "python",
+          "scripts/run_mechanics_local_tests.py"
+        ]
+      },
+      {
+        "label": "validate Experience contracts",
+        "command": [
+          "python",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "mechanics/experience/tests",
+          "-p",
+          "test*.py"
+        ]
+      },
+      {
+        "label": "validate active naming",
+        "command": [
+          "python",
+          "scripts/validate_active_naming.py"
+        ]
+      },
+      {
+        "label": "check root entry map",
+        "command": [
+          "python",
+          "scripts/build_root_entry_map.py",
+          "--check"
+        ]
+      },
+      {
+        "label": "validate root entry map",
+        "command": [
+          "python",
+          "scripts/validate_root_entry_map.py"
+        ]
+      },
+      {
+        "label": "validate ToS corpus index",
+        "command": [
+          "python",
+          "scripts/validate_tos_corpus_index.py"
+        ]
+      },
+      {
+        "label": "check source-witness bibliographic graph",
+        "command": [
+          "python",
+          "scripts/build_source_witness_bibliographic_graph.py",
+          "--check"
+        ]
+      },
+      {
+        "label": "validate source-witness bibliographic graph",
+        "command": [
+          "python",
+          "scripts/validate_source_witness_bibliographic_graph.py"
+        ]
+      },
+      {
+        "label": "check philosophy atlas projection",
+        "command": [
+          "python",
+          "scripts/build_philosophy_atlas_projection.py",
+          "--check"
+        ]
+      },
+      {
+        "label": "validate philosophy atlas projection",
+        "command": [
+          "python",
+          "scripts/validate_philosophy_atlas_projection.py"
+        ]
+      },
+      {
+        "label": "check philosophy graph views",
+        "command": [
+          "python",
+          "scripts/build_philosophy_graph_views.py",
+          "--check"
+        ]
+      },
+      {
+        "label": "validate philosophy graph views",
+        "command": [
+          "python",
+          "scripts/validate_philosophy_graph_views.py"
+        ]
+      },
+      {
+        "label": "validate philosophy graph projection",
+        "command": [
+          "python",
+          "scripts/validate_philosophy_graph_projection.py"
+        ]
+      },
+      {
+        "label": "check epistemic evidence projection",
+        "command": [
+          "python",
+          "scripts/build_epistemic_evidence_projection.py",
+          "--check"
+        ]
+      },
+      {
+        "label": "validate epistemic evidence projection",
+        "command": [
+          "python",
+          "scripts/validate_epistemic_evidence_projection.py"
+        ]
+      },
+      {
+        "label": "compile standalone query snapshot",
+        "command": [
+          "python",
+          "access/src/tos_access/knowledge_compile.py",
+          "--root",
+          "."
+        ]
+      },
+      {
+        "label": "run standalone access contract tests",
+        "command": [
+          "python",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "access/tests"
+        ]
+      },
+      {
+        "label": "validate standalone access source profile",
+        "command": [
+          "python",
+          "access/packaging/validate_standalone.py"
+        ]
+      },
+      {
+        "label": "check philosophy post-planting audit",
+        "command": [
+          "python",
+          "scripts/build_philosophy_post_planting_audit.py",
+          "--check"
+        ]
+      },
+      {
+        "label": "validate philosophy post-planting audit",
+        "command": [
+          "python",
+          "scripts/validate_philosophy_post_planting_audit.py"
+        ]
+      },
+      {
+        "label": "validate tree node contracts",
+        "command": [
+          "python",
+          "scripts/validate_tree_node_contracts.py"
+        ]
+      },
+      {
+        "label": "validate tree relation packs",
+        "command": [
+          "python",
+          "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py"
+        ]
+      },
+      {
+        "label": "validate public example sync",
+        "command": [
+          "python",
+          "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py"
+        ]
+      },
+      {
+        "label": "validate intake pack",
+        "command": [
+          "python",
+          "scripts/validate_intake_pack.py"
+        ]
+      },
+      {
+        "label": "validate tiny entry route",
+        "command": [
+          "python",
+          "scripts/validate_tiny_entry_route.py"
+        ]
+      },
+      {
+        "label": "validate ToS KAG provider integrity and source currentness",
+        "command": [
+          "python",
+          "scripts/validate_local_kag_provider.py"
+        ]
+      },
+      {
+        "label": "validate local stats port",
+        "command": [
+          "python",
+          "scripts/validate_local_stats_port.py"
+        ]
+      },
+      {
+        "label": "validate questbook surface",
+        "command": [
+          "python",
+          "mechanics/questbook/scripts/validate_questbook_surface.py"
+        ]
+      },
+      {
+        "label": "check AGENTS route-card currentness",
+        "command": [
+          "python",
+          "scripts/build_agents_route_currentness.py",
+          "--check"
+        ]
+      },
+      {
+        "label": "validate route-card structure",
+        "command": [
+          "python",
+          "scripts/validate_nested_agents.py"
+        ]
+      },
+      {
+        "label": "run deterministic AGENTS task route harness",
+        "command": [
+          "python",
+          "scripts/agents_route_harness.py",
+          "--check"
+        ]
+      },
+      {
+        "label": "check agent-surface currentness",
+        "command": [
+          "python",
+          "scripts/build_agent_surface_currentness.py",
+          "--check"
+        ]
+      },
+      {
+        "label": "validate agent-surface routes",
+        "command": [
+          "python",
+          "scripts/validate_agent_surface.py",
+          "--check",
+          "--fetch-budget-bases"
+        ]
+      },
+      {
+        "label": "check documentation family currentness",
+        "command": [
+          "python",
+          "scripts/build_documentation_family_currentness.py",
+          "--check"
+        ]
+      },
+      {
+        "label": "validate cross-corpus documentation guards",
+        "command": [
+          "python",
+          "scripts/validate_documentation_cross_corpus.py"
+        ]
+      },
+      {
+        "label": "check decision indexes",
+        "command": [
+          "python",
+          "scripts/generate_decision_indexes.py",
+          "--check"
+        ]
+      },
+      {
+        "label": "validate decision records",
+        "command": [
+          "python",
+          "scripts/validate_decision_records.py"
+        ]
+      },
+      {
+        "label": "run tests",
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "-p",
+          "no:cacheprovider",
+          "--durations=20",
+          "tests"
+        ]
+      }
+    ],
+    "software_browser": [
+      {
+        "label": "browser tests",
+        "command": [
+          "npm",
+          "run",
+          "test",
+          "--prefix",
+          "access/web"
+        ]
+      },
+      {
+        "label": "browser types",
+        "command": [
+          "npm",
+          "run",
+          "typecheck",
+          "--prefix",
+          "access/web"
+        ]
+      },
+      {
+        "label": "browser behavior",
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "access/e2e/test_webmcp.py"
+        ]
       }
     ]
   }

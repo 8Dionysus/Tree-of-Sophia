@@ -40,6 +40,51 @@ function workspaceSummary() {
 }
 
 describe("WebMCP page-command binding", () => {
+  it("gates Observatory paths by explicit capability and preserves full route identities", async () => {
+    const id = "opaque/" + "long-id:".repeat(35);
+    const current: PageContextSnapshot = {
+      mode: "philosophy", view_id: "observatory", graph_mode: "nodes",
+      selected: { id, kind: "node", path_available: false }, path_start_node_id: "start",
+      active_layers: ["knowledge"], active_predicates: ["overview"], deep_link: "http://tos.local/", research_workspace: workspaceSummary(),
+    };
+    const registry = createPageCommandRegistry(() => current, {
+      "tos.page.start-path": () => ({}), "tos.page.show-neighborhood": () => ({}),
+      "tos.page.find-path": () => ({ found: true, from_id: "start", to_id: id, paths: [{ node_ids: ["start", id], edge_ids: ["edge"] }], exploration_truncated: true }),
+    });
+    const tools = new Map<string, RegisteredTool>();
+    const adapter = createWebMCPAdapter(registry, { modelContext: {
+      registerTool: async (tool: RegisteredTool) => { tools.set(tool.name, tool); },
+      unregisterTool: async (name: string) => { tools.delete(name); },
+    } } as unknown as WebMCPDocument, new Set(["tos.page.start-path", "tos.page.find-path", "tos.page.show-neighborhood"]));
+    await adapter.start();
+    expect(tools.has("tos.page.show-neighborhood")).toBe(true);
+    expect(tools.has("tos.page.start-path")).toBe(false);expect(tools.has("tos.page.find-path-to-selection")).toBe(false);
+    current.selected!.path_available = true;await adapter.refresh();
+    expect(tools.has("tos.page.start-path")).toBe(true);
+    const reply = await tools.get("tos.page.find-path-to-selection")!.execute({}, { signal: new AbortController().signal }) as { content: Array<{ text: string }> };
+    const payload = JSON.parse(reply.content[0].text);
+    expect(payload.to_id).toBe(id);expect(payload.first_route_node_ids).toContain(id);expect(payload.exploration_truncated).toBe(true);
+    adapter.stop();
+  });
+  it("binds Observatory evidence independently from unsupported path routing", async () => {
+    for (const evidenceAvailable of [true, false]) {
+      const registry = createPageCommandRegistry(() => ({
+        mode: "philosophy", view_id: "observatory", graph_mode: "nodes",
+        selected: { id: "opaque:edge/a", kind: "edge", from_id: "a", to_id: "b", reroutable: false, evidence_available: evidenceAvailable },
+        path_start_node_id: null, active_layers: ["knowledge"], active_predicates: ["overview"],
+        deep_link: "http://tos.local/", research_workspace: workspaceSummary(),
+      }), { ...workspaceNoopHandlers, "tos.page.inspect-epistemic": () => ({}), "tos.page.reroute-without-selection": () => ({}) });
+      const names = new Set<string>();
+      const adapter = createWebMCPAdapter(registry, { modelContext: {
+        registerTool: async (tool: RegisteredTool) => { names.add(tool.name); },
+      } } as unknown as WebMCPDocument, new Set(["tos.page.inspect-epistemic", "tos.page.compare-readings", "tos.page.reroute-without-selection"]));
+      await adapter.start();
+      expect(names.has("tos.page.inspect-epistemic")).toBe(evidenceAvailable);
+      expect(names.has("tos.page.compare-readings")).toBe(evidenceAvailable);
+      expect(names.has("tos.page.reroute-without-selection")).toBe(false);
+      adapter.stop();
+    }
+  });
   it("returns bounded search hits with stable IDs instead of a page-only count", async () => {
     const current: PageContextSnapshot = {
       mode: "philosophy", view_id: "chronology", graph_mode: "nodes", selected: null,
@@ -663,7 +708,7 @@ describe("WebMCP page-command binding", () => {
       { signal: new AbortController().signal },
     ) as { content: Array<{ text: string }> };
     expect(pathResult.content[0].text.length).toBeLessThan(1500);
-    expect(pathResult.content[0].text).toContain("alternative route found");
+    expect(pathResult.content[0].text).toContain("route found");
     expect(pathResult.content[0].text).not.toContain("large-node-39");
     await adapter.refresh();
 
@@ -677,5 +722,27 @@ describe("WebMCP page-command binding", () => {
       context_revision: 1,
     });
     adapter.stop();
+  });
+});
+
+
+describe("observatory capability boundary", () => {
+  it("advertises only implemented commands and round-trips long opaque identities", async () => {
+    const id = "knowledge:" + "source-identity/".repeat(12);
+    const sourceRef = "ToS/" + "long-source-path/".repeat(12) + "node.json";
+    const context: PageContextSnapshot = {mode:"philosophy",view_id:"observatory",graph_mode:"nodes",
+      selected:{id,kind:"node",label:"Source",source_refs:[sourceRef]},path_start_node_id:null,
+      active_layers:["knowledge"],active_predicates:["overview"],deep_link:"http://tos.local/?selection="+encodeURIComponent(id),research_workspace:workspaceSummary()};
+    const registry=createPageCommandRegistry(()=>context,{"tos.page.inspect-selection":()=>context.selected});
+    const tools=new Map<string,RegisteredTool>();
+    const adapter=createWebMCPAdapter(registry,{modelContext:{registerTool:async(tool:RegisteredTool)=>{tools.set(tool.name,tool);}}} as unknown as WebMCPDocument,
+      new Set(["tos.page.context","tos.page.inspect-selection"]));
+    await adapter.start();
+    expect([...tools.keys()].sort()).toEqual(["tos.page.context","tos.page.inspect-selection"]);
+    const reply=await tools.get("tos.page.inspect-selection")!.execute({}, {signal:new AbortController().signal}) as {content:Array<{text:string}>};
+    const result=JSON.parse(reply.content[0].text);
+    expect(result.selection.id).toBe(id);expect(result.selection.source_refs).toEqual([sourceRef]);
+    const page=await tools.get("tos.page.context")!.execute({}, {signal:new AbortController().signal}) as {content:Array<{text:string}>};
+    expect(JSON.parse(page.content[0].text).deep_link).toBe(context.deep_link);adapter.stop();
   });
 });

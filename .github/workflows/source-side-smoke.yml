@@ -1,8 +1,6 @@
-name: Source-Side Smoke
+name: Historical Source-Side Audit
 
 on:
-  schedule:
-    - cron: "29 8 * * 0,2"
   workflow_dispatch:
 
 permissions:

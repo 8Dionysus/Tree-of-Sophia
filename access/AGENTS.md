@@ -23,6 +23,13 @@ derived-export owners remain stronger than every packet emitted here.
   optional; its absence is a capability state, not an installation failure.
 - Runtime packets must preserve `source_ref` and must not claim review,
   rights, canon, or semantic authority.
+- Software build/test/package uses versioned contracts and representative
+  fixtures without production corpus, payload custody or sibling repositories.
+- Explicit data selection (`--root` or `TOS_DATA_ROOT`) chooses data, never
+  installed code, browser assets or API schemas. Missing data does not discover
+  another checkout through the current directory.
+- Full snapshot validation and compilation belong to data release. API-schema
+  checking must not traverse production graph rows as a hidden side effect.
 
 ## Validation route
 

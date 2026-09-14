@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.com/contracts/lens-spec.v1.schema.json",
+  "title": "Tree of Sophia declarative LensSpec v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "lens_id"],
+  "properties": {
+    "schema_version": {"const": "tos_lens_spec_v1"},
+    "lens_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "title": {"$ref": "#/$defs/localizedInput"},
+    "description": {"$ref": "#/$defs/localizedInput"},
+    "language": {"type": "string", "maxLength": 128, "pattern": "^(?:auto|original|[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])"},
+    "pagination": {"anyOf": [{"type": "null"}, {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "nodes": {"type": "integer", "minimum": 1, "maximum": 100},
+        "relations": {"type": "integer", "minimum": 1, "maximum": 100},
+        "cursor": {"anyOf": [{"type": "null"}, {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,512}$"}]}
+      }
+    }]},
+    "explain": {"type": "boolean", "description": "Return recorded inclusion causes, not semantic acceptance."},
+    "path_query": {"type": "array", "maxItems": 4, "description": "All conditions constrain node selector roots. Each step stays within sources; not_exists means absence in that scope, not global nonexistence.", "items": {"$ref": "#/$defs/pathCondition"}},
+    "detail": {"enum": ["full", "compact"], "description": "Compact omits source_record and clears attributes in the returned carrier only; inspect by ID for the full record. Filtering and fingerprinting use full records."},
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 7,
+      "uniqueItems": true,
+      "items": {"enum": ["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"]}
+    },
+    "seed": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "focus_node_id": {"type": ["string", "null"], "minLength": 1, "maxLength": 1024},
+        "node_ids": {"type": "array", "maxItems": 100, "items": {"type": "string", "minLength": 1}},
+        "text_query": {"type": "string", "maxLength": 256}
+      }
+    },
+    "node_query": {"$ref": "#/$defs/nodeQuery"},
+    "relation_query": {"$ref": "#/$defs/relationQuery"},
+    "traversal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "depth": {"type": "integer", "minimum": 0, "maximum": 5},
+        "direction": {"enum": ["outgoing", "incoming", "either"]},
+        "predicate_ids": {"type": "array", "maxItems": 100, "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "profile": {"enum": ["all", "overview"]}
+      }
+    },
+    "composition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "endpoint_policy": {"enum": ["both", "either", "independent"]},
+        "group_by": {"type": "array", "maxItems": 4, "items": {"$ref": "#/$defs/eitherField"}, "uniqueItems": true},
+        "sort_nodes": {"type": "array", "maxItems": 8, "items": {"$ref": "#/$defs/nodeSort"}},
+        "sort_relations": {"type": "array", "maxItems": 8, "items": {"$ref": "#/$defs/relationSort"}}
+      }
+    },
+    "presentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "layout": {"enum": ["auto", "organic", "timeline", "flow", "evidence", "semantic", "infrastructure", "hierarchical", "radial", "matrix"]},
+        "color_by": {"anyOf": [{"$ref": "#/$defs/eitherField"}, {"type": "null"}]},
+        "lane_by": {"anyOf": [{"$ref": "#/$defs/eitherField"}, {"type": "null"}]},
+        "size_by": {"anyOf": [{"$ref": "#/$defs/eitherField"}, {"type": "null"}]},
+        "inspector_fields": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "anyOf": [
+              {"enum": ["display", "display.summary", "epistemic", "source_refs", "attributes"]},
+              {"$ref": "#/$defs/eitherField"}
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "nodes": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "relations": {"type": "integer", "minimum": 0, "maximum": 2000},
+        "groups": {"type": "integer", "minimum": 1, "maximum": 200}
+      }
+    }
+  },
+  "$defs": {
+    "pathCondition": {
+      "type": "object", "additionalProperties": false, "required": ["path_id", "steps"],
+      "properties": {
+        "path_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+        "quantifier": {"enum": ["exists", "not_exists"]},
+        "steps": {"type": "array", "minItems": 1, "maxItems": 4, "items": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "direction": {"enum": ["outgoing", "incoming", "either"]},
+            "node_query": {"$ref": "#/$defs/nodeQuery"},
+            "relation_query": {"$ref": "#/$defs/relationQuery"}
+          }
+        }}
+      }
+    },
+    "localizedInput": {
+      "anyOf": [
+        {"type": "string", "minLength": 1},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])": {"type": ["string", "null"]}
+          },
+          "properties": {
+            "default": {"type": "string", "minLength": 1},
+            "ru": {"type": ["string", "null"]},
+            "en": {"type": ["string", "null"]},
+            "original": {"type": ["string", "null"]}
+          }
+        }
+      ]
+    },
+    "attributeField": {
+      "type": "string",
+      "pattern": "^(?:attributes|semantics)\\.(?!(?:.*\\.)?(?:__proto__|prototype|constructor)(?:\\.|$))[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+    },
+    "nodeField": {
+      "anyOf": [
+        {"type": "string", "pattern": "^display\\.(?:title|kind_label|summary)\\.(?:default|original|[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])"},
+        {"enum": [
+          "id", "entity_id", "native_id", "source_graph", "kind_id", "type_id", "type_mapping.status", "type_mapping.source_kind_id", "display.title.default", "display.title.ru", "display.title.en",
+          "display.kind_label.default", "display.summary.default", "display.summary.ru", "display.summary.en", "display.summary_state",
+          "epistemic.authority_layer", "epistemic.canon_status", "epistemic.review_posture", "epistemic.confidence",
+          "graph_layers", "view_ids", "source_refs"
+        ]},
+        {"$ref": "#/$defs/attributeField"}
+      ]
+    },
+    "relationField": {
+      "anyOf": [
+        {"type": "string", "pattern": "^display\\.(?:label|inverse_label|statement|explanation)\\.(?:default|original|[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])"},
+        {"enum": [
+          "id", "native_id", "source_graph", "from_id", "to_id", "predicate_id", "relation_type_id", "predicate_mapping.status", "predicate_mapping.source_predicate_id", "display.label.default", "display.label.ru",
+          "display.label.en", "display.statement.default", "display.explanation.default", "display.explanation_state",
+          "epistemic.authority_layer", "epistemic.canon_status", "epistemic.review_posture", "epistemic.confidence",
+          "graph_layers", "view_ids", "source_refs"
+        ]},
+        {"$ref": "#/$defs/attributeField"}
+      ]
+    },
+    "eitherField": {"anyOf": [{"$ref": "#/$defs/nodeField"}, {"$ref": "#/$defs/relationField"}]},
+    "filterValue": {
+      "anyOf": [
+        {"type": ["string", "number", "integer", "boolean", "null"], "maxLength": 1024},
+        {
+          "type": "array",
+          "maxItems": 100,
+          "items": {"type": ["string", "number", "integer", "boolean", "null"]}
+        }
+      ]
+    },
+    "nodeFilter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "value"],
+      "oneOf": [{"required": ["field"]}, {"required": ["property_id"]}],
+      "properties": {
+        "field": {"$ref": "#/$defs/nodeField"},
+        "property_id": {"type": "string", "pattern": "^tos\\.property\\.[a-z0-9-]+$(?![\\s\\S])", "description": "A property from the snapshot catalog; its declared operations, value type and applicable entity types are enforced at execution."},
+        "op": {"enum": ["eq", "neq", "in", "contains", "prefix", "exists", "gt", "gte", "lt", "lte"]},
+        "value": {"$ref": "#/$defs/filterValue"}
+      },
+      "allOf": [{"$ref": "#/$defs/filterOperatorRules"}]
+    },
+    "relationFilter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "op", "value"],
+      "properties": {
+        "field": {"$ref": "#/$defs/relationField"},
+        "op": {"enum": ["eq", "neq", "in", "contains", "prefix", "exists", "gt", "gte", "lt", "lte"]},
+        "value": {"$ref": "#/$defs/filterValue"}
+      },
+      "allOf": [{"$ref": "#/$defs/filterOperatorRules"}]
+    },
+    "filterOperatorRules": {
+      "allOf": [
+        {
+          "if": {"properties": {"op": {"enum": ["eq", "neq"]}}, "required": ["op"]},
+          "then": {"properties": {"value": {"type": ["string", "number", "integer", "boolean", "null"]}}}
+        },
+        {
+          "if": {"properties": {"op": {"const": "exists"}}, "required": ["op"]},
+          "then": {"properties": {"value": {"type": "boolean"}}}
+        },
+        {
+          "if": {"properties": {"op": {"const": "prefix"}}, "required": ["op"]},
+          "then": {"properties": {"value": {"type": "string"}}}
+        },
+        {
+          "if": {"properties": {"op": {"enum": ["gt", "gte", "lt", "lte"]}}, "required": ["op"]},
+          "then": {"properties": {"value": {"type": "number"}}}
+        }
+      ]
+    },
+    "nodeQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "match": {"enum": ["all", "any"]},
+        "filters": {"type": "array", "maxItems": 32, "items": {"$ref": "#/$defs/nodeFilter"}}
+      }
+    },
+    "relationQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "match": {"enum": ["all", "any"]},
+        "filters": {"type": "array", "maxItems": 32, "items": {"$ref": "#/$defs/relationFilter"}}
+      }
+    },
+    "nodeSort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field"],
+      "properties": {"field": {"$ref": "#/$defs/nodeField"}, "direction": {"enum": ["asc", "desc"]}}
+    },
+    "relationSort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field"],
+      "properties": {"field": {"$ref": "#/$defs/relationField"}, "direction": {"enum": ["asc", "desc"]}}
+    }
+  }
+}
