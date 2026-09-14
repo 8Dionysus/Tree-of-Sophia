@@ -141,6 +141,33 @@ print(json.dumps([{'name':p['name'],'diff':diff(json.loads(p['expected']),json.l
 `, packets);
 }
 
+function publishCatalog(sqlite, raw) {
+  sqlite.prepare("DELETE FROM edge_meta WHERE key='knowledge_catalog'").run();
+  sqlite.prepare("INSERT INTO edge_meta VALUES ('knowledge_catalog',0,?)").run(raw);
+  const top=JSON.parse(sqlite.prepare("SELECT json_chunk FROM edge_meta WHERE key='knowledge_reader_top'").get().json_chunk);
+  top.catalog_sha256=createHash('sha256').update(raw).digest('hex');
+  sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_reader_top'").run(JSON.stringify(top));
+}
+
+test('published catalog and stored lens use the D1 snapshot instead of stale static assets', async () => {
+  const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
+  const worker=(await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'))).default;
+  const {db,sqlite}=database();
+  const item=fixture.cases.find(c=>c.name==='eq-unsafe');
+  const raw='{"schema":"tos_knowledge_catalog_v1","source_revision":"'+'a'.repeat(64)+'","note":{"10":9007199254740993,"2":1.0,"negative_zero":-0.0},"lenses":['+item.rawSpec+']}';
+  publishCatalog(sqlite,raw);
+  let assetReads=0;
+  const env={DB:db,ASSETS:{fetch:async()=>{assetReads++;return new Response('{"schema":"tos_knowledge_catalog_v1","source_revision":"stale","lenses":[]}');}}};
+  try{
+    const response=await worker.fetch(new Request('https://test.invalid/api/knowledge/catalog'),env);
+    assert.equal(response.status,200);assert.equal(await response.text(),raw);
+    const lens=await worker.fetch(new Request('https://test.invalid/api/knowledge/lenses/native-lens'),env);
+    assert.equal(lens.status,200);
+    assert.deepEqual(differences([{name:'published-stored',expected:item.expected,actual:await lens.text()}])[0].diff,[]);
+    assert.equal(assetReads,0);
+  }finally{sqlite.close();}
+});
+
 test('D1 native-v7 complete wire packets equal Python values, kinds, source order and fingerprints', async () => {
   const {db,sqlite,statements} = database(), packets=[];
   try {
@@ -353,26 +380,49 @@ test('D1 SQL projects bounded metadata and payloads before delivery to the Worke
   } finally {chunked.sqlite.close();}
 });
 
-test('stored lens catalog stream is bounded before parsing, with exact UTF-8 and numeric refs', async () => {
+test('published catalog metadata is bounded, digest-bound and fails closed without asset fallback', async () => {
   const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
   const worker=(await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'))).default;
-  const {db,sqlite,statements}=database();const url='https://test.invalid/api/knowledge/lenses/native-lens';
-  try {
-    for (const length of [null,'1',String(8*1024*1024+1)]) {
-      let pulls=0,cancelled=false;
-      const body=new ReadableStream({pull(controller){pulls++;controller.enqueue(new Uint8Array(65536).fill(32));},cancel(){cancelled=true;}},{highWaterMark:0});
-      const response=await worker.fetch(new Request(url),{DB:db,ASSETS:{fetch:async()=>new Response(body,{headers:length===null?{}:{'Content-Length':length}})}});
-      assert.equal(response.status,503);assert.equal(cancelled,true);assert.ok(pulls<=129);assert.equal(statements.length,0);
-      if (length!==null && Number(length)>8*1024*1024) assert.equal(pulls,0);
-    }
-    const invalid=await worker.fetch(new Request(url),{DB:db,ASSETS:{fetch:async()=>new Response(new Uint8Array([255]))}});
-    assert.equal(invalid.status,503);assert.equal(statements.length,0);
-    const item=fixture.cases.find(c=>c.name==='eq-unsafe');
-    const raw=new TextEncoder().encode('{"note":"ё😀","lenses":['+item.rawSpec+']}');let offset=0;
-    const exact=new ReadableStream({pull(controller){if(offset===raw.length)controller.close();else controller.enqueue(raw.subarray(offset,++offset));}});
-    const response=await worker.fetch(new Request(url),{DB:db,ASSETS:{fetch:async()=>new Response(exact)}});
-    assert.equal(response.status,200);assert.deepEqual(differences([{name:'stored-exact',expected:item.expected,actual:await response.text()}])[0].diff,[]);
-  } finally {sqlite.close();}
+  for(const kind of ['missing','chunk-size','total-size','digest','source','schema','gap','duplicate','ambiguous-lens']){
+    const {db,sqlite,statements}=database(fixture,false);
+    const base={schema:'tos_knowledge_catalog_v1',source_revision:'a'.repeat(64),lenses:[JSON.parse(fixture.cases[0].rawSpec)]};
+    try{
+      if(kind==='source')base.source_revision='b'.repeat(64);
+      if(kind==='schema')base.schema='wrong';
+      if(kind==='ambiguous-lens')base.lenses.push(base.lenses[0]);
+      const raw=JSON.stringify(base);publishCatalog(sqlite,raw);
+      if(kind==='missing')sqlite.prepare("DELETE FROM edge_meta WHERE key='knowledge_catalog'").run();
+      if(kind==='digest')sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_catalog'").run(raw+' ');
+      if(kind==='gap')sqlite.prepare("UPDATE edge_meta SET part=1 WHERE key='knowledge_catalog'").run();
+      if(kind==='duplicate')sqlite.prepare("INSERT INTO edge_meta VALUES ('knowledge_catalog',0,?)").run(raw);
+      if(kind==='chunk-size')sqlite.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_catalog'").run('x'.repeat(131073));
+      if(kind==='total-size'){
+        sqlite.prepare("DELETE FROM edge_meta WHERE key='knowledge_catalog'").run();
+        for(let part=0;part<65;part++)sqlite.prepare("INSERT INTO edge_meta VALUES ('knowledge_catalog',?,?)").run(part,' '.repeat(131072));
+      }
+      const route=kind==='ambiguous-lens'?'lenses/native-lens':'catalog';
+      const response=await worker.fetch(new Request('https://test.invalid/api/knowledge/'+route),{DB:db,ASSETS:{fetch(){throw new Error('no static fallback');}}});
+      assert.equal(response.status,['chunk-size','total-size'].includes(kind)?413:503,kind);
+      assert.ok(statements.flatMap(row=>row.stringBytes??[]).every(size=>size<=131072),kind);
+    }finally{sqlite.close();}
+  }
+});
+
+test('published catalog and stored lens reject an ABA epoch change across catalog selection', async () => {
+  const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
+  const worker=(await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'))).default;
+  for(const route of ['catalog','lenses/native-lens']){
+    const {db,sqlite}=database();
+    publishCatalog(sqlite,'{"schema":"tos_knowledge_catalog_v1","source_revision":"'+'a'.repeat(64)+'","lenses":['+fixture.cases[0].rawSpec+']}');
+    let changed=false;
+    const moving={prepare(sql){const statement=db.prepare(sql);let args=[];const wrapped={
+      bind(...values){args=values;statement.bind(...values);return wrapped;},first(){return statement.first();},
+      async all(){const result=await statement.all();if(!changed&&args.includes('knowledge_catalog')){changed=true;sqlite.exec('UPDATE knowledge_exploration_clock SET epoch=epoch+2');}return result;}};return wrapped;}};
+    try{
+      const response=await worker.fetch(new Request('https://test.invalid/api/knowledge/'+route),{DB:moving,ASSETS:{fetch(){throw new Error('no static fallback');}}});
+      assert.equal(response.status,409,route);assert.equal(changed,true);
+    }finally{sqlite.close();}
+  }
 });
 
 test('D1 guards every selected identity/order/header text before transport', async () => {
@@ -415,6 +465,7 @@ test('actual Worker maps native execution and response budgets to 413 on compile
     }
     const spec={schema_version:'tos_lens_spec_v1',lens_id:'native-lens',detail:'full',sources:['philosophy'],relation_query:{enabled:false},composition:{group_by:['attributes.payload']}};
     const source=JSON.stringify(spec);const responseAssets={fetch:async()=>new Response('{"lenses":['+source+']}')};
+    publishCatalog(sqlite,'{"schema":"tos_knowledge_catalog_v1","source_revision":"'+'a'.repeat(64)+'","lenses":['+source+']}');
     for (const request of [new Request('https://test.invalid/api/knowledge/lenses/compile',{method:'POST',headers:{'Content-Type':'application/json'},body:source}),new Request('https://test.invalid/api/knowledge/lenses/native-lens')]) {
       const response=await worker.fetch(request,{DB:db,ASSETS:responseAssets});assert.equal(response.status,413);
       assert.match((await response.json()).error,/packet UTF-8 byte budget/);

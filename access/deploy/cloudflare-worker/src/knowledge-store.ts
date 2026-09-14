@@ -11,7 +11,8 @@ import {nativeStrip} from '../../../shared/native-unicode.ts';
 import {NativeSearchDelivery, nativeSearchFailure} from './native-search-store.ts';
 import {executeNativeLensD1} from './native-lens-store.ts';
 import {inspectNativeD1} from './native-inspection-store.ts';
-import {parseNativeJson, parseNativeRequest, nativeField, type NativeRef, type NativeLensResult, type NativePacket} from './native-lens.ts';
+import {parseNativeJson, parseNativeRequest, nativeField, arrayRefs, type NativeRef, type NativeLensResult, type NativePacket} from './native-lens.ts';
+import {NativeD1Read, nativeD1Limits, readNativePublication, nativeSha256, nativeUnavailable} from './native-d1-read.ts';
 import {compareNativeTemporalD1} from './native-temporal-store.ts';
 import {normalizeTemporalComparisonRequest} from './temporal-comparison.ts';
 
@@ -136,6 +137,34 @@ async function consistentRead<T>(
 
 export async function executeKnowledgeLensD1(db: D1Database, specValue: NativeRef): Promise<NativeLensResult> {
   return consistentRead(db, snapshot => executeNativeLensD1(db, specValue, {}, snapshot.revision));
+}
+
+async function publishedCatalog(db: D1Database, revision: string): Promise<NativeRef> {
+  const read=new NativeD1Read(db,nativeD1Limits,true);
+  const top=await readNativePublication(read,revision,'inspection');
+  const catalog=await read.metadata('knowledge_catalog',8*1024*1024);
+  if (await nativeSha256(catalog.raw)!==nativeField(top.ref,'catalog_sha256').value
+      || nativeField(catalog.ref,'schema').value!=='tos_knowledge_catalog_v1'
+      || nativeField(catalog.ref,'source_revision').value!==nativeField(top.ref,'source_revision').value) {
+    nativeUnavailable('published knowledge catalog differs from its reader binding');
+  }
+  return catalog.ref;
+}
+
+export async function knowledgeCatalogD1(db: D1Database): Promise<NativeRef> {
+  return consistentRead(db,snapshot=>publishedCatalog(db,snapshot.revision));
+}
+
+export async function storedKnowledgeLensD1(db: D1Database, lensId: string): Promise<NativeLensResult> {
+  return consistentRead(db,async snapshot=>{
+    const catalog=await publishedCatalog(db,snapshot.revision);
+    const lenses=nativeField(catalog,'lenses');
+    if (!Array.isArray(lenses.value)) nativeUnavailable('published knowledge lens catalog is invalid');
+    const matches=arrayRefs(lenses).filter(ref=>nativeField(ref,'lens_id').value===lensId);
+    if (!matches.length) throw new HttpError(404,`unknown ToS knowledge lens: ${lensId}`);
+    if (matches.length!==1) nativeUnavailable('published knowledge lens identity is ambiguous');
+    return executeNativeLensD1(db,matches[0]!,{},snapshot.revision);
+  });
 }
 
 export async function knowledgeSearchD1(db: D1Database, options: Parameters<typeof knowledgeSearchD1Unchecked>[1]): Promise<NativePacket> {

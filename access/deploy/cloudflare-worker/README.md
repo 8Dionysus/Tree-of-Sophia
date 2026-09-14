@@ -76,9 +76,16 @@ cache and path work have explicit bounds, documented in
 Execution/response budget exhaustion returns 413 on lens compilation and
 stored-lens/focus GET/HEAD, matching the published Python adapter. Invalid
 compilation input remains 400; unavailable or damaged publication data is 503.
-Stored lens catalogs are streamed with an actual 8 MiB byte ceiling before
-parsing, regardless of Content-Length, and are cancelled/refused with 503 on
-overflow or invalid UTF-8. D1 metadata and selected row JSON are length/type
+`/api/knowledge/catalog` and stored-lens selection read the atomically published
+D1 `knowledge_catalog`, not the separately deployed static asset. The reader
+verifies its digest and source revision against the selected publication header.
+Stored-lens selection and execution share one outer revision/epoch guard,
+including ABA refusal. Exact native numbers and source member order survive
+catalog delivery and execution. Missing, damaged or mismatched metadata returns
+503 without static fallback; the 8 MiB catalog ceiling returns 413. GET/HEAD
+catalog responses are not cached across publications. No new D1 import or
+schema migration is needed for this reader correction.
+D1 metadata and selected row JSON are length/type
 guarded inside SQL before text delivery; metadata is read one bounded chunk
 at a time. Identity/order/header cells also have a 1 MiB SQL guard and a
 cumulative remaining-byte guard. Per-request D1 delivery admission is serialized
