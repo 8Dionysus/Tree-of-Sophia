@@ -123,6 +123,8 @@ def command_sequence(sequence_id: str, repo_root: Path | None = None) -> list[Co
     steps = sequences.get(sequence_id)
     if not isinstance(steps, list):
         raise KeyError(f"unknown command sequence: {sequence_id}")
+    if not steps:
+        raise ValueError(f"{sequence_id} must contain at least one command")
 
     resolved: list[CommandStep] = []
     for step in steps:

@@ -1,0 +1,63 @@
+#sophia-gestures .sc-navigation-panel{right:28px;top:182px;width:min(450px,42%);max-height:calc(100dvh - 280px);padding:17px 23px 14px;display:flex;flex-direction:column;background:linear-gradient(145deg,#141e2b,#0b121df5 70%);border-color:#485565;box-shadow:0 22px 65px #0008}
+#sophia-gestures .sc-navigation-panel:not([hidden]){animation:so-window-in .18s ease-out}
+#sophia-gestures .sc-nav-heading{display:flex;align-items:center;gap:13px;margin:13px 0 19px;flex-shrink:0}
+#sophia-gestures .sc-nav-heading>span{color:#d7bf91;font:36px Georgia,serif;text-shadow:0 0 15px #d8bc8430}
+#sophia-gestures .sc-nav-heading h3{font:400 27px/1.2 Georgia,serif;color:#eee3cc;margin:0}
+#sophia-gestures .sc-nav-tabs{display:flex;gap:27px;border-bottom:1px solid #334051;flex-shrink:0}
+#sophia-gestures .sc-nav-tabs button{padding:0 0 11px;border:0;border-bottom:2px solid transparent;background:none;color:#a6b6ca}
+#sophia-gestures .sc-nav-tabs button[aria-selected=true]{color:#e6ce9d;border-color:#c2a675}
+#sophia-gestures .sc-nav-body{overflow:auto;overscroll-behavior:contain;min-height:0;padding:20px 4px 4px 0;scrollbar-width:thin;scrollbar-color:#425065 transparent}
+#sophia-gestures .sc-navigation-panel :is(button,input,select):focus-visible,#sophia-gestures .sc-nav-body:focus-visible{outline:1px solid #dbbd83;outline-offset:3px}
+#sophia-gestures .sc-navigation-panel button:disabled{opacity:.45;cursor:default}
+#sophia-gestures .sc-nav-caption{font:9px/1.5 system-ui,sans-serif;color:#98acc4;letter-spacing:1.1px}
+#sophia-gestures .sc-nav-origin{font:400 21px/1.5 Georgia,serif;color:#e3d8c2;margin:7px 0 18px;overflow-wrap:anywhere}
+#sophia-gestures .sc-nav-note{font:11px/1.8 system-ui,sans-serif;color:#a3b4c8;margin:13px 0;overflow-wrap:anywhere}
+#sophia-gestures .sc-nav-options{display:grid;grid-template-columns:1.25fr .8fr 1fr;gap:9px;margin:19px 0}
+#sophia-gestures .sc-nav-field{min-width:0;font:10px/1.5 system-ui,sans-serif;color:#a6b9ce}
+#sophia-gestures .sc-nav-field span{display:block;margin-bottom:6px}
+#sophia-gestures .sc-nav-field select{width:100%;min-height:35px;border:1px solid #3c4e65;border-radius:3px;background:#101b29;color:#d0deeb;font:11px system-ui,sans-serif;padding:5px}
+#sophia-gestures .sc-nav-primary{min-height:38px;border:1px solid #756747;background:#bba07112;color:#e4cea2;padding:9px 16px;font-size:12px;border-radius:3px}
+#sophia-gestures .sc-nav-primary:hover{background:#bba07123}
+#sophia-gestures .sc-nav-button{min-height:34px;border:1px solid #405269;background:#142131;color:#bed0e2;padding:7px 12px;font-size:11px;border-radius:3px}
+#sophia-gestures .sc-nav-page{margin:24px 0 0;padding-top:18px;border-top:1px solid #354456}
+#sophia-gestures .sc-nav-page p{font:19px/1.4 Georgia,serif;color:#ddd7ca;margin:7px 0}
+#sophia-gestures .sc-nav-discoveries{display:grid;margin-top:17px}
+#sophia-gestures .sc-nav-discovery{background:none;border:0;border-top:1px solid #2a394a;color:#c4d4e4;text-align:left;padding:12px 4px;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+#sophia-gestures .sc-nav-discovery::before{content:'◇';margin-right:9px;color:#cbb588}
+#sophia-gestures .sc-nav-endpoints{display:grid;grid-template-columns:1fr;gap:3px;padding:0 0 5px}
+#sophia-gestures .sc-nav-endpoint{border:0;border-left:1px solid #8a79564d;background:#d6b47c06;padding:11px 14px;text-align:left;min-width:0}
+#sophia-gestures .sc-nav-endpoint small{display:block;color:#acb7c5;font:8px/1.5 system-ui,sans-serif;letter-spacing:1.4px;margin-bottom:5px}
+#sophia-gestures .sc-nav-endpoint span{color:#e6d8bd;font:18px/1.45 Georgia,serif;overflow-wrap:anywhere;display:block}
+#sophia-gestures .sc-nav-endpoint[data-empty=true] span{color:#93a9c2;font:13px/1.8 system-ui,sans-serif}
+#sophia-gestures .sc-nav-endpoint:hover{background:#d6b47c10}
+#sophia-gestures .sc-nav-connector{font-size:12px;color:#ac9162;margin-left:14px}
+#sophia-gestures .sc-nav-search{margin:19px 0 0}
+#sophia-gestures .sc-nav-search label{display:block;color:#a5b8d0;font:10px/1.5 system-ui,sans-serif;margin-bottom:7px}
+#sophia-gestures .sc-nav-search input{width:100%;box-sizing:border-box;min-height:38px;background:#101b29;border:1px solid #40516a;border-radius:3px;color:#e2e8ef;padding:8px 11px;font:12px system-ui,sans-serif}
+#sophia-gestures .sc-nav-search input::placeholder{color:#849bb6}
+#sophia-gestures .sc-nav-search-result{display:block;width:100%;text-align:left;padding:12px 5px;background:none;border:0;border-bottom:1px solid #2c3d51;color:#d0deea;font:13px/1.5 system-ui,sans-serif;overflow-wrap:anywhere}
+#sophia-gestures .sc-nav-search-result small{display:block;color:#8da6c1;font-size:10px;margin-top:3px}
+#sophia-gestures .sc-nav-search-context{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;color:#aabace;font-size:11px;line-height:1.7;margin-top:7px}
+#sophia-gestures .sc-nav-search-result .sc-nav-search-identity{font-size:9px;color:#859bb3;margin-top:7px}
+#sophia-gestures .sc-nav-variants{display:flex;flex-wrap:wrap;gap:7px;margin-top:24px}
+#sophia-gestures .sc-nav-variant{background:#111e2d;border:1px solid #3d5068;color:#b3c6dc;border-radius:3px;padding:8px 13px;font:11px system-ui,sans-serif;min-height:34px}
+#sophia-gestures .sc-nav-variant[aria-pressed=true]{border-color:#a38c61;color:#efdab1;background:#bda37116}
+#sophia-gestures .sc-nav-itinerary{list-style:none;padding:0 0 0 8px;margin:24px 0 10px}
+#sophia-gestures .sc-nav-itinerary li{position:relative;padding:0 0 22px 23px;border-left:1px solid #bda47544}
+#sophia-gestures .sc-nav-itinerary li:last-child{border-left-color:transparent;padding-bottom:4px}
+#sophia-gestures .sc-nav-itinerary li::before{content:'';position:absolute;left:-4px;top:6px;width:7px;height:7px;background:#d6bd88;box-shadow:0 0 12px #d6bd8855;transform:rotate(45deg)}
+#sophia-gestures .sc-nav-stop{display:block;padding:0;background:none;border:0;color:#e5dbc7;font:18px/1.5 Georgia,serif;text-align:left;overflow-wrap:anywhere}
+#sophia-gestures .sc-nav-hop{margin-top:10px;display:flex;align-items:center;flex-wrap:wrap;gap:5px 12px}
+#sophia-gestures .sc-nav-relation{font:11px/1.7 system-ui,sans-serif;color:#a9c0d9;background:none;border:0;padding:3px 0;text-align:left;overflow-wrap:anywhere}
+#sophia-gestures .sc-nav-hop small{font-size:9px;color:#ae9bbd}
+#sophia-gestures .sc-nav-skip{font:10px system-ui,sans-serif;color:#b5a88c;background:none;border:1px solid #6f63403d;border-radius:3px;padding:6px 9px}
+#sophia-gestures .sc-nav-exclusions{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+#sophia-gestures .sc-nav-exclusions>span{width:100%}
+#sophia-gestures .sc-nav-exclusions button{max-width:100%;overflow-wrap:anywhere;text-align:left;color:#d0b7a2;border-color:#72634e55;background:#8a6b5110}
+#sophia-gestures .sc-nav-status{flex-shrink:0;color:#d9b68f;font:11px/1.7 system-ui,sans-serif}
+#sophia-gestures .sc-nav-status:not(:empty){padding-top:12px}
+#sophia-gestures .sc-nav-footer{border-top:1px solid #334051;margin-top:12px;padding-top:11px;flex-shrink:0;color:#8fa3ba;font:10px/1.5 system-ui,sans-serif}
+#sophia-gestures .sc-nav-return{background:none;border:0;color:#d9c192;font:11px/1.6 system-ui,sans-serif;padding:3px 0}
+@container(max-width:1050px){#sophia-gestures .sc-navigation-panel{right:20px;padding:14px 18px;width:44%}#sophia-gestures .sc-nav-options{grid-template-columns:1fr 1fr}#sophia-gestures .sc-nav-options>label:last-child{grid-column:1/-1}}
+@container(max-width:650px){#sophia-gestures .sc-navigation-panel{top:auto;bottom:115px;left:15px;right:15px;width:auto;max-height:42dvh;padding:12px 17px}#sophia-gestures .sc-navigation-panel .sc-panel-top{position:absolute;right:10px;top:8px}#sophia-gestures .sc-navigation-panel .sc-panel-top>.sc-eyebrow{display:none}#sophia-gestures .sc-nav-heading{margin:4px 33px 12px 0;gap:10px}#sophia-gestures .sc-nav-heading h3{font-size:22px}#sophia-gestures .sc-nav-heading>span{font-size:27px}#sophia-gestures .sc-nav-body{padding-top:14px}#sophia-gestures .sc-nav-tabs button{padding-bottom:8px}#sophia-gestures .sc-nav-options{grid-template-columns:1.25fr .8fr 1fr}#sophia-gestures .sc-nav-options>label:last-child{grid-column:auto}}
+@media(prefers-reduced-motion:reduce){#sophia-gestures .sc-navigation-panel:not([hidden]){animation:none}}

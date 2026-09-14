@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -18,14 +19,31 @@ ACCESS_SRC = REPO_ROOT / "access" / "src"
 if ACCESS_SRC.as_posix() not in sys.path:
     sys.path.insert(0, ACCESS_SRC.as_posix())
 
-from tos_access.core import ToSAccessCore  # noqa: E402
+from tos_access.core import ToSAccessCore, KNOWLEDGE_CONTRACT_RELATIVE_PATHS  # noqa: E402
+from tos_access import core as access_core  # noqa: E402
+from tos_access.projection_store import ProjectionReader, is_partitioned  # noqa: E402
+from tos_access.normalization_cache import NormalizationCache, normalization_processor_digest  # noqa: E402
+from tos_access.processing import DEFAULT_CACHE_BYTES, DEFAULT_CACHE_ENTRIES  # noqa: E402
+_builder_dir = str(Path(__file__).resolve().parent)
+if _builder_dir not in sys.path:
+    sys.path.insert(0, _builder_dir)
+from incremental_runtime import DeltaRecorder  # noqa: E402
+from build_stages import BuildStages, atomic_json, build_lock, fingerprint, tree_paths  # noqa: E402
 
 
 CORPUS_COLLECTIONS = ("nodes", "resources", "manifests", "branches", "graph_views")
 STATIC_PHILOSOPHY_LIMITS = (1, 1000)
 STATIC_CORPUS_LIMITS = (1, 100, 700, 1000)
-SQL_CHUNK_CHARS = 40_000
-READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v1"
+SQL_CHUNK_BYTES = 32_000
+# The public search query is bounded to 256 UTF-16 code units.  Keep a much
+# larger overlap than that bound so a lower-case Unicode expansion (for
+# example, U+0130 -> "i" + combining dot) and UTF-8 encoding cannot turn a
+# match crossing a chunk boundary into a false negative.
+SEARCH_CHUNK_OVERLAP_BYTES = 4_096
+MAX_D1_SQL_STATEMENT_BYTES = 100_000
+MAX_D1_ROW_BYTES = 2_000_000
+READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v9"
+READ_MODEL_CONTENT_VERSION = "tos_cloudflare_edge_content_v3"
 
 
 def compact_json(value: Any) -> str:
@@ -44,6 +62,82 @@ def object_list(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, dict)]
+
+
+def iter_objects(value: Any) -> Iterable[dict[str, Any]]:
+    """Yield object rows without turning a compiled snapshot into a list."""
+    if isinstance(value, dict) or isinstance(value, (str, bytes)) or value is None:
+        return
+    if isinstance(value, list):
+        for item in value:
+            if isinstance(item, dict):
+                yield item
+        return
+    try:
+        iterator = iter(value)
+    except TypeError:
+        return
+    for item in iterator:
+        if isinstance(item, dict):
+            yield item
+
+
+def projection_closure_paths(core: ToSAccessCore) -> list[Path]:
+    """Return source roots and exact partition parts used by this producer."""
+    result: dict[str, Path] = {}
+    for root in (core.index_path, core.bibliographic_graph_path):
+        if not root.is_file():
+            result[str(root.resolve())] = root
+            continue
+        if is_partitioned(root):
+            for member in ProjectionReader(root).closure_paths():
+                path = Path(member).resolve()
+                result[path.as_posix()] = path
+        else:
+            path = root.resolve()
+            result[path.as_posix()] = path
+    return [result[key] for key in sorted(result)]
+
+
+def partitioned_inputs(core: ToSAccessCore) -> bool:
+    return any(path.is_file() and is_partitioned(path)
+               for path in (core.index_path, core.bibliographic_graph_path))
+
+
+def compile_query_store_for_build(core: ToSAccessCore, output: Path) -> Path:
+    """Build one explicit offline query snapshot before importing D1 rows."""
+    try:
+        from tos_access.knowledge_compile import compile_knowledge_store
+    except ImportError as exc:
+        raise RuntimeError(
+            "partitioned Worker build requires the explicit offline query-store compiler"
+        ) from exc
+    output = output.resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    # The compiler is deliberately the only owner of graph assembly at this
+    # boundary.  ``allow_legacy`` applies to the existing bounded philosophy
+    # projection; corpus and bibliography still require partitioned inputs.
+    result = compile_knowledge_store(core.tos_root, output, allow_legacy=True)
+    candidate = output
+    if isinstance(result, dict) and isinstance(result.get("output"), str):
+        candidate = Path(result["output"])
+    elif isinstance(result, (str, Path)):
+        candidate = Path(result)
+    if not candidate.is_file():
+        raise RuntimeError(f"offline query-store compiler did not publish {output}")
+    return candidate.resolve()
+
+
+def query_store_for_build(core: ToSAccessCore, runtime: Path):
+    """Select a ready SQL snapshot, compiling it only at this offline boundary."""
+    if not partitioned_inputs(core):
+        return None
+    query_path = compile_query_store_for_build(core, runtime / "knowledge.sqlite3")
+    os.environ["TOS_QUERY_STORE_PATH"] = query_path.as_posix()
+    store = core._query_store()
+    if store is None:
+        raise RuntimeError("partitioned Worker build could not open its compiled query snapshot")
+    return store
 
 
 def string_list(value: Any) -> list[str]:
@@ -107,7 +201,17 @@ def write_text(root: Path, relative: str, value: str) -> None:
     target.write_text(value, encoding="utf-8")
 
 
-def build_static_assets(core: ToSAccessCore, output: Path) -> dict[str, Any]:
+def source_navigation_for_build(core: ToSAccessCore) -> dict[str, Any]:
+    """Assemble the legacy bounded static navigation packet."""
+    return core.source_navigation(bibliographic_only=True)
+
+
+def source_navigation_top(store) -> dict[str, Any]:
+    """Return only source-navigation metadata for the D1 edge read model."""
+    return dict(store.metadata.get("source_navigation_header") or {})
+
+
+def build_static_assets(core: ToSAccessCore, output: Path, *, store=None) -> dict[str, Any]:
     web_dist = REPO_ROOT / "access" / "web" / "dist"
     if not (web_dist / "index.html").is_file():
         raise RuntimeError("missing access/web/dist; run the web build first")
@@ -142,8 +246,18 @@ def build_static_assets(core: ToSAccessCore, output: Path) -> dict[str, Any]:
     corpus_summary = normalize_paths(core.summary(), REPO_ROOT)
     write_json(output, "__edge/corpus/status.json", corpus_status)
     write_json(output, "__edge/corpus/summary.json", corpus_summary)
+    write_json(output, "__edge/knowledge/catalog.json", normalize_paths(core.knowledge_catalog(), REPO_ROOT))
+    write_json(output, "__edge/knowledge/contracts.json", normalize_paths(core.knowledge_contracts(), REPO_ROOT))
+    exploration_contracts = core.knowledge_exploration_contracts()
+    write_json(output, "__edge/knowledge/exploration-contracts.json",
+               {key: value for key, value in exploration_contracts.items() if key != "capabilities"})
     write_json(output, "__edge/source-gaps/all.json", normalize_paths(core.source_gap_search("", limit=100), REPO_ROOT))
-    write_json(output, "__edge/source-navigation/all.json", normalize_paths(core.source_navigation(), REPO_ROOT))
+    if store is None:
+        # Legacy bounded projections retain the static adapter. Partitioned
+        # source navigation is served from D1 rows emitted by the read-model
+        # stage, so materializing all 38k+ nodes and 52k+ edges into one asset
+        # would defeat the partitioned input boundary.
+        write_json(output, "__edge/source-navigation/all.json", normalize_paths(source_navigation_for_build(core), REPO_ROOT))
     for view_id in corpus_status.get("graph_views", []):
         for limit in STATIC_CORPUS_LIMITS:
             packet = normalize_paths(core.graph_view(str(view_id), limit=limit), REPO_ROOT)
@@ -194,6 +308,10 @@ def build_static_assets(core: ToSAccessCore, output: Path) -> dict[str, Any]:
   Cache-Control: public, max-age=31536000, immutable
 """
     write_text(output, "_headers", headers)
+    oversized = [path.relative_to(output).as_posix() for path in output.rglob('*')
+                 if path.is_file() and path.stat().st_size >= 25 * 1024 * 1024]
+    if oversized:
+        raise RuntimeError('static assets exceed the 25 MiB delivery limit: ' + ', '.join(oversized))
     return {"corpus": corpus_status, "philosophy": philosophy_status}
 
 
@@ -234,13 +352,289 @@ def sql_insert(table: str, columns: tuple[str, ...], values: tuple[str, ...]) ->
     return f"INSERT INTO {table} ({','.join(columns)}) VALUES ({','.join(values)});"
 
 
-def chunk_text(value: str, size: int = SQL_CHUNK_CHARS) -> list[str]:
-    return [value[offset : offset + size] for offset in range(0, len(value), size)] or [""]
+def chunk_text(value: str, size: int = SQL_CHUNK_BYTES) -> list[str]:
+    """Split text without breaking UTF-8 and keep escaped INSERTs below D1's limit."""
+    chunks: list[str] = []
+    encoded = value.encode('utf-8')
+    start = 0
+    while start < len(encoded):
+        end = min(start + size, len(encoded))
+        while end < len(encoded) and end > start and encoded[end] & 0xC0 == 0x80:
+            end -= 1
+        if end == start:
+            raise ValueError('chunk size cannot hold one UTF-8 character')
+        chunks.append(encoded[start:end].decode('utf-8'))
+        start = end
+    if not chunks:
+        chunks.append('')
+    return chunks
 
 
-def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> dict[str, int]:
+def overlapping_search_chunks(
+    value: str,
+    size: int = SQL_CHUNK_BYTES,
+    overlap: int = SEARCH_CHUNK_OVERLAP_BYTES,
+) -> list[str]:
+    """Split lower-cased search text into UTF-8-safe overlapping windows.
+
+    Payload JSON is chunked for reconstruction, while these windows are a
+    separate query projection.  The overlap is what preserves a substring
+    that straddles two windows; lower-casing before splitting also avoids
+    SQLite's ASCII-only ``lower()`` behavior for compact rows.
+    """
+    if size <= 0 or overlap < 0 or overlap >= size:
+        raise ValueError("search chunk size must be positive and larger than its overlap")
+    encoded = value.encode("utf-8")
+    if not encoded:
+        return [""]
+    chunks: list[str] = []
+    start = 0
+    while start < len(encoded):
+        end = min(start + size, len(encoded))
+        while end < len(encoded) and end > start and encoded[end] & 0xC0 == 0x80:
+            end -= 1
+        if end == start:
+            raise ValueError("search chunk size cannot hold one UTF-8 character")
+        chunks.append(encoded[start:end].decode("utf-8"))
+        if end == len(encoded):
+            break
+        next_start = max(start + 1, end - overlap)
+        while next_start > start and encoded[next_start] & 0xC0 == 0x80:
+            next_start -= 1
+        if next_start <= start:
+            raise ValueError("search chunk overlap cannot advance")
+        start = next_start
+    return chunks
+
+
+class SqlStatementWriter:
+    """List-shaped streaming sink so large read models do not live twice in RAM."""
+
+    def __init__(self, target: Path, delta: DeltaRecorder | None = None) -> None:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        self.target = target
+        self.pending = target.with_name(target.name + ".next")
+        self.stream = self.pending.open("w", encoding="utf-8")
+        self.count = 0
+        self.delta = delta
+
+    def append(self, statement: str) -> None:
+        if self.delta is not None:
+            self.delta.observe(statement)
+        statement_size = len(statement.encode("utf-8"))
+        if statement_size > MAX_D1_SQL_STATEMENT_BYTES:
+            raise RuntimeError(
+                f"D1 SQL statement exceeds {MAX_D1_SQL_STATEMENT_BYTES} bytes: {statement_size}"
+            )
+        self.stream.write(statement)
+        self.stream.write("\n")
+        self.count += 1
+
+    def extend(self, statements: Iterable[str]) -> None:
+        for statement in statements:
+            self.append(statement)
+
+    def finish(self) -> None:
+        self.stream.flush()
+        self.stream.close()
+        self.pending.replace(self.target)
+
+
+def append_chunkable_insert(
+    writer: SqlStatementWriter,
+    table: str,
+    columns: tuple[str, ...],
+    values: tuple[str, ...],
+    *,
+    selector_sql: str,
+    chunked_text: dict[str, str],
+) -> None:
+    """Insert one row while preserving oversized text through bounded updates."""
+    # SQL chunking bounds statements, not the eventual SQLite row. Use an
+    # intentionally conservative upper bound including escaped text/header.
+    if sum(len(value.encode('utf-8')) for value in values) + 1024 > MAX_D1_ROW_BYTES:
+        raise RuntimeError(f'{table} row exceeds the D1 row budget; split the record, never truncate it')
+    statement = sql_insert(table, columns, values)
+    if len(statement.encode("utf-8")) <= MAX_D1_SQL_STATEMENT_BYTES:
+        writer.append(statement)
+        return
+
+    base_values = list(values)
+    for column in chunked_text:
+        try:
+            position = columns.index(column)
+        except ValueError as exc:
+            raise RuntimeError(f"chunked column {column!r} is absent from {table}") from exc
+        base_values[position] = sql_text("")
+    writer.append(sql_insert(table, columns, tuple(base_values)))
+    for column, value in chunked_text.items():
+        for chunk in chunk_text(value):
+            writer.append(
+                f"UPDATE {table} SET {column} = {column} || {sql_text(chunk)} "
+                f"WHERE {selector_sql};"
+            )
+
+
+def append_payload_chunks(
+    writer: SqlStatementWriter,
+    table: str,
+    item_id: str,
+    value: str,
+) -> int:
+    """Keep one lossless JSON value in bounded, independently sized rows."""
+    chunks = chunk_text(value)
+    for part, chunk in enumerate(chunks):
+        writer.append(
+            sql_insert(
+                table,
+                ("id", "part", "json_chunk"),
+                (sql_text(item_id), str(part), sql_text(chunk)),
+            )
+        )
+    return len(chunks)
+
+
+def append_search_chunks(
+    writer: SqlStatementWriter,
+    table: str,
+    item_id: str,
+    value: str,
+) -> int:
+    """Store the complete lower-case search projection in bounded windows."""
+    chunks = overlapping_search_chunks(value.lower())
+    for part, chunk in enumerate(chunks):
+        writer.append(
+            sql_insert(
+                table,
+                ("id", "part", "search_chunk"),
+                (sql_text(item_id), str(part), sql_text(chunk)),
+            )
+        )
+    return len(chunks)
+
+
+def prepare_knowledge_row(
+    normalized: dict[str, Any],
+    item_json: str,
+    values: tuple[str, ...],
+    *,
+    search_position: int,
+    json_position: int,
+) -> tuple[str, tuple[str, ...], str, str]:
+    """Choose a bounded query copy and retain the original for payload chunks."""
+    row_size = lambda candidate: sum(len(value.encode("utf-8")) for value in candidate) + 1024
+    if row_size(values) <= MAX_D1_ROW_BYTES:
+        return item_json, values, "", item_json.lower()
+
+    without_search = list(values)
+    without_search[search_position] = sql_text("")
+    without_search_values = tuple(without_search)
+    if row_size(without_search_values) <= MAX_D1_ROW_BYTES:
+        return item_json, without_search_values, "", ""
+
+    # The full read model keeps source_record lossless in a separate chunk
+    # table. The compact copy retains normal query fields while avoiding a
+    # second copy of source properties. Source-navigation properties are
+    # selected separately for packet/link routing; their complete object lives
+    # in the payload chunks below.
+    query_item = {key: value for key, value in normalized.items() if key != "source_record"}
+    attributes = query_item.get("attributes")
+    if isinstance(attributes, dict):
+        if normalized.get("source_graph") == "source-navigation":
+            query_item["attributes"] = {
+                key: attributes[key]
+                for key in ("packet_id", "access_status")
+                if key in attributes
+            }
+        else:
+            # ``attributes.source_record`` is the same source envelope already
+            # retained by the top-level source_record payload.
+            query_item["attributes"] = {
+                key: value for key, value in attributes.items() if key != "source_record"
+            }
+    query_json = compact_json(query_item)
+    compact_values = list(without_search_values)
+    compact_values[json_position] = sql_text(query_json)
+    compact_values_tuple = tuple(compact_values)
+    if row_size(compact_values_tuple) > MAX_D1_ROW_BYTES:
+        # A pathological auxiliary field must never force a second full JSON
+        # copy into the serving row. The lossless normalized item is already
+        # in payload chunks; leave only the fixed query envelope here.
+        query_item["attributes"] = {}
+        query_json = compact_json(query_item)
+        compact_values[json_position] = sql_text(query_json)
+        compact_values_tuple = tuple(compact_values)
+    if row_size(compact_values_tuple) > MAX_D1_ROW_BYTES:
+        raise RuntimeError(
+            "knowledge record exceeds the D1 row budget after compacting its query projection; "
+            "split the source record or add a bounded query projection"
+        )
+    return query_json, compact_values_tuple, item_json, ""
+
+
+def prepare_source_navigation_row(
+    values: tuple[str, ...],
+    item_json: str,
+    *,
+    json_position: int,
+    properties_position: int,
+) -> tuple[tuple[str, ...], str | None]:
+    """Keep source-navigation selection fields bounded and payload lossless.
+
+    D1 limits the eventual row to 2 MiB. A large source-navigation record is
+    therefore inserted with empty JSON selection fields and reconstructed from
+    independently bounded payload chunks. The full ``properties`` object is
+    never copied into a second large row; it remains part of the one lossless
+    source JSON payload.
+    """
+    row_size = lambda candidate: sum(len(value.encode("utf-8")) for value in candidate) + 1024
+    if row_size(values) <= MAX_D1_ROW_BYTES:
+        return values, None
+
+    compact_values = list(values)
+    compact_values[json_position] = sql_text("")
+    # A large properties object is a selection hint only. If retaining it
+    # would breach the row budget, leave it empty and let the full source JSON
+    # payload carry the object exactly once.
+    if row_size(tuple(compact_values)) > MAX_D1_ROW_BYTES:
+        compact_values[properties_position] = sql_text("")
+    if row_size(tuple(compact_values)) > MAX_D1_ROW_BYTES:
+        raise RuntimeError("source-navigation selection fields exceed the D1 row budget")
+    return tuple(compact_values), item_json
+
+
+def source_navigation_selection_properties(item: dict[str, Any]) -> dict[str, Any]:
+    """Keep only fields used to select source-navigation rows.
+
+    The complete properties object stays in the source JSON payload. These
+    hints let the edge filter dense text-packet carriers and determine Link
+    availability without storing a second copy of a potentially large object.
+    """
+    properties = item.get("properties")
+    if not isinstance(properties, dict):
+        return {}
+    return {
+        key: properties[key]
+        for key in ("packet_id", "access_status")
+        if key in properties
+    }
+
+
+def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str, *, store=None) -> dict[str, Any]:
     philosophy = core.philosophy_projection()
-    corpus = core.index()
+    store = store or None
+    if store is not None:
+        corpus = dict(store.metadata.get("corpus_header") or {})
+        knowledge = dict(store.metadata.get("graph_header") or {})
+        knowledge_nodes: Iterable[dict[str, Any]] = store.rows("knowledge_nodes", order="id")
+        knowledge_relations: Iterable[dict[str, Any]] = store.rows("knowledge_relations", order="id")
+        corpus_rows = lambda name: store.raw(f"corpus/{name}")
+    else:
+        corpus = core.index()
+        knowledge = core.knowledge_graph()
+        knowledge_nodes = iter_objects(knowledge.get("nodes"))
+        knowledge_relations = iter_objects(knowledge.get("relations"))
+        corpus_rows = lambda name: iter_objects(corpus.get(name))
     evidence = core.evidence_projection()
     audit = core.philosophy_audit_payload() if core.philosophy_audit_exists() else {}
     word_analysis_capability = core.zarathustra_word_analysis_public_capability()
@@ -262,7 +656,14 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         if isinstance(layer.get("layer_id"), str)
     }
 
-    statements = [
+    target.parent.mkdir(parents=True, exist_ok=True)
+    index_path = target.with_name('read-model.rows.json')
+    deployed_path = target.with_name('read-model.deployed.rows.json')
+    baseline_path = deployed_path if deployed_path.is_file() else index_path
+    previous_index = json.loads(baseline_path.read_text()) if baseline_path.is_file() else None
+    delta = DeltaRecorder(target.with_name('read-model.delta.sql'), revision, READ_MODEL_SCHEMA_VERSION, previous_index)
+    statements = SqlStatementWriter(target, delta)
+    statements.extend((
         "PRAGMA foreign_keys=OFF;",
         "DROP TABLE IF EXISTS edge_meta_next;",
         "DROP TABLE IF EXISTS philosophy_nodes_next;",
@@ -275,7 +676,19 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "DROP TABLE IF EXISTS corpus_items_next;",
         "DROP TABLE IF EXISTS corpus_edges_next;",
         "DROP TABLE IF EXISTS corpus_packs_next;",
-        "CREATE TABLE edge_meta_next (key TEXT PRIMARY KEY, json TEXT NOT NULL);",
+        "DROP TABLE IF EXISTS knowledge_nodes_next;",
+        "DROP TABLE IF EXISTS knowledge_node_payload_next;",
+        "DROP TABLE IF EXISTS knowledge_node_search_chunks_next;",
+        "DROP TABLE IF EXISTS knowledge_relations_next;",
+        "DROP TABLE IF EXISTS knowledge_relation_payload_next;",
+        "DROP TABLE IF EXISTS knowledge_relation_search_chunks_next;",
+        "DROP TABLE IF EXISTS source_navigation_nodes_next;",
+        "DROP TABLE IF EXISTS source_navigation_node_payload_next;",
+        "DROP TABLE IF EXISTS source_navigation_edges_next;",
+        "DROP TABLE IF EXISTS source_navigation_edge_payload_next;",
+        "DROP TABLE IF EXISTS source_navigation_rights_next;",
+        "DROP TABLE IF EXISTS source_navigation_rights_payload_next;",
+        "CREATE TABLE edge_meta_next (key TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY (key, part));",
         "CREATE TABLE philosophy_nodes_next (id TEXT PRIMARY KEY, ord INTEGER NOT NULL, view_mask INTEGER NOT NULL, layer_mask INTEGER NOT NULL, json TEXT NOT NULL, search_text TEXT NOT NULL);",
         "CREATE TABLE philosophy_edges_next (id TEXT PRIMARY KEY, ord INTEGER NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, predicate_id TEXT NOT NULL, view_mask INTEGER NOT NULL, layer_mask INTEGER NOT NULL, json TEXT NOT NULL, search_text TEXT NOT NULL);",
         "CREATE TABLE philosophy_aux_next (collection TEXT NOT NULL, ord INTEGER NOT NULL, id TEXT NOT NULL, json TEXT NOT NULL, search_text TEXT NOT NULL, PRIMARY KEY (collection, ord));",
@@ -286,7 +699,19 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "CREATE TABLE corpus_items_next (collection TEXT NOT NULL, ord INTEGER NOT NULL, id TEXT NOT NULL, resource_kind TEXT, owner_branch TEXT, json TEXT NOT NULL, search_text TEXT NOT NULL, PRIMARY KEY (collection, ord));",
         "CREATE TABLE corpus_edges_next (id TEXT NOT NULL, ord INTEGER PRIMARY KEY, from_id TEXT NOT NULL, to_id TEXT NOT NULL, pack_id TEXT, owner_branch TEXT, json TEXT NOT NULL);",
         "CREATE TABLE corpus_packs_next (id TEXT PRIMARY KEY, ord INTEGER NOT NULL, json TEXT NOT NULL);",
-    ]
+        "CREATE TABLE knowledge_nodes_next (id TEXT PRIMARY KEY, entity_id TEXT NOT NULL, native_id TEXT NOT NULL, source_graph TEXT NOT NULL, kind_id TEXT NOT NULL, type_id TEXT NOT NULL, title_text TEXT NOT NULL, summary_text TEXT NOT NULL, search_text TEXT NOT NULL, json TEXT NOT NULL);",
+        "CREATE TABLE knowledge_node_payload_next (id TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY (id, part));",
+        "CREATE TABLE knowledge_node_search_chunks_next (id TEXT NOT NULL, part INTEGER NOT NULL, search_chunk TEXT NOT NULL, PRIMARY KEY (id, part));",
+        "CREATE TABLE knowledge_relations_next (id TEXT PRIMARY KEY, native_id TEXT NOT NULL, source_graph TEXT NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, predicate_id TEXT NOT NULL, relation_type_id TEXT NOT NULL, label_text TEXT NOT NULL, explanation_text TEXT NOT NULL, search_text TEXT NOT NULL, json TEXT NOT NULL);",
+        "CREATE TABLE knowledge_relation_payload_next (id TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY (id, part));",
+        "CREATE TABLE knowledge_relation_search_chunks_next (id TEXT NOT NULL, part INTEGER NOT NULL, search_chunk TEXT NOT NULL, PRIMARY KEY (id, part));",
+        "CREATE TABLE source_navigation_nodes_next (node_id TEXT PRIMARY KEY, ord INTEGER NOT NULL, node_kind TEXT NOT NULL, source_ref TEXT NOT NULL, label TEXT NOT NULL, identity_status TEXT NOT NULL, properties_json TEXT NOT NULL, json TEXT NOT NULL);",
+        "CREATE TABLE source_navigation_node_payload_next (id TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY (id, part));",
+        "CREATE TABLE source_navigation_edges_next (edge_id TEXT PRIMARY KEY, ord INTEGER NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, edge_kind TEXT NOT NULL, predicate_id TEXT NOT NULL, review_status TEXT NOT NULL, source_refs_json TEXT NOT NULL, json TEXT NOT NULL);",
+        "CREATE TABLE source_navigation_edge_payload_next (id TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY (id, part));",
+        "CREATE TABLE source_navigation_rights_next (rights_id TEXT PRIMARY KEY, ord INTEGER NOT NULL, scope_refs_json TEXT NOT NULL, json TEXT NOT NULL);",
+        "CREATE TABLE source_navigation_rights_payload_next (id TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY (id, part));",
+    ))
 
     philosophy_top = {
         key: value
@@ -317,77 +742,106 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "evidence_projection": normalize_paths(evidence, REPO_ROOT),
         "philosophy_audit": normalize_paths(audit, REPO_ROOT),
         "word_analysis_capability": normalize_paths(word_analysis_capability, REPO_ROOT),
+        "knowledge_top": normalize_paths(
+            {key: value for key, value in knowledge.items() if key not in {"nodes", "relations"}},
+            REPO_ROOT,
+        ),
+        "knowledge_exploration_top": {
+            "source_revision": knowledge["source_revision"],
+            "authority_boundary": knowledge.get("authority_boundary", {}),
+        },
     }
+    if store is not None:
+        # Partitioned source navigation is served from D1 rows. Keep only its
+        # bounded header in edge_meta; nodes, edges, and rights are emitted
+        # below as independently addressable tables.
+        metadata["source_navigation_top"] = normalize_paths(source_navigation_top(store), REPO_ROOT)
     for key, value in metadata.items():
-        statements.append(
-            sql_insert("edge_meta_next", ("key", "json"), (sql_text(key), sql_text(compact_json(value))))
-        )
+        for part, chunk in enumerate(chunk_text(compact_json(value))):
+            statements.append(
+                sql_insert(
+                    "edge_meta_next",
+                    ("key", "part", "json_chunk"),
+                    (sql_text(key), str(part), sql_text(chunk)),
+                )
+            )
 
     philosophy_nodes = object_list(philosophy.get("nodes"))
     for order, item in enumerate(philosophy_nodes):
         item_json = compact_json(normalize_paths(item, REPO_ROOT))
-        statements.append(
-            sql_insert(
-                "philosophy_nodes_next",
-                ("id", "ord", "view_mask", "layer_mask", "json", "search_text"),
-                (
-                    sql_text(str(item.get("node_id") or "")),
-                    str(order),
-                    str(mask_for(string_list(item.get("view_ids")), view_positions)),
-                    str(mask_for(string_list(item.get("graph_layers")), layer_positions)),
-                    sql_text(item_json),
-                    sql_text(item_json.lower()),
-                ),
-            )
+        item_id = str(item.get("node_id") or "")
+        columns = ("id", "ord", "view_mask", "layer_mask", "json", "search_text")
+        values = (
+            sql_text(item_id),
+            str(order),
+            str(mask_for(string_list(item.get("view_ids")), view_positions)),
+            str(mask_for(string_list(item.get("graph_layers")), layer_positions)),
+            sql_text(item_json),
+            sql_text(item_json.lower()),
+        )
+        append_chunkable_insert(
+            statements,
+            "philosophy_nodes_next",
+            columns,
+            values,
+            selector_sql=f"id = {sql_text(item_id)}",
+            chunked_text={"json": item_json, "search_text": item_json.lower()},
         )
 
     philosophy_edges = object_list(philosophy.get("edges"))
     for order, item in enumerate(philosophy_edges):
         item_json = compact_json(normalize_paths(item, REPO_ROOT))
-        statements.append(
-            sql_insert(
-                "philosophy_edges_next",
-                (
-                    "id",
-                    "ord",
-                    "from_id",
-                    "to_id",
-                    "predicate_id",
-                    "view_mask",
-                    "layer_mask",
-                    "json",
-                    "search_text",
-                ),
-                (
-                    sql_text(str(item.get("edge_id") or "")),
-                    str(order),
-                    sql_text(str(item.get("from_id") or "")),
-                    sql_text(str(item.get("to_id") or "")),
-                    sql_text(str(item.get("predicate_id") or "")),
-                    str(mask_for(string_list(item.get("view_ids")), view_positions)),
-                    str(mask_for(string_list(item.get("graph_layers")), layer_positions)),
-                    sql_text(item_json),
-                    sql_text(item_json.lower()),
-                ),
-            )
+        item_id = str(item.get("edge_id") or "")
+        columns = (
+            "id",
+            "ord",
+            "from_id",
+            "to_id",
+            "predicate_id",
+            "view_mask",
+            "layer_mask",
+            "json",
+            "search_text",
+        )
+        values = (
+            sql_text(item_id),
+            str(order),
+            sql_text(str(item.get("from_id") or "")),
+            sql_text(str(item.get("to_id") or "")),
+            sql_text(str(item.get("predicate_id") or "")),
+            str(mask_for(string_list(item.get("view_ids")), view_positions)),
+            str(mask_for(string_list(item.get("graph_layers")), layer_positions)),
+            sql_text(item_json),
+            sql_text(item_json.lower()),
+        )
+        append_chunkable_insert(
+            statements,
+            "philosophy_edges_next",
+            columns,
+            values,
+            selector_sql=f"id = {sql_text(item_id)}",
+            chunked_text={"json": item_json, "search_text": item_json.lower()},
         )
 
     for collection in ("views", "clusters", "review_packets", "graph_layers"):
         for order, item in enumerate(object_list(philosophy.get(collection))):
             compact_item = compact_philosophy_aux(collection, item)
             item_json = compact_json(normalize_paths(compact_item, REPO_ROOT))
-            statements.append(
-                sql_insert(
-                    "philosophy_aux_next",
-                    ("collection", "ord", "id", "json", "search_text"),
-                    (
-                        sql_text(collection),
-                        str(order),
-                        sql_text(item_identity(item, f"{collection}:{order}")),
-                        sql_text(item_json),
-                        sql_text(item_json.lower()),
-                    ),
-                )
+            columns = ("collection", "ord", "id", "json", "search_text")
+            values = (
+                sql_text(collection),
+                str(order),
+                sql_text(item_identity(item, f"{collection}:{order}")),
+                sql_text(item_json),
+                sql_text(item_json.lower()),
+            )
+            append_chunkable_insert(
+                statements,
+                "philosophy_aux_next",
+                columns,
+                values,
+                selector_sql=f"collection = {sql_text(collection)} AND ord = {order}",
+                chunked_text={"json": item_json, "search_text": item_json.lower()},
             )
 
     philosophy_clusters = object_list(philosophy.get("clusters"))
@@ -461,74 +915,361 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
 
     for item in object_list(philosophy.get("review_packets")):
         view_id = str(item.get("view_id") or "")
-        statements.append(
-            sql_insert(
-                "philosophy_review_packets_next",
-                ("view_id", "json"),
-                (sql_text(view_id), sql_text(compact_json(normalize_paths(item, REPO_ROOT)))),
-            )
+        item_json = compact_json(normalize_paths(item, REPO_ROOT))
+        append_chunkable_insert(
+            statements,
+            "philosophy_review_packets_next",
+            ("view_id", "json"),
+            (sql_text(view_id), sql_text(item_json)),
+            selector_sql=f"view_id = {sql_text(view_id)}",
+            chunked_text={"json": item_json},
         )
 
     corpus_items_count = 0
     for collection in CORPUS_COLLECTIONS:
-        for order, item in enumerate(object_list(corpus.get(collection))):
+        for order, item in enumerate(corpus_rows(collection)):
             item_json = compact_json(normalize_paths(item, REPO_ROOT))
-            statements.append(
-                sql_insert(
-                    "corpus_items_next",
-                    ("collection", "ord", "id", "resource_kind", "owner_branch", "json", "search_text"),
-                    (
-                        sql_text(collection),
-                        str(order),
-                        sql_text(item_identity(item, f"{collection}:{order}")),
-                        sql_nullable(item.get("resource_kind") if isinstance(item.get("resource_kind"), str) else None),
-                        sql_nullable(item.get("owner_branch") if isinstance(item.get("owner_branch"), str) else None),
-                        sql_text(item_json),
-                        sql_text(item_json.lower()),
-                    ),
-                )
+            columns = (
+                "collection",
+                "ord",
+                "id",
+                "resource_kind",
+                "owner_branch",
+                "json",
+                "search_text",
+            )
+            values = (
+                sql_text(collection),
+                str(order),
+                sql_text(item_identity(item, f"{collection}:{order}")),
+                sql_nullable(item.get("resource_kind") if isinstance(item.get("resource_kind"), str) else None),
+                sql_nullable(item.get("owner_branch") if isinstance(item.get("owner_branch"), str) else None),
+                sql_text(item_json),
+                sql_text(item_json.lower()),
+            )
+            append_chunkable_insert(
+                statements,
+                "corpus_items_next",
+                columns,
+                values,
+                selector_sql=f"collection = {sql_text(collection)} AND ord = {order}",
+                chunked_text={"json": item_json, "search_text": item_json.lower()},
             )
             corpus_items_count += 1
 
     pack_paths = {
         str(pack.get("pack_id")): str(pack.get("path"))
-        for pack in object_list(corpus.get("relation_packs"))
+        for pack in corpus_rows("relation_packs")
         if isinstance(pack.get("pack_id"), str) and isinstance(pack.get("path"), str)
     }
-    corpus_edges = [
+    corpus_edges = (
         edge_with_corpus_source_ref(item, pack_paths)
-        for item in object_list(corpus.get("relation_edges"))
-    ]
+        for item in corpus_rows("relation_edges")
+    )
+    corpus_edges_count = 0
     for order, item in enumerate(corpus_edges):
-        statements.append(
-            sql_insert(
-                "corpus_edges_next",
-                ("id", "ord", "from_id", "to_id", "pack_id", "owner_branch", "json"),
-                (
-                    sql_text(str(item.get("edge_id") or f"corpus-edge:{order}")),
-                    str(order),
-                    sql_text(str(item.get("from_id") or "")),
-                    sql_text(str(item.get("to_id") or "")),
-                    sql_nullable(item.get("pack_id") if isinstance(item.get("pack_id"), str) else None),
-                    sql_nullable(item.get("owner_branch") if isinstance(item.get("owner_branch"), str) else None),
-                    sql_text(compact_json(normalize_paths(item, REPO_ROOT))),
-                ),
-            )
+        item_json = compact_json(normalize_paths(item, REPO_ROOT))
+        columns = ("id", "ord", "from_id", "to_id", "pack_id", "owner_branch", "json")
+        values = (
+            sql_text(str(item.get("edge_id") or f"corpus-edge:{order}")),
+            str(order),
+            sql_text(str(item.get("from_id") or "")),
+            sql_text(str(item.get("to_id") or "")),
+            sql_nullable(item.get("pack_id") if isinstance(item.get("pack_id"), str) else None),
+            sql_nullable(item.get("owner_branch") if isinstance(item.get("owner_branch"), str) else None),
+            sql_text(item_json),
         )
+        append_chunkable_insert(
+            statements,
+            "corpus_edges_next",
+            columns,
+            values,
+            selector_sql=f"ord = {order}",
+            chunked_text={"json": item_json},
+        )
+        corpus_edges_count += 1
 
-    corpus_packs = object_list(corpus.get("relation_packs"))
-    for order, item in enumerate(corpus_packs):
-        statements.append(
-            sql_insert(
-                "corpus_packs_next",
-                ("id", "ord", "json"),
-                (
-                    sql_text(str(item.get("pack_id") or "")),
-                    str(order),
-                    sql_text(compact_json(normalize_paths(item, REPO_ROOT))),
-                ),
-            )
+    corpus_packs_count = 0
+    for order, item in enumerate(corpus_rows("relation_packs")):
+        item_id = str(item.get("pack_id") or "")
+        item_json = compact_json(normalize_paths(item, REPO_ROOT))
+        append_chunkable_insert(
+            statements,
+            "corpus_packs_next",
+            ("id", "ord", "json"),
+            (sql_text(item_id), str(order), sql_text(item_json)),
+            selector_sql=f"id = {sql_text(item_id)}",
+            chunked_text={"json": item_json},
         )
+        corpus_packs_count += 1
+
+    source_navigation_nodes_count = 0
+    source_navigation_edges_count = 0
+    source_navigation_rights_count = 0
+    source_navigation_node_payload_chunks = 0
+    source_navigation_edge_payload_chunks = 0
+    source_navigation_rights_payload_chunks = 0
+    if store is not None:
+        # Partitioned source navigation is too large for one static asset. It
+        # is emitted as bounded D1 rows; the full source record is chunked only
+        # when it would exceed D1's 2 MiB row limit.
+        for order, item in enumerate(store.rows("source_nodes", order="id")):
+            normalized = normalize_paths(item, REPO_ROOT)
+            item_json = compact_json(normalized)
+            properties_json = compact_json(source_navigation_selection_properties(normalized))
+            item_id = str(normalized.get("node_id") or "")
+            columns = (
+                "node_id",
+                "ord",
+                "node_kind",
+                "source_ref",
+                "label",
+                "identity_status",
+                "properties_json",
+                "json",
+            )
+            values = (
+                sql_text(item_id),
+                str(order),
+                sql_text(str(normalized.get("node_kind") or "")),
+                sql_text(str(normalized.get("source_ref") or "")),
+                sql_text(str(normalized.get("label") or "")),
+                sql_text(str(normalized.get("identity_status") or "")),
+                sql_text(properties_json),
+                sql_text(item_json),
+            )
+            row_values, payload_json = prepare_source_navigation_row(
+                values,
+                item_json,
+                json_position=7,
+                properties_position=6,
+            )
+            if payload_json is not None:
+                statements.append(sql_insert("source_navigation_nodes_next", columns, row_values))
+                source_navigation_node_payload_chunks += append_payload_chunks(
+                    statements,
+                    "source_navigation_node_payload_next",
+                    item_id,
+                    payload_json,
+                )
+            else:
+                append_chunkable_insert(
+                    statements,
+                    "source_navigation_nodes_next",
+                    columns,
+                    row_values,
+                    selector_sql=f"node_id = {sql_text(item_id)}",
+                    chunked_text={"properties_json": properties_json, "json": item_json},
+                )
+            source_navigation_nodes_count += 1
+
+        for order, item in enumerate(store.rows("source_edges", order="id")):
+            normalized = normalize_paths(item, REPO_ROOT)
+            item_json = compact_json(normalized)
+            source_refs = normalized.get("source_refs")
+            source_refs_json = compact_json(source_refs if isinstance(source_refs, list) else [])
+            item_id = str(normalized.get("edge_id") or "")
+            columns = (
+                "edge_id",
+                "ord",
+                "from_id",
+                "to_id",
+                "edge_kind",
+                "predicate_id",
+                "review_status",
+                "source_refs_json",
+                "json",
+            )
+            values = (
+                sql_text(item_id),
+                str(order),
+                sql_text(str(normalized.get("from_id") or "")),
+                sql_text(str(normalized.get("to_id") or "")),
+                sql_text(str(normalized.get("edge_kind") or "")),
+                sql_text(str(normalized.get("predicate_id") or "")),
+                sql_text(str(normalized.get("review_status") or "")),
+                sql_text(source_refs_json),
+                sql_text(item_json),
+            )
+            row_values, payload_json = prepare_source_navigation_row(
+                values,
+                item_json,
+                json_position=8,
+                properties_position=7,
+            )
+            if payload_json is not None:
+                statements.append(sql_insert("source_navigation_edges_next", columns, row_values))
+                source_navigation_edge_payload_chunks += append_payload_chunks(
+                    statements,
+                    "source_navigation_edge_payload_next",
+                    item_id,
+                    payload_json,
+                )
+            else:
+                append_chunkable_insert(
+                    statements,
+                    "source_navigation_edges_next",
+                    columns,
+                    row_values,
+                    selector_sql=f"edge_id = {sql_text(item_id)}",
+                    chunked_text={"source_refs_json": source_refs_json, "json": item_json},
+                )
+            source_navigation_edges_count += 1
+
+        for order, item in enumerate(store.rows("source_rights", order="id")):
+            normalized = normalize_paths(item, REPO_ROOT)
+            item_json = compact_json(normalized)
+            scope_refs = normalized.get("scope_refs")
+            scope_refs_json = compact_json(scope_refs if isinstance(scope_refs, list) else [])
+            item_id = str(normalized.get("rights_id") or "")
+            columns = ("rights_id", "ord", "scope_refs_json", "json")
+            values = (
+                sql_text(item_id),
+                str(order),
+                sql_text(scope_refs_json),
+                sql_text(item_json),
+            )
+            row_values, payload_json = prepare_source_navigation_row(
+                values,
+                item_json,
+                json_position=3,
+                properties_position=2,
+            )
+            if payload_json is not None:
+                statements.append(sql_insert("source_navigation_rights_next", columns, row_values))
+                source_navigation_rights_payload_chunks += append_payload_chunks(
+                    statements,
+                    "source_navigation_rights_payload_next",
+                    item_id,
+                    payload_json,
+                )
+            else:
+                append_chunkable_insert(
+                    statements,
+                    "source_navigation_rights_next",
+                    columns,
+                    row_values,
+                    selector_sql=f"rights_id = {sql_text(item_id)}",
+                    chunked_text={"scope_refs_json": scope_refs_json, "json": item_json},
+                )
+            source_navigation_rights_count += 1
+
+    knowledge_node_payload_chunks = 0
+    knowledge_node_search_chunk_count = 0
+    for item in knowledge_nodes:
+        normalized = normalize_paths(item, REPO_ROOT)
+        item_json = compact_json(normalized)
+        display = normalized.get("display") if isinstance(normalized.get("display"), dict) else {}
+        title = display.get("title") if isinstance(display.get("title"), dict) else {}
+        summary = display.get("summary") if isinstance(display.get("summary"), dict) else {}
+        item_id = str(normalized.get("id") or "")
+        summary_text = str(summary.get("default") or "")
+        search_text = item_json.lower()
+        columns = ("id", "entity_id", "native_id", "source_graph", "kind_id", "type_id", "title_text", "summary_text", "search_text", "json")
+        values = (
+            sql_text(item_id),
+            sql_text(str(normalized.get("entity_id") or "")),
+            sql_text(str(normalized.get("native_id") or "")),
+            sql_text(str(normalized.get("source_graph") or "")),
+            sql_text(str(normalized.get("kind_id") or "")),
+            sql_text(str(normalized.get("type_id") or "")),
+            sql_text(str(title.get("default") or "").lower()),
+            sql_text(summary_text),
+            sql_text(search_text),
+            sql_text(item_json),
+        )
+        query_json, values, payload_json, search_text = prepare_knowledge_row(
+            normalized,
+            item_json,
+            values,
+            search_position=8,
+            json_position=9,
+        )
+        append_chunkable_insert(
+            statements,
+            "knowledge_nodes_next",
+            columns,
+            values,
+            selector_sql=f"id = {sql_text(item_id)}",
+            chunked_text={
+                "summary_text": summary_text,
+                "search_text": search_text,
+                "json": query_json,
+            },
+        )
+        if payload_json:
+            knowledge_node_payload_chunks += append_payload_chunks(
+                statements,
+                "knowledge_node_payload_next",
+                item_id,
+                payload_json,
+            )
+        if not search_text:
+            knowledge_node_search_chunk_count += append_search_chunks(
+                statements,
+                "knowledge_node_search_chunks_next",
+                item_id,
+                item_json,
+            )
+
+    knowledge_relation_payload_chunks = 0
+    knowledge_relation_search_chunk_count = 0
+    for item in knowledge_relations:
+        normalized = normalize_paths(item, REPO_ROOT)
+        item_json = compact_json(normalized)
+        display = normalized.get("display") if isinstance(normalized.get("display"), dict) else {}
+        label = display.get("label") if isinstance(display.get("label"), dict) else {}
+        explanation = display.get("explanation") if isinstance(display.get("explanation"), dict) else {}
+        item_id = str(normalized.get("id") or "")
+        explanation_text = str(explanation.get("default") or "")
+        search_text = item_json.lower()
+        columns = ("id", "native_id", "source_graph", "from_id", "to_id", "predicate_id", "relation_type_id", "label_text", "explanation_text", "search_text", "json")
+        values = (
+            sql_text(item_id),
+            sql_text(str(normalized.get("native_id") or "")),
+            sql_text(str(normalized.get("source_graph") or "")),
+            sql_text(str(normalized.get("from_id") or "")),
+            sql_text(str(normalized.get("to_id") or "")),
+            sql_text(str(normalized.get("predicate_id") or "")),
+            sql_text(str(normalized.get("relation_type_id") or "")),
+            sql_text(str(label.get("default") or "").lower()),
+            sql_text(explanation_text),
+            sql_text(search_text),
+            sql_text(item_json),
+        )
+        query_json, values, payload_json, search_text = prepare_knowledge_row(
+            normalized,
+            item_json,
+            values,
+            search_position=9,
+            json_position=10,
+        )
+        append_chunkable_insert(
+            statements,
+            "knowledge_relations_next",
+            columns,
+            values,
+            selector_sql=f"id = {sql_text(item_id)}",
+            chunked_text={
+                "explanation_text": explanation_text,
+                "search_text": search_text,
+                "json": query_json,
+            },
+        )
+        if payload_json:
+            knowledge_relation_payload_chunks += append_payload_chunks(
+                statements,
+                "knowledge_relation_payload_next",
+                item_id,
+                payload_json,
+            )
+        if not search_text:
+            knowledge_relation_search_chunk_count += append_search_chunks(
+                statements,
+                "knowledge_relation_search_chunks_next",
+                item_id,
+                item_json,
+            )
 
     for table in (
         "edge_meta",
@@ -542,6 +1283,18 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "corpus_items",
         "corpus_edges",
         "corpus_packs",
+        "knowledge_nodes",
+        "knowledge_node_payload",
+        "knowledge_node_search_chunks",
+        "knowledge_relations",
+        "knowledge_relation_payload",
+        "knowledge_relation_search_chunks",
+        "source_navigation_nodes",
+        "source_navigation_node_payload",
+        "source_navigation_edges",
+        "source_navigation_edge_payload",
+        "source_navigation_rights",
+        "source_navigation_rights_payload",
     ):
         statements.append(f"DROP TABLE IF EXISTS {table};")
         statements.append(f"ALTER TABLE {table}_next RENAME TO {table};")
@@ -556,11 +1309,37 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
             "CREATE INDEX corpus_edges_from_idx ON corpus_edges(from_id);",
             "CREATE INDEX corpus_edges_to_idx ON corpus_edges(to_id);",
             "CREATE INDEX corpus_edges_id_idx ON corpus_edges(id);",
+            "CREATE INDEX knowledge_nodes_native_idx ON knowledge_nodes(native_id);",
+            "CREATE INDEX knowledge_nodes_entity_idx ON knowledge_nodes(entity_id);",
+            "CREATE INDEX knowledge_nodes_source_kind_idx ON knowledge_nodes(source_graph, kind_id);",
+            "CREATE INDEX knowledge_nodes_source_type_idx ON knowledge_nodes(source_graph, type_id);",
+            "CREATE INDEX knowledge_relations_native_idx ON knowledge_relations(native_id);",
+            "CREATE INDEX knowledge_relations_source_predicate_idx ON knowledge_relations(source_graph, predicate_id);",
+            "CREATE INDEX knowledge_relations_source_type_idx ON knowledge_relations(source_graph, relation_type_id);",
+            "CREATE INDEX knowledge_relations_from_idx ON knowledge_relations(from_id);",
+            "CREATE INDEX knowledge_relations_to_idx ON knowledge_relations(to_id);",
+            "CREATE INDEX source_navigation_nodes_kind_idx ON source_navigation_nodes(node_kind);",
+            "CREATE INDEX source_navigation_nodes_packet_idx ON source_navigation_nodes(json_extract(properties_json, '$.packet_id'));",
+            # Source routes use (endpoint, stable-id) keyset seeks.  The
+            # composite indexes keep later pages bounded even for a dense
+            # source node; endpoint-only indexes would rescan and resort the
+            # whole high-degree adjacency list on every request page.
+            "CREATE INDEX source_navigation_edges_from_seek_idx ON source_navigation_edges(from_id, edge_id);",
+            "CREATE INDEX source_navigation_edges_to_seek_idx ON source_navigation_edges(to_id, edge_id);",
+            "CREATE INDEX source_navigation_edges_predicate_idx ON source_navigation_edges(predicate_id);",
+            "CREATE INDEX source_navigation_rights_scope_idx ON source_navigation_rights(scope_refs_json);",
             "PRAGMA optimize;",
         )
     )
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text("\n".join(statements) + "\n", encoding="utf-8")
+    statements.append((WORKER_ROOT / "migrations/0001-exploration.sql").read_text(encoding="utf-8"))
+    # A maintenance bootstrap replaces the metadata table and its triggers.
+    # Invalidate retained execution state even if it republishes identical data.
+    statements.append("UPDATE knowledge_exploration_clock SET epoch=epoch+1 WHERE singleton=1;")
+    statements.finish()
+    row_index = delta.finish()
+    index_pending = index_path.with_name(index_path.name + '.next')
+    index_pending.write_text(compact_json(row_index) + '\n', encoding='utf-8')
+    index_pending.replace(index_path)
     return {
         "philosophy_nodes": len(philosophy_nodes),
         "philosophy_edges": len(philosophy_edges),
@@ -568,19 +1347,64 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "philosophy_cluster_node_memberships": cluster_node_memberships,
         "philosophy_cluster_edge_memberships": cluster_edge_memberships,
         "corpus_items": corpus_items_count,
-        "corpus_edges": len(corpus_edges),
-        "corpus_packs": len(corpus_packs),
-        "sql_statements": len(statements),
+        "corpus_edges": corpus_edges_count,
+        "corpus_packs": corpus_packs_count,
+        "knowledge_nodes": (store.count("knowledge_nodes") if store is not None else len(knowledge.get("nodes", []))),
+        "knowledge_node_payload_chunks": knowledge_node_payload_chunks,
+        "knowledge_node_search_chunks": knowledge_node_search_chunk_count,
+        "knowledge_relations": (store.count("knowledge_relations") if store is not None else len(knowledge.get("relations", []))),
+        "knowledge_relation_payload_chunks": knowledge_relation_payload_chunks,
+        "knowledge_relation_search_chunks": knowledge_relation_search_chunk_count,
+        "source_navigation_nodes": source_navigation_nodes_count,
+        "source_navigation_node_payload_chunks": source_navigation_node_payload_chunks,
+        "source_navigation_edges": source_navigation_edges_count,
+        "source_navigation_edge_payload_chunks": source_navigation_edge_payload_chunks,
+        "source_navigation_rights": source_navigation_rights_count,
+        "source_navigation_rights_payload_chunks": source_navigation_rights_payload_chunks,
+        "sql_statements": statements.count,
+        "delta": delta.summary(),
     }
 
 
-def data_revision(core: ToSAccessCore) -> str:
+def data_revision(core: ToSAccessCore, *, store=None) -> str:
     digest = hashlib.sha256()
     digest.update(READ_MODEL_SCHEMA_VERSION.encode("utf-8"))
+    digest.update(READ_MODEL_CONTENT_VERSION.encode("utf-8"))
+    digest.update(b"\0")
+    store = store or None
+    if store is not None:
+        # The compiled snapshot already carries the source-bound graph header
+        # and its deterministic exploration revision.  Reading this metadata
+        # keeps the partitioned path bounded and avoids reconstructing the
+        # full graph in the Worker builder.
+        knowledge = dict(store.header)
+        digest.update(str(store.revision).encode("utf-8"))
+        digest.update(b"\0")
+    else:
+        knowledge = core.knowledge_graph()
+    digest.update(str(knowledge.get("source_revision") or "").encode("utf-8"))
+    digest.update(b"\0")
+    # Query bindings are serving metadata, not row content. A code-only
+    # introduction/removal of this plane must not skip its D1 metadata update.
+    digest.update(compact_json(knowledge.get('query_properties', [])).encode('utf-8'))
+    digest.update(b"\0")
+    for collection in ("nodes", "relations"):
+        digest.update(collection.encode("utf-8"))
+        digest.update(b"\0")
+        for item in object_list(knowledge.get(collection)):
+            digest.update(str(item.get("id") or "").encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(str(item.get("content_revision") or "").encode("utf-8"))
+            digest.update(b"\0")
+    digest.update(
+        compact_json(normalize_paths(core.zarathustra_word_analysis_public_capability(), REPO_ROOT)).encode("utf-8")
+    )
     digest.update(b"\0")
     for path in (
-        core.index_path,
+        *projection_closure_paths(core),
         core.philosophy_graph_projection_path,
+        core.entity_type_registry_path,
+        core.relation_type_registry_path,
         core.evidence_projection_path,
         core.philosophy_post_planting_audit_path,
         *sorted((core.tos_root / "ToS/source-witnesses/access-requests/public-ledger").glob("*.access-request.json")),
@@ -593,27 +1417,157 @@ def data_revision(core: ToSAccessCore) -> str:
     return digest.hexdigest()
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv=None) -> argparse.Namespace:
+    def positive(value):
+        number = int(value)
+        if number < 1:
+            raise argparse.ArgumentTypeError('cache retention limits must be positive')
+        return number
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=WORKER_ROOT / "dist")
     parser.add_argument("--runtime", type=Path, default=WORKER_ROOT / "runtime")
-    return parser.parse_args()
+    parser.add_argument('--cache-max-mib', type=positive, default=DEFAULT_CACHE_BYTES // (1024 * 1024))
+    parser.add_argument('--cache-max-entries', type=positive, default=DEFAULT_CACHE_ENTRIES)
+    parser.add_argument('--cache-keep-runs', type=positive, default=3)
+    return parser.parse_args(argv)
 
 
-def main() -> int:
-    args = parse_args()
-    core = ToSAccessCore.discover(REPO_ROOT)
-    revision = data_revision(core)
-    static_summary = build_static_assets(core, args.output.resolve())
-    counts = build_read_model_sql(core, (args.runtime / "read-model.sql").resolve(), revision)
+def build_inputs(core: ToSAccessCore) -> dict:
+    """Conservative producer/input boundary, independent of Worker and UI code.
+
+    Hash public projection inputs only, never corpus payloads or local providers.
+    Directory membership catches additions and removals as well as byte changes.
+    """
+    paths = {str(path.resolve()): path for path in (
+        *projection_closure_paths(core), core.philosophy_graph_projection_path,
+        core.entity_type_registry_path, core.relation_type_registry_path,
+        core.evidence_projection_path, core.philosophy_post_planting_audit_path,
+        *(core.tos_root / path for path in KNOWLEDGE_CONTRACT_RELATIVE_PATHS.values()),
+        *sorted((core.tos_root / 'ToS/source-witnesses/access-requests/public-ledger').glob('*.access-request.json')),
+    )}
+    for directory, pattern in (
+        (REPO_ROOT / 'access/src/tos_access', '*.py'),
+        (REPO_ROOT / 'access/contracts', '*.json'),
+        (WORKER_ROOT / 'scripts', '*.py'),
+        (WORKER_ROOT / 'migrations', '*.sql'),
+    ):
+        paths.update({str(path.resolve()): path for path in directory.rglob(pattern)})
+    return {'files': fingerprint(paths), 'python': list(sys.version_info[:3]),
+            'schema': READ_MODEL_SCHEMA_VERSION, 'content': READ_MODEL_CONTENT_VERSION,
+            'root': str(core.tos_root.resolve())}
+
+
+def build(core: ToSAccessCore, output: Path, runtime: Path, *, cache_options=None) -> dict:
+    """Build under the runtime lock without leaking a temporary store path."""
+    previous_query_store_path = os.environ.get("TOS_QUERY_STORE_PATH")
+    try:
+        return _build(core, output, runtime, cache_options=cache_options)
+    finally:
+        if previous_query_store_path is None:
+            os.environ.pop("TOS_QUERY_STORE_PATH", None)
+        else:
+            os.environ["TOS_QUERY_STORE_PATH"] = previous_query_store_path
+
+
+def _build(core: ToSAccessCore, output: Path, runtime: Path, *, cache_options=None) -> dict:
+    """Called under the runtime lock; completion manifests are written last."""
+    stages = BuildStages(runtime / 'build-stages.json')
+    processing = None
+    normalization = None
+    store = None
+
+    def ensure_query_store():
+        nonlocal store
+        if store is None:
+            store = query_store_for_build(core, runtime)
+        return store
+
+    def prepare_graph():
+        nonlocal processing, normalization
+        if processing is None:
+            active_store = ensure_query_store()
+            if active_store is not None:
+                # Partitioned sources are assembled once by the explicit
+                # offline compiler.  Re-entering core.knowledge_graph here
+                # would defeat the bounded source path and duplicate work.
+                processing = {
+                    'status': 'not-run',
+                    'reason': 'partitioned-query-store-compiler-owned',
+                    'executed': 0,
+                    'reused': 0,
+                    'is_semantic_acceptance': False,
+                }
+                normalization = {
+                    'reused_steps': 0,
+                    'computed_steps': 0,
+                    'reason': 'offline-query-store-compiler-owned',
+                }
+                return
+            # The command normally starts a fresh process. Embedded builders
+            # must also reread bytes after a content-based invalidation, even
+            # when an editor preserved file size and mtime.
+            access_core._read_json_version.cache_clear()
+            access_core._knowledge_graph_version.cache_clear()
+            access_core._knowledge_catalog_version.cache_clear()
+            processor_digest = normalization_processor_digest(ACCESS_SRC / 'tos_access/knowledge.py')
+            with NormalizationCache(runtime / 'normalization.sqlite', processor_digest, **(cache_options or {})) as cache:
+                core.knowledge_graph()
+            processing = cache.processing_report
+            normalization = {'reused_steps': cache.hits, 'computed_steps': cache.misses}
+
+    def sql_inputs():
+        return {**build_inputs(core), 'runtime': str(runtime),
+                'deployed_baseline': fingerprint({'rows': runtime / 'read-model.deployed.rows.json'})}
+
+    def static_inputs():
+        return {**build_inputs(core), 'output': str(output),
+                'web': fingerprint(tree_paths(REPO_ROOT / 'access/web/dist', 'web'))}
+
+    def sql_stage():
+        prepare_graph()
+        revision = data_revision(core, store=store)
+        if store is None:
+            counts = build_read_model_sql(core, runtime / 'read-model.sql', revision)
+        else:
+            counts = build_read_model_sql(core, runtime / 'read-model.sql', revision, store=store)
+        return {'data_revision': revision, 'counts': counts,
+                'processing': processing, 'normalization_cache': normalization}
+
+    def static_stage():
+        prepare_graph()
+        if store is None:
+            return build_static_assets(core, output)
+        return build_static_assets(core, output, store=store)
+
+    # These are exact generated completion markers, not source or cache history.
+    # A partial/failed build cannot be deployed using a previous success manifest.
+    for marker in (runtime / 'manifest.json', output / '__edge/build-manifest.json'):
+        marker.unlink(missing_ok=True)
+    sql = stages.run('read-model', sql_inputs,
+                     lambda: {name: runtime / name for name in
+                              ('read-model.sql', 'read-model.delta.sql', 'read-model.rows.json')}, sql_stage)
+    static_summary = stages.run('static-responses', static_inputs,
+                                lambda: {**tree_paths(output, 'static', exclude=('__edge/build-manifest.json',)),
+                                         'static/index.html': output / 'index.html'}, static_stage)
+    stages.verify()
+    revision, counts = sql['data_revision'], sql['counts']
     manifest = {
         "schema": "tos_cloudflare_edge_build_v1",
         "read_model_schema": READ_MODEL_SCHEMA_VERSION,
         "data_revision": revision,
+        "processing": processing if processing is not None else {
+            'status': 'not-run', 'reason': 'completed-build-stage-reused',
+            'origin_run_id': (sql.get('processing') or {}).get('run_id'),
+            'executed': 0, 'reused': 0, 'is_semantic_acceptance': False,
+        },
+        "build_stages": stages.report,
         "source_owner": "Tree-of-Sophia",
         "source_paths": [
             core.index_path.relative_to(REPO_ROOT).as_posix(),
             core.philosophy_graph_projection_path.relative_to(REPO_ROOT).as_posix(),
+            core.bibliographic_graph_path.relative_to(REPO_ROOT).as_posix(),
+            core.entity_type_registry_path.relative_to(REPO_ROOT).as_posix(),
+            core.relation_type_registry_path.relative_to(REPO_ROOT).as_posix(),
             core.evidence_projection_path.relative_to(REPO_ROOT).as_posix(),
             core.philosophy_post_planting_audit_path.relative_to(REPO_ROOT).as_posix(),
             *[
@@ -621,14 +1575,66 @@ def main() -> int:
                 for path in sorted((core.tos_root / "ToS/source-witnesses/access-requests/public-ledger").glob("*.access-request.json"))
             ],
         ],
+        "producer_paths": [
+            "access/deploy/cloudflare-worker/scripts/build_runtime.py",
+            "access/deploy/cloudflare-worker/scripts/build_stages.py",
+            "access/deploy/cloudflare-worker/scripts/incremental_runtime.py",
+            "access/src/tos_access/knowledge.py",
+            "access/src/tos_access/knowledge_compile.py",
+            "access/src/tos_access/normalization_cache.py",
+            "access/src/tos_access/processing.py",
+            "access/src/tos_access/projection_store.py",
+            "access/src/tos_access/query_store.py",
+            "access/src/tos_access/disk_collections.py",
+        ],
+        "contract_refs": [
+            "access/contracts/knowledge-api.v1.json",
+            "access/contracts/knowledge-graph.v1.schema.json",
+            "access/contracts/lens-spec.v1.schema.json",
+            "access/contracts/lens-result.v1.schema.json",
+            "ToS/contracts/semantic-entity-type-registry.schema.json",
+            "ToS/contracts/semantic-relation-type-registry.schema.json",
+            "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+            "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        ],
+        "revision_policy": {
+            "imports_when": "source data, normalized item content, capability data, or read-model schema changes",
+            "does_not_import_when": "only API, LensSpec grammar, catalog, documentation, or Worker code changes",
+        },
         "counts": counts,
+        "normalization_cache": normalization if normalization is not None else {'reused_steps': 0, 'computed_steps': 0},
         "default_corpus_view": next(iter(static_summary["corpus"].get("graph_views", [])), ""),
         "default_philosophy_view": next(iter(static_summary["philosophy"].get("views", [])), "chronology"),
         "authority_limit": "Cloudflare carries a generated read model; ToS authored and reviewed surfaces remain authoritative.",
     }
-    write_json(args.output.resolve(), "__edge/build-manifest.json", manifest)
-    args.runtime.mkdir(parents=True, exist_ok=True)
-    (args.runtime / "manifest.json").write_text(compact_json(manifest) + "\n", encoding="utf-8")
+    atomic_json(output / '__edge/build-manifest.json', manifest)
+    atomic_json(runtime / 'manifest.json', manifest)
+    return manifest
+
+
+def validate_output_paths(output: Path, runtime: Path) -> None:
+    # The producer replaces output recursively. Never admit roots, source trees,
+    # overlapping outputs/cache, or an ancestor of this repository as its target.
+    forbidden = {Path('/'), Path.home(), *Path.home().parents}
+    if (output in forbidden or runtime in forbidden
+            or output == runtime or output in runtime.parents or runtime in output.parents
+            or output == REPO_ROOT or output in REPO_ROOT.parents
+            or (output.is_relative_to(REPO_ROOT) and output != WORKER_ROOT / 'dist')
+            or (runtime.is_relative_to(REPO_ROOT) and runtime != WORKER_ROOT / 'runtime')):
+        raise RuntimeError('unsafe or overlapping edge output/runtime paths')
+
+
+def main() -> int:
+    args = parse_args()
+    output, runtime = args.output.resolve(), args.runtime.resolve()
+    validate_output_paths(output, runtime)
+    core = ToSAccessCore.discover(REPO_ROOT)
+    with build_lock(runtime):
+        manifest = build(core, output, runtime, cache_options={
+            'max_cache_bytes': args.cache_max_mib * 1024 * 1024,
+            'max_cache_entries': args.cache_max_entries,
+            'keep_runs': args.cache_keep_runs,
+        })
     print(compact_json(manifest))
     return 0
 

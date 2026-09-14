@@ -7,7 +7,9 @@
 - ...
 
 ## Validation
-<!-- List only checks that actually ran. If none, say Not run. -->
+<!-- Name the operation: software, corpus admission, data release, or integration.
+List only checks that actually ran. If none, say Not run. Repo Validation covers
+software; corpus/KAG/stats publication checks belong to their selected release. -->
 - ...
 
 ## Boundary / Direction Impact

@@ -1,19 +1,21 @@
 # Local KAG-provider validation
 
-The operator ended the temporary freeze in TOS-D-0044. Validate the complete
-provider, including source ownership, current file hashes and shard integrity:
+Under TOS-D-0062, these checks belong to a separately selected KAG integration
+artifact. Select its exact ToS source/data revision and provider revision:
 
-```bash
+```sh
 python scripts/validation_lanes.py --run local_kag_provider
 python scripts/validation_lanes.py --run public_entry
 ```
 
-The manifest owns these sequences. `public_entry` protects the narrow ToS
-export; the portable source family additionally needs the pinned `aoa-kag`
-builder and owner-family parity check described in `docs/RELEASING.md`.
-Regenerate changed source projections before claiming currentness. There is
-no freeze-only alternative or automatic refreeze.
+Run with that revision materialized and its declared export inputs available.
+Validate source ownership, file hashes, shard integrity and canonical parity
+before publishing the selected artifact. An older KAG artifact must report its
+actual source revision and staleness; it cannot claim latest-source currentness.
+A failed or lagging KAG integration does not block standalone ToS software.
 
-Shared KAG composition and runtime freshness remain with `aoa-kag` and its
-consumers. Source validation does not deploy or activate a consumer, accept
-authored meaning, or prove rights, canon, artifact admission or live health.
+The former requirement to regenerate the provider in every source PR is
+superseded. This changes release boundaries, not the integrity requirements for
+a KAG artifact. External composition, runtime freshness and consumer admission
+remain with aoa-kag and the consuming owner. No validation here deploys a service
+or accepts source meaning, rights, canon or a runtime artifact.

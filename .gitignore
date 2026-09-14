@@ -3,8 +3,6 @@ __pycache__/
 *.pyc
 dist/
 /access/web/node_modules/
-!/access/web/dist/
-!/access/web/dist/**
 /access/deploy/cloudflare-tunnel/site.env
 /access/deploy/cloudflare-tunnel/*.token
 /access/deploy/cloudflare-worker/node_modules/
@@ -17,6 +15,7 @@ dist/
 # tracked; restricted source or derivative text remains local.
 /ToS/source-witnesses/works/**/items/*/payload/*
 /ToS/source-witnesses/collections/**/items/*/payload/*
+/ToS/source-witnesses/scholarly-composites/*/*/*/representations/*/payload/*
 /ToS/source-witnesses/works/**/gold-sets/*/local-content/*
 !/ToS/source-witnesses/works/**/gold-sets/*/local-content/README.md
 
@@ -30,3 +29,7 @@ dist/
 # Only the boundary route card remains tracked.
 /ToS/source-witnesses/access-requests/private/*
 !/ToS/source-witnesses/access-requests/private/README.md
+
+# Explicitly compiled access query artifact; authored projection manifests remain tracked.
+/ToS/derived-exports/runtime/knowledge.sqlite3
+/ToS/derived-exports/runtime/knowledge.sqlite3.*.building*

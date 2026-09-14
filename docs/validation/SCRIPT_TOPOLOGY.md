@@ -6,18 +6,18 @@ boundaries, run release lanes, and provide small deterministic helper contracts.
 They do not create philosophical authority, runtime policy, proof verdicts, or
 graph service truth.
 
-Machine-readable script coverage lives in
-[`script_inventory.json`](script_inventory.json). It includes every tracked
-non-pyc file under `*/scripts/*`, every Python entrypoint named by a validation
-lane, local script route cards, and skill-local helper scripts.
+Existing script navigation lives in
+[`script_inventory.json`](script_inventory.json). TOS-D-0062 ends mandatory
+per-file inventory updates as a condition of software merge. Files and their
+executable consumers establish the program boundary; the inventory remains a
+navigation aid for the surfaces it describes.
 
 ## Command Authority
 
 Blocking command sequences live in
 [`validation_lanes.json`](validation_lanes.json). The script inventory is
-descriptive and testable: it proves each active script surface has an owner
-route, source truth, read/write boundary, lane posture, CI inclusion, and test
-target.
+descriptive: a selected entry names its owner, inputs, side effects and test
+route. Inventory coverage is not software correctness or release authority.
 
 The cross-corpus pair is intentionally split. `build_documentation_family_currentness.py`
 projects the authored `documentation_family_map.json` and the tracked Git

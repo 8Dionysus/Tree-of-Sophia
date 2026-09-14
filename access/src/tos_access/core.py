@@ -5,18 +5,59 @@ import json
 import os
 import sys
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
+from threading import Lock
 from pathlib import Path
 from typing import Any
+
+from .knowledge import (
+    KnowledgeGraphIndex,
+    KnowledgeSearchIndex,
+    build_knowledge_graph,
+    execute_knowledge_lens,
+    focus_knowledge_node,
+    inspect_knowledge_node,
+    inspect_knowledge_relation,
+    knowledge_catalog as build_knowledge_catalog,
+    search_knowledge_graph,
+)
+from .exploration import ExplorationService, exploration_capabilities
+from .query_store import QueryStore, QueryStoreRequired, DEFAULT_RELATIVE_PATH
+from .projection_store import load_projection
+from .locations import data_root, program_path
+import hashlib
 
 
 INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
 PHILOSOPHY_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/philosophy_graph_projection.min.json")
+BIBLIOGRAPHIC_GRAPH_RELATIVE_PATH = Path(
+    "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json"
+)
+ENTITY_TYPE_REGISTRY_RELATIVE_PATH = Path(
+    "ToS/doctrine/semantic-interchange/entity-types.v1.json"
+)
+RELATION_TYPE_REGISTRY_RELATIVE_PATH = Path(
+    "ToS/doctrine/semantic-interchange/relation-types.v1.json"
+)
 PHILOSOPHY_AUDIT_RELATIVE_PATH = Path("ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json")
 EVIDENCE_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/epistemic_evidence_projection.min.json")
 WORD_ANALYSIS_PROVIDER_RELATIVE_PATH = Path("scripts/prepare_zarathustra_word_analysis_v1.py")
 SOURCE_GAP_LEDGER_RELATIVE_PATH = Path("ToS/source-witnesses/access-requests/public-ledger")
+KNOWLEDGE_CONTRACT_RELATIVE_PATHS = {
+    "api": Path("access/contracts/knowledge-api.v1.json"),
+    "knowledge_graph": Path("access/contracts/knowledge-graph.v1.schema.json"),
+    "lens_spec": Path("access/contracts/lens-spec.v1.schema.json"),
+    "lens_result": Path("access/contracts/lens-result.v1.schema.json"),
+    "entity_type_registry_schema": Path(
+        "ToS/contracts/semantic-entity-type-registry.schema.json"
+    ),
+    "relation_type_registry_schema": Path(
+        "ToS/contracts/semantic-relation-type-registry.schema.json"
+    ),
+    "entity_type_registry": ENTITY_TYPE_REGISTRY_RELATIVE_PATH,
+    "relation_type_registry": RELATION_TYPE_REGISTRY_RELATIVE_PATH,
+}
 SUPPORTED_CORPUS_VIEW_IDS = {
     "corpus-topology",
     "route-graph",
@@ -63,6 +104,106 @@ def _read_json_version(path_text: str, mtime_ns: int, size: int) -> dict[str, An
 def _read_json(path: Path) -> dict[str, Any]:
     stat = path.stat()
     return _read_json_version(path.resolve().as_posix(), stat.st_mtime_ns, stat.st_size)
+
+
+@lru_cache(maxsize=8)
+def _knowledge_graph_version(
+    index_path_text: str,
+    index_mtime_ns: int,
+    index_size: int,
+    philosophy_path_text: str,
+    philosophy_mtime_ns: int,
+    philosophy_size: int,
+    bibliographic_path_text: str,
+    bibliographic_mtime_ns: int,
+    bibliographic_size: int,
+    entity_registry_path_text: str,
+    entity_registry_mtime_ns: int,
+    entity_registry_size: int,
+    relation_registry_path_text: str,
+    relation_registry_mtime_ns: int,
+    relation_registry_size: int,
+) -> dict[str, Any]:
+    corpus = _read_json_version(index_path_text, index_mtime_ns, index_size)
+    philosophy = _read_json_version(philosophy_path_text, philosophy_mtime_ns, philosophy_size)
+    bibliographic = _read_json_version(
+        bibliographic_path_text,
+        bibliographic_mtime_ns,
+        bibliographic_size,
+    )
+    entity_registry = _read_json_version(
+        entity_registry_path_text,
+        entity_registry_mtime_ns,
+        entity_registry_size,
+    )
+    relation_registry = _read_json_version(
+        relation_registry_path_text,
+        relation_registry_mtime_ns,
+        relation_registry_size,
+    )
+    return build_knowledge_graph(
+        corpus,
+        philosophy,
+        bibliographic,
+        entity_registry,
+        relation_registry,
+    )
+
+
+@lru_cache(maxsize=8)
+def _knowledge_catalog_version(
+    index_path_text: str,
+    index_mtime_ns: int,
+    index_size: int,
+    philosophy_path_text: str,
+    philosophy_mtime_ns: int,
+    philosophy_size: int,
+    bibliographic_path_text: str,
+    bibliographic_mtime_ns: int,
+    bibliographic_size: int,
+    entity_registry_path_text: str,
+    entity_registry_mtime_ns: int,
+    entity_registry_size: int,
+    relation_registry_path_text: str,
+    relation_registry_mtime_ns: int,
+    relation_registry_size: int,
+) -> dict[str, Any]:
+    corpus = _read_json_version(index_path_text, index_mtime_ns, index_size)
+    philosophy = _read_json_version(philosophy_path_text, philosophy_mtime_ns, philosophy_size)
+    entity_registry = _read_json_version(
+        entity_registry_path_text,
+        entity_registry_mtime_ns,
+        entity_registry_size,
+    )
+    relation_registry = _read_json_version(
+        relation_registry_path_text,
+        relation_registry_mtime_ns,
+        relation_registry_size,
+    )
+    graph = _knowledge_graph_version(
+        index_path_text,
+        index_mtime_ns,
+        index_size,
+        philosophy_path_text,
+        philosophy_mtime_ns,
+        philosophy_size,
+        bibliographic_path_text,
+        bibliographic_mtime_ns,
+        bibliographic_size,
+        entity_registry_path_text,
+        entity_registry_mtime_ns,
+        entity_registry_size,
+        relation_registry_path_text,
+        relation_registry_mtime_ns,
+        relation_registry_size,
+    )
+    return build_knowledge_catalog(
+        graph,
+        corpus,
+        philosophy,
+        entity_registry,
+        relation_registry,
+    )
 
 
 def _contains(value: Any, needle: str) -> bool:
@@ -214,24 +355,7 @@ def _bounded_clusters(
 
 
 def _discover_root(explicit: str | Path | None = None) -> Path:
-    if explicit:
-        return Path(explicit).expanduser().resolve()
-    configured = os.environ.get("TOS_ROOT") or os.environ.get("AOA_TOS_ROOT")
-    if configured:
-        return Path(configured).expanduser().resolve()
-
-    package_runtime_data = Path(__file__).resolve().parent / "runtime_data"
-    candidates = [Path.cwd(), *Path.cwd().parents, package_runtime_data]
-    candidates.extend(Path(__file__).resolve().parents)
-    seen: set[Path] = set()
-    for candidate in candidates:
-        resolved = candidate.resolve()
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        if (resolved / INDEX_RELATIVE_PATH).is_file():
-            return resolved
-    return Path.cwd().resolve()
+    return data_root(explicit)
 
 
 def _view_nodes_edges(
@@ -293,8 +417,77 @@ class ToSAccessCore:
     tos_root: Path
     index_path: Path
     philosophy_graph_projection_path: Path
+    bibliographic_graph_path: Path
+    entity_type_registry_path: Path
+    relation_type_registry_path: Path
     philosophy_post_planting_audit_path: Path
     evidence_projection_path: Path
+    _exploration: ExplorationService = field(init=False, repr=False, compare=False)
+    _search_index: KnowledgeSearchIndex | None = field(default=None, init=False, repr=False, compare=False)
+    _search_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
+    _graph_index: KnowledgeGraphIndex | None = field(default=None, init=False, repr=False, compare=False)
+    _graph_index_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
+
+    _query_backend: Any = field(default=None, init=False, repr=False, compare=False)
+    _query_signature: Any = field(default=None, init=False, repr=False, compare=False)
+    _query_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
+
+    def __post_init__(self):
+        self._exploration = ExplorationService(self.knowledge_graph, query_store_provider=self._query_store)
+
+    def _query_store(self):
+        """Select an explicit completed snapshot, never build during a request."""
+        configured = os.environ.get('TOS_QUERY_STORE_PATH')
+        path = Path(configured).expanduser() if configured else self.tos_root / DEFAULT_RELATIVE_PATH
+        if not path.is_absolute():
+            path = self.tos_root / path
+        inputs = {
+            INDEX_RELATIVE_PATH.as_posix(): self.index_path,
+            PHILOSOPHY_PROJECTION_RELATIVE_PATH.as_posix(): self.philosophy_graph_projection_path,
+            BIBLIOGRAPHIC_GRAPH_RELATIVE_PATH.as_posix(): self.bibliographic_graph_path,
+            ENTITY_TYPE_REGISTRY_RELATIVE_PATH.as_posix(): self.entity_type_registry_path,
+            RELATION_TYPE_REGISTRY_RELATIVE_PATH.as_posix(): self.relation_type_registry_path,
+        }
+        # Legacy small fixtures retain their existing explicit in-memory mode.
+        # A partitioned root requires the compiled store even if it is missing.
+        partitioned = False
+        for candidate in (self.index_path, self.bibliographic_graph_path):
+            if candidate.is_file() and candidate.stat().st_size < 4 * 1024 * 1024:
+                header = _read_json(candidate)
+                if header.get('schema_version') == 'tos_partitioned_projection_v1' or header.get('schema') == 'tos_partitioned_projection_v1':
+                    partitioned = True
+        if not configured and not path.is_file() and not partitioned:
+            return None
+        if not path.is_file():
+            raise QueryStoreRequired(f'query store build required: missing {path}; run explicit offline builder')
+        try:
+            signature = tuple((str(p.resolve()), st.st_ino, st.st_mtime_ns, st.st_ctime_ns, st.st_size)
+                              for p in [path, *inputs.values()] for st in [p.stat()])
+        except FileNotFoundError as exc:
+            raise QueryStoreRequired('query store build required: snapshot input is missing') from exc
+        with self._query_lock:
+            if signature != self._query_signature:
+                bindings = {}
+                for name, candidate in inputs.items():
+                    digest = hashlib.sha256()
+                    with candidate.open('rb') as source:
+                        for chunk in iter(lambda: source.read(1024 * 1024), b''):
+                            digest.update(chunk)
+                    bindings[name] = digest.hexdigest()
+                self._query_backend = QueryStore(path, snapshot_bindings=bindings)
+                self._query_signature = signature
+            return self._query_backend
+
+
+    def knowledge_explore(self, request: dict[str, Any]) -> dict[str, Any]:
+        return self._exploration.explore(request)
+
+    def knowledge_exploration_contracts(self) -> dict[str, Any]:
+        return {
+            "capabilities": exploration_capabilities(),
+            "request": _read_json(program_path("access/contracts/exploration-request.v1.schema.json")),
+            "result": _read_json(program_path("access/contracts/exploration-result.v1.schema.json")),
+        }
 
     @classmethod
     def discover(
@@ -302,6 +495,9 @@ class ToSAccessCore:
         tos_root: str | Path | None = None,
         index_path: str | Path | None = None,
         philosophy_graph_projection_path: str | Path | None = None,
+        bibliographic_graph_path: str | Path | None = None,
+        entity_type_registry_path: str | Path | None = None,
+        relation_type_registry_path: str | Path | None = None,
         philosophy_post_planting_audit_path: str | Path | None = None,
         evidence_projection_path: str | Path | None = None,
     ) -> "ToSAccessCore":
@@ -320,6 +516,27 @@ class ToSAccessCore:
         ).expanduser()
         if not philosophy_projection.is_absolute():
             philosophy_projection = root / philosophy_projection
+        bibliographic_graph = Path(
+            bibliographic_graph_path
+            or os.environ.get("TOS_BIBLIOGRAPHIC_GRAPH_PATH")
+            or root / BIBLIOGRAPHIC_GRAPH_RELATIVE_PATH
+        ).expanduser()
+        if not bibliographic_graph.is_absolute():
+            bibliographic_graph = root / bibliographic_graph
+        entity_registry = Path(
+            entity_type_registry_path
+            or os.environ.get("TOS_ENTITY_TYPE_REGISTRY_PATH")
+            or root / ENTITY_TYPE_REGISTRY_RELATIVE_PATH
+        ).expanduser()
+        if not entity_registry.is_absolute():
+            entity_registry = root / entity_registry
+        relation_registry = Path(
+            relation_type_registry_path
+            or os.environ.get("TOS_RELATION_TYPE_REGISTRY_PATH")
+            or root / RELATION_TYPE_REGISTRY_RELATIVE_PATH
+        ).expanduser()
+        if not relation_registry.is_absolute():
+            relation_registry = root / relation_registry
         philosophy_audit = Path(
             philosophy_post_planting_audit_path
             or os.environ.get("TOS_PHILOSOPHY_POST_PLANTING_AUDIT_PATH")
@@ -338,6 +555,9 @@ class ToSAccessCore:
             tos_root=root,
             index_path=index.resolve(),
             philosophy_graph_projection_path=philosophy_projection.resolve(),
+            bibliographic_graph_path=bibliographic_graph.resolve(),
+            entity_type_registry_path=entity_registry.resolve(),
+            relation_type_registry_path=relation_registry.resolve(),
             philosophy_post_planting_audit_path=philosophy_audit.resolve(),
             evidence_projection_path=evidence_projection.resolve(),
         )
@@ -346,15 +566,24 @@ class ToSAccessCore:
         return self.index_path.is_file()
 
     def index(self) -> dict[str, Any]:
-        return _read_json(self.index_path)
+        """Explicit full corpus export; selective query routes avoid this call."""
+        return load_projection(self.index_path)
 
-    def source_navigation(self) -> dict[str, Any]:
+    def source_navigation(self, *, bibliographic_only: bool = False) -> dict[str, Any]:
         navigation = self.index().get("source_navigation")
         if not isinstance(navigation, dict):
             raise RuntimeError("ToS corpus index has no source_navigation surface")
         if navigation.get("schema_version") != "tos_source_navigation_v1":
             raise RuntimeError("ToS source_navigation schema_version must be tos_source_navigation_v1")
-        return navigation
+        if not bibliographic_only:
+            return navigation
+        # Legacy source descent/dossiers browse bibliographic identity. Dense
+        # versioned text packet members use indexed knowledge routes instead.
+        nodes = [n for n in navigation.get('nodes', []) if not (n.get('properties') or {}).get('packet_id')]
+        ids = {n['node_id'] for n in nodes}
+        edges = [e for e in navigation.get('edges', []) if e['from_id'] in ids and e['to_id'] in ids]
+        return {**navigation, 'nodes': nodes, 'edges': edges,
+                'counts': {**navigation.get('counts', {}), 'nodes': len(nodes), 'edges': len(edges)}}
 
     def source_descend(
         self,
@@ -364,23 +593,22 @@ class ToSAccessCore:
     ) -> dict[str, Any]:
         """Walk downward through the authored source-navigation projection."""
 
-        navigation = self.source_navigation()
+        store = self._query_store()
+        navigation = store.metadata['source_navigation_header'] if store else self.source_navigation(bibliographic_only=True)
         bounded_depth = _bounded_int(max_depth, 8, 1, 8)
         bounded_limit = _bounded_int(limit, 300, 1, 300)
-        nodes_by_id = {
-            str(node.get("node_id")): node
-            for node in navigation.get("nodes", [])
-            if isinstance(node, dict) and isinstance(node.get("node_id"), str)
-        }
+        if store:
+            nodes_by_id = store.source_nodes()
+            outgoing = store.source_edges('outgoing')
+        else:
+            nodes_by_id = {str(node['node_id']): node for node in navigation.get('nodes', [])}
+            outgoing = {}
+            for edge in navigation.get('edges', []):
+                outgoing.setdefault(str(edge['from_id']), []).append(edge)
+            for edges in outgoing.values():
+                edges.sort(key=lambda edge: str(edge.get('edge_id') or ''))
         if node_id not in nodes_by_id:
-            raise KeyError(f"unknown ToS source-navigation node: {node_id}")
-        outgoing: dict[str, list[dict[str, Any]]] = {}
-        for edge in navigation.get("edges", []):
-            if not isinstance(edge, dict) or not isinstance(edge.get("from_id"), str):
-                continue
-            outgoing.setdefault(str(edge["from_id"]), []).append(edge)
-        for edge_list in outgoing.values():
-            edge_list.sort(key=lambda edge: str(edge.get("edge_id") or ""))
+            raise KeyError(f'unknown ToS source-navigation node: {node_id}')
 
         queue: deque[tuple[str, int]] = deque([(node_id, 0)])
         depths = {node_id: 0}
@@ -421,12 +649,11 @@ class ToSAccessCore:
     def source_dossier(self, object_id: str, limit: int = 300) -> dict[str, Any]:
         """Return compact human and agent-facing context for one Work or Link."""
 
-        navigation = self.source_navigation()
+        store = self._query_store()
+        navigation = store.metadata['source_navigation_header'] if store else self.source_navigation(bibliographic_only=True)
         bounded_limit = _bounded_int(limit, 300, 1, 300)
-        nodes_by_id = {
-            str(node.get("node_id")): node
-            for node in navigation.get("nodes", [])
-            if isinstance(node, dict) and isinstance(node.get("node_id"), str)
+        nodes_by_id = store.source_nodes() if store else {
+            str(node['node_id']): node for node in navigation.get('nodes', [])
         }
         selected = nodes_by_id.get(object_id)
         if selected is None:
@@ -434,25 +661,31 @@ class ToSAccessCore:
         if selected.get("node_kind") not in {"work", "link"}:
             raise ValueError("dossiers are currently available for Work and Link objects")
 
-        all_edges = sorted(
-            [edge for edge in navigation.get("edges", []) if isinstance(edge, dict)],
-            key=lambda edge: str(edge.get("edge_id") or ""),
-        )
-        incoming: dict[str, list[dict[str, Any]]] = {}
-        semantic_outgoing: dict[str, list[dict[str, Any]]] = {}
         bibliographic_predicates = {"has_expression", "embodied_by", "exemplified_by"}
         link_predicates = {"described_by", "metadata_at", "downloadable_at", "rights_statement_at"}
-        for edge in all_edges:
-            left = edge.get("from_id")
-            right = edge.get("to_id")
-            if not isinstance(left, str) or not isinstance(right, str):
-                continue
-            incoming.setdefault(right, []).append(edge)
-            if edge.get("edge_kind") == "authored_item_manifest" or (
-                edge.get("edge_kind") == "evidence_claim"
-                and edge.get("predicate_id") in bibliographic_predicates | link_predicates
-            ):
-                semantic_outgoing.setdefault(left, []).append(edge)
+        if store:
+            incoming = store.source_edges('incoming')
+            semantic_outgoing = store.source_edges('outgoing', semantic=True)
+        else:
+            all_edges = sorted(
+                [edge for edge in navigation.get("edges", []) if isinstance(edge, dict)],
+                key=lambda edge: str(edge.get("edge_id") or ""),
+            )
+            incoming: dict[str, list[dict[str, Any]]] = {}
+            semantic_outgoing: dict[str, list[dict[str, Any]]] = {}
+            bibliographic_predicates = {"has_expression", "embodied_by", "exemplified_by"}
+            link_predicates = {"described_by", "metadata_at", "downloadable_at", "rights_statement_at"}
+            for edge in all_edges:
+                left = edge.get("from_id")
+                right = edge.get("to_id")
+                if not isinstance(left, str) or not isinstance(right, str):
+                    continue
+                incoming.setdefault(right, []).append(edge)
+                if edge.get("edge_kind") == "authored_item_manifest" or (
+                    edge.get("edge_kind") == "evidence_claim"
+                    and edge.get("predicate_id") in bibliographic_predicates | link_predicates
+                ):
+                    semantic_outgoing.setdefault(left, []).append(edge)
 
         component_ids = {object_id}
         component_edges: dict[str, dict[str, Any]] = {}
@@ -593,7 +826,7 @@ class ToSAccessCore:
                         frontier.append((target, [*node_path, target], [*edge_path, str(edge.get("edge_id") or "")]))
         rights = [
             record
-            for record in navigation.get("rights", [])
+            for record in (store.rights(component_ids) if store else navigation.get("rights", []))
             if isinstance(record, dict)
             and set(_string_list(record.get("scope_refs"))) & component_ids
         ]
@@ -708,6 +941,33 @@ class ToSAccessCore:
             )
         return payload
 
+    def bibliographic_graph(self) -> dict[str, Any]:
+        payload = load_projection(self.bibliographic_graph_path)
+        if payload.get("schema_version") != "tos_source_witness_bibliographic_graph_v1":
+            raise RuntimeError(
+                "ToS bibliographic claim graph schema_version must be "
+                "tos_source_witness_bibliographic_graph_v1"
+            )
+        return payload
+
+    def entity_type_registry(self) -> dict[str, Any]:
+        payload = _read_json(self.entity_type_registry_path)
+        if payload.get("schema_version") != "tos_semantic_entity_type_registry_v1":
+            raise RuntimeError(
+                "ToS entity type registry schema_version must be "
+                "tos_semantic_entity_type_registry_v1"
+            )
+        return payload
+
+    def relation_type_registry(self) -> dict[str, Any]:
+        payload = _read_json(self.relation_type_registry_path)
+        if payload.get("schema_version") != "tos_semantic_relation_type_registry_v1":
+            raise RuntimeError(
+                "ToS relation type registry schema_version must be "
+                "tos_semantic_relation_type_registry_v1"
+            )
+        return payload
+
     def philosophy_audit_exists(self) -> bool:
         return self.philosophy_post_planting_audit_path.is_file()
 
@@ -729,9 +989,194 @@ class ToSAccessCore:
             )
         return payload
 
+    def knowledge_header(self) -> dict[str, Any]:
+        """Read completed snapshot metadata without exporting graph records."""
+        if store := self._query_store():
+            return dict(store.header)
+        return {key: value for key, value in self.knowledge_graph().items() if key not in ('nodes', 'relations')}
+
+    def corpus_header(self) -> dict[str, Any]:
+        """Read corpus metadata without loading source-navigation records."""
+        if store := self._query_store():
+            return store.corpus_payload(('graph_views',))
+        return self.index()
+
+    def knowledge_graph(self) -> dict[str, Any]:
+        """Explicit full export; ordinary query routes use the bounded store."""
+        if store := self._query_store():
+            return {**store.header, 'nodes': list(store.rows('knowledge_nodes')), 'relations': list(store.rows('knowledge_relations'))}
+        index_stat = self.index_path.stat()
+        philosophy_stat = self.philosophy_graph_projection_path.stat()
+        bibliographic_stat = self.bibliographic_graph_path.stat()
+        entity_registry_stat = self.entity_type_registry_path.stat()
+        relation_registry_stat = self.relation_type_registry_path.stat()
+        return _knowledge_graph_version(
+            self.index_path.resolve().as_posix(),
+            index_stat.st_mtime_ns,
+            index_stat.st_size,
+            self.philosophy_graph_projection_path.resolve().as_posix(),
+            philosophy_stat.st_mtime_ns,
+            philosophy_stat.st_size,
+            self.bibliographic_graph_path.resolve().as_posix(),
+            bibliographic_stat.st_mtime_ns,
+            bibliographic_stat.st_size,
+            self.entity_type_registry_path.resolve().as_posix(),
+            entity_registry_stat.st_mtime_ns,
+            entity_registry_stat.st_size,
+            self.relation_type_registry_path.resolve().as_posix(),
+            relation_registry_stat.st_mtime_ns,
+            relation_registry_stat.st_size,
+        )
+
+    def knowledge_catalog(self) -> dict[str, Any]:
+        """Describe the compositional grammar, vocabulary, and stored lens specs."""
+        if store := self._query_store():
+            return store.metadata['catalog']
+        index_stat = self.index_path.stat()
+        philosophy_stat = self.philosophy_graph_projection_path.stat()
+        bibliographic_stat = self.bibliographic_graph_path.stat()
+        entity_registry_stat = self.entity_type_registry_path.stat()
+        relation_registry_stat = self.relation_type_registry_path.stat()
+        return _knowledge_catalog_version(
+            self.index_path.resolve().as_posix(),
+            index_stat.st_mtime_ns,
+            index_stat.st_size,
+            self.philosophy_graph_projection_path.resolve().as_posix(),
+            philosophy_stat.st_mtime_ns,
+            philosophy_stat.st_size,
+            self.bibliographic_graph_path.resolve().as_posix(),
+            bibliographic_stat.st_mtime_ns,
+            bibliographic_stat.st_size,
+            self.entity_type_registry_path.resolve().as_posix(),
+            entity_registry_stat.st_mtime_ns,
+            entity_registry_stat.st_size,
+            self.relation_type_registry_path.resolve().as_posix(),
+            relation_registry_stat.st_mtime_ns,
+            relation_registry_stat.st_size,
+        )
+
+    def knowledge_contracts(self) -> dict[str, Any]:
+        """Return the executable API map and JSON Schemas through one public read route."""
+        contracts = {
+            contract_id: _read_json(
+                self.tos_root / relative_path
+                if contract_id in {"entity_type_registry", "relation_type_registry"}
+                else program_path(relative_path)
+            )
+            for contract_id, relative_path in KNOWLEDGE_CONTRACT_RELATIVE_PATHS.items()
+        }
+        return {
+            "schema": "tos_knowledge_contract_bundle_v1",
+            "contracts": contracts,
+            "source_refs": [
+                relative_path.as_posix()
+                for relative_path in KNOWLEDGE_CONTRACT_RELATIVE_PATHS.values()
+            ],
+            "authority_boundary": {
+                "is_source": False,
+                "writes_to_tree": False,
+                "source_owner": "Tree-of-Sophia/access/contracts",
+                "note": "This packet transports versioned access contracts; it does not author ToS meaning.",
+            },
+        }
+
+    def knowledge_search(
+        self,
+        query: str = "",
+        *,
+        sources: list[str] | None = None,
+        kind_ids: list[str] | None = None,
+        predicate_ids: list[str] | None = None,
+        offset: int = 0,
+        limit: int = 40,
+    ) -> dict[str, Any]:
+        """Search the normalized human/agent knowledge surface without choosing a legacy mode."""
+        if store := self._query_store():
+            return store.search(query, sources=sources, kind_ids=kind_ids, predicate_ids=predicate_ids, offset=offset, limit=limit)
+        graph = self.knowledge_graph()
+        with self._search_lock:
+            if self._search_index is None or self._search_index.graph is not graph:
+                self._search_index = KnowledgeSearchIndex(graph)
+            index = self._search_index
+        return search_knowledge_graph(
+            graph,
+            query,
+            sources=sources,
+            kind_ids=kind_ids,
+            predicate_ids=predicate_ids,
+            offset=offset,
+            limit=limit,
+            search_index=index,
+        )
+
+    def knowledge_node(self, node_id: str, relation_limit: int = 200) -> dict[str, Any]:
+        """Inspect one normalized node (or all namespaced matches for a native ID)."""
+        if store := self._query_store():
+            return store.inspect_node(node_id, relation_limit)
+        graph = self.knowledge_graph()
+        return inspect_knowledge_node(graph, node_id, relation_limit, graph_index=self._current_graph_index(graph))
+
+    def knowledge_relation(self, relation_id: str) -> dict[str, Any]:
+        """Inspect one normalized relation and its display-complete endpoints."""
+        if store := self._query_store():
+            return store.inspect_relation(relation_id)
+        graph = self.knowledge_graph()
+        return inspect_knowledge_relation(graph, relation_id, graph_index=self._current_graph_index(graph))
+
+    def _current_graph_index(self, graph: dict[str, Any]) -> KnowledgeGraphIndex:
+        with self._graph_index_lock:
+            if self._graph_index is None or self._graph_index.graph is not graph:
+                self._graph_index = KnowledgeGraphIndex(graph)
+            return self._graph_index
+
+    def knowledge_focus(
+        self,
+        node_id: str,
+        *,
+        sources: list[str] | None = None,
+        depth: int = 1,
+        direction: str = "either",
+        predicate_ids: list[str] | None = None,
+        node_limit: int = 200,
+        relation_limit: int = 400,
+        profile: str = "overview",
+    ) -> dict[str, Any]:
+        """Construct a bounded radial lens around one exact or unambiguous node identity."""
+        if store := self._query_store():
+            return store.focus(node_id, sources=sources, depth=depth, direction=direction, predicate_ids=predicate_ids, node_limit=node_limit, relation_limit=relation_limit, profile=profile)
+        return focus_knowledge_node(
+            self.knowledge_graph(),
+            node_id,
+            sources=sources,
+            depth=depth,
+            direction=direction,
+            predicate_ids=predicate_ids,
+            node_limit=node_limit,
+            relation_limit=relation_limit,
+            profile=profile,
+        )
+
+    def compile_knowledge_lens(self, spec: dict[str, Any]) -> dict[str, Any]:
+        """Compile and execute a bounded read-only lens supplied by a human or agent."""
+        if store := self._query_store():
+            return store.execute_lens(spec)
+        return execute_knowledge_lens(self.knowledge_graph(), spec)
+
+    def stored_knowledge_lens(self, lens_id: str) -> dict[str, Any]:
+        """Compile one source-backed stored lens through the same generic engine."""
+        catalog = self.knowledge_catalog()
+        spec = next(
+            (item for item in catalog.get("lenses", []) if isinstance(item, dict) and item.get("lens_id") == lens_id),
+            None,
+        )
+        if spec is None:
+            raise KeyError(f"unknown ToS knowledge lens: {lens_id}")
+        return self.compile_knowledge_lens(spec)
+
     def status(self) -> dict[str, Any]:
         exists = self.index_exists()
-        payload = self.index() if exists else {}
+        store = self._query_store() if exists else None
+        payload = store.corpus_payload(('graph_views',)) if store else (self.index() if exists else {})
         return {
             "schema": "tos_corpus_mcp_status_v1",
             "index_exists": exists,
@@ -843,7 +1288,8 @@ class ToSAccessCore:
         )
 
     def summary(self) -> dict[str, Any]:
-        payload = self.index()
+        store = self._query_store()
+        payload = store.corpus_payload(('branches', 'graph_views')) if store else self.index()
         return {
             "schema": "tos_corpus_mcp_summary_v1",
             "status": self.status(),
@@ -934,6 +1380,8 @@ class ToSAccessCore:
         }
 
     def search(self, query: str, limit: int = 20, resource_kind: str | None = None) -> dict[str, Any]:
+        if store := self._query_store():
+            return self._search_payload(query, resource_kind, store.corpus_search(query, _bounded_int(limit, 20, 1, 100), resource_kind))
         payload = self.index()
         needle = query.lower().strip()
         limit = _bounded_int(limit, 20, 1, 100)
@@ -972,7 +1420,16 @@ class ToSAccessCore:
         owner_branch: str | None = None,
         limit: int = 100,
     ) -> dict[str, Any]:
-        payload = self.index()
+        store = self._query_store()
+        if store:
+            clauses, values = [], []
+            for name, value in [('resource_kind', resource_kind), ('owner_branch', owner_branch)]:
+                if value:
+                    clauses.append("json_extract(payload,'$." + name + "')=?")
+                    values.append(value)
+            payload = {**store.metadata['corpus_header'], 'resources': list(store.raw('corpus/resources', where=' AND '.join(clauses) or '1', params=values, limit=_bounded_int(limit,100,1,1000)))}
+        else:
+            payload = self.index()
         limit = _bounded_int(limit, 100, 1, 1000)
         items = []
         for resource in payload.get("resources", []):
@@ -995,7 +1452,13 @@ class ToSAccessCore:
         }
 
     def node(self, node_id: str) -> dict[str, Any]:
-        payload = self.index()
+        store = self._query_store()
+        if store:
+            payload = store.corpus_payload(('relation_packs',))
+            payload['nodes'] = list(store.raw('corpus/nodes', where="json_extract(payload,'$.node_id')=?", params=[node_id]))
+            payload['relation_edges'] = list(store.raw('corpus/relation_edges', where="json_extract(payload,'$.from_id')=? OR json_extract(payload,'$.to_id')=?", params=[node_id,node_id]))
+        else:
+            payload = self.index()
         pack_paths = _relation_pack_paths(payload)
         matches = [
             node
@@ -1036,7 +1499,13 @@ class ToSAccessCore:
         }
 
     def relation_pack(self, pack_id: str) -> dict[str, Any]:
-        payload = self.index()
+        store = self._query_store()
+        if store:
+            payload = dict(store.metadata['corpus_header'])
+            payload['relation_packs'] = list(store.raw('corpus/relation_packs', where="json_extract(payload,'$.pack_id')=?", params=[pack_id]))
+            payload['relation_edges'] = list(store.raw('corpus/relation_edges', where="json_extract(payload,'$.pack_id')=?", params=[pack_id]))
+        else:
+            payload = self.index()
         pack_paths = _relation_pack_paths(payload)
         packs = [
             pack
@@ -1059,8 +1528,22 @@ class ToSAccessCore:
         }
 
     def graph_view(self, view_id: str, limit: int = 100) -> dict[str, Any]:
-        payload = self.index()
         limit = _bounded_int(limit, 100, 1, 1000)
+        store = self._query_store()
+        if store:
+            payload = store.corpus_payload(('graph_views', 'relation_packs'))
+            payload['branches'] = list(store.raw('corpus/branches', limit=limit))
+            if view_id == 'route-graph':
+                pack_ids = [pack['pack_id'] for pack in payload['relation_packs'] if pack.get('owner_branch') == 'ToS/canon']
+                clause, values = store.membership("json_extract(payload,'$.pack_id')", pack_ids)
+            else:
+                clause, values = "json_extract(payload,'$.owner_branch')=?", ['ToS/candidate-intake']
+            payload['relation_edges'] = list(store.raw('corpus/relation_edges', where=clause, params=values, limit=limit)) if view_id != 'corpus-topology' else []
+            endpoint_ids = {e[f] for e in payload['relation_edges'] for f in ('from_id','to_id')}
+            clause, values = store.membership("json_extract(payload,'$.node_id')", endpoint_ids)
+            payload['nodes'] = list(store.raw('corpus/nodes', where=clause, params=values))
+        else:
+            payload = self.index()
         view = next(
             (item for item in payload.get("graph_views", []) if isinstance(item, dict) and item.get("view_id") == view_id),
             None,
@@ -1191,7 +1674,7 @@ class ToSAccessCore:
         }
 
     def packet(self, query: str = "", view_id: str | None = None, limit: int = 20) -> dict[str, Any]:
-        payload = self.index()
+        payload = self.corpus_header()
         limit = _bounded_int(limit, 20, 1, 100)
         search = self.search(query=query, limit=limit) if query else {"result_count": 0, "results": []}
         view_packet = self.graph_view(view_id, limit=limit) if view_id else None
@@ -2430,7 +2913,7 @@ class ToSAccessCore:
         if uri == "tos-corpus://summary":
             return self.summary()
         if uri == "tos-corpus://graph-views":
-            payload = self.index()
+            payload = self.corpus_header()
             return {"schema": "tos_corpus_mcp_graph_views_v1", "graph_views": _supported_corpus_views(payload)}
         prefix = "tos-corpus://graph-view/"
         if uri.startswith(prefix):

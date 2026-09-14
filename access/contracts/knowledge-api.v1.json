@@ -1,0 +1,132 @@
+{
+  "schema_version": "tos_knowledge_api_v1",
+  "execution_version": "tos-lens-execution-v6",
+  "owner": "Tree-of-Sophia/access",
+  "purpose": "transport-neutral backend contract for human and agent construction of bounded read-only knowledge lenses",
+  "data_contracts": {
+    "knowledge_graph": "knowledge-graph.v1.schema.json",
+    "lens_spec": "lens-spec.v1.schema.json",
+    "lens_result": "lens-result.v1.schema.json",
+    "entity_type_registry_schema": "../../ToS/contracts/semantic-entity-type-registry.schema.json",
+    "relation_type_registry_schema": "../../ToS/contracts/semantic-relation-type-registry.schema.json",
+    "entity_type_registry": "../../ToS/doctrine/semantic-interchange/entity-types.v1.json",
+    "relation_type_registry": "../../ToS/doctrine/semantic-interchange/relation-types.v1.json"
+  },
+  "operations": [
+    {
+      "operation_id": "tos.knowledge.catalog",
+      "http": {"method": "GET", "path": "/api/knowledge/catalog"},
+      "mcp_tool": "tos_knowledge_catalog",
+      "cli": "tos knowledge catalog",
+      "result": "vocabulary, safe fields, operators, bounds, display coverage, and stored LensSpecs"
+    },
+    {
+      "operation_id": "tos.knowledge.contracts",
+      "http": {"method": "GET", "path": "/api/knowledge/contracts"},
+      "mcp_tool": "tos_knowledge_contracts",
+      "cli": "tos knowledge contracts",
+      "result": "the versioned knowledge operation map plus graph, LensSpec, and LensResult JSON Schemas"
+    },
+    {
+      "operation_id": "tos.knowledge.search",
+      "http": {"method": "GET", "path": "/api/knowledge/search"},
+      "mcp_tool": "tos_knowledge_search",
+      "cli": "tos knowledge search",
+      "result": "paginated display-complete node and relation matches"
+    },
+    {
+      "operation_id": "tos.knowledge.node.inspect",
+      "http": {"method": "GET", "path": "/api/knowledge/nodes/{node_id}"},
+      "mcp_tool": "tos_knowledge_node",
+      "cli": "tos knowledge node",
+      "result": "normalized node matches and related human-readable relations"
+    },
+    {
+      "operation_id": "tos.knowledge.relation.inspect",
+      "http": {"method": "GET", "path": "/api/knowledge/relations/{relation_id}"},
+      "mcp_tool": "tos_knowledge_relation",
+      "cli": "tos knowledge relation",
+      "result": "normalized relation matches and display-complete endpoints"
+    },
+    {
+      "operation_id": "tos.knowledge.focus",
+      "profiles": {"default": "overview", "all": "exact carrier traversal including detailed text units, anchors and record-production links; the same limits apply", "overview": "source-filtered carriers of one declared ToS ID expand at zero distance before a relation hop, within node budgets; excludes dense text-unit/anchor membership and typed record-maker/provenance links; shared record production is not semantic proximity"},
+      "http": {"method": "GET", "path": "/api/knowledge/focus/{node_id}"},
+      "mcp_tool": "tos_knowledge_focus",
+      "cli": "tos knowledge focus",
+      "result": "a bounded radial LensResult centered on an exact normalized ID, stable entity ID, or one unambiguous native ID",
+      "resolution": "exact normalized ID first; then stable entity ID with deterministic source priority; an ambiguous native ID is rejected and must be disambiguated through search"
+    },
+    {
+      "operation_id": "tos.lens.open",
+      "http": {"method": "GET", "path": "/api/knowledge/lenses/{lens_id}"},
+      "mcp_tool": "tos_knowledge_lens_open",
+      "cli": "tos lens open",
+      "result": "stored LensSpec executed through the generic engine"
+    },
+    {
+      "operation_id": "tos.lens.compile",
+      "http": {"method": "POST", "path": "/api/knowledge/lenses/compile", "content_type": "application/json"},
+      "mcp_tool": "tos_knowledge_lens_compile",
+      "cli": "tos lens compile",
+      "result": "validated arbitrary tos_lens_spec_v1 executed without changing ToS",
+      "post_semantics": "POST carries a structured read query only; it creates no server state and performs no write"
+    }
+  ],
+  "extensions": [
+    {
+      "extension_id": "tos.knowledge.exploration.v1",
+      "availability": ["local-http", "native-mcp", "cloudflare-worker-with-migration-and-compatible-read-model"],
+      "unavailable": ["one-shot-cli"],
+      "capability_discovery": "GET /api/knowledge/explore/capabilities",
+      "contracts": "GET /api/knowledge/explore/contracts",
+      "http": {"method": "POST", "path": "/api/knowledge/explore"},
+      "mcp_tool": "tos_knowledge_explore",
+      "request_schema": "exploration-request.v1.schema.json",
+      "result_schema": "exploration-result.v1.schema.json",
+      "state": "disposable bounded query checkpoints: local process memory or shared D1 cache; no authored writes",
+      "errors": {"400": "invalid request", "409": "snapshot changed; restart", "410": "checkpoint unavailable; restart", "413": "D1 checkpoint capacity exceeded; narrow scope/page", "503": "D1 migration/read model not prepared"}
+    }
+  ],
+  "invariants": {
+    "source_owned_meaning": true,
+    "access_is_read_model": true,
+    "every_node_has_display_and_source_refs": true,
+    "every_relation_has_display_and_source_refs": true,
+    "normalized_public_payload_is_lossless": true,
+    "stable_semantic_type_registries": true,
+    "source_native_kind_and_predicate_are_preserved": true,
+    "unknown_vocabulary_uses_explicit_unmapped_fallback": true,
+    "relation_domain_and_range_are_validated": true,
+    "bibliographic_assertions_are_reified_claims": true,
+    "same_as_requires_evidence_and_accepted_review": true,
+    "place_is_distinct_from_navigation_region": true,
+    "cross_layer_grounding_requires_exact_declared_source_ref": true,
+    "unknown_description_is_explicit": true,
+    "lens_display_selection_reports_language_fallback_without_translation": true,
+    "lens_display_selection_binds_content_revision": true,
+    "lens_source_form_selection_preserves_complete_context_or_returns_exact_ref": true,
+    "lens_source_form_selection_does_not_adjudicate_competing_forms": true,
+    "lens_source_form_selection_does_not_reevaluate_snapshot_admission": true,
+    "source_declared_assertion_context_survives_compact_delivery": true,
+    "source_revision_in_result_fingerprint": true,
+    "source_revision_in_search_and_inspection": true,
+    "path_conditions_are_scoped_bounded_walks": true,
+    "inclusion_traces_are_not_semantic_proof": true,
+    "delivery_cursors_bind_query_snapshot_and_result": true,
+    "item_content_revisions_in_result_fingerprint": true,
+    "focus_is_explicit_in_result": true,
+    "scene_mapping_groups_only_declared_persistent_tos_identity": true,
+    "scene_mapping_preserves_exact_carriers_and_relation_coverage": true,
+    "compact_claim_paths_preserve_exact_expansion_and_mandatory_context": true,
+    "compact_claim_paths_are_not_new_assertions": true,
+    "incomplete_or_focused_claim_paths_remain_explicit": true,
+    "endpoint_closure_does_not_recurse": true,
+    "relation_counts_distinguish_query_matches_from_topology_eligibility": true,
+    "arbitrary_code_execution": false,
+    "listed_operations_create_checkpoints": false,
+    "durable_query_cache_only": true,
+    "authored_graph_writes": false
+  },
+  "authority_limit": "Lens execution selects and composes existing ToS material; it cannot author meaning, review, rights, or canon."
+}

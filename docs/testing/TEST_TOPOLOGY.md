@@ -5,9 +5,11 @@ Tests prove bounded behavior for source-home routes, generated companions,
 mechanics contracts, validator behavior, and release contour. They do not create
 philosophical authority, command authority, eval verdicts, or runtime policy.
 
-Machine-readable coverage lives in
-[`tests/test_inventory.json`](../../tests/test_inventory.json). Update it when a
-test file is added, moved, renamed, split, folded, or changes owner surface.
+Existing navigation entries live in
+[`tests/test_inventory.json`](../../tests/test_inventory.json). Under TOS-D-0062,
+normal test discovery and executable behavior own software validation. Update a
+navigation entry when it helps a real consumer; no inventory row or regenerated
+coverage carrier is required merely because a test file changed.
 
 ## Route Shape
 
@@ -65,9 +67,8 @@ mechanic package or part should carry the regression with its own source.
   protected boundary, home scope, coverage authority, focused target, failure
   route, runtime cost, and disposition.
 - `focused_target` and `coverage_authority` name surfaces, not shell commands.
-- All active `test*.py` files under root `tests/`, product-local `access/tests/`,
-  mechanics test homes, and future agent test homes must have exactly one
-  inventory entry.
+- Entries describe their named surfaces. They do not define which tests exist
+  or gate additions, moves or software release.
 - Root tests may protect mechanics-owned contracts only while the local mechanic
   home is not ready; the owner surface and validation lane must make that route
   explicit.

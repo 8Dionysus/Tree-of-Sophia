@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Проверка линз — искусственные данные</title><link rel="stylesheet" href="./reader-fixture.css"></head>
+<body>
+<div class="fixture-controls">
+  <strong>Проверочные данные линз</strong>
+  <label>Контракт <select id="fixture-contract"><option value="properties">Свойства объявлены</option><option value="legacy">Только поля</option><option value="removed">Число удалено</option></select></label>
+  <label>Связь <select id="fixture-connection"><option value="normal">Обычная</option><option value="slow">Задержка 10 с</option><option value="offline">Нет сети</option><option value="restricted">Доступ ограничен</option></select></label>
+  <button id="fixture-revision">Сменить снимок</button>
+  <label>Область <select id="fixture-size"><option value="6">6 материалов</option><option value="40">40 материалов / 80 связей</option></select></label>
+  <output id="fixture-metrics"></output>
+</div>
+<div id="app"></div><script type="module" src="./lens-fixture.mjs"></script>
+</body></html>

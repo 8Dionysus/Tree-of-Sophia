@@ -1,7 +1,8 @@
-import { HttpError, type Item, parseItem, stringValue } from "./common";
+import { HttpError, type Item, parseItem, stringValue } from "./common.ts";
 
 type JsonRow = { json: string };
 type ChunkRow = { id: string; json: string };
+type MetaChunkRow = { json_chunk: string };
 
 export type EdgeRow = {
   id: string;
@@ -24,9 +25,13 @@ export async function jsonRows(db: D1Database, sql: string, ...bindings: unknown
 }
 
 export async function meta<T = Item>(db: D1Database, key: string): Promise<T> {
-  const row = await db.prepare("SELECT json FROM edge_meta WHERE key = ?").bind(key).first<JsonRow>();
-  if (!row) throw new Error(`edge read model is missing metadata: ${key}`);
-  return JSON.parse(row.json) as T;
+  const chunks = await rows<MetaChunkRow>(
+    db,
+    "SELECT json_chunk FROM edge_meta WHERE key = ? ORDER BY part",
+    key,
+  );
+  if (chunks.length === 0) throw new Error(`edge read model is missing metadata: ${key}`);
+  return JSON.parse(chunks.map((row) => row.json_chunk).join("")) as T;
 }
 
 export async function metaItem(db: D1Database, key: string): Promise<Item> {

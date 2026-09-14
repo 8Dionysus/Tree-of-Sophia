@@ -1,0 +1,1389 @@
+{
+  "nodes": [
+    {
+      "node_id": "evidence:sha256:fb6ead6f9a8b8d25b9502bd2f4dc20ba227653ce7bcdd72bf4d755eeb804d6f0",
+      "node_kind": "evidence",
+      "properties": {
+        "evidence_kind": "repo_path",
+        "evidence_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md",
+        "resolved": true
+      },
+      "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md",
+      "source_sha256": "bcea2ce963f8fd3679a2b2bc1625453131bc63422647645451a994cd9c451978"
+    },
+    {
+      "node_id": "evidence:sha256:e895f734c9a63264175f115bb395ac0e333b00bfd8d0420d9a929c7379d1d54b",
+      "node_kind": "evidence",
+      "properties": {
+        "anchor_id": "tos.anchor.also-sprach-zarathustra.ru-antonovsky-1911.title-page-responsibility-edition-publication",
+        "anchor_status": "proposed",
+        "anchor_version": 1,
+        "evidence_kind": "anchor",
+        "evidence_ref": "tos.anchor.also-sprach-zarathustra.ru-antonovsky-1911.title-page-responsibility-edition-publication",
+        "file_id": "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+        "file_ref": "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+        "file_sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+        "item_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+        "passage_id": null,
+        "provenance_event_ref": "tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+        "resolved": true,
+        "review_ref": null,
+        "schema_version": "tos_source_anchor_v1",
+        "selector_method": {
+          "configuration_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md",
+          "maker_type": "model",
+          "method": "source-visible whole-page responsibility, edition, and publication-statement selection",
+          "version": "1"
+        },
+        "selectors": [
+          {
+            "coordinate_space": "normalized_0_1",
+            "height": 1,
+            "page": 1,
+            "type": "page_region",
+            "width": 1,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "source_anchor": {
+          "anchor_id": "tos.anchor.also-sprach-zarathustra.ru-antonovsky-1911.title-page-responsibility-edition-publication",
+          "anchor_version": 1,
+          "file_id": "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+          "file_sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+          "item_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+          "passage_id": null,
+          "provenance_event_ref": "tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+          "review_ref": null,
+          "schema_version": "tos_source_anchor_v1",
+          "selector_method": {
+            "configuration_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md",
+            "maker_type": "model",
+            "method": "source-visible whole-page responsibility, edition, and publication-statement selection",
+            "version": "1"
+          },
+          "selectors": [
+            {
+              "coordinate_space": "normalized_0_1",
+              "height": 1,
+              "page": 1,
+              "type": "page_region",
+              "width": 1,
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "status": "proposed",
+          "supersedes_anchor_ref": null
+        },
+        "status": "proposed",
+        "supersedes_anchor_ref": null
+      },
+      "source_line": 1,
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/structure/source-statements/anchors.jsonl",
+      "source_sha256": "08c4cd6fc2e48b58e3f14de2607e727d2d518ee791461d96fc402a695617d8e4"
+    },
+    {
+      "node_id": "evidence:sha256:e22f00ce9c8fcc6cadaea8ce2beabbb5a41ddbb6b19a992f7812b4c16a12aeda",
+      "node_kind": "evidence",
+      "properties": {
+        "evidence_kind": "repo_path",
+        "evidence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/resource-inventory.json",
+        "resolved": true
+      },
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/resource-inventory.json",
+      "source_sha256": "8e277e862f50db9d9752f8498875cf16f7214b2133d07f9683dd383ad236249c"
+    },
+    {
+      "node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+      "node_kind": "provenance_event",
+      "properties": {
+        "agent_refs": [
+          "model:codex",
+          "software:poppler-26.01.0",
+          "software:curl-8.18.0"
+        ],
+        "ended_at": "2026-08-01T08:43:14-06:00",
+        "event_ref": "tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+        "event_type": "annotation",
+        "event_version": 1,
+        "method": {
+          "artifact_digest": null,
+          "configuration": {
+            "canon_promotion_performed": false,
+            "cross_edition_equivalence_asserted": false,
+            "edition_number_source_visible": true,
+            "existing_place_reused": true,
+            "human_review_performed": false,
+            "inspected_pdf_pages": [
+              1,
+              2,
+              4,
+              6
+            ],
+            "payload_bytes_published": false,
+            "provision_claims_materialized": 2,
+            "provisional_organizations_created": 2,
+            "responsibility_claims_materialized": 1,
+            "revision_history_source_visible": true,
+            "semantic_claims_created": 0,
+            "source_page_anchor_count": 3,
+            "source_text_admitted": false,
+            "translation_quality_assessed": false
+          },
+          "device": "abyss-machine",
+          "maker_type": "mixed",
+          "name": "source-visible edition-specific responsibility and provision materialization",
+          "prompt_or_instruction_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md",
+          "runtime": "Codex; Poppler 26.01.0; curl 8.18.0",
+          "version": "1"
+        },
+        "schema_version": "tos_provenance_event_v1",
+        "source_event": {
+          "agent_refs": [
+            "model:codex",
+            "software:poppler-26.01.0",
+            "software:curl-8.18.0"
+          ],
+          "ended_at": "2026-08-01T08:43:14-06:00",
+          "event_id": "tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+          "event_type": "annotation",
+          "event_version": 1,
+          "inputs": [
+            {
+              "ref": "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+              "role": "fixity-verified-local-source-witness",
+              "sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69"
+            },
+            {
+              "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/resource-inventory.json",
+              "role": "text-free-pdf-page-inventory",
+              "sha256": "8e277e862f50db9d9752f8498875cf16f7214b2133d07f9683dd383ad236249c"
+            },
+            {
+              "ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md",
+              "role": "ordered-source-witness-research",
+              "sha256": "bcea2ce963f8fd3679a2b2bc1625453131bc63422647645451a994cd9c451978"
+            },
+            {
+              "ref": "ToS/contracts/source-anchor.schema.json",
+              "role": "source-anchor-contract",
+              "sha256": "6b493f99d06aa76e3254eb2cd3f46907969a3ad43416e100333ead20f6244e8c"
+            },
+            {
+              "ref": "ToS/contracts/claim-packet.schema.json",
+              "role": "claim-packet-contract",
+              "sha256": "cc982ceeaa3a62dc8cb1367cd4b10cc76073b252a1ac5c9977f6b0ee6d47588c"
+            }
+          ],
+          "method": {
+            "artifact_digest": null,
+            "configuration": {
+              "canon_promotion_performed": false,
+              "cross_edition_equivalence_asserted": false,
+              "edition_number_source_visible": true,
+              "existing_place_reused": true,
+              "human_review_performed": false,
+              "inspected_pdf_pages": [
+                1,
+                2,
+                4,
+                6
+              ],
+              "payload_bytes_published": false,
+              "provision_claims_materialized": 2,
+              "provisional_organizations_created": 2,
+              "responsibility_claims_materialized": 1,
+              "revision_history_source_visible": true,
+              "semantic_claims_created": 0,
+              "source_page_anchor_count": 3,
+              "source_text_admitted": false,
+              "translation_quality_assessed": false
+            },
+            "device": "abyss-machine",
+            "maker_type": "mixed",
+            "name": "source-visible edition-specific responsibility and provision materialization",
+            "prompt_or_instruction_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md",
+            "runtime": "Codex; Poppler 26.01.0; curl 8.18.0",
+            "version": "1"
+          },
+          "outputs": [
+            {
+              "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/structure/source-statements/anchors.jsonl",
+              "role": "proposed-source-page-anchors",
+              "sha256": "9aaeec9b5d2fb529044ee648ade42bfc96cd691e6ea98c0a9b7159ae611f55eb"
+            },
+            {
+              "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl",
+              "role": "unreviewed-evidence-bearing-responsibility-claims",
+              "sha256": "0f9ef8441a2c8a28a2ff5579e40d8a267959cc8b380720d12e1ad781a5ed886b"
+            },
+            {
+              "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/provision-activity-claims.jsonl",
+              "role": "unreviewed-evidence-bearing-provision-activity-claims",
+              "sha256": "b02f1b23a85d6f5809948e9124e60382959ae217774c556e4cc2d309a260070c"
+            },
+            {
+              "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/expression.json",
+              "role": "edition-specific-translation-expression",
+              "sha256": "057464160cdc38726be59c3744e9f7a132d6bdb53555c54ccc0a050438435f33"
+            },
+            {
+              "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/edition.json",
+              "role": "exact-fourth-edition-record",
+              "sha256": "62f7fe26e54cf73e7e34c023cbb7d9dbf28e5587979a158428490835259871df"
+            },
+            {
+              "ref": "ToS/source-witnesses/organizations/prometey-publishing-saint-petersburg/organization.json",
+              "role": "provisional-publisher-organization",
+              "sha256": "744a8afe70ac0283b56c9090ff3d329ada7a6d3b27bcdd9ddbf6d88976f2f051"
+            },
+            {
+              "ref": "ToS/source-witnesses/organizations/energiya-typolithography-saint-petersburg/organization.json",
+              "role": "provisional-printer-organization",
+              "sha256": "90ac241761f870ca34aec20809595f8dff02e0064bcea7e4b60d566976b68515"
+            }
+          ],
+          "receipt_refs": [
+            "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md",
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/structure/source-statements/anchors.jsonl",
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl",
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/provision-activity-claims.jsonl"
+          ],
+          "rights_basis_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json",
+          "schema_version": "tos_provenance_event_v1",
+          "started_at": "2026-08-01T08:30:38-06:00",
+          "status": "completed_with_warnings",
+          "supersedes_event_ref": null,
+          "warnings": [
+            "All anchors and claims are model-made and unreviewed; visual inspection was not human review.",
+            "The source-visible revision history creates an edition-separation boundary but no textual relation or equivalence claim.",
+            "The printer line is undated; the title-page year is not an exact manufacture completion date.",
+            "No OCR, source text, accepted Russian, translation quality, semantics, rights clearance, human acceptance, or canon promotion is created."
+          ]
+        },
+        "started_at": "2026-08-01T08:30:38-06:00",
+        "status": "completed_with_warnings"
+      },
+      "source_line": 1,
+      "source_ref": "ToS/source-witnesses/provision-activities/antonovsky-1911/provision-activity-provenance.jsonl",
+      "source_sha256": "26c00637b6106dcd11f7e3651648219fe283800e1d98d97cd208e099a18b2c8f"
+    },
+    {
+      "node_id": "evidence:sha256:3469f56f739afd7703269eabde66dc055d31177cd6da0e06286fbd274cf65745",
+      "node_kind": "evidence",
+      "properties": {
+        "evidence_kind": "repo_path",
+        "evidence_ref": "ToS/source-witnesses/discovery/runs/antonovsky-prometey-1911-source-witness.2026-08-01.v1.json",
+        "resolved": true
+      },
+      "source_ref": "ToS/source-witnesses/discovery/runs/antonovsky-prometey-1911-source-witness.2026-08-01.v1.json",
+      "source_sha256": "5c3667f4f979ed18b8b56176ea4268caf016aeda1a714bf6ab96183e4c5c9c32"
+    },
+    {
+      "node_id": "identity:tos.agent.yuri-antonovsky",
+      "node_kind": "identity",
+      "properties": {
+        "external_identifiers": [
+          {
+            "scheme": "GND",
+            "source_ref": "ToS/source-witnesses/discovery/runs/antonovsky-agent-identity-reconciliation.2026-08-01.v1.json",
+            "status": "verified",
+            "value": "123235553"
+          }
+        ],
+        "human_forms": [
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                "id": "tos.agent.yuri-antonovsky",
+                "version": 3
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Юлий Михайлович Антоновский",
+            "form": {
+              "digest": "sha256:a1607f4edebceec13fef55b42c0e2cb5a37c76d2d115c3aab411857d0fba5d5c",
+              "id": "tos.form.metadata.9bd60dafd1d9c21a2300d80518b39a656060f7ddc32ed5686e32160f6150c010",
+              "version": 1
+            },
+            "issues": [],
+            "language": null,
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+              "id": "tos.agent.yuri-antonovsky",
+              "version": 3
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                "id": "tos.agent.yuri-antonovsky",
+                "version": 3
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "The exact 1913 title page and later Mysl and scholarly editions credit Ю. М. Антоновский. DNB GND 123235553 links the Cyrillic initials to Antonovskij, Julij Michajlovič, translator of Tak govoril Zaratustra; RSL expands the exact same initials in a Zarathustra record to Юлий Михайлович Антоновский (1857-1913). The legacy ToS record ID retains `yuri` solely for stable lineage and is not a forename assertion; the speaking filesystem route is `yuliy-antonovsky`. The earlier English form Yuri M. Antonovsky is rejected. Identity verification does not accept any translation text or equate the 1911, 1913, 1996, 2007, or later Expressions.",
+            "form": {
+              "digest": "sha256:55914b4e625771ffaa11376e27f4fa9574091aed44c089dcc183e9b473bba35e",
+              "id": "tos.form.metadata.56b98c965ed06933c44392acac9acce0bad9fb0ab0c4b1c417ba3a4496ec2f8e",
+              "version": 1
+            },
+            "issues": [],
+            "language": null,
+            "performs_semantic_assessment": false,
+            "role": "hover",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+              "id": "tos.agent.yuri-antonovsky",
+              "version": 3
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/0/language",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-2",
+                "value": "ru"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/0/source_ref",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-3",
+                "value": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/structure/title-page/anchors.jsonl"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/0/status",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-4",
+                "value": "verified"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                "id": "tos.agent.yuri-antonovsky",
+                "version": 3
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Ю. М. Антоновский",
+            "form": {
+              "digest": "sha256:211a67897fe94e2938720e22935ac4eb0e8b70083430005d4f1e8747ee36bbb0",
+              "id": "tos.form.metadata.1cd61c96383fa72ad14848a62f361c98f581e410cd7f4a136f873acc042133ce",
+              "version": 1
+            },
+            "issues": [],
+            "language": "ru",
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+              "id": "tos.agent.yuri-antonovsky",
+              "version": 3
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/1/language",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-2",
+                "value": "de"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/1/source_ref",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-3",
+                "value": "ToS/source-witnesses/discovery/runs/antonovsky-agent-identity-reconciliation.2026-08-01.v1.json"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/1/status",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-4",
+                "value": "verified"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                "id": "tos.agent.yuri-antonovsky",
+                "version": 3
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Antonovskij, Julij M.",
+            "form": {
+              "digest": "sha256:6324a18750a07506429f3651e162cb58b20bcd0a37ae586fc18466415c4337b6",
+              "id": "tos.form.metadata.9380c678e400bb0ec21144d42ee9dac420663ed74139532c690a1a4ecd572c3f",
+              "version": 1
+            },
+            "issues": [],
+            "language": "de",
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+              "id": "tos.agent.yuri-antonovsky",
+              "version": 3
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/2/language",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-2",
+                "value": "de"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/2/source_ref",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-3",
+                "value": "ToS/source-witnesses/discovery/runs/antonovsky-agent-identity-reconciliation.2026-08-01.v1.json"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/2/status",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-4",
+                "value": "verified"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                "id": "tos.agent.yuri-antonovsky",
+                "version": 3
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Antonovskij, Julij Michajlovič",
+            "form": {
+              "digest": "sha256:6c475696c38c2a4dc3acc238a144270c8059832f1b5cd91e09a18965b5d7ca29",
+              "id": "tos.form.metadata.97eef6bfecee54c586e50351aa2390c7e968c37ace31f15511954e2028434e9c",
+              "version": 1
+            },
+            "issues": [],
+            "language": "de",
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+              "id": "tos.agent.yuri-antonovsky",
+              "version": 3
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/3/language",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-2",
+                "value": "en"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/3/source_ref",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-3",
+                "value": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md"
+              },
+              {
+                "binding": {
+                  "pointer": "/variant_labels/3/status",
+                  "record": {
+                    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                    "id": "tos.agent.yuri-antonovsky",
+                    "version": 3
+                  }
+                },
+                "slot": "context-4",
+                "value": "rejected"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+                "id": "tos.agent.yuri-antonovsky",
+                "version": 3
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Yuri M. Antonovsky",
+            "form": {
+              "digest": "sha256:e1b1fc03dbe619d690907544f6f39ce3b406c3f8b40049b9f733a66015018d4b",
+              "id": "tos.form.metadata.5d125442ce495e90652a4e60bfd98a483c4172f0243ca3739483003181ffb15c",
+              "version": 1
+            },
+            "issues": [],
+            "language": "en",
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+              "id": "tos.agent.yuri-antonovsky",
+              "version": 3
+            }
+          }
+        ],
+        "human_forms_source_ref": "ToS/source-witnesses/agents/yuliy-antonovsky/agent.human-forms.json",
+        "identity_kind": "agent",
+        "identity_ref": "tos.agent.yuri-antonovsky",
+        "identity_status": "verified",
+        "notes": "The exact 1913 title page and later Mysl and scholarly editions credit Ю. М. Антоновский. DNB GND 123235553 links the Cyrillic initials to Antonovskij, Julij Michajlovič, translator of Tak govoril Zaratustra; RSL expands the exact same initials in a Zarathustra record to Юлий Михайлович Антоновский (1857-1913). The legacy ToS record ID retains `yuri` solely for stable lineage and is not a forename assertion; the speaking filesystem route is `yuliy-antonovsky`. The earlier English form Yuri M. Antonovsky is rejected. Identity verification does not accept any translation text or equate the 1911, 1913, 1996, 2007, or later Expressions.",
+        "preferred_label": "Юлий Михайлович Антоновский",
+        "record_id": "tos.agent.yuri-antonovsky",
+        "record_type": "agent",
+        "record_version": 3,
+        "same_as_posture": "no_equivalence_claim",
+        "schema_version": "tos_corpus_record_v1",
+        "source_record": {
+          "external_identifiers": [
+            {
+              "scheme": "GND",
+              "source_ref": "ToS/source-witnesses/discovery/runs/antonovsky-agent-identity-reconciliation.2026-08-01.v1.json",
+              "status": "verified",
+              "value": "123235553"
+            }
+          ],
+          "identity_status": "verified",
+          "notes": "The exact 1913 title page and later Mysl and scholarly editions credit Ю. М. Антоновский. DNB GND 123235553 links the Cyrillic initials to Antonovskij, Julij Michajlovič, translator of Tak govoril Zaratustra; RSL expands the exact same initials in a Zarathustra record to Юлий Михайлович Антоновский (1857-1913). The legacy ToS record ID retains `yuri` solely for stable lineage and is not a forename assertion; the speaking filesystem route is `yuliy-antonovsky`. The earlier English form Yuri M. Antonovsky is rejected. Identity verification does not accept any translation text or equate the 1911, 1913, 1996, 2007, or later Expressions.",
+          "preferred_label": "Юлий Михайлович Антоновский",
+          "record_id": "tos.agent.yuri-antonovsky",
+          "record_type": "agent",
+          "record_version": 3,
+          "same_as_posture": "no_equivalence_claim",
+          "schema_version": "tos_corpus_record_v1",
+          "source_refs": [
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+            "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+            "ToS/source-witnesses/discovery/runs/antonovsky-agent-identity-reconciliation.2026-08-01.v1.json",
+            "https://d-nb.info/gnd/123235553",
+            "https://search.rsl.ru/ru/record/01004322945"
+          ],
+          "supersedes_ref": null,
+          "variant_labels": [
+            {
+              "language": "ru",
+              "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/structure/title-page/anchors.jsonl",
+              "status": "verified",
+              "value": "Ю. М. Антоновский"
+            },
+            {
+              "language": "de",
+              "source_ref": "ToS/source-witnesses/discovery/runs/antonovsky-agent-identity-reconciliation.2026-08-01.v1.json",
+              "status": "verified",
+              "value": "Antonovskij, Julij M."
+            },
+            {
+              "language": "de",
+              "source_ref": "ToS/source-witnesses/discovery/runs/antonovsky-agent-identity-reconciliation.2026-08-01.v1.json",
+              "status": "verified",
+              "value": "Antonovskij, Julij Michajlovič"
+            },
+            {
+              "language": "en",
+              "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+              "status": "rejected",
+              "value": "Yuri M. Antonovsky"
+            }
+          ]
+        },
+        "source_refs": [
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+          "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+          "ToS/source-witnesses/discovery/runs/antonovsky-agent-identity-reconciliation.2026-08-01.v1.json",
+          "https://d-nb.info/gnd/123235553",
+          "https://search.rsl.ru/ru/record/01004322945"
+        ],
+        "supersedes_ref": null,
+        "variant_labels": [
+          {
+            "language": "ru",
+            "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/structure/title-page/anchors.jsonl",
+            "status": "verified",
+            "value": "Ю. М. Антоновский"
+          },
+          {
+            "language": "de",
+            "source_ref": "ToS/source-witnesses/discovery/runs/antonovsky-agent-identity-reconciliation.2026-08-01.v1.json",
+            "status": "verified",
+            "value": "Antonovskij, Julij M."
+          },
+          {
+            "language": "de",
+            "source_ref": "ToS/source-witnesses/discovery/runs/antonovsky-agent-identity-reconciliation.2026-08-01.v1.json",
+            "status": "verified",
+            "value": "Antonovskij, Julij Michajlovič"
+          },
+          {
+            "language": "en",
+            "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+            "status": "rejected",
+            "value": "Yuri M. Antonovsky"
+          }
+        ]
+      },
+      "source_ref": "ToS/source-witnesses/agents/yuliy-antonovsky/agent.json",
+      "source_sha256": "41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+    },
+    {
+      "node_id": "identity:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+      "node_kind": "identity",
+      "properties": {
+        "embodiment_claim_refs": [
+          "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.embodied-by.saint-petersburg-prometey-1911-fourth"
+        ],
+        "expression_role": "translation",
+        "external_identifiers": [],
+        "human_forms": [
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:56b6e32743df20b48d94bb803b9521fb939016861d8ff3a8d6a9bc1586437cea",
+                    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+                    "version": 1
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:56b6e32743df20b48d94bb803b9521fb939016861d8ff3a8d6a9bc1586437cea",
+                    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+                    "version": 1
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:56b6e32743df20b48d94bb803b9521fb939016861d8ff3a8d6a9bc1586437cea",
+                "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+                "version": 1
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Так говорил Заратустра — перевод Ю. М. Антоновского, четвёртое издание 1911 года",
+            "form": {
+              "digest": "sha256:3811aff06fbef40cdce4a72a4029deba8a2a0136d50c4d4dd176e59460a66f48",
+              "id": "tos.form.metadata.86de5bc72b93056454b9d7af60ddf5a9fde1bc2300728a0bd0a265145ab87fee",
+              "version": 1
+            },
+            "issues": [],
+            "language": null,
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:56b6e32743df20b48d94bb803b9521fb939016861d8ff3a8d6a9bc1586437cea",
+              "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+              "version": 1
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:56b6e32743df20b48d94bb803b9521fb939016861d8ff3a8d6a9bc1586437cea",
+                    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+                    "version": 1
+                  }
+                },
+                "slot": "context-0",
+                "value": "verified"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:56b6e32743df20b48d94bb803b9521fb939016861d8ff3a8d6a9bc1586437cea",
+                    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+                    "version": 1
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:56b6e32743df20b48d94bb803b9521fb939016861d8ff3a8d6a9bc1586437cea",
+                "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+                "version": 1
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Edition-specific Antonovsky translation handle grounded by the exact 1911 fourth-edition title page and the translator's preface. The preface explicitly says the 1900, 1903, 1907, and 1911 editions were successive reworkings rather than simple reprints. Textual equivalence to the 1913, 1996, newly edited 2007, or later expressions is not claimed.",
+            "form": {
+              "digest": "sha256:d2e364e8009b312d9f3aec71ddff9195d6a9713b1b7288498c2f6347bb7177b2",
+              "id": "tos.form.metadata.b1522af7230483abc891eb8fdcfc8ce0f5514526eee3b5bb7678d89a77ca2966",
+              "version": 1
+            },
+            "issues": [],
+            "language": null,
+            "performs_semantic_assessment": false,
+            "role": "hover",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": null,
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:56b6e32743df20b48d94bb803b9521fb939016861d8ff3a8d6a9bc1586437cea",
+              "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+              "version": 1
+            }
+          }
+        ],
+        "human_forms_source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/expression.human-forms.json",
+        "identity_kind": "expression",
+        "identity_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+        "identity_status": "verified",
+        "language": "ru",
+        "notes": "Edition-specific Antonovsky translation handle grounded by the exact 1911 fourth-edition title page and the translator's preface. The preface explicitly says the 1900, 1903, 1907, and 1911 editions were successive reworkings rather than simple reprints. Textual equivalence to the 1913, 1996, newly edited 2007, or later expressions is not claimed.",
+        "preferred_label": "Так говорил Заратустра — перевод Ю. М. Антоновского, четвёртое издание 1911 года",
+        "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+        "record_type": "expression",
+        "record_version": 1,
+        "responsibility_claim_refs": [
+          "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky"
+        ],
+        "same_as_posture": "no_equivalence_claim",
+        "schema_version": "tos_corpus_record_v1",
+        "source_record": {
+          "embodiment_claim_refs": [
+            "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.embodied-by.saint-petersburg-prometey-1911-fourth"
+          ],
+          "expression_role": "translation",
+          "external_identifiers": [],
+          "identity_status": "verified",
+          "language": "ru",
+          "notes": "Edition-specific Antonovsky translation handle grounded by the exact 1911 fourth-edition title page and the translator's preface. The preface explicitly says the 1900, 1903, 1907, and 1911 editions were successive reworkings rather than simple reprints. Textual equivalence to the 1913, 1996, newly edited 2007, or later expressions is not claimed.",
+          "preferred_label": "Так говорил Заратустра — перевод Ю. М. Антоновского, четвёртое издание 1911 года",
+          "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+          "record_type": "expression",
+          "record_version": 1,
+          "responsibility_claim_refs": [
+            "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky"
+          ],
+          "same_as_posture": "no_equivalence_claim",
+          "schema_version": "tos_corpus_record_v1",
+          "source_refs": [
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/forensic-report.md",
+            "ToS/source-witnesses/discovery/runs/antonovsky-prometey-1911-source-witness.2026-08-01.v1.json",
+            "https://rusneb.ru/catalog/000199_000009_003693383/",
+            "https://search.rsl.ru/ru/record/01003693383"
+          ],
+          "supersedes_ref": null,
+          "variant_labels": [],
+          "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+        },
+        "source_refs": [
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/forensic-report.md",
+          "ToS/source-witnesses/discovery/runs/antonovsky-prometey-1911-source-witness.2026-08-01.v1.json",
+          "https://rusneb.ru/catalog/000199_000009_003693383/",
+          "https://search.rsl.ru/ru/record/01003693383"
+        ],
+        "supersedes_ref": null,
+        "variant_labels": [],
+        "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+      },
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/expression.json",
+      "source_sha256": "56b6e32743df20b48d94bb803b9521fb939016861d8ff3a8d6a9bc1586437cea"
+    },
+    {
+      "node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "node_kind": "maker",
+      "properties": {
+        "agent_ref": "model:codex",
+        "identity_node_id": null,
+        "maker_type": "model",
+        "source_maker": {
+          "agent_ref": "model:codex",
+          "maker_type": "model"
+        }
+      },
+      "source_ref": "ToS/source-witnesses/catalog/claims.jsonl",
+      "source_sha256": "ec0b46d91412e32128a165b839b070564ab42059a36b7fcf20b93ef62ee027f4"
+    },
+    {
+      "node_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "node_kind": "claim",
+      "properties": {
+        "assertion_layer": "bibliographic_assertion",
+        "claim_id": "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+        "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+        "claim_type": "bibliographic",
+        "claim_version": 1,
+        "confidence": null,
+        "epistemic_status": "observed",
+        "evidence_refs": [
+          "tos.anchor.also-sprach-zarathustra.ru-antonovsky-1911.title-page-responsibility-edition-publication",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/resource-inventory.json",
+          "ToS/source-witnesses/discovery/runs/antonovsky-prometey-1911-source-witness.2026-08-01.v1.json",
+          "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md"
+        ],
+        "maker": {
+          "agent_ref": "model:codex",
+          "maker_type": "model"
+        },
+        "navigation_descriptor": {
+          "claim": {
+            "id": "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+            "sha256": "84cde411943c4294b87d11783d6798a6c3140ea9d03341fba3d56f61dcb70e81",
+            "version": 1
+          },
+          "object": {
+            "identity_ref": "tos.agent.yuri-antonovsky",
+            "label": "Юлий Михайлович Антоновский",
+            "label_pointer": "/preferred_label",
+            "node_id": "identity:tos.agent.yuri-antonovsky",
+            "record_version": 3,
+            "sha256": "41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9",
+            "source_ref": "ToS/source-witnesses/agents/yuliy-antonovsky/agent.json"
+          },
+          "predicate": {
+            "id": "translated_by",
+            "mapping_sha256": "e2b6a44b6a0760db3713e48298f6d96c07531974ec4cb8833faa5512d9688a79",
+            "relation_type_id": "tos.relation.translated-by",
+            "sha256": "a4203576d45ae5a8d1938bd63b1be93c7e7036eb21e3882a6717f71b6e27ef5a"
+          },
+          "purpose": "claim-navigation-only",
+          "reason": null,
+          "schema_version": "tos_claim_navigation_descriptor_v1",
+          "standalone": false,
+          "state": "ready",
+          "statuses": {
+            "epistemic_status": {
+              "present": true,
+              "value": "observed"
+            },
+            "review_status": {
+              "present": true,
+              "value": "unreviewed"
+            }
+          },
+          "subject": {
+            "identity_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+            "label": "Так говорил Заратустра — перевод Ю. М. Антоновского, четвёртое издание 1911 года",
+            "label_pointer": "/preferred_label",
+            "node_id": "identity:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+            "record_version": 1,
+            "sha256": "56b6e32743df20b48d94bb803b9521fb939016861d8ff3a8d6a9bc1586437cea",
+            "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/expression.json"
+          },
+          "template": {
+            "id": "tos.navigation-template.claim-reference",
+            "sha256": "75bd37e91014d5d1289382a42f9beaae9fd36f51155f4e79d0147c03694dba98",
+            "version": 1
+          },
+          "title": {
+            "default": "Запись утверждения · связь: переведено [обозначено как наблюдение; исходная запись не оценена] · субъект: Так говорил Заратустра — перевод Ю. М. Антоновского, четвёртое издание 1911 года · объект: Юлий Михайлович Антоновский",
+            "en": "Claim record · relation: translated by [declared observation; source record unreviewed] · subject: Так говорил Заратустра — перевод Ю. М. Антоновского, четвёртое издание 1911 года · object: Юлий Михайлович Антоновский",
+            "ru": "Запись утверждения · связь: переведено [обозначено как наблюдение; исходная запись не оценена] · субъект: Так говорил Заратустра — перевод Ю. М. Антоновского, четвёртое издание 1911 года · объект: Юлий Михайлович Антоновский"
+          }
+        },
+        "object": "tos.agent.yuri-antonovsky",
+        "predicate": "translated_by",
+        "provenance_event_ref": "tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+        "qualifiers": null,
+        "review_status": "unreviewed",
+        "reviews": [],
+        "schema_version": "tos_claim_packet_v1",
+        "source_claim": {
+          "assertion_layer": "bibliographic_assertion",
+          "claim_id": "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+          "claim_type": "bibliographic",
+          "claim_version": 1,
+          "epistemic_status": "observed",
+          "evidence_refs": [
+            "tos.anchor.also-sprach-zarathustra.ru-antonovsky-1911.title-page-responsibility-edition-publication",
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/resource-inventory.json",
+            "ToS/source-witnesses/discovery/runs/antonovsky-prometey-1911-source-witness.2026-08-01.v1.json",
+            "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md"
+          ],
+          "maker": {
+            "agent_ref": "model:codex",
+            "maker_type": "model"
+          },
+          "object": "tos.agent.yuri-antonovsky",
+          "predicate": "translated_by",
+          "provenance_event_ref": "tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+          "review_status": "unreviewed",
+          "reviews": [],
+          "schema_version": "tos_claim_packet_v1",
+          "subject_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+          "supersedes_claim_ref": null,
+          "visibility": "public_metadata_only"
+        },
+        "subject_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+        "supersedes_claim_ref": null,
+        "visibility": "public_metadata_only"
+      },
+      "source_line": 1,
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl",
+      "source_sha256": "84cde411943c4294b87d11783d6798a6c3140ea9d03341fba3d56f61dcb70e81"
+    }
+  ],
+  "edges": [
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "claim_sha256": "84cde411943c4294b87d11783d6798a6c3140ea9d03341fba3d56f61dcb70e81",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:supported_by:005",
+      "edge_kind": "supported_by",
+      "evidence_node_ids": [
+        "evidence:sha256:3469f56f739afd7703269eabde66dc055d31177cd6da0e06286fbd274cf65745",
+        "evidence:sha256:e22f00ce9c8fcc6cadaea8ce2beabbb5a41ddbb6b19a992f7812b4c16a12aeda",
+        "evidence:sha256:e895f734c9a63264175f115bb395ac0e333b00bfd8d0420d9a929c7379d1d54b",
+        "evidence:sha256:fb6ead6f9a8b8d25b9502bd2f4dc20ba227653ce7bcdd72bf4d755eeb804d6f0"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "evidence:sha256:3469f56f739afd7703269eabde66dc055d31177cd6da0e06286fbd274cf65745"
+    },
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "claim_sha256": "84cde411943c4294b87d11783d6798a6c3140ea9d03341fba3d56f61dcb70e81",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:supported_by:008",
+      "edge_kind": "supported_by",
+      "evidence_node_ids": [
+        "evidence:sha256:3469f56f739afd7703269eabde66dc055d31177cd6da0e06286fbd274cf65745",
+        "evidence:sha256:e22f00ce9c8fcc6cadaea8ce2beabbb5a41ddbb6b19a992f7812b4c16a12aeda",
+        "evidence:sha256:e895f734c9a63264175f115bb395ac0e333b00bfd8d0420d9a929c7379d1d54b",
+        "evidence:sha256:fb6ead6f9a8b8d25b9502bd2f4dc20ba227653ce7bcdd72bf4d755eeb804d6f0"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "evidence:sha256:fb6ead6f9a8b8d25b9502bd2f4dc20ba227653ce7bcdd72bf4d755eeb804d6f0"
+    },
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "claim_sha256": "84cde411943c4294b87d11783d6798a6c3140ea9d03341fba3d56f61dcb70e81",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:supported_by:006",
+      "edge_kind": "supported_by",
+      "evidence_node_ids": [
+        "evidence:sha256:3469f56f739afd7703269eabde66dc055d31177cd6da0e06286fbd274cf65745",
+        "evidence:sha256:e22f00ce9c8fcc6cadaea8ce2beabbb5a41ddbb6b19a992f7812b4c16a12aeda",
+        "evidence:sha256:e895f734c9a63264175f115bb395ac0e333b00bfd8d0420d9a929c7379d1d54b",
+        "evidence:sha256:fb6ead6f9a8b8d25b9502bd2f4dc20ba227653ce7bcdd72bf4d755eeb804d6f0"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "evidence:sha256:e22f00ce9c8fcc6cadaea8ce2beabbb5a41ddbb6b19a992f7812b4c16a12aeda"
+    },
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "claim_sha256": "84cde411943c4294b87d11783d6798a6c3140ea9d03341fba3d56f61dcb70e81",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:has_object:002",
+      "edge_kind": "has_object",
+      "evidence_node_ids": [
+        "evidence:sha256:3469f56f739afd7703269eabde66dc055d31177cd6da0e06286fbd274cf65745",
+        "evidence:sha256:e22f00ce9c8fcc6cadaea8ce2beabbb5a41ddbb6b19a992f7812b4c16a12aeda",
+        "evidence:sha256:e895f734c9a63264175f115bb395ac0e333b00bfd8d0420d9a929c7379d1d54b",
+        "evidence:sha256:fb6ead6f9a8b8d25b9502bd2f4dc20ba227653ce7bcdd72bf4d755eeb804d6f0"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "identity:tos.agent.yuri-antonovsky"
+    },
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "claim_sha256": "84cde411943c4294b87d11783d6798a6c3140ea9d03341fba3d56f61dcb70e81",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:generated_by:004",
+      "edge_kind": "generated_by",
+      "evidence_node_ids": [
+        "evidence:sha256:3469f56f739afd7703269eabde66dc055d31177cd6da0e06286fbd274cf65745",
+        "evidence:sha256:e22f00ce9c8fcc6cadaea8ce2beabbb5a41ddbb6b19a992f7812b4c16a12aeda",
+        "evidence:sha256:e895f734c9a63264175f115bb395ac0e333b00bfd8d0420d9a929c7379d1d54b",
+        "evidence:sha256:fb6ead6f9a8b8d25b9502bd2f4dc20ba227653ce7bcdd72bf4d755eeb804d6f0"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01"
+    },
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "claim_sha256": "84cde411943c4294b87d11783d6798a6c3140ea9d03341fba3d56f61dcb70e81",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:made_by:003",
+      "edge_kind": "made_by",
+      "evidence_node_ids": [
+        "evidence:sha256:3469f56f739afd7703269eabde66dc055d31177cd6da0e06286fbd274cf65745",
+        "evidence:sha256:e22f00ce9c8fcc6cadaea8ce2beabbb5a41ddbb6b19a992f7812b4c16a12aeda",
+        "evidence:sha256:e895f734c9a63264175f115bb395ac0e333b00bfd8d0420d9a929c7379d1d54b",
+        "evidence:sha256:fb6ead6f9a8b8d25b9502bd2f4dc20ba227653ce7bcdd72bf4d755eeb804d6f0"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d"
+    },
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "claim_sha256": "84cde411943c4294b87d11783d6798a6c3140ea9d03341fba3d56f61dcb70e81",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:supported_by:007",
+      "edge_kind": "supported_by",
+      "evidence_node_ids": [
+        "evidence:sha256:3469f56f739afd7703269eabde66dc055d31177cd6da0e06286fbd274cf65745",
+        "evidence:sha256:e22f00ce9c8fcc6cadaea8ce2beabbb5a41ddbb6b19a992f7812b4c16a12aeda",
+        "evidence:sha256:e895f734c9a63264175f115bb395ac0e333b00bfd8d0420d9a929c7379d1d54b",
+        "evidence:sha256:fb6ead6f9a8b8d25b9502bd2f4dc20ba227653ce7bcdd72bf4d755eeb804d6f0"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "evidence:sha256:e895f734c9a63264175f115bb395ac0e333b00bfd8d0420d9a929c7379d1d54b"
+    },
+    {
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "claim_sha256": "84cde411943c4294b87d11783d6798a6c3140ea9d03341fba3d56f61dcb70e81",
+      "edge_id": "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:has_subject:001",
+      "edge_kind": "has_subject",
+      "evidence_node_ids": [
+        "evidence:sha256:3469f56f739afd7703269eabde66dc055d31177cd6da0e06286fbd274cf65745",
+        "evidence:sha256:e22f00ce9c8fcc6cadaea8ce2beabbb5a41ddbb6b19a992f7812b4c16a12aeda",
+        "evidence:sha256:e895f734c9a63264175f115bb395ac0e333b00bfd8d0420d9a929c7379d1d54b",
+        "evidence:sha256:fb6ead6f9a8b8d25b9502bd2f4dc20ba227653ce7bcdd72bf4d755eeb804d6f0"
+      ],
+      "from_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "to_id": "identity:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911"
+    }
+  ],
+  "claim_traces": [
+    {
+      "alternative_claim_refs": [],
+      "assertion_layer": "bibliographic_assertion",
+      "claim_node_id": "claim:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "claim_ref": "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
+      "claim_sha256": "84cde411943c4294b87d11783d6798a6c3140ea9d03341fba3d56f61dcb70e81",
+      "confidence": null,
+      "counterevidence_node_ids": [],
+      "counterevidence_refs": [],
+      "edge_ids": [
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:generated_by:004",
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:has_object:002",
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:has_subject:001",
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:made_by:003",
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:supported_by:005",
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:supported_by:006",
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:supported_by:007",
+        "edge:tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky:supported_by:008"
+      ],
+      "epistemic_status": "observed",
+      "evidence_node_ids": [
+        "evidence:sha256:3469f56f739afd7703269eabde66dc055d31177cd6da0e06286fbd274cf65745",
+        "evidence:sha256:e22f00ce9c8fcc6cadaea8ce2beabbb5a41ddbb6b19a992f7812b4c16a12aeda",
+        "evidence:sha256:e895f734c9a63264175f115bb395ac0e333b00bfd8d0420d9a929c7379d1d54b",
+        "evidence:sha256:fb6ead6f9a8b8d25b9502bd2f4dc20ba227653ce7bcdd72bf4d755eeb804d6f0"
+      ],
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "normalized_identity_node_ids": [],
+      "object_node_id": "identity:tos.agent.yuri-antonovsky",
+      "predicate": "translated_by",
+      "provenance_event_node_id": "provenance_event:tos.event.annotation.also-sprach-zarathustra.ru-antonovsky-1911.source-statements.2026-08-01",
+      "qualifiers": null,
+      "review_node_ids": [],
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl",
+      "source_claim_line": 1,
+      "source_claim_sha256": "84cde411943c4294b87d11783d6798a6c3140ea9d03341fba3d56f61dcb70e81",
+      "subject_node_id": "identity:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+      "supersedes_claim_ref": null,
+      "visibility": "public_metadata_only"
+    }
+  ]
+}

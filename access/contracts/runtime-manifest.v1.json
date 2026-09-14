@@ -14,6 +14,7 @@
   },
   "components": [
     {"component_id": "query-core", "owner": "Tree-of-Sophia", "required": true},
+    {"component_id": "knowledge-lens-engine", "owner": "Tree-of-Sophia/access", "required": true, "posture": "read-only-derived-composition"},
     {"component_id": "cli", "owner": "Tree-of-Sophia", "required": true},
     {"component_id": "http-reader", "owner": "Tree-of-Sophia", "required": true},
     {"component_id": "native-mcp", "owner": "Tree-of-Sophia", "required": true},
@@ -26,7 +27,10 @@
   ],
   "projection_compatibility": {
     "tos_corpus_index": ["tos_corpus_index_v1"],
-    "philosophy_graph_projection": ["tos_philosophy_graph_projection_v1", "tos_philosophy_graph_projection_v2"]
+    "philosophy_graph_projection": ["tos_philosophy_graph_projection_v1", "tos_philosophy_graph_projection_v2"],
+    "source_witness_bibliographic_graph": ["tos_source_witness_bibliographic_graph_v1"],
+    "semantic_entity_type_registry": ["tos_semantic_entity_type_registry_v1"],
+    "semantic_relation_type_registry": ["tos_semantic_relation_type_registry_v1"]
   },
   "authority_limit": "Access packets and runtime behavior do not author ToS meaning, review, rights, or canon."
 }
