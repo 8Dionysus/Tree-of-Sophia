@@ -1,6 +1,7 @@
 import {t,ui,uiComputed} from './ui-i18n.mjs';
 import {ContractError,RequestSlots,RequestError,RevisionError,checkRevision,displayTitleForm,materialDisplayForm,claimMaterialReference,materialVersions} from './knowledge-client.mjs';
 import {essentialContext} from './record-context.mjs';
+import {readableContextFor} from './readable-context.mjs';
 import {displayForm as readingForm,displayLanguageKey as languageKey} from './display-language.mjs';
 export {readingForm};
 import {FORM_ROLES,FormContractError,validateHumanForms,inspectExactHumanForms,formLanguages,formIdentity,claimPathFor,resolveClaimReading} from './human-forms.mjs';
@@ -44,13 +45,14 @@ export function readingSnapshot({packet,match,endpoints:materialEndpoints,path},
     throw new ContractError(t("Материал не содержит точной версии и источника."));
   const selection=validateHumanForms(match);
   const exactForms=inspectExactHumanForms(match);
+  const readableContext=readableContextFor(match);
   if(selection&&FORM_ROLES_WITH_EXACT(selection).some(role=>!exactForms?.[role]))throw new FormContractError();
   const endpoints=kind==='relation'?(materialEndpoints||packet.endpoints||[]):[];
   if(kind==='relation'&&![match.from_id,match.to_id].every(id=>endpoints.some(node=>node.id===id)))
     throw new ContractError(t("Для чтения связи нужны оба её участника."));
   const selectedEndpoints=kind==='relation'?[...new Set([match.from_id,match.to_id])].map(id=>endpoints.find(node=>node.id===id)):[];
   const snapshot={kind,sourceRevision:packet.source_revision,raw:readerRecord(match),endpoints:selectedEndpoints.map(readerRecord),essentialContext:essentialContext(match),
-    ...(exactForms?{exactForms}: {})};
+    ...(exactForms?{exactForms}: {}),...(readableContext?{readableContext}:{})};
   if(path){
     if(kind!=='node'||path.claim_node_id!==match.id)throw new FormContractError();
     snapshot.claimReference=claimMaterialReference(packet,path);

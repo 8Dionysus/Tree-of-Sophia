@@ -294,11 +294,11 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   }
   function appendReading(container,snapshot){
     const doc=readingDocument(snapshot,language);container.append(el('h1',doc.title?.text??t('noTitle')));
-    if(doc.humanForms)container.append(renderHumanForms(snapshot.raw,{exactForms:snapshot.exactForms}));
+    if(doc.humanForms)container.append(renderHumanForms(snapshot.raw,{exactForms:snapshot.exactForms,readableContext:snapshot.readableContext}));
     else for(const block of doc.blocks){container.append(el('h3',block.title,'minor-title'));const text=el('p',block.form?.text??t('noDescription'),'body');
       if(block.form?.lang)text.lang=block.form.lang;container.append(text);}
-    container.append(renderEssentialContext(doc.essentialContext));
-    if(snapshot.claimReading)container.append(renderClaimContext(snapshot.claimReading));
+    container.append(renderEssentialContext(doc.essentialContext,snapshot.readableContext));
+    if(snapshot.claimReading)container.append(renderClaimContext(snapshot.claimReading,snapshot.readableContext));
     if(snapshot.claimContextUnavailable)container.append(el('p',language==='ru'?'Контекст утверждения не вошёл в эту карточку. Раскройте его связи.':'Claim context is not included in this card. Expand its relations.','muted'));
     const sources=el('details');sources.append(el('summary',t('sources')));
     const exactSource=button(t('sourceRecord'),()=>void openSourceRecord(snapshot),'source-link');

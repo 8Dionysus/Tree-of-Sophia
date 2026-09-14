@@ -189,9 +189,9 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
       if(originLabels[block.state])uiChildren(section, "append", el('p',originLabels[block.state],'sc-reader-origin'));
       uiChildren(view.body, "append", section);
     }
-    if(doc.humanForms)uiChildren(view.body,'append',renderHumanForms(snapshot.raw,{exactForms:snapshot.exactForms}));
-    uiChildren(view.body,'append',renderEssentialContext(doc.essentialContext));
-    if(snapshot.claimReading)uiChildren(view.body,'append',renderClaimContext(snapshot.claimReading));
+    if(doc.humanForms)uiChildren(view.body,'append',renderHumanForms(snapshot.raw,{exactForms:snapshot.exactForms,readableContext:snapshot.readableContext}));
+    uiChildren(view.body,'append',renderEssentialContext(doc.essentialContext,snapshot.readableContext));
+    if(snapshot.claimReading)uiChildren(view.body,'append',renderClaimContext(snapshot.claimReading,snapshot.readableContext));
     if(doc.participants.length){
       const section=el('section','','sc-reader-section');uiChildren(section, "append", el('h5',ui("Участники связи")));
       for(const participant of doc.participants){

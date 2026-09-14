@@ -1,6 +1,8 @@
 import {ui,uiText} from './ui-i18n.mjs';
 import {formView,inspectExactHumanForms} from './human-forms.mjs';
 import {renderContextData} from './context-view.mjs';
+import {formContexts} from './readable-context.mjs';
+import {renderReadableContexts} from './readable-context-view.mjs';
 
 const el=(tag,value='',className='')=>{const node=document.createElement(tag);node.className=className;uiText(node,value);return node;};
 const roleLabels={name:'Название',caption:'Подпись',hover:'Краткий контекст',statement:'Формулировка',grounds:'Основания',history:'История',technical:'Точные сведения'};
@@ -66,12 +68,24 @@ function appendContextEntry(section,entry,anchorPrefix){
   section.append(context);
 }
 
-function appendReadyPacket(section,packet,role,anchorPrefix=`form:${role}`){
+function appendReadyPacket(section,packet,role,anchorPrefix=`form:${role}`,readableContext=null){
   section.append(el('p',ui('Язык формы: {0}',[packet.language||ui('Не указан')]),'sc-reader-language-note'));
   if(packet.derivation==='source-copy')section.append(el('p',ui('Полная копия поля источника; истинность формулировки не оценивалась.'),'sc-form-status'));
   const wording=el('div',packet.display_text,'sc-form-wording');wording.dir='auto';if(packet.language)wording.lang=packet.language;
   wording.dataset.readingAnchor=anchorPrefix+':wording';section.append(wording);
-  if(packet.context.length){
+  const contexts=formContexts(readableContext,packet.form);
+  if(readableContext?.state==='complete'&&contexts.length){
+    section.append(el('h6',ui('Обязательный контекст')),renderReadableContexts(contexts,anchorPrefix+':context'));
+  }else if(readableContext){
+    const gap=el('p',ui('Человекочитаемое представление контекста недоступно. Проверьте исходный контекст формы.'),'sc-reader-gap');
+    gap.dataset.contextPresentation=readableContext.state==='complete'?'not-included':readableContext.state;section.append(gap);
+    // The full inspected form can be outside the bounded presentation sidecar.
+    // Retain its context and assessment rather than treating the gap as empty.
+    const raw=el('details','','sc-context-fallback');raw.append(el('summary',ui('Исходный контекст формы')));
+    packet.context.forEach((entry,index)=>appendContextEntry(raw,entry,`${anchorPrefix}:context:${index}`));
+    for(const key of ['subject_assessment','assessment_snapshot'])if(packet[key])raw.append(exactDetails(key,packet[key],anchorPrefix+':'+key));
+    section.append(raw);
+  }else if(packet.context.length){
     section.append(el('h6',ui('Обязательный контекст')));
     packet.context.forEach((entry,index)=>{
       appendContextEntry(section,entry,`${anchorPrefix}:context:${index}`);
@@ -89,18 +103,18 @@ function appendReadyPacket(section,packet,role,anchorPrefix=`form:${role}`){
   if(packet.assessment_snapshot) section.append(el('p',ui('Оценка относится к указанному снимку; разрешение публикации не предоставляется.'),'sc-form-status'));
 }
 
-function exactInspectionAction(section,selected,exact){
+function exactInspectionAction(section,selected,exact,readableContext){
   if(!exact)return;
   const action=el('button',ui('Показать полную форму'),'sc-form-inspect');action.type='button';
   action.addEventListener('click',()=>{
     action.remove();section.dataset.exactFormInspected='true';
     section.append(el('p',ui('Показан полный пакет по точной ссылке. Предел доставки не меняет состояние формы и не означает её семантического принятия.'),'sc-form-status'));
-    appendReadyPacket(section,exact.packet,selected.role,`form:${selected.role}:exact`);
+    appendReadyPacket(section,exact.packet,selected.role,`form:${selected.role}:exact`,readableContext);
   });
   section.append(action);
 }
 
-export function renderHumanForms(raw,{exactForms=null}={}){
+export function renderHumanForms(raw,{exactForms=null,readableContext=null}={}){
   const view=formView(raw),container=el('div','','sc-human-forms');
   if(!view){container.append(el('p',ui('Этот ответ не содержит выбранных форм.'),'sc-reader-language-note'));return container;}
   const inspected=exactForms||inspectExactHumanForms(raw);
@@ -115,13 +129,13 @@ export function renderHumanForms(raw,{exactForms=null}={}){
       section.append(el('p',ui(stateLabels[selected.state]),'sc-form-status'));
       section.append(el('p',ui(reasonLabels[selected.reason]),'sc-reader-language-note'));
       if(selected.state==='over-budget'&&selected.reason==='inspect-exact-form'){
-        exactInspectionAction(section,selected,inspected?.[selected.role]);
+        exactInspectionAction(section,selected,inspected?.[selected.role],readableContext);
         if(!inspected?.[selected.role])section.append(el('p',ui('Полную форму не удалось проверить в этой версии ответа.'),'sc-form-status'));
       }
     }else{
       const packet=selected.packet;section.dataset.formId=packet.form.id;section.dataset.formDigest=packet.form.digest;
       section.append(el('p',ui(reasonLabels[selected.reason]),'sc-reader-language-note'));
-      appendReadyPacket(section,packet,selected.role);
+      appendReadyPacket(section,packet,selected.role,`form:${selected.role}`,readableContext);
     }
     const diagnostic=selected.candidates.filter(candidate=>candidate.state!=='ready');
     for(const candidate of diagnostic)section.append(el('p',ui('{0} · {1}',[ui(stateLabels[candidate.state]),candidate.form.id]),'sc-form-status'));
@@ -135,7 +149,7 @@ export function renderHumanForms(raw,{exactForms=null}={}){
   }
   return container;
 }
-export function renderClaimContext(resolved){
+export function renderClaimContext(resolved,readableContext=null){
   const section=el('section','','sc-form-context sc-claim-context');section.append(el('h5',ui('Контекст чтения утверждения')));
   const reading=resolved?.reading||{};
   section.append(el('p',ui('Тип чтения: {0}',[reading.mode||ui('не указан')]),'sc-reader-language-note'));
@@ -145,6 +159,12 @@ export function renderClaimContext(resolved){
     contexts.forEach((context,index)=>{
       const item=el('section','','sc-assertion-context');item.dataset.contextIndex=String(index);
       item.append(el('p',ui('Контекст {0}',[index+1]),'sc-form-context-slot'));
+      const classified=readableContext?.state==='complete'?readableContext.contexts.filter(value=>value.form===null&&value.origin_pointer===`/semantics/assertion_contexts/${index}`):[];
+      if(classified.length){
+        item.append(renderReadableContexts(classified,`claim-context:assertion:${index}`));
+        item.append(exactDetails(ui('Точная запись контекста утверждения'),context,`claim-context:assertion:${index}:raw`));
+        section.append(item);return;
+      }
       const fields=context&&typeof context==='object'&&context.fields&&typeof context.fields==='object'?context.fields:{};
       const values=el('dl','','sc-form-values');
       for(const [name,field] of Object.entries(fields)){
@@ -175,7 +195,7 @@ export function renderClaimContext(resolved){
   section.append(exactDetails(ui('Точные данные чтения'),resolved,'claim-context:raw'));
   return section;
 }
-export function renderEssentialContext(context){
+export function renderEssentialContext(context,readableContext=null){
   const section=el('section','','sc-form-role sc-record-context');section.dataset.contextState=context.state;
   section.hidden=context.state==='not-declared'||context.state==='available'&&!context.items.length;
   if(section.hidden)return section;
@@ -185,7 +205,9 @@ export function renderEssentialContext(context){
     const entry=el('section','','sc-form-context');entry.dataset.contextPointer=typeof item.pointer==='string'?item.pointer:'';
     entry.append(el('h6',ui('Контекст {0}',[index+1])));
     if(item.state==='available'){
-      entry.append(renderContextData(item.value,'record-context:'+index));
+      const classified=readableContext?.state==='complete'?readableContext.contexts.filter(value=>value.form===null&&value.origin_pointer===item.pointer):[];
+      if(classified.length)entry.append(renderReadableContexts(classified,'record-context:'+index));
+      else entry.append(renderContextData(item.value,'record-context:'+index));
     }
     else entry.append(el('p',ui('Объявленный контекст недоступен в этой версии ответа.'),'sc-reader-gap'));
     if(typeof item.pointer==='string'){

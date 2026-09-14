@@ -1,5 +1,9 @@
 // Authored interface text only. Content-language variants remain server-owned.
 export const UI_CATALOG={
+  "Технические сведения контекста": {"en":"Context technical details","es":"Detalles técnicos del contexto"},
+  "Не классифицировано; исходное значение сохранено.": {"en":"Unclassified; the source value is preserved.","es":"Sin clasificar; se conserva el valor original."},
+  "Человекочитаемое представление контекста недоступно. Проверьте исходный контекст формы.": {"en":"The readable context presentation is unavailable. Check the form's source context.","es":"La presentación legible del contexto no está disponible. Consulte el contexto original de la forma."},
+  "Исходный контекст формы": {"en":"Form source context","es":"Contexto original de la forma"},
   "Число в исходной записи нельзя показать без риска потери точности.": {
     "en": "A number in the source record cannot be displayed without risking precision loss.",
     "es": "Un número del registro fuente no se puede mostrar sin riesgo de perder precisión."

@@ -1,6 +1,7 @@
 import {t,uiLanguage} from './ui-i18n.mjs';
 import {displayForm} from './display-language.mjs';
 import {contentLanguage,validateHumanForms,claimPathFor,claimPathClosure,FormContractError} from './human-forms.mjs';
+import {verifyReadableContext} from './readable-context.mjs';
 import {knowledgeScene} from '../../../shared/knowledge-scene.ts';
 import {DEFAULT_RESPONSE_BYTES,validateResponseLimit,ResponseLimitError,withAbort,cancelResponseBody,readBoundedJSON} from './bounded-response.mjs';
 // The browser consumes the access contract; it never authors ToS relationships.
@@ -391,7 +392,9 @@ export class KnowledgeClient {
     const allowed=new Set(kind==='node'?[id]:[match.from_id,match.to_id]);
     if(packet.nodes.length!==allowed.size||packet.nodes.some(node=>!allowed.has(node.id))
       ||packet.relations.length!==(kind==='node'?0:1))throw new ContractError(t('Ответ вышел за границы выбранного материала.'));
-    for(const item of [...packet.nodes,...packet.relations])validateHumanForms(item,language);
+    for(const item of [...packet.nodes,...packet.relations]){
+      validateHumanForms(item,language);await verifyReadableContext(item);
+    }
     // This UI envelope is not an invented inspect packet. Keep the original
     // LensResult and its schema intact for validation, revision and provenance.
     return {packet,match,endpoints:kind==='relation'?packet.nodes:[]};
@@ -419,6 +422,7 @@ export class KnowledgeClient {
     for(const kind of ['nodes','relations'])for(const item of packet[kind]){
       if(versions&&item.content_revision!==versions[kind]?.[item.id])throw new RevisionError();
       validateHumanForms(item,language);
+      await verifyReadableContext(item);
     }
     const selected=claimPathFor(packet,ref.claimId);if(!selected)throw new FormContractError();
     const returned=claimPathClosure(packet,selected);

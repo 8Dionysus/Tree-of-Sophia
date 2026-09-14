@@ -56,6 +56,18 @@ predicate labels; source-supplied prose and translations are preserved verbatim.
 Language/script keys are extensible (including `grc-Grek`, `zh-Hant` and
 private-use tags); the catalog exposes observed display fields and availability.
 Fallback preserves available source wording without pretending to translate it.
+The shared browser reader consumes the source-owned `tos_readable_context_v1`
+sidecar on full material reads. It checks exact material digests, field bindings
+and declared coverage before keeping a bounded reading snapshot. Owner labels
+and explanations describe governing context; technical fields stay in a
+disclosure, and unclassified fields retain their keys and literal values.
+Canonical numeric material preserves integer/float lexemes independently of
+JavaScript number rounding. A budget-limited or unavailable presentation stays
+an explicit gap with the original form context still accessible; it never
+becomes an empty successful explanation. This is transport verification, not
+independent verification of the vocabulary's judgment, semantic assessment,
+translation, rights or admission. Older responses without the sidecar keep
+their existing context reader rather than acquiring invented classification.
 For canonical corpus nodes, the retained authored `properties` record owns
 wording, not the outer index label: an ID-derived navigation label remains
 `identifier-fallback` with `source_title_available: false`, including when
