@@ -34,6 +34,9 @@ REGISTERED_KEYS = {**PRIMARY_KEYS, **AUXILIARY_KEYS}
 # UTF-8 bytes; the row-index limits below are derived from that contract rather
 # than from an identifier-shaped guess.
 MAX_D1_SQL_STATEMENT_BYTES = 100_000
+# A byte-only bound permits thousands of short rows and can exhaust D1's
+# statement compiler. Full and delta producers share this shape limit.
+MAX_D1_SQL_INSERT_ROWS = 512
 
 # Optional offline publisher indexes. They do not change the serving v9 row
 # schema or search order: position remains the last tie-break after id_lower.
@@ -682,6 +685,10 @@ class DeltaRecorder:
         self.reused_rows = 0
         self.removed_rows = 0
         self.statements = 0
+        # At most two bounded streams: stage keys and their independent rows.
+        # A non-INSERT flushes both, preserving chunk UPDATE ordering and the
+        # publication boundary without retaining a whole table in memory.
+        self._insert_batches: dict[str, tuple[list[str], int]] = {}
         self.pending_path = target.with_name(target.name + '.next')
         self.stream = self.pending_path.open('w', encoding='utf-8')
         self.prefix = 'tos_delta_' + revision[:16]
@@ -719,10 +726,37 @@ class DeltaRecorder:
         return self.prefix + '_' + table
 
     def write(self, statement: str):
+        self._flush_inserts()
+        self._write_raw(statement)
+
+    def _write_raw(self, statement: str):
         if len(statement.encode('utf-8')) > MAX_D1_SQL_STATEMENT_BYTES:
             raise ValueError('delta SQL statement exceeds D1 limit')
         self.stream.write(statement + '\n')
         self.statements += 1
+
+    def _flush_insert(self, prefix: str):
+        rows, _ = self._insert_batches.pop(prefix)
+        self._write_raw(prefix + ','.join(rows) + ';')
+
+    def _flush_inserts(self):
+        for prefix in tuple(self._insert_batches):
+            self._flush_insert(prefix)
+
+    def _queue_insert(self, prefix: str, row: str):
+        prefix_bytes = len(prefix.encode('utf-8')) + 1  # final semicolon
+        row_bytes = len(row.encode('utf-8'))
+        if prefix_bytes + row_bytes > MAX_D1_SQL_STATEMENT_BYTES:
+            raise ValueError('delta SQL statement exceeds D1 limit')
+        if prefix not in self._insert_batches and len(self._insert_batches) == 2:
+            self._flush_inserts()
+        rows, size = self._insert_batches.get(prefix, ([], prefix_bytes))
+        if rows and (len(rows) >= MAX_D1_SQL_INSERT_ROWS or size + 1 + row_bytes > MAX_D1_SQL_STATEMENT_BYTES):
+            self._flush_insert(prefix)
+            rows, size = [], prefix_bytes
+        size += row_bytes + bool(rows)
+        rows.append(row)
+        self._insert_batches[prefix] = rows, size
 
     def observe(self, statement: str):
         match = INSERT.match(statement)
@@ -776,9 +810,13 @@ class DeltaRecorder:
         stage = self.stage(table)
         self.staged_counts[table] += 1
         self.key_counts[table] += 1
-        self.write(f'INSERT INTO {stage}_keys VALUES ({", ".join(values)});')
+        self._queue_insert(f'INSERT INTO {stage}_keys VALUES ', f'({", ".join(values)})')
         for statement in statements:
-            self.write(statement.replace(table + '_next', stage, 1))
+            match = INSERT.match(statement) if len(statements) == 1 else None
+            if match:
+                self._queue_insert(f'INSERT INTO {stage} ({match.group(2)}) VALUES ', match.group(3))
+            else:
+                self.write(statement.replace(table + '_next', stage, 1))
 
     def flush(self):
         if not self.pending:
@@ -813,7 +851,7 @@ class DeltaRecorder:
                             raise ValueError('invalid baseline key literal')
                         self.removed_rows += 1
                         self.key_counts[table] += 1
-                        self.write(f'INSERT INTO {self.stage(table)}_keys VALUES ({", ".join(before["values"])});')
+                        self._queue_insert(f'INSERT INTO {self.stage(table)}_keys VALUES ', f'({", ".join(before["values"])})')
             base = (self._disk_baseline.revision if self._disk_baseline is not None
                     else self.previous['revision'])
             if not re.fullmatch(r'[0-9a-f]{64}', base) or not re.fullmatch(r'[0-9a-f]{64}', self.revision):

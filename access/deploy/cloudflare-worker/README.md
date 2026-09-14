@@ -122,6 +122,14 @@ Full SQL posting/statistics INSERTs are bounded both by encoded bytes and by
 512 VALUES rows. A small encoded statement can still contain enough short rows
 to exhaust D1's statement compiler; the row cap preserves every posting while
 bounding that preparation pressure. This is not a whole-import memory budget.
+Delta staging uses the same byte/row bounds for independent data and key
+INSERTs. It keeps at most two pending statement buffers, flushes before chunk
+UPDATEs or publication/control statements, and never changes the per-source-row
+digest or baseline shape. Changed and removed keys remain exact; partial-stage
+refusal, replay and the single publication trigger are unchanged. These bounds
+limit encoded pending SQL, not total producer RAM. Measure staging separately
+from the atomic commit: grouping SQL removes per-row statement overhead without
+claiming that a full-producer rebuild is an addressed source-processing path.
 
 Published Python/D1 lens cursors additionally bind the complete admitted
 publication snapshot, including data revision, epoch and emitted-header digest.

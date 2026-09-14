@@ -813,6 +813,35 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 db.executescript(path.read_text())
             self.assertEqual(db.execute("SELECT value FROM knowledge_nodes WHERE id='one'").fetchone()[0], 'new')
 
+    def test_delta_staging_batches_preserve_exact_rows_with_bounded_shape_and_bytes(self):
+        from incremental_runtime import MAX_D1_SQL_INSERT_ROWS, MAX_D1_SQL_STATEMENT_BYTES, sql_value_rows
+        with tempfile.TemporaryDirectory() as directory, closing(self.database()) as db:
+            path = Path(directory) / 'delta.sql'
+            base, _ = self.build(path, 'a'*64, [('one', 'old'), ('two', 'stable'), ('three', 'removed')])
+            values = [(f'short-{i:04}', str(i)) for i in range(1200)]
+            values += [(f'long-{i:04}', '🌳'*800) for i in range(60)]
+            after, counts = self.build(path, 'b'*64, values, base)
+            sql = path.read_text()
+            inserts = [line for line in sql.splitlines() if line.startswith('INSERT INTO tos_delta_') and ' VALUES ' in line]
+            self.assertLess(len(inserts), 30)  # Not one SQL round trip per key/row.
+            sizes = []
+            for statement in inserts:
+                self.assertLessEqual(len(statement.encode('utf-8')), MAX_D1_SQL_STATEMENT_BYTES)
+                rows = sql_value_rows(statement.split(' VALUES ', 1)[1][:-1])
+                sizes.append(len(rows))
+                self.assertLessEqual(len(rows), MAX_D1_SQL_INSERT_ROWS)
+            self.assertIn(MAX_D1_SQL_INSERT_ROWS, sizes)
+            self.assertEqual(counts['changed_rows'], len(values)+1)
+            db.executescript(sql)
+            self.assertEqual(db.execute('SELECT * FROM knowledge_nodes ORDER BY id').fetchall(), sorted(values))
+            db.executescript(sql)
+            self.assertEqual(db.execute('SELECT * FROM knowledge_nodes ORDER BY id').fetchall(), sorted(values))
+            # The baseline remains per original row, independent of transport
+            # grouping, so a subsequent identical content build reuses it.
+            _, repeat = self.build(path, 'c'*64, values, after)
+            self.assertEqual(repeat['changed_rows'], 1)
+            self.assertEqual(repeat['reused_rows'], len(values))
+
     def test_stage_driven_delete_seeks_composite_keys_and_preserves_null_semantics(self):
         with closing(self.database()) as db:
             db.executemany('INSERT INTO knowledge_search_grams VALUES (?,?,?,?,?)',
