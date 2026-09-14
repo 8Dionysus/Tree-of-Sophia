@@ -53,6 +53,7 @@
         "owner_ref": {"const": "ToS/doctrine/HUMAN_FORMS.md"},
         "default_language": {"type": "string", "minLength": 2, "maxLength": 64},
         "max_output_bytes": {"type": "integer", "minimum": 128, "maximum": 16384},
+        "object_label_adapters": {"type": "array", "minItems": 1, "maxItems": 2, "uniqueItems": true, "items": {"enum": ["historical-time-source-wording-v1", "document-catalogue-time-source-wording-v1"]}},
         "marker": {"$ref": "#/$defs/navigationLanguageMap"},
         "status_labels": {
           "type": "object", "additionalProperties": false, "required": ["epistemic_status", "review_status"],
@@ -91,7 +92,9 @@
             }
           }
         }
-      }
+      },
+      "allOf": [{"if": {"required": ["object_label_adapters"]}, "then": {"properties": {"template_version": {"minimum": 2}}}},
+        {"if": {"required": ["object_label_adapters"], "properties": {"object_label_adapters": {"contains": {"const": "document-catalogue-time-source-wording-v1"}}}}, "then": {"properties": {"template_version": {"minimum": 3}}}}]
     },
     "sourceClaimProfile": {
       "type": "object", "additionalProperties": false,
@@ -99,21 +102,23 @@
       "required": ["profile_version", "reader", "assertion_layers", "schemas"],
       "properties": {
         "profile_version": {"type": "integer", "minimum": 1},
-        "reader": {"enum": ["identity-relation-v1", "semantic-relation-v1", "historical-temporal-v1", "structured-value-v1", "structured-reference-value-v1"]},
+        "reader": {"enum": ["identity-relation-v1", "semantic-relation-v1", "historical-temporal-v1", "document-catalogue-temporal-v1", "structured-value-v1", "structured-reference-value-v1", "identity-transition-v1", "identity-transition-v2"]},
         "object_reference_set": {
           "type": "object", "additionalProperties": false,
           "description": "Explicit interpretation of the single fixed /object/members slot. No other field is scanned for references. Every member is a mandatory Claim dependency, not an independently accepted membership assertion.",
           "required": ["member_type_ids", "min_items", "max_items", "subject_is_member"],
           "properties": {
             "member_type_ids": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": {"$ref": "#/$defs/typeId"}},
-            "min_items": {"type": "integer", "minimum": 1, "maximum": 8},
-            "max_items": {"type": "integer", "minimum": 1, "maximum": 8},
+            "min_items": {"type": "integer", "minimum": 1, "maximum": 128},
+            "max_items": {"type": "integer", "minimum": 1, "maximum": 128},
+            "structure_adapter": {"const": "scoped-members-v1", "description": "Execute the shared bounded composition/order contract, including no self membership, exact member closure, local acyclicity and total-order completeness. No other JSON fields select code."},
+            "basis_adapter": {"const": "collection-membership-versions-v1", "description": "Require exact Collection metadata and contains_work Claim versions; order cannot independently create membership."},
             "subject_is_member": {"type": "boolean"}
           }
         },
         "value_kind": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", "description": "Exact source-claims mapping of one concrete literal subtype; neither an identity nor executable reference extraction."},
         "assertion_layers": {"type": "array", "minItems": 1, "uniqueItems": true,
-          "items": {"enum": ["bibliographic_assertion", "scholarly_report", "textual_observation", "forensic_observation", "semantic_interpretation", "linguistic_analysis", "translation_alignment", "translation_judgment"]}},
+          "items": {"enum": ["bibliographic_assertion", "scholarly_report", "textual_observation", "forensic_observation", "semantic_interpretation", "linguistic_analysis", "translation_alignment", "translation_judgment", "identity_assertion"]}},
         "schemas": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true,
           "items": {"type": "object", "additionalProperties": false,
             "required": ["schema_version", "schema_ref", "schema_dependencies"],
@@ -124,7 +129,7 @@
                 "items": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"}}
             }}}
       },
-      "allOf": [{"if": {"properties": {"reader": {"enum": ["structured-value-v1", "structured-reference-value-v1"]}}},
+      "allOf": [{"if": {"properties": {"reader": {"enum": ["structured-value-v1", "structured-reference-value-v1", "identity-transition-v1", "identity-transition-v2"]}}},
         "then": {"required": ["value_kind"]}, "else": {"not": {"required": ["value_kind"]}}},
         {"if": {"properties": {"reader": {"const": "structured-reference-value-v1"}}},
         "then": {"required": ["object_reference_set"]}, "else": {"not": {"required": ["object_reference_set"]}}}]

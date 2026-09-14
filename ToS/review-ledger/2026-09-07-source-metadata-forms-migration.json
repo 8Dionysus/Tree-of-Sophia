@@ -1,0 +1,1845 @@
+{
+  "schema": "tos_source_metadata_forms_migration_evidence_v1",
+  "recorded_at": "2026-09-07",
+  "time_basis": "UTC",
+  "source_base_commit": "9f9e177c14ed1fbd2b1d1d72e4814f21c0198082",
+  "source_owner": "ToS/source-witnesses",
+  "operation_owner": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+  "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+  "scope": "Full copies of existing public bibliographic names and notes; no substantive assessment or admission",
+  "counts": {
+    "subjects": 171,
+    "new_sets": 170,
+    "preserved_sets": 1,
+    "forms": 460,
+    "name_forms": 289,
+    "hover_forms": 171,
+    "new_forms": 457,
+    "excluded_link_records": 5
+  },
+  "record_kinds": {
+    "agent": 41,
+    "place": 4,
+    "organization": 11,
+    "work": 40,
+    "expression": 28,
+    "edition": 23,
+    "collection": 3,
+    "item": 21
+  },
+  "languages": {
+    "unspecified": 342,
+    "en": 51,
+    "und": 21,
+    "ru": 22,
+    "de": 24
+  },
+  "source_baseline_sha256": {
+    "ToS/source-witnesses/catalog/catalog.manifest.json": "16460091d28967adc553b04ecb9be48bd03534bb85c7d4747713e930f4931f4e",
+    "ToS/source-witnesses/catalog/agents.jsonl": "c143dd301570aae333571c07c3796674372f0a06c4ca563e44f7b6185676d787",
+    "ToS/source-witnesses/agents/agnete-wisti-lassen/agent.json": "f3f92d3199eeb708d5c04e657e2591f3059eeb076db4e1b1d1d071b75c30ffe8",
+    "ToS/source-witnesses/agents/albert-tobias-clay/agent.json": "eaedc7744b5d84a25cd8749f84b6c0db91ad38d655ff2b8ebba319a6881ae874",
+    "ToS/source-witnesses/agents/andrew-r-george/agent.json": "08b8a3f0320af52bb450c4c6f64e6b99dffe7f65447721b299c91200bcc033e1",
+    "ToS/source-witnesses/agents/bendt-alster/agent.json": "9e4dad6bb8ac448c46171dd72308432d952792328ca5b9095986190a1b78d254",
+    "ToS/source-witnesses/agents/charles-wycliffe-goodwin/agent.json": "ef233daa3364656abd03f440eeeeb070076db5b042e13fcc2a91a3857b7c796c",
+    "ToS/source-witnesses/agents/claus-wilcke/agent.json": "6091376b403362d241722c386f1529094a6b7a31e7381f01c235caecb2647126",
+    "ToS/source-witnesses/agents/denise-schmandt-besserat/agent.json": "994a13037abd8df03fc35179edff9335f07dc4e47285d1b7d6f7304669872951",
+    "ToS/source-witnesses/agents/eckart-frahm/agent.json": "77c900173043b8c86a751100ce84a50ef159afc8c2dab7367a4e2e87ee856ad9",
+    "ToS/source-witnesses/agents/eleanor-robson/agent.json": "c98faca3fab20e0ea33bf77d31861c7acba399b82fd70da5f5a33af20e4d7944",
+    "ToS/source-witnesses/agents/esther-fluckiger-hawker/agent.json": "21e760ac97bbd50153dea3402d9cb23451700e3624c1dc522902b677cb5a7c07",
+    "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json": "49352dc6ae11c5d0ba800e737a7a407b7813f3585850eacbeacd1fdf059f8aab",
+    "ToS/source-witnesses/agents/gabor-zolyomi/agent.json": "8a9180219309ac22263a537d7852f4d06e9832da916de089c8caf2ca9bbd7e6f",
+    "ToS/source-witnesses/agents/graham-cunningham/agent.json": "63231573cc2344522506ad77eebe6e632baef019c6add8027c67bbef4a25c8a1",
+    "ToS/source-witnesses/agents/hans-j-nissen/agent.json": "a840a412ebf107247d602bc46a7fbbeb998b9e5bb77dd44935329a028847ef2d",
+    "ToS/source-witnesses/agents/harry-a-hoffner-jr/agent.json": "99d24e9a56b2df9cd6f51cfa40c19c457dfeb9317f59b3efa5ab89a08e48b9ae",
+    "ToS/source-witnesses/agents/henry-van-de-velde/agent.json": "b0cce429d8c0f8820ba2ed90166d77a04294e2424f6a4f602bdc6b8a030ad3cc",
+    "ToS/source-witnesses/agents/jana-matuszak/agent.json": "f35823dc7c2dfa4a8b440d7a9d19242dbab0491a30590294f6085a3f2ce4c867",
+    "ToS/source-witnesses/agents/jarle-ebeling/agent.json": "1efa42f889a181b0cff16085a38c95fd995c6d99e4094be465079af9d80012af",
+    "ToS/source-witnesses/agents/jeremy-black/agent.json": "b57351149b841d683aec7f34209eb28fda99ad95571bbc5191030552b4719c74",
+    "ToS/source-witnesses/agents/jon-taylor/agent.json": "3ba46ac4150f843a0dc76139107e6cf0be0d1ce8ca920d00c12052e46f318a9b",
+    "ToS/source-witnesses/agents/k-a-svasyan/agent.json": "041f8136c79f65ba61c4887aff886de36eaee5319f16ab353907310e8a9a77e7",
+    "ToS/source-witnesses/agents/kathryn-erin-kelley/agent.json": "27a1f855add495ca3fa1dde54e49c264cfc9e494d89cdde87e7eda3dec7a31bb",
+    "ToS/source-witnesses/agents/klaus-wagensonner/agent.json": "b6f295a86eb368487d8d69df8384d696586024b84c0477e5cdc696359065c739",
+    "ToS/source-witnesses/agents/logan-born/agent.json": "8276d6acefdfe8de9317ca74aaf6aeb620148c60c2cc5cd1f5099c7706eb7f0c",
+    "ToS/source-witnesses/agents/madeleine-fitzgerald/agent.json": "48a96f332620940d0007eea799b88192ddcb46ff753ddabcbc32623d85d0a3c0",
+    "ToS/source-witnesses/agents/margaret-w-green/agent.json": "2b4bfd1ef7da291e3bfacaeff68d69e54b375fbb6f1dd913859df932ce0084d3",
+    "ToS/source-witnesses/agents/martha-t-roth/agent.json": "105f3810d562cc978f2cbeae3c8526a6d2db5b212aa4f7bd68e61f3e4466540f",
+    "ToS/source-witnesses/agents/morris-jastrow-jr/agent.json": "b132b24e460cd8d3b986d9a5ec947ff3ff70ad5017d3a5301c8537a74a112509",
+    "ToS/source-witnesses/agents/n-polilov/agent.json": "9259d5eba57399cb98a1c457410e94b61124bed5d1ed1dcf849f2851fe7f9f72",
+    "ToS/source-witnesses/agents/niek-veldhuis/agent.json": "7291e980f11cec2ed30b4a5845dd61b249cef088099e27543c9ebdb81fc403fe",
+    "ToS/source-witnesses/agents/paul-delnero/agent.json": "456788adcf64c8b0ea9a7a66a6c1a15608ce772c166f8c511540f1cb5760be8a",
+    "ToS/source-witnesses/agents/peter-damerow/agent.json": "741c4f0ed9aed10b5213bd965f4ed8903c99242f60fcb2bab3b38fb24406ea33",
+    "ToS/source-witnesses/agents/piotr-michalowski/agent.json": "3f6089fc36d45941ea28fb1deecce1ef16479d3402d598142ba083018dd3291d",
+    "ToS/source-witnesses/agents/rainer-m-boehmer/agent.json": "e406a0123027be9fa4681b464ad756a240535df623d64dc3b1e4a7145e476443",
+    "ToS/source-witnesses/agents/raoul-richter/agent.json": "58a4db9b7185796eceb74b415733be1a44729457876c70d353aa6a73ea28152a",
+    "ToS/source-witnesses/agents/robert-k-englund/agent.json": "a0ee19108c4cda89f09581b80eb3dbbbbf33e56541463893920a60418994b5e5",
+    "ToS/source-witnesses/agents/s-p-nani/agent.json": "e84f6959311e9121330b661d0051a6d0ab8bb358f829b25febb4b5dafe563e16",
+    "ToS/source-witnesses/agents/salvatore-f-monaco/agent.json": "6b4f535182400c4a802e578d11188ec8ab8253b7fbfe1552246e4b599d2f842a",
+    "ToS/source-witnesses/agents/stephen-j-tinney/agent.json": "37f2f84654b3ab3932577502b2812e062c0946b2bd38aae00615d504265e60e1",
+    "ToS/source-witnesses/agents/v-a-flerova/agent.json": "7c5ab30db0992aa1b493469e82434c0f272075c54b468725a22bbf4131bd1699",
+    "ToS/source-witnesses/agents/yuliy-antonovsky/agent.json": "1c8e1429063ce7ee4d40ff3a5b4db6fe3607b6b3e48e0167929f1680a8254125",
+    "ToS/source-witnesses/catalog/places.jsonl": "84930868b8e1a0583285942387f3c5681bef0369b2d50389a4e1075faadd0bce",
+    "ToS/source-witnesses/places/chemnitz/place.json": "9636b7b0cb78eb6fdade88c1733fc4dd84e25b5cb0205e1f34a0d21bfee328a8",
+    "ToS/source-witnesses/places/leipzig/place.json": "e8dc0abd8eaecfe8d4c50505d35acba5febe5bbde3d0d272cb8cf4e5b5bfdbdb",
+    "ToS/source-witnesses/places/moscow/place.json": "65de66df5d91254c273e9463f45414cf8f6646506166763df7db2076d4564530",
+    "ToS/source-witnesses/places/saint-petersburg/place.json": "0e6c84caa4266f93aecfb07385bfe1f4132676a1ff7ab9434019b43bdf6a4df5",
+    "ToS/source-witnesses/catalog/organizations.jsonl": "a49a50c213166489c4ff6d4e7cd72af1c14cc139ea719d43cd54dcc654b11b3e",
+    "ToS/source-witnesses/organizations/bratya-v-i-i-linnik-printing-saint-petersburg/organization.json": "9deaff1b29b4b589ed430f3cc39fd4fb9a639526cfbd7cc097fd689ab375d4ca",
+    "ToS/source-witnesses/organizations/c-g-naumann-verlag-leipzig/organization.json": "e8d3f302bb7c0fd1f02794c5f8a1d44f2d3a133cc4635f0c75093cb6b26412ac",
+    "ToS/source-witnesses/organizations/druckerei-c-g-naumann-leipzig/organization.json": "35fa0109a77ceb0783858b3d210f84cd47b3cfc927921c9298ec01710f5db1c0",
+    "ToS/source-witnesses/organizations/energiya-typolithography-saint-petersburg/organization.json": "90ac241761f870ca34aec20809595f8dff02e0064bcea7e4b60d566976b68515",
+    "ToS/source-witnesses/organizations/ernst-schmeitzner-verlagsbuchhandlung-chemnitz/organization.json": "f5ec3ee783c43df0d500811bf01cd36d7024c9e65ab663e4892ad1fc6fbeea2c",
+    "ToS/source-witnesses/organizations/insel-verlag-anton-kippenberg-leipzig/organization.json": "a74efa35c150b4d23102b6fc3c50123d0c2bf454c12ab742e14e23b5a7c2cf97",
+    "ToS/source-witnesses/organizations/m-m-stasyulevich-printing-saint-petersburg/organization.json": "35b49ba5546b0240f6470d056110c946d3b61551b518046b7b41e8189acca7b5",
+    "ToS/source-witnesses/organizations/prometey-publishing-saint-petersburg/organization.json": "744a8afe70ac0283b56c9090ff3d329ada7a6d3b27bcdd9ddbf6d88976f2f051",
+    "ToS/source-witnesses/organizations/reader-journal-editorial-office-moscow/organization.json": "bb66fcf8bfec53fcc5e2cf2eefa0d54ffac10ab4d4c5e4932ac3ead72845b8af",
+    "ToS/source-witnesses/organizations/yale-babylonian-collection/organization.json": "fd19cb426df8c7d3886fbadd3693ebf0afe390606def809b41b0277f8f18f90d",
+    "ToS/source-witnesses/organizations/zhizn-dlya-vsekh-saint-petersburg/organization.json": "e3a0aa87fb24a4bbf7dc89585a0b26ce911258c58e38a858a29bf0193eb8b53d",
+    "ToS/source-witnesses/catalog/works.jsonl": "4e80c2bde9de3ce406fa60376850461b1fc488117189071539b688c0221c92dd",
+    "ToS/source-witnesses/works/akkadian-law/laws-of-hammurapi/work.json": "a901441bd1604131777b38f4381dd2d23e530af69d7d84c78951e957adb9d629",
+    "ToS/source-witnesses/works/akkadian-literature/old-babylonian-gilgamesh-tradition/work.json": "c6928b55eb13a8ca3ad8c47e5bf0a2c9651eff78305d6c1f409eae6ce75a0e12",
+    "ToS/source-witnesses/works/digital-cuneiform-corpora/cuneiform-digital-library-initiative/work.json": "70df25360f6734e152eda112bd58ed893c15526e0dbe08378e4393edddfbe6a3",
+    "ToS/source-witnesses/works/digital-sumerian-corpora/electronic-text-corpus-of-sumerian-literature/work.json": "6d844846fc519a1b220f83836f32276573bd7aa365e11a1e8706ea16b3f7a7d6",
+    "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/work.json": "e778845ef5ad7ba5714d7e9dcb06fcb230eebda1f97ad69beeac0d54afa0c40f",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.json": "1474b247dbf4e21346295a1be5bc096f5320bc05c80319f2887715165ae86e60",
+    "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/work.json": "a1676c7cc71549f3f168b888427aae92a2310d063131fbb281dbcde8666f0c63",
+    "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/work.json": "b5317b7c3a3e8d940149f13a6c87936c6a86fd270120bace5b6b1c703441adb1",
+    "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/work.json": "71ecbcc8431bd140603eb7d37e347d7f498bc85ec0ea7f140e7b390d49662e14",
+    "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/work.json": "3cd66b32394ee9195283c6192b4262357994dc15cb4e871b2488ab2ab773eb71",
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json": "20438921c9085ebd8eb638bc873e8aa124b0dc038c0b5f0005e625ff3a23a8a0",
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.human-forms.json": "f9593132876236175032ea252895bac2cb8007137aacdcb9848d069dae2a2a35",
+    "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/work.json": "ab47e5b4c637173c635cf20c4ff8bee8a5891be56b534a51cc1b8a4dd966a5fc",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/education-mesopotamian/work.json": "83921b5a0bd50b07575b443b1a8086f4c71ec375dc10bbec1eb87e0e75931262",
+    "ToS/source-witnesses/works/mesopotamian-scholarship/ancient-mesopotamia-speaks-highlights-of-the-yale-babylonian-collection/work.json": "b8fd7553ce6ca8c122f6f3388e554e549b1535cd85fcd12af1853ab475b9fe2a",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/work.json": "7d3057a9bc678235ed653d78b396ed71641983a74c68047edf985df29d0e643b",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/elementary-education-at-nippur/work.json": "d659af36a738286c9b188ef101d6ab1de8a0eaef906bc7776198c2962fd2b6a6",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/gesetze-in-sumerischer-sprache/work.json": "83b54a9da7c744feb661a39487e30aae39dc3dc85b21cd1ad3305f597f6c05fb",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/law-collections-from-mesopotamia-and-asia-minor/work.json": "3a470a3d263f03706008007c97891d175dea0d909348b0a8b80595e0bc9c4f27",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/laws-of-lipit-ishtar-wilcke-encyclopedia-entry/work.json": "4e045443728ca518dcdc3a91fb04dc5f45a491ef141915dc090b61c67c8d81cb",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/sumerian-extract-tablets-and-scribal-education/work.json": "b4677710e2e7dfe75022690ae039240accd2637483c711736fb9718b4a67a29d",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/texts-tablets-and-teaching/work.json": "71eca51a47ffed4e45e9515fc98b4ad64bb836e6cc8e1973d88c242e1b095124",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/the-babylonian-gilgamesh-epic-critical-edition/work.json": "e596cd91ab366027b2fb8a1cdf0c531245a89c2ccda9ceecf732fb0544cba0a0",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/the-epic-of-gilgamesh-george-translation/work.json": "3a0d124cb0a20bad54d8e2a99684d4aa0c988bd2e6193ed930a0cf7cbdf21d75",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/the-tablet-house/work.json": "77d8e4018092c1f745ed34b683513b3e5ca102093ee4abc3671e222b28d6ca74",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/the-textual-criticism-of-sumerian-literature/work.json": "517db8dc58bb0cb1f13f32d79475133652dc19e280420a41c43d3d83c20ca078",
+    "ToS/source-witnesses/works/proto-cuneiform-scholarship/a-quantitative-analysis-of-proto-cuneiform-sign-use-in-archaic-tribute/work.json": "29c4a2fffb72c7f0f499bcd21f267d52420032540985ddcf35c432607368674f",
+    "ToS/source-witnesses/works/proto-cuneiform-scholarship/archaic-administrative-texts-from-uruk-the-early-campaigns/work.json": "04818ee69bbce455b222273d873d89c54e47110afff037d6060e2003a3e42caa",
+    "ToS/source-witnesses/works/proto-cuneiform-scholarship/atu-2-green-sign-list/work.json": "21556b3e84fd245f125d1d71aff54d6c887c48e7ac562df5b71727be11a38b60",
+    "ToS/source-witnesses/works/proto-cuneiform-scholarship/before-writing-volume-i-from-counting-to-cuneiform/work.json": "48fe33e337a4602680546d0706c67545b965f2d0121ab4af2f9bb5aa3a85e9eb",
+    "ToS/source-witnesses/works/proto-cuneiform-scholarship/britannica-cuneiform/work.json": "12acb4eee1b3f599822dfe15610d3be85958a9ef3bd66e43f5c572bed7609c93",
+    "ToS/source-witnesses/works/proto-cuneiform-scholarship/die-lexikalischen-listen-der-archaischen-texte-aus-uruk/work.json": "cb4465b7e3db742d1f695173648be1c3023c71e325806f78f1d42fb8be01571b",
+    "ToS/source-witnesses/works/proto-cuneiform-scholarship/die-zahlzeichensysteme-der-archaischen-texte-aus-uruk/work.json": "012af7f7bd3711c260e2879bdd52a670f31a07397531e3915f0b5a4e6392bd1d",
+    "ToS/source-witnesses/works/proto-cuneiform-scholarship/getty-mesopotamia-civilization-begins-digital-experience/work.json": "62d6c30882ab658520dc5fd53fd84db38426cdafc73c6c04aca9cf8d5d7718fe",
+    "ToS/source-witnesses/works/proto-cuneiform-scholarship/n16-in-the-archaic-texts/work.json": "96062f46c9f34fa1d10a793666daaa8da272e828fdec424363d3729c3f0d5e92",
+    "ToS/source-witnesses/works/proto-cuneiform-scholarship/pisan-dub-ba-and-the-direction-of-cuneiform-script/work.json": "e4dc4a5c3ab893ab963f20c9d1ddc74097fb3f185b6a6b46a7e4b85b911b2416",
+    "ToS/source-witnesses/works/proto-cuneiform-scholarship/uruk-and-i/work.json": "30cb9f66d686332fbdcf57ac5fae16802ad3d030e9f4a762e72a29f9aa712378",
+    "ToS/source-witnesses/works/sumerian-law/laws-of-lipit-ishtar/work.json": "6fba191cba9445357437cb653e9d594a8d13231febe09273bafebde53b681747",
+    "ToS/source-witnesses/works/sumerian-law/laws-of-ur-namma/work.json": "b2eda14814cb632f6d400745218c81d104dfd01411beebd60c5733ff7f363471",
+    "ToS/source-witnesses/works/sumerian-literature/instructions-of-shuruppag/work.json": "e43921f85e69fb07406fdfcfea1dabd0ef2a4dab3482e3533f3dadfc792d831e",
+    "ToS/source-witnesses/works/sumerian-scholarship/the-instructions-of-shurruppak-a-sumerian-proverb-collection/work.json": "299405a2dbd323c9df181fdaccc918eaab42edc684001e3df1449177d301f6ee",
+    "ToS/source-witnesses/catalog/expressions.jsonl": "cef2099d269d08f2337f1b4b7f46124c8635b544b6d223e99a99553952697709",
+    "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/expression.json": "9241d5b76e0ea853d954a5add3f6ab2b2e7ffbf48316d6bfa64dd0e209436f36",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/expression.json": "41e9224e923e9e5543758b765303b80c0dce3e8c3f06a3d87ba0a3abfdba8186",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/expression.json": "f1efb53f0168953dc371dc31253bddf4f50feb98ee8d8ef3b785a2e3ac32fa3b",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/expression.json": "5412636a27c7e21291545ec9ec9aec1a40cc1ae58150489af190f03140f1ac69",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/expression.json": "cbc3ecee6045a23f626d7602ca2051339c7896622c0846392154f015e8cd8996",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/expression.json": "648ff57a0f95689b30b4c99cf2993b9fa6ed97238572d03ae68d1444f5be5821",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1900/expression.json": "f3e88a6caeafa0b76b06521bfc77eefb6d9f06d93fef7edd04997aab4bf7e30e",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1903/expression.json": "96eabf7e0d299342ffeb75dfc90d71a7f332a77c494691d176499f9b067cf922",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1907/expression.json": "e474e4164fe760d23fc1d4ed45a48ef071c8ea4b48b6dcc9e3f9c9e0c4d4a64d",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/expression.json": "057464160cdc38726be59c3744e9f7a132d6bdb53555c54ccc0a050438435f33",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/expression.json": "026ba7d878b6913d479de4d679dbdeb4b2e735d0980cd338a9625144805b83d6",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/expression.json": "6bd90f70c93bcb716e9500c68dc53c2c5087ed507c125e9a0932989c2544b827",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-mysl-1996/expression.json": "9588d08b4a60f5142e374bc60800d953221cba80d91f39142be1a725e7c12bcb",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.json": "8213cefea54b6f1d75546464536b45f78f3b13c1b16a1f5c7c0aeef5ff6a56c8",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/expression.json": "10800a677ec55ed4d2d88ccbac9bffd1910ee224e604a2d97495930c826cb12c",
+    "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/de-naumann-1906-volume-8/expression.json": "f511984203cf46927fa2eb537058d426b576e6c3bc92999e6488d90180b74756",
+    "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/expression.json": "81972d9dc2d5d4db4ed703457d3ffdf2cb2168c54892ce090d9d7501862de106",
+    "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/expression.json": "f1f0d733ce79305bba83cbbf434a2a0199c225d75578581e4bd7a693efff8fb2",
+    "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/ru-polilov-mysl-1996/expression.json": "6733d00d60dd12f44e03ae609e1ac18e7db5c0ef341ac916da2f5a73133afe2b",
+    "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/expression.json": "6cc5eac5e030efff629e5a4a1c7d0ae2238c8678c26d6e02bf57075bc4570651",
+    "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/ru-antonovsky-mysl-1996/expression.json": "925ebb87a7bec2b5e51b15e203fea69e171d08743fe75f96ecd7e18fecaff0c9",
+    "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/expression.json": "127c03946e99ca9138d21a5817a26b262b56115d77afdff2d849c4e1c5a9b8a9",
+    "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/ru-polilov-mysl-1996/expression.json": "e0cfe05323aa55cc61ff54d99ae111f68c76f5848ec46066fd56cb723f42a6f6",
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/expression.json": "abd4a28fc2107116f75537755a729389cfc37f3e92d257fc5e00292c94edb1d8",
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/expression.json": "c50722006d595d04491bdf88dfe62dc6231756e70258c0656bdfbb807fb63939",
+    "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/expression.json": "0aa3d4d8c2b1dfe57e7323bf3d2948cbf1605c8d6b64721fc29b557d51f85c6f",
+    "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/expression.json": "92948a036b611d7f6bd43961b78381ffe8a33968a15d4f34965894e9d52a2c7e",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/expression.json": "bad56e2cff9e4f433e95e1a25feab487a4c0f9b70044a98edd09ce4c0232dbc2",
+    "ToS/source-witnesses/catalog/editions.jsonl": "6a573c43367e42a7da627a0ef938e58a6ce948325129764201d2af2e64eff61a",
+    "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/edition.json": "318ad6299307cbfa9c5e2acf27f4d38063f43297efeaa65c87b77724947b34a7",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/edition.json": "2e38fd5b9add022d2a59cbe78bece79761bb1d2b5eb02200df495d17af5283c1",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/edition.json": "217935adf5884e2163156db8e192c79b159d8f62ffd493dbea6d35fb90e8c8d8",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/edition.json": "b8adb56e93f5dc09bc689a6fc634e627aa0bac509210edbe3fcc4820626a5c24",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/edition.json": "604cdaf5ba81689df203d252727b76d70379b74fcf7578ecb447967d0c30bd4d",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/edition.json": "16a41a0cfc47b180dffd1969ff057fda9a253d3451f37cf6e631a3e9b9d4cd4b",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/edition.json": "26b7f57cb05e1f88ecc49ca26a921009ac15cdecd7e77eed7249a8bfbb9cd69e",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/edition.json": "bb6eb49c7f53c385dd37704e5ab86a30a41170c3e9591905abb000fd41d0bd4e",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1903/editions/saint-petersburg-altshuler-typography-1903-second-corrected/edition.json": "448abfe941be34ac8aab2139d928110e1c845d8b104fd7d6d9bb2760929ba5ea",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/edition.json": "62f7fe26e54cf73e7e34c023cbb7d9dbf28e5587979a158428490835259871df",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/edition.json": "da9ca87ce947e7daab0e413fef947c526cae7e36d71a9aaf4756a730acde108e",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1900/editions/saint-petersburg-unknown-publisher-1900/edition.json": "8a883293cdd81ca730810126882c0f67f973e9bbcdf0d4210f36296aa2df4670",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1907/editions/saint-petersburg-vaisberg-gershunin-typography-1907-third/edition.json": "1203d53ee47d249575a8efb5c04054d7ffbdd83950a2e1f79a2451b91775c562",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/edition.json": "10d79f71724f773af22e66a6b24af40c6a6f0c716314954e5a968ef752a47878",
+    "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/editions/leipzig-c-g-naumann-1888/edition.json": "f6eb6053726536b2eca5c68c403447d84b01ef033332742526b1f3519119837d",
+    "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/edition.json": "658dbbda49d15d46ebc940df078d83421fb71de88811c3f113a5e28258289eab",
+    "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/edition.json": "f02615b11dfde29799ee7390e88775738b8de00ce90396e61619eed92805491c",
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/edition.json": "1843d493cf41eb5832b88fc454127d52238c2308723becc948b1f9f0635dfc11",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/edition.json": "e4eace472893ac7e149b0ae8dea1c7a54df605b51cab2c25ebd892266a4377c9",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/edition.json": "a7b37b3f7cdeb812c24f3e6a01d466787e112789963a846b6a6e0c17d2ba82f6",
+    "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/edition.json": "db8dd926d018de86d243a4464e9732f183ef6173c5831811053a1bbfd27e26f8",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/edition.json": "3127a9297a46dedbe9de0742ec6d9d24161252da6771a464e52b6d611c4265b1",
+    "ToS/source-witnesses/collections/proto-cuneiform-scholarship/zeichenliste-der-archaischen-texte-aus-uruk-atu-2-green-nissen-1987/editions/berlin-gebr-mann-1987/edition.json": "c8e641e031cd0a00d5d4a59d4d0a2790ae22867abcf5b77b5ca499fcdd37df02",
+    "ToS/source-witnesses/catalog/collections.jsonl": "71459b70fe503382855b979b78c91928356acb044cd9749f38adadb5c60ef340",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/collection.json": "85576c9048a06f2c6bd3a8657cdfd74784734944be64a685dd11b23c6a0a14ad",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/collection.json": "cb9f065a4c925bcef4b77011ff87316e3fb254e8b4aa3748c4e4db9b1f172048",
+    "ToS/source-witnesses/collections/proto-cuneiform-scholarship/zeichenliste-der-archaischen-texte-aus-uruk-atu-2-green-nissen-1987/collection.json": "095865d9d393e68b10b316220705714df819e568dfe3881cbb09d61c2910ecb8",
+    "ToS/source-witnesses/catalog/items.jsonl": "74fb5cfdc2320ff472b519712fad81c728f7dac2ea255f7a3d101f0d895e27ab",
+    "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/item.json": "20f1e91563ab05a310530776f6e7e9effabe6a4d43eee6c299b13dc214763758",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/item.json": "1d275239f5918a45c238d753441c83bc4b2a981f7cd7288675e7ed06b806dc2b",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/item.json": "2d5dacef77e6ac61c4a36964690e891d5851ffd5471b01d7e599f73dec774ede",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-image-container-pdf/item.json": "270a1d11e1194a56c9a8c4b03b6db6e27ec7b2c05d203de5578ee7ba1a8d58fb",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/item.json": "1be908b2d90e6407d2f08f7d03de68794c77300ae5ed173e5a7bbfaeec3bdde1",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/item.json": "f1ff304fe1d44eb4610186710e416dc6a672f2be0c706dc829a27579ae8b7374",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/item.json": "3440a88a684c723bc6b222f32a81d502c45232633e81f7ef22506339174296f9",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/item.json": "2de129a2300c0144fcf0828aebbdb2b3f59b93967d3a650c6ddff527e1178555",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/items/wikimedia-commons-penza-scan-pdf/item.json": "6f3997c1f67efdabec49d47b74a45244a080a7a2e287131bcff282214f79626a",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/item.json": "39ccea2b4fa32878b217768171f0741e6f24d15ac91e1d86bf7752029b888fc4",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/item.json": "8d420acb9c6ea6c29f2c3d651ea1eba272b54768ade6828a8b61f3c66fed988f",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/item.json": "12f696e878e4f278bf57a3daa727ab521e8a6b8bb35a11e234457e0428e14c84",
+    "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/editions/leipzig-c-g-naumann-1888/items/mdz-bamberg-scan-pdf/item.json": "ec909f2156f77fc3badb189a6abce8160b9ffd6e41333eeac2810251870bbc1d",
+    "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/item.json": "bd99953506738b16470cf52b139bdcda5645486ce446271be59269b9c447fc9a",
+    "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/item.json": "689772bfc94dc3898a8152d612cf9dbf4a3fd5a772299afc61311f62967f326a",
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/item.json": "07ed586a922e2cc7ada411ba957755835b0dd86367be42b901a455dcb69cadf6",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/item.json": "67d5f93d79935d78db5c6558c2e462d3125b91905aa6aad0106064849adf5dd2",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/item.json": "9bec68af9c42d5903de3934ce0d58f2c31967ab8decd8c2361b8e25b60d61050",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.json": "857ed963efb3c9f03fa661f0dbdac6876d75637a6dd533d634a0837da30649f9",
+    "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/item.json": "da75ae0da76094648d08582609f83aa50af1aabd9159b423c2f30a1b0d53b209",
+    "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/item.json": "df6e86a324fc316935d6e96ba498af4ae3b2a98e4e3429feb51a24bfbde827d7",
+    "ToS/source-witnesses/catalog/links.jsonl": "90f1c532a8d1e6b6d3db8d2895d5a7cec0810136f9ba682a6e1c6d63ba6d969f"
+  },
+  "outputs": [
+    {
+      "record_id": "tos.agent.agnete-wisti-lassen",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/agnete-wisti-lassen/agent.human-forms.json",
+      "sha256": "560b03570fb293d743fb151893ca1dbef5c7462311c858d2c6665e7616996b5c",
+      "bytes": 6972,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.albert-tobias-clay",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/albert-tobias-clay/agent.human-forms.json",
+      "sha256": "7b83ca5a22a074c9ba9b5a99165bd8b7f9774935f13c93952d115cefd4906557",
+      "bytes": 6954,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.andrew-r-george",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/andrew-r-george/agent.human-forms.json",
+      "sha256": "8e71d523ef923c30b8809e2ec45a7815e54aaa989f890e65dbd4039a13f11b00",
+      "bytes": 6900,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.bendt-alster",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/bendt-alster/agent.human-forms.json",
+      "sha256": "f8410f5d83d182dc5622f0a1da943cc3d462cfcadbf55db635fade9e6bcb968e",
+      "bytes": 6846,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.charles-wycliffe-goodwin",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/charles-wycliffe-goodwin/agent.human-forms.json",
+      "sha256": "c2f6e6436108a9d09b025ca1683b9470ac80f2f7afdd14655f011c2fca1b2b59",
+      "bytes": 7062,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.claus-wilcke",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/claus-wilcke/agent.human-forms.json",
+      "sha256": "465d8a74198b7e5d5d017b09362ae92ff520546b4ffdfd8068513dc92a347106",
+      "bytes": 4314,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.denise-schmandt-besserat",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/denise-schmandt-besserat/agent.human-forms.json",
+      "sha256": "8804d3d5988974aad235fe73c1a022cb0918aac01cfdabb2034e220851b65266",
+      "bytes": 4446,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.eckart-frahm",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/eckart-frahm/agent.human-forms.json",
+      "sha256": "efe556bdb5361587fb15192eb7954cbe5eab69ffdecbbc7cc18bcc5ab89ed4df",
+      "bytes": 4314,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.eleanor-robson",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/eleanor-robson/agent.human-forms.json",
+      "sha256": "839d5175b5b94365eb043b9224657b2e2e8ff87e9b33dbf2036faf7810ee04ce",
+      "bytes": 4336,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.esther-fluckiger-hawker",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/esther-fluckiger-hawker/agent.human-forms.json",
+      "sha256": "c555255c2cc2b00a0ecfb28c2cda1e1c57f30b84e60e4d6bfd6b951c582dcd8b",
+      "bytes": 7045,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.friedrich-nietzsche",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/friedrich-nietzsche/agent.human-forms.json",
+      "sha256": "25114a88356f09e04ec7d2aa538a8925109f4a3cc87cdcc9423b5657ee8e1c7d",
+      "bytes": 6972,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.gabor-zolyomi",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/gabor-zolyomi/agent.human-forms.json",
+      "sha256": "670ca789c4b366187a8a1f9415372dd1fc142610f8c0f7bc4cf940888389098b",
+      "bytes": 6865,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.graham-cunningham",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/graham-cunningham/agent.human-forms.json",
+      "sha256": "0ec42347fbe37d0c42c7118690275752464027dc2af6c6e80a0bff49bdac6917",
+      "bytes": 4369,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.hans-j-nissen",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/hans-j-nissen/agent.human-forms.json",
+      "sha256": "d1588f21339c2f45b847230c6e79fbc913bb6f89a4a2280035e603aa5e6f1e0f",
+      "bytes": 6865,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.harry-a-hoffner-jr",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/harry-a-hoffner-jr/agent.human-forms.json",
+      "sha256": "a66ae6e3509f686c3fc9c4dec4bfede846d4c887259aceb713651302c2d15beb",
+      "bytes": 6954,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.henry-van-de-velde",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/henry-van-de-velde/agent.human-forms.json",
+      "sha256": "a3dbb48f51587d65516646700f6264c8ac64fe4e3d46cd3f03f33451cc09fe6b",
+      "bytes": 4380,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.jana-matuszak",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/jana-matuszak/agent.human-forms.json",
+      "sha256": "434eaff987ce14105b976f62f4ebc2ae7b758f923d2ae3f4e3a63bc6efbb1c98",
+      "bytes": 4325,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.jarle-ebeling",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/jarle-ebeling/agent.human-forms.json",
+      "sha256": "fc0c2297bf76888641f69c4e79b5e3064354b367a84dc5c9db10af81364ec93c",
+      "bytes": 4325,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.jeremy-black",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/jeremy-black/agent.human-forms.json",
+      "sha256": "ea44c1b58c74b0a8af0d12d48a2779f39bf5ca10007b3e78bc1060bcc191866e",
+      "bytes": 4314,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.jon-taylor",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/jon-taylor/agent.human-forms.json",
+      "sha256": "bab3b9a47b91e91ddf07ca614534f0102f6334d213780f45b22d995c10b1a959",
+      "bytes": 4292,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.k-a-svasyan",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/k-a-svasyan/agent.human-forms.json",
+      "sha256": "ea7d127e6d325376f4cdd4166e7cd67440f147762da1da30b485f7b549cd306c",
+      "bytes": 6828,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.kathryn-erin-kelley",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/kathryn-erin-kelley/agent.human-forms.json",
+      "sha256": "e77b64f52abfa6dc66641496d03a8ec9055a4cbce331b5761be78ede37137f32",
+      "bytes": 4391,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.klaus-wagensonner",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/klaus-wagensonner/agent.human-forms.json",
+      "sha256": "d9b7ddfd43ca12e71387b3cb51982d897c50da332c84be937958825cf96840d5",
+      "bytes": 4369,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.logan-born",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/logan-born/agent.human-forms.json",
+      "sha256": "c9bb57de161f48029e8793d28e28feafe33b48cf2fc227b343d1bfa8239c0a32",
+      "bytes": 4292,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.madeleine-fitzgerald",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/madeleine-fitzgerald/agent.human-forms.json",
+      "sha256": "22ee4f473e2988e8dfd66fe29bf8df31ea8c855a742c35c497f980ee91fffa9a",
+      "bytes": 6991,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.margaret-w-green",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/margaret-w-green/agent.human-forms.json",
+      "sha256": "272e5182269947c6d990ab7cf7da145a5064703b85be491643debb89f604ea0c",
+      "bytes": 4358,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.martha-t-roth",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/martha-t-roth/agent.human-forms.json",
+      "sha256": "f09ebf9199a0f4b0b2bedc2f72ca237fc709970b1e9f9f11cdd7db96cf5cb1ba",
+      "bytes": 6864,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.morris-jastrow-jr",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/morris-jastrow-jr/agent.human-forms.json",
+      "sha256": "348ca4d5cffb9f311f6b785e5c14551af992c75974ce9e2b0502ff476ff777c3",
+      "bytes": 6936,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.n-polilov",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/n-polilov/agent.human-forms.json",
+      "sha256": "48fc36e0251fbf097006258240af559fe665d7c9971c26cfa77772cd5a64a539",
+      "bytes": 9303,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.niek-veldhuis",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/niek-veldhuis/agent.human-forms.json",
+      "sha256": "9ae68a94e5f177ca61515cf09f7074112d63aa807d1ef8074079d2803b1621a2",
+      "bytes": 9403,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.paul-delnero",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/paul-delnero/agent.human-forms.json",
+      "sha256": "9976dcf37b7f2802d0a282d93d9b4e99e49955f13f297d3092873718424d74c2",
+      "bytes": 6846,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.peter-damerow",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/peter-damerow/agent.human-forms.json",
+      "sha256": "946afffb435b720c4403dec6dfaaceee30fe47b8a13b03c847d8fbe9e337ec23",
+      "bytes": 4325,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.piotr-michalowski",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/piotr-michalowski/agent.human-forms.json",
+      "sha256": "1ca3afcf3040225eeffd00cb0d97fd318607b9df16b4aac4babeef8796ff0b78",
+      "bytes": 4369,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.rainer-m-boehmer",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/rainer-m-boehmer/agent.human-forms.json",
+      "sha256": "5d129640794950b6a483ec12ff7862daebab2619eefeddd7d40e9ea579779b34",
+      "bytes": 4358,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.raoul-richter",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/raoul-richter/agent.human-forms.json",
+      "sha256": "e661926618d4bf66dd4e0387a7d96fb4d0c6c7e61f30728391afb781ee952dff",
+      "bytes": 4325,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.robert-k-englund",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/robert-k-englund/agent.human-forms.json",
+      "sha256": "8be7bf9c73b1cf782dc6f5b9d295fbff2aa60ddf7e2570e14f8f393f4c1e69b7",
+      "bytes": 4358,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.s-p-nani",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/s-p-nani/agent.human-forms.json",
+      "sha256": "e3a899f84be892ccdadaee68c9b5fcb20ea489f1bfb4b2c407e21f9f447c21a3",
+      "bytes": 6774,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.salvatore-f-monaco",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/salvatore-f-monaco/agent.human-forms.json",
+      "sha256": "bccbc941ec1a5cce1457d4769a97d2e0c8c90a3e9e9391ce51867c73e627aafe",
+      "bytes": 4380,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.stephen-j-tinney",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/stephen-j-tinney/agent.human-forms.json",
+      "sha256": "76e9479678764bef5cdd1d146d70a74dd918723482640077a16a6385f0d877af",
+      "bytes": 6918,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.v-a-flerova",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/v-a-flerova/agent.human-forms.json",
+      "sha256": "8e872d165577f20d214c078125f72adddea3b70f66005c58dd8516d41c8e8b63",
+      "bytes": 6828,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.agent.yuri-antonovsky",
+      "kind": "agent",
+      "path": "ToS/source-witnesses/agents/yuliy-antonovsky/agent.human-forms.json",
+      "sha256": "a9b6668852b8eae8e9e3aa81bcdcc95012dd1281800a3b64e72f8f62775c6872",
+      "bytes": 14559,
+      "forms": 6,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.place.chemnitz",
+      "kind": "place",
+      "path": "ToS/source-witnesses/places/chemnitz/place.human-forms.json",
+      "sha256": "29671184daddc75006db3a0b6a3e6a4bc1fbd04d0ca39e28a101e0b6adb02490",
+      "bytes": 6774,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.place.leipzig",
+      "kind": "place",
+      "path": "ToS/source-witnesses/places/leipzig/place.human-forms.json",
+      "sha256": "1cf165b2299479984499175c3379db18a6cc29fbd1787c68b23c243e6eb6fd10",
+      "bytes": 6756,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.place.moscow",
+      "kind": "place",
+      "path": "ToS/source-witnesses/places/moscow/place.human-forms.json",
+      "sha256": "1bf76d7793feb965d3b22f9d53dbda7a1144741fb59edee23f03c1fad32c3b20",
+      "bytes": 6738,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.place.saint-petersburg",
+      "kind": "place",
+      "path": "ToS/source-witnesses/places/saint-petersburg/place.human-forms.json",
+      "sha256": "23b3dc1734e825be962d5cfc367cb083716e5c628d64349e4e6574d6990ca8ea",
+      "bytes": 6918,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.organization.bratya-v-i-i-linnik-printing-saint-petersburg",
+      "kind": "organization",
+      "path": "ToS/source-witnesses/organizations/bratya-v-i-i-linnik-printing-saint-petersburg/organization.human-forms.json",
+      "sha256": "83cfdbf15a3cd295fc58f544ae76e934c3fc5ecb24b91f7a0098eae6fcdb658c",
+      "bytes": 7566,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.organization.c-g-naumann-verlag-leipzig",
+      "kind": "organization",
+      "path": "ToS/source-witnesses/organizations/c-g-naumann-verlag-leipzig/organization.human-forms.json",
+      "sha256": "1453f3a16d03629ba345b4c05be7ef493e227773f8d61d470ae699df367996b2",
+      "bytes": 9903,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.organization.druckerei-c-g-naumann-leipzig",
+      "kind": "organization",
+      "path": "ToS/source-witnesses/organizations/druckerei-c-g-naumann-leipzig/organization.human-forms.json",
+      "sha256": "f1fc742a216f97477ccd4163b5c9b03cd15d2605616ed2d4bda0bf8b6c704658",
+      "bytes": 7278,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.organization.energiya-typolithography-saint-petersburg",
+      "kind": "organization",
+      "path": "ToS/source-witnesses/organizations/energiya-typolithography-saint-petersburg/organization.human-forms.json",
+      "sha256": "81a17f4cbbb03abed3d9e8256334dddf3e13d9c21618f63ea99fcd3f400623da",
+      "bytes": 7494,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+      "kind": "organization",
+      "path": "ToS/source-witnesses/organizations/ernst-schmeitzner-verlagsbuchhandlung-chemnitz/organization.human-forms.json",
+      "sha256": "97014acc2fd816e2022a6fe11a80310a9293ab18375eddf9b82acc92e48c5ad9",
+      "bytes": 10403,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.organization.insel-verlag-anton-kippenberg-leipzig",
+      "kind": "organization",
+      "path": "ToS/source-witnesses/organizations/insel-verlag-anton-kippenberg-leipzig/organization.human-forms.json",
+      "sha256": "f15d85b9a0aa0682768b7fbfd37c759a1ed3bb48e1e976167c3504e0379dfc4b",
+      "bytes": 10178,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.organization.m-m-stasyulevich-printing-saint-petersburg",
+      "kind": "organization",
+      "path": "ToS/source-witnesses/organizations/m-m-stasyulevich-printing-saint-petersburg/organization.human-forms.json",
+      "sha256": "94b46e0fef5d270b9ee36777c28592e428348046a4111a590e497468fa4b7dff",
+      "bytes": 10303,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.organization.prometey-publishing-saint-petersburg",
+      "kind": "organization",
+      "path": "ToS/source-witnesses/organizations/prometey-publishing-saint-petersburg/organization.human-forms.json",
+      "sha256": "6c9714e768cc3a58e7a27e818b894e4e30ee688e1b21e5ec01fbd75b777e7ca6",
+      "bytes": 7404,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.organization.reader-journal-editorial-office-moscow",
+      "kind": "organization",
+      "path": "ToS/source-witnesses/organizations/reader-journal-editorial-office-moscow/organization.human-forms.json",
+      "sha256": "9af9b8ef255935d6bab301504213111b18bee17b70a316e41de350d861b153a9",
+      "bytes": 7440,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.organization.yale-babylonian-collection",
+      "kind": "organization",
+      "path": "ToS/source-witnesses/organizations/yale-babylonian-collection/organization.human-forms.json",
+      "sha256": "ecb8aec92524fee40afe27c2a056a464274c95aef62d548cc1c088b12fc589ef",
+      "bytes": 7224,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.organization.zhizn-dlya-vsekh-saint-petersburg",
+      "kind": "organization",
+      "path": "ToS/source-witnesses/organizations/zhizn-dlya-vsekh-saint-petersburg/organization.human-forms.json",
+      "sha256": "5faef4ea6ef84f21386c24621b354b8a7625dcec30ac3ff5acb2e11733eeec51",
+      "bytes": 7350,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.akkadian-law.laws-of-hammurapi",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/akkadian-law/laws-of-hammurapi/work.human-forms.json",
+      "sha256": "4270f0da58978cfffed41efd9d5a62c17c9e52ffb7efae93aa8f62ecead1ad8b",
+      "bytes": 9803,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.akkadian-literature.old-babylonian-gilgamesh-tradition",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/akkadian-literature/old-babylonian-gilgamesh-tradition/work.human-forms.json",
+      "sha256": "8cb865ec163f05ae5f63c31cdfcd989f6b918b9063e5f034247f976e0b6308b1",
+      "bytes": 10403,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.digital-cuneiform-corpora.cuneiform-digital-library-initiative",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/digital-cuneiform-corpora/cuneiform-digital-library-initiative/work.human-forms.json",
+      "sha256": "5c2784e9fc3c267cf85f211152738d68e71d568861b2f0c1debeb08d2ce255ca",
+      "bytes": 7729,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.digital-sumerian-corpora.electronic-text-corpus-of-sumerian-literature",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/digital-sumerian-corpora/electronic-text-corpus-of-sumerian-literature/work.human-forms.json",
+      "sha256": "7879ea5096bdc625c57faf1ff009b923ef3154afd0103cc33c2fa342f456a37f",
+      "bytes": 7873,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/work.human-forms.json",
+      "sha256": "c3c4a94a6c33ae7bdd97afac7562447e90c66ae58ae8cd337d23e86c83ec359a",
+      "bytes": 8214,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.human-forms.json",
+      "sha256": "c564124234387852ab89df7bf629a97238142506558b31474aa62d67d6d5b961",
+      "bytes": 10152,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.friedrich-nietzsche.der-antichrist",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/work.human-forms.json",
+      "sha256": "4c61ae08f910ce378612e25ef634b72ed4ffb145d9f250c93d3765d3008c80cf",
+      "bytes": 7224,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.friedrich-nietzsche.der-fall-wagner",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/work.human-forms.json",
+      "sha256": "354b81a36185c6693ad68e62c65a4d1fdcd117baa6aea1635aad64625c8c2b69",
+      "bytes": 7242,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.friedrich-nietzsche.ecce-homo",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/work.human-forms.json",
+      "sha256": "3e5c73de3029b6cb27bf1a674115a91dca3ee29f7e006559329a0103f7fcf3b4",
+      "bytes": 7134,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.friedrich-nietzsche.goetzen-daemmerung",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/work.human-forms.json",
+      "sha256": "96cd9150683474c15d4aea6710d97b51d7472746117e49e61062d8fd5111dc87",
+      "bytes": 7296,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.human-forms.json",
+      "sha256": "f9593132876236175032ea252895bac2cb8007137aacdcb9848d069dae2a2a35",
+      "bytes": 5958,
+      "forms": 3,
+      "preserved_existing": true
+    },
+    {
+      "record_id": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/work.human-forms.json",
+      "sha256": "b8a643370c84fb4d90f6c0dc35a88c359e86e513d63555aa9400750cd9f0a3ce",
+      "bytes": 7404,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.mesopotamian-education.education-mesopotamian",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/education-mesopotamian/work.human-forms.json",
+      "sha256": "8f4cd9a8bee0a9ae2e88929718b58cb5cb0138b5f2f7861fd20d3ee245028450",
+      "bytes": 4666,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.mesopotamian-scholarship.ancient-mesopotamia-speaks-highlights-of-the-yale-babylonian-collection",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/mesopotamian-scholarship/ancient-mesopotamia-speaks-highlights-of-the-yale-babylonian-collection/work.human-forms.json",
+      "sha256": "b15c5eee5ed213b5a2cae54f651309046a86411c7ddcc9111c4a6bd9fdfdf4e7",
+      "bytes": 8340,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/work.human-forms.json",
+      "sha256": "263c72e4894d041b7e751cea85826ab19995b8f0d266594244fd79ba7c88232a",
+      "bytes": 7944,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.old-babylonian-scholarship.elementary-education-at-nippur",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/elementary-education-at-nippur/work.human-forms.json",
+      "sha256": "fefc5f546d4c1932edb7ba5ed526018f7b91b5099159a8b4ea33abb8506c205b",
+      "bytes": 7638,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.old-babylonian-scholarship.gesetze-in-sumerischer-sprache",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/gesetze-in-sumerischer-sprache/work.human-forms.json",
+      "sha256": "23f8684414cc3b3f2df4c46f7bb34c70a9c6a826cb43ced19a7e2cf4af372a6f",
+      "bytes": 4798,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.old-babylonian-scholarship.law-collections-from-mesopotamia-and-asia-minor",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/law-collections-from-mesopotamia-and-asia-minor/work.human-forms.json",
+      "sha256": "6f81a69f9a5c1f57a71eb36ca0983f1c84211c835859654ecb299cc84e7d7b48",
+      "bytes": 4985,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.old-babylonian-scholarship.laws-of-lipit-ishtar-wilcke-encyclopedia-entry",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/laws-of-lipit-ishtar-wilcke-encyclopedia-entry/work.human-forms.json",
+      "sha256": "732cc0d613d9a0b615a5a55862558f39f668eb33f461283c8b1c096f07247db0",
+      "bytes": 4974,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.old-babylonian-scholarship.sumerian-extract-tablets-and-scribal-education",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/sumerian-extract-tablets-and-scribal-education/work.human-forms.json",
+      "sha256": "dddf0cdb223fa0620ba4147f5e988f989a3f0a33860a46643b33061f7ea31d6a",
+      "bytes": 4974,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.old-babylonian-scholarship.texts-tablets-and-teaching",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/texts-tablets-and-teaching/work.human-forms.json",
+      "sha256": "f710382aa411798416397b6b8467febf842e047f803511e9072ef81560834f4d",
+      "bytes": 7566,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.old-babylonian-scholarship.the-babylonian-gilgamesh-epic-critical-edition",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/the-babylonian-gilgamesh-epic-critical-edition/work.human-forms.json",
+      "sha256": "16ff2638851bd9f80e4d0e1de8dbd8e72eaa791e49dd9a73828ba1fdf6290bfe",
+      "bytes": 4974,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.old-babylonian-scholarship.the-epic-of-gilgamesh-george-translation",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/the-epic-of-gilgamesh-george-translation/work.human-forms.json",
+      "sha256": "ec6a8924a8f34775f239101f73ae2ec7f2c1e91c5a7d757841593fbdc2af69d4",
+      "bytes": 7818,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.old-babylonian-scholarship.the-tablet-house",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/the-tablet-house/work.human-forms.json",
+      "sha256": "e7b5b5d3b28b17aa957fc6c35f2e5c2cc8fa440d68645a1574c13396ba2b35a9",
+      "bytes": 7386,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/the-textual-criticism-of-sumerian-literature/work.human-forms.json",
+      "sha256": "cd060ab90d53d7db0cde623121062e46cf7821b08ceeb31830324a01a816d25d",
+      "bytes": 4952,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.proto-cuneiform.a-quantitative-analysis-of-proto-cuneiform-sign-use-in-archaic-tribute",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/a-quantitative-analysis-of-proto-cuneiform-sign-use-in-archaic-tribute/work.human-forms.json",
+      "sha256": "af9324bcac8b1fbcad1b9aa35c2c7009928345677b2e80d61ee92ae9de205ae8",
+      "bytes": 5117,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.proto-cuneiform.archaic-administrative-texts-from-uruk-the-early-campaigns",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/archaic-administrative-texts-from-uruk-the-early-campaigns/work.human-forms.json",
+      "sha256": "a394bcae2152271143691e28c8cea6525f3f1149bfa0fcce8ace871ed41c940b",
+      "bytes": 10904,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.proto-cuneiform.atu-2-green-sign-list",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/atu-2-green-sign-list/work.human-forms.json",
+      "sha256": "090b1478bfa7061b90bfbed77f634008c249886ff5626c4ee4af424848512285",
+      "bytes": 7278,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.proto-cuneiform.before-writing-volume-i-from-counting-to-cuneiform",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/before-writing-volume-i-from-counting-to-cuneiform/work.human-forms.json",
+      "sha256": "63da90258743d2193f7e32a80b3c86813f73cc063df75be4107362e72a96954d",
+      "bytes": 4897,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.proto-cuneiform.britannica-cuneiform",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/britannica-cuneiform/work.human-forms.json",
+      "sha256": "a5f4701fa432bc45f0370ef8344238a58899f2787bd08f7690bba9d97756e9bd",
+      "bytes": 4567,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.proto-cuneiform.die-lexikalischen-listen-der-archaischen-texte-aus-uruk",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/die-lexikalischen-listen-der-archaischen-texte-aus-uruk/work.human-forms.json",
+      "sha256": "63b1d9c88e572dab4b8c034a562bd591a1ab6cecd60dbb3dd062d5c2ee0e53f6",
+      "bytes": 10830,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.proto-cuneiform.die-zahlzeichensysteme-der-archaischen-texte-aus-uruk",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/die-zahlzeichensysteme-der-archaischen-texte-aus-uruk/work.human-forms.json",
+      "sha256": "99c5fbee7860fb78974fcc80dc20db798ec4a11af39793f5323ed901f1272ee5",
+      "bytes": 4930,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.proto-cuneiform.getty-mesopotamia-civilization-begins-digital-experience",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/getty-mesopotamia-civilization-begins-digital-experience/work.human-forms.json",
+      "sha256": "61098ccba1941ab2f1483845a91698545300b541f687e9a44f2ea011f5594f9c",
+      "bytes": 4963,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.proto-cuneiform.n16-in-the-archaic-texts",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/n16-in-the-archaic-texts/work.human-forms.json",
+      "sha256": "430479af1751d24a3556181b45d9ad1c69ec144365f396a4f892a5ee999bd6f6",
+      "bytes": 4611,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.proto-cuneiform.pisan-dub-ba-and-the-direction-of-cuneiform-script",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/pisan-dub-ba-and-the-direction-of-cuneiform-script/work.human-forms.json",
+      "sha256": "903f7740ad3a97326af3643a341707a7f41c291d1de62710bceee71d8e665489",
+      "bytes": 7800,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.proto-cuneiform.uruk-and-i",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/proto-cuneiform-scholarship/uruk-and-i/work.human-forms.json",
+      "sha256": "dd0a76f4fa57507661afa97a8c8dfe99ff61003f9b3abc0cf9926cd7db9ce873",
+      "bytes": 4457,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.sumerian-law.laws-of-lipit-ishtar",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/sumerian-law/laws-of-lipit-ishtar/work.human-forms.json",
+      "sha256": "9f4dc384038c397f5c8103e7410a4c921ed842d9f63b4bdfc929d6ade70873e0",
+      "bytes": 9878,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.sumerian-law.laws-of-ur-namma",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/sumerian-law/laws-of-ur-namma/work.human-forms.json",
+      "sha256": "f2fe9c04efbecb73c713b07cb421fb528719e77b422deaa81537730b7c65ced4",
+      "bytes": 9778,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.sumerian-literature.instructions-of-shuruppag",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/sumerian-literature/instructions-of-shuruppag/work.human-forms.json",
+      "sha256": "302521c403dd28772430f5bce738336d5e3df343c2fbc709245ebf872dcf90fa",
+      "bytes": 12934,
+      "forms": 5,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.work.sumerian-scholarship.the-instructions-of-shurruppak-a-sumerian-proverb-collection",
+      "kind": "work",
+      "path": "ToS/source-witnesses/works/sumerian-scholarship/the-instructions-of-shurruppak-a-sumerian-proverb-collection/work.human-forms.json",
+      "sha256": "388806ec917831ce0e183aade9f29b7331d25d89e840ce396e269d250bb1fda4",
+      "bytes": 11078,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum.en-goodwin-1874",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/expression.human-forms.json",
+      "sha256": "787ec4f5a7a0372e15ab12f4f65299437403ba3325586bbb656b8a1131095c85",
+      "bytes": 5392,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/expression.human-forms.json",
+      "sha256": "bc94dbb64e81c7022c304899cc80e17d06b7d4fae9da6aec37c43ca0d5c598bd",
+      "bytes": 7908,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/expression.human-forms.json",
+      "sha256": "19c91dab73799269b3b6124c9a0ecf7bbc6e8f999838e4ad2b182d78148aab21",
+      "bytes": 4886,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/expression.human-forms.json",
+      "sha256": "cb2288bb057b609c9cb02d6eb44097a69ffbb9aea7f17697f5b0b80dca5b43c0",
+      "bytes": 7980,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/expression.human-forms.json",
+      "sha256": "c88d516d34414339893c59cc31fadf2b24ecfba574d9170e18bd2dc2fb105aff",
+      "bytes": 7980,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/expression.human-forms.json",
+      "sha256": "b2caebef76f73891e6b4afe9e17e334112bdff82a2133ed828566f2328722275",
+      "bytes": 7980,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1900",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1900/expression.human-forms.json",
+      "sha256": "d6dd4d638ce77c73727344fc1190ac5408683c2470e64cf015399e21b4c711f7",
+      "bytes": 4919,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1903/expression.human-forms.json",
+      "sha256": "52090986c28d56bee3c16fba7e8f3d058823652f9c85fd658e61126a5652077f",
+      "bytes": 4919,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1907",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1907/expression.human-forms.json",
+      "sha256": "ff7aa9677c70c3cee68c2f7ad111f6408592ad3be7d72ee692f2b46a718d0315",
+      "bytes": 4919,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/expression.human-forms.json",
+      "sha256": "40f910e57e904c38ef0f0de8f81de1dd53f9e4fa500f5f70fd31ded4baa75673",
+      "bytes": 4919,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/expression.human-forms.json",
+      "sha256": "2ae9e810191204226a5de9da259e7d852bf304cf2b2f954d0e7dd74730fff21a",
+      "bytes": 4919,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/expression.human-forms.json",
+      "sha256": "6320b20f5847fe1a59d9be1aaad0b60dacb9393be16c2afe32a35565d100a892",
+      "bytes": 5084,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-mysl-1996/expression.human-forms.json",
+      "sha256": "fd3987323d896d38051332c195ba09941498895e3a333bdd4ff3c17395a6f274",
+      "bytes": 4974,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/expression.human-forms.json",
+      "sha256": "324d5888394977ca712cee424b4866a54b28f7a1f712f6502fa392f0a771ad61",
+      "bytes": 7998,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/expression.human-forms.json",
+      "sha256": "725b5f83dc11bf0cad11ac86059be6e3092a7dfb2e909c4d7e3a6f9855746d77",
+      "bytes": 4996,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/de-naumann-1906-volume-8/expression.human-forms.json",
+      "sha256": "024ceb6ec406b2a0b0bfd2499d43c274970916e1f31a0074ff9fdc0e5add7e9a",
+      "bytes": 4886,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/expression.human-forms.json",
+      "sha256": "f4947a74c79e9d842309aaf5cd7af2e3d9391da4be04e04769b021b29ba55f03",
+      "bytes": 4842,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.der-fall-wagner.de-naumann-1888",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/expression.human-forms.json",
+      "sha256": "49bb09acaac2d897c615a7b14e8dba36b2a4a027642b0609c83016153072660f",
+      "bytes": 4798,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.der-fall-wagner.ru-polilov-mysl-1996",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/ru-polilov-mysl-1996/expression.human-forms.json",
+      "sha256": "375b88c55157fe19e5f4490bc09d43225b6407b5727343b9ede9bbe3f764335a",
+      "bytes": 4853,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.ecce-homo.de-richter-insel-1908",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/expression.human-forms.json",
+      "sha256": "10fccaee1a31478e4534f1f8e54b22accff2063fcc1daa11551c6965c881108f",
+      "bytes": 7638,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/ru-antonovsky-mysl-1996/expression.human-forms.json",
+      "sha256": "d0331c7df394798774c9db4e6f39432955fc5516e4c03b5e00fef5bd53ae4253",
+      "bytes": 4820,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/expression.human-forms.json",
+      "sha256": "579336a295259d8a215fa20349cc2b207611d85e897a1e227a6fabe415bf4d27",
+      "bytes": 4831,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.goetzen-daemmerung.ru-polilov-mysl-1996",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/ru-polilov-mysl-1996/expression.human-forms.json",
+      "sha256": "01e09641b8c39c2d87e8d076f39f478a433857aa8991b839144525bc575d6a72",
+      "bytes": 4886,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/expression.human-forms.json",
+      "sha256": "3020011f2445a3a24f5418afa6903cba2035186806efa666c59d095dd2ddc1ef",
+      "bytes": 4919,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/expression.human-forms.json",
+      "sha256": "7e638989ff76c81adf772908d763ed46a25c15907b9b2e017958abbd73368ac7",
+      "bytes": 4974,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/expression.human-forms.json",
+      "sha256": "862462f138fab6bf57f9d7362e378e6643d682942eb23f80afcfcdf790a77e6e",
+      "bytes": 4974,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/expression.human-forms.json",
+      "sha256": "88c904a6b28a7dfea0fb945ff088c6987180290c57dee9219db51da895b48b20",
+      "bytes": 4952,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.expression.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920",
+      "kind": "expression",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/expression.human-forms.json",
+      "sha256": "a96c55d16d789307028e28d1510819e4769dd078162e28eb47ac4a9ce5a91a9d",
+      "bytes": 5282,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum.london-society-of-biblical-archaeology-1874",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/edition.human-forms.json",
+      "sha256": "857d58b1c1c8dcdc96cda7d87f1846b475fcd6cf74c457c51e08f277ba112007",
+      "bytes": 5667,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-1",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/edition.human-forms.json",
+      "sha256": "450d41745b642989e72e07c19cc8359eae06f961eb8515a988ec016a0d7e8626",
+      "bytes": 8034,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-2",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/edition.human-forms.json",
+      "sha256": "3a2991d49dedfaa82b796617f633c10123be2588de49db61df49cdb6e0579512",
+      "bytes": 8034,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1884-part-3",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/edition.human-forms.json",
+      "sha256": "e1a988b5eeb986fb711d4a84bd9253e748d09ebdf589f1a2ef7f6d303868ce4d",
+      "bytes": 8034,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.leipzig-c-g-naumann-1893",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/edition.human-forms.json",
+      "sha256": "ab7bc012ccf3455a9a00af9ca1ddba1320499450a841a835d9be65fb85d69945",
+      "bytes": 4952,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.leipzig-naumann-1891-part-4",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/edition.human-forms.json",
+      "sha256": "3c8e7ff2959b6e49f8ed6ba5a52101042d7939a4b95b43e196a6bab413533af8",
+      "bytes": 7944,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/edition.human-forms.json",
+      "sha256": "661a58aceb51dd1cd4a884a3f9d9c8dc291b9faff6363c52cf12328db634fab7",
+      "bytes": 5128,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-reader-editorial-office-1899",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/edition.human-forms.json",
+      "sha256": "c42f92a6fd932a60d83cbe5a4357ee01f69c8a3d4f8445d639726d6390a86ff0",
+      "bytes": 5073,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1903/editions/saint-petersburg-altshuler-typography-1903-second-corrected/edition.human-forms.json",
+      "sha256": "d9337799ebca12bc6bf79d2f74d77ae530208bbf44d43c5acd2eaf0578383a1a",
+      "bytes": 5337,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/edition.human-forms.json",
+      "sha256": "eddbf7783218f45d07c3c9f961d055bb45beac72c38f628284d0cd0172d08a35",
+      "bytes": 5095,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/edition.human-forms.json",
+      "sha256": "c5b4978450236220fb31e7f236c15ad8eeff115dd3a8150cb57a22116005178d",
+      "bytes": 8340,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-unknown-publisher-1900",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1900/editions/saint-petersburg-unknown-publisher-1900/edition.human-forms.json",
+      "sha256": "672afd3f7f70f465b7cf1c1923b8c05bd0e8061171cd7de1f0f35df1fb4b8166",
+      "bytes": 5117,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1907/editions/saint-petersburg-vaisberg-gershunin-typography-1907-third/edition.human-forms.json",
+      "sha256": "b28d8bd2ea2d7fb426618a537159f1088334f195005cfcbdc423f2f18ee6a623",
+      "bytes": 5315,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-zhizn-dlya-vsekh-1913",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/edition.human-forms.json",
+      "sha256": "a6fe1ed01d9e1b6faaf1920b2898fdf80e9934fab82b6a2164be2fab2aa664eb",
+      "bytes": 5106,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.der-fall-wagner.leipzig-c-g-naumann-1888",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/editions/leipzig-c-g-naumann-1888/edition.human-forms.json",
+      "sha256": "4d380188181f26284e1743fabc5681550387decef7d690aa7187733ffd2e2ff5",
+      "bytes": 7746,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.ecce-homo.leipzig-insel-verlag-1908",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/edition.human-forms.json",
+      "sha256": "0464fb47b3351056af98751c920f1da3fb6f67d8ce639e85316a376a329d28f2",
+      "bytes": 7656,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.goetzen-daemmerung.leipzig-c-g-naumann-1889",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/edition.human-forms.json",
+      "sha256": "6e1a0940cbcf538629bb224e22c8c5b2ccf535ca2f964540ef633b437a61a9eb",
+      "bytes": 7800,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/edition.human-forms.json",
+      "sha256": "1e6da26588a15ce7b3ed1721e3e9a775b80ad2e436fb39d13d8f668a72762642",
+      "bytes": 7944,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/edition.human-forms.json",
+      "sha256": "adc332579eb04e1de2983fe50020f4f471da0a95214b763bb1ea4ee6f848cb84",
+      "bytes": 4952,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/edition.human-forms.json",
+      "sha256": "961f2217a67afde7ee254d4cf65adf4e98a9a40aa90fad7a9cbcae8ac0b9883d",
+      "bytes": 4930,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.friedrich-nietzsche.zur-genealogie-der-moral.leipzig-c-g-naumann-1892-second",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/edition.human-forms.json",
+      "sha256": "5c14218f843cdb7f0fb03539ef14b8e083993990907a67c5b7deb24e609a79ad",
+      "bytes": 8034,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.new-haven-yale-university-press-1920",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/edition.human-forms.json",
+      "sha256": "1c40a7a6813ef1426f38eb20f8094f3f0cd034bb5d9c1fefca1faf1524cdbae4",
+      "bytes": 5425,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.edition.proto-cuneiform.zeichenliste-der-archaischen-texte-aus-uruk.berlin-gebr-mann-1987",
+      "kind": "edition",
+      "path": "ToS/source-witnesses/collections/proto-cuneiform-scholarship/zeichenliste-der-archaischen-texte-aus-uruk-atu-2-green-nissen-1987/editions/berlin-gebr-mann-1987/edition.human-forms.json",
+      "sha256": "c8496eeec553e4b88a4ebb137fd43b2baa364ce66d6edfa46e3a53f216a36a10",
+      "bytes": 5095,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.collection.friedrich-nietzsche.nietzsches-werke-erste-abtheilung-band-8-naumann-1906",
+      "kind": "collection",
+      "path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/collection.human-forms.json",
+      "sha256": "09cd022c73c28da454cccde957bfe1ed725fb17715127c0e420dfe6eb522c621",
+      "bytes": 8034,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.collection.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996",
+      "kind": "collection",
+      "path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/collection.human-forms.json",
+      "sha256": "f5a148e876b20437cc7c2a561a3ab257d8c74c9278399769f5cf76ffdb558dc7",
+      "bytes": 4886,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.collection.proto-cuneiform.zeichenliste-der-archaischen-texte-aus-uruk-atu-2-green-nissen-1987",
+      "kind": "collection",
+      "path": "ToS/source-witnesses/collections/proto-cuneiform-scholarship/zeichenliste-der-archaischen-texte-aus-uruk-atu-2-green-nissen-1987/collection.human-forms.json",
+      "sha256": "398a38ad911a32e8a575e773f5305ba08f4f6fba4bea0e56b0459dee5dd283eb",
+      "bytes": 8215,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum.en-goodwin-1874.internet-archive-nls-scan-pdf",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/item.human-forms.json",
+      "sha256": "4bb8f6845d5252eb8687b6498cebb5b9225f077aad326f69a8e69d2db05fc2ad",
+      "bytes": 9042,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/item.human-forms.json",
+      "sha256": "e02b889fcb55648750b759df11d0ddae245cf260b5e7b0d8c3f6e5673e53b7b7",
+      "bytes": 11605,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/item.human-forms.json",
+      "sha256": "f3a43da46024ddf14b2918decde02843f611fa79eee3cf78a5e4b43a178c82dc",
+      "bytes": 5205,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-image-container-pdf/item.human-forms.json",
+      "sha256": "247178b6873b76d67930714de34667b4867a3f845087640cb01941c6b7ee0913",
+      "bytes": 5227,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/item.human-forms.json",
+      "sha256": "27fcf40871c12bef89c9fedd5eacc0d0ffa10af7280b528d426d7c63e4a7dc53",
+      "bytes": 11430,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/item.human-forms.json",
+      "sha256": "de680ff697ff9e2a05c6074c0caf167545d1c89303adee644f28961e99ea91ae",
+      "bytes": 11430,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/item.human-forms.json",
+      "sha256": "6afacd6d96682794bc3ddd96ae14bbe20209220c4ec41fc2cab5df00590373d0",
+      "bytes": 11430,
+      "forms": 4,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/item.human-forms.json",
+      "sha256": "f9a46c5cad3d2025da2e37d8e53aa491e444a8e0e57b8a00f4a177eac3ee1db8",
+      "bytes": 5040,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913.wikimedia-commons-penza-scan-pdf",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/items/wikimedia-commons-penza-scan-pdf/item.human-forms.json",
+      "sha256": "b3103c17c612acdcd3e0f0fe8e455c9ece3569affb0ac169a93c8c02537c7bf0",
+      "bytes": 5216,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/item.human-forms.json",
+      "sha256": "bb12b775d10f2e382c3e0050b4cdd6eaccc469d41a4494c1b4e47d2d5e52061a",
+      "bytes": 5216,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/item.human-forms.json",
+      "sha256": "f474f80e6169df3306e7c782f37555891b499daf47bbace1d6ca889d219b8b23",
+      "bytes": 5271,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/item.human-forms.json",
+      "sha256": "9c0bc75ce27987fa1a0158ab62de0886465fe2bdaa6e96910acccf38a69d96dc",
+      "bytes": 5260,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.der-fall-wagner.de-naumann-1888.mdz-bamberg-scan-pdf",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/editions/leipzig-c-g-naumann-1888/items/mdz-bamberg-scan-pdf/item.human-forms.json",
+      "sha256": "f2ed8768ae44e6936bc0deef966476e5bc28b8510f6c16abb48ec4b79367294d",
+      "bytes": 7908,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.ecce-homo.de-richter-insel-1908.wikimedia-commons-getty-scan-pdf",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/item.human-forms.json",
+      "sha256": "8e63c374321a885459746ccc3ee248999f0c1a8e63efcb82244e46fa02a94661",
+      "bytes": 8124,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889.mdz-bsb-scan-pdf",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/item.human-forms.json",
+      "sha256": "126b65f0fb57bb22ee68c1f8f97c3dfa20a53c9f67749867384f20e0e724f0d8",
+      "bytes": 7890,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/item.human-forms.json",
+      "sha256": "65b705745698e2847c79579dddcb88b308e7a7417c59d4c9da21f20a7ce5f2fa",
+      "bytes": 8466,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
+      "kind": "item",
+      "path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/item.human-forms.json",
+      "sha256": "443a2a71edb7999e0e4a9a25304699f73c484b775fa7fafb6b83e2b90608526c",
+      "bytes": 14633,
+      "forms": 5,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
+      "kind": "item",
+      "path": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/item.human-forms.json",
+      "sha256": "68f390e828192fcfd0327fab123ffbb8b58fa6ad10875612930ed38367ec3213",
+      "bytes": 8286,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "kind": "item",
+      "path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.human-forms.json",
+      "sha256": "0a5e7f26e5852d2a52bedc642f1a2076c8d04c9fffc78f6d7b947a897c77ac15",
+      "bytes": 4963,
+      "forms": 2,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/item.human-forms.json",
+      "sha256": "47127766271f619578b3c21ad6147b42c8f31f6ad8a1e4ef520a7b55c19205be",
+      "bytes": 8376,
+      "forms": 3,
+      "preserved_existing": false
+    },
+    {
+      "record_id": "tos.item.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920.commons-internet-archive-robarts-scan-djvu",
+      "kind": "item",
+      "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/item.human-forms.json",
+      "sha256": "f8ee6ba07000a0ac546dd1b3142b8932d28cd38b522620fa4c334c066cad0dbf",
+      "bytes": 9096,
+      "forms": 3,
+      "preserved_existing": false
+    }
+  ],
+  "replay": {
+    "commands": 170,
+    "new_receipts": 0,
+    "all_output_bytes_unchanged": true,
+    "elapsed_seconds": 5.520200425999974
+  },
+  "graph": {
+    "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+    "sha256": "b6d9833522bd900811f901fd0bd2a7615041962988d1a6ef09ca3b13458cfb17",
+    "bytes": 5326726,
+    "previous_sha256": "2956d9bff2e02bb7143199dc561feb473a27dd4b891e2e463b76dbdded0351a3",
+    "existing_nodes_without_form_fields_unchanged": true,
+    "existing_claims_and_edges_unchanged": true,
+    "added_preexisting_source_subjects": [
+      "identity:tos.edition.proto-cuneiform.zeichenliste-der-archaischen-texte-aus-uruk.berlin-gebr-mann-1987",
+      "identity:tos.organization.yale-babylonian-collection",
+      "identity:tos.work.akkadian-law.laws-of-hammurapi",
+      "identity:tos.work.akkadian-literature.old-babylonian-gilgamesh-tradition",
+      "identity:tos.work.digital-cuneiform-corpora.cuneiform-digital-library-initiative",
+      "identity:tos.work.proto-cuneiform.britannica-cuneiform",
+      "identity:tos.work.proto-cuneiform.getty-mesopotamia-civilization-begins-digital-experience",
+      "identity:tos.work.sumerian-law.laws-of-lipit-ishtar",
+      "identity:tos.work.sumerian-law.laws-of-ur-namma",
+      "identity:tos.work.sumerian-literature.instructions-of-shuruppag"
+    ]
+  },
+  "excluded": [
+    {
+      "record_id": "tos.link.cdli.cdlb-2006-1.article",
+      "kind": "link",
+      "reason": "not-a-corpus-record; existing object-link adapter retains ownership"
+    },
+    {
+      "record_id": "tos.link.cdli.cdlb-2006-1.pdf",
+      "kind": "link",
+      "reason": "not-a-corpus-record; existing object-link adapter retains ownership"
+    },
+    {
+      "record_id": "tos.link.internet-archive.onfoursongsconta00good.landing",
+      "kind": "link",
+      "reason": "not-a-corpus-record; existing object-link adapter retains ownership"
+    },
+    {
+      "record_id": "tos.link.internet-archive.onfoursongsconta00good.metadata",
+      "kind": "link",
+      "reason": "not-a-corpus-record; existing object-link adapter retains ownership"
+    },
+    {
+      "record_id": "tos.link.internet-archive.onfoursongsconta00good.pdf-download",
+      "kind": "link",
+      "reason": "not-a-corpus-record; existing object-link adapter retains ownership"
+    }
+  ],
+  "measurements": {
+    "conditions": "Single local run, concurrent local checks; not a controlled scaling benchmark or accepted latency budget",
+    "source_form_bytes": 1149258,
+    "new_set_bytes": 1143300,
+    "full_apply_seconds": 9.843470881999906,
+    "full_apply_includes_three_pilot_replays": true,
+    "cold_local_access_normalization_seconds": 27.363954426999953,
+    "all_171_inspections_seconds": 7.2960541259999445,
+    "focus_seconds": [
+      0.23104828400005317,
+      0.22364895500004423,
+      0.21932695600003171
+    ],
+    "compact_lens_seconds": [
+      0.027094380999869827,
+      0.02667381900005239,
+      0.026742582999986553
+    ],
+    "compact_node_bytes": [
+      7425,
+      7186,
+      9793
+    ]
+  },
+  "semantic_admission": false,
+  "ui_runtime_verified": false,
+  "worker_d1_migration_verified": false,
+  "ci_verified": false,
+  "merged": false,
+  "deployed": false
+}

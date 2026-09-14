@@ -9,6 +9,7 @@ from __future__ import annotations
 import heapq
 import json
 import sqlite3
+import time
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
@@ -22,7 +23,10 @@ DEFAULT_RELATIVE_PATH = Path('ToS/derived-exports/runtime/knowledge.sqlite3')
 # This is an explicit compatibility boundary for the row-model ABI.  A store
 # that has the right tables but was compiled by a different semantic compiler
 # must be rebuilt before it is served.
-COMPILER_VERSION = 'tos_offline_knowledge_v1'
+# Foundation integrates exact typed-time navigation, classified readable
+# contexts and exploration v2. An older compiled store does not acquire that
+# grammar just because its source manifest bytes still match.
+COMPILER_VERSION = 'tos_offline_knowledge_v2'
 
 
 class QueryStoreRequired(RuntimeError):
@@ -73,6 +77,9 @@ class QueryStore:
             db.execute('PRAGMA temp_store=FILE')
             db.create_function('tos_contains', 2, lambda payload, needle: int(_contains(json.loads(payload), needle)), deterministic=True)
             db.create_function('tos_lower', 1, lambda value: str(value or '').lower(), deterministic=True)
+            db.create_function('tos_search_rank', 3, lambda payload, needle, relation:
+                               k._knowledge_search_rank(json.loads(payload), needle, relation=bool(relation))[0],
+                               deterministic=True)
             db.create_function('tos_match', 2, lambda payload, group: int(k._matches_group(json.loads(payload), json.loads(group))), deterministic=True)
             db.create_function('tos_sort', 2, lambda payload, field: str(k._field(json.loads(payload), field) or '').lower(), deterministic=True)
             opened_stat = self.path.stat()
@@ -169,10 +176,10 @@ class QueryStore:
                 params.append(needle)
             # SQLite lower is ASCII-only. The registered function deliberately
             # follows Python Unicode lower, including the established tie order.
-            rank = "CASE WHEN ? IN (tos_lower(id),tos_lower(native_id),tos_lower(label)) THEN 0 WHEN substr(tos_lower(id),1,length(?))=? OR substr(tos_lower(native_id),1,length(?))=? OR substr(tos_lower(label),1,length(?))=? THEN 1 ELSE 2 END"
-            order = rank + ',tos_lower(id),id' if needle else 'tos_lower(id),id'
+            rank = "tos_search_rank(payload, ?, ?)"
+            order = rank + ',tos_lower(id),source_graph,id' if needle else 'tos_lower(id),source_graph,id'
             counts[kind] = self.count('knowledge_' + kind, where, params)
-            selected[kind] = list(self.rows('knowledge_' + kind, where, [*params, *([needle] * 7 if needle else [])], order=order, limit=limit, offset=offset))
+            selected[kind] = list(self.rows('knowledge_' + kind, where, [*params, *([needle, int(kind == 'relations')] if needle else [])], order=order, limit=limit, offset=offset))
         return {'schema': 'tos_knowledge_search_v1', 'source_revision': self.header['source_revision'],
                 'query': query, 'filters': {'sources': sorted(sources), 'kind_ids': sorted(kinds), 'predicate_ids': sorted(predicates)},
                 'page': {'offset': offset, 'limit_per_kind': limit},
@@ -180,7 +187,93 @@ class QueryStore:
                            'returned_nodes': len(selected['nodes']), 'returned_relations': len(selected['relations'])},
                 **selected, 'authority_boundary': self.header.get('authority_boundary', {})}
 
+    def ranked_page(self, kind, query='', *, sources=None, kind_ids=None, predicate_ids=None,
+                    cursor=None, page_size=40, max_candidates=50_000, max_verify_chars=16_000_000):
+        """Adapt the completed trigram store to the existing indexed protocol.
+
+        Candidate membership and preflight costs come from SQLite, never a
+        reconstructed graph. Exact native matching/rank and keyset order are
+        unchanged. A scan-only build is not advertised as an indexed route.
+        """
+        from .search_read_model import (
+            SearchReadModelError, SearchReadModelSnapshotError, SearchReadModelUnindexedError,
+            SearchReadModelPage, normalize_search_query, _canonical_filter_digest,
+            _cursor_decode, _cursor_encode, SEARCH_CURSOR_SCHEMA, SEARCH_CURSOR_TTL_SECONDS,
+        )
+        needle = normalize_search_query(query)
+        if kind not in ('nodes', 'relations'):
+            raise SearchReadModelError('search read-model kind is invalid')
+        if (self.metadata.get('search_accelerator', {}).get('mode') != 'fts5-trigram'
+                or len(needle) < 3 or '\0' in needle):
+            raise SearchReadModelUnindexedError('query requires an explicitly compiled trigram carrier')
+        if any(type(value) is not int or value < 1 for value in (page_size, max_candidates, max_verify_chars)) or page_size > 1000:
+            raise SearchReadModelError('search read-model query budgets are invalid')
+        values = [tuple(group or ()) for group in (sources, kind_ids, predicate_ids)]
+        if (sum(map(len, values)) > 100 or
+                any(not isinstance(value, str) or len(value) > 256 for group in values for value in group)):
+            raise SearchReadModelError('knowledge search filters exceed bounded query input')
+        filters_digest = _canonical_filter_digest(sources=values[0], kind_ids=values[1], predicate_ids=values[2])
+        binding = {'schema': SEARCH_CURSOR_SCHEMA, 'backend': 'compiled-fts5-v1', 'kind': kind,
+                   'store_revision': self.revision, 'source_revision': self.header['source_revision'],
+                   'query': needle, 'filters_digest': filters_digest}
+        after = None
+        if cursor is not None:
+            decoded = _cursor_decode(cursor)
+            if set(decoded) != {*binding, 'after', 'expires_at'}:
+                raise SearchReadModelError('invalid compiled knowledge search cursor')
+            if any(decoded[key] != value for key, value in binding.items()):
+                raise SearchReadModelSnapshotError('knowledge search cursor does not match this snapshot/query')
+            after = decoded['after']
+            if (not isinstance(after, list) or len(after) != 3 or type(after[0]) is not int
+                    or not 0 <= after[0] <= 3 or not isinstance(after[1], str) or after[1] != after[1].lower()
+                    or type(after[2]) is not int or after[2] < 0 or type(decoded['expires_at']) is not int):
+                raise SearchReadModelError('invalid compiled knowledge search cursor')
+            if decoded['expires_at'] < int(time.time()):
+                raise SearchReadModelSnapshotError('knowledge search cursor expired')
+        table = 'knowledge_' + kind
+        where, params = self.membership('source_graph', values[0]) if values[0] else ('1', [])
+        selected_filters = values[1] if kind == 'nodes' else values[2]
+        if selected_filters:
+            clause, extra = self.membership('kind_id' if kind == 'nodes' else 'predicate_id', selected_filters)
+            where += ' AND ' + clause
+            params += extra
+        candidate_sql, candidate_args = self.text_candidates(table, needle)
+        where += ' AND (' + candidate_sql + ')'
+        params += candidate_args
+        with self.connect() as db:
+            candidates, characters = db.execute(
+                f'SELECT count(*),coalesce(sum(n),0) FROM (SELECT length(search_text) AS n '
+                f'FROM {table} WHERE {where} LIMIT ?)', [*params, max_candidates + 1]).fetchone()
+            if candidates > max_candidates or characters > max_verify_chars:
+                raise SearchReadModelUnindexedError('indexed query exceeds its candidate/verification budget')
+            continuation = 'WHERE (search_rank,id_lower,position)>(?,?,?)' if after is not None else ''
+            rows = db.execute(
+                f'WITH matches AS (SELECT rowid-1 AS position,id,tos_lower(id) AS id_lower,'
+                f'tos_search_rank(payload,?,?) AS search_rank FROM {table} '
+                f'WHERE {where} AND instr(search_text,?)>0) '
+                f'SELECT position,id,id_lower,search_rank FROM matches {continuation} '
+                'ORDER BY search_rank,id_lower,position LIMIT ?',
+                [needle, int(kind == 'relations'), *params, needle, *(after or ()), page_size + 1]).fetchall()
+        has_more = len(rows) > page_size
+        selected = rows[:page_size]
+        next_cursor = None
+        if has_more:
+            last = selected[-1]
+            next_cursor = _cursor_encode({**binding, 'after': [last[3], last[2], last[0]],
+                                          'expires_at': int(time.time()) + SEARCH_CURSOR_TTL_SECONDS})
+        return SearchReadModelPage(tuple({'position': row[0], 'id': row[1], 'search_rank': row[3]} for row in selected),
+                                   candidates, characters, has_more, next_cursor, ordering_scope='global-rank', sql_pages=2)
+
+    def source_item(self, kind, position):
+        if kind not in ('nodes', 'relations') or type(position) is not int or position < 0:
+            raise ValueError('invalid compiled search source address')
+        rows = list(self.rows('knowledge_' + kind, 'rowid=?', (position + 1,), limit=1))
+        if len(rows) != 1:
+            raise QueryStoreRequired('compiled search source row is missing')
+        return rows[0]
+
     def inspect_node(self, identifier, relation_limit=200):
+        from .source_read_projection import source_read_targets
         identifier = str(identifier).strip()
         if not identifier:
             raise ValueError('knowledge node id is required')
@@ -198,9 +291,11 @@ class QueryStore:
                 'shared_entity_id': field == 'entity_id' and len(matches) > 1, 'matches': matches,
                 'related_relations': relations, 'counts': {'matches': len(matches), 'related_relations': count, 'returned_relations': len(relations)},
                 'source_refs': sorted({ref for item in [*matches, *relations] for ref in k._strings(item.get('source_refs'))}),
+                'source_read_targets': source_read_targets([*matches, *relations], self.header['source_revision']),
                 'authority_boundary': self.header.get('authority_boundary', {})}
 
     def inspect_relation(self, identifier):
+        from .source_read_projection import source_read_targets
         identifier = str(identifier).strip()
         if not identifier:
             raise ValueError('knowledge relation id is required')
@@ -213,6 +308,7 @@ class QueryStore:
                 'requested_id': identifier, 'ambiguous_native_id': field == 'native_id' and len(matches) > 1,
                 'matches': matches, 'endpoints': endpoints, 'counts': {'matches': len(matches), 'endpoints': len(endpoints)},
                 'source_refs': sorted({ref for item in [*matches, *endpoints] for ref in k._strings(item.get('source_refs'))}),
+                'source_read_targets': source_read_targets([*matches, *endpoints], self.header['source_revision']),
                 'authority_boundary': self.header.get('authority_boundary', {})}
 
     def selection(self, table, sources, group, *, sorts=None, extra='1', params=()):
@@ -525,94 +621,24 @@ def execute_store_lens(store, spec_value) -> dict[str, Any]:
         if left in selected_nodes and right in selected_nodes:
             selected_relations.append(relation)
 
-    final_nodes = k._sort_items(selected_nodes.values(), spec["composition"]["sort_nodes"])
-    final_relations = k._sort_items(selected_relations, spec["composition"]["sort_relations"])
-    focus = k._focus_payload(spec, final_nodes, focus_node)
-    groups = k._groups(final_nodes, final_relations, spec["composition"]["group_by"], spec["limits"]["groups"])
-    refs = sorted({ref for item in [*final_nodes, *final_relations] for ref in k._strings(item.get("source_refs"))})
-    missing_node_summaries = sum(item["display"]["summary_state"] == "missing" for item in final_nodes)
-    missing_relation_explanations = sum(item["display"]["explanation_state"] == "missing" for item in final_relations)
-    nodes_without_source_summary = sum(
-        item["display"]["provenance"].get("source_summary_available") is False
-        for item in final_nodes
-    )
-    relations_without_source_explanation = sum(
-        item["display"]["provenance"].get("source_explanation_available") is False
-        for item in final_relations
-    )
     if focus_node is not None and not focus_matched:
         matched_node_count += 1
-    truncated_nodes = max(0, matched_node_count - spec['limits']['nodes'])
-    truncated_relations = max(0, eligible_relation_count - len(final_relations))
-    fingerprint_material = {
-        "execution_version": "tos-lens-execution-v6",
-        "source_revision": graph.get("source_revision"),
-        "lens": {k: v for k, v in public_spec.items() if k != 'pagination'},
-        "nodes": [[item["id"], item["content_revision"]] for item in final_nodes],
-        "relations": [[item["id"], item["content_revision"]] for item in final_relations],
-        "groups": groups,
-    }
-    result = paginate_lens({
-        "schema": "tos_lens_result_v1",
-        "source_revision": str(graph.get("source_revision") or ""),
-        "lens": public_spec,
-        "fingerprint": k._stable_digest(fingerprint_material),
-        "presentation": spec["presentation"],
-        "focus": focus,
-        **({'inclusion': {'nodes': inclusion,
-                          'relations': {r['id']: {'kind': 'traversal' if r['id'] in traversed_relation_ids else 'endpoint-policy',
-                                                  'endpoint_policy': endpoint_policy} for r in final_relations},
-                          'authority': 'query-execution-not-semantic-proof'}} if spec['explain'] else {}),
-        "nodes": [k._lens_carrier(item, spec['detail'], language=spec['language']) for item in final_nodes],
-        "relations": [k._lens_carrier(item, spec['detail'], language=spec['language']) for item in final_relations],
-        "groups": groups,
-        "facets": {
-            "node_kinds": dict(sorted(Counter(str(item["kind_id"]) for item in final_nodes).items())),
-            "predicates": dict(sorted(Counter(str(item["predicate_id"]) for item in final_relations).items())),
-            "sources": dict(sorted(Counter(str(item["source_graph"]) for item in final_nodes).items())),
-        },
-        "counts": {
+    # Final packets, native source-read targets, fingerprints and scene grammar
+    # have one owner. SQL owns only bounded selection and exact scope counts.
+    return k.finalize_knowledge_lens(
+        public_spec, selected_nodes.values(), selected_relations,
+        source_revision=graph.get("source_revision"),
+        authority_boundary=graph.get("authority_boundary", {}),
+        execution_counts={
             "available_nodes": store.count('knowledge_nodes', source_where, source_params),
             "available_relations": store.count('knowledge_relations', source_where, source_params),
             "matched_nodes": matched_node_count,
             "matched_relations": len(relation_candidates),
             "eligible_relations": eligible_relation_count,
-            "nodes": len(final_nodes),
-            "relations": len(final_relations),
-            "groups": len(groups),
-            "truncated_nodes": truncated_nodes,
-            "truncated_relations": truncated_relations,
             "identity_expansion_limited": identity_expansion_limited,
-            "missing_node_summaries": missing_node_summaries,
-            "missing_relation_explanations": missing_relation_explanations,
-            "nodes_without_source_summary": nodes_without_source_summary,
-            "relations_without_source_explanation": relations_without_source_explanation,
         },
-        "source_refs": refs,
-        "warnings": [
-            *(['identity carrier expansion reached the node budget; use resumable exploration or narrower sources'] if identity_expansion_limited else []),
-            *( [f"{missing_node_summaries} nodes expose an explicit missing-summary state"] if missing_node_summaries else [] ),
-            *( [f"{missing_relation_explanations} relations expose an explicit missing-explanation state"] if missing_relation_explanations else [] ),
-            *( [f"{nodes_without_source_summary} nodes use transparent metadata synthesis because no source summary is projected"] if nodes_without_source_summary else [] ),
-            *( [f"{relations_without_source_explanation} relations use transparent metadata synthesis because no source explanation is projected"] if relations_without_source_explanation else [] ),
-            *( [f"node selector exceeded its bounded result by {truncated_nodes} nodes"] if truncated_nodes else [] ),
-            *( [f"relation selector exceeded its bounded result by {truncated_relations} relations"] if truncated_relations else [] ),
-        ],
-        "authority_boundary": dict(graph.get("authority_boundary") or {}),
-        "agent_summary": {
-            "lens_id": spec["lens_id"],
-            "focus_node_id": focus["node_id"] if focus is not None else None,
-            "node_count": len(final_nodes),
-            "relation_count": len(final_relations),
-            "group_count": len(groups),
-            "source_ref_count": len(refs),
-            "is_source": False,
-            "writes_to_tree": False,
-        },
-    })
-    result['scene'] = k.knowledge_scene(result['nodes'], result['relations'],
-                                      result['focus']['node_id'] if result['focus'] else None)
-    return result
+        focus_node=focus_node, inclusion=inclusion, traversed_relation_ids=traversed_relation_ids,
+    )
 
 
 

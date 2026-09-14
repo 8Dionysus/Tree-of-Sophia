@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+    "version": 2,
+    "digest": "sha256:051c4392beeb9e582a83157f04fca5f8569c95c5e3da20b92b01b9488b25bc1c"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.5c7647d03357e31dec20ef4b33aafb92d69c405abd46f89a28a4a1725a8bf12b",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+        "version": 2,
+        "digest": "sha256:051c4392beeb9e582a83157f04fca5f8569c95c5e3da20b92b01b9488b25bc1c"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+            "version": 2,
+            "digest": "sha256:051c4392beeb9e582a83157f04fca5f8569c95c5e3da20b92b01b9488b25bc1c"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+            "version": 2,
+            "digest": "sha256:051c4392beeb9e582a83157f04fca5f8569c95c5e3da20b92b01b9488b25bc1c"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+            "version": 2,
+            "digest": "sha256:051c4392beeb9e582a83157f04fca5f8569c95c5e3da20b92b01b9488b25bc1c"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.e4ca4a184dfd53c4e6c7575d79dfc56884b8c990c315561f490e5896f3b6388e",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+        "version": 2,
+        "digest": "sha256:051c4392beeb9e582a83157f04fca5f8569c95c5e3da20b92b01b9488b25bc1c"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+            "version": 2,
+            "digest": "sha256:051c4392beeb9e582a83157f04fca5f8569c95c5e3da20b92b01b9488b25bc1c"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+            "version": 2,
+            "digest": "sha256:051c4392beeb9e582a83157f04fca5f8569c95c5e3da20b92b01b9488b25bc1c"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+            "version": 2,
+            "digest": "sha256:051c4392beeb9e582a83157f04fca5f8569c95c5e3da20b92b01b9488b25bc1c"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+      "request_digest": "sha256:39b7a78f7a64401730d80d2ad2df1175b0c43546ab98f80bd6cea46604bdb6f1",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:3a9190494ce41c09960d5984d7184ffa6be4de6cbb69e6abddc4310017c9a82d",
+      "recorded_at": "2026-09-07T03:13:26.475516+00:00",
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+        "version": 2,
+        "digest": "sha256:051c4392beeb9e582a83157f04fca5f8569c95c5e3da20b92b01b9488b25bc1c"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.5c7647d03357e31dec20ef4b33aafb92d69c405abd46f89a28a4a1725a8bf12b",
+          "version": 1,
+          "digest": "sha256:293124d11104bcc5cd5948a9250d62a3533d3b251c156b7d28b26855cb8c7249"
+        },
+        {
+          "id": "tos.form.metadata.e4ca4a184dfd53c4e6c7575d79dfc56884b8c990c315561f490e5896f3b6388e",
+          "version": 1,
+          "digest": "sha256:207df8364aef6f93023f2ddb42251b9bb3264126da60b7817a09d382661e7fb5"
+        }
+      ]
+    }
+  ]
+}

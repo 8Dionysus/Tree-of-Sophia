@@ -1,0 +1,172 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+  "receipts": [
+    {
+      "command_id": "foundation-native-responsibility:jenseits-zimmern-attribution:20260909:v1",
+      "request_digest": "sha256:97f8b444059dd80d53f05db4760622e243b0876990856a3f32efe8314ba2cf63",
+      "principal_id": "model:foundation-native-growth-source-review",
+      "authority_ref": "operator:tos-foundation-v1/native-responsibility-growth",
+      "owner_configuration": "sha256:c36aa3bfe8785ae52871232ca12dbc93013b0410df9e5a1e53aa001bbff4231c",
+      "recorded_at": "2026-09-09T03:31:21.117045+00:00",
+      "reason": "Добавить отдельную квалифицированную атрибуцию Project Gutenberg: запись о лице не доказывает роль, внешний адрес не доказывает чтение, печатное происхождение и качество перевода не установлены.",
+      "previous_source": {
+        "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+        "version": 1,
+        "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854"
+      },
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+        "version": 2,
+        "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1"
+      },
+      "previous_revision": "sha256:4a03360d24df6db1fa66bafb3e774381469f255a8dab97a6e0c204b08084a82d",
+      "archive_path": "ToS/source-witnesses/.record-revisions/3ded92aa964c420196a2daa85b3794d31705985b4eb4ca1fb280a522fc53c82a-4a03360d24df6db1fa66bafb3e774381469f255a8dab97a6e0c204b08084a82d",
+      "dependencies": "sha256:5923c51b53e372b696d2c971b9bf98a1d5918a3b123f8d716f882a7c19df76ed",
+      "changed_fields": [
+        "responsibility_claim_refs"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jenseits-zimmern-gutenberg-4363.name-ru",
+          "version": 2,
+          "digest": "sha256:facd1c2c8c9b30756f7347ba0b21b320e622f1eab8583700524a7df8788bcf76"
+        },
+        {
+          "id": "tos.form.jenseits-zimmern-gutenberg-4363.name-en",
+          "version": 2,
+          "digest": "sha256:d3864abcf22cdbb0a16f8424c810a8f10d03d83cfa60aba1846498a9ffc70632"
+        },
+        {
+          "id": "tos.form.jenseits-zimmern-gutenberg-4363.source-note",
+          "version": 2,
+          "digest": "sha256:95c9e59f17f3763998b099152a56513dec011a4d3a2fc59a40e8b95c9b000afc"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "agent": {
+          "external_identifiers": [
+            {
+              "scheme": "Project Gutenberg author",
+              "source_ref": "https://www.gutenberg.org/ebooks/author/1466",
+              "status": "unverified",
+              "value": "1466"
+            }
+          ],
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            },
+            "preferred_label": {
+              "language": "en",
+              "script": "Latn"
+            }
+          },
+          "identity_status": "provisional",
+          "notes": "Предварительная запись лица под именем Helen Zimmern, указанного Project Gutenberg в поле переводчика книги Beyond Good and Evil № 4363 и в начальной атрибуции текста. Каталожная ссылка ведёт к записи Zimmern, Helen № 1466. 9 сентября 2026 года UTC просмотрены эти каталожные страницы, начальная атрибуция и примечание составителя электронного текста, но не весь текст и не независимые биографические источники. Эта идентификация не подтверждает полную биографию, тождество с другими внешними записями, точный печатный источник или качество перевода. Переводчик — контекстная роль в отдельном утверждении об ответственности, а не подтип человека; настоящая запись сама такого утверждения не допускает.",
+          "preferred_label": "Helen Zimmern",
+          "record_id": "tos.agent.helen-zimmern",
+          "record_type": "agent",
+          "record_version": 1,
+          "same_as_posture": "no_equivalence_claim",
+          "schema_version": "tos_corpus_record_v1",
+          "source_refs": [
+            "https://www.gutenberg.org/ebooks/4363",
+            "https://www.gutenberg.org/ebooks/author/1466",
+            "https://www.gutenberg.org/cache/epub/4363/pg4363-images.html"
+          ],
+          "variant_labels": [
+            {
+              "language": "en",
+              "script": "Latn",
+              "source_ref": "https://www.gutenberg.org/ebooks/author/1466",
+              "status": "unverified",
+              "value": "Zimmern, Helen"
+            }
+          ]
+        },
+        "claim": {
+          "assertion_layer": "bibliographic_assertion",
+          "assessment_refs": [],
+          "claim_id": "tos.claim.responsibility.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.translated-by-helen-zimmern",
+          "claim_type": "relation",
+          "claim_version": 1,
+          "epistemic_status": "observed",
+          "evidence_refs": [
+            "https://www.gutenberg.org/ebooks/4363",
+            "https://www.gutenberg.org/ebooks/author/1466",
+            "https://www.gutenberg.org/cache/epub/4363/pg4363-images.html"
+          ],
+          "maker": {
+            "agent_ref": "model:foundation-native-growth-source-review",
+            "maker_type": "model"
+          },
+          "object": "tos.agent.helen-zimmern",
+          "polarity": "positive",
+          "predicate": "translated_by",
+          "provenance_event_ref": "tos.event.annotation.jenseits-zimmern-gutenberg-4363.translator-attribution.2026-09-09",
+          "qualifiers": {
+            "attribution_scope": "Зафиксирована атрибуция Project Gutenberg, а не независимое историческое подтверждение авторства перевода. Эти страницы являются связанными материалами одного поставщика, а не тремя независимыми свидетельствами. Примечание к электронной транскрипции описывает перепечатку перевода с немецкого на английский из The Complete Works of Friedrich Nietzsche (1909–1913), с изменениями типографики, размещения сносок и орфографии. Эти электронные изменения не приписываются Helen Zimmern. Точный печатный источник и экземпляр, полнота и точность передачи, качество перевода и эквивалентность другим версиям не установлены. 9 сентября 2026 года UTC просмотрены только каталожные страницы, начальная атрибуция и примечание; полный текст и независимые биографические источники не исследовались.",
+            "statement": "Project Gutenberg приписывает Helen Zimmern перевод, лежащий в основе английской электронной текстовой реализации «Beyond Good and Evil» № 4363: её имя указано в каталожном поле Translator и в начальной атрибуции электронной книги.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          },
+          "review_status": "unreviewed",
+          "schema_version": "tos_source_relation_claim_v1",
+          "subject_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+          "supersedes_claim_ref": null,
+          "visibility": "public_metadata_only"
+        },
+        "claim_forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jenseits-zimmern-gutenberg-4363.translator-attribution.statement"
+          }
+        ],
+        "command_id": "foundation-native-responsibility:jenseits-zimmern-attribution:20260909:v1",
+        "expected_configuration": "sha256:c36aa3bfe8785ae52871232ca12dbc93013b0410df9e5a1e53aa001bbff4231c",
+        "expected_dependencies": "sha256:5923c51b53e372b696d2c971b9bf98a1d5918a3b123f8d716f882a7c19df76ed",
+        "expected_publication": "sha256:1dde4f9377c56e0278aeeb91247bc051d8c20dd9b91aa781b750c000b4bc11da",
+        "expected_revision": "sha256:4a03360d24df6db1fa66bafb3e774381469f255a8dab97a6e0c204b08084a82d",
+        "expected_source": {
+          "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+          "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+          "version": 1
+        },
+        "fields": {
+          "responsibility_claim_refs": [
+            "tos.claim.responsibility.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.translated-by-helen-zimmern"
+          ]
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.jenseits-zimmern-gutenberg-4363.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.jenseits-zimmern-gutenberg-4363.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.jenseits-zimmern-gutenberg-4363.source-note"
+          }
+        ],
+        "operation": "expression.responsibility.attach",
+        "reason": "Добавить отдельную квалифицированную атрибуцию Project Gutenberg: запись о лице не доказывает роль, внешний адрес не доказывает чтение, печатное происхождение и качество перевода не установлены.",
+        "schema_version": "tos_local_expression_responsibility_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:4b0caf7c1e0b0d29d054a607807359f504b65d8f4960dac59eb9b5fa12bd7b98",
+        "selected_files": [
+          "expression.human-forms.json",
+          "expression.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

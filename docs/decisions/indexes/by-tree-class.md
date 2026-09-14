@@ -31,6 +31,11 @@
 
 - [TOS-D-0051 - Competent agent assessment and scoped admission](../TOS-D-0051-competent-agent-assessment-and-scoped-admission.md) (`docs/decisions/TOS-D-0051-competent-agent-assessment-and-scoped-admission.md`)
 
+## bounded generated family
+
+- [TOS-D-0065 - TOS-D-0065 Bounded Segmented KAG Provider Pin](../TOS-D-0065-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0065-bounded-segmented-kag-provider-pin.md`)
+- [TOS-D-0066 - TOS-D-0066 Landed Segmented KAG Provider Pin](../TOS-D-0066-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0066-landed-segmented-kag-provider-pin.md`)
+
 ## claim
 
 - [TOS-D-0020 - Corpus Evidence Spine And Witness Storage](../TOS-D-0020-corpus-evidence-spine-and-witness-storage.md) (`docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md`)
@@ -46,6 +51,9 @@
 
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
 - [TOS-D-0061 - Stable semantic interchange registry](../TOS-D-0061-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0061-stable-semantic-interchange-registry.md`)
+- [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
+- [TOS-D-0064 - Explicit Claim display fields retain source and permission boundaries](../TOS-D-0064-scoped-claim-display-fields.md) (`docs/decisions/TOS-D-0064-scoped-claim-display-fields.md`)
+- [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
 
 ## command lane
 
@@ -182,6 +190,9 @@
 ## human forms
 
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
+- [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
+- [TOS-D-0064 - Explicit Claim display fields retain source and permission boundaries](../TOS-D-0064-scoped-claim-display-fields.md) (`docs/decisions/TOS-D-0064-scoped-claim-display-fields.md`)
+- [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
 
 ## incremental projection
 
@@ -232,6 +243,7 @@
 ## navigation descriptor
 
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
+- [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
 
 ## none
 
@@ -273,6 +285,8 @@
 
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
+- [TOS-D-0065 - TOS-D-0065 Bounded Segmented KAG Provider Pin](../TOS-D-0065-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0065-bounded-segmented-kag-provider-pin.md`)
+- [TOS-D-0066 - TOS-D-0066 Landed Segmented KAG Provider Pin](../TOS-D-0066-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0066-landed-segmented-kag-provider-pin.md`)
 
 ## public edge
 
@@ -329,6 +343,11 @@
 
 - [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
 
+## rollback carrier
+
+- [TOS-D-0065 - TOS-D-0065 Bounded Segmented KAG Provider Pin](../TOS-D-0065-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0065-bounded-segmented-kag-provider-pin.md`)
+- [TOS-D-0066 - TOS-D-0066 Landed Segmented KAG Provider Pin](../TOS-D-0066-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0066-landed-segmented-kag-provider-pin.md`)
+
 ## root topology
 
 - [TOS-D-0018 - Codex Spark Agent Lane Home](../TOS-D-0018-codex-spark-agent-lane-home.md) (`docs/decisions/TOS-D-0018-codex-spark-agent-lane-home.md`)
@@ -347,6 +366,8 @@
 
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
 - [TOS-D-0061 - Stable semantic interchange registry](../TOS-D-0061-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0061-stable-semantic-interchange-registry.md`)
+- [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
+- [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
 
 ## skill helper boundary
 

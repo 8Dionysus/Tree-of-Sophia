@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/thought-relation-claim.schema.json",
+  "title": "Grounded structure and target claims in an account of thought",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-relation-claim.schema.json"},
+    {"if": {"required": ["predicate"], "properties": {"predicate": {"const": "argument_has_step"}}},
+     "then": {"properties": {"qualifiers": {
+       "required": ["step_position"], "properties": {
+         "step_position": {"type": "integer", "minimum": 0, "description": "Zero-based position in the declared reconstruction, not historical chronology, a unique position across competing claims, or proof that all intervening steps are known."}
+       }
+     }}}}
+  ]
+}

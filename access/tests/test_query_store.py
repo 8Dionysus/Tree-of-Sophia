@@ -8,6 +8,7 @@ import os
 import sqlite3
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -15,11 +16,22 @@ from contextlib import closing
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from tos_access import knowledge as k
-from tos_access.core import ToSAccessCore
+from tos_access.core import (
+    ToSAccessCore,
+    _indexed_search_cursor_decode,
+    _indexed_search_cursor_encode,
+)
 from tos_access.doctor import doctor_report
 from tos_access.exploration import ExplorationService, EXECUTION_VERSION
 from tos_access.projection_store import ProjectionReader
 from tos_access.query_store import COMPILER_VERSION, QueryStore, QueryStoreRequired
+from tos_access.search_read_model import (
+    SearchReadModelError,
+    SearchReadModelSnapshotError,
+    SearchReadModelUnindexedError,
+    _cursor_decode,
+    _cursor_encode,
+)
 from test_access_contract import write_fixture
 
 
@@ -210,6 +222,187 @@ class QueryStoreTests(unittest.TestCase):
                 self.assertEqual(store.search(query,limit=2),k.search_knowledge_graph(graph,query,limit=2))
                 spec={'schema_version':'tos_lens_spec_v1','lens_id':'literal','seed':{'text_query':query}}
                 self.assertEqual(store.execute_lens(spec),k.execute_knowledge_lens(graph,spec))
+
+    def test_compiled_indexed_route_matches_legacy_rank_and_pages_each_kind_to_eof(self):
+        from tos_access.knowledge_compile import compile_knowledge_store
+
+        output = self.root / 'indexed-route.sqlite3'
+        compile_knowledge_store(self.root, output, allow_legacy=True)
+        legacy = ToSAccessCore.discover(self.root, search_read_model_path=self.root / 'legacy-index.sqlite3')
+        indexed = ToSAccessCore.discover(self.root)
+
+        def pages(core, query, store_path=None):
+            context = patch.dict(os.environ, {}, clear=False)
+            with context:
+                if store_path is None:
+                    os.environ.pop('TOS_QUERY_STORE_PATH', None)
+                else:
+                    os.environ['TOS_QUERY_STORE_PATH'] = str(store_path)
+                result, cursor, seen = [], None, set()
+                while True:
+                    page = core.knowledge_search_indexed(query, cursor=cursor, limit=1)
+                    result.append(page)
+                    cursor = page['page']['next_cursor']
+                    if cursor is None:
+                        return result
+                    self.assertNotIn(cursor, seen)
+                    seen.add(cursor)
+                    self.assertLess(len(result), 200, 'indexed cursor did not converge to EOF')
+
+        with patch.dict(os.environ, {'TOS_QUERY_STORE_PATH': str(output)}):
+            store = indexed._query_store()
+        legacy_pages_by_query = {
+            query: pages(legacy, query)
+            for query in ('fixture', 'аль', 'tos')
+        }
+        with (
+            patch.object(ToSAccessCore, 'knowledge_graph', side_effect=AssertionError('indexed route loaded full graph')),
+            patch.object(ToSAccessCore, '_search_read_model_for_snapshot', side_effect=AssertionError('indexed route built legacy read model')),
+            patch.object(store, 'source_item', wraps=store.source_item) as source_item,
+        ):
+            for query in ('fixture', 'аль', 'tos'):
+                with self.subTest(query=query):
+                    old_pages = legacy_pages_by_query[query]
+                    new_pages = pages(indexed, query, output)
+                    self.assertEqual(len(old_pages), len(new_pages))
+                    first_old, first_new = old_pages[0], new_pages[0]
+                    self.assertEqual(set(first_old), set(first_new))
+                    self.assertEqual(first_old['schema'], first_new['schema'])
+                    self.assertEqual(first_old['query'], first_new['query'])
+                    self.assertEqual(first_old['filters'], first_new['filters'])
+                    self.assertEqual(first_old['counts'], first_new['counts'])
+                    self.assertEqual(first_old['authority_boundary'], first_new['authority_boundary'])
+                    self.assertEqual(first_new['source_revision'], store.header['source_revision'])
+                    self.assertEqual(set(first_old['page']), set(first_new['page']))
+                    self.assertEqual(first_old['page']['limit_per_kind'], first_new['page']['limit_per_kind'])
+                    self.assertEqual(first_old['page']['ordering_scope'], first_new['page']['ordering_scope'])
+                    self.assertEqual(set(first_old['work']), set(first_new['work']))
+                    for kind in ('nodes', 'relations'):
+                        self.assertEqual(set(first_old['work'][kind]), set(first_new['work'][kind]))
+
+                    for kind in ('nodes', 'relations'):
+                        old_items = [item for page in old_pages for item in page[kind]]
+                        new_items = [item for page in new_pages for item in page[kind]]
+                        self.assertEqual(old_items, new_items)
+                        self.assertEqual(
+                            len({item['id'] for item in new_items}),
+                            len(new_items),
+                            f'{query} {kind} repeated an item across pages',
+                        )
+                        candidates = [
+                            (position, item)
+                            for position, item in enumerate(self.graph[kind])
+                            if query.strip().lower() in k._searchable(item)
+                        ]
+                        candidates.sort(
+                            key=lambda pair: (
+                                *k._knowledge_search_rank(
+                                    pair[1], query.strip().lower(), relation=kind == 'relations'
+                                ),
+                                pair[0],
+                            )
+                        )
+                        self.assertEqual(
+                            [item['id'] for item in new_items],
+                            [item['id'] for _, item in candidates],
+                        )
+
+                    if query == 'аль':
+                        self.assertEqual(first_new['nodes'][0]['display']['title']['ru'], 'Альфа')
+                    if query == 'tos':
+                        self.assertIn('tos.edition.fixture', first_new['nodes'][0]['native_id'])
+
+            first = pages(indexed, 'fixture', output)[0]
+            outer = _indexed_search_cursor_decode(first['page']['next_cursor'])
+            for kind in ('nodes', 'relations'):
+                inner = _cursor_decode(outer[kind])
+                self.assertEqual(inner['backend'], 'compiled-fts5-v1')
+                self.assertEqual(inner['store_revision'], store.revision)
+                self.assertEqual(inner['source_revision'], store.header['source_revision'])
+                self.assertGreaterEqual(inner['expires_at'], int(time.time()))
+        self.assertGreater(source_item.call_count, 0)
+
+    def test_compiled_indexed_cursor_bindings_and_malformed_values_fail_closed(self):
+        from tos_access.knowledge_compile import compile_knowledge_store
+
+        output = self.root / 'indexed-cursor.sqlite3'
+        compile_knowledge_store(self.root, output, allow_legacy=True)
+        core = ToSAccessCore.discover(self.root)
+        with patch.dict(os.environ, {'TOS_QUERY_STORE_PATH': str(output)}):
+            store = core._query_store()
+
+            def mutate_inner(cursor, kind, mutator):
+                outer = _indexed_search_cursor_decode(cursor)
+                inner = _cursor_decode(outer[kind])
+                mutator(inner)
+                outer[kind] = _cursor_encode(inner)
+                return _indexed_search_cursor_encode(outer)
+
+            with (
+                patch.object(ToSAccessCore, 'knowledge_graph', side_effect=AssertionError('cursor route loaded full graph')),
+                patch.object(ToSAccessCore, '_search_read_model_for_snapshot', side_effect=AssertionError('cursor route built legacy read model')),
+            ):
+                first = core.knowledge_search_indexed('fixture', limit=1)
+                cursor = first['page']['next_cursor']
+                self.assertIsInstance(cursor, str)
+                with self.assertRaises(SearchReadModelSnapshotError):
+                    core.knowledge_search_indexed('other', cursor=cursor, limit=1)
+                with self.assertRaises(SearchReadModelSnapshotError):
+                    core.knowledge_search_indexed('fixture', sources=['canon'], cursor=cursor, limit=1)
+                changed_snapshot = mutate_inner(cursor, 'nodes', lambda payload: payload.update(store_revision='foreign'))
+                with self.assertRaises(SearchReadModelSnapshotError):
+                    core.knowledge_search_indexed('fixture', cursor=changed_snapshot, limit=1)
+                expired = mutate_inner(cursor, 'nodes', lambda payload: payload.update(expires_at=0))
+                with self.assertRaises(SearchReadModelSnapshotError):
+                    core.knowledge_search_indexed('fixture', cursor=expired, limit=1)
+                malformed = _indexed_search_cursor_decode(cursor)
+                malformed['nodes'] = 'not-a-compiled-cursor'
+                with self.assertRaises(SearchReadModelError):
+                    core.knowledge_search_indexed(
+                        'fixture', cursor=_indexed_search_cursor_encode(malformed), limit=1
+                    )
+                with self.assertRaises(SearchReadModelError):
+                    core.knowledge_search_indexed('fixture', cursor='not-a-cursor', limit=1)
+
+    def test_indexed_route_refuses_scan_short_queries_and_low_budgets_without_graph_fallback(self):
+        from tos_access.knowledge_compile import compile_knowledge_store
+
+        indexed_path = self.root / 'indexed-budget.sqlite3'
+        scan_path = self.root / 'scan-budget.sqlite3'
+        compile_knowledge_store(self.root, indexed_path, allow_legacy=True)
+        compile_knowledge_store(self.root, scan_path, allow_legacy=True, search_accelerator='scan')
+
+        scan_core = ToSAccessCore.discover(self.root)
+        with patch.dict(os.environ, {'TOS_QUERY_STORE_PATH': str(scan_path)}), patch.object(
+            ToSAccessCore, 'knowledge_graph', side_effect=AssertionError('scan route loaded full graph')
+        ), patch.object(
+            ToSAccessCore, '_search_read_model_for_snapshot', side_effect=AssertionError('scan route built legacy read model')
+        ):
+            with self.assertRaises(SearchReadModelUnindexedError):
+                scan_core.knowledge_search_indexed('fixture', limit=1)
+
+        short_core = ToSAccessCore.discover(self.root)
+        with patch.dict(os.environ, {'TOS_QUERY_STORE_PATH': str(indexed_path)}), patch.object(
+            ToSAccessCore, 'knowledge_graph', side_effect=AssertionError('short query loaded full graph')
+        ), patch.object(
+            ToSAccessCore, '_search_read_model_for_snapshot', side_effect=AssertionError('short query built legacy read model')
+        ):
+            with self.assertRaises(SearchReadModelUnindexedError):
+                short_core.knowledge_search_indexed('fi', limit=1)
+
+        with patch.dict(os.environ, {'TOS_QUERY_STORE_PATH': str(indexed_path)}):
+            store = short_core._query_store()
+            with self.assertRaises(SearchReadModelUnindexedError):
+                store.ranked_page('nodes', 'fixture', page_size=1, max_candidates=1)
+
+        verify_core = ToSAccessCore.discover(self.root, search_read_model_max_verify_chars=1)
+        with patch.dict(os.environ, {'TOS_QUERY_STORE_PATH': str(indexed_path)}), patch.object(
+            ToSAccessCore, 'knowledge_graph', side_effect=AssertionError('low verification budget loaded full graph')
+        ), patch.object(
+            ToSAccessCore, '_search_read_model_for_snapshot', side_effect=AssertionError('low verification budget built legacy read model')
+        ):
+            with self.assertRaises(SearchReadModelUnindexedError):
+                verify_core.knowledge_search_indexed('fixture', limit=1)
 
     def test_http_and_native_mcp_use_completed_store_and_report_build_required(self):
         import asyncio

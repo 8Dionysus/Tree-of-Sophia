@@ -33,7 +33,13 @@ metadata are not yet interpretation.
 *Thus Spoke Zarathustra* is the first golden growth kernel. Its purpose is to
 make one complete path unusually legible:
 
-`source witness -> stable address -> observation -> semantic proposal -> relation/context -> human review -> canon -> derived view`
+`source witness -> stable address -> observation -> semantic proposal -> relation/context -> competent assessment -> scoped admission, canon or explicit deferral -> derived view`
+
+Assessment, research use and canon are distinct transitions. The current
+[knowledge assessment law](KNOWLEDGE_ASSESSMENT.md) permits source-visible agent
+judgment within trusted authority and competence. Historical human-reviewed
+routes below retain their actual provenance; they are not a universal manual
+gate for new research knowledge.
 
 What transfers from the kernel is the method of source return, layer
 distinction, proposal, refusal, uncertainty, review, and promotion. Nietzsche's
@@ -81,7 +87,7 @@ ToS may grow multiple node families. At the public baseline, the most important 
 - **support nodes**: review-gated route-local `n.*` surfaces that keep key carriers, symbols, places, and hinges legible without opening many semantic families yet
 - **analogy nodes**: review-gated route-local image-bearing surfaces that keep bounded symbolic comparison explicit without dissolving into generic event/state handling
 - **context nodes**: temporal, geographic, linguistic, civilizational, and institutional context
-- **synthesis nodes**: human-reviewed interpretation that remains explicitly linked to sources
+- **synthesis nodes**: competence-scoped, reviewed interpretation that remains explicitly linked to sources
 
 Additional node families may appear later, but they should be introduced explicitly rather than implicitly.
 
@@ -578,33 +584,28 @@ is intended for cross-corpus transfer.
 
 See [CALIBRATION_AXIS](CALIBRATION_AXIS.md) for the compact rule and guardrails.
 
-## Human-curated, AI-amplified expansion
+## Competence-scoped human and agent growth
 
-ToS may use AI to amplify growth, but not to replace human judgment.
+ToS growth must not be capped by the rate of manual per-record processing.
+Under [KNOWLEDGE_ASSESSMENT](KNOWLEDGE_ASSESSMENT.md), an authorized, competent
+agent may perform source reading, assess extraction, language and translation,
+evaluate a node or interpretation, challenge a relation and admit research use.
+These acts need evidence, scope and accountability, not a fabricated human
+signature. Their result is not subordinate solely because the reviewer is an
+agent. Both human and agent judgments remain fallible and contestable.
 
-AI may assist with:
-
-- extraction
-- source-near observation proposals
-- annotation-layer classification
-- clustering
-- cross-link suggestions
-- contrast proposals
-- lineage hypotheses
-
-Human-reviewed curation still owns:
-
-- source reading
-- node judgment
-- final interpretive stance
-- principle or canon-facing promotion
+Operator direction, personal consent, authorship, rights and canon/publication
+decisions retain their concrete owners. A general research grant does not
+authorize them. Human intervention is required by a real decision boundary,
+not by the mere complexity or philosophical character of an assertion.
 
 For golden-kernel work, agent output should preserve proposal provenance and
 should be evaluated on source return, layer discipline, justified refusal,
 uncertainty, and response to unseen material. Agreement with the current
 vocabulary is not sufficient evidence of successful transfer.
 
-This keeps AI visible as an amplifier rather than a hidden sovereign author.
+This keeps the source, maker, assessment, authority and current admission
+visible without making every new record wait for manual approval.
 
 See [HUMAN_CURATED_EXPANSION](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/HUMAN_CURATED_EXPANSION.md)
 for the compact curation note.

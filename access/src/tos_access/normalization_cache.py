@@ -12,7 +12,7 @@ import ast
 import sys
 from contextvars import ContextVar
 from pathlib import Path
-from .processing import Input, Task, ProcessingScheduler, DEFAULT_CACHE_BYTES, DEFAULT_CACHE_ENTRIES
+from .processing import Input, Task, ProcessingScheduler, DEFAULT_CACHE_BYTES, DEFAULT_CACHE_ENTRIES, digest
 
 active_cache: ContextVar['NormalizationCache | None'] = ContextVar('tos_normalization_cache', default=None)
 
@@ -36,7 +36,12 @@ def normalization_processor_digest(path: Path):
             for target in targets:
                 if isinstance(target, ast.Name):
                     definitions[target.id] = statement
-    pending = ['_normalize_node', '_normalize_relation', 'validate_knowledge_semantics', '_finalize_knowledge_node']
+    pending = [
+        '_normalize_node', '_normalize_relation', 'validate_knowledge_semantics',
+        '_finalize_knowledge_node', 'addressed_update_knowledge_graph',
+        '_attach_readable_context',
+        'build_knowledge_graph',
+    ]
     selected = {}
     while pending:
         name = pending.pop()
@@ -47,7 +52,8 @@ def normalization_processor_digest(path: Path):
     material = [ast.dump(s, include_attributes=False) for s in imports]
     material.extend(ast.dump(selected[name], include_attributes=False) for name in sorted(selected))
     # These helpers own dependency projection and cache admission as well.
-    for helper in (Path(__file__), Path(__file__).with_name('processing.py')):
+    for helper in (Path(__file__), Path(__file__).with_name('processing.py'),
+                   Path(__file__).with_name('readable_context.py')):
         material.append(ast.dump(ast.parse(helper.read_text(encoding='utf-8')), include_attributes=False))
     material.append(str(sys.version_info[:2]))
     return hashlib.sha256('\n'.join(material).encode()).hexdigest()
@@ -115,9 +121,67 @@ class NormalizationCache:
         return Task('endpoint-title:' + identifier, self.processor_digest, (parent,), None,
                     lambda values: values[0].get('display', {}).get('title'))
 
+    def carrier_dependency(self, stage, identifier, value, *, input_id):
+        """Bind a carrier to its exact completed producer, never a latest task.
+
+        Standalone helper inputs have no producer in this run and remain
+        explicit Inputs. An existing producer must match the supplied value;
+        silently falling back would hide missing or stale intermediate work.
+        Reuse the scheduler's retained references, without retaining row copies.
+        """
+        task_id = f'{stage}:{identifier}'
+        task = self.scheduler.definitions.get(task_id)
+        if task is None:
+            return Input(input_id, value)
+        result = self.scheduler.results.get(task_id)
+        if not isinstance(task, Task) or result is None:
+            self.scheduler.failed = True
+            raise ValueError('carrier producer is not a completed task: ' + task_id)
+        try:
+            matches = digest(value) == result[1]
+        except Exception:
+            self.scheduler.failed = True
+            raise
+        if not matches:
+            self.scheduler.failed = True
+            raise ValueError('carrier differs from its completed producer: ' + task_id)
+        return task
+
     def memo(self, kind, identifier, dependencies, compute):
         """Cache one finalization/check without hiding its complete dependencies."""
         task = Task(f'{kind}:{identifier}', self.processor_digest, tuple(dependencies), None, lambda _: compute())
+        result, _ = self.scheduler.evaluate(task)
+        self.hits, self.misses = self.scheduler.reused, self.scheduler.executed
+        return result
+
+    def input_dependency(self, identifier, value):
+        """Require the exact completed source Input already registered this run."""
+        node = self.scheduler.definitions.get(identifier)
+        result = self.scheduler.results.get(identifier)
+        try:
+            matches = (isinstance(node, Input) and node.id == identifier and result is not None
+                       and digest(value) == result[1])
+        except Exception:
+            self.scheduler.failed = True
+            raise
+        if not matches:
+            self.scheduler.failed = True
+            raise ValueError('source input differs from its completed producer: ' + identifier)
+        return node
+
+    def reduce(self, kind, identifier, dependencies, inputs, compute):
+        """Evaluate a pure reducer from resolved dependencies, not assembly maps."""
+        unique, positions, indexes = [], [], {}
+        for dependency in dependencies:
+            if dependency.id not in indexes:
+                indexes[dependency.id] = len(unique)
+                unique.append(dependency)
+            elif unique[indexes[dependency.id]] != dependency:
+                self.scheduler.failed = True
+                raise ValueError('conflicting reducer dependency: ' + dependency.id)
+            positions.append(indexes[dependency.id])
+        task = Task(f'{kind}:{identifier}', self.processor_digest, tuple(unique), [inputs, positions],
+                    lambda values: compute([values[position] for position in positions], inputs))
         result, _ = self.scheduler.evaluate(task)
         self.hits, self.misses = self.scheduler.reused, self.scheduler.executed
         return result

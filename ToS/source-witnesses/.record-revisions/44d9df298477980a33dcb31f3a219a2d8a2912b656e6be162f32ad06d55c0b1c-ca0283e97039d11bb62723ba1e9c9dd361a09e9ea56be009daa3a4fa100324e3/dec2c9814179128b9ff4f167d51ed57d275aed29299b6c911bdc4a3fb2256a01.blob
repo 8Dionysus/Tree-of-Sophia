@@ -1,0 +1,159 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+    "version": 2,
+    "digest": "sha256:00d14c95e860b75aafeeb78a0bd4630c8c1ed54ce822d373c5cd5603069d7046"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.nietzsche-letter-705.catalogue-origin-statement",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+        "version": 2,
+        "digest": "sha256:00d14c95e860b75aafeeb78a0bd4630c8c1ed54ce822d373c5cd5603069d7046"
+      },
+      "role": "statement",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+            "version": 2,
+            "digest": "sha256:00d14c95e860b75aafeeb78a0bd4630c8c1ed54ce822d373c5cd5603069d7046"
+          },
+          "pointer": "/qualifiers/statement"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+            "version": 2,
+            "digest": "sha256:00d14c95e860b75aafeeb78a0bd4630c8c1ed54ce822d373c5cd5603069d7046"
+          },
+          "pointer": ""
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.nietzsche-letter-705.catalogue-origin-name",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+        "version": 2,
+        "digest": "sha256:00d14c95e860b75aafeeb78a0bd4630c8c1ed54ce822d373c5cd5603069d7046"
+      },
+      "role": "name",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+            "version": 2,
+            "digest": "sha256:00d14c95e860b75aafeeb78a0bd4630c8c1ed54ce822d373c5cd5603069d7046"
+          },
+          "pointer": "/qualifiers/display_fields/name/text"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+            "version": 2,
+            "digest": "sha256:00d14c95e860b75aafeeb78a0bd4630c8c1ed54ce822d373c5cd5603069d7046"
+          },
+          "pointer": ""
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.nietzsche-letter-705.catalogue-origin-caption",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+        "version": 2,
+        "digest": "sha256:00d14c95e860b75aafeeb78a0bd4630c8c1ed54ce822d373c5cd5603069d7046"
+      },
+      "role": "caption",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+            "version": 2,
+            "digest": "sha256:00d14c95e860b75aafeeb78a0bd4630c8c1ed54ce822d373c5cd5603069d7046"
+          },
+          "pointer": "/qualifiers/display_fields/caption/text"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+            "version": 2,
+            "digest": "sha256:00d14c95e860b75aafeeb78a0bd4630c8c1ed54ce822d373c5cd5603069d7046"
+          },
+          "pointer": ""
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.nietzsche-letter-705.catalogue-origin-hover",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+        "version": 2,
+        "digest": "sha256:00d14c95e860b75aafeeb78a0bd4630c8c1ed54ce822d373c5cd5603069d7046"
+      },
+      "role": "hover",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+            "version": 2,
+            "digest": "sha256:00d14c95e860b75aafeeb78a0bd4630c8c1ed54ce822d373c5cd5603069d7046"
+          },
+          "pointer": "/qualifiers/display_fields/hover/text"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+            "version": 2,
+            "digest": "sha256:00d14c95e860b75aafeeb78a0bd4630c8c1ed54ce822d373c5cd5603069d7046"
+          },
+          "pointer": ""
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

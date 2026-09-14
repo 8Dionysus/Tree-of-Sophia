@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json",
+  "title": "Source-described crosscutting concept or situated conception",
+  "description": "A correctable description of a persistent semantic subject, not a canon node, linguistic name, Claim, or version of another subject. Membership, attribution, expression and transformation require separate grounded claims. Scope and continuity criteria are research commitments, not universal definitions or admission.",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"},
+    {"$ref": "#/$defs/semanticDescriptionFields"},
+    {"properties": {
+      "schema_version": {"const": "tos_semantic_description_record_v1"},
+      "record_type": {"enum": ["crosscutting-concept", "conception"]}
+    }},
+    {"if": {"properties": {"record_type": {"const": "crosscutting-concept"}}},
+     "then": {"properties": {"record_id": {"pattern": "^tos\\.crosscutting-concept\\."},
+                              "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.crosscutting-concept\\."}}}},
+    {"if": {"properties": {"record_type": {"const": "conception"}}},
+     "then": {"properties": {"record_id": {"pattern": "^tos\\.conception\\."},
+                              "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.conception\\."}}}}
+  ],
+  "$defs": {
+    "semanticContentFields": {"required": ["semantic_content"], "properties": {
+      "semantic_content": {"type": "object", "required": ["language", "script"], "properties": {
+        "language": {"anyOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, {"type": "null"}]},
+        "script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"}
+      }}
+    }},
+    "semanticDescriptionFields": {"required": ["notes", "semantic_scope", "field_languages"], "properties": {
+      "notes": {"type": "string", "pattern": "\\S", "description": "Substantive source-grounded account, including limits and uncertainty; a label alone is not a description. Content quality needs source-visible assessment."},
+      "field_languages": {"required": ["preferred_label", "notes"]},
+      "semantic_scope": {
+        "type": "object", "additionalProperties": false,
+        "required": ["scope_note", "identity_criterion", "language", "script"],
+        "properties": {
+          "scope_note": {"type": "string", "pattern": "\\S", "description": "Declared extent and limits of this research referent. Historical dating and attribution are separate claims."},
+          "identity_criterion": {"type": "string", "pattern": "\\S", "description": "Why later descriptions can still concern this subject, and what would instead require a different subject. Shared spelling is insufficient. This criterion itself remains contestable."},
+          "language": {"anyOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, {"type": "null"}]},
+          "script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"}
+        }
+      }
+    }}
+  },
+  "unevaluatedProperties": false
+}

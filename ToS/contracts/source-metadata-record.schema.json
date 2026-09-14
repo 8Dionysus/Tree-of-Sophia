@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json",
+  "title": "Shared descriptive fields for a declared source identity profile",
+  "description": "Reusable metadata shape, not a source type or permission. A concrete profile supplies exact schema_version, kind, ID and additional constraints. Relations are separate claims.",
+  "type": "object",
+  "required": ["schema_version", "record_type", "record_id", "preferred_label", "identity_status", "source_refs", "external_identifiers", "same_as_posture", "record_version", "visibility"],
+  "properties": {
+    "schema_version": {"type": "string", "minLength": 1},
+    "record_type": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"},
+    "record_id": {"type": "string", "pattern": "^tos\\.[a-z][a-z0-9-]*\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "preferred_label": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/preferred_label"},
+    "variant_labels": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/variant_labels"},
+    "field_languages": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/field_languages"},
+    "identity_status": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/identity_status"},
+    "source_refs": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/source_refs"},
+    "external_identifiers": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/external_identifiers"},
+    "same_as_posture": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/same_as_posture"},
+    "record_version": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/record_version"},
+    "notes": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/notes"},
+    "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.[a-z][a-z0-9-]*\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "visibility": {"enum": ["local_only", "research_group", "permission_requested", "public_metadata_only", "public"]},
+    "extensions": {"type": "object", "description": "Uninterpreted source-owned fields preserved without inferred meaning or admission."}
+  }
+}

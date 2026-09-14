@@ -16,7 +16,7 @@ const fields={
   'display.summary.default':["Описание",'string'],'display.summary_state':["Наличие описания",'string'],
   'display.label.default':["Название связи",'string'],'display.statement.default':["Формулировка связи",'string'],'display.explanation_state':["Наличие объяснения",'string'],
   'epistemic.authority_layer':["Слой знания",'string'],'epistemic.review_posture':["Статус проверки",'string'],'epistemic.canon_status':["Статус канона",'string'],
-  graph_layers:["Слои графа",'string-array'],view_ids:["Представления",'string-array'],source_refs:["Ссылки на источники",'string-array'],
+  graph_layers:["Слои графа",'string-array'],view_ids:["Представления",'string-array'],source_refs:["Ссылки на источники",'string-array'],source_dossier_ref:["Досье источника",'string'],
 };
 const typeOps={string:['eq','neq','in','contains','prefix','exists'],'string-array':['eq','neq','in','contains','exists'],number:['eq','neq','in','gt','gte','lt','lte','exists'],boolean:['eq','neq','exists']};
 export function validateConditions(value){

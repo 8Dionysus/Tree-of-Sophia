@@ -1,0 +1,250 @@
+{
+  "schema_version": "tos_knowledge_assessment_policy_v1",
+  "policy_id": "tos.policy.knowledge-assessment",
+  "policy_version": 3,
+  "authority_ref": "ToS/doctrine/KNOWLEDGE_ASSESSMENT.md",
+  "profiles": [
+    {
+      "profile_id": "source-observation",
+      "label": "Проверка сведений по источнику",
+      "definition": "Предметная сверка наблюдения, библиографического сведения или исследовательского сообщения с точным источником для исследовательского использования.",
+      "assertion_layers": [
+        "forensic_observation",
+        "bibliographic_assertion",
+        "textual_observation",
+        "scholarly_report"
+      ],
+      "risk_tiers": [
+        "low",
+        "moderate"
+      ],
+      "languages": [
+        "*"
+      ],
+      "uses": [
+        "research"
+      ],
+      "reviewer_kinds": [
+        "human",
+        "agent",
+        "mixed"
+      ],
+      "min_reviewers": 1,
+      "min_independence_groups": 1,
+      "min_supporting_origins": 1,
+      "require_counterevidence_search": true,
+      "allow_self_review": false
+    },
+    {
+      "profile_id": "interpretation",
+      "label": "Оценка прочтения и интерпретации",
+      "definition": "Компетентная оценка языкового анализа, перевода, исторической или философской интерпретации и её человеческой формулировки без устранения конкурирующих прочтений.",
+      "assertion_layers": [
+        "linguistic_analysis",
+        "translation_alignment",
+        "translation_judgment",
+        "semantic_interpretation",
+        "historical_assertion",
+        "human_projection"
+      ],
+      "risk_tiers": [
+        "low",
+        "moderate"
+      ],
+      "languages": [
+        "*"
+      ],
+      "uses": [
+        "research"
+      ],
+      "reviewer_kinds": [
+        "human",
+        "agent",
+        "mixed"
+      ],
+      "min_reviewers": 1,
+      "min_independence_groups": 1,
+      "min_supporting_origins": 1,
+      "require_counterevidence_search": true,
+      "allow_self_review": false
+    },
+    {
+      "profile_id": "identity",
+      "label": "Проверка тождества",
+      "definition": "Проверка тождества с раздельными основаниями и независимой оценкой; сама по себе не выполняет объединение сущностей.",
+      "assertion_layers": [
+        "identity_assertion"
+      ],
+      "risk_tiers": [
+        "high"
+      ],
+      "languages": [
+        "*"
+      ],
+      "uses": [
+        "research"
+      ],
+      "reviewer_kinds": [
+        "human",
+        "agent",
+        "mixed"
+      ],
+      "min_reviewers": 2,
+      "min_independence_groups": 2,
+      "min_supporting_origins": 2,
+      "require_counterevidence_search": true,
+      "allow_self_review": false
+    },
+    {
+      "profile_id": "high-consequence",
+      "label": "Усиленная содержательная проверка",
+      "definition": "Независимая повторная проверка содержательного суждения с существенными последствиями, без автоматического права публикации или изменения канона.",
+      "assertion_layers": [
+        "forensic_observation",
+        "bibliographic_assertion",
+        "textual_observation",
+        "scholarly_report",
+        "linguistic_analysis",
+        "translation_alignment",
+        "translation_judgment",
+        "semantic_interpretation",
+        "historical_assertion",
+        "human_projection"
+      ],
+      "risk_tiers": [
+        "high"
+      ],
+      "languages": [
+        "*"
+      ],
+      "uses": [
+        "research"
+      ],
+      "reviewer_kinds": [
+        "human",
+        "agent",
+        "mixed"
+      ],
+      "min_reviewers": 2,
+      "min_independence_groups": 2,
+      "min_supporting_origins": 1,
+      "require_counterevidence_search": true,
+      "allow_self_review": false
+    },
+    {
+      "profile_id": "sign-promotion",
+      "label": "Оценка перехода от кандидата к идентичности знака",
+      "definition": "Competent source-visible judgment that this exact qualified candidate can become an independently addressable research Sign. The use is identity issuance for that candidate, not identity equivalence, truth, current research admission, canon or publication.",
+      "assertion_layers": [
+        "semantic_interpretation"
+      ],
+      "risk_tiers": [
+        "moderate"
+      ],
+      "languages": [
+        "*"
+      ],
+      "uses": [
+        "sign-promotion"
+      ],
+      "reviewer_kinds": [
+        "human",
+        "agent",
+        "mixed"
+      ],
+      "min_reviewers": 1,
+      "min_independence_groups": 1,
+      "min_supporting_origins": 1,
+      "require_counterevidence_search": true,
+      "allow_self_review": false
+    },
+    {
+      "profile_id": "sign-promotion-high",
+      "label": "Независимая проверка значимого выделения знака",
+      "definition": "Independent substantive review for consequential Sign issuance over one exact qualified candidate. Two reviewers must belong to independent groups; repeated calls or copies of the same witness do not create independence. A single genuine witness can ground its own interpretive hypothesis.",
+      "assertion_layers": [
+        "semantic_interpretation"
+      ],
+      "risk_tiers": [
+        "high"
+      ],
+      "languages": [
+        "*"
+      ],
+      "uses": [
+        "sign-promotion"
+      ],
+      "reviewer_kinds": [
+        "human",
+        "agent",
+        "mixed"
+      ],
+      "min_reviewers": 2,
+      "min_independence_groups": 2,
+      "min_supporting_origins": 1,
+      "require_counterevidence_search": true,
+      "allow_self_review": false
+    },
+    {
+      "profile_id": "text-layer-quality",
+      "label": "Оценка качества точного текстового основания",
+      "definition": "Source-visible assessment of one exact TextLayer and its complete selected input/output comparison for the explicitly named use. It preserves the historical layer carrier, source uncertainty and coverage. It does not assess translation fidelity to an unselected original, create diplomatic authority, or grant rights, publication or canon.",
+      "assertion_layers": [
+        "textual_observation"
+      ],
+      "risk_tiers": [
+        "low",
+        "moderate"
+      ],
+      "languages": [
+        "*"
+      ],
+      "uses": [
+        "text-layer:citation",
+        "text-layer:linguistic-analysis",
+        "text-layer:semantic-analysis",
+        "text-layer:search-projection"
+      ],
+      "reviewer_kinds": [
+        "human",
+        "agent",
+        "mixed"
+      ],
+      "min_reviewers": 1,
+      "min_independence_groups": 1,
+      "min_supporting_origins": 1,
+      "require_counterevidence_search": true,
+      "allow_self_review": false
+    },
+    {
+      "profile_id": "text-layer-quality-high",
+      "label": "Независимая повторная оценка текстового основания",
+      "definition": "Source-visible assessment of one exact TextLayer and its complete selected input/output comparison for the explicitly named use. It preserves the historical layer carrier, source uncertainty and coverage. It does not assess translation fidelity to an unselected original, create diplomatic authority, or grant rights, publication or canon.",
+      "assertion_layers": [
+        "textual_observation"
+      ],
+      "risk_tiers": [
+        "high"
+      ],
+      "languages": [
+        "*"
+      ],
+      "uses": [
+        "text-layer:citation",
+        "text-layer:linguistic-analysis",
+        "text-layer:semantic-analysis",
+        "text-layer:search-projection"
+      ],
+      "reviewer_kinds": [
+        "human",
+        "agent",
+        "mixed"
+      ],
+      "min_reviewers": 2,
+      "min_independence_groups": 2,
+      "min_supporting_origins": 1,
+      "require_counterevidence_search": true,
+      "allow_self_review": false
+    }
+  ]
+}

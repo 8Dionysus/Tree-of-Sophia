@@ -1,10 +1,11 @@
 import {ui,uiAttribute,uiChildren,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
-import {RequestSlots,RevisionError,ContractError,localized,displayTitle,displayTitleForm,sourceOriginalTitle,missingReadableTitle,focusSpec,relationSpec,DEFAULT_FOCUS} from './knowledge-client.mjs';
+import {RequestSlots,RevisionError,ContractError,localized,displayTitle,displayTitleForm,materialDisplayForm,sourceOriginalTitle,missingReadableTitle,compileRouteCenter,DEFAULT_FOCUS} from './knowledge-client.mjs';
 import {decodeDraft,constructorCatalog,previewDraft} from './lens-model.mjs';
 import {formIdentity,formLanguages,validateHumanForms,claimPathFor,resolveClaimReading} from './human-forms.mjs';
-import {renderHumanForms,renderClaimContext} from './human-forms-view.mjs';
-import {formLabel} from './reader-model.mjs';
+import {renderHumanForms,renderEssentialContext} from './human-forms-view.mjs';
+import {essentialContext} from './record-context.mjs';
+import {formLabel,formLanguageNote} from './reader-model.mjs';
 
 export async function readInspectorMaterial({client,scene,kind,raw,language,signal}){
   const path=kind==='node'?claimPathFor(scene,raw.id):null;
@@ -18,10 +19,14 @@ export async function readInspectorMaterial({client,scene,kind,raw,language,sign
 
 export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,initialLens}={}) {
   const q=s=>root.querySelector(s),slots=new RequestSlots();
-  let searchTimer=0,retryAction=null,searchOffset=0;
+  let searchTimer=0,retryAction=null;
+  // Navigation tokens only, never cached corpus rows. Keep at most 16 prior
+  // pages (1 MiB at the supported 64 KiB cursor bound).
+  const searchHistoryLimit=16;
   let cardLanguage='ru';
   const titleNote=document.createElement('p');titleNote.className='sc-reader-language-note sc-title-language-note';titleNote.hidden=true;q('.sc-node-title').after(titleNote);
   const forms=document.createElement('div');forms.className='sc-card-forms';q('.sc-description').after(forms);
+  const descriptionNote=document.createElement('p');descriptionNote.className='sc-reader-language-note sc-description-language-note';descriptionNote.hidden=true;forms.before(descriptionNote);
   const language=document.createElement('select'),languageLabel=document.createElement('label');
   uiText(languageLabel,ui('Язык материала'));uiAttribute(language,'aria-label',ui('Язык материала'));languageLabel.append(language);forms.before(languageLabel);
   language.addEventListener('change',()=>{
@@ -45,16 +50,27 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
   function willSelect(){slots.cancel('scene');cancelInspector();notice('');if(port.packet)root.dataset.dataState='ready';}
   function notifyFailure(error,retry){notice(error.message||ui("Связь с данными прервалась."),retry);port.announce(error.message);}
   async function loadFocus(id,{expected=null,initial=false,depth=1,selectFocus=true}={}){
-    const spec=focusSpec(id,{depth});notice(ui("Получаю окрестность…"));root.dataset.dataState='loading';
+    notice(ui("Получаю окрестность…"));root.dataset.dataState='loading';
     try{
-      const result=await slots.run('scene',signal=>client.compile(spec,signal,expected));if(!result.current)return;
-      port.setGraph(result.value,{initial,selectFocus});root.dataset.dataState='ready';notice('');
+      const result=await slots.run('scene',signal=>compileRouteCenter(client,id,signal,expected,{depth}));if(!result.current)return;
+      port.setGraph(result.value.packet,{initial,selectFocus:selectFocus&&result.value.kind==='node'});
+      if(result.value.kind==='relation')port.selectRelation(id,{rememberView:false});
+      root.dataset.dataState='ready';notice('');
       if(selectFocus)q('#so-about-tab').focus();
-      port.announce(ui("Область загружена. Узлов: {0}. Связей: {1}.", [result.value.nodes.length, result.value.relations.length]));
+      port.announce(ui("Область загружена. Узлов: {0}. Связей: {1}.", [result.value.packet.nodes.length, result.value.packet.relations.length]));
     }catch(error){root.dataset.dataState='error';notifyFailure(error,()=>loadFocus(id,{initial,depth,selectFocus}));}
   }
   function chooseNode(id,expected){
-    if(expected===port.packet?.source_revision&&port.node(id)){port.selectNode(id);q('#so-about-tab').focus();return;}
+    const raw=port.node(id);
+    const isClaim=raw?.type_id==='tos.entity.claim'||raw?.semantics?.type_ancestors?.includes('tos.entity.claim');
+    // Search and overview packets can expose a Claim carrier without both
+    // endpoint identities. A reader must never turn that partial packet into
+    // a standalone assertion: reload the exact Claim focus so the bounded
+    // backend scene can supply its complete path and mandatory context.
+    if(isClaim&&!claimPathFor(port.packet,id)){
+      loadFocus(id,{expected:expected===port.packet?.source_revision?expected:null,selectFocus:true});return;
+    }
+    if(expected===port.packet?.source_revision&&raw){port.selectNode(id);q('#so-about-tab').focus();return;}
     loadFocus(id,{expected,selectFocus:true});
   }
   async function chooseRelation(raw,expected){
@@ -62,10 +78,9 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     notice(ui("Открываю отношение…"));root.dataset.dataState='loading';
     try{
       const result=await slots.run('scene',async signal=>{
-        const {match}=await client.inspect('relation',raw.id,signal,expected,raw.content_revision);
-        const spec=relationSpec(match),packet=await client.compile(spec,signal,expected);
-        if(!packet.relations.some(r=>r.id===match.id))throw new ContractError(ui("Выбранное отношение отсутствует в области."));
-        return {packet};
+        const center=await compileRouteCenter(client,raw.id,signal,expected);
+        if(center.kind!=='relation'||!center.packet.relations.some(r=>r.id===raw.id))throw new ContractError(ui("Выбранное отношение отсутствует в области."));
+        return {packet:center.packet};
       });
       if(!result.current)return;
       port.setGraph(result.value.packet);port.selectRelation(raw.id,{rememberView:false});
@@ -76,15 +91,24 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     const title=displayTitle(raw,raw.id);
     const row=button('',()=>kind==='node'?chooseNode(raw.id,revision):chooseRelation(raw,revision),'sc-result');
     const label=text('span','sc-result-label',title);
+    // Search deliberately preserves distinct source carriers, including two
+    // projections that share one declared entity_id. A title alone would make
+    // those rows look like a duplicate and invite an accidental merge. Keep
+    // the exact carrier route visible without changing the returned identity.
+    const carrier=[raw.source_graph,raw.native_id||raw.id].filter(value=>typeof value==='string'&&value.trim()).join(' · ');
+    let ariaLabel=title;
     if(kind==='relation'){
       const statement=localized(raw.display.statement,raw.from_id+' → '+raw.to_id);
-      uiChildren(label, "append", text('span','sc-result-detail',statement));uiAttribute(row, 'aria-label', title+' · '+statement);
+      uiChildren(label, "append", text('span','sc-result-detail',statement));ariaLabel+=" · "+statement;
     }
-    uiChildren(row, "append", label, text('small','',kind==='node'?localized(raw.display.kind_label):ui("Отношение")));
+    if(carrier)uiChildren(label,"append",text('span','sc-result-identity',carrier));
+    const kindLabel=kind==='node'?localized(raw.display.kind_label):ui("Отношение");
+    uiChildren(row, "append", label, text('small','',kindLabel));
+    uiAttribute(row,'aria-label',[ariaLabel,kindLabel,carrier].filter(Boolean).join(' · '));
     return row;
   }
-  function search(value,offset=0){
-    clearTimeout(searchTimer);slots.cancel('search');searchOffset=offset;
+  function search(value,continuation={},previous=[]){
+    clearTimeout(searchTimer);slots.cancel('search');
     const query=value.trim().slice(0,256),results=q('.sc-search-results');uiChildren(results, "replaceChildren");
     if(!query){
       uiChildren(results, "append", text('div','sc-section-label',ui("В ТЕКУЩЕЙ ОБЛАСТИ")));
@@ -95,7 +119,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     uiChildren(results, "append", text('div','sc-empty',ui("Ищу в древе…")));port.cardChanged();
     searchTimer=setTimeout(async()=>{
       try{
-        const found=await slots.run('search',signal=>client.search(query,signal,offset));
+        const found=await slots.run('search',signal=>client.search(query,signal,continuation));
         if(!found.current||q('.sc-search').hidden)return;
         const packet=found.value;uiChildren(results, "replaceChildren");root.dataset.searchQuery=query;root.dataset.searchRevision=packet.source_revision;
         for(const kind of ['node','relation']){
@@ -105,10 +129,12 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
         }
         if(!packet.nodes.length&&!packet.relations.length)uiChildren(results, "append", text('div','sc-empty',ui("По этому запросу ничего не найдено.")));
         const pager=document.createElement('div');pager.className='sc-search-pager';
-        if(offset>0)uiChildren(pager, "append", button(ui("Ранее"),()=>search(query,Math.max(0,offset-6))));
-        if(Math.max(packet.counts.matching_nodes,packet.counts.matching_relations)>offset+6)uiChildren(pager, "append", button(ui("Далее"),()=>search(query,offset+6)));
+        if(previous.length)uiChildren(pager, "append", button(ui("Ранее"),()=>search(query,previous.at(-1),previous.slice(0,-1))));
+        if(packet.page.has_more)uiChildren(pager, "append", button(ui("Далее"),()=>search(query,
+          {cursor:packet.page.next_cursor,search_mode:packet.search_mode,source_revision:packet.source_revision},
+          [...previous,{cursor:packet.page.cursor,search_mode:packet.search_mode,source_revision:packet.source_revision}].slice(-searchHistoryLimit))));
         uiChildren(results, "append", pager);port.announce(ui("Результаты поиска обновлены."));port.cardChanged();
-      }catch(error){if(q('.sc-search').hidden)return;uiChildren(results, "replaceChildren", text('div','sc-empty',error.message), button(ui("Повторить поиск"),()=>search(query,searchOffset)));port.cardChanged();}
+      }catch(error){if(q('.sc-search').hidden)return;uiChildren(results, "replaceChildren", text('div','sc-empty',error.message), button(ui("Повторить поиск"),()=>search(query,continuation,previous)));port.cardChanged();}
     },180);
   }
   function sourceDetails(raw,kind){
@@ -134,7 +160,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
   }
   function endpointName(id){return displayTitle(port.node(id),id,cardLanguage);}
   function renderTitle(raw){
-    const form=displayTitleForm(raw,cardLanguage),title=q('.sc-node-title');
+    const form=displayTitleForm(raw,cardLanguage,true),title=q('.sc-node-title');
     uiText(title,form?.text||raw.id);title.lang=form?.lang||'';
     title.dataset.requestedLanguage=cardLanguage;title.dataset.displayLanguage=form?.key||'';
     titleNote.hidden=!form?.fallback;
@@ -146,10 +172,13 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     renderTitle(raw);
     uiText(q('.sc-node-original'), kind==='node'?sourceOriginalTitle(raw):localized(raw.display.statement,'',cardLanguage));
     uiText(q('.sc-kind'), kind==='node'?localized(raw.display.kind_label,raw.kind_id,cardLanguage).toUpperCase():ui("ОТНОШЕНИЕ"));
-    uiText(q('.sc-description'), localized(kind==='node'?raw.display.summary:raw.display.explanation,ui("Описание пока не зафиксировано."),cardLanguage));
-    q('.sc-description').hidden=Boolean(selection);forms.replaceChildren(renderHumanForms(raw));
+    const description=materialDisplayForm(raw,kind==='node'?'summary':'explanation',cardLanguage);
+    uiText(q('.sc-description'), description?.text||ui("Описание пока не зафиксировано."));q('.sc-description').lang=description?.lang||'';
+    descriptionNote.hidden=Boolean(selection)||!description||!description.fallback&&Boolean(description.lang);
+    uiText(descriptionNote,descriptionNote.hidden?'':formLanguageNote(description));
+    q('.sc-description').hidden=Boolean(selection);forms.replaceChildren(renderHumanForms(raw),renderEssentialContext(essentialContext(raw)));
     const languages=[...new Set(['ru','en','es',...formLanguages(raw),cardLanguage])];
-    language.replaceChildren(...languages.map(value=>{const option=document.createElement('option');option.value=value;option.textContent=formLabel(value);return option;}));language.value=cardLanguage;
+    language.replaceChildren(...languages.map(value=>{const option=document.createElement('option');option.value=value;uiText(option,formLabel(value));return option;}));language.value=cardLanguage;
     uiAttribute(q('.sc-inspector'), 'aria-label', kind==='node'?ui("Выбранный узел"):ui("Выбранное отношение"));
     root.dataset.inspectorKind=kind;root.dataset.inspectorId=raw.id;
     const relationships=kind==='node'?port.neighbors(raw.id):[raw];
@@ -176,20 +205,33 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
   async function showCard(kind,raw){
     cancelInspector();const scene=port.packet,language=cardLanguage;if(!scene?.source_revision)return;
     root.dataset.inspectorState='loading';
-    renderTitle(raw);
+    // Compact scene carriers can expose an identifier fallback while the
+    // language-bound full material is in flight. Keep the current readable
+    // title for an in-place language switch; a new selection gets an explicit
+    // loading label. This prevents the opaque carrier ID from flashing as a
+    // title before the owner-selected form arrives.
+    const sameSelection=root.dataset.inspectorKind===kind&&root.dataset.inspectorId===raw.id&&q('.sc-node-title').textContent;
+    if(!sameSelection){
+      uiText(q('.sc-node-title'),ui("Открываю карточку…"));
+      q('.sc-node-title').lang='';q('.sc-node-title').dataset.requestedLanguage=language;q('.sc-node-title').dataset.displayLanguage='';
+      titleNote.hidden=true;uiText(titleNote,'');
+    }
     uiText(q('.sc-node-original'),'');q('.sc-provenance').replaceChildren();q('.sc-neighbors').replaceChildren();
     try{
-      renderCard(kind,raw);
-      forms.replaceChildren(text('p','sc-form-status',ui('Обновляю формы…')));q('.sc-description').hidden=true;
+      forms.replaceChildren(text('p','sc-form-status',ui('Обновляю формы…')));q('.sc-description').hidden=true;descriptionNote.hidden=true;
       const found=await slots.run('inspect',signal=>readInspectorMaterial({client,scene,kind,raw,language,signal}));
       if(!found.current||port.packet!==scene||cardLanguage!==language
         ||(kind==='relation'?port.selection.relationId:port.selection.nodeId)!==raw.id)return;
       renderCard(kind,found.value.match,found.value.endpoints);
-      if(found.value.claimReading)forms.append(renderClaimContext(found.value.claimReading));
+      // The card already contains each selected form's complete declared
+      // context and the record's explicit essential context. The compact
+      // claim reading (wording, semantics, epistemic state, relations) is the
+      // reader-panel surface; appending its whole packet here duplicated a
+      // generic Claim JSON block beside every human form.
       root.dataset.inspectorState='ready';
     }catch(error){
       root.dataset.inspectorState='error';
-      forms.replaceChildren(text('p','sc-form-status',error.message));q('.sc-description').hidden=true;
+      forms.replaceChildren(text('p','sc-form-status',error.message));q('.sc-description').hidden=true;descriptionNote.hidden=true;
       uiChildren(q('.sc-provenance'), "prepend", text('p','sc-inspection-error',error.message));
       if(error instanceof RevisionError)notifyFailure(error,()=>loadFocus(port.packet.focus?.node_id||raw.id,{selectFocus:false}));
       else uiChildren(q('.sc-provenance'), "prepend", button(ui("Загрузить карточку ещё раз"),()=>showCard(kind,raw)));

@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.com/contracts/exploration-result.v2.schema.json",
+  "title": "Origin-preserving exploration page; selection and execution are not semantic proof",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema", "execution_version", "snapshot_revision", "source_revision", "query", "origin", "status", "limit_reason", "nodes", "relations", "scene", "page", "counts", "inclusion", "authority_boundary", "writes_to_tree"],
+  "properties": {
+    "schema": {"const": "tos_exploration_result_v2"},
+    "execution_version": {"enum": ["tos-exploration-execution-v6", "tos-exploration-d1-execution-v6"]},
+    "snapshot_revision": {"$ref": "exploration-request.v2.schema.json#/$defs/revision"},
+    "source_revision": {"$ref": "exploration-request.v2.schema.json#/$defs/revision"},
+    "query": {"$ref": "exploration-request.v2.schema.json#/$defs/start"},
+    "origin": {"oneOf": [
+      {"allOf": [{"$ref": "exploration-request.v2.schema.json#/$defs/origin"}, {"properties": {"kind": {"const": "node"}}}]},
+      {
+        "type": "object", "additionalProperties": false, "required": ["kind", "id", "content_revision", "endpoints"],
+        "properties": {
+          "kind": {"const": "relation"}, "id": {"$ref": "exploration-request.v2.schema.json#/$defs/id"},
+          "content_revision": {"$ref": "exploration-request.v2.schema.json#/$defs/revision"},
+          "endpoints": {"type": "object", "additionalProperties": false, "required": ["from", "to"],
+            "properties": {"from": {"$ref": "#/$defs/endpoint"}, "to": {"$ref": "#/$defs/endpoint"}}}
+        }
+      }
+    ]},
+    "status": {"$ref": "exploration-result.v1.schema.json#/properties/status"},
+    "limit_reason": {"$ref": "exploration-result.v1.schema.json#/properties/limit_reason"},
+    "nodes": {"$ref": "exploration-result.v1.schema.json#/properties/nodes"},
+    "relations": {"$ref": "exploration-result.v1.schema.json#/properties/relations"},
+    "scene": {"$ref": "knowledge-graph.v1.schema.json#/$defs/scene"},
+    "page": {
+      "type": "object", "additionalProperties": false,
+      "required": ["number", "primary_node_ids", "context_node_ids", "primary_relation_ids", "context_relation_ids", "next_cursor", "returned_nodes", "returned_relations", "work_units", "scope"],
+      "properties": {
+        "number": {"type": "integer", "minimum": 1},
+        "primary_node_ids": {"$ref": "exploration-result.v1.schema.json#/$defs/ids"},
+        "context_node_ids": {"$ref": "exploration-result.v1.schema.json#/$defs/ids"},
+        "primary_relation_ids": {"$ref": "exploration-result.v1.schema.json#/$defs/ids"},
+        "context_relation_ids": {"type": "array", "maxItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "next_cursor": {"type": ["string", "null"], "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$"},
+        "returned_nodes": {"type": "integer", "minimum": 1, "maximum": 302},
+        "returned_relations": {"type": "integer", "minimum": 0, "maximum": 101},
+        "work_units": {"type": "integer", "minimum": 0, "maximum": 512},
+        "scope": {"const": "resumable-neighborhood"}
+      }
+    },
+    "counts": {"$ref": "exploration-result.v1.schema.json#/properties/counts"},
+    "inclusion": {
+      "type": "object", "additionalProperties": false, "required": ["nodes", "relations", "authority"],
+      "properties": {
+        "nodes": {"type": "object", "additionalProperties": {"oneOf": [
+          {"$ref": "exploration-result.v1.schema.json#/properties/inclusion/properties/nodes/additionalProperties"},
+          {"type": "object", "additionalProperties": false, "required": ["kind"], "properties": {"kind": {"enum": ["origin", "origin-endpoint"]}}}
+        ]}},
+        "relations": {"type": "object", "additionalProperties": {"oneOf": [
+          {"$ref": "exploration-result.v1.schema.json#/properties/inclusion/properties/relations/additionalProperties"},
+          {"type": "object", "additionalProperties": false, "required": ["kind"], "properties": {"kind": {"const": "origin"}}}
+        ]}},
+        "authority": {"const": "query-execution-not-semantic-proof"}
+      }
+    },
+    "authority_boundary": {"type": "object"}, "writes_to_tree": {"const": false}
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "paused"}}}, "then": {"properties": {"page": {"properties": {"next_cursor": {"type": "string"}}}, "limit_reason": {"const": null}}}, "else": {"properties": {"page": {"properties": {"next_cursor": {"const": null}}}}}},
+    {"if": {"properties": {"status": {"const": "limit_reached"}}}, "then": {"properties": {"limit_reason": {"type": "string"}}}, "else": {"properties": {"limit_reason": {"const": null}}}}
+  ],
+  "$defs": {
+    "endpoint": {"type": "object", "additionalProperties": false, "required": ["node_id", "content_revision", "entity_id"],
+      "properties": {"node_id": {"type": "string", "minLength": 1}, "entity_id": {"type": "string", "minLength": 1},
+        "content_revision": {"$ref": "exploration-request.v2.schema.json#/$defs/revision"}}}
+  }
+}

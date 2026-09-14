@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+    "version": 2,
+    "digest": "sha256:6d752a47b7fd8192f9de0aa225c277b35712b35495481dee6c671769a15cd7f0"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.6d90ec1078562ad9e9c65e0778da60808cfba21fa129277c992138b4c45ebc09",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+        "version": 2,
+        "digest": "sha256:6d752a47b7fd8192f9de0aa225c277b35712b35495481dee6c671769a15cd7f0"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+            "version": 2,
+            "digest": "sha256:6d752a47b7fd8192f9de0aa225c277b35712b35495481dee6c671769a15cd7f0"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+            "version": 2,
+            "digest": "sha256:6d752a47b7fd8192f9de0aa225c277b35712b35495481dee6c671769a15cd7f0"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+            "version": 2,
+            "digest": "sha256:6d752a47b7fd8192f9de0aa225c277b35712b35495481dee6c671769a15cd7f0"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.d32dd0aa96c20969c5e90b2215aaf1e5f33b1860c59bbd9bb4c1f4721ec1437a",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+        "version": 2,
+        "digest": "sha256:6d752a47b7fd8192f9de0aa225c277b35712b35495481dee6c671769a15cd7f0"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+            "version": 2,
+            "digest": "sha256:6d752a47b7fd8192f9de0aa225c277b35712b35495481dee6c671769a15cd7f0"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+            "version": 2,
+            "digest": "sha256:6d752a47b7fd8192f9de0aa225c277b35712b35495481dee6c671769a15cd7f0"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+            "version": 2,
+            "digest": "sha256:6d752a47b7fd8192f9de0aa225c277b35712b35495481dee6c671769a15cd7f0"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+      "request_digest": "sha256:46ee41a9b6f7a7dca8334863c00b99922b183b8daf353f95db8325aebb954058",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:bb9753136a8b65e0c51806b1b106e814a962f1bfa769eca5c5331eb7a27d911b",
+      "recorded_at": "2026-09-07T03:13:27.660258+00:00",
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+        "version": 2,
+        "digest": "sha256:6d752a47b7fd8192f9de0aa225c277b35712b35495481dee6c671769a15cd7f0"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.6d90ec1078562ad9e9c65e0778da60808cfba21fa129277c992138b4c45ebc09",
+          "version": 1,
+          "digest": "sha256:4ead0d0666a39e22fb6556657a2431640a13e8bb1f9a8cdc8728f93a520bcd13"
+        },
+        {
+          "id": "tos.form.metadata.d32dd0aa96c20969c5e90b2215aaf1e5f33b1860c59bbd9bb4c1f4721ec1437a",
+          "version": 1,
+          "digest": "sha256:872ee28ba5259ed60f1f52d585860624f9b0ef57313ecd89b1ea2160e1280649"
+        }
+      ]
+    }
+  ]
+}

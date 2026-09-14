@@ -40,6 +40,7 @@ const CHAIN_KINDS = [
   "file",
   "link",
 ] as const;
+const DOSSIER_KINDS = new Set(["work", "expression", "edition", "item", "file", "link"]);
 
 function itemObject(value: unknown): Item {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Item : {};
@@ -116,8 +117,8 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
   const selected = nodesById.get(objectId);
   if (!selected) throw new SourceNavigationError(404, `unknown ToS dossier object: ${objectId}`);
   const selectedKind = stringValue(selected.node_kind);
-  if (selectedKind !== "work" && selectedKind !== "link") {
-    throw new SourceNavigationError(400, "dossiers are currently available for Work and Link objects");
+  if (!DOSSIER_KINDS.has(selectedKind)) {
+    throw new SourceNavigationError(400, "dossiers are available for Work, Expression, Edition, Item, File, and Link objects");
   }
 
   const allEdges = sortedById(objectArray(navigation.edges), "edge_id");
@@ -155,7 +156,7 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
   };
 
   let forwardRoots = new Set<string>(selectedKind === "work" ? [objectId] : []);
-  if (selectedKind === "link") {
+  if (selectedKind !== "work") {
     const lineageQueue = [objectId];
     const visitedLineage = new Set<string>();
     for (let cursor = 0; cursor < lineageQueue.length; cursor += 1) {
@@ -169,7 +170,8 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
       }
       const allowed = currentKind === "link" ? LINK_PREDICATES : BIBLIOGRAPHIC_PREDICATES;
       for (const edge of incoming.get(current) ?? []) {
-        if (edge.edge_kind !== "evidence_claim" || !allowed.has(stringValue(edge.predicate_id))) continue;
+        const structuralFileParent = currentKind === "file" && edge.edge_kind === "authored_item_manifest";
+        if (!structuralFileParent && (edge.edge_kind !== "evidence_claim" || !allowed.has(stringValue(edge.predicate_id)))) continue;
         const parent = stringValue(edge.from_id);
         if (!admit(parent)) continue;
         componentEdges.set(stringValue(edge.edge_id), edge);
@@ -277,7 +279,7 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
     );
   }
   const decisionRights = rights.filter((record) => intersects(record.scope_refs, decisionScopeIds));
-  const dossierLinks = selectedKind === "work" ? (chain.link ?? []) : [selected];
+  const dossierLinks = selectedKind === "link" ? [selected] : (chain.link ?? []);
   const linkStatuses = new Set(dossierLinks.map((node) => stringValue(itemObject(node.properties).access_status) || "unknown"));
   let technicalAccess = "unknown";
   if (linkStatuses.has("open_download")) technicalAccess = "downloadable";

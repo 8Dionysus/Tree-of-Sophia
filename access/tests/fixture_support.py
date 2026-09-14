@@ -1,12 +1,58 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import json
 from pathlib import Path
+import shutil
+import tempfile
 
 
 ACCESS_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = ACCESS_ROOT.parent
+KNOWLEDGE_FIXTURE_ROOT = ACCESS_ROOT / "tests" / "fixtures" / "knowledge-contract"
+
+
+def knowledge_fixture_path(relative: str) -> Path:
+    """Return one bounded source-shaped knowledge fixture, never a corpus path."""
+    path = KNOWLEDGE_FIXTURE_ROOT / relative
+    if (
+        path.is_symlink()
+        or not path.is_file()
+        or path.resolve() != path.absolute()
+        or not path.resolve().is_relative_to(KNOWLEDGE_FIXTURE_ROOT.resolve())
+    ):
+        raise FileNotFoundError(f"knowledge fixture is not a regular local file: {relative}")
+    return path
+
+
+def load_knowledge_fixture(relative: str):
+    return json.loads(knowledge_fixture_path(relative).read_text(encoding="utf-8"))
+
+
+@contextmanager
+def canonical_node_fixture():
+    """Materialize exact canonical snapshots under their native ToS paths."""
+    pairs = (
+        "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/zarathustra/node.json",
+        "ToS/canon/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/zarathustra/node.human-forms.json",
+        "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/departure-from-origin/node.json",
+        "ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/departure-from-origin/node.human-forms.json",
+    )
+    with tempfile.TemporaryDirectory(prefix="tos-knowledge-canon-") as directory:
+        root = Path(directory)
+        for relative in pairs:
+            target = root / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(knowledge_fixture_path(relative), target)
+        schema_ref = "ToS/contracts/tos-node-contract.schema.json"
+        schema = REPO_ROOT / schema_ref
+        if schema.is_symlink() or not schema.is_file():
+            raise FileNotFoundError(f"canonical node schema is unavailable: {schema}")
+        schema_target = root / schema_ref
+        schema_target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(schema, schema_target)
+        yield root, tuple(root / relative for relative in (pairs[0], pairs[2]))
 
 
 def write_fixture(root: Path) -> None:

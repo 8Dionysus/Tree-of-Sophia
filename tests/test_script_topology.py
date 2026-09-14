@@ -5,6 +5,7 @@ import json
 import runpy
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -107,6 +108,17 @@ class ScriptTopologyTests(unittest.TestCase):
         self.assertTrue(command_paths)
         self.assertTrue(command_paths <= script_inventory.inventory_paths())
 
+    def test_focused_pytest_targets_are_not_script_entrypoints(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="tos-script-lane-test-") as directory:
+            root = Path(directory)
+            manifest = root / "docs/validation/validation_lanes.json"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text(json.dumps({"command_sequences": {"synthetic": [
+                {"command": ["python", "-m", "pytest", "-q", "access/tests/example.py"]},
+                {"command": ["python", "scripts/example.py", "--check"]},
+            ]}}), encoding="utf-8")
+            self.assertEqual(script_inventory.command_script_paths(root), {"scripts/example.py"})
+
     def test_skill_helper_scripts_are_not_hidden_hard_gates(self) -> None:
         hard_gate_paths = script_inventory.command_script_paths()
 
@@ -142,6 +154,11 @@ class ScriptTopologyTests(unittest.TestCase):
                 old_path = list(sys.path)
                 sys.path.insert(0, str(script_path.parent))
                 sys.path.insert(0, str(REPO_ROOT / "scripts"))
+                # Source publication helpers consume the same local access
+                # package as their actual owner launchers. Do not depend on
+                # another test importing that package first.
+                sys.path.insert(0, str(REPO_ROOT / "access" / "src"))
+                sys.path.insert(0, str(REPO_ROOT / "mechanics/growth-cycle/parts/branch-growth-cycle/scripts"))
                 sys.path.insert(0, str(REPO_ROOT))
                 try:
                     runpy.run_path(str(script_path), run_name=f"__script_inventory_smoke__:{path}")

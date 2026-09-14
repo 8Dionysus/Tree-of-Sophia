@@ -6,6 +6,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from jsonschema import Draft202012Validator
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +23,31 @@ def load_json(path: Path) -> object:
 
 
 class ValidateTreeNodeContractsTests(unittest.TestCase):
+    def test_versioned_native_names_require_explicit_opt_in_and_preserve_legacy(self):
+        schema = load_json(REPO_ROOT / 'ToS/contracts/tos-node-contract.schema.json')
+        validator = Draft202012Validator(schema)
+        legacy = load_json(REPO_ROOT / 'ToS/public-compatibility/event_node.example.json')
+        for key in ('schema_version', 'record_version', 'preferred_label', 'variant_labels', 'field_languages'):
+            legacy.pop(key, None)
+        self.assertTrue(validator.is_valid(legacy))
+        source = {**legacy, 'schema_version': 'tos_canonical_node_v1', 'record_version': 1,
+            'preferred_label': 'Synthetic name', 'variant_labels': [{'value': 'Синтетическое имя',
+                'language': 'ru', 'script': 'Cyrl', 'source_ref': 'synthetic:wording', 'status': 'unverified'}],
+            'field_languages': {'preferred_label': {'language': 'en', 'script': 'Latn'},
+                'distilled_thesis': {'language': None, 'script': None, 'qualification': {'unknown': False}}}}
+        validator.validate(source)
+        self.assertEqual(source['node_id'], legacy['node_id'])
+        for change in ({'record_version': 0}, {'record_version': True}, {'record_version': 9007199254740992},
+                       {'schema_version': 'tos_canonical_node_v2'}, {'record_id': source['node_id']},
+                       {'field_languages': {'notes': {'language': 'en', 'script': None}}}):
+            with self.subTest(change=change):
+                self.assertFalse(validator.is_valid({**source, **change}))
+        for key in ('schema_version', 'record_version'):
+            broken = {k: v for k, v in source.items() if k != key}
+            self.assertFalse(validator.is_valid(broken))
+        for key in ('preferred_label', 'variant_labels', 'field_languages'):
+            self.assertFalse(validator.is_valid({**legacy, key: source[key]}))
+
     def test_duplicate_witness_languages_fail_contract_validation(self) -> None:
         payload = load_json(REPO_ROOT / "ToS" / "public-compatibility" / "source_node.example.json")
         assert isinstance(payload, dict)

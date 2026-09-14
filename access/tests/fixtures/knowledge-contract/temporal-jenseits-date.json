@@ -1,0 +1,1523 @@
+{
+  "schema_version": "tos_source_witness_bibliographic_graph_v1",
+  "nodes": [
+    {
+      "node_id": "claim:tos.claim.jenseits-1886-commission.date",
+      "node_kind": "claim",
+      "properties": {
+        "assertion_layer": "scholarly_report",
+        "claim_id": "tos.claim.jenseits-1886-commission.date",
+        "claim_ref": "tos.claim.jenseits-1886-commission.date",
+        "claim_type": "relation",
+        "claim_version": 2,
+        "confidence": null,
+        "epistemic_status": "reported",
+        "evidence_refs": [
+          "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md"
+        ],
+        "human_forms": [
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "",
+                  "record": {
+                    "digest": "sha256:d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+                    "id": "tos.claim.jenseits-1886-commission.date",
+                    "version": 2
+                  }
+                },
+                "slot": "context-0",
+                "value": {
+                  "assertion_layer": "scholarly_report",
+                  "claim_id": "tos.claim.jenseits-1886-commission.date",
+                  "claim_type": "relation",
+                  "claim_version": 2,
+                  "epistemic_status": "reported",
+                  "evidence_refs": [
+                    "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md"
+                  ],
+                  "maker": {
+                    "agent_ref": "model:codex",
+                    "maker_type": "model"
+                  },
+                  "object": {
+                    "calendar": "proleptic-gregorian",
+                    "certainty": "exact",
+                    "kind": "date-assertion",
+                    "role": "historical-time",
+                    "source_wording": {
+                      "language": "de",
+                      "text": "03. 06.1886"
+                    },
+                    "value": "1886-06-03",
+                    "year_numbering": "astronomical"
+                  },
+                  "predicate": "historical_dating",
+                  "provenance_event_ref": "tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+                  "qualifiers": {
+                    "attribution": "Sommer 2016, p. 6, citing KSB 7 / KGB III/3 no. 705 p. 193",
+                    "calendar_posture": "explicit adapter normalization, not a calendar statement in the letter",
+                    "date_scope": "reported commissioning action, not publication",
+                    "display_fields": {
+                      "caption": {
+                        "language": "ru",
+                        "script": "Cyrl",
+                        "text": "По Зоммеру: заказ — 03. 06.1886"
+                      },
+                      "hover": {
+                        "language": "ru",
+                        "script": "Cyrl",
+                        "text": "Сообщаемая дата заказа, не публикации. Календарь и нумерация лет заданы адаптером, не письмом; точность до дня не доказывает датировку."
+                      },
+                      "name": {
+                        "language": "ru",
+                        "script": "Cyrl",
+                        "text": "Дата заказа: сообщение Зоммера"
+                      },
+                      "schema_version": "tos_claim_display_fields_v1"
+                    },
+                    "primary_letter_inspected": false,
+                    "provenance_scope": "serialization-only; upstream model research is not execution-attested",
+                    "statement": "Сообщаемый эпизод заказа датирован «03. 06.1886» по Зоммеру (2016, с. 6), с отсылкой к KSB 7 / KGB III/3, письмо № 705, с. 193. Это дата сообщаемого заказа, не дата публикации. Значение 1886-06-03, пролептический григорианский календарь и астрономическая нумерация лет сохраняют явную нормализацию адаптера, а не календарное указание письма; точность до дня не доказывает истинность датировки. Исходное основание не включало проверку первичного письма; provenance удостоверяет сериализацию, а не выполнение первоначального модельного исследования.",
+                    "statement_language": "ru",
+                    "statement_script": "Cyrl"
+                  },
+                  "review_status": "unreviewed",
+                  "schema_version": "tos_historical_claim_v1",
+                  "subject_ref": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+                  "visibility": "public_metadata_only"
+                }
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+                "id": "tos.claim.jenseits-1886-commission.date",
+                "version": 2
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Дата заказа: сообщение Зоммера",
+            "form": {
+              "digest": "sha256:4feddbad6b3b3fb2d42bfc06d88ff399a09784715412ca91288bcfd87c7b83a2",
+              "id": "tos.form.jenseits-1886-commission.date-claim.name-ru",
+              "version": 1
+            },
+            "issues": [],
+            "language": "ru",
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": "Cyrl",
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+              "id": "tos.claim.jenseits-1886-commission.date",
+              "version": 2
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "",
+                  "record": {
+                    "digest": "sha256:d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+                    "id": "tos.claim.jenseits-1886-commission.date",
+                    "version": 2
+                  }
+                },
+                "slot": "context-0",
+                "value": {
+                  "assertion_layer": "scholarly_report",
+                  "claim_id": "tos.claim.jenseits-1886-commission.date",
+                  "claim_type": "relation",
+                  "claim_version": 2,
+                  "epistemic_status": "reported",
+                  "evidence_refs": [
+                    "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md"
+                  ],
+                  "maker": {
+                    "agent_ref": "model:codex",
+                    "maker_type": "model"
+                  },
+                  "object": {
+                    "calendar": "proleptic-gregorian",
+                    "certainty": "exact",
+                    "kind": "date-assertion",
+                    "role": "historical-time",
+                    "source_wording": {
+                      "language": "de",
+                      "text": "03. 06.1886"
+                    },
+                    "value": "1886-06-03",
+                    "year_numbering": "astronomical"
+                  },
+                  "predicate": "historical_dating",
+                  "provenance_event_ref": "tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+                  "qualifiers": {
+                    "attribution": "Sommer 2016, p. 6, citing KSB 7 / KGB III/3 no. 705 p. 193",
+                    "calendar_posture": "explicit adapter normalization, not a calendar statement in the letter",
+                    "date_scope": "reported commissioning action, not publication",
+                    "display_fields": {
+                      "caption": {
+                        "language": "ru",
+                        "script": "Cyrl",
+                        "text": "По Зоммеру: заказ — 03. 06.1886"
+                      },
+                      "hover": {
+                        "language": "ru",
+                        "script": "Cyrl",
+                        "text": "Сообщаемая дата заказа, не публикации. Календарь и нумерация лет заданы адаптером, не письмом; точность до дня не доказывает датировку."
+                      },
+                      "name": {
+                        "language": "ru",
+                        "script": "Cyrl",
+                        "text": "Дата заказа: сообщение Зоммера"
+                      },
+                      "schema_version": "tos_claim_display_fields_v1"
+                    },
+                    "primary_letter_inspected": false,
+                    "provenance_scope": "serialization-only; upstream model research is not execution-attested",
+                    "statement": "Сообщаемый эпизод заказа датирован «03. 06.1886» по Зоммеру (2016, с. 6), с отсылкой к KSB 7 / KGB III/3, письмо № 705, с. 193. Это дата сообщаемого заказа, не дата публикации. Значение 1886-06-03, пролептический григорианский календарь и астрономическая нумерация лет сохраняют явную нормализацию адаптера, а не календарное указание письма; точность до дня не доказывает истинность датировки. Исходное основание не включало проверку первичного письма; provenance удостоверяет сериализацию, а не выполнение первоначального модельного исследования.",
+                    "statement_language": "ru",
+                    "statement_script": "Cyrl"
+                  },
+                  "review_status": "unreviewed",
+                  "schema_version": "tos_historical_claim_v1",
+                  "subject_ref": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+                  "visibility": "public_metadata_only"
+                }
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+                "id": "tos.claim.jenseits-1886-commission.date",
+                "version": 2
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "По Зоммеру: заказ — 03. 06.1886",
+            "form": {
+              "digest": "sha256:a8ba97cbf8d13e9ecba181fde7bba297da5b9519a66345aae00fdb45d7aff87b",
+              "id": "tos.form.jenseits-1886-commission.date-claim.caption-ru",
+              "version": 1
+            },
+            "issues": [],
+            "language": "ru",
+            "performs_semantic_assessment": false,
+            "role": "caption",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": "Cyrl",
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+              "id": "tos.claim.jenseits-1886-commission.date",
+              "version": 2
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "",
+                  "record": {
+                    "digest": "sha256:d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+                    "id": "tos.claim.jenseits-1886-commission.date",
+                    "version": 2
+                  }
+                },
+                "slot": "context-0",
+                "value": {
+                  "assertion_layer": "scholarly_report",
+                  "claim_id": "tos.claim.jenseits-1886-commission.date",
+                  "claim_type": "relation",
+                  "claim_version": 2,
+                  "epistemic_status": "reported",
+                  "evidence_refs": [
+                    "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md"
+                  ],
+                  "maker": {
+                    "agent_ref": "model:codex",
+                    "maker_type": "model"
+                  },
+                  "object": {
+                    "calendar": "proleptic-gregorian",
+                    "certainty": "exact",
+                    "kind": "date-assertion",
+                    "role": "historical-time",
+                    "source_wording": {
+                      "language": "de",
+                      "text": "03. 06.1886"
+                    },
+                    "value": "1886-06-03",
+                    "year_numbering": "astronomical"
+                  },
+                  "predicate": "historical_dating",
+                  "provenance_event_ref": "tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+                  "qualifiers": {
+                    "attribution": "Sommer 2016, p. 6, citing KSB 7 / KGB III/3 no. 705 p. 193",
+                    "calendar_posture": "explicit adapter normalization, not a calendar statement in the letter",
+                    "date_scope": "reported commissioning action, not publication",
+                    "display_fields": {
+                      "caption": {
+                        "language": "ru",
+                        "script": "Cyrl",
+                        "text": "По Зоммеру: заказ — 03. 06.1886"
+                      },
+                      "hover": {
+                        "language": "ru",
+                        "script": "Cyrl",
+                        "text": "Сообщаемая дата заказа, не публикации. Календарь и нумерация лет заданы адаптером, не письмом; точность до дня не доказывает датировку."
+                      },
+                      "name": {
+                        "language": "ru",
+                        "script": "Cyrl",
+                        "text": "Дата заказа: сообщение Зоммера"
+                      },
+                      "schema_version": "tos_claim_display_fields_v1"
+                    },
+                    "primary_letter_inspected": false,
+                    "provenance_scope": "serialization-only; upstream model research is not execution-attested",
+                    "statement": "Сообщаемый эпизод заказа датирован «03. 06.1886» по Зоммеру (2016, с. 6), с отсылкой к KSB 7 / KGB III/3, письмо № 705, с. 193. Это дата сообщаемого заказа, не дата публикации. Значение 1886-06-03, пролептический григорианский календарь и астрономическая нумерация лет сохраняют явную нормализацию адаптера, а не календарное указание письма; точность до дня не доказывает истинность датировки. Исходное основание не включало проверку первичного письма; provenance удостоверяет сериализацию, а не выполнение первоначального модельного исследования.",
+                    "statement_language": "ru",
+                    "statement_script": "Cyrl"
+                  },
+                  "review_status": "unreviewed",
+                  "schema_version": "tos_historical_claim_v1",
+                  "subject_ref": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+                  "visibility": "public_metadata_only"
+                }
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+                "id": "tos.claim.jenseits-1886-commission.date",
+                "version": 2
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Сообщаемая дата заказа, не публикации. Календарь и нумерация лет заданы адаптером, не письмом; точность до дня не доказывает датировку.",
+            "form": {
+              "digest": "sha256:567e282c28684c9232a3d5433bd164dddaadaf78781f605f07587bf905abb4fc",
+              "id": "tos.form.jenseits-1886-commission.date-claim.hover-ru",
+              "version": 1
+            },
+            "issues": [],
+            "language": "ru",
+            "performs_semantic_assessment": false,
+            "role": "hover",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": "Cyrl",
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+              "id": "tos.claim.jenseits-1886-commission.date",
+              "version": 2
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "",
+                  "record": {
+                    "digest": "sha256:d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+                    "id": "tos.claim.jenseits-1886-commission.date",
+                    "version": 2
+                  }
+                },
+                "slot": "context-0",
+                "value": {
+                  "assertion_layer": "scholarly_report",
+                  "claim_id": "tos.claim.jenseits-1886-commission.date",
+                  "claim_type": "relation",
+                  "claim_version": 2,
+                  "epistemic_status": "reported",
+                  "evidence_refs": [
+                    "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md"
+                  ],
+                  "maker": {
+                    "agent_ref": "model:codex",
+                    "maker_type": "model"
+                  },
+                  "object": {
+                    "calendar": "proleptic-gregorian",
+                    "certainty": "exact",
+                    "kind": "date-assertion",
+                    "role": "historical-time",
+                    "source_wording": {
+                      "language": "de",
+                      "text": "03. 06.1886"
+                    },
+                    "value": "1886-06-03",
+                    "year_numbering": "astronomical"
+                  },
+                  "predicate": "historical_dating",
+                  "provenance_event_ref": "tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+                  "qualifiers": {
+                    "attribution": "Sommer 2016, p. 6, citing KSB 7 / KGB III/3 no. 705 p. 193",
+                    "calendar_posture": "explicit adapter normalization, not a calendar statement in the letter",
+                    "date_scope": "reported commissioning action, not publication",
+                    "display_fields": {
+                      "caption": {
+                        "language": "ru",
+                        "script": "Cyrl",
+                        "text": "По Зоммеру: заказ — 03. 06.1886"
+                      },
+                      "hover": {
+                        "language": "ru",
+                        "script": "Cyrl",
+                        "text": "Сообщаемая дата заказа, не публикации. Календарь и нумерация лет заданы адаптером, не письмом; точность до дня не доказывает датировку."
+                      },
+                      "name": {
+                        "language": "ru",
+                        "script": "Cyrl",
+                        "text": "Дата заказа: сообщение Зоммера"
+                      },
+                      "schema_version": "tos_claim_display_fields_v1"
+                    },
+                    "primary_letter_inspected": false,
+                    "provenance_scope": "serialization-only; upstream model research is not execution-attested",
+                    "statement": "Сообщаемый эпизод заказа датирован «03. 06.1886» по Зоммеру (2016, с. 6), с отсылкой к KSB 7 / KGB III/3, письмо № 705, с. 193. Это дата сообщаемого заказа, не дата публикации. Значение 1886-06-03, пролептический григорианский календарь и астрономическая нумерация лет сохраняют явную нормализацию адаптера, а не календарное указание письма; точность до дня не доказывает истинность датировки. Исходное основание не включало проверку первичного письма; provenance удостоверяет сериализацию, а не выполнение первоначального модельного исследования.",
+                    "statement_language": "ru",
+                    "statement_script": "Cyrl"
+                  },
+                  "review_status": "unreviewed",
+                  "schema_version": "tos_historical_claim_v1",
+                  "subject_ref": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+                  "visibility": "public_metadata_only"
+                }
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+                "id": "tos.claim.jenseits-1886-commission.date",
+                "version": 2
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Сообщаемый эпизод заказа датирован «03. 06.1886» по Зоммеру (2016, с. 6), с отсылкой к KSB 7 / KGB III/3, письмо № 705, с. 193. Это дата сообщаемого заказа, не дата публикации. Значение 1886-06-03, пролептический григорианский календарь и астрономическая нумерация лет сохраняют явную нормализацию адаптера, а не календарное указание письма; точность до дня не доказывает истинность датировки. Исходное основание не включало проверку первичного письма; provenance удостоверяет сериализацию, а не выполнение первоначального модельного исследования.",
+            "form": {
+              "digest": "sha256:69f72850f54f255c3eb03e430fbcaae0e065c12d51dd7436aa0b5f7bce91acbe",
+              "id": "tos.form.jenseits-1886-commission.date-claim.statement-ru",
+              "version": 1
+            },
+            "issues": [],
+            "language": "ru",
+            "performs_semantic_assessment": false,
+            "role": "statement",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": "Cyrl",
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+              "id": "tos.claim.jenseits-1886-commission.date",
+              "version": 2
+            }
+          }
+        ],
+        "human_forms_source_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.67c3fe6a8b81fdaff6141f7b04b949a59b516740b4fdd22e6cd3a002fb645c9a.human-forms.json",
+        "maker": {
+          "agent_ref": "model:codex",
+          "maker_type": "model"
+        },
+        "navigation_descriptor": {
+          "claim": {
+            "id": "tos.claim.jenseits-1886-commission.date",
+            "sha256": "d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+            "version": 2
+          },
+          "object": {
+            "claim_ref": "tos.claim.jenseits-1886-commission.date",
+            "claim_version": 2,
+            "label": "03. 06.1886",
+            "label_pointer": "/object/source_wording/text",
+            "language": "de",
+            "node_id": "literal:sha256:1bc02adcc7898645501583db110657c0af62a06733e9de7411f1f3d3331ac8fc",
+            "sha256": "d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+            "source_line": 3,
+            "source_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl",
+            "value_sha256": "441576fa34004e3c962183b7b81496d9eeefef27cb71bfc87ecd8fd1428a5c7e"
+          },
+          "predicate": {
+            "id": "historical_dating",
+            "mapping_sha256": "57985caf51a913ba166e7a6ef560b0176a06a152ed0f4ee811ec87ed01b52789",
+            "relation_type_id": "tos.relation.historical-dating",
+            "sha256": "f71446eab35ddd774b0bc3bf1a45c23f0e30ceeade2e3561bcf7639bb9887163"
+          },
+          "purpose": "claim-navigation-only",
+          "reason": null,
+          "schema_version": "tos_claim_navigation_descriptor_v1",
+          "standalone": false,
+          "state": "ready",
+          "statuses": {
+            "epistemic_status": {
+              "present": true,
+              "value": "reported"
+            },
+            "review_status": {
+              "present": true,
+              "value": "unreviewed"
+            }
+          },
+          "subject": {
+            "identity_ref": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "label": "Сообщаемый заказ Ницше по «По ту сторону добра и зла», 3 июня 1886",
+            "label_pointer": "/preferred_label",
+            "node_id": "identity:tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "record_version": 2,
+            "sha256": "0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f",
+            "source_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.json"
+          },
+          "template": {
+            "id": "tos.navigation-template.claim-reference",
+            "sha256": "41cd220ae169083c5ac71804d71428c8f8ff8cc4cdb75cb9a3ad703bd1073a24",
+            "version": 3
+          },
+          "title": {
+            "default": "Запись утверждения · связь: имеет предложенную историческую датировку [сообщено источником; исходная запись не оценена] · субъект: Сообщаемый заказ Ницше по «По ту сторону добра и зла», 3 июня 1886 · объект: 03. 06.1886",
+            "en": "Claim record · relation: has proposed historical dating [source-reported; source record unreviewed] · subject: Сообщаемый заказ Ницше по «По ту сторону добра и зла», 3 июня 1886 · object: 03. 06.1886",
+            "ru": "Запись утверждения · связь: имеет предложенную историческую датировку [сообщено источником; исходная запись не оценена] · субъект: Сообщаемый заказ Ницше по «По ту сторону добра и зла», 3 июня 1886 · объект: 03. 06.1886"
+          }
+        },
+        "object": {
+          "calendar": "proleptic-gregorian",
+          "certainty": "exact",
+          "kind": "date-assertion",
+          "role": "historical-time",
+          "source_wording": {
+            "language": "de",
+            "text": "03. 06.1886"
+          },
+          "value": "1886-06-03",
+          "year_numbering": "astronomical"
+        },
+        "predicate": "historical_dating",
+        "provenance_event_ref": "tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+        "qualifiers": {
+          "attribution": "Sommer 2016, p. 6, citing KSB 7 / KGB III/3 no. 705 p. 193",
+          "calendar_posture": "explicit adapter normalization, not a calendar statement in the letter",
+          "date_scope": "reported commissioning action, not publication",
+          "display_fields": {
+            "caption": {
+              "language": "ru",
+              "script": "Cyrl",
+              "text": "По Зоммеру: заказ — 03. 06.1886"
+            },
+            "hover": {
+              "language": "ru",
+              "script": "Cyrl",
+              "text": "Сообщаемая дата заказа, не публикации. Календарь и нумерация лет заданы адаптером, не письмом; точность до дня не доказывает датировку."
+            },
+            "name": {
+              "language": "ru",
+              "script": "Cyrl",
+              "text": "Дата заказа: сообщение Зоммера"
+            },
+            "schema_version": "tos_claim_display_fields_v1"
+          },
+          "primary_letter_inspected": false,
+          "provenance_scope": "serialization-only; upstream model research is not execution-attested",
+          "statement": "Сообщаемый эпизод заказа датирован «03. 06.1886» по Зоммеру (2016, с. 6), с отсылкой к KSB 7 / KGB III/3, письмо № 705, с. 193. Это дата сообщаемого заказа, не дата публикации. Значение 1886-06-03, пролептический григорианский календарь и астрономическая нумерация лет сохраняют явную нормализацию адаптера, а не календарное указание письма; точность до дня не доказывает истинность датировки. Исходное основание не включало проверку первичного письма; provenance удостоверяет сериализацию, а не выполнение первоначального модельного исследования.",
+          "statement_language": "ru",
+          "statement_script": "Cyrl"
+        },
+        "review_status": "unreviewed",
+        "schema_version": "tos_historical_claim_v1",
+        "source_claim": {
+          "assertion_layer": "scholarly_report",
+          "claim_id": "tos.claim.jenseits-1886-commission.date",
+          "claim_type": "relation",
+          "claim_version": 2,
+          "epistemic_status": "reported",
+          "evidence_refs": [
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md"
+          ],
+          "maker": {
+            "agent_ref": "model:codex",
+            "maker_type": "model"
+          },
+          "object": {
+            "calendar": "proleptic-gregorian",
+            "certainty": "exact",
+            "kind": "date-assertion",
+            "role": "historical-time",
+            "source_wording": {
+              "language": "de",
+              "text": "03. 06.1886"
+            },
+            "value": "1886-06-03",
+            "year_numbering": "astronomical"
+          },
+          "predicate": "historical_dating",
+          "provenance_event_ref": "tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+          "qualifiers": {
+            "attribution": "Sommer 2016, p. 6, citing KSB 7 / KGB III/3 no. 705 p. 193",
+            "calendar_posture": "explicit adapter normalization, not a calendar statement in the letter",
+            "date_scope": "reported commissioning action, not publication",
+            "display_fields": {
+              "caption": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "По Зоммеру: заказ — 03. 06.1886"
+              },
+              "hover": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "Сообщаемая дата заказа, не публикации. Календарь и нумерация лет заданы адаптером, не письмом; точность до дня не доказывает датировку."
+              },
+              "name": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "Дата заказа: сообщение Зоммера"
+              },
+              "schema_version": "tos_claim_display_fields_v1"
+            },
+            "primary_letter_inspected": false,
+            "provenance_scope": "serialization-only; upstream model research is not execution-attested",
+            "statement": "Сообщаемый эпизод заказа датирован «03. 06.1886» по Зоммеру (2016, с. 6), с отсылкой к KSB 7 / KGB III/3, письмо № 705, с. 193. Это дата сообщаемого заказа, не дата публикации. Значение 1886-06-03, пролептический григорианский календарь и астрономическая нумерация лет сохраняют явную нормализацию адаптера, а не календарное указание письма; точность до дня не доказывает истинность датировки. Исходное основание не включало проверку первичного письма; provenance удостоверяет сериализацию, а не выполнение первоначального модельного исследования.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          },
+          "review_status": "unreviewed",
+          "schema_version": "tos_historical_claim_v1",
+          "subject_ref": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+          "visibility": "public_metadata_only"
+        },
+        "subject_ref": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+        "visibility": "public_metadata_only"
+      },
+      "source_line": 3,
+      "source_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl",
+      "source_sha256": "d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1"
+    },
+    {
+      "display": {
+        "provenance": {
+          "human_form_authority": "none",
+          "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md",
+          "source_summary_available": false,
+          "source_title_available": true,
+          "summary": "evidence-reference-navigation",
+          "title": "catalogued-research-lead-h1"
+        },
+        "summary": {
+          "default": "Repo path evidence reference: ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md. Return to ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md."
+        },
+        "summary_state": "metadata-synthesis",
+        "title": {
+          "default": "Jenseits 1886: commissioning episode — source-reading note v1"
+        }
+      },
+      "node_id": "evidence:sha256:3d07ab6cece0110ae641e4967f8fa2b448ca8c829400b09b1615872dbf8d5cf7",
+      "node_kind": "evidence",
+      "properties": {
+        "evidence_kind": "repo_path",
+        "evidence_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md",
+        "resolved": true
+      },
+      "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md",
+      "source_sha256": "d42bd276dc0b323e98283fa7f8e7514ed9267212aa2a5352ba9da54256e475b2"
+    },
+    {
+      "node_id": "identity:tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+      "node_kind": "identity",
+      "properties": {
+        "external_identifiers": [],
+        "field_languages": {
+          "notes": {
+            "language": "ru",
+            "script": "Cyrl"
+          },
+          "preferred_label": {
+            "language": "ru",
+            "script": "Cyrl"
+          }
+        },
+        "human_forms": [
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f",
+                    "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+                    "version": 2
+                  }
+                },
+                "slot": "context-0",
+                "value": "provisional"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f",
+                    "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+                    "version": 2
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              },
+              {
+                "binding": {
+                  "pointer": "/field_languages/preferred_label",
+                  "record": {
+                    "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f",
+                    "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+                    "version": 2
+                  }
+                },
+                "slot": "context-2",
+                "value": {
+                  "language": "ru",
+                  "script": "Cyrl"
+                }
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f",
+                "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+                "version": 2
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "Сообщаемый заказ Ницше по «По ту сторону добра и зла», 3 июня 1886",
+            "form": {
+              "digest": "sha256:044e9429074644b794779565a6267ef530b78a791c31b052097a02721ddebde3",
+              "id": "tos.form.jenseits-1886-commission.name-ru",
+              "version": 2
+            },
+            "issues": [],
+            "language": "ru",
+            "performs_semantic_assessment": false,
+            "role": "name",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": "Cyrl",
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f",
+              "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+              "version": 2
+            }
+          },
+          {
+            "admission": null,
+            "context": [
+              {
+                "binding": {
+                  "pointer": "/identity_status",
+                  "record": {
+                    "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f",
+                    "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+                    "version": 2
+                  }
+                },
+                "slot": "context-0",
+                "value": "provisional"
+              },
+              {
+                "binding": {
+                  "pointer": "/same_as_posture",
+                  "record": {
+                    "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f",
+                    "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+                    "version": 2
+                  }
+                },
+                "slot": "context-1",
+                "value": "no_equivalence_claim"
+              },
+              {
+                "binding": {
+                  "pointer": "/field_languages/notes",
+                  "record": {
+                    "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f",
+                    "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+                    "version": 2
+                  }
+                },
+                "slot": "context-2",
+                "value": {
+                  "language": "ru",
+                  "script": "Cyrl"
+                }
+              }
+            ],
+            "dependencies": [
+              {
+                "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f",
+                "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+                "version": 2
+              }
+            ],
+            "derivation": "source-copy",
+            "display_text": "По сообщению Андреаса Урса Зоммера (2016, с. 6), 3 июня 1886 года Ницше принял предложение Наумана и поручил немедленно начать работу над изданием «По ту сторону добра и зла». Это атрибутированное исследовательское описание, а не буквальная формулировка письма. В отдельно прочитанном критическом тексте eKGWB, письмо № 705, Ницше соглашается на бумагу и просит ускорить печать; название книги в прочитанном тексте не указано. Связь с книгой и характеристика начала работы остаются сообщением Зоммера. Архивная запись 4752 связывает письмо с GSA 71/BW 291,1, лист 8; обе цифровые стороны просмотрены, но полная независимая палеографическая сверка не выполнена. Критический текст, архивное описание и изображения не являются независимыми письмами-свидетельствами. Первоначальные Claim сохраняют прежний статус; эта версия описания не даёт содержательного допуска. Дата заказа не означает дату выхода книги; письмо, его носитель, участники, место и среда ещё требуют самостоятельных адресуемых записей и утверждений.",
+            "form": {
+              "digest": "sha256:13f603676b19774342b11ffe77773b22710f7863ae30f984ac584a3afbfb6901",
+              "id": "tos.form.jenseits-1886-commission.hover-ru",
+              "version": 2
+            },
+            "issues": [],
+            "language": "ru",
+            "performs_semantic_assessment": false,
+            "role": "hover",
+            "schema_version": "tos_human_form_materialization_v1",
+            "script": "Cyrl",
+            "standalone_reading": false,
+            "state": "ready",
+            "subject": {
+              "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f",
+              "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+              "version": 2
+            }
+          }
+        ],
+        "human_forms_source_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.human-forms.json",
+        "identity_kind": "historical-event",
+        "identity_ref": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+        "identity_status": "provisional",
+        "notes": "По сообщению Андреаса Урса Зоммера (2016, с. 6), 3 июня 1886 года Ницше принял предложение Наумана и поручил немедленно начать работу над изданием «По ту сторону добра и зла». Это атрибутированное исследовательское описание, а не буквальная формулировка письма. В отдельно прочитанном критическом тексте eKGWB, письмо № 705, Ницше соглашается на бумагу и просит ускорить печать; название книги в прочитанном тексте не указано. Связь с книгой и характеристика начала работы остаются сообщением Зоммера. Архивная запись 4752 связывает письмо с GSA 71/BW 291,1, лист 8; обе цифровые стороны просмотрены, но полная независимая палеографическая сверка не выполнена. Критический текст, архивное описание и изображения не являются независимыми письмами-свидетельствами. Первоначальные Claim сохраняют прежний статус; эта версия описания не даёт содержательного допуска. Дата заказа не означает дату выхода книги; письмо, его носитель, участники, место и среда ещё требуют самостоятельных адресуемых записей и утверждений.",
+        "preferred_label": "Сообщаемый заказ Ницше по «По ту сторону добра и зла», 3 июня 1886",
+        "record_id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+        "record_type": "historical-event",
+        "record_version": 2,
+        "same_as_posture": "no_equivalence_claim",
+        "schema_version": "tos_historical_record_v1",
+        "source_record": {
+          "external_identifiers": [],
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            },
+            "preferred_label": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "identity_status": "provisional",
+          "notes": "По сообщению Андреаса Урса Зоммера (2016, с. 6), 3 июня 1886 года Ницше принял предложение Наумана и поручил немедленно начать работу над изданием «По ту сторону добра и зла». Это атрибутированное исследовательское описание, а не буквальная формулировка письма. В отдельно прочитанном критическом тексте eKGWB, письмо № 705, Ницше соглашается на бумагу и просит ускорить печать; название книги в прочитанном тексте не указано. Связь с книгой и характеристика начала работы остаются сообщением Зоммера. Архивная запись 4752 связывает письмо с GSA 71/BW 291,1, лист 8; обе цифровые стороны просмотрены, но полная независимая палеографическая сверка не выполнена. Критический текст, архивное описание и изображения не являются независимыми письмами-свидетельствами. Первоначальные Claim сохраняют прежний статус; эта версия описания не даёт содержательного допуска. Дата заказа не означает дату выхода книги; письмо, его носитель, участники, место и среда ещё требуют самостоятельных адресуемых записей и утверждений.",
+          "preferred_label": "Сообщаемый заказ Ницше по «По ту сторону добра и зла», 3 июня 1886",
+          "record_id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+          "record_type": "historical-event",
+          "record_version": 2,
+          "same_as_posture": "no_equivalence_claim",
+          "schema_version": "tos_historical_record_v1",
+          "source_refs": [
+            "https://digi.hadw-bw.de/view/nietzsche_kom5_1/0026",
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md",
+            "https://www.nietzschesource.org/texts/eKGWB/BVN-1886",
+            "https://ores.klassik-stiftung.de/ords/f?p=406:2:::::P2_ID:4752",
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md"
+          ],
+          "variant_labels": [],
+          "visibility": "public_metadata_only"
+        },
+        "source_refs": [
+          "https://digi.hadw-bw.de/view/nietzsche_kom5_1/0026",
+          "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md",
+          "https://www.nietzschesource.org/texts/eKGWB/BVN-1886",
+          "https://ores.klassik-stiftung.de/ords/f?p=406:2:::::P2_ID:4752",
+          "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md"
+        ],
+        "variant_labels": [],
+        "visibility": "public_metadata_only"
+      },
+      "source_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.json",
+      "source_sha256": "0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f"
+    },
+    {
+      "node_id": "literal:sha256:1bc02adcc7898645501583db110657c0af62a06733e9de7411f1f3d3331ac8fc",
+      "node_kind": "literal",
+      "properties": {
+        "claim_ref": "tos.claim.jenseits-1886-commission.date",
+        "value": {
+          "calendar": "proleptic-gregorian",
+          "certainty": "exact",
+          "kind": "date-assertion",
+          "role": "historical-time",
+          "source_wording": {
+            "language": "de",
+            "text": "03. 06.1886"
+          },
+          "value": "1886-06-03",
+          "year_numbering": "astronomical"
+        },
+        "value_sha256": "441576fa34004e3c962183b7b81496d9eeefef27cb71bfc87ecd8fd1428a5c7e",
+        "value_type": "object"
+      },
+      "source_line": 3,
+      "source_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl",
+      "source_sha256": "d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1"
+    },
+    {
+      "node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "node_kind": "maker",
+      "properties": {
+        "agent_ref": "model:codex",
+        "identity_node_id": null,
+        "maker_type": "model",
+        "source_maker": {
+          "agent_ref": "model:codex",
+          "maker_type": "model"
+        }
+      },
+      "source_ref": "ToS/source-witnesses/catalog/claims.jsonl",
+      "source_sha256": "2cc15f1d0c2152a3984c0aa490dbdc60aa1682768139a1ae1669fd5e8c53be14"
+    },
+    {
+      "node_id": "provenance_event:tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+      "node_kind": "provenance_event",
+      "properties": {
+        "$schema": "https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json",
+        "activity": {
+          "ended_at": "2026-09-07T04:51:59.393380+00:00",
+          "event_type": "annotation",
+          "exit_code": 0,
+          "started_at": "2026-09-07T04:51:58.849738+00:00",
+          "status": "completed_with_warnings",
+          "terminal_reason": null,
+          "warnings": [
+            "Completed serialization only; atomic publication occurs afterward.",
+            "Buffer hashes are captured; independent stored-byte fixity is not attested."
+          ]
+        },
+        "agent_refs": [
+          "software:tos-source-commands"
+        ],
+        "authority_boundary": {
+          "claims_not_established": [
+            "execution_truth",
+            "content_truth",
+            "source_fidelity",
+            "translation_quality",
+            "semantic_correctness",
+            "rights_clearance",
+            "human_review",
+            "publication_authority",
+            "canon_authority"
+          ],
+          "validator_role": "mechanics_and_closure_only_not_truth"
+        },
+        "derivations": [
+          {
+            "derivation_id": "tos.derivation.source-creation.jenseits-1886-commission.2026-09-07.output-0",
+            "description": "Technical metadata selection and serialization from the supplied request, not historical influence.",
+            "influence_asserted": true,
+            "input_entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-request.json",
+            "output_entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.json",
+            "relation": "was_derived_from"
+          },
+          {
+            "derivation_id": "tos.derivation.source-creation.jenseits-1886-commission.2026-09-07.output-1",
+            "description": "Technical metadata selection and serialization from the supplied request, not historical influence.",
+            "influence_asserted": true,
+            "input_entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-request.json",
+            "output_entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.human-forms.json",
+            "relation": "was_derived_from"
+          },
+          {
+            "derivation_id": "tos.derivation.source-creation.jenseits-1886-commission.2026-09-07.output-2",
+            "description": "Technical metadata selection and serialization from the supplied request, not historical influence.",
+            "influence_asserted": true,
+            "input_entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-request.json",
+            "output_entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl",
+            "relation": "was_derived_from"
+          }
+        ],
+        "ended_at": "2026-09-07T04:51:59.393380+00:00",
+        "entities": {
+          "byproducts": [
+            {
+              "availability": "owner_local",
+              "content_disclosure": "public_metadata_only",
+              "entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-environment.json",
+              "fixity_verified": false,
+              "fixity_verified_at": null,
+              "media_type": "application/json",
+              "role": "runtime-description",
+              "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+              "size_bytes": 244
+            }
+          ],
+          "inputs": [
+            {
+              "availability": "owner_local",
+              "content_disclosure": "public_metadata_only",
+              "entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-request.json",
+              "fixity_verified": false,
+              "fixity_verified_at": null,
+              "media_type": "application/json",
+              "role": "caller-supplied-metadata-request",
+              "sha256": "a2202ec14fa92ac8b3f56fb1c590ea6b6d816fa2579ee010d5d9db0b0deff730",
+              "size_bytes": 5263
+            }
+          ],
+          "outputs": [
+            {
+              "availability": "owner_local",
+              "content_disclosure": "public_metadata_only",
+              "entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.json",
+              "fixity_verified": false,
+              "fixity_verified_at": null,
+              "media_type": "application/json",
+              "role": "serialized-source-metadata",
+              "sha256": "46c3eaf610c0361affa53cfe93c558dcee300f7ae3cb98518f81a600eb803e7e",
+              "size_bytes": 1504
+            },
+            {
+              "availability": "owner_local",
+              "content_disclosure": "public_metadata_only",
+              "entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.human-forms.json",
+              "fixity_verified": false,
+              "fixity_verified_at": null,
+              "media_type": "application/json",
+              "role": "serialized-source-metadata",
+              "sha256": "c33b66b15f73cff90d7b0afbbfec2edd0403c5627a37357c6e72adad68bf5d45",
+              "size_bytes": 3403
+            },
+            {
+              "availability": "owner_local",
+              "content_disclosure": "public_metadata_only",
+              "entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl",
+              "fixity_verified": false,
+              "fixity_verified_at": null,
+              "media_type": "application/x-ndjson",
+              "role": "serialized-source-metadata",
+              "sha256": "8bd7297069811bdd3387e8c6ee94a808be1a278028bf249c8954a030f8282636",
+              "size_bytes": 3209
+            }
+          ]
+        },
+        "event_id": "tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+        "event_ref": "tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+        "event_type": "annotation",
+        "event_version": 1,
+        "evidence_authentication": {
+          "capture_posture": "tool_captured",
+          "producer_control_boundary": "The same unsigned process serializes and records; hashes do not authenticate execution truth.",
+          "signature_bindings": [],
+          "signature_status": "unsigned",
+          "verification_status": "unverified"
+        },
+        "manual_changes": {
+          "change_receipts": [],
+          "statement": "No manual editing inside this serialization operation; caller authorship is outside its scope.",
+          "status": "none_declared"
+        },
+        "measurements": [
+          {
+            "evidence_binding": null,
+            "method": "perf_counter_ns from pre-serialization validation through capture; excludes staging and commit.",
+            "metric": "wall_duration_ms",
+            "status": "measured",
+            "unit": "ms",
+            "value": 543.74455
+          }
+        ],
+        "method": {
+          "command_capture": {
+            "argv": null,
+            "argv_sha256": "34eb041f8bf17e7073ded6535fe66b87e20860548d927f29e733667f4fa0a2eb",
+            "disclosure": "withheld_digest_only",
+            "withholding_reason": "Process argv can contain private owner configuration paths; request is bound separately."
+          },
+          "configuration_binding": {
+            "ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-request.json",
+            "sha256": "a2202ec14fa92ac8b3f56fb1c590ea6b6d816fa2579ee010d5d9db0b0deff730"
+          },
+          "environment": {
+            "backend": "python-standard-library-and-jsonschema",
+            "environment_profile_binding": {
+              "ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-environment.json",
+              "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3"
+            },
+            "hardware_target": "cpu",
+            "runtime": "CPython",
+            "runtime_artifact_sha256": "0d64bd6d66d68dac91cdadafc46e22d4f09f22bdc997aaae870f42865b024a3e",
+            "runtime_version": "3.14.7",
+            "unicode_version": "16.0.0"
+          },
+          "model_invocations": [],
+          "procedure": {
+            "name": "historical-source-metadata-serialization",
+            "purpose": "Serialize supplied historical metadata and source-copy forms without judging their content.",
+            "version": "2"
+          },
+          "software_components": [
+            {
+              "artifact_ref": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+              "artifact_sha256": "1ff4b7020ca6bf65b7b231615dc7f680b9dd9189f994794ba46cf82cea1f286e",
+              "name": "ToS source commands",
+              "role": "serialization-runner",
+              "verification_status": "verified",
+              "version": "2"
+            },
+            {
+              "artifact_ref": "runtime:python-executable",
+              "artifact_sha256": "0d64bd6d66d68dac91cdadafc46e22d4f09f22bdc997aaae870f42865b024a3e",
+              "name": "CPython",
+              "role": "language-runtime",
+              "verification_status": "verified",
+              "version": "3.14.7"
+            }
+          ]
+        },
+        "record_binding": {
+          "digest_algorithm": "sha256",
+          "digest_scope": "exact_event_record_bytes",
+          "manifest_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-receipt.json"
+        },
+        "reproducibility": {
+          "classification": "partially_specified",
+          "known_gaps": [
+            "Upstream research, source reading and model invocations are not captured by this operation.",
+            "Dependencies are bound by the creation receipt; no complete runtime environment is archived.",
+            "Runtime timestamps and durations are not deterministic."
+          ],
+          "replay_scope": "Supplied JSON and source-copy serialization only; not historical or semantic correctness."
+        },
+        "responsibility": [
+          {
+            "agent_kind": "software",
+            "agent_ref": "software:tos-source-commands",
+            "evidence_binding": {
+              "ref": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+              "sha256": "1ff4b7020ca6bf65b7b231615dc7f680b9dd9189f994794ba46cf82cea1f286e"
+            },
+            "human_evidence_status": "not_applicable",
+            "responsibility_posture": "performed",
+            "role": "executor"
+          }
+        ],
+        "review_and_authority": {
+          "accepted_uses": [],
+          "competence_evidence_bindings": [],
+          "human_review_status": "not_performed",
+          "mechanical_validation": "not_run",
+          "promotion_authorized": false,
+          "review_bindings": []
+        },
+        "rights_and_visibility": {
+          "content_visibility": "tracked_public_metadata",
+          "intended_uses": [
+            "local_research",
+            "public_metadata"
+          ],
+          "publication_authority_bindings": [],
+          "publication_authorized": false,
+          "rights_record_bindings": []
+        },
+        "schema_version": "tos_provenance_event_v2",
+        "source_event": {
+          "$schema": "https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json",
+          "activity": {
+            "ended_at": "2026-09-07T04:51:59.393380+00:00",
+            "event_type": "annotation",
+            "exit_code": 0,
+            "started_at": "2026-09-07T04:51:58.849738+00:00",
+            "status": "completed_with_warnings",
+            "terminal_reason": null,
+            "warnings": [
+              "Completed serialization only; atomic publication occurs afterward.",
+              "Buffer hashes are captured; independent stored-byte fixity is not attested."
+            ]
+          },
+          "authority_boundary": {
+            "claims_not_established": [
+              "execution_truth",
+              "content_truth",
+              "source_fidelity",
+              "translation_quality",
+              "semantic_correctness",
+              "rights_clearance",
+              "human_review",
+              "publication_authority",
+              "canon_authority"
+            ],
+            "validator_role": "mechanics_and_closure_only_not_truth"
+          },
+          "derivations": [
+            {
+              "derivation_id": "tos.derivation.source-creation.jenseits-1886-commission.2026-09-07.output-0",
+              "description": "Technical metadata selection and serialization from the supplied request, not historical influence.",
+              "influence_asserted": true,
+              "input_entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-request.json",
+              "output_entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.json",
+              "relation": "was_derived_from"
+            },
+            {
+              "derivation_id": "tos.derivation.source-creation.jenseits-1886-commission.2026-09-07.output-1",
+              "description": "Technical metadata selection and serialization from the supplied request, not historical influence.",
+              "influence_asserted": true,
+              "input_entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-request.json",
+              "output_entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.human-forms.json",
+              "relation": "was_derived_from"
+            },
+            {
+              "derivation_id": "tos.derivation.source-creation.jenseits-1886-commission.2026-09-07.output-2",
+              "description": "Technical metadata selection and serialization from the supplied request, not historical influence.",
+              "influence_asserted": true,
+              "input_entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-request.json",
+              "output_entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl",
+              "relation": "was_derived_from"
+            }
+          ],
+          "entities": {
+            "byproducts": [
+              {
+                "availability": "owner_local",
+                "content_disclosure": "public_metadata_only",
+                "entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-environment.json",
+                "fixity_verified": false,
+                "fixity_verified_at": null,
+                "media_type": "application/json",
+                "role": "runtime-description",
+                "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+                "size_bytes": 244
+              }
+            ],
+            "inputs": [
+              {
+                "availability": "owner_local",
+                "content_disclosure": "public_metadata_only",
+                "entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-request.json",
+                "fixity_verified": false,
+                "fixity_verified_at": null,
+                "media_type": "application/json",
+                "role": "caller-supplied-metadata-request",
+                "sha256": "a2202ec14fa92ac8b3f56fb1c590ea6b6d816fa2579ee010d5d9db0b0deff730",
+                "size_bytes": 5263
+              }
+            ],
+            "outputs": [
+              {
+                "availability": "owner_local",
+                "content_disclosure": "public_metadata_only",
+                "entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.json",
+                "fixity_verified": false,
+                "fixity_verified_at": null,
+                "media_type": "application/json",
+                "role": "serialized-source-metadata",
+                "sha256": "46c3eaf610c0361affa53cfe93c558dcee300f7ae3cb98518f81a600eb803e7e",
+                "size_bytes": 1504
+              },
+              {
+                "availability": "owner_local",
+                "content_disclosure": "public_metadata_only",
+                "entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.human-forms.json",
+                "fixity_verified": false,
+                "fixity_verified_at": null,
+                "media_type": "application/json",
+                "role": "serialized-source-metadata",
+                "sha256": "c33b66b15f73cff90d7b0afbbfec2edd0403c5627a37357c6e72adad68bf5d45",
+                "size_bytes": 3403
+              },
+              {
+                "availability": "owner_local",
+                "content_disclosure": "public_metadata_only",
+                "entity_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl",
+                "fixity_verified": false,
+                "fixity_verified_at": null,
+                "media_type": "application/x-ndjson",
+                "role": "serialized-source-metadata",
+                "sha256": "8bd7297069811bdd3387e8c6ee94a808be1a278028bf249c8954a030f8282636",
+                "size_bytes": 3209
+              }
+            ]
+          },
+          "event_id": "tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+          "event_version": 1,
+          "evidence_authentication": {
+            "capture_posture": "tool_captured",
+            "producer_control_boundary": "The same unsigned process serializes and records; hashes do not authenticate execution truth.",
+            "signature_bindings": [],
+            "signature_status": "unsigned",
+            "verification_status": "unverified"
+          },
+          "manual_changes": {
+            "change_receipts": [],
+            "statement": "No manual editing inside this serialization operation; caller authorship is outside its scope.",
+            "status": "none_declared"
+          },
+          "measurements": [
+            {
+              "evidence_binding": null,
+              "method": "perf_counter_ns from pre-serialization validation through capture; excludes staging and commit.",
+              "metric": "wall_duration_ms",
+              "status": "measured",
+              "unit": "ms",
+              "value": 543.74455
+            }
+          ],
+          "method": {
+            "command_capture": {
+              "argv": null,
+              "argv_sha256": "34eb041f8bf17e7073ded6535fe66b87e20860548d927f29e733667f4fa0a2eb",
+              "disclosure": "withheld_digest_only",
+              "withholding_reason": "Process argv can contain private owner configuration paths; request is bound separately."
+            },
+            "configuration_binding": {
+              "ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-request.json",
+              "sha256": "a2202ec14fa92ac8b3f56fb1c590ea6b6d816fa2579ee010d5d9db0b0deff730"
+            },
+            "environment": {
+              "backend": "python-standard-library-and-jsonschema",
+              "environment_profile_binding": {
+                "ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-environment.json",
+                "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3"
+              },
+              "hardware_target": "cpu",
+              "runtime": "CPython",
+              "runtime_artifact_sha256": "0d64bd6d66d68dac91cdadafc46e22d4f09f22bdc997aaae870f42865b024a3e",
+              "runtime_version": "3.14.7",
+              "unicode_version": "16.0.0"
+            },
+            "model_invocations": [],
+            "procedure": {
+              "name": "historical-source-metadata-serialization",
+              "purpose": "Serialize supplied historical metadata and source-copy forms without judging their content.",
+              "version": "2"
+            },
+            "software_components": [
+              {
+                "artifact_ref": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+                "artifact_sha256": "1ff4b7020ca6bf65b7b231615dc7f680b9dd9189f994794ba46cf82cea1f286e",
+                "name": "ToS source commands",
+                "role": "serialization-runner",
+                "verification_status": "verified",
+                "version": "2"
+              },
+              {
+                "artifact_ref": "runtime:python-executable",
+                "artifact_sha256": "0d64bd6d66d68dac91cdadafc46e22d4f09f22bdc997aaae870f42865b024a3e",
+                "name": "CPython",
+                "role": "language-runtime",
+                "verification_status": "verified",
+                "version": "3.14.7"
+              }
+            ]
+          },
+          "record_binding": {
+            "digest_algorithm": "sha256",
+            "digest_scope": "exact_event_record_bytes",
+            "manifest_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-receipt.json"
+          },
+          "reproducibility": {
+            "classification": "partially_specified",
+            "known_gaps": [
+              "Upstream research, source reading and model invocations are not captured by this operation.",
+              "Dependencies are bound by the creation receipt; no complete runtime environment is archived.",
+              "Runtime timestamps and durations are not deterministic."
+            ],
+            "replay_scope": "Supplied JSON and source-copy serialization only; not historical or semantic correctness."
+          },
+          "responsibility": [
+            {
+              "agent_kind": "software",
+              "agent_ref": "software:tos-source-commands",
+              "evidence_binding": {
+                "ref": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+                "sha256": "1ff4b7020ca6bf65b7b231615dc7f680b9dd9189f994794ba46cf82cea1f286e"
+              },
+              "human_evidence_status": "not_applicable",
+              "responsibility_posture": "performed",
+              "role": "executor"
+            }
+          ],
+          "review_and_authority": {
+            "accepted_uses": [],
+            "competence_evidence_bindings": [],
+            "human_review_status": "not_performed",
+            "mechanical_validation": "not_run",
+            "promotion_authorized": false,
+            "review_bindings": []
+          },
+          "rights_and_visibility": {
+            "content_visibility": "tracked_public_metadata",
+            "intended_uses": [
+              "local_research",
+              "public_metadata"
+            ],
+            "publication_authority_bindings": [],
+            "publication_authorized": false,
+            "rights_record_bindings": []
+          },
+          "schema_version": "tos_provenance_event_v2",
+          "supersedes_event_ref": null
+        },
+        "started_at": "2026-09-07T04:51:58.849738+00:00",
+        "status": "completed_with_warnings",
+        "supersedes_event_ref": null
+      },
+      "source_line": 1,
+      "source_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/source-create-provenance.jsonl",
+      "source_sha256": "7041c03452456d744eeb29d90283b721f17e9e9159afd737da63dd90505f90f1"
+    }
+  ],
+  "edges": [
+    {
+      "claim_ref": "tos.claim.jenseits-1886-commission.date",
+      "claim_sha256": "d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+      "edge_id": "edge:tos.claim.jenseits-1886-commission.date:generated_by:004",
+      "edge_kind": "generated_by",
+      "evidence_node_ids": [
+        "evidence:sha256:3d07ab6cece0110ae641e4967f8fa2b448ca8c829400b09b1615872dbf8d5cf7"
+      ],
+      "from_id": "claim:tos.claim.jenseits-1886-commission.date",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl",
+      "source_claim_line": 3,
+      "to_id": "provenance_event:tos.event.source-creation.jenseits-1886-commission.2026-09-07"
+    },
+    {
+      "claim_ref": "tos.claim.jenseits-1886-commission.date",
+      "claim_sha256": "d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+      "edge_id": "edge:tos.claim.jenseits-1886-commission.date:has_object:002",
+      "edge_kind": "has_object",
+      "evidence_node_ids": [
+        "evidence:sha256:3d07ab6cece0110ae641e4967f8fa2b448ca8c829400b09b1615872dbf8d5cf7"
+      ],
+      "from_id": "claim:tos.claim.jenseits-1886-commission.date",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl",
+      "source_claim_line": 3,
+      "to_id": "literal:sha256:1bc02adcc7898645501583db110657c0af62a06733e9de7411f1f3d3331ac8fc"
+    },
+    {
+      "claim_ref": "tos.claim.jenseits-1886-commission.date",
+      "claim_sha256": "d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+      "edge_id": "edge:tos.claim.jenseits-1886-commission.date:has_subject:001",
+      "edge_kind": "has_subject",
+      "evidence_node_ids": [
+        "evidence:sha256:3d07ab6cece0110ae641e4967f8fa2b448ca8c829400b09b1615872dbf8d5cf7"
+      ],
+      "from_id": "claim:tos.claim.jenseits-1886-commission.date",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl",
+      "source_claim_line": 3,
+      "to_id": "identity:tos.historical-event.friedrich-nietzsche.jenseits-1886-commission"
+    },
+    {
+      "claim_ref": "tos.claim.jenseits-1886-commission.date",
+      "claim_sha256": "d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+      "edge_id": "edge:tos.claim.jenseits-1886-commission.date:made_by:003",
+      "edge_kind": "made_by",
+      "evidence_node_ids": [
+        "evidence:sha256:3d07ab6cece0110ae641e4967f8fa2b448ca8c829400b09b1615872dbf8d5cf7"
+      ],
+      "from_id": "claim:tos.claim.jenseits-1886-commission.date",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl",
+      "source_claim_line": 3,
+      "to_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d"
+    },
+    {
+      "claim_ref": "tos.claim.jenseits-1886-commission.date",
+      "claim_sha256": "d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+      "edge_id": "edge:tos.claim.jenseits-1886-commission.date:supported_by:005",
+      "edge_kind": "supported_by",
+      "evidence_node_ids": [
+        "evidence:sha256:3d07ab6cece0110ae641e4967f8fa2b448ca8c829400b09b1615872dbf8d5cf7"
+      ],
+      "from_id": "claim:tos.claim.jenseits-1886-commission.date",
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "provenance_event_node_id": "provenance_event:tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl",
+      "source_claim_line": 3,
+      "to_id": "evidence:sha256:3d07ab6cece0110ae641e4967f8fa2b448ca8c829400b09b1615872dbf8d5cf7"
+    }
+  ],
+  "claim_traces": [
+    {
+      "alternative_claim_refs": [],
+      "assertion_layer": "scholarly_report",
+      "claim_node_id": "claim:tos.claim.jenseits-1886-commission.date",
+      "claim_ref": "tos.claim.jenseits-1886-commission.date",
+      "claim_sha256": "d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+      "confidence": null,
+      "counterevidence_node_ids": [],
+      "counterevidence_refs": [],
+      "edge_ids": [
+        "edge:tos.claim.jenseits-1886-commission.date:generated_by:004",
+        "edge:tos.claim.jenseits-1886-commission.date:has_object:002",
+        "edge:tos.claim.jenseits-1886-commission.date:has_subject:001",
+        "edge:tos.claim.jenseits-1886-commission.date:made_by:003",
+        "edge:tos.claim.jenseits-1886-commission.date:supported_by:005"
+      ],
+      "epistemic_status": "reported",
+      "evidence_node_ids": [
+        "evidence:sha256:3d07ab6cece0110ae641e4967f8fa2b448ca8c829400b09b1615872dbf8d5cf7"
+      ],
+      "maker_node_id": "maker:sha256:2b24bf1de02fe18b2efc415d7187880e9f7f47ee7be5934a03451b0e9720644d",
+      "normalized_identity_node_ids": [],
+      "object_node_id": "literal:sha256:1bc02adcc7898645501583db110657c0af62a06733e9de7411f1f3d3331ac8fc",
+      "predicate": "historical_dating",
+      "provenance_event_node_id": "provenance_event:tos.event.source-creation.jenseits-1886-commission.2026-09-07",
+      "qualifiers": {
+        "attribution": "Sommer 2016, p. 6, citing KSB 7 / KGB III/3 no. 705 p. 193",
+        "calendar_posture": "explicit adapter normalization, not a calendar statement in the letter",
+        "date_scope": "reported commissioning action, not publication",
+        "display_fields": {
+          "caption": {
+            "language": "ru",
+            "script": "Cyrl",
+            "text": "По Зоммеру: заказ — 03. 06.1886"
+          },
+          "hover": {
+            "language": "ru",
+            "script": "Cyrl",
+            "text": "Сообщаемая дата заказа, не публикации. Календарь и нумерация лет заданы адаптером, не письмом; точность до дня не доказывает датировку."
+          },
+          "name": {
+            "language": "ru",
+            "script": "Cyrl",
+            "text": "Дата заказа: сообщение Зоммера"
+          },
+          "schema_version": "tos_claim_display_fields_v1"
+        },
+        "primary_letter_inspected": false,
+        "provenance_scope": "serialization-only; upstream model research is not execution-attested",
+        "statement": "Сообщаемый эпизод заказа датирован «03. 06.1886» по Зоммеру (2016, с. 6), с отсылкой к KSB 7 / KGB III/3, письмо № 705, с. 193. Это дата сообщаемого заказа, не дата публикации. Значение 1886-06-03, пролептический григорианский календарь и астрономическая нумерация лет сохраняют явную нормализацию адаптера, а не календарное указание письма; точность до дня не доказывает истинность датировки. Исходное основание не включало проверку первичного письма; provenance удостоверяет сериализацию, а не выполнение первоначального модельного исследования.",
+        "statement_language": "ru",
+        "statement_script": "Cyrl"
+      },
+      "review_node_ids": [],
+      "review_status": "unreviewed",
+      "source_claim_file_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl",
+      "source_claim_line": 3,
+      "source_claim_sha256": "d51c0b42b22565c18c3cbb969cb695e2e18082e356b9f5f2eb80a2a33e1768a1",
+      "subject_node_id": "identity:tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+      "supersedes_claim_ref": null,
+      "visibility": "public_metadata_only"
+    }
+  ]
+}

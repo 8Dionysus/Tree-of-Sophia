@@ -220,7 +220,7 @@
         "surface": {"type": "string", "format": "uri"},
         "byte_size": {"type": "integer", "minimum": 1},
         "sha256": {"$ref": "#/$defs/sha256"},
-        "captured": {"const": false}
+        "captured": {"type": "boolean", "description": "Whether these exact catalog response bytes were retained. Capture is distinct from public availability, inscription acquisition, rights, or admission; the discovery record owns the snapshot account."}
       }
     },
     "bibliographicReference": {

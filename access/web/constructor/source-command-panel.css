@@ -1,0 +1,5 @@
+.source-command-panel,.source-command-panel form,.source-command-panel label{display:grid;gap:12px}
+.source-command-panel label{gap:6px;font-size:13px}
+.source-command-panel input,.source-command-panel select{box-sizing:border-box;max-width:100%;width:100%;min-width:0}
+.source-command-panel button{justify-self:start}
+.source-command-panel pre{max-width:100%;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}

@@ -6,10 +6,26 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
+from urllib.parse import urlsplit
+import unicodedata
 
 from jsonschema import Draft202012Validator
+from referencing import Registry, Resource
+from source_metadata_snapshot import PublicationSnapshot, PublicationChanged, PublicationStateError, _read_owned
+from source_witness_human_forms import AssessedFormSnapshot, load_metadata_forms, load_claim_forms
+from source_object_link_read import LegacyObjectLinkReader
+from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, SourceProfileError,
+                                    SOURCE_CLAIM_BASENAME, CLAIM_REGISTRY_REF, CLAIM_CONTRACT_REF,
+                                    ground_collection_order,
+                                    _read_json as _read_profile_json)
+from build_source_witness_catalog import (OPTIONAL_RECORD_FILES, ADAPTED_RECORD_FILES,
+                                         CatalogBuildError, artifact_catalog_entry, load_artifact_record, load_link_record,
+                                         artifact_display_fields, composite_catalog_entry,
+                                         load_composite_record, composite_display_fields, COMPOSITE_SCHEMA,
+                                         verify_catalog_publication)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -48,6 +64,36 @@ VALIDATION_REFS = (
     "scripts/validate_source_witness_bibliographic_graph.py",
     "tests/test_source_witness_bibliographic_graph.py",
 )
+HISTORICAL_PREDICATES = {'historical_participant', 'historical_place', 'historical_work', 'historical_dating'}
+HISTORICAL_REGISTRY_REFS = (
+    'ToS/doctrine/semantic-interchange/entity-types.v1.json',
+    'ToS/doctrine/semantic-interchange/relation-types.v1.json',
+)
+
+
+def historical_schema_validator(repo_root: Path, *, claim: bool = False, read_json=None) -> Draft202012Validator:
+    names = (('claim-packet.schema.json', 'knowledge-assessment.schema.json', 'historical-claim.schema.json')
+             if claim else ('corpus-record.schema.json', 'historical-record.schema.json'))
+    read = read_json if read_json is not None else lambda ref: load_json(repo_root / ref)
+    schemas = [read('ToS/contracts/' + name) for name in names]
+    registry = Registry().with_resources((schema['$id'], Resource.from_contents(schema)) for schema in schemas)
+    return Draft202012Validator(schemas[-1], registry=registry)
+
+
+def _object_catalog_refs(repo_root: Path, profiles: SourceRecordProfiles | None = None) -> dict[str, str]:
+    declared = load_json(repo_root / CATALOG_MANIFEST_REF).get('record_files', {})
+    refs = dict(OBJECT_CATALOG_REFS)
+    profiles = profiles or SourceRecordProfiles(repo_root)
+    allowed = {*OBJECT_CATALOG_REFS, 'link', *profiles.catalog_files, *ADAPTED_RECORD_FILES}
+    if set(declared) - allowed:
+        raise BibliographicGraphBuildError('catalog contains a family without an understood source profile')
+    for kind, filename in {'link': 'links.jsonl', **profiles.catalog_files, **ADAPTED_RECORD_FILES}.items():
+        if kind in declared:
+            expected = (CATALOG_ROOT / filename).as_posix()
+            if declared[kind] != expected:
+                raise BibliographicGraphBuildError(f'{kind}: unexpected extension catalog path')
+            refs[kind] = expected
+    return refs
 
 
 class BibliographicGraphBuildError(ValueError):
@@ -60,6 +106,254 @@ def canonical_json(value: Any) -> str:
 
 def canonical_digest(value: Any) -> str:
     return hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
+
+
+def load_claim_navigation_registry(repo_root: Path, *, read_json=None) -> dict[str, Any]:
+    """Read the declared syntax contract even when every Claim is legacy.
+
+    The template is source-owned finite text. Schema and semantic checks are
+    independent of source-profile presence and cannot select executable code.
+    """
+    try:
+        read = read_json if read_json is not None else lambda ref: _read_profile_json(repo_root, ref)
+        registry = read(CLAIM_REGISTRY_REF)
+        contract = read(CLAIM_CONTRACT_REF)
+    except SourceProfileError as exc:
+        raise BibliographicGraphBuildError(str(exc)) from exc
+    if not Draft202012Validator(contract).is_valid(registry):
+        raise BibliographicGraphBuildError('claim navigation relation registry violates its source contract')
+    template = registry.get('claim_navigation_template')
+    if template is None:
+        return registry
+    languages = set(template['renderings'])
+    folded = {language.casefold() for language in languages}
+    slots = {'claim-marker', 'subject-label', 'predicate-label', 'object-label',
+             'declared-epistemic-status', 'declared-review-status'}
+    language_maps = [template['marker'], *(
+        labels for statuses in template['status_labels'].values() for labels in statuses.values())]
+    if (len(folded) != len(languages) or folded & {'default', 'original', 'auto'}
+            or template['default_language'] not in languages
+            or any(set(labels) != languages for labels in language_maps)
+            or any(not label.strip() for labels in language_maps for label in labels.values())
+            or any(parts[0] != {'slot': 'claim-marker'}
+                   or Counter(part['slot'] for part in parts if 'slot' in part) != Counter(slots)
+                   for parts in template['renderings'].values())):
+        raise BibliographicGraphBuildError('claim navigation template has incomplete or ambiguous rendering slots/languages')
+    try:
+        canonical_json(template).encode('utf-8')
+    except UnicodeError as exc:
+        raise BibliographicGraphBuildError('claim navigation template is not UTF-8 text') from exc
+    return registry
+
+
+def _navigation_source_endpoint(node: dict[str, Any], identity_ref: Any) -> dict[str, Any] | None:
+    """Bind a whole navigation name to exact source bytes, not a carrier label."""
+    properties = node.get('properties')
+    if not isinstance(properties, dict):
+        return None
+    source = properties.get('source_record')
+    if not isinstance(source, dict):
+        return None
+    schema_version = source.get('schema_version')
+    if not isinstance(schema_version, str) or not schema_version.strip():
+        return None
+    identity_field = {
+        'tos_artifact_source_witness_v1': 'artifact_id',
+        'tos_artifact_source_witness_v2': 'artifact_id',
+        'tos_scholarly_composite_witness_v1': 'composite_id',
+    }.get(schema_version, 'record_id')
+    version, source_ref = source.get('record_version'), node.get('source_ref')
+    if (not isinstance(identity_ref, str) or not identity_ref
+            or node.get('node_kind') != 'identity'
+            or node.get('node_id') != _node_id('identity', identity_ref)
+            or properties.get('identity_ref') != identity_ref
+            or source.get(identity_field) != identity_ref
+            or type(version) is not int or version < 1
+            or not isinstance(source_ref, str) or not source_ref.strip()):
+        return None
+    pointer = ('/custody/inventory_numbers/0' if identity_field == 'artifact_id'
+               else '/preferred_label')
+    if ('label_source_pointer' in properties and properties['label_source_pointer'] != pointer
+            or identity_field == 'artifact_id' and properties.get('label_source_pointer') != pointer):
+        return None
+    # Only owner-defined native adapters may choose a source-name field. A
+    # carrier-supplied pointer cannot turn arbitrary narrative into a title.
+    if identity_field == 'artifact_id':
+        custody = source.get('custody')
+        numbers = custody.get('inventory_numbers') if isinstance(custody, dict) else None
+        value = numbers[0] if isinstance(numbers, list) and numbers else None
+    else:
+        value = source.get('preferred_label')
+    if (not isinstance(value, str) or not value.strip()
+            or value in {identity_ref, source_ref}
+            or properties.get('preferred_label') != value):
+        return None
+    try:
+        digest = hashlib.sha256(json.dumps(source, ensure_ascii=False, sort_keys=True,
+                                           separators=(',', ':'), allow_nan=False).encode('utf-8')).hexdigest()
+    except (ValueError, UnicodeError):
+        return None
+    if node.get('source_sha256') != digest:
+        return None
+    return {'identity_ref': identity_ref, 'node_id': node['node_id'], 'source_ref': source_ref,
+            'record_version': version, 'sha256': digest, 'label_pointer': pointer, 'label': value}
+
+
+def _navigation_endpoint_types(
+    subject_node: dict[str, Any], object_node: dict[str, Any], relation: dict[str, Any],
+    entity_registry: dict[str, Any], *, object_kind: str | None = None,
+) -> bool:
+    """Exact source-kind mapping and parent closure; IDs never imply types."""
+    entries = entity_registry.get('types', [])
+    entities = {entry['type_id']: entry for entry in entries}
+    if len(entities) != len(entries):
+        return False
+
+    def ancestry(type_id: str, visiting: frozenset[str] = frozenset()) -> set[str] | None:
+        if type_id not in entities or type_id in visiting:
+            return None
+        result = {type_id}
+        for parent in entities[type_id]['parent_type_ids']:
+            inherited = ancestry(parent, visiting | {type_id})
+            if inherited is None:
+                return None
+            result.update(inherited)
+        return result
+
+    for node, allowed, override in ((subject_node, relation['domain_type_ids'], None),
+                                    (object_node, relation['range_type_ids'], object_kind)):
+        properties = node.get('properties')
+        kind = override or (properties.get('identity_kind') if isinstance(properties, dict) else None)
+        if not isinstance(properties, dict) or not isinstance(kind, str):
+            return False
+        mappings = [entry for entry in entries for mapping in entry['source_mappings']
+                    if mapping.get('source_graph') == 'source-claims'
+                    and mapping.get('source_kind_id') == kind]
+        if (len(mappings) != 1 or mappings[0].get('abstract') is not False
+                or any(type_id not in entities for type_id in allowed)):
+            return False
+        closure = ancestry(mappings[0]['type_id'])
+        if closure is None or not closure.intersection(allowed):
+            return False
+    return True
+
+
+def _navigation_time_endpoint(node: dict[str, Any], claim: dict[str, Any]) -> dict[str, Any] | None:
+    """Exact historical-time source wording, not a formatted/converted date."""
+    value = claim['object']
+    properties = node.get('properties') or {}
+    wording = value.get('source_wording')
+    if (not isinstance(properties, dict) or not isinstance(wording, dict) or not isinstance(wording.get('text'), str)
+            or not wording['text'].strip() or 'language' not in wording
+            or wording['language'] is not None and not isinstance(wording['language'], str)
+            or node.get('node_kind') != 'literal'
+            or node.get('node_id') != 'literal:sha256:' + canonical_digest({'claim_ref': claim['claim_id'], 'value': value})
+            or properties.get('claim_ref') != claim['claim_id']
+            or canonical_digest(properties.get('value')) != canonical_digest(value)
+            or properties.get('value_sha256') != canonical_digest(value)
+            or node.get('source_sha256') != canonical_digest(claim)
+            or not isinstance(node.get('source_ref'), str) or not node['source_ref']
+            or type(node.get('source_line')) is not int or node['source_line'] < 1):
+        return None
+    return {'claim_ref': claim['claim_id'], 'node_id': node['node_id'],
+            'source_ref': node['source_ref'], 'source_line': node['source_line'],
+            'claim_version': claim['claim_version'], 'sha256': canonical_digest(claim),
+            'value_sha256': canonical_digest(value), 'label_pointer': '/object/source_wording/text',
+            'label': wording['text'], 'language': wording['language']}
+
+
+def build_claim_navigation_descriptor(
+    claim: dict[str, Any], subject_node: dict[str, Any], object_node: dict[str, Any],
+    registry: dict[str, Any], entity_registry: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Derive bounded Claim navigation, never a HumanForm or an assertion.
+
+    Registry/template must come from ``load_claim_navigation_registry``.
+    Failure priority is mapping, object, endpoint types/names, statuses, render.
+    A template opt-in can name exact historical-time source wording; it does
+    not convert temporal values or widen source-profile admission.
+    Source-profile and legacy Claim validators retain source admission authority.
+    """
+    template = registry.get('claim_navigation_template')
+    if template is None:
+        return None
+    descriptor: dict[str, Any] = {
+        'schema_version': 'tos_claim_navigation_descriptor_v1',
+        'purpose': 'claim-navigation-only', 'standalone': False,
+        'state': 'unavailable', 'reason': None,
+        'template': {'id': template['template_id'], 'version': template['template_version'],
+                     'sha256': canonical_digest(template)},
+        'claim': {'id': claim['claim_id'], 'version': claim['claim_version'],
+                  'sha256': canonical_digest(claim)},
+    }
+
+    def unavailable(reason: str) -> dict[str, Any]:
+        descriptor['reason'] = reason
+        return descriptor
+
+    predicate = claim.get('predicate')
+    candidates = [(relation, mapping) for relation in registry['relations']
+                  for mapping in relation['source_mappings']
+                  if mapping.get('source_graph') == 'source-claims'
+                  and mapping.get('scope') == 'claim-predicate'
+                  and mapping.get('source_predicate_id') == predicate]
+    if (len(candidates) != 1 or candidates[0][0].get('abstract') is not False
+            or candidates[0][0].get('assertion_mode') != 'reified-claim'):
+        return unavailable('predicate-not-understood')
+    relation, mapping = candidates[0]
+    value = claim.get('object')
+    reader = (relation.get('source_claim_profile') or {}).get('reader')
+    temporal_adapter = {'historical-temporal-v1': ('historical-time-source-wording-v1', 'historical-time'),
+                        'document-catalogue-temporal-v1': ('document-catalogue-time-source-wording-v1', 'catalogue-assigned-document-date')}.get(reader)
+    temporal = (temporal_adapter is not None and temporal_adapter[0] in template.get('object_label_adapters', [])
+                and isinstance(value, dict) and value.get('role') == temporal_adapter[1]
+                and isinstance(value.get('kind'), str)
+                and value.get('kind') in {'date-assertion', 'interval-assertion', 'relative-order', 'unknown-date'}
+                and object_node.get('node_kind') == 'literal')
+    if not temporal and (not isinstance(value, str) or object_node.get('node_kind') != 'identity'):
+        return unavailable('object-not-identity')
+    if not _navigation_endpoint_types(subject_node, object_node, relation, entity_registry,
+                                      object_kind='temporal-assertion' if temporal else None):
+        return unavailable('endpoint-type-not-understood')
+    subject = _navigation_source_endpoint(subject_node, claim.get('subject_ref'))
+    target = (_navigation_time_endpoint(object_node, claim) if temporal
+              else _navigation_source_endpoint(object_node, claim['object']))
+    if subject is None or target is None:
+        return unavailable('source-name-unavailable')
+    statuses = {}
+    for field in ('epistemic_status', 'review_status'):
+        value = claim.get(field)
+        if not isinstance(value, str) or value not in template['status_labels'][field]:
+            return unavailable('source-status-unavailable')
+        statuses[field] = {'present': True, 'value': value}
+    labels = mapping.get('labels')
+    if 'labels' not in mapping and sum(
+            candidate.get('source_graph') == 'source-claims' and candidate.get('scope') == 'claim-predicate'
+            for candidate in relation['source_mappings']) == 1:
+        labels = relation.get('labels')
+    if not isinstance(labels, dict) or any(
+            not isinstance(labels.get(language), str) or not labels[language].strip()
+            for language in template['renderings']):
+        return unavailable('predicate-label-unavailable')
+    title = {}
+    for language, parts in template['renderings'].items():
+        values = {'claim-marker': template['marker'][language], 'subject-label': subject['label'],
+                  'predicate-label': labels[language], 'object-label': target['label'],
+                  'declared-epistemic-status': template['status_labels']['epistemic_status'][claim['epistemic_status']][language],
+                  'declared-review-status': template['status_labels']['review_status'][claim['review_status']][language]}
+        title[language] = ''.join(part['literal'] if 'literal' in part else values[part['slot']] for part in parts)
+    title['default'] = title[template['default_language']]
+    try:
+        output_bytes = len(canonical_json(title).encode('utf-8'))
+    except UnicodeError:
+        return unavailable('predicate-label-unavailable')
+    if output_bytes > template['max_output_bytes']:
+        return unavailable('over-budget')
+    descriptor.update(state='ready', reason=None,
+        predicate={'id': predicate, 'relation_type_id': relation['relation_type_id'],
+                   'sha256': canonical_digest(relation), 'mapping_sha256': canonical_digest(mapping)},
+        subject=subject, object=target, statuses=statuses, title=title)
+    return descriptor
 
 
 def file_digest(path: Path) -> str:
@@ -123,8 +417,8 @@ def validate_payload_schema(payload: dict[str, Any], repo_root: Path = REPO_ROOT
         )
 
 
-def _catalog_input_digests(repo_root: Path) -> dict[str, str]:
-    refs = [CATALOG_MANIFEST_REF, CLAIM_CATALOG_REF, *OBJECT_CATALOG_REFS.values()]
+def _catalog_input_digests(repo_root: Path, profiles: SourceRecordProfiles | None = None) -> dict[str, str]:
+    refs = [CATALOG_MANIFEST_REF, CLAIM_CATALOG_REF, *_object_catalog_refs(repo_root, profiles).values()]
     digests: dict[str, str] = {}
     for ref in refs:
         path = repo_root / ref
@@ -134,9 +428,11 @@ def _catalog_input_digests(repo_root: Path) -> dict[str, str]:
     return dict(sorted(digests.items()))
 
 
-def _load_object_catalog(repo_root: Path) -> dict[str, dict[str, Any]]:
+def _load_object_catalog(repo_root: Path, profiles: SourceRecordProfiles | None = None) -> dict[str, dict[str, Any]]:
     objects: dict[str, dict[str, Any]] = {}
-    for expected_type, relative in OBJECT_CATALOG_REFS.items():
+    profiles = profiles or SourceRecordProfiles(repo_root)
+    artifact_validators = {}
+    for expected_type, relative in _object_catalog_refs(repo_root, profiles).items():
         path = repo_root / relative
         for line_number, entry in iter_jsonl(path, repo_root):
             location = f"{relative}:{line_number}"
@@ -156,16 +452,53 @@ def _load_object_catalog(repo_root: Path) -> dict[str, dict[str, Any]]:
                     f"{location}: source_record_ref and record_sha256 are required"
                 )
             source_path = repo_root / source_ref
-            source_payload = load_json(source_path)
+            native_composite = expected_type == 'composite' and (
+                entry.get('source_schema_ref') == COMPOSITE_SCHEMA or expected_type not in profiles.profiles)
+            try:
+                source_payload = (load_composite_record(repo_root, source_ref) if native_composite
+                                  else profiles.verify_entry(expected_type, entry) if expected_type in profiles.profiles
+                                  else load_artifact_record(repo_root, source_ref) if expected_type == 'artifact'
+                                  else load_link_record(repo_root, source_ref) if expected_type == 'link'
+                                  else load_json(source_path))
+            except (CatalogBuildError, SourceProfileError) as exc:
+                raise BibliographicGraphBuildError(str(exc)) from exc
             if canonical_digest(source_payload) != record_sha256:
                 raise BibliographicGraphBuildError(
                     f"{location}: source record digest differs from {source_ref}"
                 )
-            objects[record_id] = entry
+            if expected_type == 'artifact':
+                try:
+                    expected = artifact_catalog_entry(repo_root, source_payload, source_ref, artifact_validators)
+                except CatalogBuildError as exc:
+                    raise BibliographicGraphBuildError(str(exc)) from exc
+                if entry != expected:
+                    raise BibliographicGraphBuildError(f'{location}: physical artifact catalog/source mapping drifted')
+            if native_composite:
+                try:
+                    expected = composite_catalog_entry(repo_root, source_payload, source_ref, artifact_validators)
+                except CatalogBuildError as exc:
+                    raise BibliographicGraphBuildError(str(exc)) from exc
+                if entry != expected:
+                    raise BibliographicGraphBuildError(f'{location}: scholarly composite catalog/source mapping drifted')
+            if expected_type == 'link':
+                if source_payload.get('record_id') != record_id:
+                    raise BibliographicGraphBuildError(f'{location}: native Link catalog/source identity drifted')
+            material = dict(entry)
+            material["_source_record"] = source_payload
+            try:
+                forms = load_metadata_forms(repo_root, source_ref, source_payload, access_allowed=True)
+            except (ValueError, OSError) as exc:
+                raise BibliographicGraphBuildError(f"{location}: invalid adjacent human forms: {exc}") from exc
+            if forms is not None:
+                forms_ref, forms_raw, forms_materialized = forms
+                material['_human_forms'] = forms_materialized
+                material['_human_forms_source_ref'] = forms_ref
+                material['_human_forms_sha256'] = hashlib.sha256(forms_raw).hexdigest()
+            objects[record_id] = material
     return objects
 
 
-def _load_claim_catalog(repo_root: Path) -> list[dict[str, Any]]:
+def _load_claim_catalog(repo_root: Path, profiles=None, legacy_links=None) -> list[dict[str, Any]]:
     path = repo_root / CLAIM_CATALOG_REF
     claims: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -178,36 +511,109 @@ def _load_claim_catalog(repo_root: Path) -> list[dict[str, Any]]:
             raise BibliographicGraphBuildError(f"{location}: duplicate claim_id {claim_id!r}")
         seen.add(claim_id)
         if entry.get("source_claim_file_ref") == OBJECT_LINK_CLAIM_REF:
+            # This exact retained adapter is not SourceClaimProfiles admission:
+            # the v1 five-kind contract and absent source wording stay intact.
+            legacy_links = legacy_links or LegacyObjectLinkReader(repo_root)
+            legacy_links.from_catalog(entry)
+            claims.append(entry)
             continue
+        if entry.get("visibility") not in {"public", "public_metadata_only"}:
+            raise BibliographicGraphBuildError(
+                f"{location}: visibility is not safe for the tracked graph"
+            )
+        profiled = Path(str(entry.get('source_claim_file_ref', ''))).name == SOURCE_CLAIM_BASENAME
+        if profiled:
+            profiles = profiles or SourceClaimProfiles(repo_root)
+            if entry.get('predicate') not in profiles.profiles:
+                raise BibliographicGraphBuildError(f'{location}: source predicate has no declared claim profile')
         claim_type = entry.get("claim_type")
         if claim_type not in {"bibliographic", "relation"}:
             raise BibliographicGraphBuildError(
                 f"{location}: bibliographic projection cannot admit {claim_type!r}"
             )
-        if claim_type == "relation" and entry.get("predicate") != "is_derivative_of":
+        if not profiled and claim_type == "relation" and entry.get("predicate") not in {'is_derivative_of', *HISTORICAL_PREDICATES}:
             raise BibliographicGraphBuildError(
-                f"{location}: relation claim is outside the bounded Expression-derivation profile"
+                f"{location}: relation claim is outside the bounded Expression-derivation profile and the historical profile"
             )
-        if entry.get("assertion_layer") not in {
-            "bibliographic_assertion",
-            "scholarly_report",
-        }:
+        layers = profiles.profiles[entry['predicate']]['assertion_layers'] if profiled else {'bibliographic_assertion', 'scholarly_report'}
+        if entry.get("assertion_layer") not in layers:
             raise BibliographicGraphBuildError(
                 f"{location}: assertion_layer is outside the bibliographic graph profile"
-            )
-        if entry.get("visibility") not in {"public", "public_metadata_only"}:
-            raise BibliographicGraphBuildError(
-                f"{location}: visibility is not safe for the tracked graph"
             )
         claims.append(entry)
     claims.sort(key=lambda entry: str(entry["claim_id"]))
     return claims
 
 
+def _historical_claim_contract(repo_root: Path, *, read_json=None) -> tuple:
+    """Compile once per read; an optional owner reader budgets exact JSON inputs."""
+    read = read_json if read_json is not None else lambda ref: load_json(repo_root / ref)
+    entities, relations = [read(ref) for ref in HISTORICAL_REGISTRY_REFS]
+    entries = {item['type_id']: item for item in entities['types']}
+    mappings = {mapping['source_kind_id']: item['type_id'] for item in entities['types']
+                for mapping in item['source_mappings'] if mapping['source_graph'] == 'source-claims'}
+    predicates = {}
+    for predicate in HISTORICAL_PREDICATES:
+        candidates = [item for item in relations['relations']
+                      if any(mapping['source_graph'] == 'source-claims'
+                             and mapping['scope'] == 'claim-predicate'
+                             and mapping['source_predicate_id'] == predicate
+                             for mapping in item['source_mappings'])]
+        if len(candidates) != 1:
+            raise BibliographicGraphBuildError('historical predicate must have exactly one registry mapping')
+        predicates[predicate] = candidates[0]
+    return historical_schema_validator(repo_root, claim=True, read_json=read_json), entries, mappings, predicates, repo_root
+
+
+def _historical_display_inputs(repo_root, claim, *, read_json=None):
+    """The opt-in display contract belongs to this source root, not a template."""
+    display = claim.get('qualifiers', {}).get('display_fields')
+    inputs = {}
+    if isinstance(display, dict) and display.get('schema_version') == 'tos_claim_display_fields_v1':
+        from source_record_profiles import _schema_route
+        validator, _ = _schema_route(repo_root, {
+            'schema_ref': 'ToS/contracts/claim-display-fields.schema.json',
+            'schema_dependencies': ['ToS/contracts/corpus-record.schema.json']}, inputs, {}, read_json=read_json)
+        if not validator.is_valid(claim['qualifiers']):
+            raise BibliographicGraphBuildError('historical Claim display fields violate their explicit contract')
+    return inputs
+
+
+def _validate_historical_claim(claim: dict[str, Any], objects: dict[str, dict[str, Any]],
+                               contract: tuple, *, read_json=None) -> dict[str, str]:
+    """Apply the owner schema and registry domains, never evaluate historical truth."""
+    validator, entries, mappings, predicates, repo_root = contract
+    if not validator.is_valid(claim):
+        raise BibliographicGraphBuildError(f"{claim['claim_id']}: historical claim schema violation")
+    display_inputs = _historical_display_inputs(repo_root, claim, read_json=read_json)
+    relation = predicates[claim['predicate']]
+    for field, allowed in (('subject_ref', relation['domain_type_ids']), ('object', relation['range_type_ids'])):
+        if field == 'object' and claim['predicate'] == 'historical_dating':
+            current = 'tos.entity.temporal-assertion'
+            anchor = claim[field].get('relative', {}).get('anchor_ref')
+            if anchor is not None and (anchor not in objects or objects[anchor]['record_type'] not in OPTIONAL_RECORD_FILES):
+                raise BibliographicGraphBuildError(f"{claim['claim_id']}: unresolved historical date anchor")
+        else:
+            record = objects.get(claim[field])
+            current = mappings.get(record['record_type']) if record else None
+        pending, ancestry = [current], set()
+        while pending:
+            kind = pending.pop()
+            if kind in ancestry:
+                continue
+            ancestry.add(kind)
+            pending.extend(entries.get(kind, {}).get('parent_type_ids', []))
+        if not ancestry.intersection(allowed):
+            raise BibliographicGraphBuildError(f"{claim['claim_id']}: historical {field} violates registry domain/range")
+    return display_inputs
+
+
 def _load_source_claim(
     entry: dict[str, Any],
     *,
     repo_root: Path,
+    profiles=None,
+    legacy_links=None,
 ) -> dict[str, Any]:
     source_ref = entry.get("source_claim_file_ref")
     source_line = entry.get("source_claim_line")
@@ -216,8 +622,15 @@ def _load_source_claim(
             f"{entry.get('claim_id')}: source claim file and line are required"
         )
     source_path = repo_root / source_ref
-    rows = dict(iter_jsonl(source_path, repo_root))
-    claim = rows.get(source_line)
+    profiled = source_path.name == SOURCE_CLAIM_BASENAME
+    if profiled:
+        profiles = profiles or SourceClaimProfiles(repo_root)
+    if source_ref == OBJECT_LINK_CLAIM_REF:
+        legacy_links = legacy_links or LegacyObjectLinkReader(repo_root)
+        claim = legacy_links.from_catalog(entry)
+    else:
+        rows = dict(profiles.read_rows(source_ref) if profiled else iter_jsonl(source_path, repo_root))
+        claim = rows.get(source_line)
     if claim is None:
         raise BibliographicGraphBuildError(
             f"{entry.get('claim_id')}: {source_ref}:{source_line} does not exist"
@@ -230,6 +643,11 @@ def _load_source_claim(
         raise BibliographicGraphBuildError(
             f"{source_ref}:{source_line}: canonical claim digest differs from catalog"
         )
+    if (claim.get('schema_version') == 'tos_historical_claim_v1'
+            and entry.get('source_schema_ref') != 'ToS/contracts/historical-claim.schema.json'):
+        raise BibliographicGraphBuildError(f'{source_ref}:{source_line}: historical claim schema route drifted')
+    if profiled and entry.get('source_schema_ref') != profiles.schema_routes[claim['predicate'], claim['schema_version']]['schema_ref']:
+        raise BibliographicGraphBuildError(f'{source_ref}:{source_line}: source claim schema route drifted')
     projected_fields = (
         "claim_type",
         "assertion_layer",
@@ -334,19 +752,57 @@ def _literal_node(value: Any, claim: dict[str, Any], entry: dict[str, Any]) -> d
     }
 
 
-def _identity_node(entry: dict[str, Any]) -> dict[str, Any]:
+@dataclass(frozen=True)
+class BibliographicIdentityInput:
+    """Caller-supplied catalog/source binding, not a verification receipt.
+
+    The full loader verifies these inputs. Addressed callers must independently
+    retain equivalent source/profile/catalog/form checks. This renderer cannot
+    discover or verify incident claims, assessment, or publication currentness.
+    """
+
+    entry: dict[str, Any]
+    source_record: dict[str, Any]
+    human_forms: list[dict[str, Any]] | None = None
+    human_forms_source_ref: str | None = None
+
+
+def project_bibliographic_identity(inputs: BibliographicIdentityInput) -> dict[str, Any]:
+    """Render one identity with the full builder's exact field precedence.
+
+    Inputs are borrowed read-only; output is not an immutable snapshot and is
+    not a complete incident projection or a source-verification receipt.
+    """
+    entry, source_record = inputs.entry, dict(inputs.source_record)
     return {
         "node_id": _node_id("identity", str(entry["record_id"])),
         "node_kind": "identity",
         "source_ref": entry["source_record_ref"],
         "source_sha256": entry["record_sha256"],
         "properties": {
+            **source_record,
+            **({'human_forms': inputs.human_forms,
+                'human_forms_source_ref': inputs.human_forms_source_ref}
+               if inputs.human_forms is not None else {}),
             "identity_ref": entry["record_id"],
             "identity_kind": entry["record_type"],
             "preferred_label": entry["preferred_label"],
             "identity_status": entry["identity_status"],
+            **({'label_source_pointer': entry['label_source_pointer']}
+               if 'label_source_pointer' in entry else {}),
+            **(artifact_display_fields(source_record) if entry['record_type'] == 'artifact' else {}),
+            **(composite_display_fields(source_record) if entry.get('source_schema_ref') == COMPOSITE_SCHEMA else {}),
+            "source_record": source_record,
         },
     }
+
+
+def _identity_node(entry: dict[str, Any]) -> dict[str, Any]:
+    source_record = entry.get('_source_record')
+    return project_bibliographic_identity(BibliographicIdentityInput(
+        entry, source_record if isinstance(source_record, dict) else {},
+        entry['_human_forms'] if '_human_forms' in entry else None,
+        entry['_human_forms_source_ref'] if '_human_forms' in entry else None))
 
 
 def _provision_identity_edges(
@@ -402,6 +858,7 @@ def _claim_node(entry: dict[str, Any], claim: dict[str, Any]) -> dict[str, Any]:
         "source_line": entry["source_claim_line"],
         "source_sha256": entry["claim_sha256"],
         "properties": {
+            **dict(claim),
             "claim_ref": entry["claim_id"],
             "claim_type": entry["claim_type"],
             "assertion_layer": entry["assertion_layer"],
@@ -412,12 +869,28 @@ def _claim_node(entry: dict[str, Any], claim: dict[str, Any]) -> dict[str, Any]:
             "claim_version": entry["claim_version"],
             "confidence": claim.get("confidence"),
             "qualifiers": claim.get("qualifiers"),
+            "source_claim": dict(claim),
         },
     }
 
 
-def _event_node(indexed: dict[str, Any]) -> dict[str, Any]:
+def _event_node(indexed: dict[str, Any], *, repo_root: Path = REPO_ROOT, read_json=None) -> dict[str, Any]:
     event = indexed["payload"]
+    if event.get('schema_version') == 'tos_provenance_event_v2':
+        from validate_source_witness_foundation import _provenance_v2_semantic_issues
+        ref = 'ToS/contracts/provenance-event-v2.schema.json'
+        schema = load_json(repo_root / ref) if read_json is None else read_json(ref)
+        if not Draft202012Validator(schema).is_valid(event):
+            raise BibliographicGraphBuildError('invalid provenance v2 source event')
+        if _provenance_v2_semantic_issues(event):
+            raise BibliographicGraphBuildError('inconsistent provenance v2 source event')
+        if event['rights_and_visibility']['content_visibility'] not in {
+                'tracked_public_metadata', 'public_content', 'public_synthetic'}:
+            raise BibliographicGraphBuildError('nonpublic provenance v2 source event')
+        activity = event['activity']
+        agents = list(dict.fromkeys(item['agent_ref'] for item in event['responsibility']))
+    else:
+        activity, agents = event, event['agent_refs']
     return {
         "node_id": _node_id("provenance_event", str(event["event_id"])),
         "node_kind": "provenance_event",
@@ -425,14 +898,16 @@ def _event_node(indexed: dict[str, Any]) -> dict[str, Any]:
         "source_line": indexed["source_line"],
         "source_sha256": indexed["source_sha256"],
         "properties": {
+            **dict(event),
             "event_ref": event["event_id"],
-            "event_type": event["event_type"],
-            "started_at": event["started_at"],
-            "ended_at": event["ended_at"],
-            "agent_refs": event["agent_refs"],
+            "event_type": activity["event_type"],
+            "started_at": activity["started_at"],
+            "ended_at": activity["ended_at"],
+            "agent_refs": agents,
             "method": event["method"],
-            "status": event["status"],
+            "status": activity["status"],
             "event_version": event["event_version"],
+            "source_event": dict(event),
         },
     }
 
@@ -447,6 +922,7 @@ def _maker_node(
     properties: dict[str, Any] = {
         "agent_ref": agent_ref,
         "maker_type": maker["maker_type"],
+        "source_maker": dict(maker),
     }
     if agent_ref in objects:
         identity = objects[agent_ref]
@@ -466,6 +942,123 @@ def _maker_node(
     }
 
 
+def validate_external_citation_address(address: str) -> None:
+    """Validate an unchanged address, without opening or observing its target."""
+    if (not isinstance(address, str) or not 1 <= len(address) <= 4096
+            or any(character.isspace() or unicodedata.category(character).startswith('C') for character in address)
+            or '\\' in address):
+        raise BibliographicGraphBuildError('external citation address has unsafe characters or exceeds its bound')
+    try:
+        parsed = urlsplit(address)
+        if (parsed.scheme not in {'http', 'https'} or not parsed.netloc or not parsed.hostname
+                or parsed.username is not None or parsed.password is not None):
+            raise ValueError('unsupported external address')
+        parsed.port
+    except ValueError as error:
+        raise BibliographicGraphBuildError('external citation requires a credential-free HTTP(S) address') from error
+
+
+def _public_evidence_title(repo_root, evidence_ref, claim=None, entry=None, *, read_bytes=None):
+    """Read one public review/research-note H1, not a general path resolver.
+
+    The existing verified public Claim catalog selects the exact reference.
+    Git availability is not a runtime input or source/assessment admission.
+    Reuse the protected owner metadata reader for the exact bytes and digest.
+    """
+    path = Path(evidence_ref)
+    families = {('ToS', 'review-ledger'): 'catalogued-review-note-h1',
+                ('ToS', 'research-packets', 'foundation-laboratory-2026-07'): 'catalogued-research-lead-h1'}
+    origin = families.get(path.parts[:-1])
+    if origin is None or path.suffix != '.md' or path.as_posix() != evidence_ref:
+        return None
+    if (not isinstance(claim, dict) or not isinstance(entry, dict)
+            or claim.get('visibility') not in {'public', 'public_metadata_only'}
+            or entry.get('visibility') != claim['visibility']
+            or entry.get('claim_id') != claim.get('claim_id')
+            or entry.get('claim_sha256') != canonical_digest(claim)
+            or evidence_ref not in [*claim.get('evidence_refs', []), *claim.get('counterevidence_refs', [])]):
+        return None
+    try:
+        raw = (_read_owned(repo_root / evidence_ref, 1_048_576) if read_bytes is None
+               else read_bytes(evidence_ref, 1_048_576))
+    except PublicationChanged:
+        raise
+    except PublicationStateError:
+        # Oversized metadata cannot supply a bounded title. Existing source
+        # fixity remains separate; do not call a partial prefix a source title.
+        return None
+    except (PermissionError, OSError) as error:
+        raise BibliographicGraphBuildError('review evidence title requires protected regular metadata') from error
+    first = raw.split(b'\n', 1)[0].removesuffix(b'\r')
+    title = None
+    if len(first) <= 4096:
+        try:
+            heading = first.decode('utf-8')
+        except UnicodeError:
+            heading = ''
+        if (heading.startswith('# ') and heading[2:].strip() and len(heading[2:]) <= 240
+                and not any(unicodedata.category(char).startswith('C') for char in heading)):
+            title = heading[2:]
+    return hashlib.sha256(raw).hexdigest(), title, origin
+
+
+def _evidence_display(evidence_ref, kind, source_ref, *, source_label=None, source_line=None,
+                      source_title_origin='source-metadata-label'):
+    """Readable navigation from metadata already resolved by the owner builder.
+
+    Never open a document, follow a URL, or infer a HumanForm/assessment here.
+    A path/address is a navigation fallback, not the title of its contents.
+    """
+    def bounded(value, limit):
+        return value if len(value) <= limit else value[:limit - 1] + '…'
+
+    supplied = isinstance(source_label, str) and bool(source_label.strip()) and len(source_label) <= 240
+    if supplied:
+        title, title_origin = source_label, source_title_origin
+    elif kind == 'repo_path':
+        title, title_origin = bounded(Path(evidence_ref).name, 240), 'repository-filename-fallback'
+    elif kind == 'external_citation':
+        title, title_origin = bounded(evidence_ref, 240), 'citation-address-fallback'
+    else:
+        slot = f':{source_line}' if source_line is not None else ''
+        title = bounded(f'{kind.replace("_", " ")} · {Path(source_ref).name}{slot}', 240)
+        title_origin = 'source-slot-fallback'
+    summary = (f'External citation; remote content not observed. Address declared by the citing Claim: {evidence_ref}.'
+               if kind == 'external_citation' else
+               f'{kind.replace("_", " ").capitalize()} evidence reference: {evidence_ref}. '
+               f'Return to {source_ref}' + (f':{source_line}' if source_line is not None else '') + '.')
+    return {'title': {'default': title}, 'summary': {'default': bounded(summary, 1024)},
+        'summary_state': 'metadata-synthesis', 'provenance': {
+            'title': title_origin, 'summary': 'evidence-reference-navigation',
+            'source_title_available': supplied, 'source_summary_available': False,
+            'human_form_authority': 'none', 'source_ref': source_ref}}
+
+
+def _external_citation_node(address, claim, entry, *, citation_status='tracked_claim'):
+    """One source-returnable citation occurrence, not a remote-content object."""
+    validate_external_citation_address(address)
+    if (citation_status not in {'tracked_claim', 'candidate_claim'} or not isinstance(claim, dict)
+            or not isinstance(entry, dict) or entry.get('claim_id') != claim.get('claim_id')
+            or entry.get('claim_sha256') != canonical_digest(claim)
+            or address not in [*claim.get('evidence_refs', []), *claim.get('counterevidence_refs', [])]
+            or not isinstance(entry.get('source_claim_file_ref'), str)
+            or not entry['source_claim_file_ref'].startswith('ToS/')
+            or type(entry.get('source_claim_line')) is not int or entry['source_claim_line'] < 1):
+        raise BibliographicGraphBuildError('external citation must bind its exact citing Claim declaration')
+    path = Path(entry['source_claim_file_ref'])
+    if path.as_posix() != entry['source_claim_file_ref'] or '..' in path.parts or path.is_absolute():
+        raise BibliographicGraphBuildError('external citation declaration path is not canonical repository metadata')
+    return {'node_id': _node_id('evidence', canonical_json([claim['claim_id'], address])),
+        'node_kind': 'evidence', 'source_ref': entry['source_claim_file_ref'],
+        'source_line': entry['source_claim_line'], 'source_sha256': entry['claim_sha256'],
+        'display': _evidence_display(address, 'external_citation', entry['source_claim_file_ref']),
+        'properties': {'evidence_ref': address, 'evidence_kind': 'external_citation',
+            'citing_claim_ref': claim['claim_id'], 'citation_status': citation_status,
+            'resolved': False, 'remote_content_sha256': None,
+            'observation_posture': 'address_only_not_observed',
+            'source_hash_scope': 'citing_claim_declaration_not_remote_content'}}
+
+
 def _evidence_node(
     evidence_ref: str,
     *,
@@ -473,6 +1066,9 @@ def _evidence_node(
     anchors: dict[str, dict[str, Any]],
     objects: dict[str, dict[str, Any]],
     events: dict[str, dict[str, Any]],
+    citing_claim: dict[str, Any] | None = None,
+    claim_entry: dict[str, Any] | None = None,
+    read_bytes=None,
 ) -> dict[str, Any]:
     node_id = _node_id("evidence", evidence_ref)
     if evidence_ref.startswith("ToS/"):
@@ -481,11 +1077,17 @@ def _evidence_node(
             raise BibliographicGraphBuildError(
                 f"{evidence_ref}: claim evidence path does not exist"
             )
+        review_title = _public_evidence_title(repo_root, evidence_ref, citing_claim, claim_entry,
+                                            read_bytes=read_bytes)
         return {
             "node_id": node_id,
             "node_kind": "evidence",
             "source_ref": evidence_ref,
-            "source_sha256": file_digest(path),
+            "source_sha256": (review_title[0] if review_title is not None else file_digest(path)
+                              if read_bytes is None else hashlib.sha256(read_bytes(evidence_ref)).hexdigest()),
+            "display": _evidence_display(evidence_ref, 'repo_path', evidence_ref,
+                source_label=review_title[1] if review_title is not None else None,
+                source_title_origin=review_title[2] if review_title is not None else 'source-metadata-label'),
             "properties": {
                 "evidence_ref": evidence_ref,
                 "evidence_kind": "repo_path",
@@ -501,13 +1103,17 @@ def _evidence_node(
             "source_ref": indexed["source_ref"],
             "source_line": indexed["source_line"],
             "source_sha256": indexed["source_sha256"],
+            "display": _evidence_display(evidence_ref, 'anchor', indexed['source_ref'],
+                                         source_line=indexed['source_line']),
             "properties": {
+                **dict(anchor),
                 "evidence_ref": evidence_ref,
                 "evidence_kind": "anchor",
                 "resolved": True,
                 "anchor_status": anchor.get("status"),
                 "item_ref": anchor.get("item_id"),
                 "file_ref": anchor.get("file_id"),
+                "source_anchor": dict(anchor),
             },
         }
     if evidence_ref in objects:
@@ -517,6 +1123,8 @@ def _evidence_node(
             "node_kind": "evidence",
             "source_ref": identity["source_record_ref"],
             "source_sha256": identity["record_sha256"],
+            "display": _evidence_display(evidence_ref, 'identity', identity['source_record_ref'],
+                                         source_label=identity.get('preferred_label')),
             "properties": {
                 "evidence_ref": evidence_ref,
                 "evidence_kind": "identity",
@@ -532,6 +1140,8 @@ def _evidence_node(
             "source_ref": indexed["source_ref"],
             "source_line": indexed["source_line"],
             "source_sha256": indexed["source_sha256"],
+            "display": _evidence_display(evidence_ref, 'provenance_event', indexed['source_ref'],
+                                         source_line=indexed['source_line']),
             "properties": {
                 "evidence_ref": evidence_ref,
                 "evidence_kind": "provenance_event",
@@ -539,6 +1149,8 @@ def _evidence_node(
                 "provenance_event_node_id": _node_id("provenance_event", evidence_ref),
             },
         }
+    if citing_claim is not None and claim_entry is not None:
+        return _external_citation_node(evidence_ref, citing_claim, claim_entry)
     raise BibliographicGraphBuildError(
         f"{evidence_ref}: claim evidence does not resolve to a tracked source surface"
     )
@@ -556,11 +1168,13 @@ def _review_node(
         "source_line": entry["source_claim_line"],
         "source_sha256": entry["claim_sha256"],
         "properties": {
+            **dict(review),
             "review_ref": review["review_id"],
             "reviewer_kind": review["reviewer_kind"],
             "reviewer_ref": review["reviewer_ref"],
             "decision": review["decision"],
             "reviewed_at": review["reviewed_at"],
+            "source_review": dict(review),
         },
     }
 
@@ -604,6 +1218,292 @@ def _edge(
     }
 
 
+@dataclass(frozen=True)
+class BibliographicClaimInput:
+    """Exact owner-resolved contributors, not source or incidence admission.
+
+    Subject/object and optional member/maker-identity nodes come from the shared
+    identity/literal renderers. Evidence and event nodes have already passed the
+    owner's source, visibility and fixity checks. Evidence tuples retain the
+    source reference order, including duplicates; membership and normalized
+    identity edges retain their owner order. Existing claim IDs need cover only
+    the selected alternatives/supersedes references, not a global inventory.
+
+    All values are borrowed read-only, not a detached snapshot. A caller must
+    bind these values to one source publication, verify complete source lookup
+    and external incidence, and impose its own input/output budgets. The full
+    loader does those source checks; this pure renderer performs no I/O,
+    assessment, membership discovery, source transition or normalized reducer.
+    """
+    entry: dict[str, Any]
+    source_claim: dict[str, Any]
+    subject_node: dict[str, Any]
+    object_node: dict[str, Any]
+    event_node: dict[str, Any]
+    maker_node: dict[str, Any]
+    evidence_nodes: tuple[dict[str, Any], ...]
+    counterevidence_nodes: tuple[dict[str, Any], ...]
+    existing_claim_ids: set[str] | frozenset[str]
+    navigation_registry: dict[str, Any]
+    entity_registry: dict[str, Any]
+    maker_identity_node: dict[str, Any] | None = None
+    member_nodes: tuple[dict[str, Any], ...] = ()
+    normalized_identity_edges: tuple[tuple[str, dict[str, Any]], ...] = ()
+    forms: tuple[str, bytes, list[dict[str, Any]]] | None = None
+    collection_order_basis: dict[str, Any] | None = None
+    legacy_object_link_context: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
+class BibliographicClaimProjection:
+    nodes: tuple[dict[str, Any], ...]
+    edges: tuple[dict[str, Any], ...]
+    trace: dict[str, Any]
+
+    @property
+    def incident_closure_verified(self) -> bool:
+        return False
+
+    @property
+    def source_verification_performed(self) -> bool:
+        return False
+
+
+def enumerate_bibliographic_claim_dependencies(inputs: BibliographicClaimInput) -> tuple[dict[str, Any], ...]:
+    """Enumerate consumed source dependencies, not a complete reverse index.
+
+    Rows are sorted distinct (kind, ref) pairs with aggregated JSON-pointer
+    field paths and reasons. Only explicit owner fields are visited; graph IDs
+    and arbitrary strings/JSON are never parsed for identity. Unknown evidence,
+    external maker/citation and anchor identifiers remain ``unresolved`` rows
+    alongside their bound source paths. Consumers must handle those explicitly,
+    never use them as permission to omit a dependent Claim.
+
+    Fixed registry/schema publication bindings stay with the caller. Copied
+    review/provenance agent names and arbitrary extensions are not metadata
+    lookups. Exact-version basis IDs are dependencies, not current-version
+    rebinding authority. Caller budgets and complete Claim selection remain
+    necessary; this function performs no I/O or source verification.
+    """
+    rows: dict[tuple[str, str | None], dict[str, Any]] = {}
+
+    def add(kind, ref, field, reason):
+        if not isinstance(ref, str) or not ref:
+            kind, ref, reason = 'unresolved', None, reason + ':missing-or-nonidentifiable-ref'
+        row = rows.setdefault((kind, ref), {'kind': kind, 'ref': ref, 'field_paths': set(), 'reasons': set()})
+        row['field_paths'].add(field)
+        row['reasons'].add(reason)
+
+    def node_sources(node, field):
+        add('path', node.get('source_ref'), field + '/source_ref', 'resolved-node-source')
+        properties = node.get('properties', {})
+        if properties.get('human_forms') is not None or properties.get('human_forms_source_ref') is not None:
+            add('path', properties.get('human_forms_source_ref'), field + '/properties/human_forms_source_ref',
+                'resolved-identity-human-forms')
+
+    def identity(node, field):
+        add('identity', node.get('properties', {}).get('identity_ref'),
+            field + '/properties/identity_ref', 'resolved-identity')
+        node_sources(node, field)
+
+    claim = inputs.source_claim
+    add('claim', claim.get('claim_id'), '/source_claim/claim_id', 'projected-claim')
+    add('path', inputs.entry.get('source_claim_file_ref'), '/entry/source_claim_file_ref', 'source-claim-slot')
+    add('identity', claim.get('subject_ref'), '/source_claim/subject_ref', 'declared-subject')
+    identity(inputs.subject_node, '/subject_node')
+    if inputs.object_node.get('node_kind') == 'identity':
+        add('identity', claim.get('object'), '/source_claim/object', 'declared-identity-object')
+        identity(inputs.object_node, '/object_node')
+    elif inputs.object_node.get('node_kind') == 'literal':
+        node_sources(inputs.object_node, '/object_node')
+    else:
+        add('unresolved', claim.get('object'), '/source_claim/object', 'unknown-object-node-kind')
+        node_sources(inputs.object_node, '/object_node')
+    add('provenance_event', claim.get('provenance_event_ref'), '/source_claim/provenance_event_ref',
+        'declared-provenance-event')
+    add('provenance_event', inputs.event_node.get('properties', {}).get('event_ref'),
+        '/event_node/properties/event_ref', 'resolved-provenance-event')
+    node_sources(inputs.event_node, '/event_node')
+    maker_ref = claim.get('maker', {}).get('agent_ref')
+    # Presence of the owner-resolved association is used, never its graph ID.
+    maker_kind = ('identity' if inputs.maker_identity_node is not None
+                  or inputs.maker_node.get('properties', {}).get('identity_node_id') is not None else 'unresolved')
+    add(maker_kind, maker_ref, '/source_claim/maker/agent_ref', 'maker-identity' if maker_kind == 'identity'
+        else 'maker-without-resolved-metadata-identity')
+    resolved_maker_ref = inputs.maker_node.get('properties', {}).get('agent_ref')
+    add(maker_kind, resolved_maker_ref, '/maker_node/properties/agent_ref', 'resolved-maker-reference')
+    if maker_ref != resolved_maker_ref:
+        add('unresolved', maker_ref, '/source_claim/maker/agent_ref', 'mismatched-maker-resolution')
+    node_sources(inputs.maker_node, '/maker_node')
+    if inputs.maker_identity_node is not None:
+        identity(inputs.maker_identity_node, '/maker_identity_node')
+
+    evidence_kinds = {'identity': 'identity', 'provenance_event': 'provenance_event', 'repo_path': 'path'}
+    for source_field, nodes_field, nodes in (
+        ('evidence_refs', 'evidence_nodes', inputs.evidence_nodes),
+        ('counterevidence_refs', 'counterevidence_nodes', inputs.counterevidence_nodes),
+    ):
+        refs = claim.get(source_field, [])
+        for index in range(max(len(refs), len(nodes))):
+            node = nodes[index] if index < len(nodes) else {}
+            properties = node.get('properties', {})
+            kind = evidence_kinds.get(properties.get('evidence_kind'), 'unresolved')
+            reason = 'evidence-kind:' + str(properties.get('evidence_kind', 'missing'))
+            if index < len(refs):
+                add(kind, refs[index], f'/source_claim/{source_field}/{index}', reason)
+            if index < len(nodes):
+                field = f'/{nodes_field}/{index}'
+                add(kind, properties.get('evidence_ref'), field + '/properties/evidence_ref', reason)
+                node_sources(node, field)
+            if index >= len(refs) or index >= len(nodes) or refs[index] != properties.get('evidence_ref'):
+                add('unresolved', refs[index] if index < len(refs) else properties.get('evidence_ref'),
+                    f'/source_claim/{source_field}/{index}', 'incomplete-or-mismatched-evidence-resolution')
+
+    for index, node in enumerate(inputs.member_nodes):
+        identity(node, f'/member_nodes/{index}')
+    for index, (_edge_kind, node) in enumerate(inputs.normalized_identity_edges):
+        identity(node, f'/normalized_identity_edges/{index}/1')
+    for index, ref in enumerate(claim.get('alternative_claim_refs', [])):
+        add('claim', ref, f'/source_claim/alternative_claim_refs/{index}', 'alternative-claim')
+    if claim.get('supersedes_claim_ref') is not None:
+        add('claim', claim['supersedes_claim_ref'], '/source_claim/supersedes_claim_ref', 'superseded-claim')
+    if inputs.forms is not None:
+        add('path', inputs.forms[0], '/forms/0', 'claim-human-forms')
+    if inputs.legacy_object_link_context is not None:
+        context = inputs.legacy_object_link_context
+        if 'source_claim_file_ref' in context:
+            add('path', context['source_claim_file_ref'], '/legacy_object_link_context/source_claim_file_ref',
+                'legacy-object-link-source')
+    if inputs.collection_order_basis is not None:
+        basis = inputs.collection_order_basis
+        add('identity', basis.get('collection', {}).get('ref', {}).get('id'),
+            '/collection_order_basis/collection/ref/id', 'exact-collection-version-basis')
+        for index, membership in enumerate(basis.get('memberships', [])):
+            add('claim', membership.get('ref', {}).get('id'),
+                f'/collection_order_basis/memberships/{index}/ref/id', 'exact-membership-version-basis')
+        for ref in basis.get('input_digests', {}):
+            pointer = ref.replace('~', '~0').replace('/', '~1')
+            add('path', ref, '/collection_order_basis/input_digests/' + pointer, 'exact-version-basis-input')
+    return tuple({**rows[key], 'field_paths': sorted(rows[key]['field_paths']),
+                  'reasons': sorted(rows[key]['reasons'])}
+                 for key in sorted(rows, key=lambda item: (item[0], item[1] or '')))
+
+
+def project_bibliographic_claim(inputs: BibliographicClaimInput) -> BibliographicClaimProjection:
+    """Render one complete raw Claim cohort with the full builder's ordering.
+
+    The source Claim, exact endpoint metadata and resolved evidence remain
+    distinct inputs. Descriptor creation uses the shared owner renderer; trace
+    assembly retains its original source refs, digests, ordinal edge IDs and
+    sorted/deduplicated fields. This does not finalize normalized claim/context
+    reducers or prove that every dependent Claim was selected.
+    """
+    entry, claim = inputs.entry, inputs.source_claim
+    claim_id = str(claim['claim_id'])
+    subject_node, object_node = inputs.subject_node, inputs.object_node
+    event_node, maker_node = inputs.event_node, inputs.maker_node
+    nodes: dict[str, dict[str, Any]] = {}
+    for node in (subject_node, object_node):
+        _add_node(nodes, node)
+    claim_node = _claim_node(entry, claim)
+    if inputs.collection_order_basis is not None:
+        claim_node['properties']['collection_order_basis'] = inputs.collection_order_basis
+    if inputs.legacy_object_link_context is not None:
+        claim_node['properties'].update(inputs.legacy_object_link_context)
+    descriptor = build_claim_navigation_descriptor(
+        claim, subject_node, object_node, inputs.navigation_registry, inputs.entity_registry)
+    if descriptor is not None:
+        claim_node['properties']['navigation_descriptor'] = descriptor
+    if inputs.forms is not None:
+        forms_ref, _forms_raw, materializations = inputs.forms
+        claim_node['properties'].update(human_forms=materializations, human_forms_source_ref=forms_ref)
+    _add_node(nodes, claim_node)
+    for node in (event_node, maker_node):
+        _add_node(nodes, node)
+    if inputs.maker_identity_node is not None:
+        _add_node(nodes, inputs.maker_identity_node)
+    for label, refs, resolved in (
+        ('evidence', claim['evidence_refs'], inputs.evidence_nodes),
+        ('counterevidence', claim.get('counterevidence_refs', []), inputs.counterevidence_nodes),
+    ):
+        if (not isinstance(refs, list) or len(refs) != len(resolved)
+                or any(str(ref) != node.get('properties', {}).get('evidence_ref')
+                       for ref, node in zip(refs, resolved))):
+            raise BibliographicGraphBuildError(f'{claim_id}: exact ordered {label} resolutions required')
+        for node in resolved:
+            _add_node(nodes, node)
+    evidence_node_ids = sorted({str(node['node_id']) for node in inputs.evidence_nodes})
+    if not evidence_node_ids:
+        raise BibliographicGraphBuildError(f'{claim_id}: a projected claim must carry evidence')
+    counterevidence_refs = claim.get('counterevidence_refs', [])
+    counterevidence_node_ids = sorted({str(node['node_id']) for node in inputs.counterevidence_nodes})
+    reviews = claim.get('reviews', [])
+    if not isinstance(reviews, list):
+        raise BibliographicGraphBuildError(f'{claim_id}: reviews must be a list')
+    review_node_ids = []
+    for review in reviews:
+        if not isinstance(review, dict):
+            raise BibliographicGraphBuildError(f'{claim_id}: review entries must be objects')
+        review_node = _review_node(review, entry=entry)
+        _add_node(nodes, review_node)
+        review_node_ids.append(str(review_node['node_id']))
+    claim_node_id = str(claim_node['node_id'])
+    edge_specs = [
+        ('has_subject', str(subject_node['node_id'])),
+        ('has_object', str(object_node['node_id'])),
+        ('made_by', str(maker_node['node_id'])),
+        ('generated_by', str(event_node['node_id'])),
+    ]
+    edge_specs.extend(('supported_by', identifier) for identifier in evidence_node_ids)
+    edge_specs.extend(('counterevidenced_by', identifier) for identifier in counterevidence_node_ids)
+    edge_specs.extend(('reviewed_by', identifier) for identifier in sorted(review_node_ids))
+    value_member_node_ids = []
+    for node in inputs.member_nodes:
+        _add_node(nodes, node)
+        value_member_node_ids.append(node['node_id'])
+        edge_specs.append(('has_value_member', node['node_id']))
+    normalized_identity_node_ids = []
+    for edge_kind, node in inputs.normalized_identity_edges:
+        _add_node(nodes, node)
+        identifier = str(node['node_id'])
+        normalized_identity_node_ids.append(identifier)
+        edge_specs.append((edge_kind, identifier))
+    alternative_claim_refs = claim.get('alternative_claim_refs', [])
+    if not isinstance(alternative_claim_refs, list):
+        raise BibliographicGraphBuildError(f'{claim_id}: alternative_claim_refs must be a list')
+    for reference in sorted(str(ref) for ref in alternative_claim_refs):
+        if reference not in inputs.existing_claim_ids:
+            raise BibliographicGraphBuildError(f'{claim_id}: alternative claim {reference!r} is outside the projection')
+        edge_specs.append(('alternative_to', _node_id('claim', reference)))
+    supersedes_ref = claim.get('supersedes_claim_ref')
+    if supersedes_ref is not None:
+        if supersedes_ref not in inputs.existing_claim_ids:
+            raise BibliographicGraphBuildError(f'{claim_id}: superseded claim {supersedes_ref!r} is outside the projection')
+        edge_specs.append(('supersedes', _node_id('claim', str(supersedes_ref))))
+    edges = tuple(_edge(claim_entry=entry, edge_kind=kind, ordinal=ordinal,
+        from_id=claim_node_id, to_id=identifier, evidence_node_ids=evidence_node_ids,
+        maker_node_id=str(maker_node['node_id']), provenance_event_node_id=str(event_node['node_id']))
+        for ordinal, (kind, identifier) in enumerate(edge_specs, start=1))
+    trace = {
+        'claim_ref': claim_id, 'claim_sha256': entry['claim_sha256'], 'claim_node_id': claim_node_id,
+        'subject_node_id': subject_node['node_id'], 'object_node_id': object_node['node_id'],
+        'predicate': claim['predicate'], 'assertion_layer': claim['assertion_layer'],
+        'epistemic_status': claim['epistemic_status'], 'confidence': claim.get('confidence'),
+        'qualifiers': claim.get('qualifiers'), 'maker_node_id': maker_node['node_id'],
+        'provenance_event_node_id': event_node['node_id'], 'evidence_node_ids': evidence_node_ids,
+        'counterevidence_node_ids': counterevidence_node_ids, 'review_node_ids': sorted(review_node_ids),
+        'normalized_identity_node_ids': sorted(normalized_identity_node_ids),
+        **({'value_member_node_ids': sorted(value_member_node_ids)} if value_member_node_ids else {}),
+        'review_status': claim['review_status'], 'visibility': claim['visibility'],
+        'alternative_claim_refs': sorted(str(ref) for ref in alternative_claim_refs),
+        'counterevidence_refs': sorted(str(ref) for ref in counterevidence_refs),
+        'supersedes_claim_ref': supersedes_ref, 'source_claim_file_ref': entry['source_claim_file_ref'],
+        'source_claim_line': entry['source_claim_line'], 'source_claim_sha256': entry['claim_sha256'],
+        'edge_ids': sorted(str(edge['edge_id']) for edge in edges),
+    }
+    return BibliographicClaimProjection(tuple(nodes.values()), edges, trace)
+
+
 def _validate_cross_references(payload: dict[str, Any]) -> None:
     nodes = {
         node["node_id"]: node
@@ -624,6 +1524,19 @@ def _validate_cross_references(payload: dict[str, Any]) -> None:
         for node in payload["nodes"]
         if node["node_kind"] == "claim"
     }
+    for node in nodes.values():
+        if node.get('node_kind') != 'evidence' or node.get('properties', {}).get('evidence_kind') != 'external_citation':
+            continue
+        citing_id = claim_nodes.get(node['properties'].get('citing_claim_ref'))
+        citing = nodes.get(citing_id)
+        if citing is None:
+            raise BibliographicGraphBuildError('external citation lacks its source Claim node')
+        source_claim = citing['properties']['source_claim']
+        expected = _external_citation_node(node['properties'].get('evidence_ref'), source_claim, {
+            'claim_id': source_claim['claim_id'], 'source_claim_file_ref': citing['source_ref'],
+            'source_claim_line': citing['source_line'], 'claim_sha256': citing['source_sha256']})
+        if node != expected:
+            raise BibliographicGraphBuildError('external citation drifted from its exact local declaration or address-only posture')
     for edge in payload["edges"]:
         for field in (
             "from_id",
@@ -735,12 +1648,22 @@ def _validate_cross_references(payload: dict[str, Any]) -> None:
             edges[edge_id]["to_id"]
             for edge_id in trace["edge_ids"]
             if edges[edge_id]["edge_kind"]
-            in {"has_normalized_place", "has_normalized_agent"}
+            in {"has_normalized_place", "has_normalized_agent", "has_historical_date_anchor"}
         }
         if normalized_edge_targets != set(trace["normalized_identity_node_ids"]):
             raise BibliographicGraphBuildError(
                 f"{claim_ref}: normalized identity trace differs from normalized edges"
             )
+        member_ids = trace.get('value_member_node_ids', [])
+        member_targets = {edges[id]['to_id'] for id in trace['edge_ids']
+                          if edges[id]['edge_kind'] == 'has_value_member'}
+        if set(member_ids) != member_targets or any(nodes[id]['node_kind'] != 'identity' for id in member_ids):
+            raise BibliographicGraphBuildError(f'{claim_ref}: value member trace differs from member edges')
+        if member_ids:
+            value = nodes[trace['claim_node_id']]['properties']['object']
+            if (not isinstance(value, dict) or not isinstance(value.get('members'), list)
+                    or {_node_id('identity', identity) for identity in value['members']} != set(member_ids)):
+                raise BibliographicGraphBuildError(f'{claim_ref}: member trace omits or invents a source member')
     if trace_claims != set(claim_nodes):
         raise BibliographicGraphBuildError(
             "claim traces must cover every projected claim node exactly once"
@@ -753,8 +1676,16 @@ def _projection_fingerprint(payload: dict[str, Any]) -> str:
     return canonical_digest(material)
 
 
-def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
-    manifest = load_json(repo_root / CATALOG_MANIFEST_REF)
+def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSnapshot | None = None) -> dict[str, Any]:
+    snapshot = PublicationSnapshot(repo_root)
+    payload = _build_payload(repo_root, assessed_forms=assessed_forms, publication=snapshot)
+    snapshot.verify_current()
+    return payload
+
+
+def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str, Any]:
+    manifest_raw = (repo_root / CATALOG_MANIFEST_REF).read_bytes()
+    manifest = json.loads(manifest_raw)
     if manifest.get("schema_version") != "tos_source_witness_catalog_v3":
         raise BibliographicGraphBuildError(
             f"{CATALOG_MANIFEST_REF}: source-witness catalog v3 is required"
@@ -764,16 +1695,54 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             f"{CATALOG_MANIFEST_REF}: claim_file differs from {CLAIM_CATALOG_REF}"
         )
 
-    input_digests = _catalog_input_digests(repo_root)
-    objects = _load_object_catalog(repo_root)
-    catalog_claim_count = sum(
-        1 for _line_number, _entry in iter_jsonl(repo_root / CLAIM_CATALOG_REF, repo_root)
-    )
+    profiles = SourceRecordProfiles(repo_root)
+    navigation_registry = load_claim_navigation_registry(repo_root)
+    input_digests = _catalog_input_digests(repo_root, profiles)
+    if input_digests[CATALOG_MANIFEST_REF] != hashlib.sha256(manifest_raw).hexdigest():
+        raise PublicationChanged('catalog manifest changed before source loading')
+    catalog_digests = dict(input_digests)
+    verify_catalog_publication(manifest, publication.token, {
+        ref: digest for ref, digest in input_digests.items() if ref != CATALOG_MANIFEST_REF})
+    for ref in (CLAIM_REGISTRY_REF, CLAIM_CONTRACT_REF):
+        input_digests[ref] = file_digest(repo_root / ref)
+    objects = _load_object_catalog(repo_root, profiles)
+    used_profiles = {entry['record_type'] for entry in objects.values()
+                     if entry.get('source_schema_ref') != COMPOSITE_SCHEMA} & profiles.profiles.keys()
+    profile_layers = {profiles.profiles[kind]['graph_layer'] for kind in used_profiles}
+    input_digests.update(profiles.input_digests)
+    historical = 'historical' in profile_layers
+    physical = any(entry['record_type'] == 'artifact' for entry in objects.values())
+    scholarly = any(entry['record_type'] == 'composite' for entry in objects.values())
+    for entry in objects.values():
+        if entry['record_type'] == 'link':
+            ref = 'ToS/contracts/source-link.schema.json'
+            input_digests[ref] = file_digest(repo_root / ref)
+        if entry['record_type'] in {'artifact', 'composite'}:
+            ref = entry['source_schema_ref']
+            input_digests[ref] = file_digest(repo_root / ref)
+    if historical:
+        for ref in (*HISTORICAL_REGISTRY_REFS, 'ToS/contracts/corpus-record.schema.json',
+                    'ToS/contracts/claim-packet.schema.json', 'ToS/contracts/historical-record.schema.json',
+                    'ToS/contracts/historical-claim.schema.json', 'ToS/contracts/knowledge-assessment.schema.json'):
+            if ref not in input_digests:
+                input_digests[ref] = file_digest(repo_root / ref)
+    for entry in objects.values():
+        if '_human_forms_source_ref' in entry:
+            input_digests[entry['_human_forms_source_ref']] = entry['_human_forms_sha256']
+    input_digests = dict(sorted(input_digests.items()))
+    raw_claim_entries = [entry for _line_number, entry in iter_jsonl(repo_root / CLAIM_CATALOG_REF, repo_root)]
+    catalog_claim_count = len(raw_claim_entries)
     if manifest.get("counts", {}).get("claim") != catalog_claim_count:
         raise BibliographicGraphBuildError(
             f"{CATALOG_MANIFEST_REF}: claim count differs from the claim catalog"
         )
-    claim_entries = _load_claim_catalog(repo_root)
+    claim_profiles = (SourceClaimProfiles(repo_root) if any(
+        Path(str(entry.get('source_claim_file_ref', ''))).name == SOURCE_CLAIM_BASENAME for entry in raw_claim_entries) else None)
+    legacy_links = (LegacyObjectLinkReader(repo_root) if any(
+        entry.get('source_claim_file_ref') == OBJECT_LINK_CLAIM_REF for entry in raw_claim_entries) else None)
+    claim_entries = _load_claim_catalog(repo_root, claim_profiles, legacy_links)
+    historical_contract = (_historical_claim_contract(repo_root)
+                           if any(entry.get('predicate') in HISTORICAL_PREDICATES for entry in claim_entries) else None)
 
     events = _scan_index(
         repo_root,
@@ -793,8 +1762,21 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     visibility_counts: Counter[str] = Counter()
     claim_ids = {str(entry["claim_id"]) for entry in claim_entries}
 
+    # Every catalogued public-metadata subject remains addressable before it
+    # has assertions. Existence in this reader is not historical acceptance;
+    # no participant, date or other fact edge is inferred from label or notes.
+    for record in objects.values():
+        _add_node(nodes, _identity_node(record))
+
+    order_metadata_reader = order_claim_reader = None
     for entry in claim_entries:
-        claim = _load_source_claim(entry, repo_root=repo_root)
+        claim = _load_source_claim(entry, repo_root=repo_root, profiles=claim_profiles, legacy_links=legacy_links)
+        if Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME:
+            claim_profiles.validate(claim, objects)
+        elif entry['source_claim_file_ref'] == OBJECT_LINK_CLAIM_REF:
+            legacy_links.validate(claim, objects)
+        elif claim.get('predicate') in HISTORICAL_PREDICATES:
+            input_digests.update(_validate_historical_claim(claim, objects, historical_contract))
         claim_id = str(claim["claim_id"])
         subject_ref = str(claim["subject_ref"])
         subject_entry = objects.get(subject_ref)
@@ -803,8 +1785,6 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
                 f"{claim_id}: subject does not resolve through the object catalog"
             )
         subject_node = _identity_node(subject_entry)
-        _add_node(nodes, subject_node)
-
         object_value = claim["object"]
         if isinstance(object_value, str) and object_value in objects:
             object_node = _identity_node(objects[object_value])
@@ -814,10 +1794,29 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             )
         else:
             object_node = _literal_node(object_value, claim, entry)
-        _add_node(nodes, object_node)
-
-        claim_node = _claim_node(entry, claim)
-        _add_node(nodes, claim_node)
+        collection_order_basis = None
+        legacy_object_link_context = None
+        forms = None
+        if (Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME
+                and claim_profiles.profiles[claim['predicate']].get('object_reference_set', {}).get(
+                    'basis_adapter') == 'collection-membership-versions-v1'):
+            if order_metadata_reader is None:
+                from metadata_version_reader import MetadataVersionReader
+                from claim_version_reader import ClaimVersionReader
+                order_metadata_reader, order_claim_reader = MetadataVersionReader(repo_root), ClaimVersionReader(repo_root)
+            collection_order_basis = ground_collection_order(
+                claim, order_metadata_reader, order_claim_reader)
+            input_digests.update(collection_order_basis['input_digests'])
+        if entry['source_claim_file_ref'] == OBJECT_LINK_CLAIM_REF:
+            legacy_object_link_context = legacy_links.context(entry['source_claim_line'], claim)
+        if Path(entry['source_claim_file_ref']).name in {SOURCE_CLAIM_BASENAME, 'historical-claims.jsonl'}:
+            try:
+                forms = load_claim_forms(repo_root, entry['source_claim_file_ref'], claim, access_allowed=True)
+            except (ValueError, OSError) as exc:
+                raise BibliographicGraphBuildError(f'{claim_id}: invalid adjacent Claim forms: {exc}') from exc
+            if forms is not None:
+                forms_ref, forms_raw, _materializations = forms
+                input_digests[forms_ref] = hashlib.sha256(forms_raw).hexdigest()
 
         event_ref = str(claim["provenance_event_ref"])
         indexed_event = events.get(event_ref)
@@ -825,8 +1824,10 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             raise BibliographicGraphBuildError(
                 f"{claim_id}: provenance event {event_ref!r} does not resolve"
             )
-        event_node = _event_node(indexed_event)
-        _add_node(nodes, event_node)
+        if indexed_event['payload'].get('schema_version') == 'tos_provenance_event_v2':
+            schema_ref = 'ToS/contracts/provenance-event-v2.schema.json'
+            input_digests[schema_ref] = file_digest(repo_root / schema_ref)
+        event_node = _event_node(indexed_event, repo_root=repo_root)
 
         maker = claim["maker"]
         if not isinstance(maker, dict):
@@ -836,12 +1837,11 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             objects=objects,
             claim_catalog_sha256=input_digests[CLAIM_CATALOG_REF],
         )
-        _add_node(nodes, maker_node)
         identity_node_id = maker_node["properties"].get("identity_node_id")
-        if isinstance(identity_node_id, str):
-            _add_node(nodes, _identity_node(objects[str(maker["agent_ref"])]))
+        maker_identity_node = (_identity_node(objects[str(maker["agent_ref"])])
+                               if isinstance(identity_node_id, str) else None)
 
-        evidence_node_ids: list[str] = []
+        evidence_nodes = []
         for evidence_ref in claim["evidence_refs"]:
             evidence_node = _evidence_node(
                 str(evidence_ref),
@@ -849,21 +1849,17 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
                 anchors=anchors,
                 objects=objects,
                 events=events,
+                citing_claim=claim,
+                claim_entry=entry,
             )
-            _add_node(nodes, evidence_node)
-            evidence_node_ids.append(str(evidence_node["node_id"]))
-        evidence_node_ids = sorted(set(evidence_node_ids))
-        if not evidence_node_ids:
-            raise BibliographicGraphBuildError(
-                f"{claim_id}: a projected claim must carry evidence"
-            )
+            evidence_nodes.append(evidence_node)
 
         counterevidence_refs = claim.get("counterevidence_refs", [])
         if not isinstance(counterevidence_refs, list):
             raise BibliographicGraphBuildError(
                 f"{claim_id}: counterevidence_refs must be a list"
             )
-        counterevidence_node_ids: list[str] = []
+        counterevidence_nodes = []
         for counterevidence_ref in counterevidence_refs:
             counterevidence_node = _evidence_node(
                 str(counterevidence_ref),
@@ -871,121 +1867,40 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
                 anchors=anchors,
                 objects=objects,
                 events=events,
+                citing_claim=claim,
+                claim_entry=entry,
             )
-            _add_node(nodes, counterevidence_node)
-            counterevidence_node_ids.append(str(counterevidence_node["node_id"]))
-        counterevidence_node_ids = sorted(set(counterevidence_node_ids))
+            counterevidence_nodes.append(counterevidence_node)
 
-        review_node_ids: list[str] = []
-        reviews = claim.get("reviews", [])
-        if not isinstance(reviews, list):
-            raise BibliographicGraphBuildError(f"{claim_id}: reviews must be a list")
-        for review in reviews:
-            if not isinstance(review, dict):
-                raise BibliographicGraphBuildError(
-                    f"{claim_id}: review entries must be objects"
-                )
-            review_node = _review_node(review, entry=entry)
-            _add_node(nodes, review_node)
-            review_node_ids.append(str(review_node["node_id"]))
+        member_nodes = []
+        if Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME:
+            for member_ref in claim_profiles.reference_members(claim):
+                member_node = _identity_node(objects[member_ref])
+                member_nodes.append(member_node)
 
-        claim_node_id = str(claim_node["node_id"])
-        edge_specs: list[tuple[str, str]] = [
-            ("has_subject", str(subject_node["node_id"])),
-            ("has_object", str(object_node["node_id"])),
-            ("made_by", str(maker_node["node_id"])),
-            ("generated_by", str(event_node["node_id"])),
-        ]
-        edge_specs.extend(("supported_by", node_id) for node_id in evidence_node_ids)
-        edge_specs.extend(
-            ("counterevidenced_by", node_id)
-            for node_id in counterevidence_node_ids
-        )
-        edge_specs.extend(("reviewed_by", node_id) for node_id in sorted(review_node_ids))
-
-        normalized_identity_node_ids: list[str] = []
-        for edge_kind, normalized_ref in _provision_identity_edges(
+        identity_edges = _provision_identity_edges(
             claim,
             objects=objects,
-        ):
-            normalized_node = _identity_node(objects[normalized_ref])
-            _add_node(nodes, normalized_node)
-            normalized_node_id = str(normalized_node["node_id"])
-            normalized_identity_node_ids.append(normalized_node_id)
-            edge_specs.append((edge_kind, normalized_node_id))
-
-        alternative_claim_refs = claim.get("alternative_claim_refs", [])
-        if not isinstance(alternative_claim_refs, list):
-            raise BibliographicGraphBuildError(
-                f"{claim_id}: alternative_claim_refs must be a list"
-            )
-        for alternative_ref in sorted(str(ref) for ref in alternative_claim_refs):
-            if alternative_ref not in claim_ids:
-                raise BibliographicGraphBuildError(
-                    f"{claim_id}: alternative claim {alternative_ref!r} is outside the projection"
-                )
-            edge_specs.append(
-                ("alternative_to", _node_id("claim", alternative_ref))
-            )
-
-        supersedes_ref = claim.get("supersedes_claim_ref")
-        if supersedes_ref is not None:
-            if supersedes_ref not in claim_ids:
-                raise BibliographicGraphBuildError(
-                    f"{claim_id}: superseded claim {supersedes_ref!r} is outside the projection"
-                )
-            edge_specs.append(("supersedes", _node_id("claim", str(supersedes_ref))))
-
-        claim_edge_ids: list[str] = []
-        for ordinal, (edge_kind, to_id) in enumerate(edge_specs, start=1):
-            projected_edge = _edge(
-                claim_entry=entry,
-                edge_kind=edge_kind,
-                ordinal=ordinal,
-                from_id=claim_node_id,
-                to_id=to_id,
-                evidence_node_ids=evidence_node_ids,
-                maker_node_id=str(maker_node["node_id"]),
-                provenance_event_node_id=str(event_node["node_id"]),
-            )
-            edges.append(projected_edge)
-            claim_edge_ids.append(str(projected_edge["edge_id"]))
-
-        traces.append(
-            {
-                "claim_ref": claim_id,
-                "claim_sha256": entry["claim_sha256"],
-                "claim_node_id": claim_node_id,
-                "subject_node_id": subject_node["node_id"],
-                "object_node_id": object_node["node_id"],
-                "predicate": claim["predicate"],
-                "assertion_layer": claim["assertion_layer"],
-                "epistemic_status": claim["epistemic_status"],
-                "confidence": claim.get("confidence"),
-                "qualifiers": claim.get("qualifiers"),
-                "maker_node_id": maker_node["node_id"],
-                "provenance_event_node_id": event_node["node_id"],
-                "evidence_node_ids": evidence_node_ids,
-                "counterevidence_node_ids": counterevidence_node_ids,
-                "review_node_ids": sorted(review_node_ids),
-                "normalized_identity_node_ids": sorted(
-                    normalized_identity_node_ids
-                ),
-                "review_status": claim["review_status"],
-                "visibility": claim["visibility"],
-                "alternative_claim_refs": sorted(
-                    str(ref) for ref in alternative_claim_refs
-                ),
-                "counterevidence_refs": sorted(
-                    str(ref) for ref in counterevidence_refs
-                ),
-                "supersedes_claim_ref": supersedes_ref,
-                "source_claim_file_ref": entry["source_claim_file_ref"],
-                "source_claim_line": entry["source_claim_line"],
-                "source_claim_sha256": entry["claim_sha256"],
-                "edge_ids": sorted(claim_edge_ids),
-            }
         )
+        temporal = (claim_profiles.is_temporal(claim) if Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME
+                    else claim['predicate'] == 'historical_dating')
+        if temporal and claim['object'].get('relative'):
+            identity_edges.append(('has_historical_date_anchor', claim['object']['relative']['anchor_ref']))
+        projection = project_bibliographic_claim(BibliographicClaimInput(
+            entry=entry, source_claim=claim, subject_node=subject_node, object_node=object_node,
+            event_node=event_node, maker_node=maker_node,
+            evidence_nodes=tuple(evidence_nodes), counterevidence_nodes=tuple(counterevidence_nodes),
+            existing_claim_ids=claim_ids, navigation_registry=navigation_registry,
+            entity_registry=profiles.registry, maker_identity_node=maker_identity_node,
+            member_nodes=tuple(member_nodes),
+            normalized_identity_edges=tuple((kind, _identity_node(objects[ref])) for kind, ref in identity_edges),
+            forms=forms, collection_order_basis=collection_order_basis,
+            legacy_object_link_context=legacy_object_link_context,
+        ))
+        for node in projection.nodes:
+            _add_node(nodes, node)
+        edges.extend(projection.edges)
+        traces.append(projection.trace)
         review_counts[str(claim["review_status"])] += 1
         visibility_counts[str(claim["visibility"])] += 1
 
@@ -995,6 +1910,13 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     node_kind_counts = Counter(str(node["node_kind"]) for node in nodes_list)
     edge_kind_counts = Counter(str(edge["edge_kind"]) for edge in edges)
 
+    if claim_profiles is not None:
+        input_digests.update(claim_profiles.input_digests)
+        input_digests = dict(sorted(input_digests.items()))
+        profile_layers.add('source-profile')
+    if legacy_links is not None:
+        input_digests.update(legacy_links.input_digests)
+        input_digests = dict(sorted(input_digests.items()))
     payload: dict[str, Any] = {
         "schema_version": "tos_source_witness_bibliographic_graph_v1",
         "schema_ref": SCHEMA_REF,
@@ -1004,10 +1926,13 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         "source_refs": {
             "catalog_manifest_ref": CATALOG_MANIFEST_REF,
             "claim_catalog_ref": CLAIM_CATALOG_REF,
-            "object_catalog_refs": OBJECT_CATALOG_REFS,
+            "object_catalog_refs": _object_catalog_refs(repo_root, profiles),
         },
         "input_digests": input_digests,
-        "graph_layers": ["bibliographic"],
+        "graph_layers": ['bibliographic', *(['historical'] if historical else []),
+                         *(['source-profile'] if 'source-profile' in profile_layers else []),
+                         *(['physical-artifact'] if physical else []),
+                         *(['scholarly-composite'] if scholarly else [])],
         "relation_model": {
             "assertion_form": "reified_claim_node",
             "direct_subject_object_edges": False,
@@ -1050,9 +1975,25 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         },
         "validation_refs": list(VALIDATION_REFS),
     }
+    if assessed_forms is not None:
+        if not isinstance(assessed_forms, AssessedFormSnapshot):
+            raise TypeError('assessed forms require an explicit protected owner snapshot')
+        payload['nodes'] = assessed_forms.materialize(nodes_list)
+        payload['authority_boundary']['projection_role'] = (
+            'local research candidate with current source-bound form assessment; '
+            'not the standard public export or a current runtime grant')
+        payload['authority_boundary']['does_not_establish'].append(
+            'publication clearance for assessed forms, assessment limits or source context')
     payload["projection_fingerprint"] = _projection_fingerprint(payload)
     validate_payload_schema(payload, repo_root)
     _validate_cross_references(payload)
+    if _catalog_input_digests(repo_root, profiles) != catalog_digests:
+        raise PublicationChanged('catalog bytes changed during bibliographic projection')
+    if legacy_links is not None:
+        legacy_links.verify_current()
+    if order_metadata_reader is not None:
+        order_metadata_reader.verify_current()
+        order_claim_reader.verify_current()
     return payload
 
 

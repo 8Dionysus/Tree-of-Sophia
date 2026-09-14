@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_relation_type_registry_v1",
   "registry_id": "tos.semantic.relation-types",
-  "registry_version": 28,
+  "registry_version": 44,
   "entity_registry_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
   "source_refs": [
     "ToS/doctrine/semantic-interchange/README.md",
@@ -17,12 +17,13 @@
   "fallback_relation_type_id": "tos.relation.unmapped",
   "claim_navigation_template": {
     "template_id": "tos.navigation-template.claim-reference",
-    "template_version": 1,
+    "template_version": 3,
     "reader": "claim-navigation-v1",
     "purpose": "claim-navigation-only",
     "owner_ref": "ToS/doctrine/HUMAN_FORMS.md",
     "default_language": "ru",
     "max_output_bytes": 8192,
+    "object_label_adapters": ["historical-time-source-wording-v1", "document-catalogue-time-source-wording-v1"],
     "marker": {"ru": "Запись утверждения", "en": "Claim record"},
     "status_labels": {
       "epistemic_status": {
@@ -49,7 +50,48 @@
     }
   },
   "relations": [
-{"relation_type_id":"tos.relation.claim-value-member","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"references a proposal member","ru":"ссылается на участника гипотезы","en":"references a proposal member"},"inverse_labels":{"default":"is referenced by a proposal","ru":"указан в гипотезе","en":"is referenced by a proposal"},"definition":"A structural return from a Claim to one member explicitly declared by its structured-reference-value profile. The complete set and Claim source govern meaning and admission; this edge alone is not accepted membership, equivalence, evidence or a Sign.","lifecycle":"stable","owner_ref":"ToS/doctrine/semantic-interchange/README.md","domain_type_ids":["tos.entity.claim"],"range_type_ids":["tos.entity.identity","tos.entity.semantic-object"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"structural","evidence_required":false,"review_requirement":"none","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"has_value_member","scope":"edge"}],"supersedes_relation_type_id":null},
+{"parent_relation_type_ids":["tos.relation.related"],"abstract":false,"lifecycle":"stable","owner_ref":"ToS/contracts/document-catalogue-claim.schema.json","domain_type_ids":["tos.entity.document"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","supersedes_relation_type_id":null,"relation_type_id":"tos.relation.document-catalogue-date","labels":{"default":"assigned date","en":"assigned date","ru":"датировка по каталогу"},"inverse_labels":{"default":"catalogue attribution for Document","en":"catalogue attribution for Document","ru":"каталожная атрибуция документа"},"definition":"An attributed catalogue date field for one Document. The exact source field, wording and cited evidence remain explicit. This does not establish composition, dispatch, receipt or any associated historical event.","range_type_ids":["tos.entity.temporal-assertion"],"source_mappings":[{"source_graph":"source-claims","source_predicate_id":"document_catalogue_date","scope":"claim-predicate"}],"source_claim_profile":{"profile_version":1,"reader":"document-catalogue-temporal-v1","assertion_layers":["bibliographic_assertion"],"schemas":[{"schema_version":"tos_document_catalogue_claim_v1","schema_ref":"ToS/contracts/document-catalogue-claim.schema.json","schema_dependencies":["ToS/contracts/historical-claim.schema.json","ToS/contracts/corpus-record.schema.json"]}]}},
+{"parent_relation_type_ids":["tos.relation.related"],"abstract":false,"lifecycle":"stable","owner_ref":"ToS/contracts/document-catalogue-claim.schema.json","domain_type_ids":["tos.entity.document"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","supersedes_relation_type_id":null,"relation_type_id":"tos.relation.document-catalogue-origin","labels":{"default":"catalogued origin","en":"catalogued origin","ru":"место отправления по каталогу"},"inverse_labels":{"default":"catalogue attribution for Document","en":"catalogue attribution for Document","ru":"каталожная атрибуция документа"},"definition":"An attributed catalogue origin field for one Document. The exact source field, wording and cited evidence remain explicit. This does not establish composition, dispatch, receipt or any associated historical event.","range_type_ids":["tos.entity.place"],"source_mappings":[{"source_graph":"source-claims","source_predicate_id":"document_catalogue_origin","scope":"claim-predicate"}],"source_claim_profile":{"profile_version":1,"reader":"identity-relation-v1","assertion_layers":["bibliographic_assertion"],"schemas":[{"schema_version":"tos_document_catalogue_claim_v1","schema_ref":"ToS/contracts/document-catalogue-claim.schema.json","schema_dependencies":["ToS/contracts/historical-claim.schema.json","ToS/contracts/corpus-record.schema.json"]}]}},
+{"parent_relation_type_ids":["tos.relation.related"],"abstract":false,"lifecycle":"stable","owner_ref":"ToS/contracts/document-catalogue-claim.schema.json","domain_type_ids":["tos.entity.document"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","supersedes_relation_type_id":null,"relation_type_id":"tos.relation.document-catalogue-destination","labels":{"default":"catalogued destination","en":"catalogued destination","ru":"место назначения по каталогу"},"inverse_labels":{"default":"catalogue attribution for Document","en":"catalogue attribution for Document","ru":"каталожная атрибуция документа"},"definition":"An attributed catalogue destination field for one Document. The exact source field, wording and cited evidence remain explicit. This does not establish composition, dispatch, receipt or any associated historical event.","range_type_ids":["tos.entity.place"],"source_mappings":[{"source_graph":"source-claims","source_predicate_id":"document_catalogue_destination","scope":"claim-predicate"}],"source_claim_profile":{"profile_version":1,"reader":"identity-relation-v1","assertion_layers":["bibliographic_assertion"],"schemas":[{"schema_version":"tos_document_catalogue_claim_v1","schema_ref":"ToS/contracts/document-catalogue-claim.schema.json","schema_dependencies":["ToS/contracts/historical-claim.schema.json","ToS/contracts/corpus-record.schema.json"]}]}},
+    {
+      "relation_type_id": "tos.relation.subject-identity-transition-proposal",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": false,
+      "labels": {"default": "has an exact subject identity proposal", "ru": "имеет предложение перехода идентичности предмета", "en": "has an exact subject identity proposal"},
+      "inverse_labels": {"default": "proposes an identity transition for this subject", "ru": "предлагает переход идентичности этого предмета", "en": "proposes an identity transition for this subject"},
+      "definition": "A predecessor is the entry to one complete, unexecuted merge or split proposal over exact source identities or explicitly opted-in declared semantic subject metadata. The identity-transition-v2 reader requires the concrete source capability and exact owner descriptor/schema/path, not ancestry, a submitted type or payload identity. V1 proposals retain their narrower source-identity-only meaning. Every participant and old reference remains independent; no accepted equivalence, redirect, creation or admission is conferred.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "domain_type_ids": ["tos.entity.identity", "tos.entity.semantic-object"],
+      "range_type_ids": ["tos.entity.identity-transition-proposal"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "subject_identity_transition_proposal", "scope": "claim-predicate"}],
+      "source_claim_profile": {
+        "profile_version": 1,
+        "reader": "identity-transition-v2",
+        "value_kind": "identity-transition-proposal",
+        "assertion_layers": ["identity_assertion"],
+        "schemas": [{"schema_version": "tos_subject_identity_transition_claim_v1", "schema_ref": "ToS/contracts/subject-identity-transition-claim.schema.json", "schema_dependencies": ["ToS/contracts/source-structured-value.schema.json", "ToS/contracts/corpus-record.schema.json"]}]
+      },
+      "supersedes_relation_type_id": null
+    },
+{"relation_type_id":"tos.relation.collection-member-order","parent_relation_type_ids":[],"abstract":false,"labels":{"default":"Has attributed member order","ru":"Имеет приписанный порядок членов","en":"Has attributed member order"},"inverse_labels":{"default":"Member order attributed to","ru":"Порядок членов приписан","en":"Member order attributed to"},"definition":"Attributes order to a bounded subset of Works already declared in exact Collection metadata and contains_work Claim versions. Membership remains with those Claims; current labels and later versions cannot silently rebind the ordering basis. Local ordering is not global chronology, causation or a second collection membership relation.","lifecycle":"stable","owner_ref":"ToS/contracts/source-member-structure-claim.schema.json","domain_type_ids":["tos.entity.collection"],"range_type_ids":["tos.entity.collection-member-order"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"collection_member_order","scope":"claim-predicate"}],"supersedes_relation_type_id":null,"source_claim_profile":{"profile_version":1,"reader":"structured-reference-value-v1","value_kind":"collection-member-order","object_reference_set":{"member_type_ids":["tos.entity.work"],"min_items":1,"max_items":128,"subject_is_member":false,"structure_adapter":"scoped-members-v1","basis_adapter":"collection-membership-versions-v1"},"assertion_layers":["scholarly_report","textual_observation","bibliographic_assertion"],"schemas":[{"schema_version":"tos_source_member_structure_claim_v1","schema_ref":"ToS/contracts/source-member-structure-claim.schema.json","schema_dependencies":["ToS/contracts/source-structured-value.schema.json","ToS/contracts/corpus-record.schema.json","ToS/contracts/scoped-member-structure.schema.json","ToS/contracts/knowledge-assessment.schema.json"]}]}},
+{"relation_type_id":"tos.relation.physical-part-composition","parent_relation_type_ids":[],"abstract":false,"labels":{"default":"Has attributed physical parts","ru":"Имеет приписанные физические части","en":"Has attributed physical parts"},"inverse_labels":{"default":"Physical part composition attributed to","ru":"Состав физических частей приписан","en":"Physical part composition attributed to"},"definition":"Attributes proper material components within an explicit physical scope. Artifact endpoints include fragmentary physical witnesses, not digital Items, Works, text portions or scholarly composites. A material component need not be currently attached; joining, relative placement, time, completeness and restoration remain source-qualified. Competing compositions are not merged into a global physical hierarchy.","lifecycle":"stable","owner_ref":"ToS/contracts/source-member-structure-claim.schema.json","domain_type_ids":["tos.entity.artifact"],"range_type_ids":["tos.entity.physical-part-composition"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"physical_part_composition","scope":"claim-predicate"}],"supersedes_relation_type_id":null,"source_claim_profile":{"profile_version":1,"reader":"structured-reference-value-v1","value_kind":"physical-part-composition","object_reference_set":{"member_type_ids":["tos.entity.artifact"],"min_items":1,"max_items":128,"subject_is_member":false,"structure_adapter":"scoped-members-v1"},"assertion_layers":["scholarly_report","textual_observation"],"schemas":[{"schema_version":"tos_source_member_structure_claim_v1","schema_ref":"ToS/contracts/source-member-structure-claim.schema.json","schema_dependencies":["ToS/contracts/source-structured-value.schema.json","ToS/contracts/corpus-record.schema.json","ToS/contracts/scoped-member-structure.schema.json"]}]}},
+{"relation_type_id":"tos.relation.intellectual-part-composition","parent_relation_type_ids":[],"abstract":false,"labels":{"default":"Has attributed part composition","ru":"Имеет приписанный состав частей","en":"Has attributed part composition"},"inverse_labels":{"default":"Part composition attributed to","ru":"Состав частей приписан","en":"Part composition attributed to"},"definition":"Attributes proper intellectual parts within a stated scope. Not physical containment, bibliographic embodiment, research membership, identity equivalence or historical causality. Opposed Claims retain separate contexts; no global part DAG is inferred.","lifecycle":"stable","owner_ref":"ToS/contracts/source-member-structure-claim.schema.json","domain_type_ids":["tos.entity.intellectual-object"],"range_type_ids":["tos.entity.intellectual-part-composition"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"intellectual_part_composition","scope":"claim-predicate"}],"supersedes_relation_type_id":null,"source_claim_profile":{"profile_version":1,"reader":"structured-reference-value-v1","value_kind":"intellectual-part-composition","object_reference_set":{"member_type_ids":["tos.entity.intellectual-object"],"min_items":1,"max_items":128,"subject_is_member":false,"structure_adapter":"scoped-members-v1"},"assertion_layers":["scholarly_report","textual_observation","bibliographic_assertion"],"schemas":[{"schema_version":"tos_source_member_structure_claim_v1","schema_ref":"ToS/contracts/source-member-structure-claim.schema.json","schema_dependencies":["ToS/contracts/source-structured-value.schema.json","ToS/contracts/corpus-record.schema.json","ToS/contracts/scoped-member-structure.schema.json"]}]}},
+{"relation_type_id":"tos.relation.research-corpus-membership","parent_relation_type_ids":[],"abstract":false,"labels":{"default":"Has scoped research membership","ru":"Имеет состав исследовательского корпуса","en":"Has scoped research membership"},"inverse_labels":{"default":"Research membership attributed to","ru":"Состав корпуса приписан","en":"Research membership attributed to"},"definition":"Attributes a scoped selection of source objects into this research corpus. Not part identity or publication containment. Array order is inert; named precedence is a separate aspect of this exact judgment and not automatically historical time.","lifecycle":"stable","owner_ref":"ToS/contracts/source-member-structure-claim.schema.json","domain_type_ids":["tos.entity.research-corpus"],"range_type_ids":["tos.entity.research-corpus-membership"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"research_corpus_membership","scope":"claim-predicate"}],"supersedes_relation_type_id":null,"source_claim_profile":{"profile_version":1,"reader":"structured-reference-value-v1","value_kind":"research-corpus-membership","object_reference_set":{"member_type_ids":["tos.entity.intellectual-object","tos.entity.expression","tos.entity.edition","tos.entity.item","tos.entity.artifact","tos.entity.collection","tos.entity.research-corpus"],"min_items":1,"max_items":128,"subject_is_member":false,"structure_adapter":"scoped-members-v1"},"assertion_layers":["scholarly_report","textual_observation","bibliographic_assertion"],"schemas":[{"schema_version":"tos_source_member_structure_claim_v1","schema_ref":"ToS/contracts/source-member-structure-claim.schema.json","schema_dependencies":["ToS/contracts/source-structured-value.schema.json","ToS/contracts/corpus-record.schema.json","ToS/contracts/scoped-member-structure.schema.json"]}]}},
+    {"relation_type_id":"tos.relation.claim-supersedes","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"records a predecessor assertion","ru":"указывает предшествующее утверждение","en":"records a predecessor assertion"},"inverse_labels":{"default":"has a successor assertion record","ru":"имеет запись преемственного утверждения","en":"has a successor assertion record"},"definition":"A source-declared Claim-to-Claim succession return. It does not supersede either Claim's subjects, redirect their IDs, rewrite the earlier Claim or inherit an assessment. Exact predecessor version qualification, when required by the source profile, remains in the full successor Claim.","lifecycle":"stable","owner_ref":"ToS/doctrine/semantic-interchange/README.md","domain_type_ids":["tos.entity.claim"],"range_type_ids":["tos.entity.claim"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"structural","evidence_required":false,"review_requirement":"none","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"supersedes","scope":"edge"}],"supersedes_relation_type_id":null},
+    {"relation_type_id":"tos.relation.identity-transition-proposal","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"has an identity transition proposal","ru":"имеет предложение перехода идентичности","en":"has an identity transition proposal"},"inverse_labels":{"default":"proposes an identity transition for","ru":"предлагает переход идентичности для","en":"proposes an identity transition for"},"definition":"One predecessor is the entry to a whole source-bound merge or split proposal. The identity domain is narrowed by the identity-transition-v1 reader to exact available concrete source identity descriptors; ancestry or a submitted type name never suffices. Member edges carry no accepted transition and old IDs remain independently readable.","lifecycle":"stable","owner_ref":"ToS/doctrine/semantic-interchange/README.md","domain_type_ids":["tos.entity.identity"],"range_type_ids":["tos.entity.identity-transition-proposal"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"identity_transition_proposal","scope":"claim-predicate"}],"source_claim_profile":{"profile_version":1,"reader":"identity-transition-v1","value_kind":"identity-transition-proposal","assertion_layers":["identity_assertion"],"schemas":[{"schema_version":"tos_source_identity_transition_claim_v1","schema_ref":"ToS/contracts/source-identity-transition-claim.schema.json","schema_dependencies":["ToS/contracts/source-structured-value.schema.json","ToS/contracts/corpus-record.schema.json"]}]},"supersedes_relation_type_id":null},
+{"relation_type_id":"tos.relation.described-by","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"is described by","ru":"описывается ссылкой","en":"is described by"},"inverse_labels":{"default":"is an attributed address for","ru":"указана для","en":"указана для"},"definition":"An attributed description address for one exact source object. The Link remains independently versioned; the address does not prove its contents or source identity.","lifecycle":"stable","owner_ref":"ToS/contracts/object-link-claim-v2.schema.json","domain_type_ids":["tos.entity.work","tos.entity.expression","tos.entity.edition","tos.entity.collection","tos.entity.item","tos.entity.artifact"],"range_type_ids":["tos.entity.link"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"described_by","scope":"claim-predicate"}],"source_claim_profile":{"profile_version":1,"reader":"identity-relation-v1","assertion_layers":["forensic_observation"],"schemas":[{"schema_version":"tos_object_link_claim_v2","schema_ref":"ToS/contracts/object-link-claim-v2.schema.json","schema_dependencies":[]}]},"supersedes_relation_type_id":null},
+{"relation_type_id":"tos.relation.metadata-at","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"has metadata at","ru":"метаданные по ссылке","en":"has metadata at"},"inverse_labels":{"default":"is an attributed address for","ru":"указана для","en":"указана для"},"definition":"An attributed metadata address; no live retrieval, equivalence or metadata truth is implied.","lifecycle":"stable","owner_ref":"ToS/contracts/object-link-claim-v2.schema.json","domain_type_ids":["tos.entity.work","tos.entity.expression","tos.entity.edition","tos.entity.collection","tos.entity.item","tos.entity.artifact"],"range_type_ids":["tos.entity.link"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"metadata_at","scope":"claim-predicate"}],"source_claim_profile":{"profile_version":1,"reader":"identity-relation-v1","assertion_layers":["forensic_observation"],"schemas":[{"schema_version":"tos_object_link_claim_v2","schema_ref":"ToS/contracts/object-link-claim-v2.schema.json","schema_dependencies":[]}]},"supersedes_relation_type_id":null},
+{"relation_type_id":"tos.relation.downloadable-at","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"has reported download at","ru":"указана загрузка по ссылке","en":"указана загрузка по ссылке"},"inverse_labels":{"default":"is an attributed address for","ru":"указана для","en":"указана для"},"definition":"A reported download association. Availability does not imply rights clearance, publication permission or a performed download.","lifecycle":"stable","owner_ref":"ToS/contracts/object-link-claim-v2.schema.json","domain_type_ids":["tos.entity.work","tos.entity.expression","tos.entity.edition","tos.entity.collection","tos.entity.item","tos.entity.artifact"],"range_type_ids":["tos.entity.link"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"downloadable_at","scope":"claim-predicate"}],"source_claim_profile":{"profile_version":1,"reader":"identity-relation-v1","assertion_layers":["forensic_observation"],"schemas":[{"schema_version":"tos_object_link_claim_v2","schema_ref":"ToS/contracts/object-link-claim-v2.schema.json","schema_dependencies":[]}]},"supersedes_relation_type_id":null},
+{"relation_type_id":"tos.relation.rights-statement-at","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"has rights statement at","ru":"сведения о правах по ссылке","en":"сведения о правах по ссылке"},"inverse_labels":{"default":"is an attributed address for","ru":"указана для","en":"указана для"},"definition":"An address for a reported rights statement. This grants no rights and does not establish correctness or applicability.","lifecycle":"stable","owner_ref":"ToS/contracts/object-link-claim-v2.schema.json","domain_type_ids":["tos.entity.work","tos.entity.expression","tos.entity.edition","tos.entity.collection","tos.entity.item","tos.entity.artifact"],"range_type_ids":["tos.entity.link"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"rights_statement_at","scope":"claim-predicate"}],"source_claim_profile":{"profile_version":1,"reader":"identity-relation-v1","assertion_layers":["forensic_observation"],"schemas":[{"schema_version":"tos_object_link_claim_v2","schema_ref":"ToS/contracts/object-link-claim-v2.schema.json","schema_dependencies":[]}]},"supersedes_relation_type_id":null},
+{"relation_type_id":"tos.relation.claim-value-member","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"references a proposal member","ru":"ссылается на участника гипотезы","en":"references a proposal member"},"inverse_labels":{"default":"is referenced by a proposal","ru":"указан в гипотезе","en":"is referenced by a proposal"},"definition":"A structural return from a Claim to one member explicitly declared by its structured-reference-value or identity-transition profile. The complete set and Claim source govern meaning and admission; this edge alone is not accepted membership, equivalence, an executed identity transition, evidence or a Sign.","lifecycle":"stable","owner_ref":"ToS/doctrine/semantic-interchange/README.md","domain_type_ids":["tos.entity.claim"],"range_type_ids":["tos.entity.identity","tos.entity.semantic-object"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"structural","evidence_required":false,"review_requirement":"none","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"has_value_member","scope":"edge"}],"supersedes_relation_type_id":null},
 {"relation_type_id":"tos.relation.occurrence-motif-proposal","source_claim_profile":{"profile_version":1,"reader":"structured-reference-value-v1","value_kind":"motif-proposal","object_reference_set":{"member_type_ids":["tos.entity.occurrence"],"min_items":2,"max_items":8,"subject_is_member":true},"assertion_layers":["semantic_interpretation","scholarly_report"],"schemas":[{"schema_version":"tos_source_occurrence_motif_claim_v1","schema_ref":"ToS/contracts/source-occurrence-motif-claim.schema.json","schema_dependencies":["ToS/contracts/source-structured-value.schema.json","ToS/contracts/corpus-record.schema.json"]}]},"parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"has a qualified motif proposal","ru":"имеет гипотезу о мотиве с оговорками","en":"has a qualified motif proposal"},"inverse_labels":{"default":"proposes a motif around","ru":"предлагает мотив вокруг","en":"proposes a motif around"},"definition":"The focal exact Occurrence is the entry to one qualified Claim over all declared member occurrences. The focal is included in the set; no first pair stands for the whole hypothesis, and no member edge independently accepts membership or a Sign.","lifecycle":"stable","owner_ref":"ToS/doctrine/semantic-interchange/README.md","domain_type_ids":["tos.entity.occurrence"],"range_type_ids":["tos.entity.motif-proposal"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"occurrence_motif_proposal","scope":"claim-predicate"}],"supersedes_relation_type_id":null},
 {"relation_type_id":"tos.relation.lexical-translatability","source_claim_profile":{"profile_version":1,"reader":"structured-value-v1","value_kind":"lexical-translatability","assertion_layers":["scholarly_report","linguistic_analysis","translation_judgment"],"schemas":[{"schema_version":"tos_source_lexical_translatability_claim_v1","schema_ref":"ToS/contracts/source-lexical-translatability-claim.schema.json","schema_dependencies":["ToS/contracts/source-structured-value.schema.json","ToS/contracts/corpus-record.schema.json"]}]},"parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"has scoped translatability report","ru":"имеет ограниченное суждение о переводимости","en":"has scoped translatability report"},"inverse_labels":{"default":"reports translatability of","ru":"описывает переводимость","en":"reports translatability of"},"definition":"An attributed rendering judgment about a specified Lexeme, Sense or exact Occurrence in declared source and target contexts. It is not a Sense-to-Sense correspondence, performed translation, search execution or universal impossibility. Competing reports remain separate Claims.","lifecycle":"stable","owner_ref":"ToS/doctrine/semantic-interchange/README.md","domain_type_ids":["tos.entity.lexeme","tos.entity.lexical-sense","tos.entity.occurrence"],"range_type_ids":["tos.entity.lexical-translatability"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"lexical_translatability","scope":"claim-predicate"}],"supersedes_relation_type_id":null},
 {"relation_type_id":"tos.relation.lexical-inherited-from","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"is reported as lexically inherited from","ru":"сообщается как унаследованное от","en":"is reported as lexically inherited from"},"inverse_labels":{"default":"has a reported lexical descendant","ru":"имеет сообщаемую унаследованную лексему","en":"has a reported lexical descendant"},"definition":"A reported lexical continuation through the stated language stages, not borrowing, spelling identity or automatic inheritance of every sense. The source is the later lexical referent and the target its proposed predecessor; chronology and evidential limits remain explicit.","lifecycle":"stable","owner_ref":"ToS/doctrine/semantic-interchange/README.md","domain_type_ids":["tos.entity.lexeme"],"range_type_ids":["tos.entity.lexeme"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"lexical_inherited_from","scope":"claim-predicate"}],"source_claim_profile":{"profile_version":1,"reader":"semantic-relation-v1","assertion_layers":["scholarly_report","linguistic_analysis","semantic_interpretation"],"schemas":[{"schema_version":"tos_semantic_relation_claim_v1","schema_ref":"ToS/contracts/lexical-comparison-claim.schema.json","schema_dependencies":["ToS/contracts/corpus-record.schema.json","ToS/contracts/claim-packet.schema.json","ToS/contracts/knowledge-assessment.schema.json","ToS/contracts/semantic-relation-claim.schema.json","ToS/contracts/linguistic-relation-claim.schema.json"]}]},"supersedes_relation_type_id":null},
@@ -242,6 +284,69 @@
         {"source_graph": "philosophy", "source_predicate_id": "polemicizes_with", "scope": "edge", "labels": {"default": "polemicizes with", "ru": "полемизирует с", "en": "polemicizes with"}, "definition": "Source-declared polemical engagement; it neither establishes influence nor requires reciprocal engagement."},
         {"source_graph": "philosophy", "source_predicate_id": "transforms_concept", "scope": "edge", "labels": {"default": "transforms concept", "ru": "преобразует понятие", "en": "transforms concept"}, "definition": "Source-declared conceptual transformation; the target is not thereby identical to the source."}
       ],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.candidate-authorizing-figure",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": false,
+      "labels": {"default": "has dossier-reported authorizing or intratextual figure", "ru": "имеет указанную в досье авторизующую или внутритекстовую фигуру", "en": "has dossier-reported authorizing or intratextual figure"},
+      "inverse_labels": {"default": "is the dossier-reported authorizing or intratextual figure for", "ru": "выступает указанной в досье авторизующей или внутритекстовой фигурой для", "en": "is the dossier-reported authorizing or intratextual figure for"},
+      "definition": "A candidate-only dossier report from a pre-canon text-corpus to its pre-canon authorizing or intratextual figure anchor. The exact figure_anchor predicate and dossier comment distinguish the recorded roles. This does not establish historical authorship, a real historical person, a normalized Agent identity, attribution acceptance or canon. Existing source and review posture remain authoritative.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "domain_type_ids": ["tos.entity.text-corpus"],
+      "range_type_ids": ["tos.entity.figure"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "direct",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "philosophy", "source_predicate_id": "figure_anchor", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.candidate-translator-involvement",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": false,
+      "labels": {"default": "is reported in the dossier as involved in translating", "ru": "по досье участвует в переводе", "en": "is reported in the dossier as involved in translating"},
+      "inverse_labels": {"default": "has dossier-reported translation involvement by", "ru": "по досье переводился при участии", "en": "has dossier-reported translation involvement by"},
+      "definition": "A candidate-only dossier report from a pre-canon figure to a pre-canon text-corpus of the figure's translator involvement. The source-native translates_into direction is retained together with the original comment, language wording, source references and review constraints. It is not the translated_into translation-result direction and establishes no translated Expression identity, textual equivalence, historical acceptance, normalized Agent identity or canon.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "domain_type_ids": ["tos.entity.figure"],
+      "range_type_ids": ["tos.entity.text-corpus"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "direct",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "philosophy", "source_predicate_id": "translates_into", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.candidate-material-realization",
+      "parent_relation_type_ids": ["tos.relation.related"],
+      "abstract": false,
+      "labels": {"default": "has dossier-reported material realization in", "ru": "по досье реализуется посредством", "en": "has dossier-reported material realization in"},
+      "inverse_labels": {"default": "provides dossier-reported material realization for", "ru": "по досье служит материальной реализацией для", "en": "provides dossier-reported material realization for"},
+      "definition": "A candidate-only dossier report from a pre-canon language-script category to a pre-canon medium category of its material realization, including an information system's cord structure. The exact uses_medium predicate, comment and frontier restrictions remain source-owned. This does not identify a normalized Artifact or Item, establish decipherment or readability, equate an information system with a philosophical text corpus, or grant historical acceptance or canon.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "domain_type_ids": ["tos.entity.language-script"],
+      "range_type_ids": ["tos.entity.medium"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "direct",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "philosophy", "source_predicate_id": "uses_medium", "scope": "edge"}],
       "supersedes_relation_type_id": null
     },
     {
@@ -1697,6 +1802,27 @@
       "supersedes_relation_type_id": null
     },
     {
+      "relation_type_id": "tos.relation.has-record-version",
+      "parent_relation_type_ids": ["tos.relation.structural"],
+      "abstract": false,
+      "labels": {"default": "has exact record version", "ru": "имеет точную версию записи", "en": "has exact record version"},
+      "inverse_labels": {"default": "is an exact record version of", "ru": "является точной версией записи о", "en": "is an exact record version of"},
+      "definition": "Technical source-history navigation from a subject carrying a source-owned metadata record to one exact current or retained version of that same record. The target exact ref must occur in the verified source history bound to the current record. This general applicability is structural, not a substitute for a domain-specific historical relation, conception transformation or current-use grant.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/record-version-view.schema.json",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.record-version"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": 1},
+      "assertion_mode": "structural",
+      "evidence_required": true,
+      "review_requirement": "none",
+      "source_mappings": [{"source_graph": "source-navigation", "source_predicate_id": "has_record_version", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
       "relation_type_id": "tos.relation.promotion-basis-version",
       "parent_relation_type_ids": ["tos.relation.structural"],
       "abstract": false,
@@ -1761,6 +1887,12 @@
     },
     {
       "relation_type_id": "tos.relation.has-expression",
+      "source_claim_profile": {
+        "profile_version": 1,
+        "reader": "identity-relation-v1",
+        "assertion_layers": ["bibliographic_assertion"],
+        "schemas": [{"schema_version": "tos_source_relation_claim_v1", "schema_ref": "ToS/contracts/source-relation-claim.schema.json", "schema_dependencies": []}]
+      },
       "parent_relation_type_ids": ["tos.relation.bibliographic-topology"],
       "abstract": false,
       "labels": {"default": "has expression", "ru": "имеет выражение", "en": "has expression"},
@@ -1785,6 +1917,12 @@
     },
     {
       "relation_type_id": "tos.relation.embodied-by",
+      "source_claim_profile": {
+        "profile_version": 1,
+        "reader": "identity-relation-v1",
+        "assertion_layers": ["bibliographic_assertion"],
+        "schemas": [{"schema_version": "tos_source_relation_claim_v1", "schema_ref": "ToS/contracts/source-relation-claim.schema.json", "schema_dependencies": []}]
+      },
       "parent_relation_type_ids": ["tos.relation.bibliographic-topology"],
       "abstract": false,
       "labels": {"default": "embodied by", "ru": "воплощено изданием", "en": "embodied by"},
@@ -1809,6 +1947,12 @@
     },
     {
       "relation_type_id": "tos.relation.exemplified-by",
+      "source_claim_profile": {
+        "profile_version": 1,
+        "reader": "identity-relation-v1",
+        "assertion_layers": ["bibliographic_assertion"],
+        "schemas": [{"schema_version": "tos_source_relation_claim_v1", "schema_ref": "ToS/contracts/source-relation-claim.schema.json", "schema_dependencies": []}]
+      },
       "parent_relation_type_ids": ["tos.relation.bibliographic-topology"],
       "abstract": false,
       "labels": {"default": "exemplified by", "ru": "представлено экземпляром", "en": "exemplified by"},
@@ -1854,6 +1998,12 @@
     },
     {
       "relation_type_id": "tos.relation.contains-work",
+      "source_claim_profile": {
+        "profile_version": 1,
+        "reader": "identity-relation-v1",
+        "assertion_layers": ["scholarly_report", "bibliographic_assertion"],
+        "schemas": [{"schema_version": "tos_source_relation_claim_v1", "schema_ref": "ToS/contracts/source-relation-claim.schema.json", "schema_dependencies": []}]
+      },
       "parent_relation_type_ids": ["tos.relation.bibliographic-topology"],
       "abstract": false,
       "labels": {"default": "contains work", "ru": "содержит произведение", "en": "contains work"},
@@ -1962,6 +2112,7 @@
         {"source_graph": "source-navigation", "source_predicate_id": "translated_by", "scope": "edge"},
         {"source_graph": "source-claims", "source_predicate_id": "translated_by", "scope": "claim-predicate"}
       ],
+      "source_claim_profile": {"profile_version": 1, "reader": "identity-relation-v1", "assertion_layers": ["scholarly_report", "bibliographic_assertion"], "schemas": [{"schema_version": "tos_source_relation_claim_v1", "schema_ref": "ToS/contracts/source-relation-claim.schema.json", "schema_dependencies": []}]},
       "supersedes_relation_type_id": null
     },
     {
@@ -2142,6 +2293,27 @@
       "evidence_required": false,
       "review_requirement": "recorded",
       "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "supported_by", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.claim-counterevidenced-by",
+      "parent_relation_type_ids": ["tos.relation.claim-structure"],
+      "abstract": false,
+      "labels": {"default": "claim cites counterevidence", "ru": "утверждение приводит контрсвидетельство", "en": "claim cites counterevidence"},
+      "inverse_labels": {"default": "cited as counterevidence by claim", "ru": "приводится утверждением как контрсвидетельство", "en": "cited as counterevidence by claim"},
+      "definition": "Connects a reified Claim to one source-returnable Evidence reference explicitly listed in its counterevidence_refs. This records the source-declared counterevidence role and retains the qualified Claim context; it does not decide contradiction, refutation, falsity, assessment outcome or admission. The same Evidence may also support the qualified Claim while limiting an overreading.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+      "domain_type_ids": ["tos.entity.claim"],
+      "range_type_ids": ["tos.entity.evidence"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": 0, "per_subject_max": null, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "reified-claim",
+      "evidence_required": false,
+      "review_requirement": "recorded",
+      "source_mappings": [{"source_graph": "source-claims", "source_predicate_id": "counterevidenced_by", "scope": "edge"}],
       "supersedes_relation_type_id": null
     },
     {

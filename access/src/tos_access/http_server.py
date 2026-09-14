@@ -15,11 +15,18 @@ from urllib.parse import parse_qs, unquote, urlparse
 from .core import ToSAccessCore
 from .query_store import QueryStoreRequired
 from .lens_pagination import KnowledgeRevisionConflict
-from .exploration import ExplorationExpired, exploration_capabilities
+from .temporal_comparison import TemporalReadModelInvalid
+from .exploration import ExplorationExpired
+from .exploration_origin import ExplorationReadModelInvalid
+from .published_read_model import PublishedReadModelError, PublishedReadBudgetExceeded, PublishedSnapshotConflict
+from .published_checkpoints import PublishedCheckpointError
+from .compressed_search_store import SearchStaleBinding, SearchCursorExpired, SearchUnavailable, SearchBudgetExceeded
 from .doctor import web_root_for
+from .source_read import SourceReadBudgetExceeded, SourceReadError
 
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
 MAX_LENS_REQUEST_BYTES = 64 * 1024
+MAX_SOURCE_REQUEST_BYTES = 64 * 1024
 
 INDEX_TEMPLATE = """<!doctype html>
 <html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -129,8 +136,9 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 # traceback or a misleading product failure.
                 return
 
-        def _json(self, payload: Any, status: int = 200) -> None:
-            self._send(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+        def _json(self, payload: Any, status: int = 200, *, compact: bool = False) -> None:
+            options = {"separators": (",", ":"), "allow_nan": False} if compact else {}
+            self._send(json.dumps(payload, ensure_ascii=False, **options).encode("utf-8"), "application/json; charset=utf-8", status)
 
         def _static(self, relative: str) -> None:
             target = (web_root / relative).resolve()
@@ -154,6 +162,25 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                     self._static(path.removeprefix("/static/"))
                     return
                 if path == "/health":
+                    try:
+                        prepared = core.knowledge_prepared_status()
+                    except PublishedReadModelError as exc:
+                        self._json({
+                            "service": "tree-of-sophia-access", "ok": False,
+                            "write_enabled": False, "errors": [str(exc)],
+                            "scope": "selected-prepared-publication",
+                        }, HTTPStatus.SERVICE_UNAVAILABLE)
+                        return
+                    if prepared is not None:
+                        self._json({
+                            "service": "tree-of-sophia-access", "ok": True,
+                            "write_enabled": False, "errors": [],
+                            "knowledge_schema": prepared["graph_schema"],
+                            "knowledge_counts": {},
+                            "scope": "selected-prepared-publication",
+                            "read_model_status": prepared,
+                        })
+                        return
                     errors: list[str] = []
                     knowledge_schema: str | None = None
                     knowledge_counts: dict[str, Any] = {}
@@ -215,10 +242,25 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                     return
                 if path == "/api/corpus/status": self._json(core.status()); return
                 if path == "/api/knowledge/catalog": self._json(core.knowledge_catalog()); return
-                if path == "/api/knowledge/explore/capabilities": self._json(exploration_capabilities()); return
+                if path == "/api/knowledge/explore/capabilities": self._json(core.knowledge_exploration_capabilities()); return
                 if path == "/api/knowledge/explore/contracts": self._json(core.knowledge_exploration_contracts()); return
                 if path == "/api/knowledge/contracts": self._json(core.knowledge_contracts()); return
+                if path == "/api/knowledge/search/capabilities": self._json(core.knowledge_search_capabilities()); return
                 if path == "/api/knowledge/search":
+                    mode = _single(query, "mode", "legacy")
+                    if mode in {"indexed", "compressed"}:
+                        if _integer(query, "offset", 0, 0, 100_000) != 0:
+                            raise ValueError(f"{mode} knowledge search uses cursor continuation, not offset")
+                        search = core.knowledge_search_indexed if mode == "indexed" else core.knowledge_search_compressed
+                        self._json(search(
+                            _single(query, "query"),
+                            sources=_list(query, "sources") or None,
+                            kind_ids=_list(query, "kind_ids") or None,
+                            predicate_ids=_list(query, "predicate_ids") or None,
+                            cursor=_single(query, "cursor") or None,
+                            limit=_integer(query, "limit", 40, 1, 100),
+                        ), compact=mode == "compressed"); return
+                    if mode != "legacy": raise ValueError("knowledge search mode must be legacy, indexed or compressed")
                     self._json(core.knowledge_search(
                         _single(query, "query"),
                         sources=_list(query, "sources") or None,
@@ -248,6 +290,8 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 if path.startswith("/api/knowledge/lenses/"):
                     self._json(core.stored_knowledge_lens(unquote(path.removeprefix("/api/knowledge/lenses/")))); return
                 if path == "/api/source-gaps": self._json(core.source_gap_search(_single(query, "query"), _integer(query, "limit", 20, 1, 100))); return
+                if path == "/api/source/capabilities": self._json(core.source_read_capabilities()); return
+                if path == "/api/source/contracts": self._json(core.source_read_contract()); return
                 if path == "/api/zarathustra/word-analysis":
                     self._json(core.zarathustra_word_analysis_task(
                         _single(query, "query"),
@@ -344,6 +388,14 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 self._json({"error": "not found", "path": path}, HTTPStatus.NOT_FOUND)
             except QueryStoreRequired as exc:
                 self._json({'error': str(exc), 'code': 'query_store_build_required'}, HTTPStatus.SERVICE_UNAVAILABLE)
+            except (KnowledgeRevisionConflict, PublishedSnapshotConflict, SearchStaleBinding) as exc:
+                self._json({"error": str(exc)}, HTTPStatus.CONFLICT)
+            except SearchCursorExpired as exc:
+                self._json({"error": str(exc)}, HTTPStatus.GONE)
+            except (PublishedReadBudgetExceeded, SearchBudgetExceeded) as exc:
+                self._json({"error": str(exc)}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+            except (PublishedReadModelError, PublishedCheckpointError, SearchUnavailable) as exc:
+                self._json({"error": str(exc)}, HTTPStatus.SERVICE_UNAVAILABLE)
             except KeyError as exc:
                 self._json({"error": str(exc)}, HTTPStatus.NOT_FOUND)
             except (RuntimeError, ValueError) as exc:
@@ -354,42 +406,64 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
 
         def do_POST(self) -> None:  # noqa: N802
             parsed = urlparse(self.path)
-            if parsed.path not in {"/api/knowledge/lenses/compile", "/api/knowledge/explore"}:
+            if parsed.path not in {
+                "/api/knowledge/lenses/compile", "/api/knowledge/explore", "/api/knowledge/temporal/compare",
+                "/api/source/handles", "/api/source/read",
+            }:
                 self._json({"error": "standalone access is read-only"}, HTTPStatus.METHOD_NOT_ALLOWED)
                 return
             try:
+                request_label = "source request" if parsed.path.startswith("/api/source/") else "lens request"
                 if self.headers.get("Transfer-Encoding"):
-                    raise ValueError("streamed lens requests are not supported")
+                    raise ValueError(f"streamed {request_label}s are not supported")
                 content_type = self.headers.get_content_type()
                 if content_type != "application/json":
-                    self._json({"error": "lens request must use application/json"}, HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+                    self._json({"error": f"{request_label} must use application/json"}, HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
                     return
                 raw_length = self.headers.get("Content-Length")
                 if raw_length is None:
-                    raise ValueError("lens request requires Content-Length")
+                    raise ValueError(f"{request_label} requires Content-Length")
                 length = int(raw_length)
+                maximum = MAX_SOURCE_REQUEST_BYTES if parsed.path.startswith("/api/source/") else MAX_LENS_REQUEST_BYTES
                 if length < 1:
-                    raise ValueError(f"lens request must be between 1 and {MAX_LENS_REQUEST_BYTES} bytes")
-                if length > MAX_LENS_REQUEST_BYTES:
+                    raise ValueError(f"{request_label} must be between 1 and {maximum} bytes")
+                if length > maximum:
                     self._json(
-                        {"error": f"lens request must not exceed {MAX_LENS_REQUEST_BYTES} bytes"},
+                        {"error": f"{request_label} must not exceed {maximum} bytes"},
                         HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
                     )
                     return
                 body = self.rfile.read(length)
                 if len(body) != length:
-                    raise ValueError("incomplete lens request body")
+                    raise ValueError(f"incomplete {request_label} body")
                 spec = json.loads(body.decode("utf-8"))
                 if not isinstance(spec, dict):
-                    raise ValueError("lens spec must be an object")
-                operation = core.knowledge_explore if parsed.path == "/api/knowledge/explore" else core.compile_knowledge_lens
+                    raise ValueError(f"{request_label} must be an object")
+                operation = getattr(core, {
+                    '/api/knowledge/explore': 'knowledge_explore',
+                    '/api/knowledge/temporal/compare': 'knowledge_temporal_compare',
+                    '/api/knowledge/lenses/compile': 'compile_knowledge_lens',
+                    '/api/source/handles': 'source_handle_discover',
+                    '/api/source/read': 'source_read',
+                }[parsed.path])
                 self._json(operation(spec))
             except QueryStoreRequired as exc:
                 self._json({'error': str(exc), 'code': 'query_store_build_required'}, HTTPStatus.SERVICE_UNAVAILABLE)
             except ExplorationExpired as exc:
                 self._json({"error": str(exc), "code": "exploration_expired"}, HTTPStatus.GONE)
-            except KnowledgeRevisionConflict as exc:
+            except (KnowledgeRevisionConflict, PublishedSnapshotConflict) as exc:
                 self._json({"error": str(exc)}, HTTPStatus.CONFLICT)
+            except PublishedReadBudgetExceeded as exc:
+                self._json({"error": str(exc)}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+            except SourceReadBudgetExceeded as exc:
+                self._json({"error": str(exc)}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+            except SourceReadError as exc:
+                status = HTTPStatus.SERVICE_UNAVAILABLE if str(exc).endswith("not-configured") else HTTPStatus.BAD_REQUEST
+                self._json({"error": str(exc)}, status)
+            except (TemporalReadModelInvalid, ExplorationReadModelInvalid, PublishedReadModelError, PublishedCheckpointError) as exc:
+                self._json({"error": str(exc)}, HTTPStatus.SERVICE_UNAVAILABLE)
+            except KeyError as exc:
+                self._json({"error": str(exc)}, HTTPStatus.NOT_FOUND)
             except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
                 self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
 

@@ -1,9 +1,12 @@
+import {chooseKnowledgeSearchMode} from "./knowledge-search";
+
 export type ToSMode = "philosophy" | "corpus";
 
 export type ToSQueryOperationId =
   | "tos.status"
   | "tos.snapshot"
   | "tos.search"
+  | "tos.knowledge.search"
   | "tos.source-gaps.search"
   | "tos.source.descend"
   | "tos.dossier.inspect"
@@ -33,6 +36,12 @@ function requiredString(value: unknown, name: string): string {
 function optionalString(value: unknown): string | undefined {
   const result = String(value || "").trim();
   return result || undefined;
+}
+
+function optionalOpaqueString(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "string") throw new Error("knowledge search cursor must be a string");
+  return value;
 }
 
 function list(value: unknown): string[] {
@@ -86,6 +95,30 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
         const query = String(input.query || "").trim();
         const limit = boundedInt(input.limit, 20, 1, 100);
         return fetchJson<ToSQueryResult>(`/api/${mode}/search${params({ query, limit })}`, request);
+      }
+      case "tos.knowledge.search": {
+        const query = String(input.query || "").trim();
+        const limit = boundedInt(input.limit, 40, 1, 100);
+        const sources = Array.isArray(input.sources) ? list(input.sources) : undefined;
+        const kindIds = Array.isArray(input.kind_ids) ? list(input.kind_ids) : undefined;
+        const predicateIds = Array.isArray(input.predicate_ids) ? list(input.predicate_ids) : undefined;
+        const requestedMode = input.search_mode;
+        if (requestedMode !== undefined && requestedMode !== "indexed" && requestedMode !== "compressed") {
+          throw new Error(`knowledge search mode must be indexed or compressed: ${String(requestedMode)}`);
+        }
+        const capabilities = await fetchJson<unknown>("/api/knowledge/search/capabilities", request);
+        const searchMode = chooseKnowledgeSearchMode(capabilities, requestedMode);
+        const cursor = optionalOpaqueString(input.cursor);
+        const payload = await fetchJson<ToSQueryResult>(`/api/knowledge/search${params({
+          mode: searchMode,
+          query,
+          limit,
+          sources,
+          kind_ids: kindIds,
+          predicate_ids: predicateIds,
+          cursor,
+        })}`, request);
+        return { ...payload, search_mode: searchMode };
       }
       case "tos.source-gaps.search": {
         const query = String(input.query || "").trim();

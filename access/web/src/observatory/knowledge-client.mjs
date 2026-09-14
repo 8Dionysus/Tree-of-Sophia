@@ -1,9 +1,22 @@
 import {t,uiLanguage} from './ui-i18n.mjs';
+import {chooseKnowledgeSearchMode} from '../knowledge-search.ts';
 import {displayForm} from './display-language.mjs';
 import {contentLanguage,validateHumanForms,claimPathFor,claimPathClosure,FormContractError} from './human-forms.mjs';
+import {verifyReadableContext} from './readable-context.mjs';
+import {knowledgeScene} from '../../../shared/knowledge-scene.ts';
+import {DEFAULT_RESPONSE_BYTES,validateResponseLimit,ResponseLimitError,withAbort,cancelResponseBody,readBoundedJSON} from './bounded-response.mjs';
 // The browser consumes the access contract; it never authors ToS relationships.
 export const DEFAULT_FOCUS = 'tos.work.friedrich-nietzsche.also-sprach-zarathustra';
 export const BUDGET = Object.freeze({nodes:40,relations:80});
+// Source dossiers are a metadata-only bridge from a delivered carrier to its
+// owner-provided bibliographic route.  Keep the browser window narrower than
+// the backend contract; truncation remains an honest dossier field.
+export const SOURCE_DOSSIER_LIMIT = 64;
+const SOURCE_DOSSIER_KINDS=new Set(['work','expression','edition','item','file','link']);
+const SOURCE_DOSSIER_REF=/^tos\.[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
+export const isSourceDossierRef=value=>typeof value==='string'&&value.length>0&&value.length<=2048&&SOURCE_DOSSIER_REF.test(value);
+// Transport bounds are not a license to draw or retain every delivered page.
+export const EXPLORATION_BUDGET = Object.freeze({nodes:302,relations:101});
 const executedSpecs=new WeakMap();
 export const specForPacket=packet=>executedSpecs.get(packet)||null;
 export class ContractError extends Error {}
@@ -13,15 +26,68 @@ export class RevisionError extends Error {
 export class RequestError extends Error {
   constructor(status,message){super(message);this.status=status;}
 }
+// JSON objects have no meaningful property order; array order remains exact.
+export function sameJson(left,right){
+  if(left===right)return true;
+  if(left===null||right===null||typeof left!=='object'||typeof right!=='object')return false;
+  if(Array.isArray(left)||Array.isArray(right))return Array.isArray(left)&&Array.isArray(right)
+    &&left.length===right.length&&left.every((value,index)=>sameJson(value,right[index]));
+  const keys=Object.keys(left);
+  return keys.length===Object.keys(right).length&&keys.every(key=>Object.hasOwn(right,key)&&sameJson(left[key],right[key]));
+}
+// Only these two exploration fields are sets in the owner's normalizer.
+// Keep the original request on the wire so invalid input is not repaired into
+// a valid command by client-side deduplication; compare its accepted meaning.
+export function explorationRequestMatches(normalized,requested){
+  return !!normalized&&Object.entries(requested).every(([key,value])=>{
+    if(!['sources','predicate_ids'].includes(key))return sameJson(normalized[key],value);
+    const actual=normalized[key];
+    return Array.isArray(value)&&Array.isArray(actual)&&value.every(item=>typeof item==='string')
+      &&new Set(actual).size===actual.length&&new Set(value).size===actual.length&&value.every(item=>actual.includes(item));
+  });
+}
+// Durable reading stores selectors only. The backend must supply and validate
+// the complete current path again; saved IDs never stand in for source text.
+export function validateClaimReference(value,claimId){
+  const id=value=>typeof value==='string'&&value.length>0&&value.length<=2048;
+  const ids=(value,limit)=>Array.isArray(value)&&value.length<=limit&&value.every(id);
+  if(!value||value.claimId!==claimId||!id(claimId)||!id(value.pathId)||!id(value.relationType)
+    ||!ids(value.nodeIds,3)||value.nodeIds.length!==3||value.nodeIds[1]!==claimId
+    ||!ids(value.relationIds,2)||value.relationIds.length!==2
+    ||!ids(value.detailRelationIds,BUDGET.relations-2)
+    ||!ids(value.closureNodeIds,BUDGET.nodes)||!value.closureNodeIds.length
+    ||new Set(value.closureNodeIds).size!==value.closureNodeIds.length
+    ||!value.nodeIds.every(nodeId=>value.closureNodeIds.includes(nodeId))
+    ||new Set([...value.relationIds,...value.detailRelationIds]).size!==value.relationIds.length+value.detailRelationIds.length)
+    throw new FormContractError();
+  return Object.fromEntries(['claimId','pathId','relationType','nodeIds','relationIds','detailRelationIds','closureNodeIds']
+    .map(key=>[key,structuredClone(value[key])]));
+}
+export function claimMaterialReference(packet,path){
+  const closure=claimPathClosure(packet,path);
+  return validateClaimReference({claimId:path.claim_node_id,pathId:path.id,relationType:path.relation_type_id,
+    nodeIds:path.node_ids,relationIds:path.relation_ids,detailRelationIds:path.detail_relation_ids,closureNodeIds:closure.nodeIds},path.claim_node_id);
+}
+export const materialVersions=packet=>Object.fromEntries(['nodes','relations'].map(kind=>
+  [kind,Object.fromEntries(packet[kind].map(item=>[item.id,item.content_revision]))]));
 export function localized(value,fallback='',preferred='ru') {
   return displayForm(value,preferred)?.text||fallback;
 }
 export const missingReadableTitle=raw=>raw?.display?.provenance?.title==='identifier-fallback';
 // Only the owner's explicit provenance marks an identifier fallback. Never
 // infer a title, statement or type from an opaque ID or a human form.
-export function displayTitleForm(raw,preferred=uiLanguage()){
+export function materialDisplayForm(raw,field,preferred='ru'){
+  const selection=raw?.display_selection;
+  if(selection===undefined)return displayForm(raw?.display?.[field],preferred);
+  if(selection?.schema_version!=='tos_display_selection_v1'||selection.content_revision!==raw?.content_revision
+    ||!selection.fields||!Object.hasOwn(selection.fields,field)||!selection.fields[field]
+    ||typeof selection.fields[field]!=='object'||Array.isArray(selection.fields[field]))return null;
+  return displayForm(raw?.display?.[field],preferred,selection.fields[field]);
+}
+export function displayTitleForm(raw,preferred=uiLanguage(),material=false){
   if(missingReadableTitle(raw))return {text:[localized(raw.display.kind_label,raw.kind_id,preferred),t('Нет читаемого названия')].filter(Boolean).join(' · '),key:null,lang:null,fallback:false,unavailable:true};
-  const form=displayForm(raw?.display?.title||raw?.display?.label,preferred);
+  const field=raw?.display?.title?'title':'label';
+  const form=material?materialDisplayForm(raw,field,preferred):displayForm(raw?.display?.[field],preferred);
   return form&&raw?.display?.provenance?.title==='navigation-template'?{...form,navigationOnly:true}:form;
 }
 export function displayTitle(raw,fallback='',preferred=uiLanguage()){
@@ -49,9 +115,65 @@ export function relationSpec(relation){
   spec.relation_query={filters:[{field:'id',op:'eq',value:relation.id}]};
   spec.limits={nodes:2,relations:1,groups:2};return spec;
 }
+
+// A public route may name either a node or a relation.  Relation identities
+// are intentionally opaque, so the route resolver asks the owner relation
+// endpoint first and falls back to the node lens only for an actual 404.  A
+// network, permission, revision, or contract failure must remain visible and
+// must never be mistaken for a node route.
+export async function compileRouteCenter(client,id,signal,expected=null,{depth=1}={}) {
+  if(typeof id!=='string'||!id.trim())throw new ContractError(t("Не указан центр области."));
+  let relationError=null;
+  try {
+    const identity=await client.inspect('relation',id,signal,expected);
+    const revision=identity.packet.source_revision;
+    const packet=await client.compile(relationSpec(identity.match),signal,revision);
+    if(!packet.relations.some(item=>item.id===id))throw new ContractError(t("Выбранное отношение отсутствует в области."));
+    return {packet,kind:'relation',relation:identity.match};
+  } catch(error) {
+    relationError=error;
+    if(!(error instanceof RequestError)||error.status!==404)throw error;
+  }
+  try {
+    const packet=await client.compile(focusSpec(id,{depth}),signal,expected);
+    return {packet,kind:'node'};
+  } catch(error) {
+    // Preserve the node error: it describes the requested route more
+    // accurately than the probing relation 404.
+    if(relationError&&error instanceof RequestError&&error.status===404)throw relationError;
+    throw error;
+  }
+}
 export function checkRevision(packet,expected) {
   if(!/^[a-f0-9]{64}$/.test(packet?.source_revision||''))throw new ContractError(t("Ответ не содержит версию данных."));
   if(expected&&packet.source_revision!==expected)throw new RevisionError();
+  return packet;
+}
+const boundedStrings=(value,limit)=>Array.isArray(value)&&value.length<=limit&&value.every(item=>typeof item==='string'&&item.length>0&&item.length<=2048);
+const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+const boundedRecords=(value,limit)=>Array.isArray(value)&&value.length<=limit&&value.every(record);
+export function validateSourceDossier(packet,expected) {
+  const summary=packet?.agent_summary,object=packet?.object;
+  if(packet?.schema!=='tos_source_dossier_v1'||!isSourceDossierRef(expected)||packet.object_id!==expected
+    ||!record(object)||object.node_id!==expected
+    ||!SOURCE_DOSSIER_KINDS.has(object.node_kind)
+    ||!summary||typeof summary.technical_access!=='string'||!summary.technical_access
+    ||typeof summary.rights_posture!=='string'||!summary.rights_posture
+    ||typeof summary.human_review_required!=='boolean'||typeof summary.can_conclude_legal_openness!=='boolean'
+    ||summary.availability_is_license!==false
+    ||!boundedStrings(summary.rights_scope_refs,SOURCE_DOSSIER_LIMIT)
+    ||!boundedStrings(summary.gaps,SOURCE_DOSSIER_LIMIT)
+    ||!boundedRecords(packet.relations,SOURCE_DOSSIER_LIMIT)
+    ||!boundedRecords(packet.rights,SOURCE_DOSSIER_LIMIT)
+    ||!boundedRecords(packet.tree_paths,SOURCE_DOSSIER_LIMIT)
+    ||!boundedStrings(packet.source_refs,SOURCE_DOSSIER_LIMIT*16)
+    ||typeof packet.truncated!=='boolean'
+    ||!(typeof packet.authority_note==='string'&&packet.authority_note.length>0
+      ||record(packet.authority_note)))
+    throw new ContractError(t("Неподдерживаемое досье источника."));
+  if(!packet.chain||typeof packet.chain!=='object'||Array.isArray(packet.chain)
+    ||Object.values(packet.chain).some(value=>!boundedRecords(value,SOURCE_DOSSIER_LIMIT)))
+    throw new ContractError(t("Неполная цепочка источника."));
   return packet;
 }
 function checkItems(items,kind) {
@@ -67,13 +189,13 @@ function checkItems(items,kind) {
   }
   return ids;
 }
-function validateArea(packet,expected=null) {
+function validateArea(packet,expected=null,limits=BUDGET) {
   checkRevision(packet,expected);
   if(packet.authority_boundary?.is_source!==false
     ||packet.authority_boundary?.is_canon!==false
     ||packet.authority_boundary?.writes_to_tree!==false)throw new ContractError(t("Неподдерживаемый контракт области."));
   if(!Array.isArray(packet.nodes)||!Array.isArray(packet.relations)
-    ||packet.nodes.length>BUDGET.nodes||packet.relations.length>BUDGET.relations)throw new ContractError(t("Область превышает бюджет отображения."));
+    ||packet.nodes.length>limits.nodes||packet.relations.length>limits.relations)throw new ContractError(t("Область превышает бюджет отображения."));
   const ids=checkItems(packet.nodes,'node');checkItems(packet.relations,'relation');
   if(packet.relations.some(r=>!ids.has(r.from_id)||!ids.has(r.to_id)))throw new ContractError(t("Связь не содержит оба конца в области."));
   if(packet.focus&&!ids.has(packet.focus.node_id))throw new ContractError(t("Центр отсутствует в области."));
@@ -85,6 +207,7 @@ export function validateLens(packet,expected=null) {
 }
 // Exploration pages remain exploration packets; they are never relabelled as a LensResult.
 export function validateExploration(packet,expected=null,previous=null) {
+  if(packet?.schema==='tos_exploration_result_v2')return validateOriginExploration(packet,expected,previous);
   validateArea(packet,expected);
   const page=packet.page,ids=new Set(packet.nodes.map(n=>n.id));
   if(packet.schema!=='tos_exploration_result_v1'||packet.writes_to_tree!==false
@@ -106,6 +229,62 @@ export function validateExploration(packet,expected=null,previous=null) {
     ||JSON.stringify(packet.query)!==JSON.stringify(previous.query)))throw new RevisionError();
   return packet;
 }
+
+// Exact packet-local origin closure. A relation origin retains its own ID and
+// both version-bound endpoints; it is not rewritten into a node focus.
+function validateOriginExploration(packet,expected,previous){
+  validateArea(packet,expected,EXPLORATION_BUDGET);
+  const fail=()=>{throw new ContractError(t("Неполная страница раскрытия связей."));};
+  const revision=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
+  const nodes=new Map(packet.nodes.map(item=>[item.id,item])),relations=new Map(packet.relations.map(item=>[item.id,item]));
+  const origin=packet.origin,page=packet.page,query=packet.query;
+  if(packet.writes_to_tree!==false||!revision(packet.snapshot_revision)
+    ||!['tos-exploration-execution-v6','tos-exploration-d1-execution-v6'].includes(packet.execution_version)
+    ||!['paused','complete','limit_reached'].includes(packet.status)
+    ||!origin||!['node','relation'].includes(origin.kind)||!revision(origin.content_revision)
+    ||typeof origin.id!=='string'||!origin.id||!query||query.schema_version!=='tos_exploration_request_v2'
+    ||query.source_revision!==packet.source_revision||!query.origin
+    ||['kind','id','content_revision'].some(key=>query.origin[key]!==origin[key])
+    ||Object.hasOwn(packet,'focus')||!Number.isSafeInteger(page?.number)||page.number<1
+    ||page.scope!=='resumable-neighborhood'||page.returned_nodes!==nodes.size||page.returned_relations!==relations.size
+    ||!Number.isSafeInteger(page.work_units)||page.work_units<0||page.work_units>512
+    ||packet.counts?.scope!=='cumulative-discovered-not-global-total'
+    ||packet.inclusion?.authority!=='query-execution-not-semantic-proof'
+    ||(packet.status==='paused'?!revision(page.next_cursor):page.next_cursor!==null)
+    ||(packet.status==='limit_reached'?!['session_nodes','session_relations'].includes(packet.limit_reason):packet.limit_reason!==null))fail();
+  for(const [kind,items] of [['node',nodes],['relation',relations]]){
+    const primary=page[`primary_${kind}_ids`],context=page[`context_${kind}_ids`];
+    if(!Array.isArray(primary)||!Array.isArray(context)||primary.length+context.length!==items.size
+      ||new Set([...primary,...context]).size!==items.size||[...primary,...context].some(id=>!items.has(id)))fail();
+    const inclusion=packet.inclusion[`${kind}s`];
+    if(!inclusion||Object.keys(inclusion).length!==items.size||[...items.keys()].some(id=>!Object.hasOwn(inclusion,id)))fail();
+  }
+  const item=(origin.kind==='node'?nodes:relations).get(origin.id);
+  if(!item||item.content_revision!==origin.content_revision)fail();
+  if(origin.kind==='node'){
+    if(Object.hasOwn(origin,'endpoints')||page.context_relation_ids.length
+      ||!page.context_node_ids.includes(origin.id)||packet.inclusion.nodes[origin.id]?.kind!=='origin')fail();
+  }else{
+    if(page.context_relation_ids.length!==1||page.context_relation_ids[0]!==origin.id
+      ||packet.inclusion.relations[origin.id]?.kind!=='origin')fail();
+    for(const side of ['from','to']){
+      const endpoint=origin.endpoints?.[side],node=nodes.get(item[`${side}_id`]);
+      if(!endpoint||!node||endpoint.node_id!==node.id||endpoint.content_revision!==node.content_revision
+        ||endpoint.entity_id!==node.entity_id||!page.context_node_ids.includes(node.id)
+        ||packet.inclusion.nodes[node.id]?.kind!=='origin-endpoint')fail();
+    }
+  }
+  if(previous&&(previous.schema!==packet.schema||previous.status!=='paused'
+    ||packet.source_revision!==previous.source_revision||packet.snapshot_revision!==previous.snapshot_revision
+    ||packet.execution_version!==previous.execution_version||page.number!==previous.page.number+1
+    ||(packet.status==='paused'&&page.next_cursor===previous.page.next_cursor)
+    ||!sameJson(packet.origin,previous.origin)||!sameJson(packet.query,previous.query)))throw new RevisionError();
+  // Reuse the producer's rule. No client-specific identity or Claim folding.
+  const focusNode=origin.kind==='node'?origin.id:null;
+  let scene;try{scene=knowledgeScene(packet.nodes,packet.relations,focusNode,origin.kind==='relation'?origin.id:null);}catch{fail();}
+  if(!sameJson(packet.scene,scene))fail();
+  return packet;
+}
 // Abort and generation checking are both needed: a completed response can race
 // cancellation, and transports used in tests or future caches may ignore abort.
 export class RequestSlots {
@@ -124,38 +303,62 @@ export class RequestSlots {
   }
 }
 export class KnowledgeClient {
-  constructor({fetcher=globalThis.fetch.bind(globalThis),base='/api/knowledge',timeoutMs=60000}={}){this.fetcher=fetcher;this.base=base;this.timeoutMs=timeoutMs;}
-  async request(path,{signal,body}={}) {
+  constructor({fetcher=globalThis.fetch.bind(globalThis),base='/api/knowledge',timeoutMs=60000,maxResponseBytes=DEFAULT_RESPONSE_BYTES}={}){
+    validateResponseLimit(maxResponseBytes);
+    this.fetcher=fetcher;this.base=base;this.timeoutMs=timeoutMs;this.maxResponseBytes=maxResponseBytes;
+  }
+  async request(path,{signal,body,maxResponseBytes=this.maxResponseBytes}={}) {
+    validateResponseLimit(maxResponseBytes);
+    if(maxResponseBytes>this.maxResponseBytes)throw new RangeError('A request cannot widen the client response budget.');
     const controller=new AbortController();let timedOut=false;
     const abort=()=>controller.abort(signal.reason);
     if(signal?.aborted)abort();else signal?.addEventListener('abort',abort,{once:true});
     const timer=setTimeout(()=>{timedOut=true;controller.abort();},this.timeoutMs);
     try {
-    const response=await this.fetcher(this.base+path,{signal:controller.signal,method:body?'POST':'GET',
-      headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});
+    controller.signal.throwIfAborted();
+    // A source route is an explicit same-origin API path, never a caller-
+    // supplied host or filesystem base.  Knowledge routes remain relative to
+    // the configured knowledge prefix.
+    const endpoint=path.startsWith('/api/source/')?path:this.base+path;
+    const response=await withAbort(Promise.resolve(this.fetcher(endpoint,{signal:controller.signal,method:body?'POST':'GET',
+      headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})})).then(response=>{
+        if(controller.signal.aborted){cancelResponseBody(response,controller.signal.reason);controller.signal.throwIfAborted();}
+        return response;
+      }),controller.signal);
     if(!response.ok) {
+      cancelResponseBody(response);
       if(response.status===409)throw new RevisionError();
       throw new RequestError(response.status,({400:t("Запрос не удалось исполнить."),403:t("Доступ к материалу ограничен."),404:t("Объект больше не доступен."),410:t("Срок сохранённого обхода истёк."),413:t("Область слишком велика. Выберите более узкий центр."),503:t("Этот способ просмотра пока не доступен.")})[response.status]||t("Не удалось получить данные. Попробуйте ещё раз."));
     }
-    const packet=await response.json();
-    if(!packet||typeof packet!=='object')throw new ContractError(t("Неверный ответ сервера."));
+    const packet=await readBoundedJSON(response,maxResponseBytes,controller.signal);
+    if(!packet||typeof packet!=='object'||Array.isArray(packet))throw new ContractError(t("Неверный ответ сервера."));
     return packet;
     } catch(error) {
       if(timedOut)throw new RequestError(504,t("Сервер отвечает дольше обычного. Попробуйте ещё раз."));
+      if(controller.signal.aborted)throw error;
+      if(error instanceof ResponseLimitError)throw new RequestError(413,t("Область слишком велика. Выберите более узкий центр."));
       if(!controller.signal.aborted&&(error instanceof TypeError||error?.name==='NetworkError'))throw new RequestError(0,t("Нет связи с данными. Проверьте соединение и повторите запрос."));
       if(error instanceof SyntaxError)throw new ContractError(t("Сервер вернул нечитаемый ответ. Повторите запрос."));
       throw error;
     } finally {clearTimeout(timer);signal?.removeEventListener('abort',abort);}
   }
-  async search(query,signal,offset=0) {
-    const packet=checkRevision(await this.request('/search?'+new URLSearchParams({query,limit:6,offset}),{signal}));
-    if(packet.schema!=='tos_knowledge_search_v1'||packet.nodes?.length>6||packet.relations?.length>6)throw new ContractError(t("Неподдерживаемый ответ поиска."));
-    checkItems(packet.nodes,'node');checkItems(packet.relations,'relation');return packet;
+  async search(query,signal,{cursor=null,search_mode,source_revision,limit=6}={}) {
+    if(cursor!==null&&(typeof cursor!=='string'||cursor.length>65536)
+      ||cursor!==null&&!search_mode||!Number.isSafeInteger(limit)||limit<1||limit>6)throw new ContractError(t("Неподдерживаемый ответ поиска."));
+    const capabilities=await this.request('/search/capabilities',{signal});
+    const mode=chooseKnowledgeSearchMode(capabilities,search_mode);
+    const packet=checkRevision(await this.request('/search?'+new URLSearchParams({query,limit,mode,...(cursor!==null?{cursor}:{})}),{signal}),source_revision);
+    if(packet.schema!==(mode==='indexed'?'tos_knowledge_search_indexed_v2':'tos_knowledge_search_compressed_v3')
+      ||packet.nodes?.length>limit||packet.relations?.length>limit||packet.page?.cursor!==cursor
+      ||packet.page.limit_per_kind!==limit||typeof packet.page.has_more!=='boolean'
+      ||(packet.page.has_more?typeof packet.page.next_cursor!=='string'||!packet.page.next_cursor:packet.page.next_cursor!==null)
+      ||packet.authority_boundary?.writes_to_tree!==false)throw new ContractError(t("Неподдерживаемый ответ поиска."));
+    checkItems(packet.nodes,'node');checkItems(packet.relations,'relation');return {...packet,search_mode:mode};
   }
   async compile(spec,signal,expected=null){const owned=structuredClone(spec),packet=validateLens(await this.request('/lenses/compile',{signal,body:owned}),expected);executedSpecs.set(packet,owned);return packet;}
   async explore(query,signal,expected,previous=null){
     const packet=validateExploration(await this.request('/explore',{signal,body:query}),expected,previous);
-    if(!previous&&Object.entries(query).some(([key,value])=>JSON.stringify(packet.query?.[key])!==JSON.stringify(value)))throw new ContractError(t("Сервер вернул другую область раскрытия."));
+    if(!previous&&!explorationRequestMatches(packet.query,query))throw new ContractError(t("Сервер вернул другую область раскрытия."));
     return packet;
   }
   async inspect(kind,id,signal,expected,contentRevision) {
@@ -167,6 +370,14 @@ export class KnowledgeClient {
     if(contentRevision&&match.content_revision!==contentRevision)throw new RevisionError();
     if(kind==='relation'){const ids=checkItems(packet.endpoints,'node');if(!ids.has(match.from_id)||!ids.has(match.to_id))throw new ContractError(t("Неполные концы связи."));}
     return {packet,match};
+  }
+  async sourceDossier(objectId,signal,{limit=SOURCE_DOSSIER_LIMIT}={}) {
+    if(!isSourceDossierRef(objectId)||!Number.isSafeInteger(limit)||limit<1||limit>SOURCE_DOSSIER_LIMIT)
+      throw new ContractError(t("Неверная ссылка на досье источника."));
+    // This is the fixed same-origin source-navigation route.  It is not a
+    // configurable endpoint and never becomes an arbitrary filesystem URL.
+    const packet=await this.request('/api/source/dossiers/'+encodeURIComponent(objectId)+'?'+new URLSearchParams({limit:String(limit)}),{signal});
+    return validateSourceDossier(packet,objectId);
   }
   async readMaterial(kind,id,signal,expected,contentRevision,{language='ru',relation=null}={}) {
     if(!['node','relation'].includes(kind)||typeof id!=='string'||!id||!contentLanguage(language))throw new ContractError(t('Неверный запрос материала.'));
@@ -190,36 +401,44 @@ export class KnowledgeClient {
     const allowed=new Set(kind==='node'?[id]:[match.from_id,match.to_id]);
     if(packet.nodes.length!==allowed.size||packet.nodes.some(node=>!allowed.has(node.id))
       ||packet.relations.length!==(kind==='node'?0:1))throw new ContractError(t('Ответ вышел за границы выбранного материала.'));
-    for(const item of [...packet.nodes,...packet.relations])validateHumanForms(item,language);
+    for(const item of [...packet.nodes,...packet.relations]){
+      validateHumanForms(item,language);await verifyReadableContext(item);
+    }
     // This UI envelope is not an invented inspect packet. Keep the original
     // LensResult and its schema intact for validation, revision and provenance.
     return {packet,match,endpoints:kind==='relation'?packet.nodes:[]};
   }
   async readClaimMaterial(scene,path,signal,{language='ru'}={}){
+    validateArea(scene);
+    return this.readClaimReference(claimMaterialReference(scene,path),signal,
+      {language,expected:scene.source_revision,versions:materialVersions(scene)});
+  }
+  async readClaimReference(reference,signal,{language='ru',expected=null,versions=null}={}){
     if(!contentLanguage(language))throw new ContractError(t('Неверный запрос материала.'));
-    validateArea(scene);const closure=claimPathClosure(scene,path);
-    if(closure.nodeIds.length>BUDGET.nodes||closure.relationIds.length>BUDGET.relations)
-      throw new ContractError(t('Область превышает бюджет отображения.'));
+    const ref=validateClaimReference(reference,reference?.claimId);
+    const closure={nodeIds:ref.closureNodeIds,relationIds:[...ref.relationIds,...ref.detailRelationIds]};
     // Exact selectors supply the closure. A focus can suppress a valid compact
     // path when that node is the Claim or is also referenced as its grounds.
-    const spec={...focusSpec(path.node_ids[0],{depth:0}),seed:{},lens_id:'sophia-observatory-claim-material',language,detail:'full',explain:false,
+    const spec={...focusSpec(ref.nodeIds[0],{depth:0}),seed:{},lens_id:'sophia-observatory-claim-material',language,detail:'full',explain:false,
       node_query:{enabled:true,filters:[{field:'id',op:'in',value:closure.nodeIds}]},
       relation_query:{enabled:true,filters:[{field:'id',op:'in',value:closure.relationIds}]},
       traversal:{depth:0,direction:'either',profile:'all'},
       limits:{nodes:closure.nodeIds.length,relations:closure.relationIds.length,groups:closure.nodeIds.length}};
-    const packet=await this.compile(spec,signal,scene.source_revision);
+    const packet=await this.compile(spec,signal,expected);
     const exact=(items,ids)=>items.length===ids.length&&items.every(item=>ids.includes(item.id));
     if(!exact(packet.nodes,closure.nodeIds)||!exact(packet.relations,closure.relationIds))
       throw new ContractError(t('Ответ вышел за границы выбранного материала.'));
     for(const kind of ['nodes','relations'])for(const item of packet[kind]){
-      if(item.content_revision!==scene[kind].find(old=>old.id===item.id)?.content_revision)throw new RevisionError();
+      if(versions&&item.content_revision!==versions[kind]?.[item.id])throw new RevisionError();
       validateHumanForms(item,language);
+      await verifyReadableContext(item);
     }
-    const selected=claimPathFor(packet,path.claim_node_id);if(!selected)throw new FormContractError();
+    const selected=claimPathFor(packet,ref.claimId);if(!selected)throw new FormContractError();
     const returned=claimPathClosure(packet,selected);
-    if(selected.id!==path.id||selected.relation_type_id!==path.relation_type_id
-      ||JSON.stringify(selected.node_ids)!==JSON.stringify(path.node_ids)
-      ||JSON.stringify(selected.relation_ids)!==JSON.stringify(path.relation_ids)
+    if(selected.id!==ref.pathId||selected.relation_type_id!==ref.relationType
+      ||JSON.stringify(selected.node_ids)!==JSON.stringify(ref.nodeIds)
+      ||JSON.stringify(selected.relation_ids)!==JSON.stringify(ref.relationIds)
+      ||!exact(returned.nodeIds.map(id=>({id})),closure.nodeIds)
       ||!exact(returned.relationIds.map(id=>({id})),closure.relationIds))throw new FormContractError();
     return {packet,match:returned.node,endpoints:[],path:selected};
   }

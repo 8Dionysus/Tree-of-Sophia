@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/thought-description-record.schema.json",
+  "title": "Source-described thesis, argument, inference step or objection",
+  "description": "A substantive, correctable account of a thought object. Its identity criterion is distinct from the assertion describing it. Premise and conclusion are roles within a specified step, not intrinsic thesis subclasses. Partial reconstruction is allowed without a claim of logical validity or historical attribution.",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"},
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"},
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields"},
+    {"properties": {
+      "schema_version": {"const": "tos_thought_description_record_v1"},
+      "record_type": {"enum": ["thesis", "argument", "inference-step", "objection"]}
+    }},
+    {"if": {"properties": {"record_type": {"const": "thesis"}}}, "then": {"properties": {
+      "record_id": {"pattern": "^tos\\.thesis\\."},
+      "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.thesis\\."},
+      "semantic_content": {"required": ["proposition", "assertion_force"], "properties": {
+        "proposition": {"type": "string", "pattern": "\\S", "description": "The proposition as formulated in this account, including its substantive conditions and negation. It is not asserted true by being recorded."},
+        "assertion_force": {"type": "string", "pattern": "\\S", "description": "Declared force such as hypothetical, asserted or denied in the account, not the truth or review status of its description."}
+      }}
+    }}},
+    {"if": {"properties": {"record_type": {"const": "argument"}}}, "then": {"properties": {
+      "record_id": {"pattern": "^tos\\.argument\\."},
+      "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.argument\\."},
+      "semantic_content": {"required": ["reconstruction_note", "coverage"], "properties": {
+        "reconstruction_note": {"type": "string", "pattern": "\\S", "description": "What reasoning this account reconstructs and what remains unresolved. Steps and supported theses are separate grounded claims."},
+        "coverage": {"enum": ["partial", "claimed_complete", "unknown"], "description": "Declared coverage of the identified argument, not a proof of completeness, validity or soundness."}
+      }}
+    }}},
+    {"if": {"properties": {"record_type": {"const": "inference-step"}}}, "then": {"properties": {
+      "record_id": {"pattern": "^tos\\.inference-step\\."},
+      "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.inference-step\\."},
+      "semantic_content": {"required": ["transition_account", "reasoning_mode"], "properties": {
+        "transition_account": {"type": "string", "pattern": "\\S", "description": "The proposed inferential transition and its limits; premises and conclusions have separate contextual role claims."},
+        "reasoning_mode": {"type": "string", "pattern": "\\S", "description": "Source-declared mode such as reductio or analogy. Recording a mode neither verifies a rule nor executes a deduction."}
+      }}
+    }}},
+    {"if": {"properties": {"record_type": {"const": "objection"}}}, "then": {"properties": {
+      "record_id": {"pattern": "^tos\\.objection\\."},
+      "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.objection\\."},
+      "semantic_content": {"required": ["challenge_account"], "properties": {
+        "challenge_account": {"type": "string", "pattern": "\\S", "description": "What is challenged and why; exact target claims distinguish a challenged thesis, inference step, argument or conception. Recording an objection does not accept it."}
+      }}
+    }}}
+  ],
+  "unevaluatedProperties": false
+}

@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.old-babylonian-scholarship.the-babylonian-gilgamesh-epic-critical-edition",
+    "version": 1,
+    "digest": "sha256:bd145f0732d25f0c8e216a874cb7ed5daa214d13106423ea20eb29ef47e04aed"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.d0132148b7e7ab825e74135fe630b80cf8d5bc2670bf05778fd00356b9bffbca",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.work.old-babylonian-scholarship.the-babylonian-gilgamesh-epic-critical-edition",
+        "version": 1,
+        "digest": "sha256:bd145f0732d25f0c8e216a874cb7ed5daa214d13106423ea20eb29ef47e04aed"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.the-babylonian-gilgamesh-epic-critical-edition",
+            "version": 1,
+            "digest": "sha256:bd145f0732d25f0c8e216a874cb7ed5daa214d13106423ea20eb29ef47e04aed"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.the-babylonian-gilgamesh-epic-critical-edition",
+            "version": 1,
+            "digest": "sha256:bd145f0732d25f0c8e216a874cb7ed5daa214d13106423ea20eb29ef47e04aed"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.the-babylonian-gilgamesh-epic-critical-edition",
+            "version": 1,
+            "digest": "sha256:bd145f0732d25f0c8e216a874cb7ed5daa214d13106423ea20eb29ef47e04aed"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.0955c019b6a7de5ef093d1d07030fd2a68bd9ad8b4c598c524b6711f6e0a2e8f",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.work.old-babylonian-scholarship.the-babylonian-gilgamesh-epic-critical-edition",
+        "version": 1,
+        "digest": "sha256:bd145f0732d25f0c8e216a874cb7ed5daa214d13106423ea20eb29ef47e04aed"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.the-babylonian-gilgamesh-epic-critical-edition",
+            "version": 1,
+            "digest": "sha256:bd145f0732d25f0c8e216a874cb7ed5daa214d13106423ea20eb29ef47e04aed"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.the-babylonian-gilgamesh-epic-critical-edition",
+            "version": 1,
+            "digest": "sha256:bd145f0732d25f0c8e216a874cb7ed5daa214d13106423ea20eb29ef47e04aed"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.the-babylonian-gilgamesh-epic-critical-edition",
+            "version": 1,
+            "digest": "sha256:bd145f0732d25f0c8e216a874cb7ed5daa214d13106423ea20eb29ef47e04aed"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.work.old-babylonian-scholarship.the-babylonian-gilgamesh-epic-critical-edition",
+      "request_digest": "sha256:f633d1d08825ab512487bf43d286c74133bdf9b5ce3f401affca94b353f73036",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:96edfe17cb89145c9008507f5e49810bf749064c7fff50f6eaf0641fb6aefa85",
+      "recorded_at": "2026-09-07T03:13:25.234279+00:00",
+      "source": {
+        "id": "tos.work.old-babylonian-scholarship.the-babylonian-gilgamesh-epic-critical-edition",
+        "version": 1,
+        "digest": "sha256:bd145f0732d25f0c8e216a874cb7ed5daa214d13106423ea20eb29ef47e04aed"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.d0132148b7e7ab825e74135fe630b80cf8d5bc2670bf05778fd00356b9bffbca",
+          "version": 1,
+          "digest": "sha256:b1fa8c6e0071b7bff6f2776fd72eff6409d633c4998dfdb103e1352a8f06e294"
+        },
+        {
+          "id": "tos.form.metadata.0955c019b6a7de5ef093d1d07030fd2a68bd9ad8b4c598c524b6711f6e0a2e8f",
+          "version": 1,
+          "digest": "sha256:bc4b2a47625b91ac8d33652411966a139199e91ae6df7bdfe52153d92940e798"
+        }
+      ]
+    }
+  ]
+}

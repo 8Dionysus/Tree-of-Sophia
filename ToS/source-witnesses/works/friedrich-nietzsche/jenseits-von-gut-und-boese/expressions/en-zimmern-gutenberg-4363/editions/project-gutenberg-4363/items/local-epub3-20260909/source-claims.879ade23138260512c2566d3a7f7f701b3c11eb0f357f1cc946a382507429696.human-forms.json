@@ -1,0 +1,48 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.claim.topology.edition-item.jenseits-gutenberg-4363.exemplified-by.local-epub3-20260909",
+    "version": 1,
+    "digest": "sha256:44293bb3a686cc77104d46252b25089a2fb308989f417227850980708ddb8b0b"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.jenseits-gutenberg-4363-local-epub3-20260909.exemplar-statement-ru",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.claim.topology.edition-item.jenseits-gutenberg-4363.exemplified-by.local-epub3-20260909",
+        "version": 1,
+        "digest": "sha256:44293bb3a686cc77104d46252b25089a2fb308989f417227850980708ddb8b0b"
+      },
+      "role": "statement",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "model:foundation-native-growth-source-review",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.claim.topology.edition-item.jenseits-gutenberg-4363.exemplified-by.local-epub3-20260909",
+            "version": 1,
+            "digest": "sha256:44293bb3a686cc77104d46252b25089a2fb308989f417227850980708ddb8b0b"
+          },
+          "pointer": "/qualifiers/statement"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.claim.topology.edition-item.jenseits-gutenberg-4363.exemplified-by.local-epub3-20260909",
+            "version": 1,
+            "digest": "sha256:44293bb3a686cc77104d46252b25089a2fb308989f417227850980708ddb8b0b"
+          },
+          "pointer": ""
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

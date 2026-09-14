@@ -1,5 +1,197 @@
 // Authored interface text only. Content-language variants remain server-owned.
 export const UI_CATALOG={
+  "Читаю точную исходную запись…": {"en":"Reading the exact source record…","es":"Leyendo el registro fuente exacto…"},
+  "Запрошенное представление не выдано. Статус: {0}. Причина: {1}.": {"en":"Requested representation not delivered. Status: {0}. Reason: {1}.","es":"No se entregó la representación solicitada. Estado: {0}. Motivo: {1}."},
+  "Открыть точный текст на локальных условиях": {"en":"Open exact text under local conditions","es":"Abrir el texto exacto bajo condiciones locales"},
+  "Только локальное чтение на указанных условиях; внешняя публикация не разрешена.": {"en":"Local reading under the stated conditions only; external publication is not authorized.","es":"Solo lectura local bajo las condiciones indicadas; no se autoriza la publicación externa."},
+  "Точные символы исходной единицы; это не принятие интерпретации.": {"en":"Exact source-unit characters; this does not admit an interpretation.","es":"Caracteres exactos de la unidad fuente; esto no admite una interpretación."},
+  "Точная публичная запись источника; её чтение не даёт допуска содержанию или прав на текст носителя.": {"en":"Exact public source record; reading it does not admit its content or grant rights to the carrier text.","es":"Registro fuente público exacto; leerlo no admite su contenido ni otorga derechos sobre el texto del soporte."},
+  "Точная исходная запись": {"en":"Exact source record","es":"Registro fuente exacto"},
+  "Открыть точный публичный текст": {"en":"Open exact public text","es":"Abrir el texto público exacto"},
+  "Открыть исходную запись": {"en":"Open source record","es":"Abrir el registro fuente"},
+  "Читаемое представление этого контекста недоступно. Откройте точные данные контекста перед выводами.": {"en":"The readable presentation of this context is unavailable. Open the exact context data before drawing conclusions.","es":"La presentación legible de este contexto no está disponible. Abra los datos exactos del contexto antes de sacar conclusiones."},
+  "Технические сведения контекста": {"en":"Context technical details","es":"Detalles técnicos del contexto"},
+  "Не классифицировано; исходное значение сохранено.": {"en":"Unclassified; the source value is preserved.","es":"Sin clasificar; se conserva el valor original."},
+  "Человекочитаемое представление контекста недоступно. Проверьте исходный контекст формы.": {"en":"The readable context presentation is unavailable. Check the form's source context.","es":"La presentación legible del contexto no está disponible. Consulte el contexto original de la forma."},
+  "Исходный контекст формы": {"en":"Form source context","es":"Contexto original de la forma"},
+  "Число в исходной записи нельзя показать без риска потери точности.": {
+    "en": "A number in the source record cannot be displayed without risking precision loss.",
+    "es": "Un número del registro fuente no se puede mostrar sin riesgo de perder precisión."
+  },
+  "Неверный ответ чтения источника.": {
+    "en": "Invalid source-read response.",
+    "es": "Respuesta de lectura de la fuente no válida."
+  },
+  "Неподдерживаемое досье источника.": {
+    "en": "Unsupported source dossier.",
+    "es": "Expediente de fuente no compatible."
+  },
+  "Неполная цепочка источника.": {
+    "en": "Incomplete source chain.",
+    "es": "Cadena de fuentes incompleta."
+  },
+  "Неверная ссылка на досье источника.": {
+    "en": "Invalid source dossier reference.",
+    "es": "Referencia al expediente de la fuente no válida."
+  },
+  "Чтение источника превысило время ожидания.": {
+    "en": "The source read timed out.",
+    "es": "Se agotó el tiempo de espera de lectura de la fuente."
+  },
+  "Источник": {"en": "Source", "es": "Fuente"},
+  "Статус": {"en": "Status", "es": "Estado"},
+  "Версия материала изменилась. Обновите материал.": {
+    "en": "The item's version changed. Refresh the item.",
+    "es": "La versión del material cambió. Actualiza el material."
+  },
+  "Не удалось подготовить материал для чтения. Обновите материал.": {
+    "en": "The item could not be prepared for reading. Refresh the item.",
+    "es": "No se pudo preparar el material para leerlo. Actualiza el material."
+  },
+  "Загрузка не удалась. Повторите попытку.": {
+    "en": "Loading failed. Try again.",
+    "es": "La carga falló. Vuelve a intentarlo."
+  },
+  "Чтобы проверить отсутствующий контекст, откройте источники материала.": {
+    "en": "To check the missing context, open the material's sources.",
+    "es": "Para comprobar el contexto que falta, abre las fuentes del material."
+  },
+  "Поле источника": {
+    "en": "Source field",
+    "es": "Campo de la fuente"
+  },
+  "Запись": {
+    "en": "Record",
+    "es": "Registro"
+  },
+  "Идентификатор записи": {
+    "en": "Record identifier",
+    "es": "Identificador del registro"
+  },
+  "Версия записи": {
+    "en": "Record version",
+    "es": "Versión del registro"
+  },
+  "Ссылка на запись": {
+    "en": "Record reference",
+    "es": "Referencia al registro"
+  },
+  "Поля записи": {
+    "en": "Record fields",
+    "es": "Campos del registro"
+  },
+  "Примечания": {
+    "en": "Notes",
+    "es": "Notas"
+  },
+  "Основное название": {
+    "en": "Preferred label",
+    "es": "Nombre preferido"
+  },
+  "Варианты названия": {
+    "en": "Label variants",
+    "es": "Variantes del nombre"
+  },
+  "Контекст": {
+    "en": "Context",
+    "es": "Contexto"
+  },
+  "Ограничения": {
+    "en": "Constraints",
+    "es": "Restricciones"
+  },
+  "Область действия": {
+    "en": "Scope",
+    "es": "Ámbito"
+  },
+  "Расхождения": {
+    "en": "Conflicts",
+    "es": "Discrepancias"
+  },
+  "Основание": {
+    "en": "Grounds",
+    "es": "Fundamento"
+  },
+  "Интерпретация": {
+    "en": "Interpretation",
+    "es": "Interpretación"
+  },
+  "Контрольная сумма записи": {
+    "en": "Record digest",
+    "es": "Resumen criptográfico del registro"
+  },
+  "Версия схемы": {
+    "en": "Schema version",
+    "es": "Versión del esquema"
+  },
+  "Роль привязки": {
+    "en": "Binding role",
+    "es": "Función del vínculo"
+  },
+  "Предыдущая версия": {
+    "en": "Previous version",
+    "es": "Versión anterior"
+  },
+  "Внешние идентификаторы": {
+    "en": "External identifiers",
+    "es": "Identificadores externos"
+  },
+  "Статус идентификации": {
+    "en": "Identity status",
+    "es": "Estado de identificación"
+  },
+  "Статус отождествления": {
+    "en": "Equivalence status",
+    "es": "Estado de equivalencia"
+  },
+  "Значение null": {
+    "en": "Null value",
+    "es": "Valor null"
+  },
+  "Пустая строка": {
+    "en": "Empty string",
+    "es": "Cadena vacía"
+  },
+  "Да (true)": {
+    "en": "Yes (true)",
+    "es": "Sí (true)"
+  },
+  "Нет (false)": {
+    "en": "No (false)",
+    "es": "No (false)"
+  },
+  "Пустой список": {
+    "en": "Empty list",
+    "es": "Lista vacía"
+  },
+  "Пустой объект": {
+    "en": "Empty object",
+    "es": "Objeto vacío"
+  },
+  "Точные данные контекста": {
+    "en": "Exact context data",
+    "es": "Datos exactos del contexto"
+  },
+  "Контекст {0}": {
+    "en": "Context {0}",
+    "es": "Contexto {0}"
+  },
+  "Расположение в ответе": {
+    "en": "Location in the response",
+    "es": "Ubicación en la respuesta"
+  },
+  "Обязательный контекст записи": {
+    "en": "Required record context",
+    "es": "Contexto obligatorio del registro"
+  },
+  "Объявленный контекст недоступен в этой версии ответа.": {
+    "en": "The declared context is unavailable in this version of the response.",
+    "es": "El contexto declarado no está disponible en esta versión de la respuesta."
+  },
+  "Связанный контекст утверждения не закреплён. Для полного чтения закрепите его из области, где этот контекст доступен.": {
+    "en": "The related Claim context is not pinned. For complete reading, pin it from an area where that context is available.",
+    "es": "El contexto relacionado de la afirmación no está fijado. Para leerlo completo, fíjalo desde un área donde ese contexto esté disponible."
+  },
   "Показана доступная форма названия: {0}.": {
     "en": "Showing the available title form: {0}.",
     "es": "Se muestra la forma disponible del título: {0}."
@@ -444,6 +636,10 @@ export const UI_CATALOG={
     "en": "Incomplete relationship exploration page.",
     "es": "Página de exploración de relaciones incompleta."
   },
+  "Не указан центр области.": {
+    "en": "No area focus was specified.",
+    "es": "No se ha especificado el centro del área."
+  },
   "Запрос не удалось исполнить.": {
     "en": "The request could not be completed.",
     "es": "No se pudo completar la solicitud."
@@ -523,6 +719,10 @@ export const UI_CATALOG={
   "Открываю отношение…": {
     "en": "Opening the relationship…",
     "es": "Abriendo la relación…"
+  },
+  "Открываю карточку…": {
+    "en": "Opening the record…",
+    "es": "Abriendo el registro…"
   },
   "Выбранное отношение отсутствует в области.": {
     "en": "The selected relationship is missing from the area.",
@@ -3392,6 +3592,18 @@ export const UI_CATALOG={
     "en": "The complete packet did not fit in the response",
     "es": "El paquete completo no cupo en la respuesta"
   },
+  "Показать полную форму": {
+    "en": "Show the complete form",
+    "es": "Mostrar la forma completa"
+  },
+  "Показан полный пакет по точной ссылке. Предел доставки не меняет состояние формы и не означает её семантического принятия.": {
+    "en": "The complete packet is shown from its exact reference. The delivery limit does not change the form state or imply semantic acceptance.",
+    "es": "Se muestra el paquete completo desde su referencia exacta. El límite de entrega no cambia el estado de la forma ni implica aceptación semántica."
+  },
+  "Полную форму не удалось проверить в этой версии ответа.": {
+    "en": "The complete form could not be verified in this version of the response.",
+    "es": "No se pudo verificar la forma completa en esta versión de la respuesta."
+  },
   "Этот ответ не содержит выбранных форм.": {
     "en": "This response does not deliver selected forms.",
     "es": "Esta respuesta no entrega formas seleccionadas."
@@ -3431,6 +3643,78 @@ export const UI_CATALOG={
   "Контекст чтения утверждения": {
     "en": "Context for reading the claim",
     "es": "Contexto para leer la afirmación"
+  },
+  "Поле источника: {0}": {
+    "en": "Source field: {0}",
+    "es": "Campo de la fuente: {0}"
+  },
+  "корень": {
+    "en": "root",
+    "es": "raíz"
+  },
+  "Точная запись контекста": {
+    "en": "Exact context record",
+    "es": "Registro exacto del contexto"
+  },
+  "Язык: {0} · связь: {1}": {
+    "en": "Language: {0} · relation: {1}",
+    "es": "Idioma: {0} · relación: {1}"
+  },
+  "Точная запись языкового контекста": {
+    "en": "Exact linguistic-context record",
+    "es": "Registro exacto del contexto lingüístico"
+  },
+  "Тип чтения: {0}": {
+    "en": "Reading type: {0}",
+    "es": "Tipo de lectura: {0}"
+  },
+  "Контексты утверждения": {
+    "en": "Claim contexts",
+    "es": "Contextos de la afirmación"
+  },
+  "Контекст {0}": {
+    "en": "Context {0}",
+    "es": "Contexto {0}"
+  },
+  "Поля контекста не предоставлены.": {
+    "en": "No context fields were delivered.",
+    "es": "No se entregaron campos de contexto."
+  },
+  "Конфликты: {0}": {
+    "en": "Conflicts: {0}",
+    "es": "Conflictos: {0}"
+  },
+  "Точная запись контекста утверждения": {
+    "en": "Exact claim-context record",
+    "es": "Registro exacto del contexto de la afirmación"
+  },
+  "Связи обязательного контекста": {
+    "en": "Required-context relations",
+    "es": "Relaciones del contexto obligatorio"
+  },
+  "Связь без типа": {
+    "en": "Untyped relation",
+    "es": "Relación sin tipo"
+  },
+  "Точная запись связи": {
+    "en": "Exact relation record",
+    "es": "Registro exacto de la relación"
+  },
+  "Точные данные чтения": {
+    "en": "Exact reading data",
+    "es": "Datos exactos de lectura"
+  },
+  "Точная запись обязательного контекста": {
+    "en": "Exact required-context record",
+    "es": "Registro exacto del contexto obligatorio"
+  },
+  "Досье источника": {
+    "en": "Source dossier",
+    "es": "Dossier de la fuente"
+  },
+  "Вложенное значение доступно в точной записи.": {
+    "en": "The nested value is available in the exact record.",
+    "es": "El valor anidado está disponible en el registro exacto."
   },
   "Формы и обязательный контекст — в карточке.": {
     "en": "Forms and required context are in the card.",

@@ -245,8 +245,17 @@
     "node": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["node_id", "node_type", "label", "owner_branch", "authority_layer", "source_path", "source_sha256"],
+      "dependentRequired": {
+        "human_forms": ["human_forms_source_ref", "human_forms_source_sha256", "source_record_sha256"],
+        "human_forms_source_ref": ["human_forms", "human_forms_source_sha256", "source_record_sha256"],
+        "human_forms_source_sha256": ["human_forms", "human_forms_source_ref", "source_record_sha256"]
+      },
+      "required": ["node_id", "node_type", "label", "owner_branch", "authority_layer", "source_path", "source_sha256", "properties"],
       "properties": {
+        "source_record_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "human_forms": {"type": "array", "maxItems": 32, "items": {"type": "object"}},
+        "human_forms_source_ref": {"type": "string", "minLength": 1},
+        "human_forms_source_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
         "node_id": {
           "type": "string",
           "minLength": 1
@@ -278,6 +287,9 @@
         },
         "route_hint": {
           "type": ["string", "null"]
+        },
+        "properties": {
+          "type": "object"
         }
       }
     },
@@ -358,6 +370,20 @@
         },
         "status": {
           "type": "string"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_record", "source_row", "source_file_sha256"],
+          "description": "Exact parsed source CSV row, including unknown columns; data-record ordinal is not a physical line number. This binding preserves source fields without accepting their meaning or changing the edge identity or status. Absent on older derived snapshots.",
+          "properties": {
+            "source_record": {
+              "type": "object",
+              "additionalProperties": {"type": ["string", "null"]}
+            },
+            "source_row": {"type": "integer", "minimum": 1},
+            "source_file_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+          }
         }
       }
     },
@@ -440,7 +466,22 @@
         "edge_kind": {"type": "string", "minLength": 1},
         "review_status": {"type": "string", "minLength": 1},
         "source_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
-        "claim_ref": {"type": "string", "minLength": 1}
+        "claim_ref": {"type": "string", "minLength": 1},
+        "properties": {"$ref": "#/$defs/retainedObjectLinkContext"}
+      }
+    },
+    "retainedObjectLinkContext": {
+      "description": "Read-only context of one exact legacy object-Link v1 row; the source adapter validates the unchanged owner schema and its five-kind domain. No source prose or assessment is synthesized.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_claim", "source_claim_file_ref", "source_claim_line", "source_sha256", "source_schema_ref", "source_adapter"],
+      "properties": {
+        "source_claim": {"type": "object", "required": ["schema_version", "claim_id"], "properties": {"schema_version": {"const": "tos_object_link_claim_v1"}, "claim_id": {"type": "string", "minLength": 1}}},
+        "source_claim_file_ref": {"const": "ToS/source-witnesses/relations/object-link/object-link-claims.jsonl"},
+        "source_claim_line": {"type": "integer", "minimum": 1},
+        "source_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "source_schema_ref": {"const": "ToS/contracts/object-link-claim.schema.json"},
+        "source_adapter": {"const": "retained-object-link-v1"}
       }
     },
     "sourceNavigationRights": {

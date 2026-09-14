@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.local/ToS/contracts/knowledge-assessment-policy.schema.json",
+  "title": "Trusted policy for scoped knowledge admission",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "policy_id", "policy_version", "authority_ref", "profiles"],
+  "properties": {
+    "schema_version": {"const": "tos_knowledge_assessment_policy_v1"},
+    "policy_id": {"type": "string", "minLength": 1},
+    "policy_version": {"type": "integer", "minimum": 1},
+    "authority_ref": {"type": "string", "minLength": 1},
+    "profiles": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["profile_id", "label", "definition", "assertion_layers", "risk_tiers", "languages", "uses", "reviewer_kinds", "min_reviewers", "min_independence_groups", "min_supporting_origins", "require_counterevidence_search", "allow_self_review"],
+        "properties": {
+          "profile_id": {"type": "string", "minLength": 1},
+          "label": {"type": "string", "minLength": 1},
+          "definition": {"type": "string", "minLength": 1},
+          "assertion_layers": {"$ref": "#/$defs/strings"},
+          "risk_tiers": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["low", "moderate", "high"]}},
+          "languages": {"$ref": "#/$defs/strings"},
+          "uses": {"$ref": "#/$defs/strings"},
+          "reviewer_kinds": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["human", "agent", "mixed"]}},
+          "min_reviewers": {"type": "integer", "minimum": 1},
+          "min_independence_groups": {"type": "integer", "minimum": 1},
+          "min_supporting_origins": {"type": "integer", "minimum": 1},
+          "require_counterevidence_search": {"type": "boolean"},
+          "allow_self_review": {"type": "boolean"}
+        }
+      }
+    }
+  },
+  "$defs": {"strings": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}}
+}

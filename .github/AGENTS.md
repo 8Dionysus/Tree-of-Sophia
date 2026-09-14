@@ -14,6 +14,9 @@ Do not encode sibling-repo doctrine, private workspace assumptions, or hidden re
 
 Keep `.github/CODEOWNERS`, PR templates, and workflow names aligned with the root route card.
 `Repo Validation` is the landing check expected by the root GitHub landing workflow. If that check is added, renamed, or its meaning changes, update the root route, PR expectations, and this file in the same change.
+Software and explicit data/integration release expectations route to
+[`docs/RELEASING.md`](../docs/RELEASING.md). A data-operation registry transition
+uses its explicit baseline; software CI does not accept source semantics.
 
 TOS-D-0062 separates software checks from corpus and downstream releases.
 Required software jobs must reject bad behavior/contracts; absent, failed or

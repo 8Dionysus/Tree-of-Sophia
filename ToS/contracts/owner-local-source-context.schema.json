@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/owner-local-source-context.schema.json",
+  "title": "Explicit owner-local source transport context",
+  "description": "Protected local configuration, selected by the caller outside source prose. It partitions logical source refs between one existing source/contract checkout and one confidential authored store. It grants no read, write, assessment or publication authority. Absolute locations and this configuration are not public source records.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "store_id", "public_root", "private_root", "private_prefix"],
+  "properties": {
+    "schema_version": {"const": "tos_owner_local_source_context_v1"},
+    "store_id": {"type": "string", "pattern": "^sid-[a-f0-9]{32}$"},
+    "public_root": {"$ref": "#/$defs/absolutePath"},
+    "private_root": {"$ref": "#/$defs/absolutePath"},
+    "private_prefix": {"type": "string", "pattern": "^ToS/source-witnesses/owner-local/sid-[a-f0-9]{32}/$"}
+  },
+  "$defs": {
+    "absolutePath": {"type": "string", "minLength": 2,
+      "pattern": "^/(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*//)(?!.*[\\u0000\\\\])(?!.*?/$).+$"}
+  }
+}

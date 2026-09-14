@@ -302,6 +302,22 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
                 validator.validate_markdown_routes(root, mutated_issues)
         self.assertTrue(any("broken local documentation route: missing.md" in message for _, message in mutated_issues))
 
+    def test_nested_executable_route_keeps_its_full_owner_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            target = "access/deploy/cloudflare-worker/scripts/build_runtime.py"
+            write_text(root / "README.md", f"Run `{target}`.\n")
+            write_text(root / target, "# local builder\n")
+            write_text(root / "docs/validation/script_inventory.json",
+                       json.dumps({"script_surfaces": [{"path": target}]}))
+            with mock.patch.object(validator, "tracked_paths", return_value=[Path("README.md")]):
+                issues = []
+                validator.validate_executable_routes(root, issues)
+                self.assertEqual(issues, [])
+                (root / target).unlink()
+                validator.validate_executable_routes(root, issues)
+                self.assertTrue(any(f"stale executable reference: {target}" in message for _, message in issues))
+
     def test_active_stale_executable_route_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -1,0 +1,48 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.claim.sid-b8341308e71049bbacab6fd057563dc9",
+    "version": 1,
+    "digest": "sha256:f4d2102f50500f4235b05372f3cda9122ccce8e24efa6ba4768ef99b372f0f05"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.sid-a6942509f012425abbd27a5e167922ac",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.claim.sid-b8341308e71049bbacab6fd057563dc9",
+        "version": 1,
+        "digest": "sha256:f4d2102f50500f4235b05372f3cda9122ccce8e24efa6ba4768ef99b372f0f05"
+      },
+      "role": "statement",
+      "language": "en",
+      "script": "Latn",
+      "creator_id": "agent:codex-tos-public-native-occurrence",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.claim.sid-b8341308e71049bbacab6fd057563dc9",
+            "version": 1,
+            "digest": "sha256:f4d2102f50500f4235b05372f3cda9122ccce8e24efa6ba4768ef99b372f0f05"
+          },
+          "pointer": "/qualifiers/statement"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.claim.sid-b8341308e71049bbacab6fd057563dc9",
+            "version": 1,
+            "digest": "sha256:f4d2102f50500f4235b05372f3cda9122ccce8e24efa6ba4768ef99b372f0f05"
+          },
+          "pointer": ""
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

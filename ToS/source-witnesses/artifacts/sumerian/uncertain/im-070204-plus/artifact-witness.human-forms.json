@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/custody",
+          "record": {
+            "digest": "sha256:86c79bc3332a032b671a648b586d8dc46630e6389a30398ead6e7eef869b4222",
+            "id": "tos.artifact.sumerian.uncertain.im-070204-plus",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:86c79bc3332a032b671a648b586d8dc46630e6389a30398ead6e7eef869b4222",
+            "id": "tos.artifact.sumerian.uncertain.im-070204-plus",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:86c79bc3332a032b671a648b586d8dc46630e6389a30398ead6e7eef869b4222",
+            "id": "tos.artifact.sumerian.uncertain.im-070204-plus",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:86c79bc3332a032b671a648b586d8dc46630e6389a30398ead6e7eef869b4222",
+            "id": "tos.artifact.sumerian.uncertain.im-070204-plus",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:86c79bc3332a032b671a648b586d8dc46630e6389a30398ead6e7eef869b4222",
+            "id": "tos.artifact.sumerian.uncertain.im-070204-plus",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.sumerian.uncertain.im-070204-plus.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:1f9a6834ca884437b5109e55f01571c9c0c0f2f2dd6b668fa31e444a6640dd2b",
+        "id": "tos.form.artifact.sumerian.uncertain.im-070204-plus.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:86c79bc3332a032b671a648b586d8dc46630e6389a30398ead6e7eef869b4222",
+        "id": "tos.artifact.sumerian.uncertain.im-070204-plus",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:86c79bc3332a032b671a648b586d8dc46630e6389a30398ead6e7eef869b4222",
+            "id": "tos.artifact.sumerian.uncertain.im-070204-plus",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/path_identity/note",
+          "record": {
+            "digest": "sha256:86c79bc3332a032b671a648b586d8dc46630e6389a30398ead6e7eef869b4222",
+            "id": "tos.artifact.sumerian.uncertain.im-070204-plus",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.sumerian.uncertain.im-070204-plus.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:86c79bc3332a032b671a648b586d8dc46630e6389a30398ead6e7eef869b4222",
+        "id": "tos.artifact.sumerian.uncertain.im-070204-plus",
+        "version": 1
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:artifact.sumerian.uncertain.im-070204-plus",
+      "owner_configuration": "sha256:df40918b62905e8663ac0c321f866a6780ac25e939f40516d9c3af38a1f44392",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:10.198977+00:00",
+      "request_digest": "sha256:e937e8f3566a65086cf98965322b034fed5a740b99aae85fc332c169352a4288",
+      "results": [
+        {
+          "digest": "sha256:1f9a6834ca884437b5109e55f01571c9c0c0f2f2dd6b668fa31e444a6640dd2b",
+          "id": "tos.form.artifact.sumerian.uncertain.im-070204-plus.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:b27440b1c6752eb23ad4b7cd7d31b7a0025b8a010cd800274ce5e9feef40a1db",
+          "id": "tos.form.artifact.sumerian.uncertain.im-070204-plus.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:86c79bc3332a032b671a648b586d8dc46630e6389a30398ead6e7eef869b4222",
+        "id": "tos.artifact.sumerian.uncertain.im-070204-plus",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness.schema.json": "sha256:1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:artifact.sumerian.uncertain.im-070204-plus",
+      "request_digest": "sha256:8ff5ae75b02e4e908390812b64577d10f30a049ab3505f5d7cf1521dfaa884f7",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:df40918b62905e8663ac0c321f866a6780ac25e939f40516d9c3af38a1f44392",
+      "recorded_at": "2026-09-07T21:40:10.913511+00:00",
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness.schema.json": "sha256:1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f"
+      },
+      "source": {
+        "id": "tos.artifact.sumerian.uncertain.im-070204-plus",
+        "version": 1,
+        "digest": "sha256:86c79bc3332a032b671a648b586d8dc46630e6389a30398ead6e7eef869b4222"
+      },
+      "previous_revision": "sha256:b0b72e36ba63d769347a54de0e1964b751ccbeb918a1ad0c82cebfe14a71e1ae",
+      "results": [
+        {
+          "id": "tos.form.artifact.sumerian.uncertain.im-070204-plus.source-name",
+          "version": 2,
+          "digest": "sha256:8007c51acb2e8a263e22f1783d79b4136175e08ac1d57c18fbbd5548ceff7ea3"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:86c79bc3332a032b671a648b586d8dc46630e6389a30398ead6e7eef869b4222",
+            "id": "tos.artifact.sumerian.uncertain.im-070204-plus",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:86c79bc3332a032b671a648b586d8dc46630e6389a30398ead6e7eef869b4222",
+            "id": "tos.artifact.sumerian.uncertain.im-070204-plus",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.sumerian.uncertain.im-070204-plus.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:86c79bc3332a032b671a648b586d8dc46630e6389a30398ead6e7eef869b4222",
+        "id": "tos.artifact.sumerian.uncertain.im-070204-plus",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.artifact.sumerian.uncertain.im-070204-plus",
+    "version": 1,
+    "digest": "sha256:86c79bc3332a032b671a648b586d8dc46630e6389a30398ead6e7eef869b4222"
+  }
+}

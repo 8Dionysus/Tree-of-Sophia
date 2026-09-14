@@ -1,6 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 import { createLocalStoragePersistence, createResearchWorkspace, RESEARCH_WORKSPACE_SCHEMA, RESEARCH_WORKSPACE_VERSION, type ResearchWorkspacePersistence } from "./research-workspace";
 
+function stable(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
+  if (value && typeof value === "object") return `{${Object.keys(value as Record<string, unknown>).sort().map((key) => `${JSON.stringify(key)}:${stable((value as Record<string, unknown>)[key])}`).join(",")}}`;
+  return JSON.stringify(value);
+}
+function digest(value: unknown): string {
+  let hash = 0xcbf29ce484222325n;
+  for (const byte of new TextEncoder().encode(stable(value))) { hash ^= BigInt(byte); hash = BigInt.asUintN(64, hash * 0x100000001b3n); }
+  return `fnv1a64:${hash.toString(16).padStart(16, "0")}`;
+}
+
 describe("portable research workspace", () => {
   it("keeps hypotheses explicitly session-local and outside ToS authority", () => {
     const workspace = createResearchWorkspace({ sessionId: "demo" });
@@ -79,7 +90,7 @@ describe("portable research workspace", () => {
       targetId: "edge:ab", fromId: "node:a", toId: "node:b", sourceRefs: ["tos:source:zarathustra"],
       evidenceRefs: ["evidence:edge-ab", "evidence:route-1"], actorOrigin: "agent",
       basePageRevision: 17, baseWorkspaceRevision, dataFingerprint: "sha256:projection-v1",
-      createdAt: "2026-09-03T12:00:00.000Z", localOnly: true, reviewStatus: "pending_human_review", canon: false,
+      createdAt: "2026-09-03T12:00:00.000Z", localOnly: true, reviewStatus: "pending_review", reviewRequirement: "human_or_authorized_agent", canon: false,
     });
     expect(proposal.digest).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
     expect(workspace.getState().proposals).toEqual([proposal]);
@@ -87,13 +98,38 @@ describe("portable research workspace", () => {
     expect(workspace.summary()).toMatchObject({ proposal_count: 1, can_undo: true });
     const packet = JSON.parse(workspace.exportPacket());
     expect(packet.proposals[0]).toMatchObject({
-      review_status: "pending_human_review", local_only: true, canon: false,
+      review_status: "pending_review", review_requirement: "human_or_authorized_agent", local_only: true, canon: false,
       parent_hypothesis_id: "hyp:reading", confidence_posture: proposal.confidencePosture,
       digest: proposal.digest,
     });
     const restored = createResearchWorkspace({ sessionId: "restored", persistence: false });
     expect(restored.importPacket(workspace.exportPacket())).toBe(true);
     expect(restored.getState().proposals).toEqual(workspace.getState().proposals);
+  });
+
+  it("keeps legacy pending_human_review proposal packets byte-compatible on import", () => {
+    const workspace = createResearchWorkspace({ sessionId: "legacy-proposal" });
+    workspace.addHypothesis({ id: "hyp:legacy", title: "Legacy", body: "A retained local proposal." });
+    workspace.stageProposal({
+      id: "proposal:legacy", kind: "metadata_correction", parentHypothesisId: "hyp:legacy", targetId: "node:legacy",
+      statement: "Retain the old packet posture.", sourceRefs: ["source:legacy"], evidenceRefs: ["evidence:legacy"],
+      confidencePosture: { value: "unknown", meaning: "maker_declared_uncertainty_not_truth_probability" }, actorOrigin: "human",
+      basePageRevision: 0, baseWorkspaceRevision: workspace.getState().revision, dataFingerprint: "fingerprint:legacy",
+      createdAt: "2026-09-03T12:00:00.000Z",
+    });
+    const packet = JSON.parse(workspace.exportPacket());
+    const legacy = { ...packet.proposals[0] };
+    delete legacy.review_requirement;
+    legacy.review_status = "pending_human_review";
+    const unsigned = { ...legacy };
+    delete unsigned.digest;
+    legacy.digest = digest(unsigned);
+    // Import must preserve, not relabel, old history.
+    const restored = createResearchWorkspace({ persistence: false });
+    const legacyPacket = { ...packet, proposals: [legacy] };
+    expect(restored.importPacket(JSON.stringify(legacyPacket))).toBe(true);
+    expect(restored.getState().proposals[0]).toMatchObject({ reviewStatus: "pending_human_review", localOnly: true, canon: false });
+    expect(restored.getState().proposals[0].reviewRequirement).toBeUndefined();
   });
 
   it("fails closed for stale, untraceable, or tampered proposals", () => {

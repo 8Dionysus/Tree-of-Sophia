@@ -237,6 +237,7 @@ class KnowledgeCompileTests(unittest.TestCase):
             first_groups['claim'].append({'b': 2, 'a': 1})
             first_groups['claim'].update([{'a': 1, 'b': 2}])
             self.assertEqual(list(first_groups['claim']), [{'a': 1, 'b': 2}])
+            self.assertEqual(list(next(iter(first_groups['claim']))), ['b', 'a'])
 
             second = DiskCollections(db)
             left = first.sequence(['left'])
@@ -244,6 +245,21 @@ class KnowledgeCompileTests(unittest.TestCase):
             self.assertNotEqual(left.collection, right.collection)
             self.assertEqual(list(left), ['left'])
             self.assertEqual(list(right), ['right'])
+
+    def test_disk_collections_retain_nested_native_order_and_number_kinds(self):
+        value = {'z': {'later': 9007199254740993, 'earlier': -0.0}, 'a': [1.0, True, 1]}
+        with closing(sqlite3.connect(':memory:')) as db:
+            storage = DiskCollections(db)
+            sequence = storage.sequence([value])
+            mapping = storage.mapping([('record', value)])
+            groups = storage.groups()
+            groups['record'].append(value)
+            groups['record'].update([{'a': value['a'], 'z': value['z']}])
+            expected = json.dumps(value, ensure_ascii=False, separators=(',', ':'))
+            for actual in [next(iter(sequence)), mapping['record'], next(iter(groups['record']))]:
+                self.assertEqual(json.dumps(actual, ensure_ascii=False, separators=(',', ':')), expected)
+            self.assertEqual(len(groups['record']), 1)
+            self.assertIn({'a': value['a'], 'z': value['z']}, sequence)
 
     def test_unreachable_views_release_only_their_collection_and_keep_views_alive(self):
         with closing(sqlite3.connect(':memory:')) as db:

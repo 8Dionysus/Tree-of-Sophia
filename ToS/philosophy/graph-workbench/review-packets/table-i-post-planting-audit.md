@@ -26,8 +26,8 @@ This generated review packet checks the supported prepared-dossier plantings aga
 | source anchors | 9530 |
 | terms | 4743 |
 | transmissions | 3326 |
-| projection nodes | 7759 |
-| projection edges | 13307 |
+| projection nodes | 8084 |
+| projection edges | 13674 |
 | clusters | 428 |
 
 ## Diagnostics

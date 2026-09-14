@@ -43,6 +43,41 @@ The root entry map is the machine-facing entry capsule for consumers that need
 schema-checked root-route orientation before touching downstream exports.
 The corpus index covers the whole `ToS/` home as a derived resource map so
 `abyss-stack` can project and visualize the corpus without owning ToS meaning.
+Its canonical and candidate CSV relation carriers retain the complete parsed
+row in `properties.source_record`, including unknown columns, with
+`source_file_sha256` and the one-based `source_row` data-record ordinal.
+The ordinal excludes the header and is not a physical line number; a quoted
+cell can span lines. Null missing cells differ from empty strings, and the
+file hash binds the original bytes rather than a reserialized CSV. The shared
+reader returns this metadata in relation `attributes` and returns the source
+path through the relation pack. It does not interpret unknown fields, turn
+an intake `promoted` marker into current canon admission, reinterpret source
+confidence, or replace a Claim's evidence/assessment model. Older snapshots
+may lack this optional binding; new snapshots must travel with their matching
+corpus schema and pass source-backed parity. Ambiguous duplicate/empty headers
+and unnamed surplus cells are rejected rather than silently dropped.
+
+The owner library `scripts/tos_corpus_index_common.py` exposes
+`read_exact_edge_row(path, source_file_sha256=..., source_row=...,
+source_record=...)` for an explicitly selected index row. It verifies the
+unchanged regular file and every parsed cell, returning the original CSV record
+(including its delimiter), byte offset, row byte count and raw-record SHA-256.
+Multiline cells do not change logical row numbering. Default file/record read
+budgets are 8 MiB/1 MiB; stale hashes, wrong rows, malformed CSV and exceeded
+budgets refuse without rewriting source or index. This helper does **not**
+admit a caller path, establish selected-index membership or grant publication
+rights. `scripts/authored_corpus_source_read.py` supplies the optional addressed
+adapter: explicit bootstrap verifies all rows of each selected tracked pack
+against the existing corpus index and writes an unselected immutable root.
+Selecting that root as `authored-corpus` in the source vector enables exact
+`authored_csv_record` handles through the common source-read contract. This
+changes the vector revision; old prepared readers cannot acquire the root by
+silent attachment. Source files and canon/intake posture remain unchanged.
+Serving looks up one selected pack/edge member and then rechecks its exact CSV
+bytes, without a corpus scan or accepting a caller path. Bootstrap is bounded
+to 4,096 packs, 65,536 rows and 64 MiB of selected input; a larger bootstrap
+requires an explicitly designed owner route, not raised serving budgets.
+
 The philosophy atlas projection turns `ToS/philosophy/atlas/` into a first
 reviewable tree/graph read model for visualization and graph switching.
 The philosophy graph view catalog turns source-owned view cards and
@@ -51,6 +86,46 @@ The philosophy graph projection materializes the atlas projection once as a
 source-ref-preserving node/edge set. Each graph view carries stable node/edge
 ID membership over that set, avoiding a second full copy of the same records
 inside every lens while keeping runtime access subordinate to ToS authority.
+
+The atlas/graph readers retain complete public authored atlas manifests,
+master rows, dossier index rows, proposed nodes and proposed relations in
+`properties.source_record`. `source_record_ref` and `source_file_sha256`
+bind the exact parsed file; `source_record_sha256` separately binds the
+canonical JSON object. JSONL `source_row` counts nonblank records, while
+`source_line` is the physical line. Whole JSON manifests use `source_pointer`
+with the empty root pointer and invent no row number. Original DOCX table/row
+indexes remain inside the unchanged source object, not those JSONL locators.
+Unknown nested fields, null, false, empty and absent values stay distinct.
+Applied endpoint aliases also retain their complete owner packet, claim limit
+and selected alias pointers. These envelopes are not native Corpus Record
+identity, source assessment, publication clearance or canon admission.
+
+Every existing authored candidate node/relation remains globally inspectable,
+including candidates selected by no current lens and their existing endpoint
+closure. Such records have `view_ids: []`; source-owned view filters, view
+membership and cluster denominators do not expand. Global fingerprints bind
+unlensed bodies as well as IDs.
+
+Existing `atlas-dossier:{dossier_id}` nodes also expose `properties.source_backlogs`:
+`source_anchor_backlog`, `term_index` and `transmission_backlog`. Each family
+returns its authored manifest's `source_ref`, exact `source_file_sha256`,
+`record_count` and full `records` array of the same JSONL source envelopes.
+All records remain under their source-declared dossier; all three families
+remain present when their record arrays are empty. A missing source file is
+an error, not an empty family. Raw source-local IDs, original DOCX coordinates,
+status, constraints and unknown fields are retained without semantic mapping.
+
+These backlogs have no global stable record IDs. Address an occurrence by the
+existing dossier ID, family source ref, exact file digest and `source_row` /
+`source_line`; this is a snapshot locator, not a minted corpus or graph identity.
+Identical rows on distinct source lines remain distinct occurrences. Branch
+anchor mirrors are not counted a second time. Reviewed discovery leads keep
+their separate, limited source selectors and do not confer acceptance on the
+backlog. No new nodes, relations, lens membership or canon status are created.
+Ordinary philosophy and knowledge node inspection returns these arrays intact;
+its relation limit does not truncate node attributes. The separate human-Form
+selection byte budget does not apply to full raw-record inspection.
+
 The epistemic evidence projection joins two bounded, public-safe research
 scenes to explicit source, review, canon, claim, and rights return routes. It
 does not copy source text or infer closure: the Zarathustra scene distinguishes

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-structured-value.schema.json",
+  "title": "Claim-scoped structured value with attributed source wording",
+  "description": "A value, not a persistent subject. The relation profile owns its specific shape and meaning. Unknown fields remain data; this reader extracts no identity references from them.",
+  "type": "object",
+  "required": ["kind", "source_wording"],
+  "properties": {
+    "kind": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"},
+    "source_wording": {
+      "type": "object", "required": ["text", "language", "script"],
+      "properties": {
+        "text": {"type": "string", "pattern": "\\S"},
+        "language": {"anyOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, {"type": "null"}]},
+        "script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"}
+      }
+    }
+  }
+}

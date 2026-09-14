@@ -20,6 +20,15 @@ def compact(value):
                       separators=(',', ':'), allow_nan=False)
 
 
+def retained_json(value):
+    """Store native member order separately from canonical comparison keys."""
+    return json.dumps(value, ensure_ascii=False, separators=(',', ':'), allow_nan=False)
+
+
+def _membership_key(raw):
+    return hashlib.sha256(compact(json.loads(raw)).encode('utf-8')).hexdigest()
+
+
 def json_chunks(value):
     """Canonical JSON chunks, including explicit disk collections, bounded by a row.
 
@@ -89,6 +98,7 @@ class DiskCollections:
         self.connection = connection
         self.serial = 0
         self._closed = False
+        connection.create_function('_build_value_key', 1, _membership_key, deterministic=True)
         connection.executescript('''
             CREATE TABLE IF NOT EXISTS _build_collections (
                 collection INTEGER PRIMARY KEY AUTOINCREMENT);
@@ -103,7 +113,7 @@ class DiskCollections:
             CREATE TABLE IF NOT EXISTS _build_groups (
                 collection INTEGER NOT NULL, key TEXT NOT NULL, position INTEGER NOT NULL,
                 payload TEXT NOT NULL, PRIMARY KEY(collection,key,position));
-            CREATE INDEX IF NOT EXISTS _build_groups_value ON _build_groups(collection,key,payload);
+            CREATE INDEX IF NOT EXISTS _build_groups_value ON _build_groups(collection,key,_build_value_key(payload));
         ''')
 
     def _register(self, view, collection):
@@ -178,7 +188,7 @@ class DiskSequence(_DiskCollection, Sequence):
 
     def append(self, value):
         self.connection.execute('INSERT INTO _build_rows VALUES (?,?,NULL,?)',
-                                (self.collection, self.count, compact(value)))
+                                (self.collection, self.count, retained_json(value)))
         self.count += 1
 
     def extend(self, values):
@@ -214,9 +224,10 @@ class DiskSequence(_DiskCollection, Sequence):
         return json.loads(self.connection.execute(query, args).fetchone()[0])
 
     def __contains__(self, value):
-        return self.connection.execute(
-            'SELECT 1 FROM _build_rows WHERE collection=? AND payload=? LIMIT 1',
-            (self.collection, compact(value))).fetchone() is not None
+        expected = compact(value)
+        return any(compact(json.loads(raw)) == expected for (raw,) in self.connection.execute(
+            'SELECT payload FROM _build_rows WHERE collection=? AND _build_value_key(payload)=?',
+            (self.collection, _membership_key(expected))))
 
     def sort(self, *, key=None, keyfield=None):
         # Build callers use strings or tuples of strings, not locale collation.
@@ -269,7 +280,7 @@ class DiskMap(_DiskCollection, MutableMapping):
 
     def __setitem__(self, key, value):
         self.connection.execute('INSERT INTO _build_map VALUES (?,?,?) ON CONFLICT(collection,key) DO UPDATE SET payload=excluded.payload',
-                                (self.collection, compact(key), compact(value)))
+                                (self.collection, compact(key), retained_json(value)))
 
     def __delitem__(self, key):
         cursor = self.connection.execute('DELETE FROM _build_map WHERE collection=? AND key=?',
@@ -338,7 +349,7 @@ class GroupRows(Sequence):
             'INSERT INTO _build_groups(collection,key,position,payload) VALUES '
             '(?,?,coalesce((SELECT max(position)+1 FROM _build_groups '
             'WHERE collection=? AND key=?),0),?)',
-            (self.groups.collection, self.key, self.groups.collection, self.key, compact(value)))
+            (self.groups.collection, self.key, self.groups.collection, self.key, retained_json(value)))
 
     def update(self, values):
         for value in values:
@@ -355,8 +366,10 @@ class GroupRows(Sequence):
                                        (self.groups.collection, self.key)).fetchone()[0]
 
     def __contains__(self, value):
-        return self.connection.execute('SELECT 1 FROM _build_groups WHERE collection=? AND key=? AND payload=? LIMIT 1',
-                                       (self.groups.collection, self.key, compact(value))).fetchone() is not None
+        expected = compact(value)
+        return any(compact(json.loads(raw)) == expected for (raw,) in self.connection.execute(
+            'SELECT payload FROM _build_groups WHERE collection=? AND key=? AND _build_value_key(payload)=?',
+            (self.groups.collection, self.key, _membership_key(expected))))
 
     def __getitem__(self, index):
         if isinstance(index, slice):

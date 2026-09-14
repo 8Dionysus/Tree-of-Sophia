@@ -23,6 +23,7 @@ Use this checklist for changes to:
 - `ToS/candidate-intake/**/*`
 - `ToS/canon/**/*.json`
 - `ToS/doctrine/KNOWLEDGE_MODEL.md`
+- `ToS/doctrine/KNOWLEDGE_ASSESSMENT.md`
 - `ToS/doctrine/NODE_CONTRACT.md`
 - `ToS/doctrine/PRACTICE_BRANCH.md`
 - `ToS/doctrine/COUNTERPART_POLICY.md`
@@ -88,7 +89,10 @@ Answer each item with `yes`, `no`, or `not-applicable`.
 - If counterpart mapping is mentioned, does it stay derived, optional, and explicitly non-identity?
 - If context compost is mentioned, do source refs, review state, and decay or demotion posture remain visible?
 - If calibration is mentioned, does it guide curation without becoming a monopoly of meaning?
-- If AI amplification is mentioned, does human judgment remain the owning review layer?
+- If agent assessment is present, are source visibility, trusted authority,
+  relevant competence, exact versions, disagreements and scoped admission
+  explicit under `ToS/doctrine/KNOWLEDGE_ASSESSMENT.md`, without an automatic
+  per-record human gate or a self-appointed model verdict?
 - If growth is mentioned, are node deepening, node creation, and branch formation still distinguishable?
 - If node IDs are mentioned, do they follow a stable, readable public grammar?
 - If multilingual witnesses are present, do they keep one shared node_id rather than language-split copies?
@@ -128,7 +132,8 @@ Pause and revise before merge if any answer is `no` for:
 - lineage preservation
 - ToS versus AoA ownership boundary
 - calibration flattening
-- human-review sovereignty
+- assessment authority or competence bypass, fabricated human review, or loss
+  of a concrete rights/consent/canon/publication owner boundary
 - identifier drift
 - language-split node copies
 - source-authority replacement by translation

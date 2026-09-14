@@ -1,8 +1,14 @@
 # Source-Witness Catalog
 
 This directory is the tracked, generated navigation index over authoritative
-object and bibliographic claim records in the speaking `agents/`, `places/`,
-`organizations/`, `works/`, and `collections/` trees.
+objects and source Claims under `ToS/source-witnesses/`. The native
+bibliographic trees and the explicitly declared source profiles use the same
+catalog without becoming the same kind of knowledge. The live file inventory,
+schema bindings and counts belong to
+[`catalog.manifest.json`](catalog.manifest.json); declared profile meaning
+belongs to [semantic interchange](../../doctrine/semantic-interchange/README.md).
+The table and source-history notes below describe the earlier bibliographic
+baseline, not the full current corpus or a limit on its growth.
 
 | File | Record class |
 | --- | --- |
@@ -33,13 +39,13 @@ object associations return to `object-link-claims.jsonl`; `open_download` and
 `open_view` are transport observations and never mean that a Work or File is
 legally open.
 
-The current topology contribution is 64 separately addressable packets: 24
+The earlier topology baseline had 64 separately addressable packets: 24
 `has_expression`, 24 `embodied_by`, and 16 `exemplified_by`. Their presence in
 this generated catalog proves exact projection only. It does not make the
 declared identity ladder true, accept any text, or turn embodiment into
 textual equivalence.
 
-The current bounded projection contains 176 object records and 198 claim records
+That earlier bounded projection contained 176 object records and 198 claim records
 (374 entries total), including five first-class Links and five object-to-Link
 claims. The responsibility slice contains seven Work authorship,
 ten Expression translation, and three Edition role claims; all remain

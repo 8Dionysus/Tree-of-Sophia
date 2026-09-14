@@ -1,32 +1,56 @@
 from __future__ import annotations
 
+import copy
+import base64
+import binascii
+import hashlib
 import importlib.util
 import json
 import os
 import sys
-from collections import deque
+import tempfile
+from collections import OrderedDict, deque
 from dataclasses import dataclass, field
-from functools import lru_cache
-from threading import Lock
+from threading import Lock, RLock
 from pathlib import Path
 from typing import Any
 
 from .knowledge import (
+    AddressedUpdateError,
     KnowledgeGraphIndex,
     KnowledgeSearchIndex,
+    KNOWLEDGE_SOURCES,
+    addressed_update_knowledge_graph,
     build_knowledge_graph,
     execute_knowledge_lens,
     focus_knowledge_node,
     inspect_knowledge_node,
     inspect_knowledge_relation,
     knowledge_catalog as build_knowledge_catalog,
+    knowledge_source_revision,
     search_knowledge_graph,
 )
+from .search_read_model import (
+    SEARCH_READ_MODEL_DEFAULT_BYTES,
+    SEARCH_READ_MODEL_MAX_POSTINGS,
+    SEARCH_READ_MODEL_MAX_VERIFY_CHARS,
+    SEARCH_READ_MODEL_PAGE_SIZE,
+    SearchReadModelError,
+    SearchReadModelPage,
+    SearchReadModelSnapshotError,
+    SQLiteKnowledgeSearchReadModel,
+    normalize_search_query,
+)
 from .exploration import ExplorationService, exploration_capabilities
+from .temporal_comparison import compare_temporal_claims
+from .published_read_model import PublishedKnowledgeReadModel, PublishedReadModelError
+from .published_exploration import PublishedExplorationService
+from .published_lens import PublishedLensService
+from .source_read import SourceReadError, SourceReadService, contract_summary, unavailable_capabilities
+from .source_read_owner import SelectedSourceReadService
 from .query_store import QueryStore, QueryStoreRequired, DEFAULT_RELATIVE_PATH
 from .projection_store import load_projection
 from .locations import data_root, program_path
-import hashlib
 
 
 INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
@@ -44,11 +68,16 @@ PHILOSOPHY_AUDIT_RELATIVE_PATH = Path("ToS/philosophy/graph-workbench/review-pac
 EVIDENCE_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/epistemic_evidence_projection.min.json")
 WORD_ANALYSIS_PROVIDER_RELATIVE_PATH = Path("scripts/prepare_zarathustra_word_analysis_v1.py")
 SOURCE_GAP_LEDGER_RELATIVE_PATH = Path("ToS/source-witnesses/access-requests/public-ledger")
+SOURCE_READ_CONTRACT_RELATIVE_PATH = Path("access/contracts/source-read.v1.schema.json")
 KNOWLEDGE_CONTRACT_RELATIVE_PATHS = {
     "api": Path("access/contracts/knowledge-api.v1.json"),
     "knowledge_graph": Path("access/contracts/knowledge-graph.v1.schema.json"),
+    "readable_context": Path("access/contracts/readable-context.v1.schema.json"),
     "lens_spec": Path("access/contracts/lens-spec.v1.schema.json"),
     "lens_result": Path("access/contracts/lens-result.v1.schema.json"),
+    "temporal_comparison_request": Path("access/contracts/temporal-comparison-request.v1.schema.json"),
+    "temporal_comparison_result": Path("access/contracts/temporal-comparison-result.v1.schema.json"),
+    "source_read": SOURCE_READ_CONTRACT_RELATIVE_PATH,
     "entity_type_registry_schema": Path(
         "ToS/contracts/semantic-entity-type-registry.schema.json"
     ),
@@ -70,6 +99,48 @@ PHILOSOPHY_CHALLENGE_PREDICATES = {
     "uncertain_relation",
     "polemicizes_with",
 }
+JSON_VERSION_CACHE_MAX_PATHS = 32
+_KNOWLEDGE_SCHEMA_RULES = {
+    "philosophy": (
+        {"tos_philosophy_graph_projection_v1", "tos_philosophy_graph_projection_v2"},
+        "ToS philosophy graph projection schema_version must be one of "
+        "tos_philosophy_graph_projection_v1, tos_philosophy_graph_projection_v2",
+    ),
+    "entity_type_registry": ({"tos_semantic_entity_type_registry_v1"},
+        "ToS entity type registry schema_version must be tos_semantic_entity_type_registry_v1"),
+    "relation_type_registry": ({"tos_semantic_relation_type_registry_v1"},
+        "ToS relation type registry schema_version must be tos_semantic_relation_type_registry_v1"),
+}
+SEARCH_READ_MODEL_DEFAULT_MAX_BYTES = 512 * 1024 * 1024
+SEARCH_READ_MODEL_CURSOR_SCHEMA = "tos_knowledge_search_indexed_cursor_v1"
+_json_version_cache_lock = Lock()
+_json_version_cache: OrderedDict[
+    str, tuple[tuple[int, int, int, int], dict[str, Any]]
+] = OrderedDict()
+
+
+def _default_search_read_model_path(root: Path) -> Path:
+    """Choose a restart-surviving cache path without writing into the repo."""
+    root_digest = hashlib.sha256(root.resolve().as_posix().encode("utf-8")).hexdigest()[:24]
+    return Path(tempfile.gettempdir()) / "tos-access-search" / f"{root_digest}.sqlite"
+
+
+def _indexed_search_cursor_encode(payload: dict[str, Any]) -> str:
+    raw = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def _indexed_search_cursor_decode(value: str) -> dict[str, Any]:
+    if not isinstance(value, str) or not value or len(value) > 8192:
+        raise SearchReadModelError("invalid indexed knowledge search cursor")
+    try:
+        padded = value + "=" * (-len(value) % 4)
+        decoded = json.loads(base64.urlsafe_b64decode(padded.encode("ascii")))
+    except (ValueError, UnicodeError, binascii.Error, json.JSONDecodeError) as error:
+        raise SearchReadModelError("invalid indexed knowledge search cursor") from error
+    if not isinstance(decoded, dict) or decoded.get("schema") != SEARCH_READ_MODEL_CURSOR_SCHEMA:
+        raise SearchReadModelError("invalid indexed knowledge search cursor")
+    return decoded
 
 
 def _unavailable_word_analysis_capability(reason: str) -> dict[str, Any]:
@@ -91,55 +162,113 @@ def _unavailable_word_analysis_capability(reason: str) -> dict[str, Any]:
     }
 
 
-@lru_cache(maxsize=8)
-def _read_json_version(path_text: str, mtime_ns: int, size: int) -> dict[str, Any]:
-    del mtime_ns, size
-    path = Path(path_text)
+def _read_json_file(path: Path) -> dict[str, Any]:
+    """Read a selected carrier without registering or evicting process caches."""
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise RuntimeError(f"ToS corpus index is not a JSON object: {path}")
     return payload
 
 
+def _checked_knowledge_schema(payload: dict[str, Any], name: str) -> dict[str, Any]:
+    allowed, message = _KNOWLEDGE_SCHEMA_RULES[name]
+    if payload.get("schema_version") not in allowed:
+        raise RuntimeError(message)
+    return payload
+
+
+def _read_json_version(
+    path_text: str, mtime_ns: int, size: int, inode: int, ctime_ns: int
+) -> dict[str, Any]:
+    """Read one latest version of a JSON carrier without retaining history.
+
+    The graph itself is retained by ``ToSAccessCore`` only as the currently
+    published snapshot.  A process-wide multi-version LRU here would keep old
+    raw carriers alive after supersession and multiply the graph's memory
+    footprint across source edits.  Keep at most one parsed payload per path;
+    a source-state change replaces that entry atomically.  The state key keeps
+    same-size/same-mtime rewrites honest through inode and ctime changes.
+    """
+    state = (mtime_ns, size, inode, ctime_ns)
+    with _json_version_cache_lock:
+        cached = _json_version_cache.get(path_text)
+        if cached is not None and cached[0] == state:
+            _json_version_cache.move_to_end(path_text)
+            return cached[1]
+    path = Path(path_text)
+    payload = _read_json_file(path)
+    with _json_version_cache_lock:
+        _json_version_cache[path_text] = (state, payload)
+        _json_version_cache.move_to_end(path_text)
+        while len(_json_version_cache) > JSON_VERSION_CACHE_MAX_PATHS:
+            _json_version_cache.popitem(last=False)
+    return payload
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     stat = path.stat()
-    return _read_json_version(path.resolve().as_posix(), stat.st_mtime_ns, stat.st_size)
+    return _read_json_version(
+        path.resolve().as_posix(), stat.st_mtime_ns, stat.st_size, stat.st_ino, stat.st_ctime_ns
+    )
 
 
-@lru_cache(maxsize=8)
 def _knowledge_graph_version(
     index_path_text: str,
     index_mtime_ns: int,
     index_size: int,
+    index_inode: int,
+    index_ctime_ns: int,
     philosophy_path_text: str,
     philosophy_mtime_ns: int,
     philosophy_size: int,
+    philosophy_inode: int,
+    philosophy_ctime_ns: int,
     bibliographic_path_text: str,
     bibliographic_mtime_ns: int,
     bibliographic_size: int,
+    bibliographic_inode: int,
+    bibliographic_ctime_ns: int,
     entity_registry_path_text: str,
     entity_registry_mtime_ns: int,
     entity_registry_size: int,
+    entity_registry_inode: int,
+    entity_registry_ctime_ns: int,
     relation_registry_path_text: str,
     relation_registry_mtime_ns: int,
     relation_registry_size: int,
+    relation_registry_inode: int,
+    relation_registry_ctime_ns: int,
 ) -> dict[str, Any]:
-    corpus = _read_json_version(index_path_text, index_mtime_ns, index_size)
-    philosophy = _read_json_version(philosophy_path_text, philosophy_mtime_ns, philosophy_size)
+    corpus = _read_json_version(
+        index_path_text, index_mtime_ns, index_size, index_inode, index_ctime_ns
+    )
+    philosophy = _read_json_version(
+        philosophy_path_text,
+        philosophy_mtime_ns,
+        philosophy_size,
+        philosophy_inode,
+        philosophy_ctime_ns,
+    )
     bibliographic = _read_json_version(
         bibliographic_path_text,
         bibliographic_mtime_ns,
         bibliographic_size,
+        bibliographic_inode,
+        bibliographic_ctime_ns,
     )
     entity_registry = _read_json_version(
         entity_registry_path_text,
         entity_registry_mtime_ns,
         entity_registry_size,
+        entity_registry_inode,
+        entity_registry_ctime_ns,
     )
     relation_registry = _read_json_version(
         relation_registry_path_text,
         relation_registry_mtime_ns,
         relation_registry_size,
+        relation_registry_inode,
+        relation_registry_ctime_ns,
     )
     return build_knowledge_graph(
         corpus,
@@ -150,60 +279,6 @@ def _knowledge_graph_version(
     )
 
 
-@lru_cache(maxsize=8)
-def _knowledge_catalog_version(
-    index_path_text: str,
-    index_mtime_ns: int,
-    index_size: int,
-    philosophy_path_text: str,
-    philosophy_mtime_ns: int,
-    philosophy_size: int,
-    bibliographic_path_text: str,
-    bibliographic_mtime_ns: int,
-    bibliographic_size: int,
-    entity_registry_path_text: str,
-    entity_registry_mtime_ns: int,
-    entity_registry_size: int,
-    relation_registry_path_text: str,
-    relation_registry_mtime_ns: int,
-    relation_registry_size: int,
-) -> dict[str, Any]:
-    corpus = _read_json_version(index_path_text, index_mtime_ns, index_size)
-    philosophy = _read_json_version(philosophy_path_text, philosophy_mtime_ns, philosophy_size)
-    entity_registry = _read_json_version(
-        entity_registry_path_text,
-        entity_registry_mtime_ns,
-        entity_registry_size,
-    )
-    relation_registry = _read_json_version(
-        relation_registry_path_text,
-        relation_registry_mtime_ns,
-        relation_registry_size,
-    )
-    graph = _knowledge_graph_version(
-        index_path_text,
-        index_mtime_ns,
-        index_size,
-        philosophy_path_text,
-        philosophy_mtime_ns,
-        philosophy_size,
-        bibliographic_path_text,
-        bibliographic_mtime_ns,
-        bibliographic_size,
-        entity_registry_path_text,
-        entity_registry_mtime_ns,
-        entity_registry_size,
-        relation_registry_path_text,
-        relation_registry_mtime_ns,
-        relation_registry_size,
-    )
-    return build_knowledge_catalog(
-        graph,
-        corpus,
-        philosophy,
-        entity_registry,
-        relation_registry,
-    )
 
 
 def _contains(value: Any, needle: str) -> bool:
@@ -422,21 +497,87 @@ class ToSAccessCore:
     relation_type_registry_path: Path
     philosophy_post_planting_audit_path: Path
     evidence_projection_path: Path
+    search_read_model_path: Path | None = None
+    search_read_model_max_bytes: int = SEARCH_READ_MODEL_DEFAULT_MAX_BYTES
+    search_read_model_max_postings: int = SEARCH_READ_MODEL_MAX_POSTINGS
+    search_read_model_max_verify_chars: int = SEARCH_READ_MODEL_MAX_VERIFY_CHARS
+    published_read_model_path: Path | None = None
+    published_read_model_expected: dict[str, Any] | None = None
+    published_exploration_checkpoint_path: Path | None = None
+    source_read_service: SourceReadService | SelectedSourceReadService | None = None
+    _prepared_reader: PublishedKnowledgeReadModel | None = field(default=None, init=False, repr=False, compare=False)
+    _prepared_lens: PublishedLensService | None = field(default=None, init=False, repr=False, compare=False)
     _exploration: ExplorationService = field(init=False, repr=False, compare=False)
     _search_index: KnowledgeSearchIndex | None = field(default=None, init=False, repr=False, compare=False)
     _search_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
+    _search_read_model: SQLiteKnowledgeSearchReadModel | None = field(default=None, init=False, repr=False, compare=False)
     _graph_index: KnowledgeGraphIndex | None = field(default=None, init=False, repr=False, compare=False)
     _graph_index_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
+    _snapshot_lock: Any = field(default_factory=RLock, init=False, repr=False, compare=False)
+    # The last graph returned to consumers is the CAS parent.  It is kept
+    # separately from the on-disk source state because an owner may edit one
+    # source carrier first and then publish its bounded replacement without
+    # forcing an unrelated full rebuild before the addressed call.
+    _published_graph: dict[str, Any] | None = field(default=None, init=False, repr=False, compare=False)
+    _published_source_inputs: dict[str, bytes] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    _published_catalog: dict[str, Any] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    _published_catalog_graph: dict[str, Any] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    _published_catalog_source_state: tuple[tuple[str, int, int, int, int], ...] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    _addressed_graph: dict[str, Any] | None = field(default=None, init=False, repr=False, compare=False)
+    _addressed_source_state: tuple[tuple[str, int, int, int, int], ...] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    _published_source_state: tuple[tuple[str, int, int, int, int], ...] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
 
     _query_backend: Any = field(default=None, init=False, repr=False, compare=False)
     _query_signature: Any = field(default=None, init=False, repr=False, compare=False)
     _query_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
 
     def __post_init__(self):
-        self._exploration = ExplorationService(self.knowledge_graph, query_store_provider=self._query_store)
+        if (self.published_read_model_path is None) != (self.published_read_model_expected is None):
+            raise ValueError("prepared reader requires both a path and an exact expected snapshot binding")
+        if self.published_exploration_checkpoint_path is not None and self.published_read_model_path is None:
+            raise ValueError("persistent exploration checkpoints require an explicitly selected prepared reader")
+        if self.source_read_service is not None and not isinstance(self.source_read_service, (SourceReadService, SelectedSourceReadService)):
+            raise TypeError("source_read_service must be an explicit SourceReadService")
+        if self.published_read_model_path is not None:
+            path = Path(self.published_read_model_path).expanduser()
+            if not path.is_absolute():
+                path = self.tos_root / path
+            self._prepared_reader = PublishedKnowledgeReadModel(path, self.published_read_model_expected)
+            self._prepared_lens = PublishedLensService(self._prepared_reader)
+        if self.search_read_model_path is None:
+            self.search_read_model_path = _default_search_read_model_path(self.tos_root)
+        else:
+            self.search_read_model_path = Path(self.search_read_model_path).expanduser()
+            if not self.search_read_model_path.is_absolute():
+                self.search_read_model_path = self.tos_root / self.search_read_model_path
+        if self.search_read_model_max_bytes < 4096:
+            raise ValueError("search_read_model_max_bytes must be at least one SQLite page")
+        if self._prepared_reader is None:
+            self._exploration = ExplorationService(self.knowledge_graph, query_store_provider=self._query_store)
+        else:
+            checkpoint = self.published_exploration_checkpoint_path
+            if checkpoint is not None:
+                checkpoint = Path(checkpoint).expanduser()
+                if not checkpoint.is_absolute():
+                    checkpoint = self.tos_root / checkpoint
+            self._exploration = PublishedExplorationService(self._prepared_reader, checkpoint_path=checkpoint)
 
     def _query_store(self):
         """Select an explicit completed snapshot, never build during a request."""
+        if self._prepared_reader is not None:
+            return None
         configured = os.environ.get('TOS_QUERY_STORE_PATH')
         path = Path(configured).expanduser() if configured else self.tos_root / DEFAULT_RELATIVE_PATH
         if not path.is_absolute():
@@ -478,15 +619,24 @@ class ToSAccessCore:
                 self._query_signature = signature
             return self._query_backend
 
-
     def knowledge_explore(self, request: dict[str, Any]) -> dict[str, Any]:
         return self._exploration.explore(request)
 
+    def knowledge_prepared_status(self) -> dict[str, Any] | None:
+        """Check selected publication readiness, without scanning source rows."""
+        return self._prepared_reader.status() if self._prepared_reader is not None else None
+
+    def knowledge_exploration_capabilities(self) -> dict[str, Any]:
+        return (self._exploration.capability() if self._prepared_reader is not None
+                else exploration_capabilities())
+
     def knowledge_exploration_contracts(self) -> dict[str, Any]:
         return {
-            "capabilities": exploration_capabilities(),
+            "capabilities": self.knowledge_exploration_capabilities(),
             "request": _read_json(program_path("access/contracts/exploration-request.v1.schema.json")),
             "result": _read_json(program_path("access/contracts/exploration-result.v1.schema.json")),
+            "request_v2": _read_json(program_path("access/contracts/exploration-request.v2.schema.json")),
+            "result_v2": _read_json(program_path("access/contracts/exploration-result.v2.schema.json")),
         }
 
     @classmethod
@@ -500,7 +650,21 @@ class ToSAccessCore:
         relation_type_registry_path: str | Path | None = None,
         philosophy_post_planting_audit_path: str | Path | None = None,
         evidence_projection_path: str | Path | None = None,
+        search_read_model_path: str | Path | None = None,
+        search_read_model_max_bytes: int | None = None,
+        search_read_model_max_postings: int = SEARCH_READ_MODEL_MAX_POSTINGS,
+        search_read_model_max_verify_chars: int = SEARCH_READ_MODEL_MAX_VERIFY_CHARS,
+        published_read_model_path: str | Path | None = None,
+        published_read_model_expected: dict[str, Any] | None = None,
+        published_exploration_checkpoint_path: str | Path | None = None,
+        source_read_service: SourceReadService | SelectedSourceReadService | None = None,
     ) -> "ToSAccessCore":
+        """Select legacy carrier reads, or explicitly pin the prepared reader.
+
+        The prepared route serves catalog, full node/relation inspection,
+        bounded exploration, and v9 lens/focus. Other knowledge operations refuse instead of silently
+        rebuilding the graph. No environment variable activates this opt-in.
+        """
         root = _discover_root(tos_root)
         index = Path(
             index_path
@@ -551,6 +715,17 @@ class ToSAccessCore:
         ).expanduser()
         if not evidence_projection.is_absolute():
             evidence_projection = root / evidence_projection
+        search_path = Path(
+            search_read_model_path
+            or os.environ.get("TOS_SEARCH_READ_MODEL_PATH")
+            or _default_search_read_model_path(root)
+        ).expanduser()
+        if not search_path.is_absolute():
+            search_path = root / search_path
+        configured_budget = search_read_model_max_bytes
+        if configured_budget is None:
+            raw_budget = os.environ.get("TOS_SEARCH_READ_MODEL_MAX_BYTES")
+            configured_budget = int(raw_budget) if raw_budget else SEARCH_READ_MODEL_DEFAULT_MAX_BYTES
         return cls(
             tos_root=root,
             index_path=index.resolve(),
@@ -560,6 +735,15 @@ class ToSAccessCore:
             relation_type_registry_path=relation_registry.resolve(),
             philosophy_post_planting_audit_path=philosophy_audit.resolve(),
             evidence_projection_path=evidence_projection.resolve(),
+            search_read_model_path=search_path.resolve(),
+            search_read_model_max_bytes=configured_budget,
+            search_read_model_max_postings=search_read_model_max_postings,
+            search_read_model_max_verify_chars=search_read_model_max_verify_chars,
+            published_read_model_path=Path(published_read_model_path) if published_read_model_path is not None else None,
+            published_read_model_expected=published_read_model_expected,
+            published_exploration_checkpoint_path=(Path(published_exploration_checkpoint_path)
+                                                  if published_exploration_checkpoint_path is not None else None),
+            source_read_service=source_read_service,
         )
 
     def index_exists(self) -> bool:
@@ -647,7 +831,7 @@ class ToSAccessCore:
         }
 
     def source_dossier(self, object_id: str, limit: int = 300) -> dict[str, Any]:
-        """Return compact human and agent-facing context for one Work or Link."""
+        """Return compact human and agent-facing context for one bibliographic object or Link."""
 
         store = self._query_store()
         navigation = store.metadata['source_navigation_header'] if store else self.source_navigation(bibliographic_only=True)
@@ -658,8 +842,8 @@ class ToSAccessCore:
         selected = nodes_by_id.get(object_id)
         if selected is None:
             raise KeyError(f"unknown ToS dossier object: {object_id}")
-        if selected.get("node_kind") not in {"work", "link"}:
-            raise ValueError("dossiers are currently available for Work and Link objects")
+        if selected.get("node_kind") not in {"work", "expression", "edition", "item", "file", "link"}:
+            raise ValueError("dossiers are available for Work, Expression, Edition, Item, File, and Link objects")
 
         bibliographic_predicates = {"has_expression", "embodied_by", "exemplified_by"}
         link_predicates = {"described_by", "metadata_at", "downloadable_at", "rights_statement_at"}
@@ -707,7 +891,7 @@ class ToSAccessCore:
         # to the owning Work. A Work dossier already has its root and never
         # walks backward through a shared Item into neighboring Works.
         forward_roots = {object_id} if selected.get("node_kind") == "work" else set()
-        if selected.get("node_kind") == "link":
+        if selected.get("node_kind") != "work":
             lineage_queue: deque[str] = deque([object_id])
             visited_lineage: set[str] = set()
             while lineage_queue:
@@ -721,7 +905,8 @@ class ToSAccessCore:
                     continue
                 allowed_predicates = link_predicates if current_kind == "link" else bibliographic_predicates
                 for edge in incoming.get(current, []):
-                    if (
+                    structural_file_parent = current_kind == "file" and edge.get("edge_kind") == "authored_item_manifest"
+                    if not structural_file_parent and (
                         edge.get("edge_kind") != "evidence_claim"
                         or edge.get("predicate_id") not in allowed_predicates
                     ):
@@ -843,7 +1028,7 @@ class ToSAccessCore:
             if set(_string_list(record.get("scope_refs"))) & decision_scope_ids
         ]
 
-        dossier_links = grouped_chain["link"] if selected.get("node_kind") == "work" else [selected]
+        dossier_links = [selected] if selected.get("node_kind") == "link" else grouped_chain["link"]
         link_statuses = {
             str(node.get("properties", {}).get("access_status") or "unknown")
             for node in dossier_links
@@ -928,18 +1113,45 @@ class ToSAccessCore:
             "authority_note": navigation.get("authority_boundary"),
         }
 
+    def source_read_capabilities(self) -> dict[str, Any]:
+        """Report the explicit exact-source owner binding, if selected."""
+        return (self.source_read_service.capabilities()
+                if self.source_read_service is not None else unavailable_capabilities())
+
+    def source_read_contract(self) -> dict[str, Any]:
+        """Return the transport contract without selecting or reading a source."""
+        contract = _read_json(program_path(SOURCE_READ_CONTRACT_RELATIVE_PATH))
+        return {
+            "schema": "tos_source_read_contract_bundle_v1",
+            "contract": contract,
+            "descriptor": contract_summary(),
+            "source_ref": SOURCE_READ_CONTRACT_RELATIVE_PATH.as_posix(),
+            "authority_boundary": {
+                "is_source": False,
+                "writes_to_source": False,
+                "grants_current_use": False,
+                "source_owner": "Tree-of-Sophia/source-witnesses",
+                "note": "Exact metadata selection grants no text access. An explicitly selected native owner separately checks recorded public rights for native_public_unit; no arbitrary source access, new rights or current-use grant follows.",
+            },
+        }
+
+    def source_handle_discover(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Issue one exact source handle through the selected owner readers."""
+        if self.source_read_service is None:
+            raise SourceReadError("source-owner-reader-not-configured")
+        return self.source_read_service.discover(request)
+
+    def source_read(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Read one exact owner-selected source record through the ABI."""
+        if self.source_read_service is None:
+            raise SourceReadError("source-owner-reader-not-configured")
+        return self.source_read_service.read(request)
+
     def philosophy_projection_exists(self) -> bool:
         return self.philosophy_graph_projection_path.is_file()
 
     def philosophy_projection(self) -> dict[str, Any]:
-        payload = _read_json(self.philosophy_graph_projection_path)
-        supported = {"tos_philosophy_graph_projection_v1", "tos_philosophy_graph_projection_v2"}
-        if payload.get("schema_version") not in supported:
-            raise RuntimeError(
-                "ToS philosophy graph projection schema_version must be one of "
-                + ", ".join(sorted(supported))
-            )
-        return payload
+        return _checked_knowledge_schema(_read_json(self.philosophy_graph_projection_path), "philosophy")
 
     def bibliographic_graph(self) -> dict[str, Any]:
         payload = load_projection(self.bibliographic_graph_path)
@@ -951,22 +1163,10 @@ class ToSAccessCore:
         return payload
 
     def entity_type_registry(self) -> dict[str, Any]:
-        payload = _read_json(self.entity_type_registry_path)
-        if payload.get("schema_version") != "tos_semantic_entity_type_registry_v1":
-            raise RuntimeError(
-                "ToS entity type registry schema_version must be "
-                "tos_semantic_entity_type_registry_v1"
-            )
-        return payload
+        return _checked_knowledge_schema(_read_json(self.entity_type_registry_path), "entity_type_registry")
 
     def relation_type_registry(self) -> dict[str, Any]:
-        payload = _read_json(self.relation_type_registry_path)
-        if payload.get("schema_version") != "tos_semantic_relation_type_registry_v1":
-            raise RuntimeError(
-                "ToS relation type registry schema_version must be "
-                "tos_semantic_relation_type_registry_v1"
-            )
-        return payload
+        return _checked_knowledge_schema(_read_json(self.relation_type_registry_path), "relation_type_registry")
 
     def philosophy_audit_exists(self) -> bool:
         return self.philosophy_post_planting_audit_path.is_file()
@@ -1002,58 +1202,473 @@ class ToSAccessCore:
         return self.index()
 
     def knowledge_graph(self) -> dict[str, Any]:
-        """Explicit full export; ordinary query routes use the bounded store."""
+        """Return a public read model with display fields, not a content-completeness verdict."""
+        if self._prepared_reader is not None:
+            raise PublishedReadModelError(
+                "prepared reader does not materialize a full graph; this operation is not yet available "
+                "on the prepared route (legacy compatibility must be selected explicitly)"
+            )
         if store := self._query_store():
-            return {**store.header, 'nodes': list(store.rows('knowledge_nodes')), 'relations': list(store.rows('knowledge_relations'))}
-        index_stat = self.index_path.stat()
-        philosophy_stat = self.philosophy_graph_projection_path.stat()
-        bibliographic_stat = self.bibliographic_graph_path.stat()
-        entity_registry_stat = self.entity_type_registry_path.stat()
-        relation_registry_stat = self.relation_type_registry_path.stat()
-        return _knowledge_graph_version(
-            self.index_path.resolve().as_posix(),
-            index_stat.st_mtime_ns,
-            index_stat.st_size,
-            self.philosophy_graph_projection_path.resolve().as_posix(),
-            philosophy_stat.st_mtime_ns,
-            philosophy_stat.st_size,
-            self.bibliographic_graph_path.resolve().as_posix(),
-            bibliographic_stat.st_mtime_ns,
-            bibliographic_stat.st_size,
-            self.entity_type_registry_path.resolve().as_posix(),
-            entity_registry_stat.st_mtime_ns,
-            entity_registry_stat.st_size,
-            self.relation_type_registry_path.resolve().as_posix(),
-            relation_registry_stat.st_mtime_ns,
-            relation_registry_stat.st_size,
+            # An explicit full export, never the ordinary constructor route.
+            return {**store.header, 'nodes': list(store.rows('knowledge_nodes')),
+                    'relations': list(store.rows('knowledge_relations'))}
+        published_graph: dict[str, Any] | None = None
+        with self._snapshot_lock:
+            input_state = self._knowledge_input_state()
+            if self._published_graph is not None and input_state == self._published_source_state:
+                return self._published_graph
+            # A source projection changed after an in-memory addressed update;
+            # the owner must re-enter the complete builder for the new source
+            # snapshot rather than layering edits across unknown inputs.
+            self._addressed_graph = None
+            self._addressed_source_state = None
+
+            # A full build reads several independently written source
+            # projections. Do not publish a graph under a state tuple that was
+            # observed only after a source changed during the build.
+            for _attempt in range(3):
+                state_before = self._knowledge_input_state()
+                graph = _knowledge_graph_version(*self._knowledge_graph_version_args(state_before))
+                source_inputs = self._knowledge_source_inputs()
+                state_after = self._knowledge_input_state()
+                if state_before == state_after:
+                    self._published_graph = graph
+                    self._published_source_inputs = self._canonical_source_inputs(source_inputs)
+                    self._published_source_state = state_after
+                    self._published_catalog = None
+                    self._published_catalog_graph = None
+                    self._published_catalog_source_state = None
+                    published_graph = graph
+                    break
+            if published_graph is None:
+                raise RuntimeError("ToS knowledge source projections changed during graph build")
+        # Do not retain an index for a superseded graph.  This runs after the
+        # snapshot lock is released so index readers can take their own lock
+        # without creating a snapshot/index lock-order cycle.
+        self._invalidate_snapshot_indexes(published_graph)
+        return published_graph
+
+    def _invalidate_snapshot_indexes(self, graph: dict[str, Any]) -> None:
+        """Drop only indexes that do not belong to the current published graph.
+
+        ``graph`` may already be superseded by a later publication before this
+        cleanup gets the index lock.  Re-read the authoritative current graph
+        while holding each respective index lock so an older cleanup cannot
+        evict a newer index.
+        """
+        with self._search_lock:
+            with self._snapshot_lock:
+                current = self._published_graph
+                if current is not None and self._search_index is not None and self._search_index.graph is not current:
+                    self._search_index = None
+                if current is not None and self._search_read_model is not None and self._search_read_model.graph is not current:
+                    # Do not close the old connection here: a concurrent
+                    # reader may still hold it.  The immutable path is
+                    # replaced atomically by the next snapshot owner.
+                    self._search_read_model = None
+        with self._graph_index_lock:
+            with self._snapshot_lock:
+                current = self._published_graph
+                if current is not None and self._graph_index is not None and self._graph_index.graph is not current:
+                    self._graph_index = None
+
+    def _knowledge_input_state(self) -> tuple[tuple[str, int, int, int, int], ...]:
+        """Return the source-file state that bounds an in-memory addressed snapshot."""
+        paths = self._knowledge_input_paths()
+        state = []
+        for path in paths:
+            stat = path.stat()
+            state.append(
+                (
+                    path.resolve().as_posix(),
+                    stat.st_mtime_ns,
+                    stat.st_size,
+                    stat.st_ino,
+                    stat.st_ctime_ns,
+                )
+            )
+        return tuple(state)
+
+    def _knowledge_input_paths(self) -> tuple[Path, ...]:
+        return (
+            self.index_path,
+            self.philosophy_graph_projection_path,
+            self.bibliographic_graph_path,
+            self.entity_type_registry_path,
+            self.relation_type_registry_path,
         )
+
+    def _knowledge_source_inputs(self, *, reader=None) -> dict[str, dict[str, Any]]:
+        """Read the complete direct carrier set for exact owner transitions."""
+        reader = _read_json if reader is None else reader
+        return {
+            "corpus": reader(self.index_path),
+            "philosophy": reader(self.philosophy_graph_projection_path),
+            "bibliographic": reader(self.bibliographic_graph_path),
+            "entity_type_registry": reader(self.entity_type_registry_path),
+            "relation_type_registry": reader(self.relation_type_registry_path),
+        }
+
+    @staticmethod
+    def _canonical_source_inputs(
+        inputs: dict[str, dict[str, Any]],
+    ) -> dict[str, bytes]:
+        """Keep immutable compact carrier snapshots for the next CAS delta."""
+        return {
+            name: ToSAccessCore._canonical_json_bytes(payload)
+            for name, payload in inputs.items()
+        }
+
+    @staticmethod
+    def _canonical_json_bytes(value: Any) -> bytes:
+        """Encode JSON with the same type-sensitive canonical contract."""
+        return json.dumps(
+            value,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+
+    @staticmethod
+    def _addressed_source_collection(
+        inputs: dict[str, dict[str, Any]], source_graph: str
+    ) -> tuple[dict[str, Any], str]:
+        if source_graph == "philosophy":
+            return inputs["philosophy"], "nodes"
+        if source_graph == "canon":
+            return inputs["corpus"], "nodes"
+        if source_graph == "source-navigation":
+            return inputs["corpus"]["source_navigation"], "nodes"
+        if source_graph == "source-claims":
+            return inputs["bibliographic"], "nodes"
+        raise AddressedUpdateError(f"unsupported addressed source graph: {source_graph}")
+
+    @staticmethod
+    def _source_record_matches(record: Any, source_id: str) -> bool:
+        return isinstance(record, dict) and any(
+            record.get(key) == source_id for key in ("node_id", "id", "path")
+        )
+
+    def _validate_addressed_source_transition(
+        self,
+        previous_inputs: dict[str, bytes],
+        current_inputs: dict[str, dict[str, Any]],
+        source_graph: str,
+        source_id: str,
+        source_record: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Require that the disk delta is exactly the submitted one carrier.
+
+        A stat tuple detects races, but cannot prove that a second source edit
+        was not bundled into a one-record addressed publication. Compare the
+        complete parsed carrier set against a copy of the previous inputs with
+        only the addressed record replaced. This is a bounded owner-side scan
+        of direct source carriers, not semantic acceptance or a graph rebuild.
+        """
+        try:
+            before = {
+                name: json.loads(payload.decode("utf-8"))
+                for name, payload in previous_inputs.items()
+            }
+        except (UnicodeDecodeError, json.JSONDecodeError, AttributeError) as exc:
+            raise AddressedUpdateError(
+                "addressed update parent source snapshot is unreadable; run a complete graph build"
+            ) from exc
+        after = current_inputs
+        if set(before) != set(after):
+            raise AddressedUpdateError(
+                "addressed source transition changed the complete carrier set; "
+                "submit one exact replacement or run complete source assembly"
+            )
+        before_doc, before_field = self._addressed_source_collection(before, source_graph)
+        after_doc, after_field = self._addressed_source_collection(after, source_graph)
+        before_records = before_doc.get(before_field)
+        after_records = after_doc.get(after_field)
+        if not isinstance(before_records, list) or not isinstance(after_records, list):
+            raise AddressedUpdateError(
+                f"addressed source {source_graph} does not expose a record collection"
+            )
+        before_matches = [
+            position
+            for position, record in enumerate(before_records)
+            if self._source_record_matches(record, source_id)
+        ]
+        after_matches = [
+            position
+            for position, record in enumerate(after_records)
+            if self._source_record_matches(record, source_id)
+        ]
+        if len(before_matches) != 1 or len(after_matches) != 1:
+            raise AddressedUpdateError(
+                f"addressed source transition for {source_graph}:{source_id} must retain one exact carrier"
+            )
+        after_record = after_records[after_matches[0]]
+        try:
+            expected_record_bytes = self._canonical_json_bytes(source_record)
+            after_record_bytes = self._canonical_json_bytes(after_record)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise AddressedUpdateError(
+                "addressed source record is not canonical JSON; run complete source assembly"
+            ) from exc
+        if after_record_bytes != expected_record_bytes:
+            raise AddressedUpdateError(
+                "addressed source record does not match the current on-disk owner carrier"
+            )
+        if before_matches[0] != after_matches[0]:
+            raise AddressedUpdateError(
+                "addressed source carrier moved position; run complete source assembly"
+            )
+        # ``before`` came from JSON decoding, so replacing only this one record
+        # is enough to build the expected carrier set. Compare canonical bytes,
+        # not Python equality: JSON distinguishes false/0 and 1/1.0 at this
+        # owner boundary even though Python considers those values equal.
+        before_doc[before_field][before_matches[0]] = copy.deepcopy(source_record)
+        if any(
+            self._canonical_json_bytes(before[name])
+            != self._canonical_json_bytes(after[name])
+            for name in before
+        ):
+            raise AddressedUpdateError(
+                "addressed source transition contains undeclared carrier changes; "
+                "submit one exact replacement or run complete source assembly"
+            )
+        return {
+            "mode": "exact-single-record-delta",
+            "source_graph": source_graph,
+            "source_id": source_id,
+            "changed_records": 1,
+            "source_scan": "complete-direct-carrier-set",
+        }
+
+    @staticmethod
+    def _knowledge_graph_version_args(
+        state: tuple[tuple[str, int, int, int, int], ...],
+    ) -> tuple[Any, ...]:
+        args: list[Any] = []
+        for path_text, mtime_ns, size, inode, ctime_ns in state:
+            args.extend((path_text, mtime_ns, size, inode, ctime_ns))
+        return tuple(args)
+
+    def knowledge_graph_addressed(
+        self,
+        previous_graph: dict[str, Any],
+        source_graph: str,
+        source_id: str,
+        source_record: dict[str, Any],
+        *,
+        source_revision: str,
+        expected_parent_revision: str | None = None,
+        return_report: bool = False,
+    ) -> dict[str, Any]:
+        """Apply one owner-supplied replacement to an existing graph snapshot.
+
+        This is the core owner call site for the bounded projection fast path.
+        The caller supplies the exact replacement carrier and complete target
+        source revision; additions, removals, source assembly, and source
+        writes remain on the full builder/owner routes.
+        """
+        with self._snapshot_lock:
+            # Resolve the CAS parent from the last published snapshot before
+            # looking at source files.  A source owner may have already written
+            # the exact replacement carrier; rebuilding here would consume the
+            # edit and make the bounded publication path appear stale.
+            current = self._published_graph
+            if current is None:
+                current = self.knowledge_graph()
+            if previous_graph is not current:
+                raise AddressedUpdateError(
+                    "addressed update parent is stale; previous snapshot is not the current published snapshot"
+                )
+            expected = expected_parent_revision
+            if expected is None:
+                expected = previous_graph.get("source_revision") if isinstance(previous_graph, dict) else None
+            if expected != current.get("source_revision"):
+                raise AddressedUpdateError(
+                    "addressed update parent is stale; current snapshot revision is "
+                    f"{current.get('source_revision')!r}, expected {expected!r}"
+                )
+
+            # The source state must bracket every registry read and bounded
+            # recomputation. Never bind a successor to the post-build tuple if
+            # a source file changed while it was running.
+            state_before = self._knowledge_input_state()
+            if self._published_source_inputs is None:
+                raise AddressedUpdateError(
+                    "addressed update parent has no captured source inputs; run a complete graph build"
+                )
+            source_inputs = self._knowledge_source_inputs()
+            actual_source_revision = knowledge_source_revision(
+                source_inputs["corpus"],
+                source_inputs["philosophy"],
+                source_inputs["bibliographic"],
+                source_inputs["entity_type_registry"],
+                source_inputs["relation_type_registry"],
+            )
+            if source_revision != actual_source_revision:
+                raise AddressedUpdateError(
+                    "addressed update target source_revision does not match the complete "
+                    "current source carrier set; previous snapshot remains published"
+                )
+            source_transition = self._validate_addressed_source_transition(
+                self._published_source_inputs,
+                source_inputs,
+                source_graph,
+                source_id,
+                source_record,
+            )
+            source_after_read = self._knowledge_input_state()
+            if state_before != source_after_read:
+                raise AddressedUpdateError(
+                    "ToS knowledge source projections changed while reading the addressed source transition; "
+                    "previous snapshot remains published"
+                )
+            entity_registry = self.entity_type_registry()
+            relation_registry = self.relation_type_registry()
+            updated = addressed_update_knowledge_graph(
+                previous_graph,
+                source_graph,
+                source_id,
+                source_record,
+                entity_registry,
+                relation_registry,
+                source_revision=source_revision,
+                return_report=return_report,
+            )
+            state_after = self._knowledge_input_state()
+            if state_before != state_after:
+                raise AddressedUpdateError(
+                    "ToS knowledge source projections changed during addressed update; "
+                    "previous snapshot remains published"
+                )
+
+            graph = updated["graph"] if return_report else updated
+            if return_report:
+                updated["report"]["source_transition"] = source_transition
+                updated["report"]["input_traversal"]["source_assembly"] = "exact-transition-checked"
+                updated["report"]["input_traversal"]["source_scan"] = "complete-direct-carrier-set"
+            self._published_source_inputs = self._canonical_source_inputs(source_inputs)
+            self._published_graph = graph
+            self._published_catalog = None
+            self._published_catalog_graph = None
+            self._published_catalog_source_state = None
+            self._addressed_graph = graph
+            self._addressed_source_state = state_after
+            self._published_source_state = state_after
+        # Search/inspection indexes are identity-bound and lazily rebuild on
+        # the next query against this newly published in-memory snapshot. Run
+        # the invalidation after releasing the snapshot lock so readers can
+        # take their respective index lock without a lock-order cycle.
+        self._invalidate_snapshot_indexes(graph)
+        return updated
 
     def knowledge_catalog(self) -> dict[str, Any]:
         """Describe the compositional grammar, vocabulary, and stored lens specs."""
+        if self._prepared_reader is not None:
+            return self._prepared_reader.catalog()
         if store := self._query_store():
             return store.metadata['catalog']
-        index_stat = self.index_path.stat()
-        philosophy_stat = self.philosophy_graph_projection_path.stat()
-        bibliographic_stat = self.bibliographic_graph_path.stat()
-        entity_registry_stat = self.entity_type_registry_path.stat()
-        relation_registry_stat = self.relation_type_registry_path.stat()
-        return _knowledge_catalog_version(
-            self.index_path.resolve().as_posix(),
-            index_stat.st_mtime_ns,
-            index_stat.st_size,
-            self.philosophy_graph_projection_path.resolve().as_posix(),
-            philosophy_stat.st_mtime_ns,
-            philosophy_stat.st_size,
-            self.bibliographic_graph_path.resolve().as_posix(),
-            bibliographic_stat.st_mtime_ns,
-            bibliographic_stat.st_size,
-            self.entity_type_registry_path.resolve().as_posix(),
-            entity_registry_stat.st_mtime_ns,
-            entity_registry_stat.st_size,
-            self.relation_type_registry_path.resolve().as_posix(),
-            relation_registry_stat.st_mtime_ns,
-            relation_registry_stat.st_size,
-        )
+        return self.knowledge_snapshot()["catalog"]
+
+    def knowledge_snapshot(self) -> dict[str, dict[str, Any]]:
+        """Return one graph/catalog pair bound to the same published snapshot.
+
+        Aggregate consumers must not fetch a catalog and then independently
+        resolve a graph: an addressed publication can occur between those two
+        reads.  Keep both products under the snapshot lock and recheck the
+        complete source state after reading their carriers.
+        """
+        if store := self._query_store():
+            # All rows and catalog use this same immutable store object.
+            return {'graph': {**store.header, 'nodes': list(store.rows('knowledge_nodes')),
+                              'relations': list(store.rows('knowledge_relations'))},
+                    'catalog': store.metadata['catalog']}
+        with self._snapshot_lock:
+            for _attempt in range(3):
+                graph = self.knowledge_graph()
+                state_before = self._knowledge_input_state()
+                if self._published_source_state != state_before:
+                    continue
+                if (
+                    self._published_catalog is not None
+                    and self._published_catalog_graph is graph
+                    and self._published_catalog_source_state == state_before
+                ):
+                    state_after = self._knowledge_input_state()
+                    if state_before == state_after:
+                        return {"graph": graph, "catalog": self._published_catalog}
+                    continue
+                corpus = self.index()
+                philosophy = self.philosophy_projection()
+                entity_registry = self.entity_type_registry()
+                relation_registry = self.relation_type_registry()
+                state_after = self._knowledge_input_state()
+                if state_before != state_after:
+                    continue
+                catalog = build_knowledge_catalog(
+                    graph,
+                    corpus,
+                    philosophy,
+                    entity_registry,
+                    relation_registry,
+                )
+                self._published_catalog = catalog
+                self._published_catalog_graph = graph
+                self._published_catalog_source_state = state_after
+                return {"graph": graph, "catalog": catalog}
+            raise RuntimeError("ToS knowledge source projections changed during catalog build")
+
+    def knowledge_snapshot_once(self, *, include_catalog_inputs: bool = False) -> dict[str, Any]:
+        """Explicit one-shot full bootstrap, without mutable-core retention.
+
+        Uses the same graph/catalog builders and source state as the legacy
+        snapshot. It neither populates nor evicts another reader's caches,
+        retains canonical source bytes for a future CAS delta, nor installs
+        the result as this core's current mutable snapshot. Source drift fails
+        this attempt; the caller may retry explicitly with a fresh output.
+
+        An explicit offline maintenance caller may also request copy-isolated
+        CatalogInputs from these same actual registry and lens carriers. The
+        default packet remains unchanged; no inputs are reconstructed from a
+        catalog or retained as a mutable-core/source-transition baseline.
+        """
+        if type(include_catalog_inputs) is not bool:
+            raise ValueError("include_catalog_inputs must be a boolean")
+        if self._prepared_reader is not None:
+            raise PublishedReadModelError("prepared reader cannot bootstrap source carriers")
+        from .normalization_cache import active_cache
+
+        before = self._knowledge_input_state()
+        inputs = self._knowledge_source_inputs(reader=_read_json_file)
+        if self._knowledge_input_state() != before:
+            raise RuntimeError("source changed during one-shot carrier read")
+        # Match the schema checks performed by knowledge_snapshot's catalog
+        # path, sharing their authority instead of adding a second policy.
+        for name in _KNOWLEDGE_SCHEMA_RULES:
+            _checked_knowledge_schema(inputs[name], name)
+        token = active_cache.set(None)
+        try:
+            graph = build_knowledge_graph(inputs["corpus"], inputs["philosophy"],
+                inputs["bibliographic"], inputs["entity_type_registry"], inputs["relation_type_registry"])
+            if self._knowledge_input_state() != before:
+                raise RuntimeError("source changed during one-shot graph build")
+            catalog = build_knowledge_catalog(graph, inputs["corpus"], inputs["philosophy"],
+                inputs["entity_type_registry"], inputs["relation_type_registry"])
+            catalog_inputs = None
+            if include_catalog_inputs:
+                from .catalog_semantics import CatalogInputs
+                # The sequence profile retains the actual graph encounter
+                # order; prepared publication gives it sparse source tokens.
+                catalog_inputs = CatalogInputs.from_graph(graph, inputs["corpus"], inputs["philosophy"],
+                    inputs["entity_type_registry"], inputs["relation_type_registry"])
+            if self._knowledge_input_state() != before:
+                raise RuntimeError("source changed during one-shot catalog build")
+        finally:
+            active_cache.reset(token)
+        result = {"graph": graph, "catalog": catalog, "source_state": before}
+        if include_catalog_inputs:
+            result["catalog_inputs"] = catalog_inputs
+        return result
 
     def knowledge_contracts(self) -> dict[str, Any]:
         """Return the executable API map and JSON Schemas through one public read route."""
@@ -1094,10 +1709,7 @@ class ToSAccessCore:
         if store := self._query_store():
             return store.search(query, sources=sources, kind_ids=kind_ids, predicate_ids=predicate_ids, offset=offset, limit=limit)
         graph = self.knowledge_graph()
-        with self._search_lock:
-            if self._search_index is None or self._search_index.graph is not graph:
-                self._search_index = KnowledgeSearchIndex(graph)
-            index = self._search_index
+        index = self._search_index_for_snapshot(graph)
         return search_knowledge_graph(
             graph,
             query,
@@ -1109,8 +1721,236 @@ class ToSAccessCore:
             search_index=index,
         )
 
+    def knowledge_search_capabilities(self) -> dict[str, Any]:
+        """Describe selected engines; do not materialize a compatibility graph."""
+        legacy = self._prepared_reader is None
+        store = self._query_store() if legacy else None
+        indexed = legacy and (store is None or store.metadata.get('search_accelerator', {}).get('mode') == 'fts5-trigram')
+        compressed = {"available": False, "schema": "tos_knowledge_search_compressed_v3",
+                      "reason": "explicit-local-prepared-publication-required", "writes_to_tree": False}
+        if self._prepared_reader is not None:
+            from .published_search import PublishedSearchService
+            compressed = PublishedSearchService(self._prepared_reader).capability()
+        return {"schema": "tos_knowledge_search_capabilities_v1", "default_mode": "legacy",
+                "explicit_mode_required": not legacy, "writes_to_tree": False,
+                "modes": {
+                    "legacy": {"available": legacy, "schema": "tos_knowledge_search_v1",
+                               "verification": "engine-selection-only", "pagination": "offset"},
+                    "indexed": {"available": indexed, "schema": "tos_knowledge_search_indexed_v2",
+                                "verification": "engine-selection-only", "pagination": "cursor"},
+                    "compressed": compressed}}
+
+    def knowledge_search_compressed(
+        self, query: str = "", *, sources: list[str] | None = None,
+        kind_ids: list[str] | None = None, predicate_ids: list[str] | None = None,
+        cursor: str | None = None, limit: int = 40,
+    ) -> dict[str, Any]:
+        """Read compressed v3 matches and exact bodies in one prepared snapshot."""
+        from .compressed_search_store import SearchUnavailable
+        from .published_search import PublishedSearchService
+        if self._prepared_reader is None:
+            raise SearchUnavailable("compressed search requires an explicitly selected local prepared publication")
+        return PublishedSearchService(self._prepared_reader).search(
+            query, sources=sources, kind_ids=kind_ids, predicate_ids=predicate_ids,
+            cursor=cursor, limit=limit)
+
+    def _search_read_model_for_snapshot(
+        self, graph: dict[str, Any]
+    ) -> SQLiteKnowledgeSearchReadModel:
+        """Open or atomically build the persistent carrier for one snapshot."""
+        with self._search_lock:
+            current = self._search_read_model
+            if current is not None and current.graph is graph:
+                return current
+            path = self.search_read_model_path
+            if path is None:  # pragma: no cover - __post_init__ supplies it
+                raise SearchReadModelError("search read-model path is not configured")
+            try:
+                model = SQLiteKnowledgeSearchReadModel.open(graph, path)
+            except (OSError, SearchReadModelSnapshotError):
+                model = SQLiteKnowledgeSearchReadModel.build(
+                    graph,
+                    path,
+                    max_bytes=self.search_read_model_max_bytes,
+                    max_postings=self.search_read_model_max_postings,
+                )
+            with self._snapshot_lock:
+                if self._published_graph is None or self._published_graph is graph:
+                    self._search_read_model = model
+            return model
+
+    def knowledge_search_indexed(
+        self,
+        query: str = "",
+        *,
+        sources: list[str] | None = None,
+        kind_ids: list[str] | None = None,
+        predicate_ids: list[str] | None = None,
+        cursor: str | None = None,
+        limit: int = 40,
+    ) -> dict[str, Any]:
+        """Search through the persistent bounded carrier (explicit v2 mode)."""
+        # Validate the transport query before touching the graph/read-model
+        # path.  In particular, a rejected overlong/non-string query must not
+        # cold-build a snapshot merely to fail at the indexed boundary.
+        normalized_query = normalize_search_query(query)
+        bounded_limit = _bounded_int(limit, 40, 1, 100)
+
+        if sources:
+            if any(not isinstance(value, str) for value in sources):
+                raise SearchReadModelError("knowledge search filters must contain strings")
+            unknown_sources = sorted(set(sources) - set(KNOWLEDGE_SOURCES))
+            if unknown_sources:
+                raise SearchReadModelError(
+                    f"unsupported knowledge sources: {', '.join(unknown_sources)}"
+                )
+            normalized_sources = sorted(set(sources))
+        else:
+            normalized_sources = sorted(KNOWLEDGE_SOURCES)
+        store = self._query_store()
+        graph = store.header if store is not None else self.knowledge_graph()
+        request_filters = {
+            "sources": normalized_sources,
+            "kind_ids": sorted(set(kind_ids or ())),
+            "predicate_ids": sorted(set(predicate_ids or ())),
+        }
+        node_cursor = relation_cursor = None
+        node_exhausted = relation_exhausted = False
+        if cursor is not None:
+            payload = _indexed_search_cursor_decode(cursor)
+            if (
+                payload.get("source_revision") != graph.get("source_revision")
+                or payload.get("query") != normalized_query
+                or payload.get("filters") != request_filters
+            ):
+                raise SearchReadModelSnapshotError("indexed knowledge search cursor does not match the snapshot/query")
+            expected_keys = {
+                "filters",
+                "nodes",
+                "nodes_exhausted",
+                "query",
+                "relations",
+                "relations_exhausted",
+                "schema",
+                "source_revision",
+            }
+            if set(payload) != expected_keys:
+                raise SearchReadModelError("invalid indexed knowledge search cursor")
+            if not isinstance(payload["nodes_exhausted"], bool) or not isinstance(
+                payload["relations_exhausted"], bool
+            ):
+                raise SearchReadModelError("invalid indexed knowledge search cursor")
+            node_cursor = payload.get("nodes")
+            relation_cursor = payload.get("relations")
+            node_exhausted = payload["nodes_exhausted"]
+            relation_exhausted = payload["relations_exhausted"]
+            if node_exhausted:
+                if node_cursor is not None:
+                    raise SearchReadModelError("invalid indexed knowledge search cursor")
+            elif not isinstance(node_cursor, str) or not node_cursor:
+                raise SearchReadModelError("invalid indexed knowledge search cursor")
+            if relation_exhausted:
+                if relation_cursor is not None:
+                    raise SearchReadModelError("invalid indexed knowledge search cursor")
+            elif not isinstance(relation_cursor, str) or not relation_cursor:
+                raise SearchReadModelError("invalid indexed knowledge search cursor")
+
+        model = store if store is not None else self._search_read_model_for_snapshot(graph)
+        empty_page = lambda: SearchReadModelPage((), 0, 0, False, None, ordering_scope="global-rank")
+        node_page = (
+            empty_page()
+            if node_exhausted
+            else model.ranked_page(
+                "nodes", query, sources=normalized_sources, kind_ids=kind_ids, cursor=node_cursor,
+                page_size=bounded_limit, max_verify_chars=self.search_read_model_max_verify_chars,
+            )
+        )
+        relation_page = (
+            empty_page()
+            if relation_exhausted
+            else model.ranked_page(
+                "relations", query, sources=normalized_sources, predicate_ids=predicate_ids, cursor=relation_cursor,
+                page_size=bounded_limit, max_verify_chars=self.search_read_model_max_verify_chars,
+            )
+        )
+
+        def items(kind: str, page: Any) -> list[dict[str, Any]]:
+            result: list[dict[str, Any]] = []
+            for row in page.rows:
+                position = int(row["position"])
+                result.append(model.source_item(kind, position))
+            return result
+
+        next_cursor = None
+        if node_page.next_cursor is not None or relation_page.next_cursor is not None:
+            next_node_exhausted = node_page.next_cursor is None
+            next_relation_exhausted = relation_page.next_cursor is None
+            next_cursor = _indexed_search_cursor_encode(
+                {
+                    "schema": SEARCH_READ_MODEL_CURSOR_SCHEMA,
+                    "source_revision": graph.get("source_revision"),
+                    "query": normalized_query,
+                    "filters": request_filters,
+                    "nodes": node_page.next_cursor,
+                    "relations": relation_page.next_cursor,
+                    "nodes_exhausted": next_node_exhausted,
+                    "relations_exhausted": next_relation_exhausted,
+                }
+            )
+        return {
+            "schema": "tos_knowledge_search_indexed_v2",
+            "source_revision": graph["source_revision"],
+            "query": query,
+            "filters": request_filters,
+            "page": {
+                "cursor": cursor,
+                "next_cursor": next_cursor,
+                "limit_per_kind": bounded_limit,
+                "ordering_scope": "global-rank",
+                "has_more": next_cursor is not None,
+            },
+            "counts": {
+                "matching_nodes": (
+                    len(node_page.rows)
+                    if cursor is None and not node_page.has_more
+                    else None
+                ),
+                "matching_relations": (
+                    len(relation_page.rows)
+                    if cursor is None and not relation_page.has_more
+                    else None
+                ),
+                "returned_nodes": len(node_page.rows),
+                "returned_relations": len(relation_page.rows),
+                "scope": "exact-if-kind-exhausted-without-continuation",
+            },
+            "nodes": items("nodes", node_page),
+            "relations": items("relations", relation_page),
+            "authority_boundary": graph.get("authority_boundary", {}),
+            "work": {"nodes": node_page.as_dict()["work"], "relations": relation_page.as_dict()["work"]},
+        }
+
+    def _search_index_for_snapshot(self, graph: dict[str, Any]) -> KnowledgeSearchIndex:
+        """Return an index without recaching a graph superseded in-flight."""
+        with self._search_lock:
+            # Keep lock order search -> snapshot for cache checks. Release the
+            # snapshot lock while the index is built so publication is not
+            # blocked by an in-flight reader, then recheck before caching.
+            with self._snapshot_lock:
+                current = self._published_graph
+                cacheable = current is None or current is graph
+                if cacheable and self._search_index is not None and self._search_index.graph is graph:
+                    return self._search_index
+            index = KnowledgeSearchIndex(graph)
+            with self._snapshot_lock:
+                if self._published_graph is None or self._published_graph is graph:
+                    self._search_index = index
+            return index
+
     def knowledge_node(self, node_id: str, relation_limit: int = 200) -> dict[str, Any]:
         """Inspect one normalized node (or all namespaced matches for a native ID)."""
+        if self._prepared_reader is not None:
+            return self._prepared_reader.node(node_id, relation_limit)
         if store := self._query_store():
             return store.inspect_node(node_id, relation_limit)
         graph = self.knowledge_graph()
@@ -1118,16 +1958,39 @@ class ToSAccessCore:
 
     def knowledge_relation(self, relation_id: str) -> dict[str, Any]:
         """Inspect one normalized relation and its display-complete endpoints."""
+        if self._prepared_reader is not None:
+            return self._prepared_reader.relation(relation_id)
         if store := self._query_store():
             return store.inspect_relation(relation_id)
         graph = self.knowledge_graph()
         return inspect_knowledge_relation(graph, relation_id, graph_index=self._current_graph_index(graph))
 
+    def knowledge_temporal_compare(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Compare the date envelopes of two exact Claims, without adjudication."""
+        if self._prepared_reader is not None:
+            return self._prepared_reader.temporal_compare(request)
+        if store := self._query_store():
+            from .temporal_comparison import compare_temporal_operands
+            return compare_temporal_operands(store.header['source_revision'], request,
+                lambda identifier: list(store.rows('knowledge_nodes', 'id=?', (identifier,), limit=2)))
+        graph = self.knowledge_graph()
+        return compare_temporal_claims(graph, request, graph_index=self._current_graph_index(graph))
+
     def _current_graph_index(self, graph: dict[str, Any]) -> KnowledgeGraphIndex:
         with self._graph_index_lock:
-            if self._graph_index is None or self._graph_index.graph is not graph:
-                self._graph_index = KnowledgeGraphIndex(graph)
-            return self._graph_index
+            # Keep lock order graph-index -> snapshot for cache checks. Release
+            # the snapshot lock while the index is built so publication is not
+            # blocked by an in-flight reader, then recheck before caching.
+            with self._snapshot_lock:
+                current = self._published_graph
+                cacheable = current is None or current is graph
+                if cacheable and self._graph_index is not None and self._graph_index.graph is graph:
+                    return self._graph_index
+            index = KnowledgeGraphIndex(graph)
+            with self._snapshot_lock:
+                if self._published_graph is None or self._published_graph is graph:
+                    self._graph_index = index
+            return index
 
     def knowledge_focus(
         self,
@@ -1142,10 +2005,17 @@ class ToSAccessCore:
         profile: str = "overview",
     ) -> dict[str, Any]:
         """Construct a bounded radial lens around one exact or unambiguous node identity."""
+        if self._prepared_lens is not None:
+            return self._prepared_lens.focus(
+                node_id, sources=sources, depth=depth, direction=direction,
+                predicate_ids=predicate_ids, node_limit=node_limit,
+                relation_limit=relation_limit, profile=profile,
+            )
         if store := self._query_store():
             return store.focus(node_id, sources=sources, depth=depth, direction=direction, predicate_ids=predicate_ids, node_limit=node_limit, relation_limit=relation_limit, profile=profile)
+        graph = self.knowledge_graph()
         return focus_knowledge_node(
-            self.knowledge_graph(),
+            graph,
             node_id,
             sources=sources,
             depth=depth,
@@ -1154,24 +2024,52 @@ class ToSAccessCore:
             node_limit=node_limit,
             relation_limit=relation_limit,
             profile=profile,
+            graph_index=self._current_graph_index(graph),
         )
 
     def compile_knowledge_lens(self, spec: dict[str, Any]) -> dict[str, Any]:
         """Compile and execute a bounded read-only lens supplied by a human or agent."""
+        if self._prepared_lens is not None:
+            return self._prepared_lens.execute(spec)
         if store := self._query_store():
             return store.execute_lens(spec)
-        return execute_knowledge_lens(self.knowledge_graph(), spec)
+        graph = self.knowledge_graph()
+        return execute_knowledge_lens(graph, spec, graph_index=self._current_graph_index(graph))
 
     def stored_knowledge_lens(self, lens_id: str) -> dict[str, Any]:
         """Compile one source-backed stored lens through the same generic engine."""
-        catalog = self.knowledge_catalog()
+        if self._prepared_lens is not None:
+            # Both reads enforce the same immutable expected binding (including
+            # the publication epoch). A publication between them must refuse,
+            # not execute an old catalog entry on a newly selected snapshot.
+            catalog = self.knowledge_catalog()
+            spec = next((item for item in catalog.get("lenses", [])
+                         if isinstance(item, dict) and item.get("lens_id") == lens_id), None)
+            if spec is None:
+                raise KeyError(f"unknown ToS knowledge lens: {lens_id}")
+            return self._prepared_lens.execute(spec)
+        if store := self._query_store():
+            spec = next((item for item in store.metadata['catalog'].get('lenses', [])
+                         if isinstance(item, dict) and item.get('lens_id') == lens_id), None)
+            if spec is None:
+                raise KeyError(f"unknown ToS knowledge lens: {lens_id}")
+            return store.execute_lens(spec)
+        snapshot = self.knowledge_snapshot()
         spec = next(
-            (item for item in catalog.get("lenses", []) if isinstance(item, dict) and item.get("lens_id") == lens_id),
+            (
+                item
+                for item in snapshot["catalog"].get("lenses", [])
+                if isinstance(item, dict) and item.get("lens_id") == lens_id
+            ),
             None,
         )
         if spec is None:
             raise KeyError(f"unknown ToS knowledge lens: {lens_id}")
-        return self.compile_knowledge_lens(spec)
+        # Execute against the exact graph used to derive the lens catalog.
+        # Calling compile_knowledge_lens would resolve the graph a second time
+        # and could mix a newly published snapshot with the selected spec.
+        graph = snapshot["graph"]
+        return execute_knowledge_lens(graph, spec, graph_index=self._current_graph_index(graph))
 
     def status(self) -> dict[str, Any]:
         exists = self.index_exists()

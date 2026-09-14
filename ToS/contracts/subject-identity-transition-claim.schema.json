@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/subject-identity-transition-claim.schema.json",
+  "title": "V2 exact source or opted-in semantic subject identity proposal, never an executed transition",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"},
+    {"required": ["qualifiers"], "properties": {
+      "schema_version": {"const": "tos_subject_identity_transition_claim_v1"},
+      "claim_type": {"const": "relation"},
+      "predicate": {"const": "subject_identity_transition_proposal"},
+      "assertion_layer": {"const": "identity_assertion"},
+      "supersedes_claim_ref": {"description": "Identity-only navigation companion; supersedes_proposal selects the exact predecessor proposal. V2 may cite an exact V1 proposal without changing its meaning or authority."},
+      "object": {
+        "allOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/source-structured-value.schema.json"}],
+        "required": ["operation", "members", "predecessors", "successors", "mapping", "grounds", "counterreading", "scope", "unresolved_links", "supersedes_proposal"],
+        "properties": {
+          "kind": {"const": "identity-transition-proposal"},
+          "operation": {"enum": ["merge", "split"]},
+          "members": {"type": "array", "minItems": 3, "maxItems": 9, "uniqueItems": true, "items": {"$ref": "#/$defs/identity"}},
+          "predecessors": {"$ref": "#/$defs/participants"},
+          "successors": {"$ref": "#/$defs/participants"},
+          "mapping": {"type": "array", "minItems": 2, "maxItems": 8, "uniqueItems": true,
+            "items": {"type": "object", "additionalProperties": false, "required": ["predecessor", "successor"], "properties": {
+              "predecessor": {"$ref": "#/$defs/identity"}, "successor": {"$ref": "#/$defs/identity"}}}},
+          "grounds": {"$ref": "#/$defs/prose"},
+          "counterreading": {"$ref": "#/$defs/prose"},
+          "scope": {"$ref": "#/$defs/prose"},
+          "unresolved_links": {"type": "array", "maxItems": 32, "items": {"type": "object", "additionalProperties": false,
+            "required": ["claim", "question"], "properties": {"claim": {"$ref": "#/$defs/exactClaim"}, "question": {"$ref": "#/$defs/prose"}}}},
+          "supersedes_proposal": {"anyOf": [{"$ref": "#/$defs/exactClaim"}, {"type": "null"}]}
+        },
+        "unevaluatedProperties": false
+      },
+      "qualifiers": {"type": "object", "required": ["statement", "statement_language", "statement_script"],
+        "properties": {"statement": {"$ref": "#/$defs/prose"}, "statement_language": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, "statement_script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"}}}
+    }}
+  ],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "prose": {"type": "string", "pattern": "\\S", "maxLength": 16384},
+    "identity": {"type": "string", "pattern": "^tos\\.[a-z][a-z0-9-]*\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "exact": {"type": "object", "additionalProperties": false, "required": ["id", "version", "digest"], "properties": {
+      "id": {"$ref": "#/$defs/identity"}, "version": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+      "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}}},
+    "exactClaim": {"allOf": [{"$ref": "#/$defs/exact"}, {"properties": {"id": {"type": "string", "pattern": "^tos\\.claim\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}}}]},
+    "participants": {"type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true, "items": {"$ref": "#/$defs/exact"}}
+  }
+}

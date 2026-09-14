@@ -78,6 +78,8 @@
       "additionalProperties": false,
       "properties": {
         "page_index": {"type": "integer", "minimum": 1},
+        "byte_start": {"const": 0},
+        "byte_end": {"type": "integer", "minimum": 1, "maximum": 131072},
         "leaf_number": {"type": "integer", "minimum": 0},
         "width_points": {"type": "number", "exclusiveMinimum": 0},
         "height_points": {"type": "number", "exclusiveMinimum": 0},
@@ -114,6 +116,7 @@
         "resource_kind": {
           "enum": [
             "pdf_page",
+            "plain_text_file",
             "djvu_page",
             "epub_member",
             "tei_page_break",
@@ -186,6 +189,7 @@
         "profile": {
           "enum": [
             "pdf_pages_v1",
+            "plain_utf8_file_v1",
             "djvu_pages_v1",
             "epub_resources_v1",
             "tei_structure_v1",
@@ -196,11 +200,32 @@
           ]
         },
         "summary": {"$ref": "#/$defs/summary"},
+        "utf8_observation": {"$ref": "#/$defs/utf8Observation"},
         "resources": {
           "type": "array",
           "minItems": 1,
           "items": {"$ref": "#/$defs/resource"}
         }
+      },
+      "allOf": [{"if": {"properties": {"profile": {"const": "plain_utf8_file_v1"}}},
+        "then": {"required": ["utf8_observation"], "properties": {
+          "media_type": {"enum": ["text/plain", "text/markdown"]},
+          "summary": {"const": {"resource_count": 1}},
+          "resources": {"minItems": 1, "maxItems": 1, "items": {"properties": {"resource_kind": {"const": "plain_text_file"}}, "required": ["byte_size", "sha256", "media_type"]}}}},
+        "else": {"not": {"required": ["utf8_observation"]}}}]
+    },
+    "utf8Observation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["encoding", "bom_byte_count", "code_point_count", "code_point_count_includes_bom", "crlf_count", "lone_cr_count", "lone_lf_count", "terminal_newline", "normalization_observation", "unicode_version", "normalization_performed", "markup_interpretation_performed"],
+      "properties": {
+        "encoding": {"const": "UTF-8"}, "bom_byte_count": {"enum": [0, 3]},
+        "code_point_count": {"type": "integer", "minimum": 1, "maximum": 131072},
+        "code_point_count_includes_bom": {"const": true},
+        "crlf_count": {"type": "integer", "minimum": 0}, "lone_cr_count": {"type": "integer", "minimum": 0}, "lone_lf_count": {"type": "integer", "minimum": 0},
+        "terminal_newline": {"enum": ["crlf", "cr", "lf", "none"]},
+        "normalization_observation": {"enum": ["nfc_and_nfd", "nfc", "nfd", "neither"]},
+        "unicode_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+        "normalization_performed": {"const": false}, "markup_interpretation_performed": {"const": false}
       }
     }
   }

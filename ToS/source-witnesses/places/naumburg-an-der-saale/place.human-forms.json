@@ -1,0 +1,117 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.place.naumburg-an-der-saale",
+    "version": 1,
+    "digest": "sha256:ab717f2d9949a693807ce28ca878b9f4e152dd02f5af79dac1e72e1bbffff2da"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.nietzsche-letter-705.naumburg-name",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.place.naumburg-an-der-saale",
+        "version": 1,
+        "digest": "sha256:ab717f2d9949a693807ce28ca878b9f4e152dd02f5af79dac1e72e1bbffff2da"
+      },
+      "role": "name",
+      "language": null,
+      "script": "Latn",
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.place.naumburg-an-der-saale",
+            "version": 1,
+            "digest": "sha256:ab717f2d9949a693807ce28ca878b9f4e152dd02f5af79dac1e72e1bbffff2da"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.place.naumburg-an-der-saale",
+            "version": 1,
+            "digest": "sha256:ab717f2d9949a693807ce28ca878b9f4e152dd02f5af79dac1e72e1bbffff2da"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.place.naumburg-an-der-saale",
+            "version": 1,
+            "digest": "sha256:ab717f2d9949a693807ce28ca878b9f4e152dd02f5af79dac1e72e1bbffff2da"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.place.naumburg-an-der-saale",
+            "version": 1,
+            "digest": "sha256:ab717f2d9949a693807ce28ca878b9f4e152dd02f5af79dac1e72e1bbffff2da"
+          },
+          "pointer": "/field_languages/preferred_label"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.nietzsche-letter-705.naumburg-source-note",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.place.naumburg-an-der-saale",
+        "version": 1,
+        "digest": "sha256:ab717f2d9949a693807ce28ca878b9f4e152dd02f5af79dac1e72e1bbffff2da"
+      },
+      "role": "hover",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.place.naumburg-an-der-saale",
+            "version": 1,
+            "digest": "sha256:ab717f2d9949a693807ce28ca878b9f4e152dd02f5af79dac1e72e1bbffff2da"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.place.naumburg-an-der-saale",
+            "version": 1,
+            "digest": "sha256:ab717f2d9949a693807ce28ca878b9f4e152dd02f5af79dac1e72e1bbffff2da"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.place.naumburg-an-der-saale",
+            "version": 1,
+            "digest": "sha256:ab717f2d9949a693807ce28ca878b9f4e152dd02f5af79dac1e72e1bbffff2da"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.place.naumburg-an-der-saale",
+            "version": 1,
+            "digest": "sha256:ab717f2d9949a693807ce28ca878b9f4e152dd02f5af79dac1e72e1bbffff2da"
+          },
+          "pointer": "/field_languages/notes"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

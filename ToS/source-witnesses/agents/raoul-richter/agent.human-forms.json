@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.agent.raoul-richter",
+    "version": 1,
+    "digest": "sha256:7aebb49c5ccfce2998dbaf3747fa84aab326f060a391d287b82f81ed343730e2"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.bd2f7a7bf8bd3801815cdac0c823ef2ef37b778a8db59cd4f9457dbf6e0bb62e",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.raoul-richter",
+        "version": 1,
+        "digest": "sha256:7aebb49c5ccfce2998dbaf3747fa84aab326f060a391d287b82f81ed343730e2"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.raoul-richter",
+            "version": 1,
+            "digest": "sha256:7aebb49c5ccfce2998dbaf3747fa84aab326f060a391d287b82f81ed343730e2"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.raoul-richter",
+            "version": 1,
+            "digest": "sha256:7aebb49c5ccfce2998dbaf3747fa84aab326f060a391d287b82f81ed343730e2"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.raoul-richter",
+            "version": 1,
+            "digest": "sha256:7aebb49c5ccfce2998dbaf3747fa84aab326f060a391d287b82f81ed343730e2"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.08fdb6fa3f1f03869e7ae7c86f0f6483d324cf042d758ff98772ecd658e5179f",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.raoul-richter",
+        "version": 1,
+        "digest": "sha256:7aebb49c5ccfce2998dbaf3747fa84aab326f060a391d287b82f81ed343730e2"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.raoul-richter",
+            "version": 1,
+            "digest": "sha256:7aebb49c5ccfce2998dbaf3747fa84aab326f060a391d287b82f81ed343730e2"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.raoul-richter",
+            "version": 1,
+            "digest": "sha256:7aebb49c5ccfce2998dbaf3747fa84aab326f060a391d287b82f81ed343730e2"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.raoul-richter",
+            "version": 1,
+            "digest": "sha256:7aebb49c5ccfce2998dbaf3747fa84aab326f060a391d287b82f81ed343730e2"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.agent.raoul-richter",
+      "request_digest": "sha256:5ecd2fc14f20c583b92527c36d2fde3a918685c5950d3b57ad6a2a7a6a163d1f",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:c78e829170a16ae5e1b4138f4def2b5a85c137bc75ac8d115d4bdfbdc1b7a45a",
+      "recorded_at": "2026-09-07T03:13:22.569302+00:00",
+      "source": {
+        "id": "tos.agent.raoul-richter",
+        "version": 1,
+        "digest": "sha256:7aebb49c5ccfce2998dbaf3747fa84aab326f060a391d287b82f81ed343730e2"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.bd2f7a7bf8bd3801815cdac0c823ef2ef37b778a8db59cd4f9457dbf6e0bb62e",
+          "version": 1,
+          "digest": "sha256:97071c150d03fad7e26b4052d81906f7d6868bc8cf4fae5b0bd5c0edf494e17c"
+        },
+        {
+          "id": "tos.form.metadata.08fdb6fa3f1f03869e7ae7c86f0f6483d324cf042d758ff98772ecd658e5179f",
+          "version": 1,
+          "digest": "sha256:4765bde8d21ba4aa32f9bc75ac1ac17e6651cc866815a0811f1a8de30b8f1a76"
+        }
+      ]
+    }
+  ]
+}

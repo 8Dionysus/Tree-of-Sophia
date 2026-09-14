@@ -1,0 +1,387 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "tos:claim-wording:contradiction:20260907",
+      "request_digest": "sha256:b32324b484256a298bbfa79b239e3c6391f2b5fd7ea95015d8e881d46fb9a202",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:b402cd3d7b0906b7176b24a3b471bb01e071bd74bb2d8a7c0a093e5f3a08a8a4",
+      "recorded_at": "2026-09-07T17:12:19.257856+00:00",
+      "reason": "Replace an indistinguishable generic source-expression statement with a source-scoped description of this particular thought; preserve identity, initial provenance and no-admission posture. See 2026-09-07-jgb-claim-wording-source-review.md.",
+      "previous_source": {
+        "id": "tos.claim.jgb-freedom-contradiction-expression",
+        "version": 1,
+        "digest": "sha256:9bf7404e804fe962f81430b6f786d9b8dda02e8b36522f6409c2334906894b0c"
+      },
+      "source": {
+        "id": "tos.claim.jgb-freedom-contradiction-expression",
+        "version": 2,
+        "digest": "sha256:ee0339ef7cf1106651e3397130c17bd4025e4072f5224f70f7bab9827d089b69"
+      },
+      "previous_revision": "sha256:b3c03655508ab06046cee5429eeaf63a9f0cb5ed9127ee932afad627a8b13c75",
+      "archive_path": "ToS/source-witnesses/.record-revisions/c63bcbcb1f49ccdda4a95b7c909ecbe30fe8a2969f28cca208d5818b825ba8d4-b3c03655508ab06046cee5429eeaf63a9f0cb5ed9127ee932afad627a8b13c75",
+      "dependencies": "sha256:164c1bc7408feb3e8e3a03e4d558d87a023839b43835c3e7b9daa5eec049e1a4",
+      "source_bindings": {
+        "objects": {
+          "tos.thesis.self-origination-contradiction-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thesis-self-origination-contradiction-jgb21/thesis.json",
+            "source_sha256": "sha256:42d3f2ec173bfa7d20eceac01399493f74a03a6807ef09340c7b209a6e8573e4",
+            "canonical_record_sha256": "sha256:8d937e103db1737c37db9c75ad1d838cf412c370072be5244253be30da9fce4c",
+            "schema_version": "tos_thought_description_record_v1",
+            "record_version": 1
+          },
+          "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese": {
+            "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json",
+            "source_sha256": "sha256:20438921c9085ebd8eb638bc873e8aa124b0dc038c0b5f0005e625ff3a23a8a0",
+            "canonical_record_sha256": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 5
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md",
+            "source_sha256": "sha256:23a9c086d500b3c5260cd8c5b5939c04936c7ccc3d330201aea58f80504082d2",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          },
+          "ToS/review-ledger/2026-09-07-jgb-claim-wording-source-review.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-claim-wording-source-review.md",
+            "source_sha256": "sha256:c0bc0120a9f8fc9e6cef9763fdaf227a7b476b8ed8220253d9b083753a7057e3",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "evidence_refs",
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-freedom-contradiction-expression.statement-ru",
+          "version": 2,
+          "digest": "sha256:965d2b0da6848678d7b33ec4eaf1b45c66dc065dabd99d84e8434bfbbbae1ae7"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos:claim-wording:contradiction:20260907",
+        "expected_configuration": "sha256:b402cd3d7b0906b7176b24a3b471bb01e071bd74bb2d8a7c0a093e5f3a08a8a4",
+        "expected_dependencies": "sha256:164c1bc7408feb3e8e3a03e4d558d87a023839b43835c3e7b9daa5eec049e1a4",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-claim-wording-source-review.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-claim-wording-source-review.md",
+              "source_sha256": "sha256:c0bc0120a9f8fc9e6cef9763fdaf227a7b476b8ed8220253d9b083753a7057e3"
+            },
+            "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md",
+              "source_sha256": "sha256:23a9c086d500b3c5260cd8c5b5939c04936c7ccc3d330201aea58f80504082d2"
+            }
+          },
+          "objects": {
+            "tos.thesis.self-origination-contradiction-jgb21": {
+              "canonical_record_sha256": "sha256:8d937e103db1737c37db9c75ad1d838cf412c370072be5244253be30da9fce4c",
+              "record_version": 1,
+              "schema_version": "tos_thought_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thesis-self-origination-contradiction-jgb21/thesis.json",
+              "source_sha256": "sha256:42d3f2ec173bfa7d20eceac01399493f74a03a6807ef09340c7b209a6e8573e4"
+            },
+            "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese": {
+              "canonical_record_sha256": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+              "record_version": 5,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json",
+              "source_sha256": "sha256:20438921c9085ebd8eb638bc873e8aa124b0dc038c0b5f0005e625ff3a23a8a0"
+            }
+          }
+        },
+        "expected_revision": "sha256:b3c03655508ab06046cee5429eeaf63a9f0cb5ed9127ee932afad627a8b13c75",
+        "expected_source": {
+          "digest": "sha256:9bf7404e804fe962f81430b6f786d9b8dda02e8b36522f6409c2334906894b0c",
+          "id": "tos.claim.jgb-freedom-contradiction-expression",
+          "version": 1
+        },
+        "fields": {
+          "evidence_refs": [
+            "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md",
+            "ToS/review-ledger/2026-09-07-jgb-claim-wording-source-review.md"
+          ],
+          "qualifiers": {
+            "statement": "В §21 тезис о противоречивости самопричинения связывается с текстом Ницше; это атрибутированное прочтение, а не признание тезиса истинным."
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-freedom-contradiction-expression.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Replace an indistinguishable generic source-expression statement with a source-scoped description of this particular thought; preserve identity, initial provenance and no-admission posture. See 2026-09-07-jgb-claim-wording-source-review.md.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos:claim-wording:dependence:20260907",
+      "request_digest": "sha256:b54207e4bce3f1255b0cd05b44f2021cd52ba8524507b4c35fe628c886213f70",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:6e9f13d5eeff7ea3ff2fc8504fe94a4be93c8b3ab330b2b81ea397df04f04d45",
+      "recorded_at": "2026-09-07T17:12:26.249150+00:00",
+      "reason": "Replace an indistinguishable generic source-expression statement with a source-scoped description of this particular thought; preserve identity, initial provenance and no-admission posture. See 2026-09-07-jgb-claim-wording-source-review.md.",
+      "previous_source": {
+        "id": "tos.claim.jgb-freedom-dependence-expression",
+        "version": 1,
+        "digest": "sha256:12278ba5e1e0e08471274cebaf697f8160b6c5bc5db02d63fc6e78984729f830"
+      },
+      "source": {
+        "id": "tos.claim.jgb-freedom-dependence-expression",
+        "version": 2,
+        "digest": "sha256:321c62ed217af322312eda5c09c36eb9101a1eaf018916c2fa5723b77ffc4b59"
+      },
+      "previous_revision": "sha256:36777f93ab44fed0ad0bc724b2622c6ffe7ea85dbf47ec2ce424488c00f8ea15",
+      "archive_path": "ToS/source-witnesses/.record-revisions/abd7f386d773d9d2751e26d43d4c34a3302a98be57274569e9a087a8f6b624c9-36777f93ab44fed0ad0bc724b2622c6ffe7ea85dbf47ec2ce424488c00f8ea15",
+      "dependencies": "sha256:b0682bae657f017fa62424ced18fb76771299b86e5b3de4a75de59460f065252",
+      "source_bindings": {
+        "objects": {
+          "tos.thesis.ultimate-responsibility-requires-self-origination-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thesis-ultimate-responsibility-requires-self-origination-jgb21/thesis.json",
+            "source_sha256": "sha256:b9493ed14829bf825c6113218f24458e4f252ee52c70f2a331e0874fc8becd49",
+            "canonical_record_sha256": "sha256:3f4fbda47b77665bda7006bbd29b8a19f13ef0ea49c3a48bfddd19dbb3115709",
+            "schema_version": "tos_thought_description_record_v1",
+            "record_version": 1
+          },
+          "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese": {
+            "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json",
+            "source_sha256": "sha256:20438921c9085ebd8eb638bc873e8aa124b0dc038c0b5f0005e625ff3a23a8a0",
+            "canonical_record_sha256": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 5
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md",
+            "source_sha256": "sha256:23a9c086d500b3c5260cd8c5b5939c04936c7ccc3d330201aea58f80504082d2",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          },
+          "ToS/review-ledger/2026-09-07-jgb-claim-wording-source-review.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-claim-wording-source-review.md",
+            "source_sha256": "sha256:c0bc0120a9f8fc9e6cef9763fdaf227a7b476b8ed8220253d9b083753a7057e3",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "evidence_refs",
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-freedom-dependence-expression.statement-ru",
+          "version": 2,
+          "digest": "sha256:c2e81e2351de405cf9b1b6b0347aa9acc370eb6221156bd41541ba266b0e60e3"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos:claim-wording:dependence:20260907",
+        "expected_configuration": "sha256:6e9f13d5eeff7ea3ff2fc8504fe94a4be93c8b3ab330b2b81ea397df04f04d45",
+        "expected_dependencies": "sha256:b0682bae657f017fa62424ced18fb76771299b86e5b3de4a75de59460f065252",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-claim-wording-source-review.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-claim-wording-source-review.md",
+              "source_sha256": "sha256:c0bc0120a9f8fc9e6cef9763fdaf227a7b476b8ed8220253d9b083753a7057e3"
+            },
+            "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md",
+              "source_sha256": "sha256:23a9c086d500b3c5260cd8c5b5939c04936c7ccc3d330201aea58f80504082d2"
+            }
+          },
+          "objects": {
+            "tos.thesis.ultimate-responsibility-requires-self-origination-jgb21": {
+              "canonical_record_sha256": "sha256:3f4fbda47b77665bda7006bbd29b8a19f13ef0ea49c3a48bfddd19dbb3115709",
+              "record_version": 1,
+              "schema_version": "tos_thought_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thesis-ultimate-responsibility-requires-self-origination-jgb21/thesis.json",
+              "source_sha256": "sha256:b9493ed14829bf825c6113218f24458e4f252ee52c70f2a331e0874fc8becd49"
+            },
+            "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese": {
+              "canonical_record_sha256": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+              "record_version": 5,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json",
+              "source_sha256": "sha256:20438921c9085ebd8eb638bc873e8aa124b0dc038c0b5f0005e625ff3a23a8a0"
+            }
+          }
+        },
+        "expected_revision": "sha256:36777f93ab44fed0ad0bc724b2622c6ffe7ea85dbf47ec2ce424488c00f8ea15",
+        "expected_source": {
+          "digest": "sha256:12278ba5e1e0e08471274cebaf697f8160b6c5bc5db02d63fc6e78984729f830",
+          "id": "tos.claim.jgb-freedom-dependence-expression",
+          "version": 1
+        },
+        "fields": {
+          "evidence_refs": [
+            "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md",
+            "ToS/review-ledger/2026-09-07-jgb-claim-wording-source-review.md"
+          ],
+          "qualifiers": {
+            "statement": "В §21 предельная ответственность связывается с самопричинением; выделение этой связи как тезиса — исследовательская реконструкция, не дословная запись автора."
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-freedom-dependence-expression.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Replace an indistinguishable generic source-expression statement with a source-scoped description of this particular thought; preserve identity, initial provenance and no-admission posture. See 2026-09-07-jgb-claim-wording-source-review.md.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos:claim-wording:rejection:20260907",
+      "request_digest": "sha256:0195f70966373123e3e7b2029fb674172a7737767608ebc015ea715c9433997f",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:113475b0ee3c3acca77d9f0e1d5c42228b66896eee465f320b483b1416f54896",
+      "recorded_at": "2026-09-07T17:12:33.645654+00:00",
+      "reason": "Replace an indistinguishable generic source-expression statement with a source-scoped description of this particular thought; preserve identity, initial provenance and no-admission posture. See 2026-09-07-jgb-claim-wording-source-review.md.",
+      "previous_source": {
+        "id": "tos.claim.jgb-freedom-rejection-expression",
+        "version": 1,
+        "digest": "sha256:3da063180fb66dcbb674e469c89d28ffd6fb59a1133401d2b94b1b6d250db0df"
+      },
+      "source": {
+        "id": "tos.claim.jgb-freedom-rejection-expression",
+        "version": 2,
+        "digest": "sha256:8db3c2ad0d872d9a8220434809d8ac320f2fb38e741d32230e72634a2cd79206"
+      },
+      "previous_revision": "sha256:07e90f496aa9e05a32b7d289817a1a9bbb039aefe8c06627c27c620e718c4774",
+      "archive_path": "ToS/source-witnesses/.record-revisions/5c157832cf71b50c008545bd944283fc30640f800e3070fa997c057a582314f0-07e90f496aa9e05a32b7d289817a1a9bbb039aefe8c06627c27c620e718c4774",
+      "dependencies": "sha256:d956c6ab78a7556e7f1828382285444aeb2c45161edb6eefd556b4bc66c6aca1",
+      "source_bindings": {
+        "objects": {
+          "tos.thesis.metaphysical-freedom-rejected-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thesis-metaphysical-freedom-rejected-jgb21/thesis.json",
+            "source_sha256": "sha256:820376fc7394f42f7236607074c3abcbc13fd8643737e1ce35a0336fcb596fce",
+            "canonical_record_sha256": "sha256:eb7d266e23dd437fb568a27f0c7df3820453c08927de682d78b43afcceade5b2",
+            "schema_version": "tos_thought_description_record_v1",
+            "record_version": 1
+          },
+          "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese": {
+            "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json",
+            "source_sha256": "sha256:20438921c9085ebd8eb638bc873e8aa124b0dc038c0b5f0005e625ff3a23a8a0",
+            "canonical_record_sha256": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 5
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md",
+            "source_sha256": "sha256:23a9c086d500b3c5260cd8c5b5939c04936c7ccc3d330201aea58f80504082d2",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          },
+          "ToS/review-ledger/2026-09-07-jgb-claim-wording-source-review.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-claim-wording-source-review.md",
+            "source_sha256": "sha256:c0bc0120a9f8fc9e6cef9763fdaf227a7b476b8ed8220253d9b083753a7057e3",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "evidence_refs",
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-freedom-rejection-expression.statement-ru",
+          "version": 2,
+          "digest": "sha256:55979690ea1d9878ac0535f3a650ddfa309658c4e03156a56c84b08adfc2ff2c"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos:claim-wording:rejection:20260907",
+        "expected_configuration": "sha256:113475b0ee3c3acca77d9f0e1d5c42228b66896eee465f320b483b1416f54896",
+        "expected_dependencies": "sha256:d956c6ab78a7556e7f1828382285444aeb2c45161edb6eefd556b4bc66c6aca1",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-claim-wording-source-review.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-claim-wording-source-review.md",
+              "source_sha256": "sha256:c0bc0120a9f8fc9e6cef9763fdaf227a7b476b8ed8220253d9b083753a7057e3"
+            },
+            "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md",
+              "source_sha256": "sha256:23a9c086d500b3c5260cd8c5b5939c04936c7ccc3d330201aea58f80504082d2"
+            }
+          },
+          "objects": {
+            "tos.thesis.metaphysical-freedom-rejected-jgb21": {
+              "canonical_record_sha256": "sha256:eb7d266e23dd437fb568a27f0c7df3820453c08927de682d78b43afcceade5b2",
+              "record_version": 1,
+              "schema_version": "tos_thought_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thesis-metaphysical-freedom-rejected-jgb21/thesis.json",
+              "source_sha256": "sha256:820376fc7394f42f7236607074c3abcbc13fd8643737e1ce35a0336fcb596fce"
+            },
+            "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese": {
+              "canonical_record_sha256": "sha256:a482adfd860cd47c2ba14e995c3dc182ab11f4b18f251f4b86935cad13f37456",
+              "record_version": 5,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json",
+              "source_sha256": "sha256:20438921c9085ebd8eb638bc873e8aa124b0dc038c0b5f0005e625ff3a23a8a0"
+            }
+          }
+        },
+        "expected_revision": "sha256:07e90f496aa9e05a32b7d289817a1a9bbb039aefe8c06627c27c620e718c4774",
+        "expected_source": {
+          "digest": "sha256:3da063180fb66dcbb674e469c89d28ffd6fb59a1133401d2b94b1b6d250db0df",
+          "id": "tos.claim.jgb-freedom-rejection-expression",
+          "version": 1
+        },
+        "fields": {
+          "evidence_refs": [
+            "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md",
+            "ToS/review-ledger/2026-09-07-jgb-claim-wording-source-review.md"
+          ],
+          "qualifiers": {
+            "statement": "В §21 отвергается метафизическая свобода как абсолютное самооснование; эта интерпретация не означает отрицания всех смыслов свободы."
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-freedom-rejection-expression.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Replace an indistinguishable generic source-expression statement with a source-scoped description of this particular thought; preserve identity, initial provenance and no-admission posture. See 2026-09-07-jgb-claim-wording-source-review.md.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import base64
 import hashlib
 import json
 import os
@@ -17,8 +18,8 @@ from unittest.mock import patch
 import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import Any
 import zipfile
-from fixture_support import write_fixture
 
 from jsonschema import Draft202012Validator
 
@@ -30,6 +31,7 @@ from tos_access.core import ToSAccessCore  # noqa: E402
 from tos_access.doctor import doctor_report  # noqa: E402
 from tos_access.http_server import _scale_rows, make_server  # noqa: E402
 from tos_access.mcp_server import build_server  # noqa: E402
+from tos_access.search_read_model import SearchReadModelError  # noqa: E402
 
 # Keep local fixture shutdown responsive; the production server keeps its
 # standard serve_forever default.
@@ -59,7 +61,910 @@ edge_build = load_script(
 )
 
 
+def write_fixture(root: Path) -> None:
+    derived = root / "ToS/derived-exports"
+    graph_derived = derived / "graph"
+    audit = root / "ToS/philosophy/graph-workbench/review-packets"
+    derived.mkdir(parents=True)
+    graph_derived.mkdir(parents=True)
+    audit.mkdir(parents=True)
+    index = {
+        "schema_version": "tos_corpus_index_v1",
+        "owner_repo": "Tree-of-Sophia",
+        "surface_kind": "derived",
+        "counts": {"nodes": 1},
+        "nodes": [{"node_id": "a", "label": "Alpha", "source_ref": "ToS/canon/a.json"}],
+        "resources": [],
+        "manifests": [],
+        "branches": [],
+        "relation_edges": [],
+        "relation_packs": [],
+        "graph_views": [{"view_id": "corpus-topology", "title": "Corpus"}],
+        "authority_order": ["ToS/canon"],
+        "runtime_projection_boundary": {"runtime_owner": "abyss-stack"},
+        "source_navigation": {
+            "schema_version": "tos_source_navigation_v1",
+            "authority_boundary": "fixture source authority",
+            "counts": {"nodes": 7, "edges": 6, "rights": 1},
+            "nodes": [
+                {"node_id": "philosophy.eras.fixture", "node_kind": "era", "label": "Fixture era", "source_ref": "ToS/philosophy/eras/fixture/branch.manifest.json", "identity_status": "not_applicable", "properties": {}},
+                {"node_id": "tos.work.fixture", "node_kind": "work", "label": "Fixture Work", "source_ref": "ToS/source-witnesses/works/fixture/work.json", "identity_status": "verified", "properties": {}},
+                {"node_id": "tos.expression.fixture", "node_kind": "expression", "label": "Fixture expression", "source_ref": "ToS/source-witnesses/works/fixture/expression.json", "identity_status": "verified", "properties": {}},
+                {"node_id": "tos.edition.fixture", "node_kind": "edition", "label": "Fixture edition", "source_ref": "ToS/source-witnesses/works/fixture/edition.json", "identity_status": "verified", "properties": {}},
+                {"node_id": "tos.item.fixture", "node_kind": "item", "label": "Fixture Item", "source_ref": "ToS/source-witnesses/works/fixture/item.json", "identity_status": "verified", "properties": {}},
+                {"node_id": "tos.file.sha256.fixture", "node_kind": "file", "label": "fixture.pdf", "source_ref": "ToS/source-witnesses/works/fixture/item.manifest.json", "identity_status": "content_addressed", "properties": {}},
+                {"node_id": "tos.link.fixture.download", "node_kind": "link", "label": "Fixture download", "source_ref": "ToS/source-witnesses/links/fixture/link.json", "identity_status": "verified", "properties": {"uri": "https://example.test/fixture.pdf", "access_status": "open_download"}},
+            ],
+            "edges": [
+                {"edge_id": "sn1", "from_id": "philosophy.eras.fixture", "predicate_id": "grounds", "to_id": "tos.work.fixture", "edge_kind": "authored_source_planting", "review_status": "unreviewed", "source_refs": ["ToS/philosophy/eras/fixture/source-planting.json"]},
+                {"edge_id": "sn1a", "from_id": "tos.work.fixture", "predicate_id": "has_expression", "to_id": "tos.expression.fixture", "edge_kind": "evidence_claim", "review_status": "unreviewed", "source_refs": ["ToS/source-witnesses/relations/fixture.jsonl"]},
+                {"edge_id": "sn1b", "from_id": "tos.expression.fixture", "predicate_id": "embodied_by", "to_id": "tos.edition.fixture", "edge_kind": "evidence_claim", "review_status": "unreviewed", "source_refs": ["ToS/source-witnesses/relations/fixture.jsonl"]},
+                {"edge_id": "sn2", "from_id": "tos.edition.fixture", "predicate_id": "exemplified_by", "to_id": "tos.item.fixture", "edge_kind": "evidence_claim", "review_status": "unreviewed", "source_refs": ["ToS/source-witnesses/relations/fixture.jsonl"]},
+                {"edge_id": "sn3", "from_id": "tos.item.fixture", "predicate_id": "has_file", "to_id": "tos.file.sha256.fixture", "edge_kind": "authored_item_manifest", "review_status": "not_applicable", "source_refs": ["ToS/source-witnesses/works/fixture/item.manifest.json"]},
+                {"edge_id": "sn4", "from_id": "tos.item.fixture", "predicate_id": "downloadable_at", "to_id": "tos.link.fixture.download", "edge_kind": "evidence_claim", "review_status": "unreviewed", "source_refs": ["ToS/source-witnesses/relations/object-link-claims.jsonl"]},
+            ],
+            "rights": [
+                {"rights_id": "tos.rights.fixture", "scope_refs": ["tos.item.fixture", "tos.file.sha256.fixture"], "assessment_status": "licensed", "review_status": "unreviewed", "redistribution_posture": "authorized_with_conditions", "derivative_posture": "allowed_with_conditions", "server_processing_posture": "authorized_with_conditions", "visibility": "public_payload", "license_uri": "https://example.test/license", "rights_statement_uri": "https://example.test/metadata", "restrictions": ["attribution"], "source_ref": "ToS/source-witnesses/works/fixture/rights.json"}
+            ],
+        },
+    }
+    graph = {
+        "schema_version": "tos_philosophy_graph_projection_v2",
+        "owner_repo": "Tree-of-Sophia",
+        "surface_kind": "derived",
+        "counts": {"nodes": 3, "edges": 3},
+        "nodes": [
+            {
+                "node_id": "a",
+                "label": "Alpha",
+                "node_type": "candidate-node",
+                "multilingual": {"label": {"ru": "Альфа", "en": "Alpha", "original": None}},
+                "graph_layers": ["source-relation"],
+                "view_ids": ["chronology", "direct-only"],
+                "source_ref": "ToS/canon/a.json",
+                "properties": {
+                    "original_node_type": "concept",
+                    "canon_status": "pre-canon",
+                    "period": "fixture period",
+                },
+            },
+            {
+                "node_id": "b",
+                "label": "Beta",
+                "node_type": "work",
+                "graph_layers": ["source-relation"],
+                "view_ids": ["chronology", "direct-only"],
+                "source_ref": "ToS/canon/b.json",
+                "properties": {},
+            },
+            {
+                "node_id": "c",
+                "label": "Gamma",
+                "node_type": "source",
+                "graph_layers": ["source-relation"],
+                "view_ids": ["chronology"],
+                "source_ref": "ToS/canon/c.json",
+                "properties": {},
+            },
+        ],
+        "edges": [
+            {
+                "edge_id": "e2",
+                "from_id": "a",
+                "to_id": "c",
+                "predicate_id": "relates",
+                "graph_layers": ["source-relation"],
+                "source_ref": "ToS/canon/relations.json",
+                "view_ids": ["chronology"],
+                "properties": {"comment": "Alpha is evidenced by Gamma."},
+            },
+            {
+                "edge_id": "e",
+                "from_id": "a",
+                "to_id": "b",
+                "predicate_id": "relates",
+                "graph_layers": ["source-relation"],
+                "source_ref": "ToS/canon/relations.json",
+                "view_ids": ["chronology", "direct-only"],
+                "properties": {},
+            },
+            {
+                "edge_id": "e3",
+                "from_id": "c",
+                "to_id": "b",
+                "predicate_id": "relates",
+                "graph_layers": ["source-relation"],
+                "source_ref": "ToS/canon/relations.json",
+                "view_ids": ["chronology"],
+                "properties": {},
+            },
+        ],
+        "views": [
+            {
+                "view_id": "chronology",
+                "title": "Chronology",
+                "node_ids": ["a", "b", "c"],
+                "edge_ids": ["e2", "e", "e3"],
+                "graph_layers": ["source-relation"],
+                "source_refs": ["ToS/philosophy/graph-workbench/views/chronology.graph.md"],
+            },
+            {
+                "view_id": "direct-only",
+                "title": "Direct only",
+                "node_ids": ["a", "b"],
+                "edge_ids": ["e"],
+                "graph_layers": ["source-relation"],
+                "source_refs": ["ToS/philosophy/graph-workbench/views/direct-only.graph.md"],
+            },
+        ],
+        "clusters": [
+            {
+                "cluster_id": "c",
+                "cluster_kind": "region",
+                "label": "Fixture",
+                "view_ids": ["chronology"],
+                "member_node_ids": ["a", "b", "c", "outside"],
+                "member_edge_ids": ["e2", "e", "outside-edge"],
+                "graph_layers": ["source-relation"],
+                "source_ref": "ToS/philosophy/graph-workbench/clusters/cluster-contracts.json",
+            }
+        ],
+        "review_packets": [{"view_id": "chronology", "unresolved_diagnostics": []}],
+        "graph_layers": [{"layer_id": "source-relation"}],
+        "layer_counts": [],
+        "source_refs": {"source_view_contract_ref": "ToS/philosophy/graph-workbench/view-contracts.json"},
+        "runtime_projection_boundary": {"runtime_owner": "abyss-stack"},
+        "snapshot_review": {"snapshot_schema_version": "tos_philosophy_graph_projection_snapshot_v1"},
+        "unresolved_review_surfaces": [],
+    }
+    bibliographic_nodes = {}
+    bibliographic_edges = []
+    claim_traces = []
+    for edge in index.get('source_navigation', {}).get('edges', []):
+        if edge.get('edge_kind') != 'evidence_claim':
+            continue
+        claim_ref = 'tos.claim.fixture.' + edge['edge_id']
+        edge['claim_ref'] = claim_ref
+        claim_node = 'claim:' + claim_ref
+        refs = edge['source_refs']
+        bibliographic_nodes[claim_node] = {'node_id': claim_node, 'node_kind': 'claim', 'label': edge['predicate_id'],
+            'source_refs': refs, 'properties': {'claim_ref': claim_ref, 'predicate': edge['predicate_id'], 'claim_version': 1, 'review_status': 'unreviewed'}}
+        for role, endpoint in [('subject', edge['from_id']), ('object', edge['to_id'])]:
+            identity = 'identity:' + endpoint
+            bibliographic_nodes[identity] = {'node_id': identity, 'node_kind': 'identity', 'label': endpoint,
+                'source_refs': refs, 'properties': {'identity_ref': endpoint, 'identity_kind': endpoint.split('.')[1]}}
+            bibliographic_edges.append({'edge_id': edge['edge_id'] + ':' + role, 'edge_kind': 'has_' + role,
+                'from_id': claim_node, 'to_id': identity, 'claim_ref': claim_ref, 'review_status': 'unreviewed',
+                'source_claim_file_ref': refs[0]})
+        claim_traces.append({'claim_ref': claim_ref, 'claim_node_id': claim_node, 'predicate': edge['predicate_id'],
+            'subject_node_id': 'identity:' + edge['from_id'], 'object_node_id': 'identity:' + edge['to_id'],
+            'evidence_node_ids': [], 'review_status': 'unreviewed', 'epistemic_status': 'reported'})
+    (derived / "tos_corpus_index.min.json").write_text(json.dumps(index), encoding="utf-8")
+    (derived / "philosophy_graph_projection.min.json").write_text(json.dumps(graph), encoding="utf-8")
+    (graph_derived / "source-witness-bibliographic-claims.min.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "tos_source_witness_bibliographic_graph_v1",
+                "nodes": list(bibliographic_nodes.values()),
+                "edges": bibliographic_edges,
+                "claim_traces": claim_traces,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (derived / "epistemic_evidence_projection.min.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "tos_epistemic_evidence_projection_v1",
+                "owner_repo": "Tree-of-Sophia",
+                "surface_kind": "derived_public_evidence_navigation",
+                "scenes": [
+                    {
+                        "scene_id": "fixture-scene",
+                        "selections": [
+                            {"mode": "philosophy", "view_id": "chronology", "item_ids": ["a"]}
+                        ],
+                        "selection_ids": ["a"],
+                        "posture": "contested-pre-canon",
+                        "finding": "Fixture evidence route remains open.",
+                        "conclusion": {
+                            "can_conclude": False,
+                            "canon_membership": False,
+                            "claim_evidence_closed": False,
+                            "allowed": ["the selection is present in the projection"],
+                            "not_allowed": ["semantic truth"],
+                        },
+                        "source_anchors": [],
+                        "routes": [
+                            {
+                                "route_kind": "candidate",
+                                "ref": "ToS/canon/a.json",
+                                "status": "fixture",
+                                "exists": True,
+                            }
+                        ],
+                        "gaps": ["review"],
+                        "source_refs": ["ToS/canon/a.json"],
+                    }
+                ],
+                "authority_boundary": {
+                    "is_source": False,
+                    "is_canon": False,
+                    "is_semantic_truth": False,
+                    "is_rights_clearance": False,
+                    "note": "Fixture authority remains with the referenced source.",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (audit / "table-i-post-planting-audit.json").write_text(
+        json.dumps({"schema_version": "tos_philosophy_post_planting_audit_v1"}),
+        encoding="utf-8",
+    )
+    web_assets = root / "access/web/dist/assets"
+    web_assets.mkdir(parents=True)
+    (web_assets / "tos-graph.js").write_text("console.log('fixture')", encoding="utf-8")
+    (web_assets / "tos-graph.css").write_text("", encoding="utf-8")
+    contracts = root / "access/contracts"
+    contracts.mkdir(parents=True)
+    for name in ("runtime-manifest.v1.json", "runtime-data.v1.json", "web-actions.v1.json"):
+        (contracts / name).write_text("{}\n", encoding="utf-8")
+    for name in (
+        "knowledge-api.v1.json",
+        "knowledge-graph.v1.schema.json",
+        "source-read.v1.schema.json",
+        "readable-context.v1.schema.json",
+        "lens-spec.v1.schema.json",
+        "lens-result.v1.schema.json",
+        "temporal-comparison-request.v1.schema.json",
+        "temporal-comparison-result.v1.schema.json",
+        "exploration-request.v1.schema.json",
+        "exploration-result.v1.schema.json",
+        "exploration-request.v2.schema.json",
+        "exploration-result.v2.schema.json",
+    ):
+        (contracts / name).write_text(
+            (ACCESS_ROOT / "contracts" / name).read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+    tos_contracts = root / "ToS/contracts"
+    semantic_interchange = root / "ToS/doctrine/semantic-interchange"
+    tos_contracts.mkdir(parents=True)
+    semantic_interchange.mkdir(parents=True)
+    for name in (
+        "semantic-entity-type-registry.schema.json",
+        "semantic-relation-type-registry.schema.json",
+    ):
+        (tos_contracts / name).write_text(
+            (REPO_ROOT / "ToS/contracts" / name).read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+    for name in ("entity-types.v1.json", "relation-types.v1.json"):
+        (semantic_interchange / name).write_text(
+            (REPO_ROOT / "ToS/doctrine/semantic-interchange" / name).read_text(
+                encoding="utf-8"
+            ),
+            encoding="utf-8",
+        )
+
+
 class CoreContractTests(unittest.TestCase):
+    def test_core_exposes_exact_owner_addressed_update_call(self) -> None:
+        from copy import deepcopy
+        from tos_access.knowledge import build_knowledge_graph
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            baseline = core.knowledge_graph()
+            philosophy = deepcopy(core.philosophy_projection())
+            replacement = deepcopy(philosophy['nodes'][0])
+            replacement['label'] = 'Core addressed edit'
+            philosophy['nodes'][0] = replacement
+            full = build_knowledge_graph(
+                core.index(), philosophy, core.bibliographic_graph(),
+                core.entity_type_registry(), core.relation_type_registry(),
+            )
+            core.philosophy_graph_projection_path.write_text(
+                json.dumps(philosophy, ensure_ascii=False), encoding="utf-8"
+            )
+
+            result = core.knowledge_graph_addressed(
+                baseline, 'philosophy', replacement['node_id'], replacement,
+                source_revision=full['source_revision'], return_report=True,
+            )
+            self.assertEqual(result['graph'], full)
+            self.assertEqual(result['report']['address']['source_id'], replacement['node_id'])
+            self.assertEqual(result['report']['input_traversal']['source_assembly'], 'exact-transition-checked')
+            self.assertIs(core.knowledge_graph(), result['graph'])
+            search = core.knowledge_search('Core addressed edit')
+            self.assertEqual(search['source_revision'], full['source_revision'])
+            self.assertEqual(search['counts']['matching_nodes'], 1)
+            inspected = core.knowledge_node('philosophy:a')
+            self.assertEqual(inspected['source_revision'], full['source_revision'])
+            self.assertEqual(inspected['matches'][0]['display']['title']['default'], 'Core addressed edit')
+            focused = core.knowledge_focus('philosophy:a', depth=1)
+            self.assertEqual(focused['source_revision'], full['source_revision'])
+            stat = core.index_path.stat()
+            os.utime(core.index_path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1))
+            rebuilt = core.knowledge_graph()
+            self.assertIsNot(rebuilt, result['graph'])
+            self.assertEqual(rebuilt['source_revision'], full['source_revision'])
+
+    def test_source_edit_then_addressed_publish_reaches_every_consumer_and_restart(self) -> None:
+        """A durable owner edit is published without a pre-publication full build."""
+        from copy import deepcopy
+        from tos_access import core as core_module
+        from tos_access.knowledge import AddressedUpdateError, _stable_digest, build_knowledge_graph
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            baseline = core.knowledge_graph()
+
+            projection = core.philosophy_graph_projection_path
+            edited_source = json.loads(projection.read_text(encoding="utf-8"))
+            replacement = deepcopy(edited_source["nodes"][0])
+            replacement["label"] = "Durable addressed edit"
+            edited_source["nodes"][0] = replacement
+            projection.write_text(json.dumps(edited_source, ensure_ascii=False), encoding="utf-8")
+
+            # The source owner supplies the exact target revision from the
+            # complete carrier set.  This is only digest framing; the test
+            # deliberately does not build a target graph before publication.
+            target_revision = _stable_digest(
+                {
+                    "corpus": core.index(),
+                    "philosophy": edited_source,
+                    "bibliographic_claims": core.bibliographic_graph(),
+                    "entity_type_registry": core.entity_type_registry(),
+                    "relation_type_registry": core.relation_type_registry(),
+                }
+            )
+            with self.assertRaisesRegex(AddressedUpdateError, "does not match the complete"):
+                core.knowledge_graph_addressed(
+                    baseline,
+                    "philosophy",
+                    replacement["node_id"],
+                    replacement,
+                    source_revision="0" * 64,
+                    expected_parent_revision=baseline["source_revision"],
+                )
+            self.assertIs(core._published_graph, baseline)
+            # Addressed publication must not fall back to the complete graph
+            # builder after the parent snapshot has already been published.
+            with patch.object(
+                core_module,
+                "_knowledge_graph_version",
+                side_effect=AssertionError("addressed publication invoked the full graph builder"),
+            ):
+                published = core.knowledge_graph_addressed(
+                    baseline,
+                    "philosophy",
+                    replacement["node_id"],
+                    replacement,
+                    source_revision=target_revision,
+                    expected_parent_revision=baseline["source_revision"],
+                )
+            self.assertEqual(published["source_revision"], target_revision)
+
+            relation_id = published["relations"][0]["id"]
+            consumers = (
+                core.knowledge_catalog(),
+                core.knowledge_search("Durable addressed edit"),
+                core.knowledge_node("philosophy:a"),
+                core.knowledge_relation(relation_id),
+                core.knowledge_focus("philosophy:a", depth=1),
+                core.knowledge_explore({"focus_node_id": "philosophy:a", "max_depth": 1}),
+            )
+            self.assertTrue(all(packet.get("source_revision") == target_revision for packet in consumers))
+            self.assertEqual(consumers[0]["counts"], published["counts"])
+            self.assertEqual(
+                consumers[0]["capabilities"]["sources"],
+                [
+                    "philosophy",
+                    "canon",
+                    "candidate-intake",
+                    "source-navigation",
+                    "source-claims",
+                    "semantic-interchange",
+                    "repository",
+                ],
+            )
+            self.assertEqual(consumers[2]["matches"][0]["display"]["title"]["default"], "Durable addressed edit")
+
+            # The disk edit is the restart input.  A fresh core must perform a
+            # complete build and converge to the already published successor.
+            restarted = ToSAccessCore.discover(root).knowledge_graph()
+            expected = build_knowledge_graph(
+                core.index(),
+                edited_source,
+                core.bibliographic_graph(),
+                core.entity_type_registry(),
+                core.relation_type_registry(),
+            )
+            self.assertEqual(restarted, expected)
+            self.assertEqual(restarted, published)
+
+            # Supplying the current revision string cannot make an old graph a
+            # valid parent.  CAS binds both the expected revision and the exact
+            # currently published snapshot object.
+            stale_previous = deepcopy(baseline)
+            stale_previous["source_revision"] = published["source_revision"]
+            with self.assertRaisesRegex(AddressedUpdateError, "parent is stale"):
+                core.knowledge_graph_addressed(
+                    stale_previous,
+                    "philosophy",
+                    replacement["node_id"],
+                    replacement,
+                    source_revision=target_revision,
+                    expected_parent_revision=published["source_revision"],
+                )
+            self.assertIs(core.knowledge_graph(), published)
+
+    def test_same_size_same_mtime_atomic_replacement_invalidates_graph_cache(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            baseline = core.knowledge_graph()
+            path = core.philosophy_graph_projection_path
+            original = path.read_bytes()
+            replacement = original.replace(b'"Alpha"', b'"Omega"', 1)
+            self.assertEqual(len(replacement), len(original))
+            stat = path.stat()
+            # First cover a same-inode rewrite whose mtime is restored. ctime
+            # must still invalidate the parsed carrier.
+            path.write_bytes(replacement)
+            os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+
+            refreshed = core.knowledge_graph()
+            self.assertNotEqual(refreshed["source_revision"], baseline["source_revision"])
+            node = next(item for item in refreshed["nodes"] if item["id"] == "philosophy:a")
+            self.assertEqual(node["display"]["title"]["default"], "Omega")
+
+            # Then cover an atomic same-size replacement with the old mtime;
+            # inode identity must also invalidate it.
+            temporary = path.with_name(path.name + ".replacement")
+            temporary.write_bytes(original)
+            os.utime(temporary, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+            os.replace(temporary, path)
+            restored = core.knowledge_graph()
+            node = next(item for item in restored["nodes"] if item["id"] == "philosophy:a")
+            self.assertEqual(node["display"]["title"]["default"], "Alpha")
+
+    def test_snapshot_supersession_replaces_latest_carriers_and_keeps_old_reader(self) -> None:
+        from tos_access import core as core_module
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            baseline = core.knowledge_graph()
+            old_projection = core.philosophy_projection()
+            path = core.philosophy_graph_projection_path
+            replacement = path.read_bytes().replace(b'"Alpha"', b'"Omega"', 1)
+            self.assertEqual(len(replacement), path.stat().st_size)
+            path.write_bytes(replacement)
+
+            successor = core.knowledge_graph()
+
+            # A request that still holds the previous source snapshot remains
+            # readable while the core atomically exposes the successor.
+            self.assertIsNot(successor, baseline)
+            self.assertEqual(old_projection["nodes"][0]["label"], "Alpha")
+            successor_node = next(item for item in successor["nodes"] if item["id"] == "philosophy:a")
+            self.assertEqual(successor_node["display"]["title"]["default"], "Omega")
+            self.assertIs(core._published_graph, successor)
+
+            # The parsed carrier cache keeps only the current version for this
+            # path; the old dictionary is retained solely by this in-flight
+            # reader reference.  The graph builder is likewise not a process-
+            # global multi-version LRU.
+            stat = path.stat()
+            with core_module._json_version_cache_lock:
+                cached_state, cached_payload = core_module._json_version_cache[path.resolve().as_posix()]
+            self.assertEqual(cached_state, (stat.st_mtime_ns, stat.st_size, stat.st_ino, stat.st_ctime_ns))
+            self.assertEqual(cached_payload["nodes"][0]["label"], "Omega")
+            self.assertFalse(hasattr(core_module._knowledge_graph_version, "cache_info"))
+
+    def test_inflight_old_index_stays_local_after_snapshot_supersession(self) -> None:
+        from tos_access import core as core_module
+        from tos_access.knowledge import KnowledgeGraphIndex
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            old_graph = core.knowledge_graph()
+            node_id = "philosophy:a"
+            path = core.philosophy_graph_projection_path
+            replacement = path.read_bytes().replace(b'"Alpha"', b'"Omega"', 1)
+            self.assertEqual(len(replacement), path.stat().st_size)
+
+            index_started = threading.Event()
+            release_old_index = threading.Event()
+            successor_published = threading.Event()
+            worker_result: dict[str, Any] = {}
+            publisher_result: dict[str, Any] = {}
+
+            def delayed_index(graph: dict[str, Any]) -> KnowledgeGraphIndex:
+                if graph is old_graph:
+                    index_started.set()
+                    self.assertTrue(release_old_index.wait(5))
+                return KnowledgeGraphIndex(graph)
+
+            original_invalidate = core._invalidate_snapshot_indexes
+
+            def signal_publication(graph: dict[str, Any]) -> None:
+                successor_published.set()
+                original_invalidate(graph)
+
+            def read_old_snapshot() -> None:
+                try:
+                    worker_result["packet"] = core.knowledge_node(node_id)
+                except BaseException as error:  # pragma: no cover - surfaced below
+                    worker_result["error"] = error
+
+            def publish_successor() -> None:
+                try:
+                    publisher_result["graph"] = core.knowledge_graph()
+                except BaseException as error:  # pragma: no cover - surfaced below
+                    publisher_result["error"] = error
+
+            with patch.object(core_module, "KnowledgeGraphIndex", side_effect=delayed_index), \
+                    patch.object(ToSAccessCore, "_invalidate_snapshot_indexes", side_effect=signal_publication):
+                reader = threading.Thread(target=read_old_snapshot)
+                reader.start()
+                self.assertTrue(index_started.wait(5))
+
+                path.write_bytes(replacement)
+                publisher = threading.Thread(target=publish_successor)
+                publisher.start()
+                self.assertTrue(successor_published.wait(5))
+
+                release_old_index.set()
+                reader.join(5)
+                publisher.join(5)
+
+            self.assertFalse(reader.is_alive())
+            self.assertFalse(publisher.is_alive())
+            self.assertNotIn("error", worker_result)
+            self.assertNotIn("error", publisher_result)
+            successor = publisher_result["graph"]
+            self.assertIs(core._published_graph, successor)
+            self.assertEqual(
+                worker_result["packet"]["matches"][0]["display"]["title"]["default"],
+                "Alpha",
+            )
+            self.assertEqual(
+                next(item for item in successor["nodes"] if item["id"] == node_id)["display"]["title"]["default"],
+                "Omega",
+            )
+            # The in-flight old reader returned a private index; publication
+            # did not leave that superseded graph in the shared cache.
+            self.assertIsNone(core._graph_index)
+
+            current = core.knowledge_node(node_id)
+            self.assertEqual(current["matches"][0]["display"]["title"]["default"], "Omega")
+            current_graph_index = core._graph_index
+            self.assertIs(current_graph_index.graph, successor)
+            # A delayed cleanup for the prior publication must not evict the
+            # newer index that was installed after the successor became live.
+            core._invalidate_snapshot_indexes(old_graph)
+            self.assertIs(core._graph_index, current_graph_index)
+
+            core.knowledge_search("Omega")
+            current_search_index = core._search_index
+            core._invalidate_snapshot_indexes(old_graph)
+            self.assertIs(core._search_index, current_search_index)
+
+    def test_concurrent_addressed_writers_share_one_cas_parent(self) -> None:
+        from concurrent.futures import ThreadPoolExecutor
+        from copy import deepcopy
+        from tos_access.knowledge import AddressedUpdateError, _stable_digest
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            baseline = core.knowledge_graph()
+            original = core.philosophy_projection()
+            source = deepcopy(original)
+            replacement = deepcopy(source["nodes"][0])
+            replacement["label"] = "writer one"
+            source["nodes"][0] = replacement
+            core.philosophy_graph_projection_path.write_text(
+                json.dumps(source, ensure_ascii=False), encoding="utf-8"
+            )
+            common = {
+                "corpus": core.index(),
+                "philosophy": source,
+                "bibliographic_claims": core.bibliographic_graph(),
+                "entity_type_registry": core.entity_type_registry(),
+                "relation_type_registry": core.relation_type_registry(),
+            }
+            revision = _stable_digest(common)
+            candidates = [(deepcopy(replacement), revision), (deepcopy(replacement), revision)]
+
+            def publish(candidate):
+                replacement, revision = candidate
+                try:
+                    return core.knowledge_graph_addressed(
+                        baseline,
+                        "philosophy",
+                        replacement["node_id"],
+                        replacement,
+                        source_revision=revision,
+                        expected_parent_revision=baseline["source_revision"],
+                    )
+                except AddressedUpdateError as error:
+                    return error
+
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                results = list(pool.map(publish, candidates))
+            self.assertEqual(sum(isinstance(result, AddressedUpdateError) for result in results), 1)
+            winner = next(result for result in results if isinstance(result, dict))
+            loser = next(result for result in results if isinstance(result, AddressedUpdateError))
+            self.assertIn("parent is stale", str(loser))
+            self.assertIs(core.knowledge_graph(), winner)
+
+    def test_addressed_publication_rejects_undeclared_source_deltas(self) -> None:
+        from copy import deepcopy
+        from tos_access.knowledge import AddressedUpdateError, _stable_digest
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            baseline = core.knowledge_graph()
+            projection = core.philosophy_graph_projection_path
+            index_path = core.index_path
+            original_philosophy = deepcopy(core.philosophy_projection())
+            original_index = deepcopy(core.index())
+
+            # Two changes in the addressed carrier cannot be silently folded
+            # into a one-record replacement.
+            two_edits = deepcopy(original_philosophy)
+            first = deepcopy(two_edits["nodes"][0])
+            second = deepcopy(two_edits["nodes"][1])
+            first["label"] = "first declared edit"
+            second["label"] = "second undeclared edit"
+            two_edits["nodes"][0] = first
+            two_edits["nodes"][1] = second
+            projection.write_text(json.dumps(two_edits, ensure_ascii=False), encoding="utf-8")
+            target_revision = _stable_digest(
+                {
+                    "corpus": original_index,
+                    "philosophy": two_edits,
+                    "bibliographic_claims": core.bibliographic_graph(),
+                    "entity_type_registry": core.entity_type_registry(),
+                    "relation_type_registry": core.relation_type_registry(),
+                }
+            )
+            with self.assertRaisesRegex(AddressedUpdateError, "undeclared carrier changes"):
+                core.knowledge_graph_addressed(
+                    baseline,
+                    "philosophy",
+                    first["node_id"],
+                    first,
+                    source_revision=target_revision,
+                    expected_parent_revision=baseline["source_revision"],
+                )
+            self.assertIs(core._published_graph, baseline)
+
+            # A submitted philosophy edit cannot consume an unrelated corpus
+            # projection edit by merely naming the new complete revision.
+            projection.write_text(json.dumps(original_philosophy, ensure_ascii=False), encoding="utf-8")
+            unrelated_index = deepcopy(original_index)
+            unrelated_index["nodes"][0]["label"] = "unrelated corpus edit"
+            one_edit = deepcopy(original_philosophy)
+            replacement = deepcopy(one_edit["nodes"][0])
+            replacement["label"] = "one declared edit"
+            one_edit["nodes"][0] = replacement
+            index_path.write_text(json.dumps(unrelated_index, ensure_ascii=False), encoding="utf-8")
+            projection.write_text(json.dumps(one_edit, ensure_ascii=False), encoding="utf-8")
+            target_revision = _stable_digest(
+                {
+                    "corpus": unrelated_index,
+                    "philosophy": one_edit,
+                    "bibliographic_claims": core.bibliographic_graph(),
+                    "entity_type_registry": core.entity_type_registry(),
+                    "relation_type_registry": core.relation_type_registry(),
+                }
+            )
+            with self.assertRaisesRegex(AddressedUpdateError, "undeclared carrier changes"):
+                core.knowledge_graph_addressed(
+                    baseline,
+                    "philosophy",
+                    replacement["node_id"],
+                    replacement,
+                    source_revision=target_revision,
+                    expected_parent_revision=baseline["source_revision"],
+                )
+            self.assertIs(core._published_graph, baseline)
+
+            projection.write_text(json.dumps(original_philosophy, ensure_ascii=False), encoding="utf-8")
+            index_path.write_text(json.dumps(original_index, ensure_ascii=False), encoding="utf-8")
+            self.assertEqual(core.knowledge_graph(), baseline)
+
+    def test_addressed_publication_rejects_python_equal_json_type_deltas(self) -> None:
+        """Exact source transitions must distinguish JSON number/boolean types."""
+        from copy import deepcopy
+        from tos_access.knowledge import AddressedUpdateError, _stable_digest
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            projection = core.philosophy_graph_projection_path
+            original = deepcopy(core.philosophy_projection())
+
+            for field, first_value, second_value in (
+                ("nested_boolean", False, 0),
+                ("nested_number", 1, 1.0),
+            ):
+                baseline_source = deepcopy(original)
+                baseline_source["nodes"][0].setdefault("properties", {})[field] = first_value
+                baseline_source["nodes"][1].setdefault("properties", {})[field] = first_value
+                projection.write_text(json.dumps(baseline_source, ensure_ascii=False), encoding="utf-8")
+                baseline = core.knowledge_graph()
+                candidate = deepcopy(baseline_source)
+                declared = deepcopy(candidate["nodes"][0])
+                undeclared = deepcopy(candidate["nodes"][1])
+                declared["label"] = f"declared {field}"
+                declared.setdefault("properties", {})[field] = first_value
+                undeclared.setdefault("properties", {})[field] = second_value
+                candidate["nodes"][0] = declared
+                candidate["nodes"][1] = undeclared
+                projection.write_text(json.dumps(candidate, ensure_ascii=False), encoding="utf-8")
+                target_revision = _stable_digest(
+                    {
+                        "corpus": core.index(),
+                        "philosophy": candidate,
+                        "bibliographic_claims": core.bibliographic_graph(),
+                        "entity_type_registry": core.entity_type_registry(),
+                        "relation_type_registry": core.relation_type_registry(),
+                    }
+                )
+                with self.assertRaisesRegex(AddressedUpdateError, "undeclared carrier changes"):
+                    core.knowledge_graph_addressed(
+                        baseline,
+                        "philosophy",
+                        declared["node_id"],
+                        declared,
+                        source_revision=target_revision,
+                        expected_parent_revision=baseline["source_revision"],
+                    )
+                self.assertIs(core._published_graph, baseline)
+                projection.write_text(json.dumps(original, ensure_ascii=False), encoding="utf-8")
+                baseline = core.knowledge_graph()
+                self.assertEqual(baseline, core.knowledge_graph())
+
+    def test_addressed_publication_uses_one_snapshot_cas_and_source_race_guard(self) -> None:
+        from copy import deepcopy
+        from tos_access import core as core_module
+        from tos_access.knowledge import AddressedUpdateError, build_knowledge_graph
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            baseline = core.knowledge_graph()
+            source = deepcopy(core.philosophy_projection())
+            replacement = deepcopy(source['nodes'][0])
+            replacement['label'] = 'CAS addressed edit'
+            source['nodes'][0] = replacement
+            full = build_knowledge_graph(
+                core.index(), source, core.bibliographic_graph(),
+                core.entity_type_registry(), core.relation_type_registry(),
+            )
+            core.philosophy_graph_projection_path.write_text(
+                json.dumps(source, ensure_ascii=False), encoding='utf-8'
+            )
+            published = core.knowledge_graph_addressed(
+                baseline, 'philosophy', replacement['node_id'], replacement,
+                source_revision=full['source_revision'],
+                expected_parent_revision=baseline['source_revision'],
+            )
+
+            # Every ordinary consumer observes the same addressed revision,
+            # including the aggregate catalog and resumable exploration.
+            with patch.object(
+                core_module,
+                "build_knowledge_catalog",
+                wraps=core_module.build_knowledge_catalog,
+            ) as build_catalog:
+                catalog = core.knowledge_catalog()
+                repeated_catalog = core.knowledge_catalog()
+            self.assertIs(repeated_catalog, catalog)
+            self.assertEqual(build_catalog.call_count, 1)
+            search = core.knowledge_search('CAS addressed edit')
+            node = core.knowledge_node('philosophy:a')
+            relation = core.knowledge_relation(published['relations'][0]['id'])
+            focus = core.knowledge_focus('philosophy:a', depth=1)
+            explored = core.knowledge_explore({'focus_node_id': 'philosophy:a', 'max_depth': 1})
+            packets = (catalog, search, node, relation, focus, explored)
+            self.assertTrue(all(packet.get('source_revision') == full['source_revision'] for packet in packets))
+            self.assertEqual(catalog['counts'], published['counts'])
+            self.assertEqual(node['matches'][0]['display']['title']['default'], 'CAS addressed edit')
+
+            # A second writer based on the old parent must not overwrite the
+            # published successor, even if it supplies a valid replacement.
+            stale_source = deepcopy(source)
+            stale_source['nodes'][0]['label'] = 'stale writer'
+            stale_full = build_knowledge_graph(
+                core.index(), stale_source, core.bibliographic_graph(),
+                core.entity_type_registry(), core.relation_type_registry(),
+            )
+            with self.assertRaisesRegex(AddressedUpdateError, 'parent is stale'):
+                core.knowledge_graph_addressed(
+                    baseline, 'philosophy', replacement['node_id'], stale_source['nodes'][0],
+                    source_revision=stale_full['source_revision'],
+                    expected_parent_revision=baseline['source_revision'],
+                )
+            self.assertIs(core.knowledge_graph(), published)
+
+            # Change a real disposable projection while the bounded operation is
+            # in flight. The before/after source state check refuses publication;
+            # it must not silently bind the stale result to the new file tuple.
+            race_source = deepcopy(source)
+            race_source['nodes'][0]['label'] = 'race attempt'
+            projection = core.philosophy_graph_projection_path
+            # The submitted replacement must be the already-written owner
+            # carrier; the worker below then performs a second edit while the
+            # addressed recomputation is in flight.
+            projection.write_text(json.dumps(race_source, ensure_ascii=False), encoding='utf-8')
+            race_full = build_knowledge_graph(
+                core.index(), race_source, core.bibliographic_graph(),
+                core.entity_type_registry(), core.relation_type_registry(),
+            )
+            entered = threading.Event()
+            changed = threading.Event()
+            original_update = core_module.addressed_update_knowledge_graph
+
+            def mutate_source() -> None:
+                entered.wait(5)
+                disk = json.loads(projection.read_text(encoding='utf-8'))
+                disk['nodes'][0]['label'] = 'race source edit'
+                projection.write_text(json.dumps(disk, ensure_ascii=False), encoding='utf-8')
+                changed.set()
+
+            def delayed_update(*args, **kwargs):
+                entered.set()
+                self.assertTrue(changed.wait(5))
+                return original_update(*args, **kwargs)
+
+            worker = threading.Thread(target=mutate_source)
+            worker.start()
+            try:
+                with patch.object(core_module, 'addressed_update_knowledge_graph', side_effect=delayed_update):
+                    with self.assertRaisesRegex(AddressedUpdateError, 'changed during addressed update'):
+                        core.knowledge_graph_addressed(
+                            published, 'philosophy', replacement['node_id'], race_source['nodes'][0],
+                            source_revision=race_full['source_revision'],
+                            expected_parent_revision=published['source_revision'],
+                        )
+            finally:
+                worker.join(5)
+            self.assertFalse(worker.is_alive())
+            self.assertIs(core._addressed_graph, published)
+
+            # A fresh core after the real source edit agrees with a full build;
+            # the addressed in-memory successor never becomes restart state.
+            disk_source = json.loads(projection.read_text(encoding='utf-8'))
+            expected = build_knowledge_graph(
+                core.index(), disk_source, core.bibliographic_graph(),
+                core.entity_type_registry(), core.relation_type_registry(),
+            )
+            rebuilt = core.knowledge_graph()
+            restarted = ToSAccessCore.discover(root).knowledge_graph()
+            self.assertEqual(rebuilt, expected)
+            self.assertEqual(restarted, expected)
+
     def test_core_inspection_reuses_and_replaces_one_snapshot_index(self) -> None:
         from concurrent.futures import ThreadPoolExecutor
         from copy import deepcopy
@@ -77,6 +982,7 @@ class CoreContractTests(unittest.TestCase):
             # the immutable graph instance, not just that convenient string.
             with patch('tos_access.core.KnowledgeGraphIndex', wraps=KnowledgeGraphIndex) as prepare:
                 for graph, count in ((initial, 1), (changed, 2)):
+                    core._published_graph = graph
                     with patch.object(ToSAccessCore, 'knowledge_graph', return_value=graph):
                         with ThreadPoolExecutor(max_workers=4) as pool:
                             packets = list(pool.map(core.knowledge_node, [identifier] * 8))
@@ -90,6 +996,44 @@ class CoreContractTests(unittest.TestCase):
                         self.assertEqual(prepare.call_count, count)
                         self.assertIs(core._graph_index.graph, graph)
 
+    def test_core_lenses_reuse_snapshot_index_and_pin_stored_catalog(self) -> None:
+        from tos_access import core as core_module
+        from tos_access.knowledge import KnowledgeGraphIndex, execute_knowledge_lens, focus_knowledge_node
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            initial = core.knowledge_snapshot()
+            spec = next(item for item in initial['catalog']['lenses'] if item['lens_id'] == 'chronology')
+            expected = execute_knowledge_lens(initial['graph'], spec)
+            with patch.object(core_module, 'KnowledgeGraphIndex', wraps=KnowledgeGraphIndex) as prepare:
+                self.assertEqual(core.compile_knowledge_lens(spec), expected)
+                index = core._graph_index
+                self.assertEqual(core.knowledge_focus('philosophy:a', depth=1),
+                                 focus_knowledge_node(initial['graph'], 'philosophy:a', depth=1))
+                self.assertEqual(core.stored_knowledge_lens('chronology'), expected)
+                self.assertIs(core._graph_index, index)
+                self.assertEqual(prepare.call_count, 1)
+
+                path = core.philosophy_graph_projection_path
+                path.write_bytes(path.read_bytes().replace(b'"Alpha"', b'"Omega"', 1))
+                current = core.knowledge_graph()
+                self.assertIsNot(current, initial['graph'])
+                self.assertEqual(core.compile_knowledge_lens(spec), execute_knowledge_lens(current, spec))
+                current_index = core._graph_index
+                self.assertIs(current_index.graph, current)
+                self.assertEqual(prepare.call_count, 2)
+
+                # A stored-lens request may have borrowed the prior catalog
+                # before publication. Keep its graph and private index paired;
+                # never replace the newer shared index with that old borrower.
+                with patch.object(ToSAccessCore, 'knowledge_snapshot', return_value=initial), patch.object(
+                        ToSAccessCore, 'knowledge_graph', side_effect=AssertionError('stored lens re-resolved graph')):
+                    self.assertEqual(core.stored_knowledge_lens('chronology'), expected)
+                self.assertIs(core._graph_index, current_index)
+                self.assertEqual(prepare.call_count, 3)
+
     def test_core_search_reuses_only_its_current_snapshot(self) -> None:
         from unittest.mock import patch
         from copy import deepcopy
@@ -101,15 +1045,125 @@ class CoreContractTests(unittest.TestCase):
             changed = deepcopy(initial)
             changed['nodes'][0]['attributes']['search_probe'] = 'new-snapshot-only'
             with patch('tos_access.core.KnowledgeSearchIndex', wraps=KnowledgeSearchIndex) as prepare:
+                core._published_graph = initial
                 with patch.object(ToSAccessCore, 'knowledge_graph', return_value=initial):
                     for query in ('Alpha', 'Альфа', 'missing'):
                         self.assertEqual(core.knowledge_search(query), search_knowledge_graph(initial, query))
                     self.assertEqual(prepare.call_count, 1)
+                core._published_graph = changed
                 with patch.object(ToSAccessCore, 'knowledge_graph', return_value=changed):
                     packet = core.knowledge_search('new-snapshot-only')
                     self.assertEqual(packet, search_knowledge_graph(changed, 'new-snapshot-only'))
                     self.assertEqual(packet['counts']['matching_nodes'], 1)
                     self.assertEqual(prepare.call_count, 2)
+
+    def test_indexed_core_search_keeps_exhausted_kind_exhausted_across_cursor_pages(self) -> None:
+        from copy import deepcopy
+        from tos_access.knowledge import KNOWLEDGE_SOURCES
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(
+                tos_root=root,
+                search_read_model_path=Path(raw) / "indexed-search.sqlite",
+                search_read_model_max_bytes=4 * 1024 * 1024,
+            )
+            graph = deepcopy(core.knowledge_graph())
+            graph["source_revision"] = "indexed-pagination-fixture"
+            graph["nodes"] = []
+            for index in range(3):
+                graph["nodes"].append(
+                    {
+                        "id": f"fixture:node:{index}",
+                        "native_id": f"node:{index}",
+                        "source_graph": "philosophy",
+                        "kind_id": "concept",
+                        "display": {
+                            "title": {"default": f"Indexed pagination node {index}"},
+                            "kind_label": {"default": "concept"},
+                            "summary": {"default": "Indexed pagination"},
+                        },
+                    }
+                )
+            relation = deepcopy(core.knowledge_graph()["relations"][0])
+            relation.update(
+                {
+                    "id": "fixture:relation:only",
+                    "native_id": "relation:only",
+                    "source_graph": "philosophy",
+                    "display": {
+                        "label": {"default": "Indexed pagination relation"},
+                        "statement": {"default": "Indexed pagination relation"},
+                        "explanation": {"default": "Indexed pagination relation"},
+                    },
+                }
+            )
+            graph["relations"] = [relation]
+            with patch.object(ToSAccessCore, "knowledge_graph", return_value=graph):
+                first = core.knowledge_search_indexed("pagination", limit=1)
+                self.assertEqual(len(first["nodes"]), 1)
+                self.assertEqual(len(first["relations"]), 1)
+                self.assertIsNone(first["counts"]["matching_nodes"])
+                self.assertEqual(first["counts"]["matching_relations"], 1)
+                self.assertEqual(first["filters"]["sources"], sorted(KNOWLEDGE_SOURCES))
+                empty_sources = core.knowledge_search_indexed("pagination", sources=[], limit=1)
+                self.assertEqual(empty_sources["filters"], first["filters"])
+                cursor = first["page"]["next_cursor"]
+                self.assertIsInstance(cursor, str)
+
+                second = core.knowledge_search_indexed("pagination", limit=1, cursor=cursor)
+                self.assertEqual(second["relations"], [])
+                self.assertIsNone(second["counts"]["matching_nodes"])
+                self.assertIsNone(second["counts"]["matching_relations"])
+                cursor = second["page"]["next_cursor"]
+                self.assertIsInstance(cursor, str)
+
+                third = core.knowledge_search_indexed("pagination", limit=1, cursor=cursor)
+                self.assertEqual(third["relations"], [])
+                self.assertIsNone(third["page"]["next_cursor"])
+
+    def test_indexed_core_search_rejects_malformed_outer_cursor_envelope(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(
+                tos_root=root,
+                search_read_model_path=Path(raw) / "indexed-search.sqlite",
+                search_read_model_max_bytes=4 * 1024 * 1024,
+            )
+            graph = core.knowledge_graph()
+            with patch.object(ToSAccessCore, "knowledge_graph", return_value=graph):
+                first = core.knowledge_search_indexed("alpha", limit=1)
+                cursor = first["page"]["next_cursor"]
+                self.assertIsInstance(cursor, str)
+
+                def decode(value: str) -> dict[str, Any]:
+                    padded = value + "=" * (-len(value) % 4)
+                    return json.loads(base64.urlsafe_b64decode(padded.encode("ascii")))
+
+                def encode(value: dict[str, Any]) -> str:
+                    raw_value = json.dumps(value, separators=(",", ":"), sort_keys=True).encode("utf-8")
+                    return base64.urlsafe_b64encode(raw_value).decode("ascii").rstrip("=")
+
+                valid = decode(cursor)
+                malformed = [
+                    {key: value for key, value in valid.items() if key != "nodes_exhausted"},
+                    {**valid, "nodes_exhausted": None},
+                    {**valid, "nodes_exhausted": False, "nodes": None},
+                    {**valid, "relations_exhausted": False, "relations": ""},
+                    {**valid, "unexpected": True},
+                ]
+                for payload in malformed:
+                    with self.subTest(payload=payload):
+                        with self.assertRaises(SearchReadModelError):
+                            core.knowledge_search_indexed("alpha", limit=1, cursor=encode(payload))
+
+            # Query validation is transport-local and must happen before a
+            # cold graph/read-model build.
+            with patch.object(ToSAccessCore, "knowledge_graph", side_effect=AssertionError("graph must not build")):
+                with self.assertRaises(SearchReadModelError):
+                    core.knowledge_search_indexed("x" * 257, limit=1)
 
     def test_knowledge_graph_normalizes_every_item_for_humans_and_agents(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -216,8 +1270,12 @@ class CoreContractTests(unittest.TestCase):
                 {
                     "api",
                     "knowledge_graph",
+                    "source_read",
+                    "readable_context",
                     "lens_spec",
                     "lens_result",
+                    "temporal_comparison_request",
+                    "temporal_comparison_result",
                     "entity_type_registry_schema",
                     "relation_type_registry_schema",
                     "entity_type_registry",
@@ -269,10 +1327,14 @@ class CoreContractTests(unittest.TestCase):
             contract.write_text('{"revision":1}', encoding="utf-8")
             graph = {
                 "source_revision": "a" * 64,
-                "nodes": [{"id": "n", "content_revision": "b" * 64}],
-                "relations": [{"id": "r", "content_revision": "c" * 64}],
+                "nodes": [{"id": "n", "content_revision": "b" * 64, "source_graph": "philosophy",
+                           "kind_id": "concept", "type_id": "tos.entity.concept"}],
+                "relations": [{"id": "r", "content_revision": "c" * 64, "source_graph": "philosophy",
+                               "predicate_id": "related_to", "relation_type_id": "tos.relation.related-to"}],
                 "catalog_hint": "first",
             }
+            catalog = {"schema": "tos_knowledge_catalog_v1", "source_revision": "a" * 64,
+                       "fixture_catalog": "first"}
 
             class FakeCore:
                 tos_root = root
@@ -287,8 +1349,8 @@ class CoreContractTests(unittest.TestCase):
                 ) = source_paths
 
                 @staticmethod
-                def knowledge_graph() -> dict[str, object]:
-                    return graph
+                def knowledge_snapshot() -> dict[str, object]:
+                    return {"graph": graph, "catalog": catalog}
 
                 @staticmethod
                 def zarathustra_word_analysis_public_capability() -> dict[str, object]:
@@ -297,14 +1359,25 @@ class CoreContractTests(unittest.TestCase):
             with patch.object(edge_build, "REPO_ROOT", root):
                 baseline = edge_build.data_revision(FakeCore())
                 contract.write_text('{"revision":2}', encoding="utf-8")
-                graph["catalog_hint"] = "second"
                 self.assertEqual(edge_build.data_revision(FakeCore()), baseline)
+
+                # Every emitted reader-header field participates in publication
+                # identity, even when no node/relation content changed.
+                graph["catalog_hint"] = "second"
+                self.assertNotEqual(edge_build.data_revision(FakeCore()), baseline)
+                graph["catalog_hint"] = "first"
+
+                catalog["fixture_catalog"] = "second"
+                self.assertNotEqual(edge_build.data_revision(FakeCore()), baseline)
+                catalog["fixture_catalog"] = "first"
 
                 graph["nodes"][0]["content_revision"] = "d" * 64
                 self.assertNotEqual(edge_build.data_revision(FakeCore()), baseline)
                 graph["nodes"][0]["content_revision"] = "b" * 64
 
-                graph['query_properties'] = [{'property_id': 'tos.property.test', 'field': 'attributes.test'}]
+                graph['query_properties'] = [{'property_id': 'tos.property.test', 'field': 'attributes.test',
+                                             'value_type': 'string', 'inherited': True,
+                                             'applies_to': ['tos.entity.concept'], 'operators': ['eq']}]
                 self.assertNotEqual(edge_build.data_revision(FakeCore()), baseline)
                 graph.pop('query_properties')
                 self.assertEqual(edge_build.data_revision(FakeCore()), baseline)
@@ -551,6 +1624,16 @@ class CoreContractTests(unittest.TestCase):
             self.assertEqual(dossier["chain"]["work"][0]["node_id"], "tos.work.fixture")
             self.assertNotIn("tos.work.neighbor", {node["node_id"] for node in dossier["chain"]["work"]})
             self.assertNotIn("tos.link.neighbor", {node["node_id"] for node in dossier["chain"]["link"]})
+            for object_id, kind in [
+                ("tos.work.fixture", "work"), ("tos.expression.fixture", "expression"),
+                ("tos.edition.fixture", "edition"), ("tos.item.fixture", "item"),
+                ("tos.file.sha256.fixture", "file"), ("tos.link.fixture.download", "link"),
+            ]:
+                with self.subTest(object_id=object_id):
+                    selected = core.source_dossier(object_id)
+                    self.assertEqual(selected["object"]["node_kind"], kind)
+                    self.assertEqual(selected["tree_paths"][0]["node_ids"][-1], object_id)
+                    self.assertIn("tos.work.fixture", {node["node_id"] for node in selected["chain"]["work"]})
 
     def test_local_word_analysis_provider_is_capability_gated_and_source_bound(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -1803,6 +2886,17 @@ class CoreContractTests(unittest.TestCase):
 
 
 class AuthoredContractTests(unittest.TestCase):
+    def test_repo_validation_publishes_a_validated_software_candidate(self) -> None:
+        workflow = (REPO_ROOT / ".github/workflows/repo-validation.yml").read_text(encoding="utf-8")
+        self.assertIn("playwright install --with-deps chromium", workflow)
+        self.assertIn("scripts/validation_lanes.py --run software_browser", workflow)
+        self.assertIn("build_software_bundle.py", workflow)
+        self.assertIn("validate_software_bundle.py --bundle", workflow)
+        self.assertNotIn("build_standalone_bundle.py", workflow)
+        self.assertIn("actions/upload-artifact@", workflow)
+        self.assertIn("tree-of-sophia-software.zip.manifest.json", workflow)
+        self.assertIn("if-no-files-found: error", workflow)
+
     def test_required_software_gate_rejects_failed_or_skipped_work(self) -> None:
         import subprocess
         import yaml
@@ -1840,6 +2934,7 @@ class AuthoredContractTests(unittest.TestCase):
             "tos.status",
             "tos.snapshot",
             "tos.search",
+            "tos.knowledge.search",
             "tos.source-gaps.search",
             "tos.source.descend",
             "tos.dossier.inspect",

@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/custody",
+          "record": {
+            "digest": "sha256:4d8d86d207ff98e058d922717d4a360978acaac44cf6cd7bde0adc8d0f86852c",
+            "id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:4d8d86d207ff98e058d922717d4a360978acaac44cf6cd7bde0adc8d0f86852c",
+            "id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:4d8d86d207ff98e058d922717d4a360978acaac44cf6cd7bde0adc8d0f86852c",
+            "id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:4d8d86d207ff98e058d922717d4a360978acaac44cf6cd7bde0adc8d0f86852c",
+            "id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:4d8d86d207ff98e058d922717d4a360978acaac44cf6cd7bde0adc8d0f86852c",
+            "id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.egyptian.unknown.papyrus-harris-500-ea10060.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:94c3f48082e93576e156f690ae5476167cf8b10f90ff35aed96ee5338a43f170",
+        "id": "tos.form.artifact.egyptian.unknown.papyrus-harris-500-ea10060.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:4d8d86d207ff98e058d922717d4a360978acaac44cf6cd7bde0adc8d0f86852c",
+        "id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:4d8d86d207ff98e058d922717d4a360978acaac44cf6cd7bde0adc8d0f86852c",
+            "id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/path_identity/note",
+          "record": {
+            "digest": "sha256:4d8d86d207ff98e058d922717d4a360978acaac44cf6cd7bde0adc8d0f86852c",
+            "id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.egyptian.unknown.papyrus-harris-500-ea10060.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:4d8d86d207ff98e058d922717d4a360978acaac44cf6cd7bde0adc8d0f86852c",
+        "id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+        "version": 1
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+      "owner_configuration": "sha256:b1d13e52c5b34b10f1dba2655e8d5b08ecb7b2ccd968354f607e80e2850fd1a4",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:09.800740+00:00",
+      "request_digest": "sha256:dc92b9e765e1c0cf809fa831939ddfc92ddf0a13421bd8eea49f46f6e9f74b85",
+      "results": [
+        {
+          "digest": "sha256:94c3f48082e93576e156f690ae5476167cf8b10f90ff35aed96ee5338a43f170",
+          "id": "tos.form.artifact.egyptian.unknown.papyrus-harris-500-ea10060.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:d36b8141783d9e691c61d55df0079e73a382c95c3c9e195d18c8d7c5315f63e4",
+          "id": "tos.form.artifact.egyptian.unknown.papyrus-harris-500-ea10060.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:4d8d86d207ff98e058d922717d4a360978acaac44cf6cd7bde0adc8d0f86852c",
+        "id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness-v2.schema.json": "sha256:49690ed8397f2a1febed114a5aa80c11225103f6cc6dd53a149424f64e91cbfb"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+      "request_digest": "sha256:242336a51b1182dd3749e2b299a53b6db5c547603647e6343fbf01c8115ec9aa",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:b1d13e52c5b34b10f1dba2655e8d5b08ecb7b2ccd968354f607e80e2850fd1a4",
+      "recorded_at": "2026-09-07T21:40:10.511401+00:00",
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness-v2.schema.json": "sha256:49690ed8397f2a1febed114a5aa80c11225103f6cc6dd53a149424f64e91cbfb"
+      },
+      "source": {
+        "id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+        "version": 1,
+        "digest": "sha256:4d8d86d207ff98e058d922717d4a360978acaac44cf6cd7bde0adc8d0f86852c"
+      },
+      "previous_revision": "sha256:18404a2b64a79cf28f690d0d27a95a2f52733e0e81895afb0f6fd24906807a85",
+      "results": [
+        {
+          "id": "tos.form.artifact.egyptian.unknown.papyrus-harris-500-ea10060.source-name",
+          "version": 2,
+          "digest": "sha256:9cb6d78b484a84a2be0158f674bafce8632920a8066d544143ad750a73ee9a16"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:4d8d86d207ff98e058d922717d4a360978acaac44cf6cd7bde0adc8d0f86852c",
+            "id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:4d8d86d207ff98e058d922717d4a360978acaac44cf6cd7bde0adc8d0f86852c",
+            "id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.egyptian.unknown.papyrus-harris-500-ea10060.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:4d8d86d207ff98e058d922717d4a360978acaac44cf6cd7bde0adc8d0f86852c",
+        "id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.artifact.egyptian.unknown.papyrus-harris-500-ea10060",
+    "version": 1,
+    "digest": "sha256:4d8d86d207ff98e058d922717d4a360978acaac44cf6cd7bde0adc8d0f86852c"
+  }
+}

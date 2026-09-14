@@ -1,0 +1,163 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "historical-claim-display:tos.claim.jenseits-1886-commission.nietzsche:2026-09-10",
+      "request_digest": "sha256:a1b4d8b6ea8c919b6ca7aa04807a5519f22001a773f555c78521763475da578b",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:foundation-v1:01a06cc7-0452-77f2-b89a-fb77fb86c3bf:historical-claim-display-not-admission",
+      "owner_configuration": "sha256:0afc3778abf5cd4cb548013d2fba8a40a70515c70bd5cc38a7258b7390d6111d",
+      "recorded_at": "2026-09-10T15:36:33.595671+00:00",
+      "reason": "Добавить атрибутированные человеческие формы без изменения исторического основания, структурных квалификаций, прежних версий или статуса допуска.",
+      "previous_source": {
+        "id": "tos.claim.jenseits-1886-commission.nietzsche",
+        "version": 1,
+        "digest": "sha256:91e372f2d2cf3c0d89c9b70f8a677940cfede37c97bcc8b178483c44c121606b"
+      },
+      "source": {
+        "id": "tos.claim.jenseits-1886-commission.nietzsche",
+        "version": 2,
+        "digest": "sha256:ed3dbeb64f54dacd16c1ffd5e0a12aa962b2168d95258d148289f30365901bdf"
+      },
+      "previous_revision": "sha256:c0759aa4f2f7a9ac4307173acf2fca97958a04168e667359f5b95d6d56f53a96",
+      "archive_path": "ToS/source-witnesses/.record-revisions/bba70eecf874707b7da0cfa67d057692c222fc73bf258e5b89f5432d9bbfdd5e-c0759aa4f2f7a9ac4307173acf2fca97958a04168e667359f5b95d6d56f53a96",
+      "dependencies": "sha256:efbb09bdb1ad18451641390cf2517fa145c18e9cd4f56ed982d847c51296cc8a",
+      "source_bindings": {
+        "objects": {
+          "tos.agent.friedrich-nietzsche": {
+            "source_ref": "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json",
+            "source_sha256": "sha256:49352dc6ae11c5d0ba800e737a7a407b7813f3585850eacbeacd1fdf059f8aab",
+            "canonical_record_sha256": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 2
+          },
+          "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission": {
+            "source_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.json",
+            "source_sha256": "sha256:3cccbb7f974e91e218fa00a14190d16d48b2b4f5b1a28b6fe5cc01cdfec2bf2b",
+            "canonical_record_sha256": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f",
+            "schema_version": "tos_historical_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md": {
+            "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md",
+            "source_sha256": "sha256:d42bd276dc0b323e98283fa7f8e7514ed9267212aa2a5352ba9da54256e475b2",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jenseits-1886-commission.nietzsche-claim.name-ru",
+          "version": 1,
+          "digest": "sha256:c6afadbf957a4b79d6333fa18c16daf68cb729b6a1223e1548ab99da8ced2189"
+        },
+        {
+          "id": "tos.form.jenseits-1886-commission.nietzsche-claim.caption-ru",
+          "version": 1,
+          "digest": "sha256:c59b70a7b24dd7ac0bd0c781134fe017df60e6e6d74bcfc81a4d012488f543f5"
+        },
+        {
+          "id": "tos.form.jenseits-1886-commission.nietzsche-claim.hover-ru",
+          "version": 1,
+          "digest": "sha256:9bff9b752b0044f50513e459f00254b21b2d26137c935e45a5b2222889fb5edf"
+        },
+        {
+          "id": "tos.form.jenseits-1886-commission.nietzsche-claim.statement-ru",
+          "version": 1,
+          "digest": "sha256:9bac3f946e325caa050c22b21e582f2f6ef250d3b097808fdaffa1358e2bf107"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "historical-claim-display:tos.claim.jenseits-1886-commission.nietzsche:2026-09-10",
+        "expected_configuration": "sha256:0afc3778abf5cd4cb548013d2fba8a40a70515c70bd5cc38a7258b7390d6111d",
+        "expected_dependencies": "sha256:efbb09bdb1ad18451641390cf2517fa145c18e9cd4f56ed982d847c51296cc8a",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md",
+              "source_sha256": "sha256:d42bd276dc0b323e98283fa7f8e7514ed9267212aa2a5352ba9da54256e475b2"
+            }
+          },
+          "objects": {
+            "tos.agent.friedrich-nietzsche": {
+              "canonical_record_sha256": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33",
+              "record_version": 2,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json",
+              "source_sha256": "sha256:49352dc6ae11c5d0ba800e737a7a407b7813f3585850eacbeacd1fdf059f8aab"
+            },
+            "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission": {
+              "canonical_record_sha256": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f",
+              "record_version": 2,
+              "schema_version": "tos_historical_record_v1",
+              "source_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.json",
+              "source_sha256": "sha256:3cccbb7f974e91e218fa00a14190d16d48b2b4f5b1a28b6fe5cc01cdfec2bf2b"
+            }
+          }
+        },
+        "expected_revision": "sha256:c0759aa4f2f7a9ac4307173acf2fca97958a04168e667359f5b95d6d56f53a96",
+        "expected_source": {
+          "digest": "sha256:91e372f2d2cf3c0d89c9b70f8a677940cfede37c97bcc8b178483c44c121606b",
+          "id": "tos.claim.jenseits-1886-commission.nietzsche",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "display_fields": {
+              "caption": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "По Зоммеру: Ницше — заказчик издания"
+              },
+              "hover": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "Сообщение Зоммера (2016, с. 6), не цитата письма и не независимое подтверждение участия."
+              },
+              "name": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "Ницше как заказчик: утверждение"
+              },
+              "schema_version": "tos_claim_display_fields_v1"
+            },
+            "statement": "По сообщению Андреаса Урса Зоммера (2016, с. 6), Ницше выступает заказчиком в описанном эпизоде заказа на изготовление издания «По ту сторону добра и зла». Это атрибутированное исследовательское утверждение, а не буквальная формулировка письма или независимо подтверждённое участие. Исходный Claim основан на исследовательской записи по комментарию, без проверки первичного письма в рамках этого основания; provenance удостоверяет сериализацию, а не выполнение первоначального модельного исследования.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.name",
+            "form_id": "tos.form.jenseits-1886-commission.nietzsche-claim.name-ru"
+          },
+          {
+            "field_id": "claim.caption",
+            "form_id": "tos.form.jenseits-1886-commission.nietzsche-claim.caption-ru"
+          },
+          {
+            "field_id": "claim.hover",
+            "form_id": "tos.form.jenseits-1886-commission.nietzsche-claim.hover-ru"
+          },
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jenseits-1886-commission.nietzsche-claim.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Добавить атрибутированные человеческие формы без изменения исторического основания, структурных квалификаций, прежних версий или статуса допуска.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

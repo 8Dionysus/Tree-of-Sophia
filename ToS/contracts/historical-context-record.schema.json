@@ -1,0 +1,348 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/historical-context-record.schema.json",
+  "title": "Source-described biography, historical periodization, generations and environment",
+  "description": "Descriptions carry research scope and continuity criteria. Persons, dates, participants, places, membership and contextual associations remain separate Claims. Shared semantic_content fields do not retype historical identities into SemanticObject.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields"
+    },
+    {
+      "properties": {
+        "schema_version": {
+          "const": "tos_historical_context_record_v1"
+        },
+        "record_type": {
+          "enum": [
+            "biographical-episode",
+            "biographical-phase",
+            "historical-period",
+            "historical-generation",
+            "historical-environment",
+            "life-circumstance"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "biographical-episode"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.biographical-episode\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.biographical-episode\\."
+          },
+          "semantic_content": {
+            "required": [
+              "episode_account",
+              "biographical_relevance"
+            ],
+            "properties": {
+              "episode_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What occurred within the declared biographical scope."
+              },
+              "biographical_relevance": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Why the episode is documented as relevant to a life, with limits; significance is not causal proof."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "biographical-phase"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.biographical-phase\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.biographical-phase\\."
+          },
+          "semantic_content": {
+            "required": [
+              "phase_account",
+              "phase_boundary_basis"
+            ],
+            "properties": {
+              "phase_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The activities or circumstances identifying this phase, including discontinuities."
+              },
+              "phase_boundary_basis": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Why this research distinguishes the phase; dating and the subject's identity remain separate Claims."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "historical-period"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.historical-period\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.historical-period\\."
+          },
+          "semantic_content": {
+            "required": [
+              "period_account",
+              "periodization_basis"
+            ],
+            "properties": {
+              "period_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The historical developments or configurations by which this periodization is described."
+              },
+              "periodization_basis": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The research criterion, spatial scope and limitations of this periodization; rival periodizations may coexist."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "historical-generation"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.historical-generation\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.historical-generation\\."
+          },
+          "semantic_content": {
+            "required": [
+              "generation_account",
+              "cohort_basis"
+            ],
+            "properties": {
+              "generation_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The cohort as described by its source, without implying uniform experience or belief."
+              },
+              "cohort_basis": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The specific generational criterion and its exclusions or uncertainty; individual assignment requires a separate Claim."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "historical-environment"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.historical-environment\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.historical-environment\\."
+          },
+          "semantic_content": {
+            "required": [
+              "environment_account"
+            ],
+            "properties": {
+              "environment_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The scoped configuration of conditions, including what this description does not cover."
+              },
+              "political_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Source-described political conditions in the stated historical scope."
+              },
+              "economic_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Source-described economic arrangements or constraints, not inferred personal wealth."
+              },
+              "cultural_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Source-described cultural practices and conditions, not uniform beliefs."
+              },
+              "religious_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Source-described religious institutions or practices, not automatic personal adherence."
+              },
+              "educational_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Source-described education and teaching arrangements, not automatic individual participation."
+              },
+              "scientific_technological_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Source-described scientific practices, knowledge or technologies; availability does not prove use or influence."
+              }
+            },
+            "anyOf": [
+              {
+                "required": [
+                  "political_account"
+                ]
+              },
+              {
+                "required": [
+                  "economic_account"
+                ]
+              },
+              {
+                "required": [
+                  "cultural_account"
+                ]
+              },
+              {
+                "required": [
+                  "religious_account"
+                ]
+              },
+              {
+                "required": [
+                  "educational_account"
+                ]
+              },
+              {
+                "required": [
+                  "scientific_technological_account"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "life-circumstance"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.life-circumstance\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.life-circumstance\\."
+          },
+          "semantic_content": {
+            "required": [
+              "circumstance_account",
+              "documented_relevance",
+              "evidence_limitations"
+            ],
+            "properties": {
+              "circumstance_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The documented life condition within the stated scope."
+              },
+              "documented_relevance": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What the source supports about the condition's relevance, distinguished from causal interpretation."
+              },
+              "evidence_limitations": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What the source cannot establish, including diagnostic and retrospective interpretation limits."
+              },
+              "bodily_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Documented bodily circumstances with attribution and uncertainty, not an unqualified diagnosis."
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

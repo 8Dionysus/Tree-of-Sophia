@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.org/contracts/partitioned-projection.schema.json",
+  "title": "ToS partitioned projection manifest",
+  "description": "Structural transport contract. The reader also enforces exact paths, kind-specific size bounds, collection/header separation, logical schema agreement and complete part integrity. Logical record schemas retain authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "logical_schema",
+    "header",
+    "limits",
+    "collections"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tos_partitioned_projection_v1"
+    },
+    "logical_schema": {
+      "type": "string",
+      "minLength": 1
+    },
+    "header": {
+      "type": "object",
+      "required": [
+        "schema_version"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "limits": {
+      "const": {
+        "root_bytes": 262144,
+        "index_bytes": 131072,
+        "part_bytes": 8388608,
+        "key_bytes": 4096
+      }
+    },
+    "collections": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*(/[a-z][a-z0-9_]*)*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key_field",
+          "order_fields",
+          "root"
+        ],
+        "properties": {
+          "key_field": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            ]
+          },
+          "order_fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "root": {
+            "$ref": "#/$defs/descriptor"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "descriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "prefix",
+        "path",
+        "sha256",
+        "size_bytes",
+        "decoded_bytes",
+        "decoded_sha256",
+        "count"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "data",
+            "index"
+          ]
+        },
+        "prefix": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{0,64}$"
+        },
+        "path": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "decoded_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8454144
+        },
+        "decoded_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8388608
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

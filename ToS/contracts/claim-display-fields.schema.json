@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/claim-display-fields.schema.json",
+  "title": "Explicit source-owned Claim display fields with a complete statement",
+  "description": "Opt-in qualifiers contract. Whole fields are copied without truncation; their entire exact Claim remains mandatory context. Shape validity is not substantive approval of a shortening.",
+  "type": "object",
+  "required": ["statement", "statement_language", "statement_script", "display_fields"],
+  "properties": {
+    "statement": {"type": "string", "pattern": "\\S"},
+    "statement_language": {"$ref": "#/$defs/language"},
+    "statement_script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"},
+    "display_fields": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version"], "minProperties": 2,
+      "properties": {
+        "schema_version": {"const": "tos_claim_display_fields_v1"},
+        "name": {"$ref": "#/$defs/wording", "properties": {"text": {"maxLength": 160}}},
+        "caption": {"$ref": "#/$defs/wording", "properties": {"text": {"maxLength": 320}}},
+        "hover": {"$ref": "#/$defs/wording", "properties": {"text": {"maxLength": 2048}}}
+      }
+    }
+  },
+  "$defs": {
+    "language": {"anyOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, {"type": "null"}]},
+    "wording": {
+      "type": "object", "additionalProperties": false,
+      "required": ["text", "language", "script"],
+      "properties": {
+        "text": {"type": "string", "pattern": "\\S"},
+        "language": {"$ref": "#/$defs/language"},
+        "script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"}
+      }
+    }
+  }
+}

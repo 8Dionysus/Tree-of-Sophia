@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b3618c7f291f1b2d783f192eff69df7ac00b2f4ee1174cea2ec1bf7fdc8a9317",
+            "id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:b3618c7f291f1b2d783f192eff69df7ac00b2f4ee1174cea2ec1bf7fdc8a9317",
+            "id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:b3618c7f291f1b2d783f192eff69df7ac00b2f4ee1174cea2ec1bf7fdc8a9317",
+            "id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:b3618c7f291f1b2d783f192eff69df7ac00b2f4ee1174cea2ec1bf7fdc8a9317",
+            "id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:b3618c7f291f1b2d783f192eff69df7ac00b2f4ee1174cea2ec1bf7fdc8a9317",
+            "id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.egyptian.pyramid-texts-sethe-1908-1910.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:659dc5c4c06f40f11da5cacdd44ff40dfdecc8508112b3aecad753ae801ae1d4",
+        "id": "tos.form.composite.egyptian.pyramid-texts-sethe-1908-1910.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:b3618c7f291f1b2d783f192eff69df7ac00b2f4ee1174cea2ec1bf7fdc8a9317",
+        "id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:b3618c7f291f1b2d783f192eff69df7ac00b2f4ee1174cea2ec1bf7fdc8a9317",
+            "id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/editorial_object/description",
+          "record": {
+            "digest": "sha256:b3618c7f291f1b2d783f192eff69df7ac00b2f4ee1174cea2ec1bf7fdc8a9317",
+            "id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.egyptian.pyramid-texts-sethe-1908-1910.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:b3618c7f291f1b2d783f192eff69df7ac00b2f4ee1174cea2ec1bf7fdc8a9317",
+        "id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+        "version": 1
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:composite.egyptian.pyramid-texts-sethe-1908-1910",
+      "owner_configuration": "sha256:71bb0df7cb0645f85f39bb0b291d75345d495bbc094a0524db1f0e0965c326ce",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:10.649258+00:00",
+      "request_digest": "sha256:f20e50393b83b189fc47ea0c44916803e5c2d53c919e8431587983a794c28ef3",
+      "results": [
+        {
+          "digest": "sha256:659dc5c4c06f40f11da5cacdd44ff40dfdecc8508112b3aecad753ae801ae1d4",
+          "id": "tos.form.composite.egyptian.pyramid-texts-sethe-1908-1910.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:4fcac31835cfbd416777931a8a7c639d7b61438f05a556dbf02a780e61c349de",
+          "id": "tos.form.composite.egyptian.pyramid-texts-sethe-1908-1910.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:b3618c7f291f1b2d783f192eff69df7ac00b2f4ee1174cea2ec1bf7fdc8a9317",
+        "id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:composite.egyptian.pyramid-texts-sethe-1908-1910",
+      "request_digest": "sha256:82e68e057bc653a6d13587ce051bea3eaddcb631bad3e77ef3b7c299bb120c32",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:71bb0df7cb0645f85f39bb0b291d75345d495bbc094a0524db1f0e0965c326ce",
+      "recorded_at": "2026-09-07T21:40:11.381301+00:00",
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      },
+      "source": {
+        "id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+        "version": 1,
+        "digest": "sha256:b3618c7f291f1b2d783f192eff69df7ac00b2f4ee1174cea2ec1bf7fdc8a9317"
+      },
+      "previous_revision": "sha256:7538e9afad85a513e744168f5fbf3e124a37d33440f0267cf188ac111be9f8f8",
+      "results": [
+        {
+          "id": "tos.form.composite.egyptian.pyramid-texts-sethe-1908-1910.source-name",
+          "version": 2,
+          "digest": "sha256:bd40808449964d28bdaeeb208b9df103d4cb20a0d4c1a868412aef20746ee5a2"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:b3618c7f291f1b2d783f192eff69df7ac00b2f4ee1174cea2ec1bf7fdc8a9317",
+            "id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:b3618c7f291f1b2d783f192eff69df7ac00b2f4ee1174cea2ec1bf7fdc8a9317",
+            "id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.egyptian.pyramid-texts-sethe-1908-1910.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:b3618c7f291f1b2d783f192eff69df7ac00b2f4ee1174cea2ec1bf7fdc8a9317",
+        "id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.composite.egyptian.pyramid-texts-sethe-1908-1910",
+    "version": 1,
+    "digest": "sha256:b3618c7f291f1b2d783f192eff69df7ac00b2f4ee1174cea2ec1bf7fdc8a9317"
+  }
+}

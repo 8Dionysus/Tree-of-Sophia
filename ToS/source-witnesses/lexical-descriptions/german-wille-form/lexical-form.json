@@ -1,0 +1,54 @@
+{
+  "external_identifiers": [],
+  "field_languages": {
+    "notes": {
+      "language": "ru",
+      "script": "Cyrl"
+    },
+    "preferred_label": {
+      "language": "ru",
+      "script": "Cyrl"
+    }
+  },
+  "form_identity": {
+    "language": "de",
+    "notation_scope": "Немецкая письменная форма, рассматриваемая в связи с JGB 19; не точный адрес и не все омографы.",
+    "representation_kind": "orthographic",
+    "script": "Latn",
+    "unicode_posture": "preserved_as_supplied",
+    "written_representation": "Wille"
+  },
+  "identity_status": "provisional",
+  "notes": "Записанная форма Wille в ограниченном немецком орфографическом контексте. Она не обозначает единственное место в книге и сама не доказывает принадлежность лексеме или конкретное значение.",
+  "preferred_label": "Wille — написание",
+  "record_id": "tos.lexical-form.german-wille",
+  "record_type": "lexical-form",
+  "record_version": 1,
+  "same_as_posture": "no_equivalence_claim",
+  "schema_version": "tos_lexical_description_record_v1",
+  "semantic_content": {
+    "form_account": "Строка с начальной прописной буквой, рассматриваемая как письменная форма, а не как уникальная цитата, типографский глиф или нормализованный идентификатор.",
+    "language": "ru",
+    "script": "Cyrl"
+  },
+  "semantic_scope": {
+    "identity_criterion": "Уточнение описания сохраняет форму; изменение её строки или заявленного нотационного предмета не выполняется обычным record.revise.",
+    "language": "ru",
+    "scope_note": "Именно указанное написание в заявленном немецком орфографическом контексте; не все похожие строки во всех языках.",
+    "script": "Cyrl"
+  },
+  "source_refs": [
+    "ToS/review-ledger/2026-09-08-jgb-lexical-source-reading.md",
+    "http://www.nietzschesource.org/eKGWB/JGB-19"
+  ],
+  "variant_labels": [
+    {
+      "language": "en",
+      "script": "Latn",
+      "source_ref": "ToS/review-ledger/2026-09-08-jgb-lexical-source-reading.md",
+      "status": "unverified",
+      "value": "Wille — written form"
+    }
+  ],
+  "visibility": "public_metadata_only"
+}

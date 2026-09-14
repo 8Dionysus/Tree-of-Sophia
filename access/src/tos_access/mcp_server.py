@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 from .core import ToSAccessCore
@@ -33,36 +34,55 @@ def build_server(
     index_path: str | Path | None = None,
     philosophy_graph_projection_path: str | Path | None = None,
     philosophy_post_planting_audit_path: str | Path | None = None,
+    *,
+    core: ToSAccessCore | None = None,
 ) -> Any:
+    if core is not None and any(value is not None for value in (
+            tos_root, index_path, philosophy_graph_projection_path, philosophy_post_planting_audit_path)):
+        raise ValueError("select either an existing core or MCP source discovery paths")
     try:
         from mcp.server.fastmcp import FastMCP  # type: ignore[import-not-found]
     except ImportError as exc:
         raise SystemExit("Missing dependency 'mcp'. Install with: python -m pip install -e .") from exc
 
     mcp = FastMCP("tree-of-sophia", json_response=True)
+    state_lock = Lock()
+    cached_state: ToSAccessCore | None = None
 
     def current_state() -> ToSAccessCore:
-        return ToSAccessCore.discover(
+        nonlocal cached_state
+        if core is not None:
+            return core
+        resolved = ToSAccessCore.discover(
             tos_root=tos_root,
             index_path=index_path,
             philosophy_graph_projection_path=philosophy_graph_projection_path,
             philosophy_post_planting_audit_path=philosophy_post_planting_audit_path,
         )
+        # Discover path changes on every call, but keep the shared graph/index
+        # for unchanged paths. Core readers still observe current file versions.
+        # Equality excludes disposable indexes/checkpoints and compares paths.
+        with state_lock:
+            if cached_state is None or cached_state != resolved:
+                cached_state = resolved
+            return cached_state
 
-    # Other tools can rediscover source paths on each call. Exploration keeps
-    # its disposable checkpoints for the lifetime of this MCP server only.
+    # Default discovery retains its existing server-local dynamic graph route.
+    # An explicitly supplied core owns its query engine and checkpoint policy.
     from .exploration import ExplorationService
     exploration = ExplorationService(lambda: current_state().knowledge_graph(),
-                                     query_store_provider=lambda: current_state()._query_store())
+        query_store_provider=lambda: current_state()._query_store()) if core is None else None
 
     @mcp.tool()
     def tos_knowledge_explore(request: dict[str, Any]) -> dict[str, Any]:
         """Start a read-only neighborhood or continue with cursor only; expires after 15 minutes.
 
-        Fixed query/page sizes; no authored writes. Upsert context nodes by ID.
+        Discover schemas: legacy focus_node_id or v2 exact node/relation origin
+        pinned by source/content revision. Fixed query/page sizes; no authored
+        writes. Upsert context nodes and the repeated origin relation by ID.
         Snapshot conflict or expired checkpoint requires restarting from focus.
         """
-        return exploration.explore(request)
+        return current_state().knowledge_explore(request) if core is not None else exploration.explore(request)
 
     @mcp.tool()
     def tos_knowledge_exploration_contracts() -> dict[str, Any]:
@@ -95,6 +115,11 @@ def build_server(
         return current_state().knowledge_contracts()
 
     @mcp.tool()
+    def tos_knowledge_search_capabilities() -> dict[str, Any]:
+        """Discover selected search modes; compressed requires an explicit local prepared publication."""
+        return current_state().knowledge_search_capabilities()
+
+    @mcp.tool()
     def tos_knowledge_search(
         query: str = "",
         sources: list[str] | None = None,
@@ -102,8 +127,38 @@ def build_server(
         predicate_ids: list[str] | None = None,
         offset: int = 0,
         limit: int = 40,
+        mode: str = "legacy",
+        cursor: str | None = None,
     ) -> dict[str, Any]:
-        """Search the unified display-complete graph without choosing a philosophy/corpus legacy mode."""
+        """Search full node/relation carriers. Discover modes with tos_knowledge_search_capabilities.
+
+        Compressed mode supports short queries and authenticated continuation
+        on the explicitly selected local prepared profile. No cold build or
+        fallback; resume possibly empty pages until has_more is false.
+        """
+        if mode in {"indexed", "compressed"}:
+            if offset:
+                raise ValueError(f"{mode} knowledge search uses cursor continuation, not offset")
+            state = current_state()
+            search = state.knowledge_search_indexed if mode == "indexed" else state.knowledge_search_compressed
+            packet = search(
+                query,
+                sources=sources,
+                kind_ids=kind_ids,
+                predicate_ids=predicate_ids,
+                cursor=cursor,
+                limit=limit,
+            )
+            if mode == "compressed":
+                # FastMCP otherwise pretty-prints every nested full carrier.
+                # Keep the text carrier in the same bounded compact framing;
+                # MCP's protocol envelope still carries both representations.
+                from mcp.types import CallToolResult, TextContent
+                text = json.dumps(packet, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+                return CallToolResult(content=[TextContent(type="text", text=text)], structuredContent=packet)
+            return packet
+        if mode != "legacy":
+            raise ValueError("knowledge search mode must be legacy, indexed or compressed")
         return current_state().knowledge_search(
             query,
             sources=sources,
@@ -122,6 +177,11 @@ def build_server(
     def tos_knowledge_relation(relation_id: str) -> dict[str, Any]:
         """Inspect a normalized relation together with its display-complete endpoints."""
         return current_state().knowledge_relation(relation_id)
+
+    @mcp.tool()
+    def tos_knowledge_temporal_compare(request: dict[str, Any]) -> dict[str, Any]:
+        """Compare two exact Claim date envelopes, not event truth. Discover the request schema with tos_knowledge_contracts."""
+        return current_state().knowledge_temporal_compare(request)
 
     @mcp.tool()
     def tos_knowledge_focus(
@@ -163,8 +223,45 @@ def build_server(
 
     @mcp.tool()
     def tos_dossier_inspect(object_id: str, limit: int = 300) -> dict[str, Any]:
-        """Return a compact dossier for one Work or Link without converting availability into a rights conclusion."""
+        """Return a compact dossier for one bibliographic carrier or Link without converting availability into a rights conclusion."""
         return current_state().source_dossier(object_id=object_id, limit=limit)
+
+    @mcp.tool()
+    def tos_source_read_capabilities() -> dict[str, Any]:
+        """Report whether an explicit owner-bound exact-source reader is selected."""
+        return current_state().source_read_capabilities()
+
+    @mcp.tool()
+    def tos_source_read_contract() -> dict[str, Any]:
+        """Return the bounded owner-issued source handle/read contract."""
+        return current_state().source_read_contract()
+
+    @mcp.tool()
+    def tos_source_handle_discover(
+        target: dict[str, Any] | None = None,
+        selector: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Issue one exact owner handle from a card target or typed catalog selector.
+
+        A selector is resolved only by the selected owner catalog; it cannot
+        name a path, range, digest, or ``latest`` fallback.
+        """
+        if (target is None) == (selector is None):
+            raise ValueError("provide exactly one owner target or typed selector")
+        return current_state().source_handle_discover(
+            {"target": target} if target is not None else {"selector": selector}
+        )
+
+    @mcp.tool()
+    def tos_source_read(handle: dict[str, Any], representation: str = "record") -> dict[str, Any]:
+        """Read an exact record, or native_public_unit/native_local_unit via the selected owner.
+
+        Native text requires its own current public rights/closure checks;
+        the metadata handle is not permission. Caller paths/ranges are refused.
+        Local reading also requires explicit current owner-selected conditions.
+        Retain all local_conditions notices with its text; no publication grant.
+        """
+        return current_state().source_read({"handle": handle, "representation": representation})
 
     @mcp.tool()
     def tos_corpus_resources(

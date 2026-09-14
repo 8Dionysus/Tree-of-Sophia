@@ -1,5 +1,5 @@
 import {test,expect} from 'vitest';
-import {validateHumanForms,formView,formIdentity,contentLanguage,FormContractError,resolveClaimReading} from './human-forms.mjs';
+import {validateHumanForms,formView,formIdentity,contentLanguage,FormContractError,inspectExactHumanForm,inspectExactHumanForms,resolveClaimReading} from './human-forms.mjs';
 import {KnowledgeClient,RevisionError} from './knowledge-client.mjs';
 import {readingSnapshot,readingDocument,readingPositionKey,readingKey,createReadingShelf} from './reader-model.mjs';
 import {validateReading} from './reading-resume.mjs';
@@ -42,6 +42,76 @@ test('absence, selection states, matching diagnostics, unknown language and fall
   expect(view.roles.find(r=>r.role==='statement').candidates.every(c=>c.state==='ready')).toBe(true);
   expect(view.roles.find(r=>r.role==='caption').packet.language).toBeNull();expect(view.roles.find(r=>r.role==='hover').packet).toBeNull();
   expect(()=>validateHumanForms(raw,'ru')).toThrow();delete raw.human_form_selection;expect(validateHumanForms(raw)).toBeNull();
+});
+
+test('an over-budget role exposes its exact full packet only through a bounded inspection copy',()=>{
+  const raw=formNode(),selected=raw.human_form_selection.roles.grounds;
+  selected.state='over-budget';selected.reason='inspect-exact-form';selected.packet=null;
+  const inspected=inspectExactHumanForms(raw);
+  expect(Object.keys(inspected)).toEqual(['grounds']);
+  expect(inspected.grounds.source_pointer).toBe('/attributes/human_forms/4');
+  expect(inspected.grounds.form).toEqual(raw.attributes.human_forms[4].form);
+  expect(inspected.grounds.packet.display_text).toContain('Полная оговорка сохраняется.');
+  expect(inspected.grounds.packet.context).toHaveLength(1);
+  const snapshot=readingSnapshot({packet:formLens([raw]),match:raw},'node');
+  expect(snapshot.raw.attributes).toBeUndefined();
+  expect(snapshot.exactForms.grounds.packet.context[0].value.unknown).toEqual({zero:0,false:false,null:null,empty:''});
+  raw.attributes.human_forms[4].context[0].value.unknown.zero=7;
+  expect(snapshot.exactForms.grounds.packet.context[0].value.unknown.zero).toBe(0);
+});
+
+test('exact inspection rejects a ref, subject, context or owner snapshot that no longer matches',()=>{
+  for(const mutate of [
+    packet=>packet.form={...packet.form,digest:'sha256:'+'e'.repeat(64)},
+    packet=>packet.subject={...packet.subject,version:2},
+    packet=>delete packet.context,
+    packet=>packet.assessment_snapshot={owner_snapshot:'sha256:'+'e'.repeat(64),journal_revision:null,journal_batches:0,publication_authorized:true,current_runtime_grant:false},
+    packet=>packet.context[0].value.long='x'.repeat(65536),
+  ]){
+    const raw=formNode(),selected=raw.human_form_selection.roles.grounds;
+    selected.state='over-budget';selected.reason='inspect-exact-form';selected.packet=null;
+    mutate(raw.attributes.human_forms[4]);
+    expect(()=>inspectExactHumanForm(raw,'grounds')).toThrow(FormContractError);
+  }
+  const raw=formNode(),selected=raw.human_form_selection.roles.grounds;
+  selected.state='over-budget';selected.reason='inspect-exact-form';selected.packet=null;
+  delete raw.attributes;
+  expect(()=>readingSnapshot({packet:formLens([raw]),match:raw},'node')).toThrow(FormContractError);
+});
+
+function canonicalFormNode(){
+  const raw=formNode(),id='tos.event.fixture.departure';
+  raw.entity_id=id;
+  raw.attributes.source_record={schema_version:'tos_canonical_node_v1',node_id:id,node_type:'event',record_version:1};
+  for(const packet of [...Object.values(raw.human_form_selection.roles).map(value=>value.packet),...raw.attributes.human_forms]){
+    packet.subject.id=id;packet.dependencies[0].id=id;packet.context[0].binding.record.id=id;
+  }
+  return raw;
+}
+
+test('native canonical identity binds both ready forms and exact over-budget inspection',()=>{
+  const raw=canonicalFormNode(),before=structuredClone(raw);
+  expect(validateHumanForms(raw).state).toBe('available');expect(raw).toEqual(before);
+  const selected=raw.human_form_selection.roles.grounds;
+  selected.state='over-budget';selected.reason='inspect-exact-form';selected.packet=null;
+  expect(inspectExactHumanForm(raw,'grounds').packet.subject.id).toBe(raw.attributes.source_record.node_id);
+});
+
+test.each([
+  ['missing native ID',raw=>delete raw.attributes.source_record.node_id],
+  ['wrong native ID',raw=>raw.attributes.source_record.node_id='tos.event.fixture.other'],
+  ['type and ID mismatch',raw=>raw.attributes.source_record.node_type='concept'],
+  ['undeclared native type',raw=>raw.attributes.source_record.node_type='future'],
+  ['ambiguous identity fields',raw=>raw.attributes.source_record.record_id=raw.entity_id],
+  ['boolean version',raw=>raw.attributes.source_record.record_version=true],
+  ['fractional version',raw=>raw.attributes.source_record.record_version=1.5],
+  ['unsafe version',raw=>raw.attributes.source_record.record_version=9007199254740992],
+  ['different source version',raw=>raw.attributes.source_record.record_version=2],
+  ['different source digest',raw=>raw.attributes.source_sha256='e'.repeat(64)],
+  ['missing source digest',raw=>delete raw.attributes.source_sha256],
+])('canonical form cannot bypass source subject verification: %s',(_label,mutate)=>{
+  const raw=canonicalFormNode();mutate(raw);
+  expect(()=>validateHumanForms(raw)).toThrow(FormContractError);
 });
 
 test('isolated reading uses a real full LensResult and rejects extra objects or another revision',async()=>{

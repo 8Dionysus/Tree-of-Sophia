@@ -1,0 +1,11 @@
+/* Only the live consumer's controls; the owner sky/camera and demo are intact. */
+#tree[data-mode=live] .live-search-form{display:flex;gap:8px}
+#tree[data-mode=live] .live-search-form .search{min-width:0}
+#tree[data-mode=live] .reading{font-size:12px;line-height:1.7}
+#tree[data-mode=live] .reading details{margin:14px 0;overflow-wrap:anywhere}
+#tree[data-mode=live] summary{cursor:pointer;color:#c7b58e}
+#tree[data-mode=live] .live-json{font:10px/1.6 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+#tree[data-mode=live] .lens{line-height:1.6}
+#tree[data-mode=live] .dialog-content select[multiple]{min-height:130px}
+#tree[data-mode=live] .notice{max-height:130px;overflow:auto}
+#tree[data-mode=live] .space-count{font-variant-numeric:tabular-nums}

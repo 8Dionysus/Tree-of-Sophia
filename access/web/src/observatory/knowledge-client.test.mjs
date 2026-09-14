@@ -1,7 +1,7 @@
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 
-import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle,displayTitleForm,sourceOriginalTitle} from './knowledge-client.mjs';
+import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle,displayTitleForm,sourceOriginalTitle,compileRouteCenter,isSourceDossierRef,SOURCE_DOSSIER_LIMIT} from './knowledge-client.mjs';
 import {setUiLanguage} from './ui-i18n.mjs';
 
 const node=id=>({id,entity_id:'tos.work.friedrich-nietzsche.also-sprach-zarathustra',kind_id:'work',
@@ -10,7 +10,59 @@ const fixture={schema:'tos_lens_result_v1',source_revision:'a'.repeat(64),author
   nodes:[node('graph-a:work'),node('graph-b:work')],focus:{node_id:'graph-a:work'},
   relations:[{id:'relation:1',from_id:'graph-a:work',to_id:'graph-b:work',content_revision:'c'.repeat(64),source_refs:['ToS/fixture/relation.json'],display:{label:{ru:'Связано с'}}}]};
 const clone=()=>structuredClone(fixture);
+
+test('search selects an advertised engine and retains native cursor, schema and unknown counts',async()=>{
+  for(const mode of ['indexed','compressed']){
+    const calls=[],cursor=' opaque + / cursor ';
+    const client=new KnowledgeClient({fetcher:async(url)=>{
+      calls.push(url);const params=new URL(url,'http://fixture').searchParams;
+      const packet=url.endsWith('/capabilities')?{modes:{[mode]:{available:true}}}:
+        {schema:mode==='indexed'?'tos_knowledge_search_indexed_v2':'tos_knowledge_search_compressed_v3',
+          source_revision:fixture.source_revision,authority_boundary:fixture.authority_boundary,
+          nodes:[node('exact-node')],relations:[],counts:{matching_nodes:null,matching_relations:null},
+          page:{cursor:params.get('cursor'),limit_per_kind:6,has_more:!params.has('cursor'),next_cursor:params.has('cursor')?null:cursor}};
+      return {ok:true,json:async()=>packet};
+    }});
+    const first=await client.search('freedom');
+    const second=await client.search('freedom',undefined,{cursor:first.page.next_cursor,search_mode:first.search_mode,source_revision:first.source_revision});
+    assert.equal(first.search_mode,mode);assert.equal(second.schema,first.schema);
+    assert.equal(second.page.cursor,cursor);assert.equal(second.counts.matching_nodes,null);
+    for(const url of calls.filter(url=>!url.endsWith('/capabilities'))){const params=new URL(url,'http://fixture').searchParams;
+      assert.equal(params.get('mode'),mode);assert.equal(params.has('offset'),false);}
+  }
+});
+
+test('search refuses unavailable mode and rejected continuation without retry or fallback',async()=>{
+  const calls=[];
+  const client=new KnowledgeClient({fetcher:async(url)=>{calls.push(url);return url.endsWith('/capabilities')
+    ?{ok:true,json:async()=>({modes:{compressed:{available:true},indexed:{available:false}}})}
+    :{ok:false,status:409};}});
+  await assert.rejects(client.search('freedom',undefined,{search_mode:'indexed'}),/mode unavailable/);
+  assert.equal(calls.length,1);
+  await assert.rejects(client.search('freedom',undefined,{cursor:'cursor',search_mode:'compressed'}),RevisionError);
+  assert.equal(calls.filter(url=>!url.endsWith('/capabilities')).length,1);
+  await assert.rejects(client.search('freedom',undefined,{cursor:'unbound'}),ContractError);
+  assert.equal(calls.length,3);
+});
+
+test('search refuses mismatched snapshot and malformed native pages',async()=>{
+  for(const mutation of [p=>p.source_revision='c'.repeat(64),p=>p.page.cursor='wrong',p=>p.page.limit_per_kind=8,
+    p=>p.schema='tos_knowledge_search_v1',p=>p.page.next_cursor=null]){
+    const packet={schema:'tos_knowledge_search_compressed_v3',source_revision:fixture.source_revision,
+      authority_boundary:fixture.authority_boundary,nodes:[],relations:[],
+      page:{cursor:null,limit_per_kind:6,has_more:true,next_cursor:'next'}};
+    mutation(packet);
+    const client=new KnowledgeClient({fetcher:async(url)=>({ok:true,json:async()=>url.endsWith('/capabilities')
+      ?{modes:{compressed:{available:true}}}:packet})});
+    await assert.rejects(client.search('freedom',undefined,{source_revision:fixture.source_revision}));
+  }
+});
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return {promise,resolve,reject};};
+const dossier=()=>({schema:'tos_source_dossier_v1',object_id:'tos.work.fixture',object:{node_id:'tos.work.fixture',node_kind:'work',label:'Fixture Work',properties:{}},
+  agent_summary:{technical_access:'metadata_only',rights_posture:'unknown',human_review_required:true,can_conclude_legal_openness:false,
+    availability_is_license:false,rights_scope_refs:['tos.work.fixture'],gaps:['no associated public rights record']},
+  chain:{work:[{node_id:'tos.work.fixture',node_kind:'work'}],link:[]},tree_paths:[],relations:[],rights:[],source_refs:['ToS/source-witnesses/works/fixture/work.json'],truncated:false,
+  authority_note:'ToS source_navigation remains authoritative.'});
 
 test('navigation language round trips preserve identities, positions and navigation-only provenance',()=>{
   const packet=clone();
@@ -130,6 +182,44 @@ test('HTTP adapter sends the compact bounded contract and encodes opaque IDs',as
   assert.equal(calls[1].url,'/api/knowledge/nodes/'+encodeURIComponent(raw.id)+'?relation_limit=0');
   assert.equal(inspected.match.id,raw.id);
   await assert.rejects(client.inspect('node','different/id',undefined,fixture.source_revision),ContractError);
+});
+
+test('route center resolves an opaque relation as the actual scene center and falls back only on relation 404',async()=>{
+  const relation=fixture.relations[0],calls=[];
+  const relationPacket={schema:'tos_knowledge_relation_packet_v1',source_revision:fixture.source_revision,
+    matches:[relation],endpoints:fixture.nodes};
+  const client=new KnowledgeClient({fetcher:async(url,options)=>{
+    calls.push({url,options});
+    if(url.includes('/relations/'))return {ok:true,json:async()=>relationPacket};
+    return {ok:true,json:async()=>clone()};
+  }});
+  const resolved=await compileRouteCenter(client,relation.id);
+  assert.equal(resolved.kind,'relation');assert.equal(resolved.relation.id,relation.id);
+  assert.equal(resolved.packet.focus.node_id,relation.from_id);
+  assert.deepEqual(resolved.packet.relations.map(item=>item.id),[relation.id]);
+  const sent=JSON.parse(calls.find(call=>call.url.includes('/compile')).options.body);
+  assert.deepEqual(sent.relation_query.filters,[{field:'id',op:'eq',value:relation.id}]);
+
+  const fallbackCalls=[];
+  const fallback=new KnowledgeClient({fetcher:async(url,options)=>{
+    fallbackCalls.push({url,options});
+    if(url.includes('/relations/'))return {ok:false,status:404,json:async()=>({})};
+    return {ok:true,json:async()=>clone()};
+  }});
+  const node=await compileRouteCenter(fallback,'graph-a:work');
+  assert.equal(node.kind,'node');assert.equal(node.packet.focus.node_id,'graph-a:work');
+  assert.equal(fallbackCalls.filter(call=>call.url.includes('/compile')).length,1);
+});
+
+test('source dossier follows only an owner handle through the bounded source route',async()=>{
+  const calls=[],client=new KnowledgeClient({fetcher:async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>dossier()};}});
+  assert.equal(isSourceDossierRef('tos.work.fixture'),true);assert.equal(isSourceDossierRef('ToS/source-witnesses/work.json'),false);
+  const result=await client.sourceDossier('tos.work.fixture',undefined,{limit:12});
+  assert.equal(result.object_id,'tos.work.fixture');assert.equal(calls[0].url,'/api/source/dossiers/tos.work.fixture?limit=12');assert.equal(calls[0].options.method,'GET');
+  for(const limit of [0,SOURCE_DOSSIER_LIMIT+1])await assert.rejects(client.sourceDossier('tos.work.fixture',undefined,{limit}),ContractError);
+  await assert.rejects(client.sourceDossier('../private/file'),ContractError);assert.equal(calls.length,1);
+  const forged=dossier();forged.agent_summary.availability_is_license=true;
+  const guarded=new KnowledgeClient({fetcher:async()=>({ok:true,json:async()=>forged})});await assert.rejects(guarded.sourceDossier('tos.work.fixture'),ContractError);
 });
 
 test('timeouts fail visibly and user cancellation remains cancellation',async()=>{

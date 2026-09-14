@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -28,11 +29,28 @@ COMMAND_LINE_RE = re.compile(
     r"|^\s*(?:\./|\.\./)[\w./-]+",
     re.MULTILINE,
 )
-MARKDOWN_EXCLUDED_PARTS = {".git", "archive", "archives", "legacy", "node_modules"}
+# TOS-D-0008 owns the public root-entry boundary. DESIGN.AGENTS.md keeps
+# specialized usage/procedure with its on-demand source or operation owner;
+# ToS review notes and source content are not current execution instructions.
+# Command-free inherited cards have their own validate_nested_agents guard.
+PUBLIC_ROUTE_NAMES = ("README.md", "ROADMAP.md", "CONTRIBUTING.md")
 
 
 def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def public_route_command_blocks(repo_root: Path) -> list[str]:
+    offenders: list[str] = []
+    for name in PUBLIC_ROUTE_NAMES:
+        text = read_text(repo_root / name)
+        for match in FENCED_BLOCK_RE.finditer(text):
+            language = match.group(1).strip().lower().split(maxsplit=1)
+            language_id = language[0] if language else ""
+            if language_id in SHELL_FENCE_LANGUAGES or COMMAND_LINE_RE.search(match.group(2)):
+                line = text.count("\n", 0, match.start()) + 1
+                offenders.append(f"{name}:{line}")
+    return offenders
 
 
 def assert_route_refs(testcase: unittest.TestCase, text: str, *refs: str) -> None:
@@ -43,22 +61,31 @@ def assert_route_refs(testcase: unittest.TestCase, text: str, *refs: str) -> Non
 
 
 class DocsVerifyRoutesTestCase(unittest.TestCase):
-    def test_active_non_agent_markdown_has_no_command_blocks(self) -> None:
-        offenders: list[str] = []
-        for path in sorted(REPO_ROOT.rglob("*.md")):
-            relative = path.relative_to(REPO_ROOT)
-            if path.name in {"AGENTS.md", "VALIDATION.md"} or any(
-                part in MARKDOWN_EXCLUDED_PARTS for part in relative.parts
-            ):
-                continue
-            for match in FENCED_BLOCK_RE.finditer(read_text(path)):
-                language = match.group(1).strip().lower().split(maxsplit=1)
-                language_id = language[0] if language else ""
-                if language_id in SHELL_FENCE_LANGUAGES or COMMAND_LINE_RE.search(match.group(2)):
-                    line = read_text(path).count("\n", 0, match.start()) + 1
-                    offenders.append(f"{relative.as_posix()}:{line}")
+    def test_public_root_routes_have_no_command_blocks(self) -> None:
+        self.assertEqual([], public_route_command_blocks(REPO_ROOT))
 
-        self.assertEqual([], offenders)
+    def test_command_guard_preserves_root_boundary_without_treating_source_as_instructions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in PUBLIC_ROUTE_NAMES:
+                (root / name).write_text("# Public route\n", encoding="utf-8")
+            # Historical/reproduction evidence and an explicit owner-local
+            # usage contract are outside the public front-door constraint.
+            for name in (
+                "ToS/review-ledger/2026-09-08-observation.md",
+                "ToS/source-witnesses/example/reading.md",
+                "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+            ):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("```bash\npython source-owned-example.py\n```\n", encoding="utf-8")
+            self.assertEqual([], public_route_command_blocks(root))
+            for name in PUBLIC_ROUTE_NAMES:
+                for fence in ("bash\necho test", "text\npython scripts/check.py", "\n./check.py"):
+                    with self.subTest(name=name, fence=fence):
+                        (root / name).write_text(f"# Public route\n```{fence}\n```\n", encoding="utf-8")
+                        self.assertEqual([f"{name}:2"], public_route_command_blocks(root))
+                        (root / name).write_text("# Public route\n", encoding="utf-8")
 
     def test_readme_keeps_source_first_route_links_ahead_of_export_seam(self) -> None:
         readme = read_text(README_PATH)

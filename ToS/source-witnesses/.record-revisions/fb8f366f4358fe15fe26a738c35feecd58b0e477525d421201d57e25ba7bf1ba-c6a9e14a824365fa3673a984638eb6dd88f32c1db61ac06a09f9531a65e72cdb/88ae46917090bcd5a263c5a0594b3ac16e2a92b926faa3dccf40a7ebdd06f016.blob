@@ -1,0 +1,216 @@
+{
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.jenseits-1886-commission.name-ru",
+      "form_version": 2,
+      "subject": {
+        "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+        "version": 2,
+        "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f"
+      },
+      "role": "name",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "model:codex",
+      "revises": {
+        "id": "tos.form.jenseits-1886-commission.name-ru",
+        "version": 1,
+        "digest": "sha256:f64d26dec31c42c586f21204ca833d40a27c79a3fc47f7c3fa8f7bcca6e163b4"
+      },
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "version": 2,
+            "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "version": 2,
+            "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "version": 2,
+            "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "version": 2,
+            "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f"
+          },
+          "pointer": "/field_languages/preferred_label"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.jenseits-1886-commission.hover-ru",
+      "form_version": 2,
+      "subject": {
+        "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+        "version": 2,
+        "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f"
+      },
+      "role": "hover",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "model:codex",
+      "revises": {
+        "id": "tos.form.jenseits-1886-commission.hover-ru",
+        "version": 1,
+        "digest": "sha256:e0f40e98e7dfba0968ab9b74ca47d2522852016db9454d43695ba9d2c37603b7"
+      },
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "version": 2,
+            "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "version": 2,
+            "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "version": 2,
+            "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "version": 2,
+            "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f"
+          },
+          "pointer": "/field_languages/notes"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:745dba82c441f213fa7b1b858f583faff99cf34b91aa056f80aa5300c5fac14e",
+            "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:745dba82c441f213fa7b1b858f583faff99cf34b91aa056f80aa5300c5fac14e",
+            "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:745dba82c441f213fa7b1b858f583faff99cf34b91aa056f80aa5300c5fac14e",
+            "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.jenseits-1886-commission.name-ru",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:745dba82c441f213fa7b1b858f583faff99cf34b91aa056f80aa5300c5fac14e",
+        "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:745dba82c441f213fa7b1b858f583faff99cf34b91aa056f80aa5300c5fac14e",
+            "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:745dba82c441f213fa7b1b858f583faff99cf34b91aa056f80aa5300c5fac14e",
+            "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:745dba82c441f213fa7b1b858f583faff99cf34b91aa056f80aa5300c5fac14e",
+            "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.jenseits-1886-commission.hover-ru",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:745dba82c441f213fa7b1b858f583faff99cf34b91aa056f80aa5300c5fac14e",
+        "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+    "version": 2,
+    "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f"
+  }
+}

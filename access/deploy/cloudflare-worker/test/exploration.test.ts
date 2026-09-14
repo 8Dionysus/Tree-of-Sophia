@@ -7,7 +7,8 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {build} from 'esbuild';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
-import {ADJACENCY_SQL, IDENTITY_SQL, exploreD1, explorationCapabilitiesD1, normalizeExploration} from '../src/exploration.ts';
+import {ADJACENCY_SQL, IDENTITY_SQL, explorationCapabilitiesD1, normalizeExploration} from '../src/exploration.ts';
+import {exploreD1,publishExplorationFixture} from './native-exploration-fixture.ts';
 import {knowledgeScene, type Item} from '../src/knowledge.ts';
 
 const migration = readFileSync(new URL('../migrations/0001-exploration.sql', import.meta.url), 'utf8').replace(/^--.*$/gm, '').trim();
@@ -32,8 +33,10 @@ async function init(db: D1Database, g: ReturnType<typeof graph>, migrated = true
     ...g.relations.map((r: {id:string;from_id:string;to_id:string;source_graph:string;predicate_id:string}) => db.prepare('INSERT INTO knowledge_relations VALUES (?,?,?,?,?,?)').bind(r.id,r.from_id,r.to_id,r.source_graph,r.predicate_id,JSON.stringify(r))),
   ]);
   if (migrated) await db.batch(migration.split(/\n(?=CREATE |INSERT )/).map(s => db.prepare(s)));
+  await publishExplorationFixture(db);
 }
 async function collect(db: D1Database, query: unknown) {
+  await publishExplorationFixture(db);
   const pages = []; let page = await exploreD1(db, query);
   for (let count = 0; count < 2000; count++) {
     pages.push(page);
@@ -125,7 +128,7 @@ test('compact value-member context requires the full set and preserves focused o
     assert.equal(scene.arcs.length, c.graph.relations.length, c.name + ': raw arcs');
     assert.equal(compact.rule, 'explicit-claim-paths-v1');
     assert.equal(compact.authority, 'presentation-only-no-new-assertion');
-    if (c.reason) {
+    if (c.reason && c.reason !== 'focus-claim') {
       assert.deepEqual(compact.claim_paths, [], c.name);
       assert.deepEqual(compact.retained_claims, [{node_id: '1', reason: c.reason}], c.name);
       assert.equal(compact.vertex_ids.length, c.graph.nodes.length, c.name);
@@ -138,6 +141,13 @@ test('compact value-member context requires the full set and preserves focused o
       assert.deepEqual((path.reading as Item).relation_context_ids, ['subject', 'object', 'grounds', 'member-0', 'member-1', 'member-2']);
       assert.equal((path.reading as Item).standalone, false);
       assert.ok(compact.vertex_ids.includes('tos-scene:carrier:0'), 'the focal member remains a path endpoint');
+      if (c.name === 'claim focus') {
+        assert.deepEqual(compact.retained_claims, [], c.name);
+        assert.deepEqual(compact.vertex_ids, ['tos-scene:carrier:0', 'tos-scene:carrier:1', 'tos-scene:carrier:2']);
+        assert.deepEqual(compact.relation_ids, []);
+        assert.deepEqual(compact.folded_vertex_ids, ['3', '4', '5'].map(id => 'tos-scene:carrier:' + id));
+        continue;
+      }
       if (c.name === 'shared member neighborhood') {
         assert.deepEqual(compact.relation_ids, ['member-neighborhood']);
         for (const id of ['4', '5']) assert.ok(compact.vertex_ids.includes('tos-scene:carrier:' + id));
@@ -389,7 +399,7 @@ test('D1 rejects crossed publication before committing a page; cache admission i
     // An oversized page is rejected before any new checkpoint or replay is admitted.
     await db.prepare("UPDATE knowledge_nodes SET json=json_set(json,'$.display.summary',?) WHERE id='0'").bind('x'.repeat(1_050_000)).run();
     const before=await db.prepare('SELECT count(*) AS n FROM knowledge_exploration_checkpoints').first<number>('n');
-    await assert.rejects(exploreD1(db,{focus_node_id:'0',page_nodes:1}),/checkpoint exceeds/);
+    await assert.rejects(exploreD1(db,{focus_node_id:'0',page_nodes:1}),/row JSON is not bounded text/);
     assert.equal(await db.prepare('SELECT count(*) AS n FROM knowledge_exploration_checkpoints').first<number>('n'),before);
   } finally {await mf.dispose();}
 });

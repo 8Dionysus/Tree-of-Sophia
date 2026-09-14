@@ -1,0 +1,161 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "claim-display:tos.claim.nietzsche-letter-705.addressee:2026-09-10",
+      "request_digest": "sha256:c84c746452940f1aa409bdad3dea8e420c156e12ce10f17e534fab9df1789347",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1/letter-705-qualified-display",
+      "owner_configuration": "sha256:bd718df07ccdbad6fd0f51cf483a9403cc50de641c786018d40dce0ace30c14a",
+      "recorded_at": "2026-09-10T15:08:54.225345+00:00",
+      "reason": "Добавить явно атрибутированные короткие формы для сцены и наведения, сохранив полное исходное утверждение, все оговорки и прежние версии. Это не изменение исторических оснований или содержательный допуск.",
+      "previous_source": {
+        "id": "tos.claim.nietzsche-letter-705.addressee",
+        "version": 1,
+        "digest": "sha256:166d57a5decfa28a68f6a2a0b3213cf6454648a52dc567e3872a59de0024063f"
+      },
+      "source": {
+        "id": "tos.claim.nietzsche-letter-705.addressee",
+        "version": 2,
+        "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d"
+      },
+      "previous_revision": "sha256:f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba",
+      "archive_path": "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba",
+      "dependencies": "sha256:07a1637243c2e1875b5bb021feae28e459491a890aac26c2e8fc155e7d2c08e6",
+      "source_bindings": {
+        "objects": {
+          "tos.agent.constantin-georg-naumann": {
+            "source_ref": "ToS/source-witnesses/agents/constantin-georg-naumann/agent.json",
+            "source_sha256": "sha256:679a76196ee51d2077e010059ae7fd59ddd407d4ea9d979460ffe3d70244d2be",
+            "canonical_record_sha256": "sha256:c601f723c3f82419d87ef365abb2979726b178e339cd3a9c83630f0b203f207a",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 1
+          },
+          "tos.letter.nietzsche-naumann-1886-705": {
+            "source_ref": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+            "source_sha256": "sha256:7438af2a6b90c1a705c04c650a74e0635525c0450f303079a20d47b372446b6e",
+            "canonical_record_sha256": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5",
+            "schema_version": "tos_document_record_v1",
+            "record_version": 1
+          }
+        },
+        "evidence": {
+          "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md": {
+            "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+            "source_sha256": "sha256:1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.nietzsche-letter-705.addressee.statement-ru",
+          "version": 2,
+          "digest": "sha256:abd5d3c532773706011220ccd6b9c54309d3913ae98525937cc15b7dea2c5c48"
+        },
+        {
+          "id": "tos.form.nietzsche-letter-705.addressee-name",
+          "version": 1,
+          "digest": "sha256:ebf1bbf7d08896a2de6fb7ede8c1a9361f90d84a4fc97e90f017ad6b2269bc11"
+        },
+        {
+          "id": "tos.form.nietzsche-letter-705.addressee-caption",
+          "version": 1,
+          "digest": "sha256:5788d306ed7a0c4a693a92099ceabb3ea98577557eb4acf4ba793ee4991f9c89"
+        },
+        {
+          "id": "tos.form.nietzsche-letter-705.addressee-hover",
+          "version": 1,
+          "digest": "sha256:1d9decdc4b67ed0b7178f09cc7357d1732bc509520da3d1a1400e06f969c48de"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "claim-display:tos.claim.nietzsche-letter-705.addressee:2026-09-10",
+        "expected_configuration": "sha256:bd718df07ccdbad6fd0f51cf483a9403cc50de641c786018d40dce0ace30c14a",
+        "expected_dependencies": "sha256:07a1637243c2e1875b5bb021feae28e459491a890aac26c2e8fc155e7d2c08e6",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+              "source_sha256": "sha256:1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed"
+            }
+          },
+          "objects": {
+            "tos.agent.constantin-georg-naumann": {
+              "canonical_record_sha256": "sha256:c601f723c3f82419d87ef365abb2979726b178e339cd3a9c83630f0b203f207a",
+              "record_version": 1,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/agents/constantin-georg-naumann/agent.json",
+              "source_sha256": "sha256:679a76196ee51d2077e010059ae7fd59ddd407d4ea9d979460ffe3d70244d2be"
+            },
+            "tos.letter.nietzsche-naumann-1886-705": {
+              "canonical_record_sha256": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5",
+              "record_version": 1,
+              "schema_version": "tos_document_record_v1",
+              "source_ref": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+              "source_sha256": "sha256:7438af2a6b90c1a705c04c650a74e0635525c0450f303079a20d47b372446b6e"
+            }
+          }
+        },
+        "expected_revision": "sha256:f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba",
+        "expected_source": {
+          "digest": "sha256:166d57a5decfa28a68f6a2a0b3213cf6454648a52dc567e3872a59de0024063f",
+          "id": "tos.claim.nietzsche-letter-705.addressee",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "display_fields": {
+              "caption": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "eKGWB указывает Constantin Georg Naumann; получение и чтение письма этим не доказаны."
+              },
+              "hover": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "Идентификация адресата опирается на сохранённую заметку об eKGWB. Получение и чтение не установлены этой записью; человек не отождествляется с фирмой."
+              },
+              "name": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "Атрибуция адресата письма № 705"
+              },
+              "schema_version": "tos_claim_display_fields_v1"
+            },
+            "statement_script": null
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.nietzsche-letter-705.addressee.statement-ru"
+          },
+          {
+            "field_id": "claim.name",
+            "form_id": "tos.form.nietzsche-letter-705.addressee-name"
+          },
+          {
+            "field_id": "claim.caption",
+            "form_id": "tos.form.nietzsche-letter-705.addressee-caption"
+          },
+          {
+            "field_id": "claim.hover",
+            "form_id": "tos.form.nietzsche-letter-705.addressee-hover"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Добавить явно атрибутированные короткие формы для сцены и наведения, сохранив полное исходное утверждение, все оговорки и прежние версии. Это не изменение исторических оснований или содержательный допуск.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

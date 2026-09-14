@@ -81,6 +81,34 @@ Use it only when drift is philosophically load-bearing.
 These fields do not change the required minimum node contract.
 They make multilingual witness surfaces inspectable without splitting node identity by language.
 
+## Human representations
+
+An existing native node may explicitly opt into `tos_canonical_node_v1` with
+`schema_version` and a positive `record_version`. Its native `node_id` remains
+its identity; no bibliographic `record_id` is introduced. Unversioned historical
+nodes remain valid legacy records, not implicitly version 1. The first explicit
+version is a source-owner migration: preserve the prior bytes and review in
+history, and name that adoption rather than fabricating a past version sequence.
+Further corrections preserve identity, advance the explicit version and retain
+their predecessors; a changed digest with an unchanged version cannot rescue
+old forms or assessments.
+
+Only this opt-in permits `preferred_label`, `variant_labels` and
+`field_languages` for `preferred_label` and `distilled_thesis`. Variant names
+retain their language, optional script, source reference and separate wording
+status. They are not new subject identities or identity-equivalence assertions.
+Field language describes that wording, not the witness, the author's language
+or the interface. Unknown declarations remain unknown. Adding a name does not
+certify translation quality, accept an interpretation or grant canon/publication
+authority. The source anchor, thesis, relations and interpretation layers remain
+the same minimum contract; names cannot replace them.
+
+[HUMAN_FORMS](HUMAN_FORMS.md) governs versioned names, captions, hover text,
+exact statements, grounds, history and technical readings of the same subject.
+Forms bind source records and mandatory context; source-copy, admitted-template
+rendering and assessed freeform wording remain distinct. This is an additive
+form contract, not a replacement for a node's source or witness layers.
+
 ## Lineage before archive
 
 ToS grows best when lineage is clearer than storage.

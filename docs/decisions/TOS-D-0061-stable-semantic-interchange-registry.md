@@ -10,6 +10,19 @@
 - Guard families: source-first authority, stable identity, lossless projection, claim reification, semantic validation
 - Posture: accepted
 
+## Branch identity reconciliation
+
+This rationale also existed on the Foundation branch under TOS-D-0044, then
+TOS-D-0059 after its 2026-09-08 pre-landing collision correction. The original
+record remains at
+[`d187c3c8:docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md`](https://github.com/8Dionysus/Tree-of-Sophia/blob/d187c3c8ff7a7cb261d0be017c5dcb735643c8aa/docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md);
+the intermediate path remains in commit
+`7f59dc9147690f767e332a41dcd1503c996bbed0`. On 2026-09-14 the duplicate branch
+record was reconciled to this already-landed TOS-D-0061, with explicit current
+reference migration. Neither decision meaning, acceptance, original date nor
+source entity identity changes. Unqualified TOS-D-0059 retains its independently
+landed partitioned-projection meaning.
+
 ## Context
 
 TOS-D-0060 made graph composition backend-defined, but native source kinds and

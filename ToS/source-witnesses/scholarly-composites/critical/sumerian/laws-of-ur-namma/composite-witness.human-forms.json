@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:50bb29e215a368c065d35bf0998b3d5e617a3873e7a38f93f9cd3d8ddc204b1f",
+            "id": "tos.composite.sumerian.laws-of-ur-namma",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:50bb29e215a368c065d35bf0998b3d5e617a3873e7a38f93f9cd3d8ddc204b1f",
+            "id": "tos.composite.sumerian.laws-of-ur-namma",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:50bb29e215a368c065d35bf0998b3d5e617a3873e7a38f93f9cd3d8ddc204b1f",
+            "id": "tos.composite.sumerian.laws-of-ur-namma",
+            "version": 2
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:50bb29e215a368c065d35bf0998b3d5e617a3873e7a38f93f9cd3d8ddc204b1f",
+            "id": "tos.composite.sumerian.laws-of-ur-namma",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:50bb29e215a368c065d35bf0998b3d5e617a3873e7a38f93f9cd3d8ddc204b1f",
+            "id": "tos.composite.sumerian.laws-of-ur-namma",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.sumerian.laws-of-ur-namma.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:085c9b5e5349b3dd7eb90071352fd16cad3b11255370cded75cefa1c0e98be84",
+        "id": "tos.form.composite.sumerian.laws-of-ur-namma.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:50bb29e215a368c065d35bf0998b3d5e617a3873e7a38f93f9cd3d8ddc204b1f",
+        "id": "tos.composite.sumerian.laws-of-ur-namma",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:50bb29e215a368c065d35bf0998b3d5e617a3873e7a38f93f9cd3d8ddc204b1f",
+            "id": "tos.composite.sumerian.laws-of-ur-namma",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/editorial_object/description",
+          "record": {
+            "digest": "sha256:50bb29e215a368c065d35bf0998b3d5e617a3873e7a38f93f9cd3d8ddc204b1f",
+            "id": "tos.composite.sumerian.laws-of-ur-namma",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.sumerian.laws-of-ur-namma.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:50bb29e215a368c065d35bf0998b3d5e617a3873e7a38f93f9cd3d8ddc204b1f",
+        "id": "tos.composite.sumerian.laws-of-ur-namma",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:composite.sumerian.laws-of-ur-namma",
+      "owner_configuration": "sha256:b6b1803e78ea1d71feab863e3c0765cd201bed92653289788452c6b0e1ac28e5",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:10.916722+00:00",
+      "request_digest": "sha256:a8ec58014f89709df68f3d40e83b85043d9fbd73dbb8fffb32f9157866fc55c9",
+      "results": [
+        {
+          "digest": "sha256:085c9b5e5349b3dd7eb90071352fd16cad3b11255370cded75cefa1c0e98be84",
+          "id": "tos.form.composite.sumerian.laws-of-ur-namma.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:238838f7e0bbdcdea9b6a5195e0c72fa4e773ed58a5fb9372a9fae5a3a6d6753",
+          "id": "tos.form.composite.sumerian.laws-of-ur-namma.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:50bb29e215a368c065d35bf0998b3d5e617a3873e7a38f93f9cd3d8ddc204b1f",
+        "id": "tos.composite.sumerian.laws-of-ur-namma",
+        "version": 2
+      },
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:composite.sumerian.laws-of-ur-namma",
+      "request_digest": "sha256:e9a2e6045a89500065cd792dbfac5a329921f1a5501188a1dbf41cce902b5610",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:b6b1803e78ea1d71feab863e3c0765cd201bed92653289788452c6b0e1ac28e5",
+      "recorded_at": "2026-09-07T21:40:11.653487+00:00",
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      },
+      "source": {
+        "id": "tos.composite.sumerian.laws-of-ur-namma",
+        "version": 2,
+        "digest": "sha256:50bb29e215a368c065d35bf0998b3d5e617a3873e7a38f93f9cd3d8ddc204b1f"
+      },
+      "previous_revision": "sha256:2aac08627e420e833430faf76dd37ef6879c7de8305df9ea8836ec8e3fc167e2",
+      "results": [
+        {
+          "id": "tos.form.composite.sumerian.laws-of-ur-namma.source-name",
+          "version": 2,
+          "digest": "sha256:277a1fb518e7ef519a96d1f9bf7970bf7aacbfb8f89e83a8d0b8e4ab1d79c534"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:50bb29e215a368c065d35bf0998b3d5e617a3873e7a38f93f9cd3d8ddc204b1f",
+            "id": "tos.composite.sumerian.laws-of-ur-namma",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:50bb29e215a368c065d35bf0998b3d5e617a3873e7a38f93f9cd3d8ddc204b1f",
+            "id": "tos.composite.sumerian.laws-of-ur-namma",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.sumerian.laws-of-ur-namma.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:50bb29e215a368c065d35bf0998b3d5e617a3873e7a38f93f9cd3d8ddc204b1f",
+        "id": "tos.composite.sumerian.laws-of-ur-namma",
+        "version": 2
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.composite.sumerian.laws-of-ur-namma",
+    "version": 2,
+    "digest": "sha256:50bb29e215a368c065d35bf0998b3d5e617a3873e7a38f93f9cd3d8ddc204b1f"
+  }
+}

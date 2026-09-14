@@ -8,6 +8,7 @@
   "properties": {
     "schema": {"const": "tos_knowledge_graph_v1"},
     "source_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "normalization_binding": {"$ref": "#/$defs/normalizationBinding"},
     "query_properties": {"type": "array", "description": "Source-registry query bindings included in this graph snapshot; no request can override them.", "items": {
       "type": "object", "additionalProperties": false,
       "required": ["property_id", "field", "value_type", "applies_to", "inherited", "operators"],
@@ -26,6 +27,533 @@
     "authority_boundary": {"$ref": "#/$defs/authorityBoundary"}
   },
   "$defs": {
+    "readableContext": {
+          "title": "Source-owned readable governing context, preserving exact raw bindings",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "state",
+            "reason",
+            "vocabulary",
+            "contexts",
+            "exact_materials",
+            "exact_context_pointers",
+            "coverage",
+            "performs_semantic_assessment",
+            "performs_translation"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "tos_readable_context_v1"
+            },
+            "state": {
+              "enum": [
+                "complete",
+                "requires-exact-context",
+                "unavailable"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "vocabulary": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "version",
+                "source_ref",
+                "digest"
+              ],
+              "properties": {
+                "id": {
+                  "const": "tos.context-presentation.governing"
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "source_ref": {
+                  "const": "ToS/doctrine/semantic-interchange/entity-types.v1.json"
+                },
+                "digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                }
+              }
+            },
+            "exact_materials": {
+              "description": "Deduplicated existing canonical JSON text. Hash its UTF-8 bytes, retain number lexemes for display, and verify each real raw origin. A record binding resolves by record.digest plus source_pointer; other entries resolve by their exact value_pointer under a listed origin. This does not redefine original record or normalized graph digests.",
+              "type": "array",
+              "maxItems": 256,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["digest", "canonical_json", "origin_pointers"],
+                "properties": {
+                  "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$(?![\\s\\S])"},
+                  "canonical_json": {"type": "string", "minLength": 1, "maxLength": 32768},
+                  "origin_pointers": {
+                    "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true,
+                    "items": {"type": "string", "maxLength": 2048, "pattern": "^(?:/(?:[^~/]|~[01])*)*$(?![\\s\\S])"}
+                  }
+                }
+              }
+            },
+            "contexts": {
+              "type": "array",
+              "maxItems": 64,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "origin_pointer",
+                  "form",
+                  "entries"
+                ],
+                "properties": {
+                  "origin_pointer": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "pattern": "^(?:/(?:[^~/]|~[01])*)*$(?![\\s\\S])"
+                  },
+                  "form": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "version",
+                          "digest"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "digest": {
+                            "type": "string",
+                            "pattern": "^sha256:[a-f0-9]{64}$(?![\\s\\S])"
+                          }
+                        }
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entries": {
+                    "type": "array",
+                    "maxItems": 256,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "key",
+                        "category",
+                        "label",
+                        "explanation",
+                        "value_mode",
+                        "value_label",
+                        "language",
+                        "script",
+                        "binding",
+                        "value_pointer"
+                      ],
+                      "properties": {
+                        "key": {
+                          "type": "string"
+                        },
+                        "category": {
+                          "enum": [
+                            "governing",
+                            "technical",
+                            "unclassified"
+                          ]
+                        },
+                        "label": {
+                          "type": "object",
+                          "minProperties": 1,
+                          "maxProperties": 8,
+                          "additionalProperties": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1024
+                          },
+                          "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9-]*$"
+                          }
+                        },
+                        "explanation": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "minProperties": 1,
+                              "maxProperties": 8,
+                              "additionalProperties": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1024
+                              },
+                              "propertyNames": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z][A-Za-z0-9-]*$"
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "value_mode": {
+                          "enum": [
+                            "source-value",
+                            "vocabulary-value",
+                            "exact-reference"
+                          ]
+                        },
+                        "value": {},
+                        "value_label": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "minProperties": 1,
+                              "maxProperties": 8,
+                              "additionalProperties": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1024
+                              },
+                              "propertyNames": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z][A-Za-z0-9-]*$"
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "language": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "script": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "binding": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "record",
+                                "source_pointer"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "record"
+                                },
+                                "record": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "version",
+                                    "digest"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "version": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "digest": {
+                                      "type": "string",
+                                      "pattern": "^sha256:[a-f0-9]{64}$(?![\\s\\S])"
+                                    }
+                                  }
+                                },
+                                "source_pointer": {
+                                  "type": "string",
+                                  "maxLength": 2048,
+                                  "pattern": "^(?:/(?:[^~/]|~[01])*)*$(?![\\s\\S])"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "source_record_digest",
+                                "source_pointer"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "assertion-context"
+                                },
+                                "source_record_digest": {
+                                  "type": "string",
+                                  "pattern": "^[a-f0-9]{64}$"
+                                },
+                                "source_pointer": {
+                                  "type": "string",
+                                  "maxLength": 2048,
+                                  "pattern": "^(?:/(?:[^~/]|~[01])*)*$(?![\\s\\S])"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "form",
+                                "subject",
+                                "packet_digest",
+                                "source_pointer"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "form-materialization"
+                                },
+                                "form": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "version",
+                                    "digest"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "version": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "digest": {
+                                      "type": "string",
+                                      "pattern": "^sha256:[a-f0-9]{64}$(?![\\s\\S])"
+                                    }
+                                  }
+                                },
+                                "subject": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "version",
+                                    "digest"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "version": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "digest": {
+                                      "type": "string",
+                                      "pattern": "^sha256:[a-f0-9]{64}$(?![\\s\\S])"
+                                    }
+                                  }
+                                },
+                                "packet_digest": {
+                                  "type": "string",
+                                  "pattern": "^[a-f0-9]{64}$"
+                                },
+                                "source_pointer": {
+                                  "type": "string",
+                                  "maxLength": 2048,
+                                  "pattern": "^(?:/(?:[^~/]|~[01])*)*$(?![\\s\\S])"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "value_pointer": {
+                          "type": "string",
+                          "maxLength": 2048,
+                          "pattern": "^(?:/(?:[^~/]|~[01])*)*$(?![\\s\\S])"
+                        }
+                      },
+                      "allOf": [
+                        {
+                          "if": {
+                            "properties": {
+                              "category": {
+                                "const": "technical"
+                              }
+                            }
+                          },
+                          "then": {
+                            "properties": {
+                              "value_mode": {
+                                "const": "exact-reference"
+                              }
+                            },
+                            "not": {
+                              "required": [
+                                "value"
+                              ]
+                            }
+                          },
+                          "else": {
+                            "required": [
+                              "value"
+                            ],
+                            "properties": {
+                              "value_mode": {
+                                "enum": [
+                                  "source-value",
+                                  "vocabulary-value"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "if": {
+                            "properties": {
+                              "category": {
+                                "const": "unclassified"
+                              }
+                            }
+                          },
+                          "then": {
+                            "properties": {
+                              "value_mode": {
+                                "const": "source-value"
+                              },
+                              "value_label": {
+                                "type": "null"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "exact_context_pointers": {
+              "type": "array",
+              "maxItems": 64,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "maxLength": 2048,
+                "pattern": "^(?:/(?:[^~/]|~[01])*)*$(?![\\s\\S])"
+              }
+            },
+            "coverage": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "input_contexts",
+                "returned_contexts",
+                "entries",
+                "unclassified_entries"
+              ],
+              "properties": {
+                "input_contexts": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "returned_contexts": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 64
+                },
+                "entries": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 256
+                },
+                "unclassified_entries": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 256
+                }
+              }
+            },
+            "performs_semantic_assessment": {
+              "const": false
+            },
+            "performs_translation": {
+              "const": false
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "requires-exact-context",
+                      "unavailable"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "contexts": {
+                    "maxItems": 0
+                  },
+                  "exact_materials": {
+                    "maxItems": 0
+                  },
+                  "exact_context_pointers": {
+                    "minItems": 1
+                  },
+                  "coverage": {
+                    "properties": {
+                      "returned_contexts": {
+                        "const": 0
+                      },
+                      "entries": {
+                        "const": 0
+                      },
+                      "unclassified_entries": {
+                        "const": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
     "scene": {
       "type": "object", "additionalProperties": false,
       "required": ["schema_version", "vertices", "arcs", "collapsed_relation_ids", "focus_vertex_id", "scope", "identity_rule", "authority"],
@@ -68,7 +596,7 @@
           "type": "object", "additionalProperties": false, "required": ["node_id", "reason"],
           "properties": {"node_id": {"type": "string", "minLength": 1}, "reason": {"enum": [
             "incomplete-claim-contract", "unmapped-claim-predicate", "claim-endpoint-identity-collision",
-            "incomplete-or-ambiguous-path", "focus-claim", "mixed-or-incomplete-claim-carriers",
+            "incomplete-or-ambiguous-path", "focus-claim", "focus-relation", "mixed-or-incomplete-claim-carriers",
             "incomplete-value-member-context", "nonfoldable-incident-relation", "focus-detail"]}}
         }}
       }
@@ -90,16 +618,19 @@
           "type": "object", "additionalProperties": false,
           "required": ["mode", "node_id", "content_revision", "wording_pointer", "wording_state", "context_pointers", "relation_context_ids", "standalone"],
           "properties": {
-            "mode": {"const": "claim-with-mandatory-context"},
+            "mode": {"enum": ["claim-with-mandatory-context", "claim-with-shared-form-context-v2"]},
             "node_id": {"type": "string", "minLength": 1},
             "content_revision": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-            "wording_pointer": {"enum": [null, "/human_form_selection/roles/caption/packet", "/human_form_selection/roles/statement/packet", "/human_form_selection/roles/hover/packet", "/display_selection/fields/summary", "/display_selection/fields/title"]},
+            "wording_pointer": {"enum": [null, "/human_form_selection/roles/caption/packet", "/human_form_selection/roles/statement/packet", "/human_form_selection/roles/hover/packet", "/human_form_selection/roles/caption", "/human_form_selection/roles/statement", "/human_form_selection/roles/hover", "/display_selection/fields/summary", "/display_selection/fields/title"], "description": "The v1 mode points to an intact packet or a display field. The explicit shared-form v2 mode points to a raw v2 role envelope, whose full source packet must be reconstructed with the selection's packet_base and shared_limits before reading; the role delta is never standalone wording."},
             "wording_state": {"enum": ["available", "missing"]},
             "context_pointers": {"const": ["/semantics", "/epistemic"]},
             "relation_context_ids": {"$ref": "#/$defs/sceneIds"},
             "standalone": {"const": false}
           },
-          "allOf": [{"if": {"properties": {"wording_state": {"const": "missing"}}},
+          "allOf": [{"if": {"properties": {"mode": {"const": "claim-with-mandatory-context"}}},
+            "then": {"properties": {"wording_pointer": {"enum": [null, "/human_form_selection/roles/caption/packet", "/human_form_selection/roles/statement/packet", "/human_form_selection/roles/hover/packet", "/display_selection/fields/summary", "/display_selection/fields/title"]}}},
+            "else": {"properties": {"wording_pointer": {"enum": [null, "/human_form_selection/roles/caption", "/human_form_selection/roles/statement", "/human_form_selection/roles/hover"]}}}},
+            {"if": {"properties": {"wording_state": {"const": "missing"}}},
             "then": {"properties": {"wording_pointer": {"type": "null"}}},
             "else": {"properties": {"wording_pointer": {"type": "string"}}}}]
         }
@@ -124,6 +655,10 @@
         "else": {"properties": {"packet": {"type": "null"}}}}]
     },
     "humanFormSelection": {
+      "description": "Versioned bounded delivery, not a new materialization or assessment. V1 carries intact packets; V2 losslessly factors exact common values and is decoded before semantic consumption.",
+      "oneOf": [{"$ref": "#/$defs/humanFormSelectionV1"}, {"$ref": "#/$defs/humanFormSelectionV2"}]
+    },
+    "humanFormSelectionV1": {
       "type": "object", "additionalProperties": false,
       "required": ["schema_version", "content_revision", "requested_language", "source_ref", "state", "roles", "candidates", "issues", "performs_translation", "performs_assessment"],
       "properties": {
@@ -146,6 +681,39 @@
         "issues": {"type": "array", "items": {"type": "string"}},
         "performs_translation": {"const": false}, "performs_assessment": {"const": false}
       }
+    },
+    "humanFormRoleSelectionV2": {
+      "type": "object", "additionalProperties": false,
+      "required": ["state", "reason", "form", "packet_delta"],
+      "properties": {
+        "state": {"$ref": "#/$defs/humanFormRoleSelection/properties/state"},
+        "reason": {"$ref": "#/$defs/humanFormRoleSelection/properties/reason"},
+        "form": {"$ref": "#/$defs/humanFormRoleSelection/properties/form"},
+        "packet_delta": {"type": ["object", "null"], "not": {"type": "object", "required": ["form"]}, "description": "Exact complementary fields, not a source materialization. Recursively merge with packet_base without overwriting a leaf, restore the packet's form from this role's equal exact form reference, then restore ordered admission.limits from admission.limit_refs and shared_limits. Inline form is forbidden in base and delta. Null means no delivered ready packet; an empty object is a valid delta only for ready state."}
+      },
+      "allOf": [{"if": {"properties": {"state": {"const": "ready"}}},
+        "then": {"properties": {"form": {"$ref": "#/$defs/exactFormRef"}, "packet_delta": {"type": "object"}}},
+        "else": {"properties": {"packet_delta": {"type": "null"}}}}]
+    },
+    "humanFormSelectionV2": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "content_revision", "requested_language", "source_ref", "state", "roles", "candidates", "issues", "performs_translation", "performs_assessment", "packet_base", "shared_limits"],
+      "properties": {
+        "schema_version": {"const": "tos_human_form_selection_v2"},
+        "content_revision": {"$ref": "#/$defs/humanFormSelectionV1/properties/content_revision"},
+        "requested_language": {"$ref": "#/$defs/humanFormSelectionV1/properties/requested_language"},
+        "source_ref": {"$ref": "#/$defs/humanFormSelectionV1/properties/source_ref"},
+        "state": {"$ref": "#/$defs/humanFormSelectionV1/properties/state"},
+        "roles": {"type": "object", "required": ["name", "caption", "hover", "statement", "grounds", "history", "technical"],
+          "propertyNames": {"enum": ["name", "caption", "hover", "statement", "grounds", "history", "technical"]},
+          "additionalProperties": {"$ref": "#/$defs/humanFormRoleSelectionV2"}},
+        "candidates": {"$ref": "#/$defs/humanFormSelectionV1/properties/candidates"},
+        "issues": {"$ref": "#/$defs/humanFormSelectionV1/properties/issues"},
+        "performs_translation": {"const": false}, "performs_assessment": {"const": false},
+        "packet_base": {"type": "object", "not": {"required": ["form"]}, "description": "Recursive intersection of JSON-identical fields in every delivered ready packet after exact form-reference factoring and limits encoding. Packet form is restored from the role's equal exact reference, never from this base. No semantic unification, array reordering, missing/null conflation, assessment or admission is performed."},
+        "shared_limits": {"type": "array", "maxItems": 512, "uniqueItems": true, "items": {"type": "string"}, "description": "Literal strings, indexed in stable role and original limit order. References restore each packet's own limits, including their order and repetitions; they never union different admissions."}
+      },
+      "description": "The complete encoded envelope remains within the existing 16384-byte conservative JSON budget. Codec validation additionally bounds depth, members, exact reconstructed packets to 65536 bytes each and the expanded selection to 524288 bytes; rejects malformed references, unused pool entries, and conflicting leaves; and preserves every JSON value and type. ToS materialization and exact inspection remain v1. See human-form-delivery.md."
     },
     "sourceRecord": {
       "type": "object", "additionalProperties": false,
@@ -204,14 +772,17 @@
         "assertion_contexts": {"type": "array", "items": {"$ref": "#/$defs/assertionContext"}},
         "type_ancestors": {"type": "array", "items": {"type": "string"}},
         "annotation": {"type": "object"},
-        "claim": {"type": "object"},
+        "claim": {"type": "object", "properties": {
+          "source_canonical_json": {"type": ["string", "null"], "maxLength": 262144,
+            "description": "Only the document-catalogue-temporal-v1 reader: exact source-owner canonical Claim bytes, at most 262144 UTF-8 bytes. Full inspection retains this field; compact carriers omit it. Null, absent, over-budget or inconsistent material cannot authorize comparison. Original Claim remains in attributes.source_claim; this companion is not a new identity or assessment."}
+        }},
         "record_version": {
           "type": "object", "additionalProperties": false,
           "required": ["schema_version", "record_ref", "record_kind", "status", "reason", "version_status", "record_pointer", "grants_current_use", "performs_assessment"],
           "properties": {
             "schema_version": {"const": "tos_record_version_view_v1"},
             "record_ref": {"$ref": "#/$defs/exactFormRef"},
-            "record_kind": {"const": "claim"},
+            "record_kind": {"enum": ["claim", "metadata"]},
             "status": {"enum": ["available", "missing", "stale", "corrupt", "access-restricted", "over-budget"]},
             "reason": {"type": "string", "minLength": 1, "maxLength": 256},
             "version_status": {"enum": [null, "current", "historical"]},
@@ -329,9 +900,11 @@
         "type_id": {"$ref": "#/$defs/nonEmptyString"},
         "type_mapping": {"$ref": "#/$defs/semanticMapping"},
         "content_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "source_dossier_ref": {"type": "string", "pattern": "^tos\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$", "description": "Exact owner-provided source-navigation dossier handle. Consumers must pass this value unchanged; absence means no dossier route was advertised."},
         "display": {"$ref": "#/$defs/nodeDisplay"},
         "display_selection": {"$ref": "#/$defs/displaySelection"},
         "human_form_selection": {"$ref": "#/$defs/humanFormSelection"},
+        "readable_context": {"$ref": "#/$defs/readableContext"},
         "epistemic": {"$ref": "#/$defs/epistemic"},
         "graph_layers": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
         "view_ids": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
@@ -362,6 +935,7 @@
         "display": {"$ref": "#/$defs/relationDisplay"},
         "display_selection": {"$ref": "#/$defs/displaySelection"},
         "human_form_selection": {"$ref": "#/$defs/humanFormSelection"},
+        "readable_context": {"$ref": "#/$defs/readableContext"},
         "epistemic": {"$ref": "#/$defs/epistemic"},
         "graph_layers": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
         "view_ids": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
@@ -380,6 +954,17 @@
         "writes_to_tree": {"const": false},
         "source_owner": {"const": "Tree-of-Sophia"},
         "note": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "normalizationBinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "processor_digest", "entity_registry_digest", "relation_registry_digest", "configuration_digest"],
+      "properties": {
+        "schema": {"const": "tos_knowledge_graph_normalization_binding_v1"},
+        "processor_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "entity_registry_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "relation_registry_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "configuration_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
       }
     }
   }

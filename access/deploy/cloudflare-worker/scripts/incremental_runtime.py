@@ -10,7 +10,11 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import sqlite3
+from contextlib import ExitStack
 from pathlib import Path
+from lens_auxiliary_runtime import (PRIMARY_KEYS as AUXILIARY_KEYS, publication_operations,
+                                    publication_descriptor, MAX_PUBLICATION_BYTES)
 
 PRIMARY_KEYS = {
     'edge_meta': ('key', 'part'), 'philosophy_nodes': ('id',), 'philosophy_edges': ('id',),
@@ -19,9 +23,11 @@ PRIMARY_KEYS = {
     'philosophy_cluster_edges': ('cluster_id', 'member_ord'),
     'philosophy_review_packets': ('view_id',), 'corpus_items': ('collection', 'ord'),
     'corpus_edges': ('ord',), 'corpus_packs': ('id',), 'knowledge_nodes': ('id',),
-    'knowledge_node_payload': ('id', 'part'), 'knowledge_node_search_chunks': ('id', 'part'),
-    'knowledge_relations': ('id',), 'knowledge_relation_payload': ('id', 'part'),
-    'knowledge_relation_search_chunks': ('id', 'part'),
+    'knowledge_relations': ('id',),
+    'knowledge_search_documents': ('kind', 'position'),
+    'knowledge_search_grams': ('kind', 'n', 'gram', 'position'),
+    'knowledge_search_gram_stats': ('kind', 'n', 'gram'),
+    'knowledge_lens_order': ('kind', 'id'),
     'source_navigation_nodes': ('node_id',),
     'source_navigation_node_payload': ('id', 'part'),
     'source_navigation_edges': ('edge_id',),
@@ -29,7 +35,239 @@ PRIMARY_KEYS = {
     'source_navigation_rights': ('rights_id',),
     'source_navigation_rights_payload': ('id', 'part'),
 }
-INSERT = re.compile(r'^INSERT INTO (\w+)_next \(([^)]+)\) VALUES \((.*)\);$', re.S)
+REGISTERED_KEYS = {**PRIMARY_KEYS, **AUXILIARY_KEYS}
+# Keep this producer limit in the same module as the delta parser and import it
+# into build_runtime.  A valid producer statement is no larger than this many
+# UTF-8 bytes; the row-index limits below are derived from that contract rather
+# than from an identifier-shaped guess.
+MAX_D1_SQL_STATEMENT_BYTES = 100_000
+# A byte-only bound permits thousands of short rows and can exhaust D1's
+# statement compiler. Full and delta producers share this shape limit.
+MAX_D1_SQL_INSERT_ROWS = 512
+
+# Optional offline publisher indexes. They do not change the serving v9 row
+# schema or search order: position remains the last tie-break after id_lower.
+SEARCH_ADDRESS_INDEXES = {
+    'knowledge_search_address_id_idx': ('kind', 'id'),
+    'knowledge_search_address_tie_idx': ('kind', 'id_lower', 'position'),
+}
+MAX_SEARCH_ADDRESS = 9_007_199_254_740_991
+
+
+def _search_address_revision(db, expected_revision):
+    if not db.in_transaction:
+        raise ValueError('explicit caller transaction required')
+    if not isinstance(expected_revision, str) or not re.fullmatch('[0-9a-f]{64}', expected_revision):
+        raise ValueError('invalid expected D1 revision')
+    rows = db.execute("SELECT part,CASE WHEN length(CAST(json_chunk AS BLOB))<=1024 THEN json_chunk END "
+                      "FROM edge_meta WHERE key='data_revision' ORDER BY part LIMIT 2").fetchall()
+    if (len(rows) != 1 or rows[0][0] != 0 or rows[0][1] is None
+            or json.loads(rows[0][1]) != {'sha256': expected_revision}):
+        raise ValueError('D1 search address predecessor differs')
+
+
+def _search_address_indexes(db):
+    available = {row[1]: row for row in db.execute('PRAGMA index_list(knowledge_search_documents)')}
+    for name, columns in SEARCH_ADDRESS_INDEXES.items():
+        row = available.get(name)
+        keys = [r for r in db.execute(f'PRAGMA index_xinfo({name})') if r[5]]
+        if (row is None or row[4] or tuple(r[2] for r in keys) != columns
+                or any(r[3] or r[4] != 'BINARY' for r in keys)
+                or bool(row[2]) != (name == 'knowledge_search_address_id_idx')):
+            raise ValueError('explicit D1 search address index preparation required')
+
+
+def prepare_search_address_indexes_transaction(db, *, expected_revision, max_documents=200_000):
+    """Explicit optional maintenance; caller owns commit/rollback, never postings."""
+    _search_address_revision(db, expected_revision)
+    if type(max_documents) is not int or max_documents < 1:
+        raise ValueError('positive document preparation budget required')
+    count = db.execute('SELECT count(*) FROM (SELECT 1 FROM knowledge_search_documents LIMIT ?)',
+                       (max_documents + 1,)).fetchone()[0]
+    if count > max_documents:
+        raise ValueError('D1 search address index preparation budget exceeded')
+    for name, columns in SEARCH_ADDRESS_INDEXES.items():
+        unique = 'UNIQUE ' if name == 'knowledge_search_address_id_idx' else ''
+        db.execute(f'CREATE {unique}INDEX IF NOT EXISTS {name} ON knowledge_search_documents ({",".join(columns)})')
+    _search_address_indexes(db)
+    return {'documents': count, 'indexes': list(SEARCH_ADDRESS_INDEXES),
+            'row_mutations': 0, 'posting_mutations': 0, 'committed': False}
+
+
+def plan_search_addresses_transaction(db, *, expected_revision, kind, successor_groups,
+                                      max_groups=64, max_members=512, max_key_bytes=1_048_576):
+    """Plan stable posting addresses for complete successor id_lower tie groups.
+
+    The source publisher supplies and verifies the complete desired order in
+    each group. This read-only planner proves exact predecessor membership and
+    reserves disjoint addresses; it does not prove source closure, publish rows
+    or accept a partial group as a complete source transition.
+    """
+    _search_address_revision(db, expected_revision)
+    _search_address_indexes(db)
+    if kind not in ('nodes', 'relations'):
+        raise ValueError('unknown search address kind')
+    if any(type(n) is not int or n < 1 for n in (max_groups, max_members, max_key_bytes)):
+        raise ValueError('positive search address budgets required')
+    if not isinstance(successor_groups, dict) or len(successor_groups) > max_groups:
+        raise ValueError('search address group budget exceeded')
+    used = 0
+    for lower, ids in successor_groups.items():
+        if (not isinstance(lower, str) or not lower or lower.lower() != lower
+                or not isinstance(ids, (list, tuple)) or len(ids) > max_members
+                or any(not isinstance(i, str) or not i or i.lower() != lower for i in ids)
+                or len(set(ids)) != len(ids)):
+            raise ValueError('invalid complete successor search tie group')
+        used += len(lower.encode('utf-8')) + sum(len(i.encode('utf-8')) for i in ids)
+    if used > max_key_bytes or sum(map(len, successor_groups.values())) > max_members:
+        raise ValueError('search address successor budget exceeded')
+    last = db.execute('SELECT position FROM knowledge_search_documents WHERE kind=? '
+                      'ORDER BY position DESC LIMIT 1', (kind,)).fetchone()
+    high = -1 if last is None else last[0]
+    if type(high) is not int or high < -1 or high > MAX_SEARCH_ADDRESS:
+        raise ValueError('invalid search address high water')
+    initial_high, before, after = high, {}, {}
+    for lower, ids in successor_groups.items():
+        rows = db.execute('WITH selected AS (SELECT id,position FROM knowledge_search_documents '
+            'INDEXED BY knowledge_search_address_tie_idx WHERE kind=? AND id_lower=? '
+            'ORDER BY position LIMIT ?), framed AS (SELECT id,position, '
+            'sum(length(CAST(id AS BLOB))) OVER (ORDER BY position ROWS UNBOUNDED PRECEDING) AS bytes '
+            'FROM selected) SELECT CASE WHEN bytes<=? THEN id END,position FROM framed ORDER BY position',
+            (kind, lower, max_members - len(before) + 1, max_key_bytes - used)).fetchall()
+        if len(before) + len(rows) > max_members:
+            raise ValueError('search address predecessor member budget exceeded')
+        for identity, position in rows:
+            if (not isinstance(identity, str) or identity.lower() != lower
+                    or type(position) is not int or not 0 <= position <= initial_high):
+                raise ValueError('invalid predecessor search tie member')
+            used += len(identity.encode('utf-8'))
+            if used > max_key_bytes:
+                raise ValueError('search address predecessor byte budget exceeded')
+            before[identity] = position
+        for identity in ids:
+            found = db.execute('SELECT position,id_lower FROM knowledge_search_documents '
+                'INDEXED BY knowledge_search_address_id_idx WHERE kind=? AND id=?', (kind, identity)).fetchone()
+            if found is not None and (found[1] != lower or before.get(identity) != found[0]):
+                raise ValueError('search identity is omitted from its predecessor group')
+        retained_order = [identity for identity, _ in rows if identity in ids]
+        # Deletion and content-only change keep posting addresses. Addition or
+        # reordering relocates only this complete tie group above the high water.
+        if list(ids) == retained_order:
+            after.update((identity, before[identity]) for identity in ids)
+        else:
+            if high + len(ids) > MAX_SEARCH_ADDRESS:
+                raise ValueError('search address space exhausted')
+            for identity in ids:
+                high += 1
+                after[identity] = high
+    return {'schema': 'tos_d1_search_address_plan_v1', 'base_revision': expected_revision,
+            'kind': kind, 'high_water_before': initial_high, 'high_water_after': high,
+            'before': before, 'after': after,
+            'changed_ids': sorted(i for i in before.keys() | after.keys() if before.get(i) != after.get(i)),
+            'source_closure_verified': False, 'committed': False}
+
+# append_chunkable_insert admits a complete SQLite row whose SQL value
+# literals total at most this many UTF-8 bytes.  Keep the historical row-index
+# contract at least this broad even though ordinary primary keys are much
+# smaller than one statement.
+MAX_D1_SQL_ROW_VALUE_BYTES = 2_000_000
+# json.dumps(..., ensure_ascii=False) can expand one source code point to six
+# characters (for example ``\\u0000``).  The outer rows object JSON-encodes the
+# already JSON-encoded composite key once more, doubling its backslashes and
+# quotes.  Reserve framing for the key list/object, digest, and delimiters.
+ROW_INDEX_JSON_ESCAPE_MAX_CHARS = 6
+ROW_INDEX_JSON_FRAMING_CHARS = 4_096
+ROW_INDEX_MAX_INNER_KEY_CHARS = (
+    ROW_INDEX_JSON_ESCAPE_MAX_CHARS * MAX_D1_SQL_STATEMENT_BYTES
+    + ROW_INDEX_JSON_FRAMING_CHARS
+)
+ROW_INDEX_MAX_ROW_CHARS = (
+    ROW_INDEX_JSON_ESCAPE_MAX_CHARS * MAX_D1_SQL_ROW_VALUE_BYTES
+    + ROW_INDEX_JSON_FRAMING_CHARS
+)
+ROW_INDEX_MAX_KEY_CHARS = (
+    2 * ROW_INDEX_MAX_INNER_KEY_CHARS + ROW_INDEX_JSON_FRAMING_CHARS
+)
+# The current envelope has only short schema/revision fields.  Unknown future
+# header values remain bounded and fail closed until their contract is explicit.
+ROW_INDEX_MAX_HEADER_CHARS = 8_192
+INSERT = re.compile(r'^INSERT INTO (\w+)_next \(([^)]+)\) VALUES (.*);$', re.S)
+
+
+def sql_value_literals(text: str) -> list[str]:
+    """Split one producer VALUES row without interpreting its literals."""
+    result = []
+    start = 0
+    quoted = False
+    depth = 0
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char == "'":
+            if quoted and index + 1 < len(text) and text[index + 1] == "'":
+                index += 2
+                continue
+            quoted = not quoted
+        elif not quoted and char == '(':
+            depth += 1
+        elif not quoted and char == ')':
+            depth -= 1
+            if depth < 0:
+                raise ValueError('invalid producer SQL value literals')
+        elif char == ',' and not quoted and depth == 0:
+            result.append(text[start:index].strip())
+            start = index + 1
+        index += 1
+    if quoted or depth:
+        raise ValueError('invalid producer SQL value literals')
+    result.append(text[start:].strip())
+    if any(not value for value in result):
+        raise ValueError('invalid producer SQL value literals')
+    return result
+
+
+def sql_value_rows(text: str) -> list[str]:
+    """Split a bounded INSERT VALUES list into parenthesis-free row bodies."""
+    rows = []
+    index = 0
+    length = len(text)
+    while index < length:
+        while index < length and text[index].isspace():
+            index += 1
+        if index >= length or text[index] != '(':
+            raise ValueError('invalid producer SQL VALUES rows')
+        start = index + 1
+        depth = 1
+        quoted = False
+        index += 1
+        while index < length:
+            char = text[index]
+            if char == "'":
+                if quoted and index + 1 < length and text[index + 1] == "'":
+                    index += 2
+                    continue
+                quoted = not quoted
+            elif not quoted and char == '(':
+                depth += 1
+            elif not quoted and char == ')':
+                depth -= 1
+                if depth == 0:
+                    rows.append(text[start:index].strip())
+                    index += 1
+                    break
+            index += 1
+        else:
+            raise ValueError('invalid producer SQL VALUES rows')
+        if quoted or depth:
+            raise ValueError('invalid producer SQL VALUES rows')
+        while index < length and text[index].isspace():
+            index += 1
+        if index == length:
+            return rows
+        if text[index] != ',':
+            raise ValueError('invalid producer SQL VALUES rows')
+        index += 1
+    return rows
 
 
 def sql_prefix_values(text: str, count: int) -> list[str]:
@@ -57,25 +295,414 @@ def sql_prefix_values(text: str, count: int) -> list[str]:
     return result[:count]
 
 
+class DiskRowIndex:
+    """Bounded-on-RAM row index used by the offline full producer.
+
+    The published ``read-model.rows.json`` shape is intentionally unchanged.
+    This temporary SQLite store keeps the same key/digest/value-literal records
+    on disk while SQL is emitted, then writes that JSON shape in producer table
+    and encounter order at finish.  The sidecar is never a serving carrier.
+    """
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        # A previous interrupted attempt cannot be a baseline for this run.
+        # The exact sidecar path belongs to the caller's locked build runtime.
+        self.path.unlink(missing_ok=True)
+        self.connection = sqlite3.connect(self.path)
+        self.connection.execute("PRAGMA journal_mode=OFF")
+        self.connection.execute("PRAGMA synchronous=OFF")
+        self.connection.execute("PRAGMA temp_store=FILE")
+        self.connection.execute("PRAGMA cache_size=-32768")
+        self.connection.execute(
+            "CREATE TABLE rows ("
+            "table_name TEXT NOT NULL, sequence INTEGER NOT NULL, "
+            "row_key TEXT NOT NULL, digest TEXT NOT NULL, values_json TEXT NOT NULL, "
+            "PRIMARY KEY (table_name, row_key)) WITHOUT ROWID"
+        )
+        self.connection.execute(
+            "CREATE INDEX rows_table_sequence ON rows(table_name, sequence)"
+        )
+        self.sequence = 0
+        self.closed = False
+
+    def record(self, table: str, key: str, digest: str, values: list[str]) -> None:
+        values_json = json.dumps(values, ensure_ascii=False, separators=(",", ":"))
+        # The producer's statement byte limit and the nested JSON framing above
+        # bound both representations.  Keep writer and streaming reader on the
+        # same fail-closed contract for malformed/future callers too.
+        if len(json.dumps(key, ensure_ascii=False, separators=(",", ":"))) > ROW_INDEX_MAX_KEY_CHARS:
+            raise ValueError("producer row key exceeds its bounded JSON size")
+        if len(values_json) + len('{"digest":"' + digest + '","values":}') > ROW_INDEX_MAX_ROW_CHARS:
+            raise ValueError("producer row values exceed their bounded JSON size")
+        try:
+            self.connection.execute(
+                "INSERT INTO rows(table_name,sequence,row_key,digest,values_json) VALUES (?,?,?,?,?)",
+                (
+                    table,
+                    self.sequence,
+                    key,
+                    digest,
+                    values_json,
+                ),
+            )
+        except sqlite3.IntegrityError as error:
+            raise ValueError(f"duplicate producer row {table}:{key}") from error
+        self.sequence += 1
+        # Keep rollback/journal and dirty-page retention bounded even for a
+        # large full corpus.  The sidecar is disposable and never published.
+        if self.sequence % 4096 == 0:
+            self.connection.commit()
+
+    def contains(self, table: str, key: str) -> bool:
+        return self.connection.execute(
+            "SELECT 1 FROM rows WHERE table_name=? AND row_key=? LIMIT 1",
+            (table, key),
+        ).fetchone() is not None
+
+    def iter_table(self, table: str):
+        return self.connection.execute(
+            "SELECT row_key,digest,values_json FROM rows "
+            "WHERE table_name=? ORDER BY sequence",
+            (table,),
+        )
+
+    def write_json(self, output: Path, schema: str, revision: str, *, tables=PRIMARY_KEYS, auxiliary_publication=None) -> None:
+        """Materialize the historical JSON row-index contract once, at EOF."""
+        self.connection.commit()
+        output.parent.mkdir(parents=True, exist_ok=True)
+        with output.open("w", encoding="utf-8") as stream:
+            stream.write("{\"schema\":")
+            stream.write(json.dumps(schema, ensure_ascii=False, separators=(",", ":")))
+            stream.write(",\"revision\":")
+            stream.write(json.dumps(revision, ensure_ascii=False, separators=(",", ":")))
+            if auxiliary_publication is not None:
+                stream.write(',"auxiliary_publication":')
+                stream.write(json.dumps(auxiliary_publication, ensure_ascii=False, separators=(',', ':')))
+            stream.write(",\"rows\":{")
+            for table_index, table in enumerate(tables):
+                if table_index:
+                    stream.write(",")
+                stream.write(json.dumps(table, ensure_ascii=False, separators=(",", ":")))
+                stream.write(":{")
+                first = True
+                for key, digest, values_json in self.iter_table(table):
+                    if not first:
+                        stream.write(",")
+                    first = False
+                    stream.write(json.dumps(key, ensure_ascii=False, separators=(",", ":")))
+                    stream.write(":")
+                    stream.write("{\"digest\":")
+                    stream.write(json.dumps(digest, ensure_ascii=False, separators=(",", ":")))
+                    stream.write(",\"values\":")
+                    stream.write(values_json)
+                    stream.write("}")
+                stream.write("}")
+            stream.write("}}\n")
+
+    def close(self) -> None:
+        if self.closed:
+            return
+        try:
+            self.connection.commit()
+        finally:
+            try:
+                self.connection.close()
+            finally:
+                self.closed = True
+
+
+class _JsonStream:
+    """Small incremental JSON reader used only for the previous row index."""
+
+    def __init__(self, path: Path, *, chunk_chars: int = 64 * 1024) -> None:
+        self.stream = path.open("r", encoding="utf-8")
+        self.chunk_chars = chunk_chars
+        self.buffer = ""
+        self.position = 0
+        self.eof = False
+        self.decoder = json.JSONDecoder()
+
+    def close(self) -> None:
+        self.stream.close()
+
+    def _compact(self) -> None:
+        if self.position:
+            self.buffer = self.buffer[self.position:]
+            self.position = 0
+
+    def _fill(self, max_chars: int | None = None) -> None:
+        if self.eof:
+            return
+        self._compact()
+        if max_chars is not None:
+            remaining = max_chars - len(self.buffer)
+            if remaining <= 0:
+                raise ValueError("row index JSON value exceeds its bounded size")
+            chunk = self.stream.read(min(self.chunk_chars, remaining))
+        else:
+            chunk = self.stream.read(self.chunk_chars)
+        if chunk:
+            self.buffer += chunk
+        else:
+            self.eof = True
+
+    def _skip_whitespace(self) -> None:
+        while True:
+            while self.position < len(self.buffer) and self.buffer[self.position].isspace():
+                self.position += 1
+            if self.position < len(self.buffer) or self.eof:
+                return
+            self._fill()
+
+    def _peek(self) -> str | None:
+        self._skip_whitespace()
+        if self.position >= len(self.buffer):
+            return None
+        return self.buffer[self.position]
+
+    def _expect(self, expected: str) -> None:
+        self._skip_whitespace()
+        if self.position >= len(self.buffer) or self.buffer[self.position] != expected:
+            raise ValueError(f"invalid row index JSON; expected {expected!r}")
+        self.position += 1
+
+    def value(self, *, max_chars: int | None = None):
+        self._skip_whitespace()
+        self._compact()
+        while True:
+            if not self.buffer and not self.eof:
+                self._fill(max_chars)
+            try:
+                value, end = self.decoder.raw_decode(self.buffer, 0)
+            except json.JSONDecodeError as error:
+                if self.eof:
+                    raise ValueError("invalid row index JSON") from error
+                if max_chars is not None and len(self.buffer) >= max_chars:
+                    raise ValueError("row index JSON value exceeds its bounded size") from error
+                self._fill(max_chars)
+                continue
+            if max_chars is not None and end > max_chars:
+                raise ValueError("row index JSON value exceeds its bounded size")
+            self.position = end
+            return value
+
+    def string(self, *, max_chars: int | None = None) -> str:
+        value = self.value(max_chars=max_chars)
+        if not isinstance(value, str):
+            raise ValueError("row index JSON object keys must be strings")
+        return value
+
+    def object(self, consume, *, key_max_chars: int | None = None):
+        self._expect("{")
+        if self._peek() == "}":
+            self.position += 1
+            return
+        while True:
+            key = self.string(max_chars=key_max_chars)
+            self._expect(":")
+            consume(key, self)
+            separator = self._peek()
+            if separator == "}":
+                self.position += 1
+                return
+            self._expect(",")
+
+
+class DiskRowBaseline:
+    """Stream a published row-index JSON into a disposable lookup database.
+
+    Incremental builds need random digest lookups while producing the next
+    carrier, but loading the historical JSON into one Python object defeats the
+    producer's memory bound.  Only one JSON row is decoded at a time; the
+    complete previous index remains on disk and is never published.
+    """
+
+    def __init__(self, source: Path, expected_schema: str, path: Path | None = None,
+                 *, max_value_chars: int = ROW_INDEX_MAX_ROW_CHARS) -> None:
+        if max_value_chars < 1:
+            raise ValueError("row index JSON value bound must be positive")
+        self.source = source
+        self.path = path or source.with_name(source.name + ".baseline.sqlite")
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.unlink(missing_ok=True)
+        self.connection = sqlite3.connect(self.path)
+        self.connection.execute("PRAGMA journal_mode=OFF")
+        self.connection.execute("PRAGMA synchronous=OFF")
+        self.connection.execute("PRAGMA temp_store=FILE")
+        self.connection.execute("PRAGMA cache_size=-32768")
+        self.connection.execute(
+            "CREATE TABLE rows ("
+            "table_name TEXT NOT NULL, sequence INTEGER NOT NULL, "
+            "row_key TEXT NOT NULL, digest TEXT NOT NULL, values_json TEXT NOT NULL, "
+            "PRIMARY KEY (table_name, row_key)) WITHOUT ROWID"
+        )
+        self.connection.execute(
+            "CREATE INDEX rows_table_sequence ON rows(table_name, sequence)"
+        )
+        self.schema = None
+        self.revision = None
+        self.auxiliary_publication = None
+        self.rows_seen = False
+        self.closed = False
+        self._load(expected_schema, max_value_chars)
+
+    def _load(self, expected_schema: str, max_value_chars: int) -> None:
+        parser = _JsonStream(self.source)
+        sequence = 0
+
+        def read_rows(_key: str, stream: _JsonStream) -> None:
+            nonlocal sequence
+
+            def read_table(table: str, table_stream: _JsonStream) -> None:
+                nonlocal sequence
+
+                def read_row(row_key: str, row_stream: _JsonStream) -> None:
+                    nonlocal sequence
+                    row = row_stream.value(max_chars=max_value_chars)
+                    if not isinstance(row, dict):
+                        raise ValueError("row index entries must be objects")
+                    digest = row.get("digest")
+                    values = row.get("values")
+                    if not isinstance(digest, str) or not isinstance(values, list):
+                        raise ValueError("row index entries require digest and values")
+                    self.connection.execute(
+                        "INSERT INTO rows(table_name,sequence,row_key,digest,values_json) VALUES (?,?,?,?,?)",
+                        (
+                            table,
+                            sequence,
+                            row_key,
+                            digest,
+                            json.dumps(values, ensure_ascii=False, separators=(",", ":")),
+                        ),
+                    )
+                    sequence += 1
+                    if sequence % 4096 == 0:
+                        self.connection.commit()
+
+                table_stream.object(read_row, key_max_chars=ROW_INDEX_MAX_KEY_CHARS)
+
+            stream.object(read_table, key_max_chars=ROW_INDEX_MAX_KEY_CHARS)
+
+        def read_header(key: str, stream: _JsonStream) -> None:
+            if key == "schema":
+                self.schema = stream.value(max_chars=ROW_INDEX_MAX_HEADER_CHARS)
+            elif key == "revision":
+                self.revision = stream.value(max_chars=ROW_INDEX_MAX_HEADER_CHARS)
+            elif key == 'auxiliary_publication':
+                self.auxiliary_publication = stream.value(max_chars=MAX_PUBLICATION_BYTES)
+            elif key == "rows":
+                self.rows_seen = True
+                read_rows(key, stream)
+            else:
+                # Keep the parser strict about structure while ignoring only
+                # future top-level metadata fields.
+                stream.value(max_chars=ROW_INDEX_MAX_HEADER_CHARS)
+
+        try:
+            parser.object(read_header, key_max_chars=ROW_INDEX_MAX_KEY_CHARS)
+            if parser._peek() is not None:
+                raise ValueError("invalid row index JSON trailing content")
+        finally:
+            parser.close()
+        self.connection.commit()
+        if self.schema != expected_schema:
+            # Keep the parsed metadata for DeltaRecorder's schema gate, but no
+            # rows from a different schema may participate in a delta.
+            self.connection.execute("DELETE FROM rows")
+            self.connection.commit()
+        elif not self.rows_seen or not isinstance(self.revision, str):
+            raise ValueError("row index baseline is missing its revision or rows")
+
+    def digest(self, table: str, key: str) -> str | None:
+        row = self.connection.execute(
+            "SELECT digest FROM rows WHERE table_name=? AND row_key=? LIMIT 1",
+            (table, key),
+        ).fetchone()
+        return None if row is None else row[0]
+
+    def tables(self):
+        return self.connection.execute(
+            "SELECT table_name FROM rows GROUP BY table_name ORDER BY min(sequence)"
+        )
+
+    def iter_table(self, table: str):
+        return self.connection.execute(
+            "SELECT row_key,digest,values_json FROM rows "
+            "WHERE table_name=? ORDER BY sequence",
+            (table,),
+        )
+
+    def close(self) -> None:
+        if self.closed:
+            return
+        try:
+            self.connection.commit()
+        finally:
+            try:
+                self.connection.close()
+            finally:
+                self.closed = True
+                self.path.unlink(missing_ok=True)
+
+    def __del__(self) -> None:
+        try:
+            self.close()
+        except Exception:
+            pass
+
+
 class DeltaRecorder:
-    def __init__(self, target: Path, revision: str, schema: str, previous: dict | None = None):
+    def __init__(
+        self,
+        target: Path,
+        revision: str,
+        schema: str,
+        previous: dict | None = None,
+        *,
+        index_store_path: Path | None = None,
+        auxiliary_bindings: dict | None = None,
+        publication_top: dict | None = None,
+    ):
+        self.auxiliary_bindings = auxiliary_bindings or {}
+        if not set(self.auxiliary_bindings) <= set(AUXILIARY_KEYS):
+            raise ValueError('unknown auxiliary publication store')
+        self.tables = {table: keys for table, keys in REGISTERED_KEYS.items()
+                       if table not in AUXILIARY_KEYS or table in self.auxiliary_bindings}
+        self.auxiliary_publication = None if publication_top is None else publication_descriptor(publication_top)
+        if self.auxiliary_publication is not None and (set(self.auxiliary_bindings) != set(AUXILIARY_KEYS)
+                or publication_top['data_revision'] != revision or publication_top['read_model_schema'] != schema):
+            raise ValueError('full auxiliary publication descriptor differs from selected producer')
         self.target = target
         self.revision = revision
         self.schema = schema
-        self.previous = previous if previous and previous.get('schema') == schema else None
-        self.index: dict[str, dict[str, dict]] = {table: {} for table in PRIMARY_KEYS}
-        self.staged_counts = {table: 0 for table in PRIMARY_KEYS}
-        self.key_counts = {table: 0 for table in PRIMARY_KEYS}
+        self._disk_baseline = previous if isinstance(previous, DiskRowBaseline) else None
+        if self._disk_baseline is not None:
+            self.previous = self._disk_baseline if self._disk_baseline.schema == schema else None
+        else:
+            self.previous = previous if previous and previous.get('schema') == schema else None
+        self._disk_index = DiskRowIndex(index_store_path) if index_store_path is not None else None
+        self.index: dict[str, dict[str, dict]] = ({table: {} for table in self.tables}
+                                                   if self._disk_index is None else {})
+        self.staged_counts = {table: 0 for table in self.tables}
+        self.key_counts = {table: 0 for table in self.tables}
         self.pending: tuple[str, str, list[str], list[str]] | None = None
         self.changed_rows = 0
         self.reused_rows = 0
         self.removed_rows = 0
         self.statements = 0
+        # At most two bounded streams: stage keys and their independent rows.
+        # A non-INSERT flushes both, preserving chunk UPDATE ordering and the
+        # publication boundary without retaining a whole table in memory.
+        self._insert_batches: dict[str, tuple[list[str], int]] = {}
         self.pending_path = target.with_name(target.name + '.next')
         self.stream = self.pending_path.open('w', encoding='utf-8')
         self.prefix = 'tos_delta_' + revision[:16]
+        self.finished = False
+        self.published = False
         if self.previous:
-            for table, keys in PRIMARY_KEYS.items():
+            for table, keys in self.tables.items():
                 stage = self.stage(table)
                 self.write(f'DROP TABLE IF EXISTS {stage};')
                 self.write(f'CREATE TABLE {stage} AS SELECT * FROM {table} WHERE 0;')
@@ -83,44 +710,113 @@ class DeltaRecorder:
                 self.write(f'CREATE TABLE {stage}_keys AS SELECT {", ".join(keys)} FROM {table} WHERE 0;')
                 self.write(f'CREATE UNIQUE INDEX {stage}_keys_idx ON {stage}_keys ({", ".join(keys)});')
 
+    def close(self) -> None:
+        """Release owned resources, retaining incomplete diagnostic SQL only.
+
+        Do not flush pending rows, mark completion or publish. Cleanup attempts
+        every acquired resource even if one close fails. A released sidecar
+        must not later be removed again after its path has been reused.
+        """
+        with ExitStack() as cleanup:
+            baseline = getattr(self, '_disk_baseline', None)
+            if baseline is not None:
+                cleanup.callback(baseline.close)
+            index = getattr(self, '_disk_index', None)
+            if index is not None and not index.closed:
+                cleanup.callback(index.path.unlink, missing_ok=True)
+                cleanup.callback(index.close)
+            stream = getattr(self, 'stream', None)
+            if stream is not None and not stream.closed:
+                cleanup.callback(stream.close)
+
+    def __del__(self) -> None:
+        # Defensive compatibility for callers abandoning an unfinished object.
+        # The full producer uses explicit close, not this fallback.
+        try:
+            self.close()
+        except Exception:
+            pass
+
     def stage(self, table: str) -> str:
         return self.prefix + '_' + table
 
     def write(self, statement: str):
-        if len(statement.encode('utf-8')) > 100_000:
+        self._flush_inserts()
+        self._write_raw(statement)
+
+    def _write_raw(self, statement: str):
+        if len(statement.encode('utf-8')) > MAX_D1_SQL_STATEMENT_BYTES:
             raise ValueError('delta SQL statement exceeds D1 limit')
         self.stream.write(statement + '\n')
         self.statements += 1
+
+    def _flush_insert(self, prefix: str):
+        rows, _ = self._insert_batches.pop(prefix)
+        self._write_raw(prefix + ','.join(rows) + ';')
+
+    def _flush_inserts(self):
+        for prefix in tuple(self._insert_batches):
+            self._flush_insert(prefix)
+
+    def _queue_insert(self, prefix: str, row: str):
+        prefix_bytes = len(prefix.encode('utf-8')) + 1  # final semicolon
+        row_bytes = len(row.encode('utf-8'))
+        if prefix_bytes + row_bytes > MAX_D1_SQL_STATEMENT_BYTES:
+            raise ValueError('delta SQL statement exceeds D1 limit')
+        if prefix not in self._insert_batches and len(self._insert_batches) == 2:
+            self._flush_inserts()
+        rows, size = self._insert_batches.get(prefix, ([], prefix_bytes))
+        if rows and (len(rows) >= MAX_D1_SQL_INSERT_ROWS or size + 1 + row_bytes > MAX_D1_SQL_STATEMENT_BYTES):
+            self._flush_insert(prefix)
+            rows, size = [], prefix_bytes
+        size += row_bytes + bool(rows)
+        rows.append(row)
+        self._insert_batches[prefix] = rows, size
 
     def observe(self, statement: str):
         match = INSERT.match(statement)
         if match:
             self.flush()
             table, columns_text, values_text = match.groups()
-            if table not in PRIMARY_KEYS:
+            if table not in self.tables:
                 raise ValueError('unregistered incremental table: ' + table)
             columns = [col.strip() for col in columns_text.split(',')]
-            positions = [columns.index(key) for key in PRIMARY_KEYS[table]]
-            prefix = sql_prefix_values(values_text, max(positions) + 1)
-            values = [prefix[position] for position in positions]
-            key = json.dumps(values, ensure_ascii=False, separators=(',', ':'))
-            self.pending = table, key, values, [statement]
+            positions = [columns.index(key) for key in self.tables[table]]
+            rows = sql_value_rows(values_text)
+            if len(rows) == 1:
+                values = sql_value_literals(rows[0])
+                key_values = [values[position] for position in positions]
+                key = json.dumps(key_values, ensure_ascii=False, separators=(',', ':'))
+                self.pending = table, key, key_values, [statement]
+            else:
+                # The producer batches only independent posting/stat rows.
+                # Split them before indexing so unchanged rows can be omitted
+                # from a delta and changed rows can be staged individually.
+                for row in rows:
+                    values = sql_value_literals(row)
+                    key_values = [values[position] for position in positions]
+                    key = json.dumps(key_values, ensure_ascii=False, separators=(',', ':'))
+                    row_statement = f'INSERT INTO {table}_next ({columns_text}) VALUES ({row});'
+                    self._record(table, key, key_values, [row_statement])
         elif self.pending and statement.startswith(f'UPDATE {self.pending[0]}_next SET '):
             self.pending[3].append(statement)
         else:
             self.flush()
 
-    def flush(self):
-        if not self.pending:
-            return
-        table, key, values, statements = self.pending
-        self.pending = None
-        if key in self.index[table]:
-            raise ValueError(f'duplicate producer row {table}:{key}')
+    def _record(self, table: str, key: str, values: list[str], statements: list[str]):
         digest = hashlib.sha256('\n'.join(statements).encode()).hexdigest()
-        self.index[table][key] = {'digest': digest, 'values': values}
-        before = (self.previous or {}).get('rows', {}).get(table, {}).get(key)
-        if before and before['digest'] == digest:
+        if self._disk_index is None:
+            if key in self.index[table]:
+                raise ValueError(f'duplicate producer row {table}:{key}')
+            self.index[table][key] = {'digest': digest, 'values': values}
+        else:
+            self._disk_index.record(table, key, digest, values)
+        if self._disk_baseline is not None:
+            before_digest = self._disk_baseline.digest(table, key) if self.previous else None
+        else:
+            before = (self.previous or {}).get('rows', {}).get(table, {}).get(key)
+            before_digest = before.get('digest') if before else None
+        if before_digest == digest:
             self.reused_rows += 1
             return
         self.changed_rows += 1
@@ -129,24 +825,50 @@ class DeltaRecorder:
         stage = self.stage(table)
         self.staged_counts[table] += 1
         self.key_counts[table] += 1
-        self.write(f'INSERT INTO {stage}_keys VALUES ({", ".join(values)});')
+        self._queue_insert(f'INSERT INTO {stage}_keys VALUES ', f'({", ".join(values)})')
         for statement in statements:
-            self.write(statement.replace(table + '_next', stage, 1))
+            match = INSERT.match(statement) if len(statements) == 1 else None
+            if match:
+                self._queue_insert(f'INSERT INTO {stage} ({match.group(2)}) VALUES ', match.group(3))
+            else:
+                self.write(statement.replace(table + '_next', stage, 1))
 
-    def finish(self) -> dict:
+    def flush(self):
+        if not self.pending:
+            return
+        table, key, values, statements = self.pending
+        self.pending = None
+        self._record(table, key, values, statements)
+
+    def finish(self, *, index_output: Path | None = None, publish: bool = True) -> dict | None:
+        if self._disk_index is not None and index_output is None:
+            raise ValueError('disk-backed row index requires an index output path')
         self.flush()
         if self.previous:
-            for table, prior_rows in self.previous['rows'].items():
-                if table not in PRIMARY_KEYS:
+            if self._disk_baseline is not None:
+                baseline_tables = ((table, self._disk_baseline.iter_table(table))
+                                   for (table,) in self._disk_baseline.tables())
+            else:
+                baseline_tables = self.previous['rows'].items()
+            for table, prior_rows in baseline_tables:
+                if table not in REGISTERED_KEYS:
                     raise ValueError('baseline contains an unknown table')
-                for key, before in prior_rows.items():
-                    if key not in self.index[table]:
-                        if len(before['values']) != len(PRIMARY_KEYS[table]) or any(not re.fullmatch(r"'(?:''|[^'])*'|-?[0-9]+|NULL", value, re.S) for value in before['values']):
+                rows = (prior_rows.items() if self._disk_baseline is None else
+                        ((key, {'digest': digest, 'values': json.loads(values_json)})
+                         for key, digest, values_json in prior_rows))
+                for key, before in rows:
+                    if table not in self.tables:
+                        raise ValueError('auxiliary baseline requires explicit publication bindings')
+                    present = (self._disk_index.contains(table, key)
+                               if self._disk_index is not None else key in self.index[table])
+                    if not present:
+                        if len(before['values']) != len(self.tables[table]) or any(not re.fullmatch(r"'(?:''|[^'])*'|-?[0-9]+|NULL", value, re.S) for value in before['values']):
                             raise ValueError('invalid baseline key literal')
                         self.removed_rows += 1
                         self.key_counts[table] += 1
-                        self.write(f'INSERT INTO {self.stage(table)}_keys VALUES ({", ".join(before["values"])});')
-            base = self.previous['revision']
+                        self._queue_insert(f'INSERT INTO {self.stage(table)}_keys VALUES ', f'({", ".join(before["values"])})')
+            base = (self._disk_baseline.revision if self._disk_baseline is not None
+                    else self.previous['revision'])
             if not re.fullmatch(r'[0-9a-f]{64}', base) or not re.fullmatch(r'[0-9a-f]{64}', self.revision):
                 raise ValueError('invalid revision digest')
             current_revision = "(SELECT json_extract(group_concat(json_chunk, ''), '$.sha256') FROM (SELECT json_chunk FROM edge_meta WHERE key = 'data_revision' ORDER BY part))"
@@ -154,32 +876,76 @@ class DeltaRecorder:
             self.write('CREATE TABLE IF NOT EXISTS tos_delta_publications (revision TEXT PRIMARY KEY, base_revision TEXT NOT NULL);')
             self.write(f'DROP TRIGGER IF EXISTS {publication};')
             operations = [f"SELECT CASE WHEN {current_revision} IS NOT '{base}' THEN RAISE(ABORT, 'stale delta baseline') END;"]
-            for table, keys in PRIMARY_KEYS.items():
+            guards, seals = publication_operations(self.auxiliary_bindings)
+            operations.extend(guards)
+            for table, keys in self.tables.items():
                 if not self.key_counts[table]:
                     continue
                 stage = self.stage(table)
                 operations.append(f"SELECT CASE WHEN (SELECT count(*) FROM {stage}) != {self.staged_counts[table]} OR (SELECT count(*) FROM {stage}_keys) != {self.key_counts[table]} THEN RAISE(ABORT, 'incomplete delta staging') END;")
-                equal = ' AND '.join(f'{table}.{key} IS changed.{key}' for key in keys)
-                operations.append(f'DELETE FROM {table} WHERE EXISTS (SELECT 1 FROM {stage}_keys changed WHERE {equal});')
+                operations.append(delete_staged_keys_sql(table, stage + '_keys'))
                 operations.append(f'INSERT INTO {table} SELECT * FROM {stage};')
+            operations.extend(seals)
             operations.append(f"SELECT CASE WHEN {current_revision} IS NOT '{self.revision}' THEN RAISE(ABORT, 'delta revision mismatch') END;")
             self.write(f'CREATE TRIGGER {publication} AFTER INSERT ON tos_delta_publications WHEN NEW.revision = \'{self.revision}\' BEGIN ' + ' '.join(operations) + ' END;')
             # Retry skips only when the actual serving revision is the target.
             # A historical publication receipt alone is never currentness.
             self.write(f"INSERT OR REPLACE INTO tos_delta_publications SELECT '{self.revision}', '{base}' WHERE {current_revision} IS NOT '{self.revision}';")
             self.write(f'DROP TRIGGER {publication};')
-            for table in PRIMARY_KEYS:
+            for table in self.tables:
                 self.write(f'DROP TABLE {self.stage(table)};')
                 self.write(f'DROP TABLE {self.stage(table)}_keys;')
         self.stream.flush()
         self.stream.close()
+        self.finished = True
+        if self._disk_index is not None:
+            try:
+                self._disk_index.write_json(index_output, self.schema, self.revision,
+                    tables=self.tables, auxiliary_publication=self.auxiliary_publication)
+            finally:
+                self._disk_index.close()
+                # The JSON row index is the durable companion.  The SQLite
+                # index is only a bounded build-time implementation detail.
+                self._disk_index.path.unlink(missing_ok=True)
+            if publish:
+                self.publish()
+            if self._disk_baseline is not None:
+                self._disk_baseline.close()
+            return None
+        if publish:
+            self.publish()
+        if self._disk_baseline is not None:
+            self._disk_baseline.close()
+        return {'schema': self.schema, 'revision': self.revision, 'rows': self.index,
+                **({'auxiliary_publication': self.auxiliary_publication} if self.auxiliary_publication is not None else {})}
+
+    def publish(self) -> None:
+        if not self.finished:
+            raise ValueError('delta must be finished before publication')
+        if self.published:
+            return
         self.pending_path.replace(self.target)
-        return {'schema': self.schema, 'revision': self.revision, 'rows': self.index}
+        self.published = True
 
     def summary(self) -> dict:
         return {'available': self.previous is not None,
-                'base_revision': self.previous['revision'] if self.previous else None,
+                'base_revision': ((self._disk_baseline.revision if self._disk_baseline is not None
+                                   else self.previous['revision']) if self.previous else None),
                 'target_revision': self.revision, 'changed_rows': self.changed_rows,
                 'reused_rows': self.reused_rows, 'removed_rows': self.removed_rows,
                 'sql_statements': self.statements, 'publication': 'single-statement-transaction',
                 'resume': 'replay-staging-and-idempotent-publication'}
+
+
+def delete_staged_keys_sql(table: str, keys_table: str) -> str:
+    """Seek serving primary keys from the bounded stage, retaining NULL IS law.
+
+    Registered producer tables are ordinary rowid tables, including composite
+    primary keys. CROSS JOIN pins the small key stage as the lookup driver;
+    the outer DELETE addresses only the found rowids, not the entire corpus.
+    """
+    if table not in REGISTERED_KEYS or not re.fullmatch('[a-z][a-z0-9_]*', keys_table):
+        raise ValueError('registered delta table and exact stage identifier required')
+    equal = ' AND '.join(f'target.{key} IS changed.{key}' for key in REGISTERED_KEYS[table])
+    return (f'DELETE FROM {table} WHERE rowid IN (SELECT target.rowid FROM {keys_table} AS changed '
+            f'CROSS JOIN {table} AS target WHERE {equal});')

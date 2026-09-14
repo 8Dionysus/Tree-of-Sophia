@@ -1,0 +1,83 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.claim.linguistic.atf-notation",
+    "version": 1,
+    "digest": "sha256:f349743da0a669a01ebf006b5555109203a6843d05241a68679d8e05bf4e1bb2"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:f349743da0a669a01ebf006b5555109203a6843d05241a68679d8e05bf4e1bb2",
+            "id": "tos.claim.linguistic.atf-notation",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/qualifiers/statement",
+          "record": {
+            "digest": "sha256:f349743da0a669a01ebf006b5555109203a6843d05241a68679d8e05bf4e1bb2",
+            "id": "tos.claim.linguistic.atf-notation",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.linguistic.atf-notation.statement-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "statement",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:f349743da0a669a01ebf006b5555109203a6843d05241a68679d8e05bf4e1bb2",
+        "id": "tos.claim.linguistic.atf-notation",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "linguistic:20260908:form:tos.claim.linguistic.atf-notation",
+      "request_digest": "sha256:0476f31809597b7f4b2248cde6205e8ae4b3e2e1e477352bc8d602c0754a0a7c",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:d23a9334539e625a94aedb8a3b588509548f0c6a171e4009bf601df2905d6b27",
+      "recorded_at": "2026-09-08T03:04:31.769533+00:00",
+      "source_contracts": {
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json": "sha256:1aeee75888796767847c0d3cb955474d71ffdb62ae96ff39ebf6bd03b476e31c",
+        "ToS/contracts/semantic-relation-type-registry.schema.json": "sha256:5b3eea795cf81ce2cd8872f21f20fa37ebb52d874fe195c653bf116601cee4da",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json": "sha256:0ee1a3eabb68993850699a85cd1ebd890d5a58b6aedaac88201c08730d7fa169",
+        "ToS/contracts/semantic-entity-type-registry.schema.json": "sha256:91d7679a2e3c76a961a09284343f3ac07a012c1089fa4d8732051793cc2f963e",
+        "ToS/contracts/claim-packet.schema.json": "sha256:cc982ceeaa3a62dc8cb1367cd4b10cc76073b252a1ac5c9977f6b0ee6d47588c",
+        "ToS/contracts/knowledge-assessment.schema.json": "sha256:83163d105944db9a54bd57a8e730c3d459a00239de0df65cb63ac18c305e60be",
+        "ToS/contracts/source-claim-record.schema.json": "sha256:2c744903214248c4de29a17e1e21e67745cf838da46508cc05ec4dac6aa75430",
+        "ToS/contracts/corpus-record.schema.json": "sha256:baccf59bc5c6ffd1560848610ac812751d1e5182c89658814eeb2eedde4b6db1",
+        "ToS/contracts/semantic-relation-claim.schema.json": "sha256:49a82dbcacbc1c186a0fb51768fa84227bdd4b8c9a35bd93f7b2f86c4527563e",
+        "ToS/contracts/linguistic-relation-claim.schema.json": "sha256:1add9fc5130493473e3d97347b224281337ede74d5baba5a303940e74c1ce5ba"
+      },
+      "source": {
+        "id": "tos.claim.linguistic.atf-notation",
+        "version": 1,
+        "digest": "sha256:f349743da0a669a01ebf006b5555109203a6843d05241a68679d8e05bf4e1bb2"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.linguistic.atf-notation.statement-ru",
+          "version": 1,
+          "digest": "sha256:2202f2b18dc330d6b0075d8b344087d65d9ee414824f74a3bb1508c58d5c86a0"
+        }
+      ]
+    }
+  ]
+}

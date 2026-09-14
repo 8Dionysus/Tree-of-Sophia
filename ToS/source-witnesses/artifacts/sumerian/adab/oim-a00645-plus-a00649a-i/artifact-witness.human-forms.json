@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/custody",
+          "record": {
+            "digest": "sha256:e9990a8d4a7089b1e3a895acd74cfac84b16a14dd6764ef9bda67d8c12264654",
+            "id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:e9990a8d4a7089b1e3a895acd74cfac84b16a14dd6764ef9bda67d8c12264654",
+            "id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:e9990a8d4a7089b1e3a895acd74cfac84b16a14dd6764ef9bda67d8c12264654",
+            "id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:e9990a8d4a7089b1e3a895acd74cfac84b16a14dd6764ef9bda67d8c12264654",
+            "id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:e9990a8d4a7089b1e3a895acd74cfac84b16a14dd6764ef9bda67d8c12264654",
+            "id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.sumerian.adab.oim-a00645-plus-a00649a-i.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:6cd10a1214a724748cb378d54c18e5cfd5929c32df08222e28e73c80c4229147",
+        "id": "tos.form.artifact.sumerian.adab.oim-a00645-plus-a00649a-i.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:e9990a8d4a7089b1e3a895acd74cfac84b16a14dd6764ef9bda67d8c12264654",
+        "id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:e9990a8d4a7089b1e3a895acd74cfac84b16a14dd6764ef9bda67d8c12264654",
+            "id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/path_identity/note",
+          "record": {
+            "digest": "sha256:e9990a8d4a7089b1e3a895acd74cfac84b16a14dd6764ef9bda67d8c12264654",
+            "id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.sumerian.adab.oim-a00645-plus-a00649a-i.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:e9990a8d4a7089b1e3a895acd74cfac84b16a14dd6764ef9bda67d8c12264654",
+        "id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+        "version": 1
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+      "owner_configuration": "sha256:7d1489dfb5a6b590945a20141c9fec454a5f8bf53987c6ea751c445ae40bd57e",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:10.077601+00:00",
+      "request_digest": "sha256:0d22db651c30ab01c27ff6557e0dd3a6aa166240ae0d941027f41ef65046e5a3",
+      "results": [
+        {
+          "digest": "sha256:6cd10a1214a724748cb378d54c18e5cfd5929c32df08222e28e73c80c4229147",
+          "id": "tos.form.artifact.sumerian.adab.oim-a00645-plus-a00649a-i.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:2e947f4d25fc77af79258e1dac135c09e20dda2f9a5a7ed6052be4c1cb50db3d",
+          "id": "tos.form.artifact.sumerian.adab.oim-a00645-plus-a00649a-i.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:e9990a8d4a7089b1e3a895acd74cfac84b16a14dd6764ef9bda67d8c12264654",
+        "id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness.schema.json": "sha256:1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+      "request_digest": "sha256:c9453c79fc90f22e51f0ec941cd7f4426a9b1224e4f52ab013ce0509b8c9a922",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:7d1489dfb5a6b590945a20141c9fec454a5f8bf53987c6ea751c445ae40bd57e",
+      "recorded_at": "2026-09-07T21:40:10.786176+00:00",
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness.schema.json": "sha256:1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f"
+      },
+      "source": {
+        "id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+        "version": 1,
+        "digest": "sha256:e9990a8d4a7089b1e3a895acd74cfac84b16a14dd6764ef9bda67d8c12264654"
+      },
+      "previous_revision": "sha256:ae6d0f0f44cf9634990e8a5911ff8e2166b852e29a227c2bcafce36c2acb880c",
+      "results": [
+        {
+          "id": "tos.form.artifact.sumerian.adab.oim-a00645-plus-a00649a-i.source-name",
+          "version": 2,
+          "digest": "sha256:f8c4ef468102b66d803ea382f1f7ed10bda85a40229f3ab379d7f4f8fa2f82b5"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:e9990a8d4a7089b1e3a895acd74cfac84b16a14dd6764ef9bda67d8c12264654",
+            "id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:e9990a8d4a7089b1e3a895acd74cfac84b16a14dd6764ef9bda67d8c12264654",
+            "id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.sumerian.adab.oim-a00645-plus-a00649a-i.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:e9990a8d4a7089b1e3a895acd74cfac84b16a14dd6764ef9bda67d8c12264654",
+        "id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.artifact.sumerian.adab.oim-a00645-plus-a00649a-i",
+    "version": 1,
+    "digest": "sha256:e9990a8d4a7089b1e3a895acd74cfac84b16a14dd6764ef9bda67d8c12264654"
+  }
+}

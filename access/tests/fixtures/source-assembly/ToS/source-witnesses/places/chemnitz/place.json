@@ -1,0 +1,32 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "place",
+  "record_id": "tos.place.chemnitz",
+  "preferred_label": "Chemnitz",
+  "variant_labels": [
+    {
+      "value": "Karl-Marx-Stadt",
+      "language": "de",
+      "source_ref": "https://d-nb.info/gnd/4029702-0",
+      "status": "unverified"
+    }
+  ],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PART1_PROVISION_IDENTITY_RESEARCH.md",
+    "ToS/source-witnesses/discovery/runs/zarathustra-part-1-provision-identity.2026-08-01.v1.json",
+    "https://d-nb.info/gnd/4029702-0"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "GND",
+      "value": "4029702-0",
+      "source_ref": "https://d-nb.info/gnd/4029702-0",
+      "status": "unverified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "notes": "The official GND record names Chemnitz and preserves historical name context. This local Place identity is model-resolved and provisional; it does not normalize every historical jurisdiction, spelling, or provision role, and it does not make every Chemnitz-labeled Edition share one event.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

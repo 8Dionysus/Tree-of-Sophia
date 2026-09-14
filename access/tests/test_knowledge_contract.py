@@ -9,6 +9,7 @@ import tempfile
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
 import pytest
@@ -33,9 +34,237 @@ from tos_access.knowledge import (  # noqa: E402
 )
 from tos_access.core import ToSAccessCore  # noqa: E402
 from tos_access.query_store import QueryStore  # noqa: E402
+from fixture_support import (  # noqa: E402
+    canonical_node_fixture,
+    knowledge_fixture_path,
+    load_knowledge_fixture,
+)
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def test_real_canonical_nodes_keep_id_navigation_distinct_from_source_wording(self):
+        sys.path.insert(0, str(self.repo_root / 'scripts'))
+        import tos_corpus_index_common as corpus_index
+        from tos_access.knowledge import _lens_carrier
+
+        with canonical_node_fixture() as (fixture_root, paths), patch.object(
+            corpus_index, 'REPO_ROOT', fixture_root
+        ), patch.object(corpus_index, 'TOS_ROOT', fixture_root / 'ToS'):
+            diagnostics = []
+            nodes = corpus_index.build_nodes(diagnostics, tuple(paths))
+        self.assertEqual(diagnostics, [])
+        self.assertEqual(len(nodes), 2)
+        original = copy.deepcopy(nodes)
+        graph = build_knowledge_graph({'nodes': nodes}, {},
+            entity_type_registry=self.entity_type_registry,
+            relation_type_registry=self.relation_type_registry)
+        for raw in nodes:
+            node = next(value for value in graph['nodes'] if value['native_id'] == raw['node_id'])
+            self.assertEqual(node['display']['title']['default'], raw['properties']['preferred_label'])
+            self.assertEqual(node['display']['summary']['default'], raw['properties']['distilled_thesis'])
+            self.assertEqual(node['source_record']['payload']['properties'], raw['properties'])
+            self.assertTrue(node['display']['provenance']['source_title_available'])
+            self.assertTrue(node['display']['provenance']['source_summary_available'])
+            for language in ('ru', 'en'):
+                for detail in ('compact', 'full'):
+                    packet = _lens_carrier(node, detail, language=language)
+                    self.assertTrue(packet['display_selection']['fields']['title']['content_available'])
+                    self.assertTrue(packet['display_selection']['fields']['summary']['content_available'])
+        placeholders = [node for node in graph['nodes'] if node['kind_id'] == 'relation-endpoint']
+        self.assertTrue(placeholders)
+        for node in placeholders:
+            self.assertFalse(node['display']['provenance']['source_title_available'])
+            self.assertFalse(node['display']['provenance']['source_summary_available'])
+        self.assertEqual(nodes, original)
+
+        # Synthetic projection controls do not edit or admit canonical sources.
+        forged = copy.deepcopy(nodes[0])
+        # Retain the legacy negative control after the real sources opt in.
+        for key in ('schema_version', 'record_version', 'preferred_label', 'variant_labels', 'field_languages'):
+            forged['properties'].pop(key, None)
+        for key in ('human_forms', 'human_forms_source_ref', 'human_forms_source_sha256', 'source_record_sha256'):
+            forged.pop(key, None)
+        forged.update(label='Invented title', display={'title': {'ru': 'Выдуманное имя'}})
+        result = _normalize_node(forged, 'canon')
+        self.assertFalse(result['display']['provenance']['source_title_available'])
+        self.assertIsNone(result['display']['title'].get('ru'))
+        for field in ('node_id', 'node_type'):
+            broken = copy.deepcopy(nodes[0])
+            broken['properties'][field] += '-other'
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'retained source identity/type'):
+                _normalize_node(broken, 'canon')
+
+    def test_human_form_delivery_schema_keeps_versions_and_ready_states_distinct(self):
+        schema = self.schemas['knowledge-graph.v1.schema.json']
+        validator = Draft202012Validator({'$ref': schema['$id'] + '#/$defs/humanFormSelection'},
+                                        registry=self.registry)
+        empty = {'state': 'missing', 'reason': 'no-ready-form', 'form': None, 'packet': None}
+        inline = {'schema_version': 'tos_human_form_selection_v1', 'content_revision': 'a' * 64,
+            'requested_language': 'ru', 'source_ref': 'synthetic:delivery-contract',
+            'state': 'available', 'roles': {role: copy.deepcopy(empty) for role in
+                ('name', 'caption', 'hover', 'statement', 'grounds', 'history', 'technical')},
+            'candidates': [], 'issues': [], 'performs_translation': False, 'performs_assessment': False}
+        ref = {'id': 'tos.form.synthetic-delivery', 'version': 1, 'digest': 'sha256:' + 'b' * 64}
+        inline['roles']['caption'] = {'state': 'ready', 'reason': 'exact-language',
+                                      'form': ref, 'packet': {'form': ref, 'synthetic_only': True}}
+        shared = copy.deepcopy(inline)
+        shared.update(schema_version='tos_human_form_selection_v2',
+                      packet_base={'synthetic_only': True}, shared_limits=[])
+        for role in shared['roles'].values():
+            packet = role.pop('packet')
+            role['packet_delta'] = {} if packet is not None else None
+        validator.validate(inline)
+        validator.validate(shared)
+        mutations = [
+            lambda value: value.update(schema_version='tos_human_form_selection_v3'),
+            lambda value: value['roles'].pop('technical'),
+            lambda value: value['roles']['caption'].update(packet={}),
+            lambda value: value['roles']['caption'].update(packet_delta=None),
+            lambda value: value['roles']['caption'].update(state='missing'),
+            lambda value: value['roles']['caption'].update(form=None),
+            lambda value: value['roles']['caption']['packet_delta'].update(form=ref),
+            lambda value: value['packet_base'].update(form=ref),
+            lambda value: value.update(shared_limits=['same', 'same']),
+            lambda value: value.update(shared_limits=[False]),
+            lambda value: value.update(performs_assessment=True),
+        ]
+        for index, mutate in enumerate(mutations):
+            with self.subTest(case=index):
+                broken = copy.deepcopy(shared)
+                mutate(broken)
+                self.assertFalse(validator.is_valid(broken))
+        broken = copy.deepcopy(inline)
+        broken['packet_base'] = {}
+        self.assertFalse(validator.is_valid(broken))
+
+    def test_compact_claim_reading_schema_binds_pointer_to_delivery_version(self):
+        schema = self.schemas['knowledge-graph.v1.schema.json']
+        validator = Draft202012Validator(
+            {'$ref': schema['$id'] + '#/$defs/compactClaimPath/properties/reading'}, registry=self.registry)
+        reading = {'mode': 'claim-with-mandatory-context', 'node_id': 'synthetic:claim',
+            'content_revision': 'a' * 64, 'wording_pointer': '/human_form_selection/roles/caption/packet',
+            'wording_state': 'available', 'context_pointers': ['/semantics', '/epistemic'],
+            'relation_context_ids': ['synthetic:subject', 'synthetic:object'], 'standalone': False}
+        for mode, pointers in (
+            ('claim-with-mandatory-context', ['/human_form_selection/roles/caption/packet',
+                                            '/display_selection/fields/summary']),
+            ('claim-with-shared-form-context-v2', ['/human_form_selection/roles/caption',
+                                                '/human_form_selection/roles/statement'])):
+            for pointer in pointers:
+                with self.subTest(mode=mode, pointer=pointer):
+                    value = {**reading, 'mode': mode, 'wording_pointer': pointer}
+                    validator.validate(value)
+                    other = ('claim-with-shared-form-context-v2' if mode == 'claim-with-mandatory-context'
+                             else 'claim-with-mandatory-context')
+                    self.assertFalse(validator.is_valid({**value, 'mode': other}))
+                    self.assertFalse(validator.is_valid({**value, 'standalone': True}))
+                    self.assertFalse(validator.is_valid({**value, 'wording_state': 'missing'}))
+                    self.assertFalse(validator.is_valid({**value, 'context_pointers': ['/semantics']}))
+            validator.validate({**reading, 'mode': mode, 'wording_state': 'missing', 'wording_pointer': None})
+
+    def test_human_form_delivery_discovery_exposes_source_and_wire_versions_separately(self):
+        api = json.loads((ACCESS_ROOT / 'contracts/knowledge-api.v1.json').read_text(encoding='utf-8'))
+        delivery = next(value for value in api['extensions']
+                        if value['extension_id'] == 'tos.knowledge.human-form-delivery.v2')
+        self.assertEqual(delivery['recognized_versions'],
+                         ['tos_human_form_selection_v1', 'tos_human_form_selection_v2'])
+        self.assertEqual(delivery['source_materialization_version'], 'tos_human_form_materialization_v1')
+        self.assertIn(delivery['lens_carrier_version'], delivery['recognized_versions'])
+        self.assertLess(delivery['wire_budget_conservative_bytes'], delivery['packet_budget_conservative_bytes'])
+        self.assertLessEqual(delivery['packet_budget_conservative_bytes'],
+                             delivery['expanded_selection_budget_conservative_bytes'])
+        self.assertTrue((ACCESS_ROOT / 'contracts' / delivery['migration']).is_file())
+        schema = self.schemas['knowledge-graph.v1.schema.json']
+        Draft202012Validator.check_schema(schema)
+
+    def test_coverage_observes_every_carrier_without_accepting_placeholder_or_mapping(self):
+        from tos_access.coverage import coverage_report
+        corpus, philosophy = self.fixture()
+        graph = build_knowledge_graph(corpus, philosophy)
+        original = copy.deepcopy(graph)
+        rows = []
+        report = coverage_report(graph, language='en', emit_row=rows.append)
+        self.assertEqual(graph, original)
+        self.assertEqual(len(rows), len(graph['nodes']) + len(graph['relations']))
+        self.assertEqual(len({row['observation']['id'] for row in rows}), len(rows))
+        self.assertEqual(sum(group['carriers'] for group in report['groups']), len(rows))
+        self.assertTrue(report['enumeration_complete'])
+        self.assertFalse(report['performs_assessment'])
+        self.assertEqual(report['scope'], 'normalized-snapshot-carriers-only')
+        resource_id = next(node['id'] for node in graph['nodes'] if node['native_id'] == 'ToS/canon/a.json')
+        resource = next(row['observation'] for row in rows if row['observation']['id'] == resource_id)
+        self.assertFalse(resource['display']['summary']['content_available'])
+        self.assertEqual(resource['display']['summary']['wording_state'], 'missing')
+        self.assertEqual(resource['forms']['collection_state'], 'not-provided')
+        self.assertTrue(all(role['state'] == 'not-provided' for role in resource['forms']['roles'].values()))
+        self.assertTrue(resource['next_actions'])
+        self.assertNotIn('display_text', json.dumps(rows))
+        self.assertNotIn('A detailed description has not been added yet.', json.dumps(rows))
+        relation = next(row['observation'] for row in rows if row['observation']['kind'] == 'relation')
+        self.assertEqual(relation['display']['statement']['wording_state'], 'derived-navigation')
+        # Existing ABI field-presence counts remain field presence, not quality.
+        self.assertEqual(graph['counts']['display_coverage']['node_summaries'], len(graph['nodes']))
+
+    def test_coverage_keeps_unknown_mapping_and_duplicate_carriers_visible(self):
+        from tos_access.coverage import coverage_report
+        graph = build_knowledge_graph({'source_navigation': {'nodes': [
+            {'node_id': 'tos.unknown.example', 'node_kind': 'future-unrecognized-kind',
+             'source_ref': 'test:unknown-source', 'properties': {}}], 'edges': []}}, {})
+        node = next(node for node in graph['nodes'] if node['native_id'] == 'tos.unknown.example')
+        graph['nodes'] = [node]
+        other = copy.deepcopy(node)
+        other['id'] = 'test:second-carrier'
+        graph['nodes'].append(other)
+        rows = []
+        report = coverage_report(graph, emit_row=rows.append)
+        self.assertEqual(report['nodes'], 2)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]['observation']['entity_id'], rows[1]['observation']['entity_id'])
+        self.assertEqual(rows[0]['observation']['mapping']['status'], 'unmapped')
+        self.assertIn('review-source-mapping-with-semantic-registry-owner', rows[0]['observation']['next_actions'])
+
+    def test_coverage_invalid_request_and_interrupted_enumeration_do_not_emit_completion(self):
+        from tos_access.coverage import coverage_report, main
+        from unittest.mock import patch
+        from contextlib import redirect_stderr
+        from io import StringIO
+        empty = {'source_revision': 'a' * 64, 'nodes': [], 'relations': []}
+        with self.assertRaisesRegex(ValueError, 'language'):
+            coverage_report(empty, language='en/../../source')
+        with patch('tos_access.core.ToSAccessCore.discover') as discover, redirect_stderr(StringIO()):
+            with self.assertRaises(SystemExit) as caught:
+                main(['--root', 'synthetic-unread-root', '--language', 'en/invalid'])
+            self.assertEqual(caught.exception.code, 2)
+            discover.assert_not_called()
+        graph = build_knowledge_graph(*self.fixture())
+        def interrupted(row):
+            self.assertNotIn('enumeration_complete', row)
+            raise OSError('synthetic output interruption')
+        with self.assertRaisesRegex(OSError, 'interruption'):
+            coverage_report(graph, emit_row=interrupted)
+
+    def test_coverage_does_not_replace_restricted_form_with_available_display(self):
+        from tos_access.coverage import coverage_row
+        from tos_access.knowledge import _normalize_node
+        record = {'record_id': 'tos.work.test', 'record_version': 1}
+        subject = {'id': 'tos.work.test', 'version': 1, 'digest': 'sha256:' + 'b' * 64}
+        packet = {'schema_version': 'tos_human_form_materialization_v1',
+            'form': {'id': 'tos.form.test', 'version': 1, 'digest': 'sha256:' + 'c' * 64},
+            'subject': subject, 'performs_semantic_assessment': False,
+            'state': 'restricted', 'role': 'hover', 'language': 'de', 'display_text': None, 'context': []}
+        node = _normalize_node({'node_id': 'tos.work.test', 'node_kind': 'identity',
+            'label': 'Synthetic name', 'source_ref': 'test:forms',
+            'properties': {'source_record': record, 'source_sha256': 'b' * 64,
+                'human_forms': [packet], 'human_forms_source_ref': 'test:forms'}},
+            source_graph='source-claims', kind_id='work')
+        row = coverage_row(node)
+        self.assertEqual(row['forms']['collection_state'], 'available')
+        self.assertEqual(row['forms']['roles']['hover']['candidate_states'], {'restricted': 1})
+        self.assertEqual(row['forms']['roles']['hover']['state'], 'unavailable')
+        self.assertFalse(row['forms']['roles']['hover']['assessment_snapshot_present'])
+        self.assertTrue(row['display']['title']['content_available'])
+        self.assertEqual(row['display']['summary']['wording_state'], 'missing')
+
     def _record_version_fixture(self):
         def exact_digest(value):
             return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
@@ -82,6 +311,7 @@ class KnowledgeContractTests(unittest.TestCase):
             self.assertFalse(packet['semantics']['record_version']['grants_current_use'])
             self.assertEqual(packet['display']['summary']['de'], view['record']['qualifiers']['statement'])
             self.assertEqual(packet['display']['provenance']['summary'], 'exact-record-quotation')
+            self.assertEqual(packet['display_selection']['fields']['summary']['actual_language'], 'de')
             self.assertFalse(packet['display_selection']['fields']['title']['content_available'])
             self.assertNotIn('human_form_selection', packet)
             self.assertEqual(packet['attributes'] if detail == 'compact' else {}, {})
@@ -188,17 +418,165 @@ class KnowledgeContractTests(unittest.TestCase):
             with self.subTest(case=case), self.assertRaisesRegex(ValueError, 'promotion basis relation'):
                 build(subject, target, relation)
 
-    def _claim_navigation_fixture(self):
+    def _metadata_version_fixture(self):
+        from tos_access.knowledge import _exact_record_digest
+        record = {'record_id': 'tos.agent.synthetic-version', 'record_type': 'agent', 'record_version': 4,
+            'preferred_label': 'Synthetic archived name',
+            'notes': 'Keine gesicherte Gleichsetzung; nur eine synthetische Beschreibung.',
+            'field_languages': {'notes': {'language': 'de', 'script': 'Latn',
+                'qualifications': {'not_accepted': False, 'limit': 0, 'unknown': None, 'alternatives': []}}},
+            'source_refs': ['test:synthetic-original'], 'external_identifiers': [],
+            'unknown_extension': {'polarity': 'negative', 'scope': 'fixture only', 'variants': [None, False, 0]}}
+        reference = {'id': record['record_id'], 'version': record['record_version'],
+                     'digest': 'sha256:' + _exact_record_digest(record)}
+        view = {'schema_version': 'tos_record_version_view_v1', 'record_ref': reference, 'record_kind': 'metadata',
+            'status': 'available', 'reason': 'exact-retained-version', 'version_status': 'historical',
+            'record': record, 'provenance': {'fixture': 'synthetic-record-only-bindings'},
+            'grants_current_use': False, 'performs_assessment': False}
+        return {'node_id': 'record-version:' + _exact_record_digest(reference), 'node_kind': 'record-version',
+                'source_ref': 'test:synthetic-version-metadata', 'properties': {'record_version_view': view}}, view
+
+    def test_metadata_version_quotes_its_own_record_with_complete_context_not_current_forms(self):
+        from tos_access.knowledge import _lens_carrier
+        node, view = self._metadata_version_fixture()
+        before = copy.deepcopy(node)
+        graph = build_knowledge_graph({'source_navigation': {'nodes': [node], 'edges': []}}, {}, {},
+                                     self.entity_type_registry, self.relation_type_registry)
+        version = next(item for item in graph['nodes'] if item['kind_id'] == 'record-version')
+        for detail in ('full', 'compact'):
+            packet = _lens_carrier(version, detail, language='ru')
+            self.assertEqual(packet['semantics']['record_version']['record_kind'], 'metadata')
+            self.assertNotEqual(packet['entity_id'], view['record_ref']['id'])
+            self.assertNotIn('claim', packet['semantics'])
+            self.assertNotIn('time', packet['semantics'])
+            context = packet['semantics']['assertion_contexts'][0]['fields']['record']
+            self.assertEqual(context['value'], view['record'])
+            self.assertEqual(context['source_pointer'], '/properties/record_version_view/record')
+            self.assertEqual(packet['display']['summary']['de'], view['record']['notes'])
+            self.assertEqual(packet['display_selection']['fields']['summary']['actual_language'], 'de')
+            self.assertTrue(packet['display_selection']['essential_context_pointers'])
+            self.assertEqual(packet['epistemic'], {'authority_layer': 'derived-export',
+                'canon_status': None, 'review_posture': 'not-recorded', 'confidence': None})
+            self.assertNotIn('human_form_selection', packet)
+            if detail == 'full':
+                self.assertEqual(packet['attributes']['record_version_view']['record'], view['record'])
+            else:
+                self.assertEqual(packet['attributes'], {})
+        result = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
+            'lens_id': 'metadata-version', 'detail': 'compact', 'language': 'ru'})
+        Draft202012Validator(self.schemas['lens-result.v1.schema.json'], registry=self.registry).validate(result)
+        self.assertEqual(node, before)
+
+    def test_exact_version_language_comes_only_from_its_own_declaration(self):
+        from tos_access.knowledge import _lens_carrier, _exact_record_digest
+        for factory in (self._metadata_version_fixture, self._record_version_fixture):
+            for declared in ('de', 'x-source-test', None, 'default', 'original', 'not a tag'):
+                node, view = factory()
+                record = view['record']
+                if view['record_kind'] == 'metadata':
+                    record['field_languages']['notes']['language'] = declared
+                else:
+                    record['qualifiers']['statement_language'] = declared
+                view['record_ref']['digest'] = 'sha256:' + _exact_record_digest(record)
+                node['node_id'] = 'record-version:' + _exact_record_digest(view['record_ref'])
+                graph = build_knowledge_graph({'source_navigation': {'nodes': [node], 'edges': []}}, {}, {},
+                                             self.entity_type_registry, self.relation_type_registry)
+                version = next(item for item in graph['nodes'] if item['kind_id'] == 'record-version')
+                for requested in ('ru', 'de', 'original', 'auto'):
+                    with self.subTest(kind=view['record_kind'], declared=declared, requested=requested):
+                        packet = _lens_carrier(version, 'compact', language=requested)
+                        selected = packet['display_selection']['fields']['summary']
+                        self.assertEqual(selected['actual_language'], declared if declared in ('de', 'x-source-test') else None)
+                        self.assertTrue(selected['content_available'])
+
+    def test_metadata_version_refuses_cross_kind_identity_digest_and_unavailable_data(self):
+        from tos_access.knowledge import _exact_record_digest
+        for case in ('kind', 'claim-id', 'record-id', 'record-version', 'bool-version', 'content', 'context-loss', 'grant'):
+            node, view = self._metadata_version_fixture()
+            if case == 'kind': view['record_kind'] = 'claim'
+            elif case == 'claim-id':
+                view['record_ref']['id'] = 'tos.claim.synthetic-version'
+                node['node_id'] = 'record-version:' + _exact_record_digest(view['record_ref'])
+            elif case == 'record-id': view['record']['record_id'] = 'tos.agent.other'
+            elif case == 'record-version': view['record']['record_version'] += 1
+            elif case == 'bool-version': view['record']['record_version'] = True
+            elif case == 'content': view['record']['notes'] = 'Current substituted description.'
+            elif case == 'context-loss': del view['record']['unknown_extension']
+            else: node['properties']['allowed_operations'] = ['record.revise']
+            with self.subTest(case=case), self.assertRaisesRegex(ValueError, 'record version view'):
+                build_knowledge_graph({'source_navigation': {'nodes': [node], 'edges': []}}, {}, {},
+                                      self.entity_type_registry, self.relation_type_registry)
+        for state in ('missing', 'stale', 'corrupt', 'access-restricted', 'over-budget'):
+            node, view = self._metadata_version_fixture()
+            view.update(status=state, reason='synthetic-gap', record=None, version_status=None, provenance={})
+            graph = build_knowledge_graph({'source_navigation': {'nodes': [node], 'edges': []}}, {}, {},
+                                         self.entity_type_registry, self.relation_type_registry)
+            version = next(item for item in graph['nodes'] if item['kind_id'] == 'record-version')
+            self.assertNotIn('assertion_contexts', version['semantics'])
+            self.assertEqual(version['display']['summary_state'], 'missing')
+            view['record'] = {'notes': 'Leaked source wording'}
+            with self.subTest(state=state), self.assertRaisesRegex(ValueError, 'unavailable record version'):
+                build_knowledge_graph({'source_navigation': {'nodes': [node], 'edges': []}}, {}, {},
+                                      self.entity_type_registry, self.relation_type_registry)
+
+    def test_metadata_history_edges_require_the_exact_retained_listing_and_current_binding(self):
+        from tos_access.knowledge import _exact_record_digest
+        version, view = self._metadata_version_fixture()
+        record = {**copy.deepcopy(view['record']), 'record_version': 5, 'notes': 'Later synthetic description.'}
+        current = {'id': record['record_id'], 'version': 5, 'digest': 'sha256:' + _exact_record_digest(record)}
+        history = {'schema_version': 'tos_metadata_record_history_v1', 'status': 'available', 'reason': 'synthetic-history',
+            'record_id': record['record_id'], 'current_ref': current, 'refs': [copy.deepcopy(view['record_ref']), current],
+            'provenance': {'fixture': 'synthetic-not-source-verification'},
+            'grants_current_use': False, 'performs_assessment': False, 'writes_to_source': False}
+        subject = {'node_id': record['record_id'], 'node_kind': 'agent', 'source_ref': 'test:synthetic-current',
+                   'properties': {'source_record': record, 'record_history': history}}
+        edge = {'edge_id': 'test:synthetic-history-edge', 'from_id': subject['node_id'], 'to_id': version['node_id'],
+                'predicate_id': 'has_record_version', 'source_refs': ['test:synthetic-history']}
+        def build(candidate):
+            return build_knowledge_graph({'source_navigation': {'nodes': [candidate, version], 'edges': [edge]}},
+                                        {}, {}, self.entity_type_registry, self.relation_type_registry)
+        graph = build(subject)
+        self.assertTrue(validate_knowledge_semantics(graph, self.entity_type_registry, self.relation_type_registry)['valid'])
+        for case in ('missing', 'foreign-id', 'current-digest', 'absent-predecessor', 'nonconsecutive', 'bool-version', 'grant', 'unknown-authority'):
+            candidate = copy.deepcopy(subject)
+            listing = candidate['properties']['record_history']
+            if case == 'missing': candidate['properties'].pop('record_history')
+            elif case == 'foreign-id': listing['record_id'] = 'tos.agent.other'
+            elif case == 'current-digest': listing['current_ref']['digest'] = 'sha256:' + '0' * 64
+            elif case == 'absent-predecessor': listing['refs'] = [listing['current_ref']]
+            elif case == 'nonconsecutive': listing['refs'][0]['version'] = 2
+            elif case == 'bool-version': listing['refs'][0]['version'] = True
+            elif case == 'grant': listing['grants_current_use'] = True
+            else: listing['authority'] = 'accepted'
+            with self.subTest(case=case), self.assertRaisesRegex(ValueError, 'record history relation'):
+                build(candidate)
+
+    def _claim_navigation_fixture(self, claim_ref=None):
         sys.path.insert(0, str(self.repo_root / 'scripts'))
-        from claim_navigation import build_claim_navigation_descriptor
-        fixture_cache = getattr(type(self), '_claim_navigation_fixture_cache', None)
-        if fixture_cache is None:
-            fixture_cache = json.loads(
-                (FIXTURE_ROOT / 'claim-navigation.json').read_text(encoding='utf-8')
+        from source_witness_bibliographic_graph_common import build_claim_navigation_descriptor
+        if claim_ref == 'tos.claim.jenseits-1886-commission.date':
+            payload = load_knowledge_fixture('temporal-jenseits-date.json')
+            source_claim = json.loads(
+                knowledge_fixture_path(
+                    'ToS/source-witnesses/history/friedrich-nietzsche/'
+                    'jenseits-1886-commission/historical-claims.jsonl'
+                ).read_text(encoding='utf-8').splitlines()[0]
             )
-            type(self)._claim_navigation_fixture_cache = fixture_cache
-        payload = copy.deepcopy(fixture_cache)
-        trace = next(value for value in payload['claim_traces'] if value['predicate'] == 'translated_by')
+            claim_node = next(
+                node for node in payload['nodes']
+                if node['node_id'] == 'claim:tos.claim.jenseits-1886-commission.date'
+            )
+            self.assertEqual(claim_node['properties']['source_claim'], source_claim)
+        else:
+            fixture_cache = getattr(type(self), '_claim_navigation_fixture_cache', None)
+            if fixture_cache is None:
+                fixture_cache = json.loads(
+                    (FIXTURE_ROOT / 'claim-navigation.json').read_text(encoding='utf-8')
+                )
+                type(self)._claim_navigation_fixture_cache = fixture_cache
+            payload = copy.deepcopy(fixture_cache)
+        trace = next(value for value in payload['claim_traces']
+                     if (value['claim_ref'] == claim_ref if claim_ref else value['predicate'] == 'translated_by'))
         edges = [edge for edge in payload['edges'] if edge.get('claim_ref') == trace['claim_ref']]
         identities = {trace['claim_node_id'], *(edge[key] for edge in edges for key in ('from_id', 'to_id'))}
         source = {'nodes': [node for node in payload['nodes'] if node['node_id'] in identities],
@@ -216,6 +594,97 @@ class KnowledgeContractTests(unittest.TestCase):
     def _navigation_graph(self, source, registry=None):
         return build_knowledge_graph(*self.fixture(), source, self.entity_type_registry,
                                      registry or self.relation_type_registry)
+
+    def test_claim_navigation_temporal_wording_is_exact_nonstandalone_source_context(self):
+        from tos_access.knowledge import _lens_carrier
+        from tos_access.human_form_codec import decode_human_form_selection
+        source, raw, subject, target, refresh = self._claim_navigation_fixture(
+            'tos.claim.jenseits-1886-commission.date')
+        original = copy.deepcopy(raw['properties']['source_claim'])
+        descriptor = raw['properties']['navigation_descriptor']
+        self.assertEqual(descriptor['state'], 'ready')
+        self.assertEqual(descriptor['object']['label'], '03. 06.1886')
+        self.assertEqual(descriptor['object']['language'], 'de')
+        self.assertEqual(descriptor['object']['label_pointer'], '/object/source_wording/text')
+        self.assertNotIn('identity_ref', descriptor['object'])
+        self.assertFalse(descriptor['standalone'])
+        for language in ('ru', 'en'):
+            self.assertIn('03. 06.1886', descriptor['title'][language])
+            self.assertNotIn('1886-06-03', descriptor['title'][language])
+        graph = self._navigation_graph(source)
+        normalized = next(node for node in graph['nodes'] if node['native_id'] == raw['node_id'])
+        self.assertEqual(normalized['attributes']['source_claim'], original)
+        forms = normalized['attributes']['human_forms']
+        self.assertTrue(forms)
+        self.assertEqual(forms, raw['properties']['human_forms'])
+        for form in forms:
+            self.assertEqual(form['state'], 'ready')
+            self.assertEqual(form['language'], 'ru')
+            self.assertFalse(form['standalone_reading'])
+            self.assertFalse(form['performs_semantic_assessment'])
+            self.assertTrue(any(entry['binding']['pointer'] == '' and entry['value'] == original
+                                for entry in form['context']))
+        for detail in ('full', 'compact'):
+            packet = _lens_carrier(normalized, detail, language='en')
+            self.assertFalse(packet['display']['provenance']['source_title_available'])
+            self.assertFalse(packet['display_selection']['fields']['title']['content_available'])
+            selected = decode_human_form_selection(packet['human_form_selection'])
+            for form in forms:
+                self.assertEqual(selected['roles'][form['role']]['packet'], form)
+        self.assertEqual(normalized['attributes']['source_claim'], original)
+
+        # Synthetic absence control: navigation alone must never become wording.
+        # Keep the real corpus forms intact, including their whole-Claim context.
+        no_forms = copy.deepcopy(source)
+        no_form_raw = next(node for node in no_forms['nodes'] if node['node_id'] == raw['node_id'])
+        no_form_raw['properties'].pop('human_forms')
+        no_form_raw['properties'].pop('human_forms_source_ref', None)
+        no_form_graph = self._navigation_graph(no_forms)
+        no_form_node = next(node for node in no_form_graph['nodes'] if node['native_id'] == raw['node_id'])
+        self.assertEqual(no_form_node['attributes']['source_claim'], original)
+        self.assertFalse(no_form_node['attributes'].get('human_forms'))
+        for detail in ('full', 'compact'):
+            packet = _lens_carrier(no_form_node, detail, language='en')
+            self.assertFalse(packet['display']['provenance']['source_title_available'])
+            self.assertFalse(packet['display_selection']['fields']['title']['content_available'])
+            self.assertNotIn('human_form_selection', packet)
+        self.assertEqual(raw['properties']['human_forms'], forms)
+        old = copy.deepcopy(self.relation_type_registry)
+        old['claim_navigation_template'].pop('object_label_adapters')
+        old['claim_navigation_template']['template_version'] = 1
+        refresh(old)
+        self.assertEqual(raw['properties']['navigation_descriptor']['reason'], 'object-not-identity')
+        self._navigation_graph(source, old)
+
+    def test_claim_navigation_temporal_carrier_rejects_forged_value_and_source_return(self):
+        for mutation in ('value', 'label', 'claim-digest', 'value-digest', 'node-id', 'source-ref',
+                         'source-line', 'duplicate-literal'):
+            source, raw, subject, target, _ = self._claim_navigation_fixture(
+                'tos.claim.jenseits-1886-commission.date')
+            if mutation == 'value': target['properties']['value']['calendar'] = 'invented'
+            elif mutation == 'label': raw['properties']['navigation_descriptor']['object']['label'] = '1886-06-03'
+            elif mutation == 'claim-digest': target['source_sha256'] = '0' * 64
+            elif mutation == 'value-digest': target['properties']['value_sha256'] = '0' * 64
+            elif mutation == 'node-id': target['node_id'] += '0'
+            elif mutation == 'source-ref': target['source_ref'] = 'ToS/not-the-claim.jsonl'
+            elif mutation == 'source-line': target['source_line'] += 1
+            else: source['nodes'].append(copy.deepcopy(target))
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                self._navigation_graph(source)
+
+    def test_claim_navigation_temporal_adapter_requires_explicit_versioned_opt_in(self):
+        schema = json.loads((self.repo_root / 'ToS/contracts/semantic-relation-type-registry.schema.json').read_text())
+        for value in ([], ['unknown-reader'], 'historical-time-source-wording-v1',
+                      ['historical-time-source-wording-v1'] * 2):
+            registry = copy.deepcopy(self.relation_type_registry)
+            registry['claim_navigation_template']['object_label_adapters'] = value
+            with self.subTest(adapter=value):
+                self.assertFalse(Draft202012Validator(schema).is_valid(registry))
+                self.assertFalse(validate_semantic_registries(self.entity_type_registry, registry)['valid'])
+        registry = copy.deepcopy(self.relation_type_registry)
+        registry['claim_navigation_template']['template_version'] = 1
+        self.assertFalse(Draft202012Validator(schema).is_valid(registry))
+        self.assertFalse(validate_semantic_registries(self.entity_type_registry, registry)['valid'])
 
     def test_claim_navigation_preserves_context_without_claiming_source_wording(self):
         from tos_access.knowledge import _lens_carrier, knowledge_scene
@@ -416,6 +885,161 @@ class KnowledgeContractTests(unittest.TestCase):
                         if n['native_id'] == 'identity:tos.agent.fixture')
         self.assertEqual(identity['epistemic']['authority_layer'], 'source-witness')
         self.assertIsNone(identity['epistemic']['canon_status'])
+
+    def test_claim_counterevidence_has_its_own_optional_role_and_exact_mapping_scope(self):
+        sys.path.insert(0, str(self.repo_root / 'scripts'))
+        from source_witness_bibliographic_graph_common import _claim_node, _edge
+        from source_record_profiles import SourceClaimProfiles
+        from tos_access.knowledge import _normalize_relation, _relation_registry_indexes
+
+        # Synthetic source records exercise the durable mapping contract without
+        # rebuilding the corpus or fixing any historical Claim's interpretation.
+        ref = 'test:synthetic-counterevidence/source-claims.jsonl'
+        evidence_ref = 'test:synthetic-counterevidence/qualified-reading'
+        source_claim = {'schema_version': 'tos_source_relation_claim_v1',
+            'claim_id': 'tos.claim.synthetic-counterevidence', 'claim_version': 1,
+            'claim_type': 'relation', 'assertion_layer': 'bibliographic_assertion',
+            'subject_ref': 'tos.work.synthetic-counterevidence', 'predicate': 'authored_by',
+            'object': 'tos.agent.synthetic-counterevidence', 'evidence_refs': [evidence_ref],
+            'counterevidence_refs': [evidence_ref], 'review_status': 'unreviewed',
+            'epistemic_status': 'uncertain', 'visibility': 'public',
+            'maker': {'maker_type': 'software', 'agent_ref': 'tos.agent.synthetic-maker'},
+            'provenance_event_ref': 'tos.event.synthetic-counterevidence',
+            'qualifiers': {'statement': 'Synthetic attribution is limited to this witness.',
+                'scope': 'The same reading supports the qualified attribution and limits generalization.'}}
+        raw = {'nodes': [
+            {'node_id': 'identity:' + source_claim['subject_ref'], 'node_kind': 'identity',
+             'properties': {'identity_ref': source_claim['subject_ref'], 'identity_kind': 'work'}},
+            {'node_id': 'identity:' + source_claim['object'], 'node_kind': 'identity',
+             'properties': {'identity_ref': source_claim['object'], 'identity_kind': 'agent'}},
+            {'node_id': 'evidence:synthetic', 'node_kind': 'evidence', 'source_ref': evidence_ref,
+             'properties': {'evidence_ref': evidence_ref}}], 'edges': [], 'claim_traces': []}
+        for number, counter_refs in enumerate(([evidence_ref], []), start=1):
+            record = {**source_claim, 'claim_id': source_claim['claim_id'] + f'-{number}',
+                      'counterevidence_refs': counter_refs}
+            entry = {**record, 'source_claim_file_ref': ref, 'source_claim_line': number,
+                'claim_sha256': hashlib.sha256(json.dumps(record, ensure_ascii=False, sort_keys=True,
+                    separators=(',', ':')).encode()).hexdigest()}
+            claim_node = _claim_node(entry, record)
+            raw['nodes'].append(claim_node)
+            trace = {**entry, 'claim_ref': record['claim_id'], 'claim_node_id': claim_node['node_id'],
+                'subject_node_id': raw['nodes'][0]['node_id'], 'object_node_id': raw['nodes'][1]['node_id'],
+                'evidence_node_ids': ['evidence:synthetic'],
+                'counterevidence_node_ids': ['evidence:synthetic'] if counter_refs else []}
+            raw['claim_traces'].append(trace)
+            roles = [('has_subject', trace['subject_node_id']), ('has_object', trace['object_node_id']),
+                     ('supported_by', 'evidence:synthetic')]
+            if counter_refs:
+                roles.append(('counterevidenced_by', 'evidence:synthetic'))
+            for ordinal, (role, target) in enumerate(roles, start=1):
+                raw['edges'].append(_edge(claim_entry=entry, edge_kind=role, ordinal=ordinal,
+                    from_id=claim_node['node_id'], to_id=target, evidence_node_ids=['evidence:synthetic'],
+                    maker_node_id='maker:synthetic', provenance_event_node_id='provenance_event:synthetic'))
+        source_claim = raw['nodes'][3]['properties']['source_claim']
+        before = copy.deepcopy(raw)
+        graph = build_knowledge_graph({}, {}, raw, self.entity_type_registry, self.relation_type_registry)
+        nodes = {node['id']: node for node in graph['nodes']}
+        claim = next(node for node in graph['nodes'] if node['entity_id'] == source_claim['claim_id'])
+        self.assertEqual(claim['attributes']['source_claim'], source_claim)
+        self.assertEqual(claim['epistemic']['review_posture'], source_claim['review_status'])
+        incident = [edge for edge in graph['relations'] if edge['from_id'] == claim['id']]
+        counter = next(edge for edge in incident if edge['predicate_id'] == 'counterevidenced_by')
+        support = next(edge for edge in incident if edge['predicate_id'] == 'supported_by')
+        kind = 'tos.relation.claim-counterevidenced-by'
+        self.assertEqual(counter['relation_type_id'], kind)
+        self.assertEqual(counter['predicate_mapping']['status'], 'mapped')
+        self.assertEqual(support['relation_type_id'], 'tos.relation.claim-supported-by')
+        self.assertNotEqual(counter['id'], support['id'])
+        self.assertEqual(counter['to_id'], support['to_id'])
+        self.assertEqual(nodes[counter['to_id']]['type_id'], 'tos.entity.evidence')
+        self.assertIn(ref, counter['source_refs'])
+        self.assertEqual(counter['epistemic']['review_posture'], source_claim['review_status'])
+        self.assertIsNone(counter['epistemic']['canon_status'])
+        self.assertTrue(counter['display']['inverse_label']['ru'])
+        self.assertTrue(counter['display']['inverse_label']['en'])
+        contexts = counter['semantics']['assertion_contexts']
+        context = next(row for row in contexts if row['fields'].get('claim_id', {}).get('value') == source_claim['claim_id'])
+        self.assertEqual(context['fields']['qualifiers']['value'], source_claim['qualifiers'])
+        self.assertEqual(context['fields']['counterevidence_refs']['value'], source_claim['counterevidence_refs'])
+        self.assertEqual(context['fields']['evidence_refs']['value'], source_claim['evidence_refs'])
+        raw_edge = next(edge for edge in raw['edges'] if edge['edge_id'] == counter['native_id'])
+        for field in ('claim_sha256', 'source_claim_line', 'source_claim_file_ref'):
+            self.assertEqual(counter['attributes'][field], raw_edge[field])
+        self.assertEqual(counter['source_record']['payload']['edge_id'], raw_edge['edge_id'])
+
+        for language in ('ru', 'en'):
+            for detail in ('compact', 'full'):
+                spec = {'schema_version': 'tos_lens_spec_v1', 'lens_id': 'counterevidence-source-return',
+                    'sources': ['source-claims'], 'seed': {'focus_node_id': counter['to_id']},
+                    'node_query': {'enabled': False}, 'traversal': {'depth': 1, 'direction': 'incoming'},
+                    'language': language, 'detail': detail}
+                result = execute_knowledge_lens(graph, spec)
+                returned = {edge['id']: edge for edge in result['relations']}
+                with self.subTest(language=language, detail=detail):
+                    self.assertTrue({counter['id'], support['id']} <= returned.keys())
+                    self.assertEqual(returned[counter['id']]['semantics'], counter['semantics'])
+                    self.assertEqual(returned[counter['id']]['epistemic'], counter['epistemic'])
+
+        report = validate_knowledge_semantics(graph, self.entity_type_registry, self.relation_type_registry)
+        self.assertTrue(report['valid'], report['violations'])
+        entry = next(row for row in self.relation_type_registry['relations'] if row['relation_type_id'] == kind)
+        self.assertEqual(entry['cardinality']['per_subject_min'], 0)
+        self.assertTrue(any(node['attributes'].get('source_claim') and
+            not node['attributes']['source_claim'].get('counterevidence_refs') for node in graph['nodes']))
+        optional = next(node for node in graph['nodes'] if node['entity_id'] == 'tos.claim.synthetic-counterevidence-2')
+        self.assertFalse(any(edge['from_id'] == optional['id'] and edge['relation_type_id'] == kind
+                             for edge in graph['relations']))
+        self.assertNotIn('source_claim_profile', entry)
+        self.assertNotIn('counterevidenced_by', SourceClaimProfiles(self.repo_root).profiles)
+        entries, mappings, fallback = _relation_registry_indexes(self.relation_type_registry)
+        self.assertNotIn(('source-claims', 'counterevidenced_by', 'claim-predicate'), mappings)
+        foreign = _normalize_relation({**raw_edge, 'predicate_id': raw_edge['edge_kind']}, 'source-navigation', nodes,
+            relation_type_entries=entries, relation_type_mappings=mappings, fallback_relation_type_id=fallback)
+        self.assertEqual(foreign['relation_type_id'], fallback)
+        self.assertEqual(foreign['predicate_mapping']['status'], 'unmapped')
+
+        for field, value, marker in (('from_id', counter['to_id'], 'domain'),
+                                     ('to_id', counter['from_id'], 'range'),
+                                     ('source_graph', 'source-navigation', 'registered source mapping')):
+            invalid = copy.deepcopy(graph)
+            selected = next(edge for edge in invalid['relations'] if edge['id'] == counter['id'])
+            selected[field] = value
+            failed = validate_knowledge_semantics(invalid, self.entity_type_registry, self.relation_type_registry)
+            with self.subTest(field=field):
+                self.assertFalse(failed['valid'])
+                self.assertTrue(any(marker in message and counter['id'] in message for message in failed['violations']))
+        self.assertEqual(raw, before)
+
+    def test_source_dossier_ref_reuses_only_declared_bibliographic_identity(self):
+        corpus, philosophy = self.fixture()
+        corpus['source_navigation'] = {'nodes': [
+            {'node_id': 'tos.work.fixture', 'node_kind': 'work',
+             'properties': {'record_id': 'tos.work.fixture', 'record_type': 'work'}},
+            {'node_id': 'navigation:work-alias', 'node_kind': 'work',
+             'properties': {'identity_ref': 'tos.work.fixture', 'record_type': 'work'}},
+            {'node_id': 'tos.agent.fixture', 'node_kind': 'agent',
+             'properties': {'record_id': 'tos.agent.fixture', 'record_type': 'agent'}},
+        ], 'edges': []}
+        claims = {'nodes': [
+            {'node_id': 'identity:tos.work.fixture', 'node_kind': 'identity',
+             'properties': {'identity_ref': 'tos.work.fixture', 'identity_type': 'work'}},
+            {'node_id': 'identity:tos.agent.fixture', 'node_kind': 'identity',
+             'properties': {'identity_ref': 'tos.agent.fixture', 'identity_type': 'agent'}},
+            {'node_id': 'identity:tos.work.unknown', 'node_kind': 'identity',
+             'properties': {'identity_ref': 'tos.work.unknown', 'identity_type': 'work'}},
+        ], 'edges': []}
+        graph = build_knowledge_graph(corpus, philosophy, claims,
+                                      self.entity_type_registry, self.relation_type_registry)
+        navigation = {node['native_id']: node for node in graph['nodes']
+                      if node['source_graph'] == 'source-navigation'}
+        self.assertEqual(navigation['tos.work.fixture']['source_dossier_ref'], 'tos.work.fixture')
+        self.assertNotIn('source_dossier_ref', navigation['navigation:work-alias'])
+        self.assertNotIn('source_dossier_ref', navigation['tos.agent.fixture'])
+        source_claims = {node['native_id']: node for node in graph['nodes']
+                         if node['source_graph'] == 'source-claims'}
+        self.assertEqual(source_claims['identity:tos.work.fixture']['source_dossier_ref'], 'tos.work.fixture')
+        self.assertNotIn('source_dossier_ref', source_claims['identity:tos.agent.fixture'])
+        self.assertNotIn('source_dossier_ref', source_claims['identity:tos.work.unknown'])
 
     def property_validation_fixture(self, count):
         """Repeated instances of one type; their values remain independently checked."""
@@ -648,7 +1272,16 @@ class KnowledgeContractTests(unittest.TestCase):
         for focus in ('c', 'evidence'):
             view = knowledge_scene(graph['nodes'], graph['relations'], focus)['compact']
             self.assertIn('tos-scene:entity:tos.test.' + focus, view['vertex_ids'])
-            self.assertIn('c-subject', view['relation_ids'])
+            # A focused Claim remains a vertex, while its complete path is
+            # available to the bounded reader and accounts for the two legs.
+            visible_relations = set(view['relation_ids']) | {
+                relation_id
+                for path in view['claim_paths']
+                for relation_id in [*path['relation_ids'], *path['detail_relation_ids']]
+            }
+            self.assertIn('c-subject', visible_relations)
+            if focus == 'c':
+                self.assertIn('c', [path['claim_node_id'] for path in view['claim_paths']])
         # An unknown incident edge must not disappear behind a convenient line.
         graph['relations'].append({**edge, 'id': 'unexpected', 'from_id': 'c', 'to_id': 'evidence',
                                    'relation_type_id': 'tos.relation.related-to'})
@@ -946,17 +1579,85 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertEqual(pending['candidates'][0]['state'], 'needs-assessment')
         self.assertIsNone(pending['roles']['statement']['packet'])
 
+    def test_assessed_source_copy_keeps_separate_parent_context_and_refuses_context_loss(self):
+        from tos_access.knowledge import select_human_forms
+        node = self.human_form_node()
+        packet = node['attributes']['human_forms'][0]
+        policy = {'id': 'tos.policy.synthetic', 'version': 1, 'digest': 'sha256:' + 'd' * 64}
+        packet.update(derivation='source-copy', standalone_reading=False,
+            assessment_snapshot={'owner_snapshot': 'sha256:' + 'e' * 64, 'journal_revision': 'f' * 64,
+                'journal_batches': 1, 'publication_authorized': False, 'current_runtime_grant': False,
+                'subject_assessment_required': True},
+            admission={'schema_version': 'tos_knowledge_admission_v1', 'subject': copy.deepcopy(packet['form']),
+                'policy': policy, 'status': 'admitted', 'can_use': True, 'is_semantic_evaluation': False, 'use': 'research'},
+            subject_assessment={'schema_version': 'tos_human_form_subject_assessment_v1',
+                'subject': copy.deepcopy(packet['subject']), 'journal_revision': 'a' * 64, 'journal_batches': 2,
+                'historical_withdrawals': [{'id': 'tos.assessment.synthetic-withdrawal', 'version': 1, 'digest': 'sha256:' + 'b' * 64}],
+                'form_admission_is_parent_endorsement': False,
+                'admission': {'schema_version': 'tos_knowledge_admission_v1', 'subject': copy.deepcopy(packet['subject']),
+                    'policy': policy, 'use': 'research', 'status': 'rejected', 'can_use': False,
+                    'limits': ['Synthetic rejected parent remains readable as attributed context.'],
+                    'is_semantic_evaluation': False, 'retained_unknown_member': {'counterevidence': False}}})
+        before = copy.deepcopy(node)
+        for derivation in ('source-copy', 'freeform'):
+            for status in ('admitted', 'admitted-with-limits', 'disputed', 'rejected', 'deferred', 'unreviewed'):
+                with self.subTest(derivation=derivation, status=status):
+                    candidate = copy.deepcopy(node)
+                    body = candidate['attributes']['human_forms'][0]
+                    body['derivation'] = derivation
+                    body['subject_assessment']['admission'].update(status=status, can_use=status.startswith('admitted'))
+                    self.assertEqual(select_human_forms(candidate, 'fr')['roles']['statement']['packet'], body)
+        changes = ('missing-parent', 'missing-marker', 'false-marker', 'endorsement', 'standalone', 'template',
+                   'bad-derivation', 'wrong-subject', 'wrong-admission-subject', 'wrong-use', 'wrong-policy',
+                   'missing-limits', 'bad-limits', 'bad-status', 'boolean-count', 'unsafe-count', 'missing-head',
+                   'empty-journal-with-withdrawal', 'bad-withdrawal', 'bad-can-use')
+        for change in changes:
+            with self.subTest(change=change):
+                bad = copy.deepcopy(node)
+                body = bad['attributes']['human_forms'][0]
+                parent = body['subject_assessment']
+                admission = parent['admission']
+                if change == 'missing-parent': del body['subject_assessment']
+                elif change == 'missing-marker': del body['assessment_snapshot']['subject_assessment_required']
+                elif change == 'false-marker': body['assessment_snapshot']['subject_assessment_required'] = False
+                elif change == 'endorsement': parent['form_admission_is_parent_endorsement'] = True
+                elif change == 'standalone': body.update(standalone_reading=True, context=[])
+                elif change in ('template', 'bad-derivation'): body['derivation'] = 'template' if change == 'template' else ['source-copy']
+                elif change == 'wrong-subject': parent['subject']['id'] = 'tos.claim.other'
+                elif change == 'wrong-admission-subject': admission['subject']['id'] = 'tos.claim.other'
+                elif change == 'wrong-use': admission['use'] = 'publication'
+                elif change == 'wrong-policy': admission['policy'] = {**policy, 'version': 2}
+                elif change == 'missing-limits': del admission['limits']
+                elif change == 'bad-limits': admission['limits'] = [False]
+                elif change == 'bad-status': admission['status'] = ['admitted']
+                elif change == 'boolean-count': parent['journal_batches'] = True
+                elif change == 'unsafe-count': parent['journal_batches'] = 9_007_199_254_740_992
+                elif change == 'missing-head': parent['journal_revision'] = None
+                elif change == 'empty-journal-with-withdrawal': parent.update(journal_batches=0, journal_revision=None)
+                elif change == 'bad-withdrawal': parent['historical_withdrawals'][0]['version'] = True
+                else: admission['can_use'] = 0
+                self.assertEqual(select_human_forms(bad, 'fr')['state'], 'invalid')
+        large = copy.deepcopy(node)
+        large['attributes']['human_forms'][0]['subject_assessment']['admission']['limits'] = ['x' * 20_000]
+        selected = select_human_forms(large, 'fr')['roles']['statement']
+        self.assertEqual(selected['state'], 'over-budget')
+        self.assertIsNone(selected['packet'])
+        self.assertEqual(node, before)
+
     def test_native_form_selection_requires_exact_schema_identity_and_carrier(self):
         from tos_access.knowledge import select_human_forms
         for schema, identity in [('tos_scholarly_composite_witness_v1', 'composite_id'),
                                  ('tos_artifact_source_witness_v1', 'artifact_id'),
-                                 ('tos_artifact_source_witness_v2', 'artifact_id')]:
+                                 ('tos_artifact_source_witness_v2', 'artifact_id'),
+                                 ('tos_canonical_node_v1', 'node_id')]:
             node = self.human_form_node()
             source = node['attributes']['source_record']
             source.pop('record_id')
-            identifier = 'tos.' + identity.removesuffix('_id') + '.synthetic'
+            identifier = 'tos.' + ('support' if identity == 'node_id' else identity.removesuffix('_id')) + '.synthetic'
             node['attributes']['human_forms'][0]['subject']['id'] = identifier
             source.update(schema_version=schema, **{identity: identifier})
+            if identity == 'node_id':
+                source['node_type'] = 'support'
             node['entity_id'] = source[identity]
             original = copy.deepcopy(node)
             selected = select_human_forms(node, 'fr')
@@ -972,6 +1673,34 @@ class KnowledgeContractTests(unittest.TestCase):
                     bad['attributes']['source_record']['record_id'] = source[identity]
                 with self.subTest(schema=schema, change=change):
                     self.assertEqual(select_human_forms(bad, 'fr')['state'], 'invalid')
+            if identity == 'node_id':
+                for change in ({'node_type': 'event'}, {'node_type': ['support']}, {'node_type': {}},
+                               {'node_type': None}, {'node_id': identifier + '\n'},
+                               {'schema_version': 'tos_canonical_node_v2'}, {'record_version': True}):
+                    bad = copy.deepcopy(node)
+                    bad['attributes']['source_record'].update(change)
+                    with self.subTest(canonical_change=change):
+                        self.assertEqual(select_human_forms(bad, 'fr')['state'], 'invalid')
+
+    def test_versioned_canonical_projection_binds_record_digest_separately_from_file_bytes(self):
+        source = load_knowledge_fixture('ToS/public-compatibility/support_node.example.json')
+        source.update(schema_version='tos_canonical_node_v1', record_version=1, preferred_label='Synthetic name')
+        digest = hashlib.sha256(json.dumps(source, ensure_ascii=False, sort_keys=True,
+            separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+        raw = {'node_id': source['node_id'], 'node_type': source['node_type'], 'properties': source,
+            'label': 'outer-navigation-not-source', 'source_record_sha256': digest,
+            'source_sha256': 'a' * 64, 'source_path': 'synthetic:canonical-node.json'}
+        node = _normalize_node(raw, 'canon')
+        self.assertEqual(node['display']['title']['default'], source['preferred_label'])
+        self.assertEqual(node['attributes']['source_record'], source)
+        self.assertEqual(node['attributes']['source_sha256'], digest)
+        self.assertEqual(node['attributes']['source_file_sha256'], 'a' * 64)
+        self.assertEqual(node['source_record']['payload'], raw)
+        self.assertEqual(node['source_record']['field_map']['attributes.source_record'], '/properties')
+        self.assertEqual(node['source_record']['field_map']['attributes.source_sha256'], '/source_record_sha256')
+        for incorrect in (None, 'b' * 64):
+            with self.subTest(digest=incorrect), self.assertRaisesRegex(ValueError, 'source digest differs'):
+                _normalize_node({**raw, 'source_record_sha256': incorrect}, 'canon')
 
     def test_source_form_selection_does_not_adjudicate_competing_forms(self):
         from tos_access.knowledge import select_human_forms
@@ -1024,6 +1753,41 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertIsNone(selected['packet'])
         self.assertLessEqual(_form_delivery_cost(result), HUMAN_FORM_SELECTION_BUDGET)
         self.assertLessEqual(len(json.dumps(result, ensure_ascii=False).encode()), HUMAN_FORM_SELECTION_BUDGET)
+
+    def test_form_budget_prioritizes_requested_language_across_roles(self):
+        from tos_access.knowledge import select_human_forms, HUMAN_FORM_SELECTION_BUDGET, _form_delivery_cost
+        node = self.human_form_node()
+        statement = node['attributes']['human_forms'][0]
+        statement['context'][0]['value']['long_qualification'] = 'x' * 11000
+        name = copy.deepcopy(statement)
+        name.update(role='name', language=None, display_text='Fallback name')
+        name['form']['id'] = 'tos.form.fixture-fallback-name'
+        name['context'][0]['value']['long_qualification'] = 'y' * 3500
+        node['attributes']['human_forms'].append(name)
+        before = copy.deepcopy(node)
+        for language, reason in [('FR', 'exact-language'), ('fr-CA', 'less-specific-language')]:
+            result = select_human_forms(node, language)
+            self.assertEqual(result['roles']['statement']['packet'], statement)
+            self.assertEqual(result['roles']['statement']['reason'], reason)
+            self.assertEqual(result['roles']['name']['state'], 'over-budget')
+            self.assertEqual(result['roles']['name']['form'], name['form'])
+            self.assertIsNone(result['roles']['name']['packet'])
+            self.assertLessEqual(_form_delivery_cost(result), HUMAN_FORM_SELECTION_BUDGET)
+            self.assertLessEqual(len(json.dumps(result, ensure_ascii=False).encode()), HUMAN_FORM_SELECTION_BUDGET)
+        # Both packets fit individually, but equal-priority allocation keeps
+        # the declared role order, not packet/input order or a content judgment.
+        for language in ('auto', 'de'):
+            result = select_human_forms(node, language)
+            self.assertEqual(result['roles']['name']['packet'], name)
+            self.assertEqual(result['roles']['statement']['state'], 'over-budget')
+        self.assertEqual(node, before)
+        name['language'] = 'fr'
+        self.assertEqual(select_human_forms(node, 'fr')['roles']['name']['packet'], name)
+        self.assertEqual(select_human_forms(node, 'fr')['roles']['statement']['state'], 'over-budget')
+        # An exact match outranks an earlier role's less-specific match, too.
+        statement['language'] = 'fr-CA'
+        self.assertEqual(select_human_forms(node, 'fr-CA')['roles']['statement']['packet'], statement)
+        self.assertEqual(select_human_forms(node, 'fr-CA')['roles']['name']['state'], 'over-budget')
 
     def test_original_selection_requires_intact_source_bound_language_context(self):
         from tos_access.knowledge import select_human_forms
@@ -1457,6 +2221,61 @@ class KnowledgeContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'snapshot'):
             search_knowledge_graph(copy.deepcopy(graph),'a',search_index=index)
 
+    def test_search_orders_display_names_and_forms_before_technical_matches(self):
+        from tos_access.knowledge import search_knowledge_graph
+
+        graph = {
+            'schema': 'tos_knowledge_graph_v1', 'source_revision': 'search-ranking-fixture',
+            'authority_boundary': {},
+            'nodes': [
+                {
+                    'id': 'node:technical', 'native_id': 'technical', 'source_graph': 'philosophy',
+                    'display': {'title': {'default': 'Unrelated node'},
+                                'kind_label': {'default': 'concept'},
+                                'summary': {'default': 'No supplied note'}},
+                    'attributes': {'content_revision': 'sha256:abc4363def'},
+                },
+                {
+                    'id': 'node:note', 'native_id': 'note', 'source_graph': 'philosophy',
+                    'display': {'title': {'default': 'Unrelated node'},
+                                'kind_label': {'default': 'concept'},
+                                'summary': {'default': 'A reader-visible note names 4363.'}},
+                },
+                {
+                    'id': 'node:name', 'native_id': 'name', 'source_graph': 'philosophy',
+                    'display': {'title': {'default': 'Anchor · 4363'},
+                                'kind_label': {'default': 'anchor'},
+                                'summary': {'default': 'A note'}},
+                },
+            ],
+            'relations': [
+                {
+                    'id': 'relation:technical', 'native_id': 'technical', 'source_graph': 'philosophy',
+                    'from_id': 'node:name', 'to_id': 'node:note', 'predicate_id': 'linked',
+                    'display': {'label': {'default': 'linked'}, 'statement': {'default': 'No statement'},
+                                'explanation': {'default': 'No explanation'}},
+                    'attributes': {'content_revision': 'sha256:4363abc'},
+                },
+                {
+                    'id': 'relation:statement', 'native_id': 'statement', 'source_graph': 'philosophy',
+                    'from_id': 'node:name', 'to_id': 'node:note', 'predicate_id': 'linked',
+                    'display': {'label': {'default': 'linked'},
+                                'statement': {'default': 'Anchor · 4363 — linked → note.'},
+                                'explanation': {'default': 'A reader-visible statement'}},
+                },
+            ],
+        }
+
+        result = search_knowledge_graph(graph, '4363', limit=3)
+        self.assertEqual([item['id'] for item in result['nodes']],
+                         ['node:name', 'node:note', 'node:technical'])
+        self.assertEqual([item['id'] for item in result['relations']],
+                         ['relation:statement', 'relation:technical'])
+        self.assertEqual(result['counts'], {
+            'matching_nodes': 3, 'matching_relations': 2,
+            'returned_nodes': 3, 'returned_relations': 2,
+        })
+
     def test_inspection_index_preserves_aliases_edges_and_avoids_global_scans(self):
         from tos_access.knowledge import (
             KnowledgeGraphIndex, inspect_knowledge_node, inspect_knowledge_relation,
@@ -1601,6 +2420,104 @@ class KnowledgeContractTests(unittest.TestCase):
             packets = [search_knowledge_graph(graph), inspect_knowledge_node(graph, graph['nodes'][0]['id']),
                        inspect_knowledge_relation(graph, graph['relations'][0]['id'])]
             self.assertTrue(all(packet['source_revision'] == revision for packet in packets))
+
+    def test_inspection_exposes_only_exact_raw_source_read_targets(self):
+        from tos_access.knowledge import (
+            _normalize_relation, _normalize_node, _exact_record_digest,
+            inspect_knowledge_node, inspect_knowledge_relation,
+        )
+        from tos_access.source_read import exact_target_from_record
+
+        metadata = {
+            'schema_version': 'tos_corpus_record_v1', 'record_type': 'agent',
+            'record_id': 'tos.agent.synthetic-source', 'record_version': 1,
+            'preferred_label': 'Synthetic source agent',
+        }
+        claim = {
+            'schema_version': 'tos_claim_packet_v1', 'claim_id': 'tos.claim.synthetic-source',
+            'claim_type': 'relation', 'claim_version': 1,
+            'subject_ref': metadata['record_id'], 'predicate': 'supports',
+            'object': 'tos.work.synthetic-source',
+        }
+        metadata_item = {
+            'node_id': metadata['record_id'], 'node_kind': 'agent',
+            'label': 'Synthetic source agent', 'source_ref': 'ToS/source-witnesses/agents/synthetic/agent.json',
+            'properties': {'source_record': metadata},
+        }
+        claim_item = {
+            'node_id': 'claim:' + claim['claim_id'], 'node_kind': 'claim',
+            'label': 'supports', 'source_ref': 'ToS/source-witnesses/relations/synthetic.jsonl',
+            'properties': {'claim_ref': claim['claim_id'], 'source_claim': claim},
+        }
+        node = _normalize_node(metadata_item, 'source-navigation')
+        claim_node = _normalize_node(claim_item, 'source-claims', source_kind_id='claim')
+        relation = _normalize_relation(
+            {
+                'edge_id': 'synthetic-source-relation', 'from_id': metadata_item['node_id'],
+                'to_id': metadata_item['node_id'], 'from_source_graph': 'source-navigation',
+                'to_source_graph': 'source-navigation', 'predicate_id': 'supports',
+                'source_ref': 'ToS/source-witnesses/relations/synthetic.jsonl',
+                'properties': {'source_claim': claim},
+            },
+            'source-claims', {node['id']: node, claim_node['id']: claim_node},
+        )
+        graph = {
+            'source_revision': 'a' * 64, 'nodes': [node, claim_node], 'relations': [relation],
+            'authority_boundary': {},
+        }
+        original = copy.deepcopy(graph)
+        node_packet = inspect_knowledge_node(graph, node['id'])
+        relation_packet = inspect_knowledge_relation(graph, relation['id'])
+        claim_packet = inspect_knowledge_node(graph, claim_node['id'])
+        metadata_target = exact_target_from_record(metadata, layer='metadata_record')
+        claim_target = exact_target_from_record(claim, layer='claim_record')
+        self.assertEqual(metadata_target['record_ref']['digest'], 'sha256:' + _exact_record_digest(metadata))
+        self.assertEqual(claim_target['record_ref']['digest'], 'sha256:' + _exact_record_digest(claim))
+        self.assertEqual(node_packet['source_read_targets'][node['id']]['target'], metadata_target)
+        self.assertEqual(node_packet['source_read_targets'][relation['id']]['target'], claim_target)
+        self.assertEqual(relation_packet['source_read_targets'][relation['id']]['target'], claim_target)
+        self.assertEqual(relation_packet['source_read_targets'][node['id']]['target'], metadata_target)
+        self.assertEqual(claim_packet['source_read_targets'][claim_node['id']]['target'], claim_target)
+        self.assertTrue(all(value['source_revision'] == graph['source_revision']
+                            for packet in (node_packet, relation_packet, claim_packet)
+                            for value in packet['source_read_targets'].values()))
+        self.assertEqual(graph, original)
+
+        # A claim_ref, source path, or normalized identity without the full raw
+        # Claim body is not enough to manufacture a source-read target.
+        bare = _normalize_node(
+            {
+                'node_id': 'claim:tos.claim.inferred-only', 'node_kind': 'claim',
+                'source_ref': 'ToS/source-witnesses/relations/inferred-only.jsonl',
+                'properties': {'claim_ref': claim['claim_id']},
+            },
+            'source-claims', source_kind_id='claim',
+        )
+        bare_packet = inspect_knowledge_node({**graph, 'nodes': [bare]}, bare['id'])
+        self.assertEqual(bare_packet['source_read_targets'], {})
+
+        # Native witnesses retain their own identity fields; no record_id
+        # shadow or mismatched family is admitted by the exact target adapter.
+        native = {
+            'schema_version': 'tos_scholarly_composite_witness_v1',
+            'composite_id': 'tos.composite.synthetic-source', 'record_version': 1,
+            'title': 'Native composite carrier',
+        }
+        native_target = exact_target_from_record(native, layer='metadata_record')
+        self.assertEqual(native_target['record_type'], 'composite')
+        self.assertEqual(native_target['record_ref']['id'], native['composite_id'])
+        shadow_native = {**native, 'record_id': 'tos.composite.synthetic-source', 'record_type': 'composite'}
+        self.assertIsNone(exact_target_from_record(shadow_native, layer='metadata_record'))
+        for schema in ('tos_artifact_source_witness_v1', 'tos_artifact_source_witness_v2'):
+            artifact = {'schema_version': schema, 'artifact_id': 'tos.artifact.synthetic-source', 'record_version': 1}
+            self.assertEqual(exact_target_from_record(artifact, layer='metadata_record')['record_type'], 'artifact')
+            self.assertIsNone(exact_target_from_record({**artifact, 'artifact_id': 'tos.agent.wrong'}, layer='metadata_record'))
+            self.assertIsNone(exact_target_from_record({**artifact, 'record_version': True}, layer='metadata_record'))
+        minimal_metadata = {
+            'record_type': 'agent', 'record_id': 'tos.agent.synthetic-minimal',
+            'record_version': 1, 'preferred_label': 'Minimal source agent',
+        }
+        self.assertIsNotNone(exact_target_from_record(minimal_metadata, layer='metadata_record'))
 
     def test_predicate_translation_depends_on_meaning_not_number_of_carriers(self):
         from tos_access.knowledge import _relation_display
@@ -2390,6 +3307,122 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertEqual(relation["relation_type_id"], "tos.relation.unmapped")
         self.assertEqual(relation["predicate_mapping"]["status"], "unmapped")
 
+    def candidate_mapping_slice(self):
+        """Eight exact authored endpoints and five relations from a bounded snapshot."""
+        fixture = load_knowledge_fixture('candidate-mapping.json')
+        relation_ids = {
+            "table-i-a35-relation-019", "table-i-a35-relation-020", "table-i-a35-relation-021",
+            "table-ii-t2-05-relation-027", "table-ii-t2-56-relation-002",
+        }
+        relations = fixture['relations']
+        self.assertEqual({row["candidate_id"] for row in relations}, relation_ids)
+        node_ids = {row[key] for row in relations for key in ("source_candidate_id", "target_candidate_id")}
+        nodes = fixture['nodes']
+        self.assertEqual(len(nodes), 8)
+        self.assertEqual({row["candidate_id"] for row in nodes}, node_ids)
+        # A bounded test carrier preserves complete owner records. It does not
+        # recreate a generated projection or impersonate its source envelope.
+        philosophy = {
+            "nodes": [{"node_id": "candidate-node:" + row["candidate_id"],
+                       "node_type": "candidate-node", "label": row["label"], "source_ref": row["source_ref"],
+                       "properties": {**copy.deepcopy(row), "original_node_type": row["node_kind"],
+                                      "source_record": copy.deepcopy(row)}} for row in nodes],
+            "edges": [{"edge_id": "edge:candidate-relation:" + row["candidate_id"],
+                       "from_id": "candidate-node:" + row["source_candidate_id"],
+                       "to_id": "candidate-node:" + row["target_candidate_id"],
+                       "predicate_id": row["relation_kind"], "source_ref": row["source_ref"],
+                       "properties": {**copy.deepcopy(row), "source_record": copy.deepcopy(row)}} for row in relations],
+        }
+        return philosophy, {row["candidate_id"]: row for row in [*nodes, *relations]}
+
+    def test_candidate_relation_mappings_preserve_exact_source_and_direction(self):
+        philosophy, records = self.candidate_mapping_slice()
+        before = copy.deepcopy(philosophy)
+        graph = build_knowledge_graph({}, philosophy, {}, self.entity_type_registry, self.relation_type_registry)
+        self.assertEqual(philosophy, before)
+        self.assertEqual(graph["counts"]["semantic_mapping"]["unmapped_nodes"], 0)
+        self.assertEqual(graph["counts"]["semantic_mapping"]["unmapped_relations"], 0)
+        self.assertTrue(graph["counts"]["semantic_validation"]["valid"])
+        expected = {
+            "figure_anchor": ("tos.relation.candidate-authorizing-figure", "tos.entity.text-corpus", "tos.entity.figure"),
+            "translates_into": ("tos.relation.candidate-translator-involvement", "tos.entity.figure", "tos.entity.text-corpus"),
+            "uses_medium": ("tos.relation.candidate-material-realization", "tos.entity.language-script", "tos.entity.medium"),
+        }
+        nodes = {node["id"]: node for node in graph["nodes"]}
+        entries = {entry["relation_type_id"]: entry for entry in self.relation_type_registry["relations"]}
+        for relation in graph["relations"]:
+            source_row = records[relation["attributes"]["candidate_id"]]
+            relation_type, domain, range_type = expected[source_row["relation_kind"]]
+            self.assertEqual(relation["relation_type_id"], relation_type)
+            self.assertEqual(relation["predicate_id"], source_row["relation_kind"])
+            self.assertEqual(relation["predicate_mapping"]["source_predicate_id"], source_row["relation_kind"])
+            self.assertEqual(relation["predicate_mapping"]["status"], "mapped")
+            self.assertEqual(relation["from_id"], "philosophy:candidate-node:" + source_row["source_candidate_id"])
+            self.assertEqual(relation["to_id"], "philosophy:candidate-node:" + source_row["target_candidate_id"])
+            self.assertEqual(nodes[relation["from_id"]]["type_id"], domain)
+            self.assertEqual(nodes[relation["to_id"]]["type_id"], range_type)
+            self.assertEqual(relation["source_record"]["payload"]["properties"]["source_record"], source_row)
+            self.assertEqual(relation["attributes"]["source_record"], source_row)
+            self.assertEqual(relation["source_refs"], [source_row["source_ref"]])
+            self.assertEqual(relation["epistemic"]["authority_layer"], source_row["authority_posture"])
+            self.assertEqual(relation["epistemic"]["canon_status"], "pre-canon")
+            self.assertEqual(relation["epistemic"]["review_posture"], source_row.get("review_posture", "not-recorded"))
+            self.assertEqual(relation["attributes"].get("review_reason"), source_row.get("review_reason"))
+            self.assertEqual(relation["attributes"].get("route_constraints"), source_row.get("route_constraints"))
+            self.assertEqual(relation["display"]["explanation"]["default"], source_row["comment"])
+            entry = entries[relation_type]
+            self.assertEqual(entry["domain_type_ids"], [domain])
+            self.assertEqual(entry["range_type_ids"], [range_type])
+            self.assertEqual(entry["assertion_mode"], "direct")
+            self.assertNotIn("source_claim_profile", entry)
+            self.assertEqual(entry["review_requirement"], "recorded")
+            self.assertFalse(entry["transitive"])
+            for language in ("ru", "en"):
+                self.assertEqual(relation["display"]["label"][language], entry["labels"][language])
+                self.assertEqual(relation["display"]["inverse_label"][language], entry["inverse_labels"][language])
+        for node in graph["nodes"]:
+            candidate = node["attributes"].get("candidate_id")
+            if candidate:
+                self.assertEqual(node["source_record"]["payload"]["properties"]["source_record"], records[candidate])
+
+    def test_candidate_relation_endpoint_boundaries_reject_reversal_and_wrong_kinds(self):
+        philosophy, _ = self.candidate_mapping_slice()
+        for predicate in ("figure_anchor", "translates_into", "uses_medium"):
+            selected = next(row for row in philosophy["edges"] if row["predicate_id"] == predicate)
+            node_ids = {selected["from_id"], selected["to_id"]}
+            base = {"nodes": [row for row in philosophy["nodes"] if row["node_id"] in node_ids],
+                    "edges": [selected]}
+            for mutation in ("reverse", "wrong-domain", "wrong-range"):
+                with self.subTest(predicate=predicate, mutation=mutation):
+                    broken = copy.deepcopy(base)
+                    edge = broken["edges"][0]
+                    if mutation == "reverse":
+                        edge["from_id"], edge["to_id"] = edge["to_id"], edge["from_id"]
+                    else:
+                        endpoint = edge["from_id" if mutation == "wrong-domain" else "to_id"]
+                        node = next(row for row in broken["nodes"] if row["node_id"] == endpoint)
+                        node["properties"]["original_node_type"] = "concept"
+                    with self.assertRaisesRegex(ValueError, "(domain|range).*outside"):
+                        build_knowledge_graph({}, broken, {}, self.entity_type_registry, self.relation_type_registry)
+
+    def test_candidate_relation_mappings_are_exact_not_claim_or_foreign_routes(self):
+        from tos_access.knowledge import _relation_registry_indexes
+        entries, mappings, fallback = _relation_registry_indexes(self.relation_type_registry)
+        selected = {
+            "figure_anchor": "tos.relation.candidate-authorizing-figure",
+            "translates_into": "tos.relation.candidate-translator-involvement",
+            "uses_medium": "tos.relation.candidate-material-realization",
+        }
+        for predicate, identifier in selected.items():
+            entry = entries[identifier]
+            self.assertEqual(entry["source_mappings"], [{"source_graph": "philosophy", "source_predicate_id": predicate, "scope": "edge"}])
+            self.assertEqual(mappings[("philosophy", predicate, "edge")], identifier)
+            for graph, scope in (("source-claims", "claim-predicate"), ("source-claims", "edge"),
+                                 ("canon", "edge"), ("candidate-intake", "edge"), ("philosophy", "claim-predicate")):
+                self.assertEqual(mappings.get((graph, predicate, scope), fallback), fallback)
+        self.assertEqual(mappings[("philosophy", "translated_into", "edge")], "tos.relation.philosophy-transmission")
+        self.assertEqual(mappings.get(("philosophy", "future_candidate_predicate", "edge"), fallback), fallback)
+
     @pytest.mark.data_release
     def test_current_repository_projection_has_complete_registry_coverage(self) -> None:
         # The repository projections are large and the corpus/bibliography
@@ -2398,7 +3431,95 @@ class KnowledgeContractTests(unittest.TestCase):
         store = self._real_query_store()
         mapping = store.header["counts"]["semantic_mapping"]
         self.assertEqual(mapping["unmapped_nodes"], 0)
+        # Registry 44 maps the five retained edges to distinct candidate-only
+        # relations. Mapping does not accept their source claims or change
+        # authored direction, complete source body, or review posture.
+        expected_candidates = {
+            "philosophy:edge:candidate-relation:table-i-a35-relation-019": {
+                "predicate_id": "figure_anchor",
+                "candidate_id": "table-i-a35-relation-019",
+                "source_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl",
+                "authority_posture": "prepared_research_candidate",
+                "canon_status": "pre-canon",
+            },
+            "philosophy:edge:candidate-relation:table-i-a35-relation-020": {
+                "predicate_id": "figure_anchor",
+                "candidate_id": "table-i-a35-relation-020",
+                "source_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl",
+                "authority_posture": "prepared_research_candidate",
+                "canon_status": "pre-canon",
+            },
+            "philosophy:edge:candidate-relation:table-i-a35-relation-021": {
+                "predicate_id": "figure_anchor",
+                "candidate_id": "table-i-a35-relation-021",
+                "source_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl",
+                "authority_posture": "prepared_research_candidate",
+                "canon_status": "pre-canon",
+            },
+            "philosophy:edge:candidate-relation:table-ii-t2-05-relation-027": {
+                "predicate_id": "translates_into",
+                "candidate_id": "table-ii-t2-05-relation-027",
+                "source_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-ii-prepared-dossiers.jsonl",
+                "authority_posture": "prepared_research_candidate",
+                "canon_status": "pre-canon",
+            },
+            "philosophy:edge:candidate-relation:table-ii-t2-56-relation-002": {
+                "predicate_id": "uses_medium",
+                "candidate_id": "table-ii-t2-56-relation-002",
+                "source_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-ii-prepared-dossiers.jsonl",
+                "authority_posture": "prepared_research_candidate",
+                "canon_status": "pre-canon",
+            },
+        }
+        unmapped = {
+            relation["id"]: relation
+            for relation in graph["relations"]
+            if relation.get("predicate_mapping", {}).get("status") == "unmapped"
+        }
+        self.assertEqual(unmapped, {})
         self.assertEqual(mapping["unmapped_relations"], 0)
+        candidates = {relation["id"]: relation for relation in graph["relations"]
+                      if relation["id"] in expected_candidates}
+        self.assertEqual(set(candidates), set(expected_candidates))
+        candidate_types = {
+            "figure_anchor": "tos.relation.candidate-authorizing-figure",
+            "translates_into": "tos.relation.candidate-translator-involvement",
+            "uses_medium": "tos.relation.candidate-material-realization",
+        }
+        owner_records: dict[str, list[dict[str, object]]] = {}
+        for relation_id, expected in expected_candidates.items():
+            relation = candidates[relation_id]
+            self.assertEqual(relation["source_graph"], "philosophy")
+            self.assertEqual(relation["predicate_id"], expected["predicate_id"])
+            self.assertEqual(relation["predicate_mapping"]["source_predicate_id"], expected["predicate_id"])
+            self.assertEqual(relation["predicate_mapping"]["status"], "mapped")
+            self.assertEqual(relation["relation_type_id"], candidate_types[expected["predicate_id"]])
+            payload = relation["source_record"]["payload"]
+            self.assertEqual(payload["source_ref"], expected["source_ref"])
+            properties = payload["properties"]
+            self.assertEqual(properties["candidate_id"], expected["candidate_id"])
+            self.assertEqual(properties["source_record_ref"], expected["source_ref"])
+            source_records = owner_records.setdefault(
+                expected["source_ref"],
+                [
+                    json.loads(line)
+                    for line in (
+                        self.repo_root / expected["source_ref"]
+                    ).read_text(encoding="utf-8").splitlines()
+                    if line.strip()
+                ],
+            )
+            owner_record = next(
+                record
+                for record in source_records
+                if record.get("candidate_id") == expected["candidate_id"]
+            )
+            self.assertEqual(properties["authority_posture"], owner_record.get("authority_posture"))
+            self.assertEqual(properties["canon_status"], owner_record.get("canon_status"))
+            self.assertEqual(properties.get("review_posture"), owner_record.get("review_posture"))
+            self.assertEqual(properties.get("review_reason"), owner_record.get("review_reason"))
+            self.assertEqual(properties["authority_posture"], expected["authority_posture"])
+            self.assertEqual(properties["canon_status"], expected["canon_status"])
         self.assertGreater(mapping["cross_layer_relations"], 0)
         self.assertEqual(store.header["counts"]["semantic_validation"]["violations"], [])
 
@@ -2432,11 +3553,14 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertTrue(all(form['context'] and form['admission'] is None
                             for form in projected_identity['attributes']['human_forms']))
         from tos_access.knowledge import _lens_carrier
+        from tos_access.human_form_codec import decode_human_form_selection
         selected_identity = _lens_carrier(projected_identity, 'compact', language='ru')
         self.assertEqual(selected_identity['attributes'], {})
-        self.assertEqual(selected_identity['human_form_selection']['roles']['name']['packet'],
+        self.assertEqual(selected_identity['human_form_selection']['schema_version'], 'tos_human_form_selection_v2')
+        decoded_selection = decode_human_form_selection(selected_identity['human_form_selection'])
+        self.assertEqual(decoded_selection['roles']['name']['packet'],
                          source_identity['properties']['human_forms'][1])
-        self.assertEqual(selected_identity['human_form_selection']['roles']['hover']['packet'],
+        self.assertEqual(decoded_selection['roles']['hover']['packet'],
                          source_identity['properties']['human_forms'][2])
         Draft202012Validator({'$ref': self.schemas['knowledge-graph.v1.schema.json']['$id'] + '#/$defs/node'},
                             registry=self.registry).validate(selected_identity)
@@ -2664,11 +3788,17 @@ class KnowledgeContractTests(unittest.TestCase):
                 "tos.knowledge.catalog",
                 "tos.knowledge.contracts",
                 "tos.knowledge.search",
+                "tos.knowledge.search.capabilities",
                 "tos.knowledge.node.inspect",
                 "tos.knowledge.relation.inspect",
+                "tos.knowledge.temporal.compare",
                 "tos.knowledge.focus",
                 "tos.lens.open",
                 "tos.lens.compile",
+                "tos.source.read.capabilities",
+                "tos.source.read.contracts",
+                "tos.source.handle.discover",
+                "tos.source.record.read",
             },
         )
         self.assertIn("creates no server state", operations["tos.lens.compile"]["post_semantics"])

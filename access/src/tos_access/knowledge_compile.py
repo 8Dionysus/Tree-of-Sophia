@@ -22,7 +22,7 @@ if __package__ != 'tos_access':
         sys.path.insert(0, str(_ACCESS_SRC))
     __package__ = 'tos_access'
 
-from .disk_collections import DiskCollections, DiskSequence, DiskMap, canonical_digest, compact
+from .disk_collections import DiskCollections, DiskSequence, DiskMap, canonical_digest, retained_json as compact
 from . import knowledge as k
 from .projection_store import ProjectionReader, FORMAT, is_partitioned
 from .query_store import SCHEMA, DEFAULT_RELATIVE_PATH, COMPILER_VERSION
@@ -164,9 +164,7 @@ def compile_knowledge_store(root, output=None, *, allow_legacy=False, search_acc
         phase('normalize-and-validate')
         graph = k.build_knowledge_graph(corpus, philosophy, bibliography, entities, predicates,
                                        _storage=storage, _source_revision=revision)
-        phase('catalog')
-        catalog = k.knowledge_catalog(graph, corpus, philosophy, entities, predicates, _storage=storage)
-        phase('write-knowledge-rows')
+        phase('semantic-diagnostics')
         _schema(db)
         semantic_report = graph['counts'].get('semantic_validation')
         if semantic_report is not None:
@@ -180,6 +178,9 @@ def compile_knowledge_store(root, output=None, *, allow_legacy=False, search_acc
                 semantic_report['gap_count'] = len(gaps)
                 semantic_report['gap_details_collection'] = 'semantic_diagnostics/gap'
                 semantic_report['gaps_inline_complete'] = False
+        phase('catalog')
+        catalog = k.knowledge_catalog(graph, corpus, philosophy, entities, predicates, _storage=storage)
+        phase('write-knowledge-rows')
         for row in graph['nodes']:
             db.execute('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)',
                        (row['id'], row.get('native_id'), row.get('entity_id'), row.get('source_graph'),

@@ -22,6 +22,7 @@ EXPECTED_QUERY_OPERATIONS = {
     "tos.status",
     "tos.snapshot",
     "tos.search",
+    "tos.knowledge.search",
     "tos.source-gaps.search",
     "tos.source.descend",
     "tos.dossier.inspect",
@@ -36,6 +37,7 @@ EXPECTED_PAGE_COMMANDS = {
     "tos.page.context",
     "tos.page.open-view",
     "tos.page.search",
+    "tos.page.knowledge-search",
     "tos.page.find-source-gaps",
     "tos.page.prepare-word-analysis",
     "tos.page.select",
@@ -63,11 +65,17 @@ EXPECTED_KNOWLEDGE_OPERATIONS = {
     "tos.knowledge.catalog",
     "tos.knowledge.contracts",
     "tos.knowledge.search",
+    "tos.knowledge.search.capabilities",
     "tos.knowledge.node.inspect",
     "tos.knowledge.relation.inspect",
+    "tos.knowledge.temporal.compare",
     "tos.knowledge.focus",
     "tos.lens.open",
     "tos.lens.compile",
+    "tos.source.read.contracts",
+    "tos.source.read.capabilities",
+    "tos.source.handle.discover",
+    "tos.source.record.read",
 }
 
 
@@ -419,8 +427,12 @@ def _validate_knowledge_contracts(repo_root: Path, *, data_root: Path | None = N
         "knowledge-graph.v1.schema.json",
         "lens-spec.v1.schema.json",
         "lens-result.v1.schema.json",
+        "temporal-comparison-request.v1.schema.json",
+        "temporal-comparison-result.v1.schema.json",
         "exploration-request.v1.schema.json",
         "exploration-result.v1.schema.json",
+        "exploration-request.v2.schema.json",
+        "exploration-result.v2.schema.json",
     )
     schemas = {
         name: json.loads((contract_root / name).read_text(encoding="utf-8"))
@@ -519,6 +531,8 @@ def _validate_knowledge_contracts(repo_root: Path, *, data_root: Path | None = N
         "knowledge_graph",
         "lens_spec",
         "lens_result",
+        "temporal_comparison_request",
+        "temporal_comparison_result",
         "entity_type_registry_schema",
         "relation_type_registry_schema",
         "entity_type_registry",
@@ -561,6 +575,20 @@ def _validate_knowledge_contracts(repo_root: Path, *, data_root: Path | None = N
     if page["page"]["next_cursor"]:
         page = core.knowledge_explore({"cursor": page["page"]["next_cursor"]})
         Draft202012Validator(schemas["exploration-result.v1.schema.json"], registry=registry).validate(page)
+    for kind, carriers in (("node", graph["nodes"]), ("relation", graph["relations"])):
+        if not carriers:
+            continue
+        origin = carriers[0]
+        request = {
+            "schema_version": "tos_exploration_request_v2", "source_revision": graph["source_revision"],
+            "origin": {"kind": kind, "id": origin["id"], "content_revision": origin["content_revision"]},
+            "max_depth": 0,
+        }
+        Draft202012Validator(schemas["exploration-request.v2.schema.json"], registry=registry).validate(request)
+        page = core.knowledge_explore(request)
+        Draft202012Validator(schemas["exploration-result.v2.schema.json"], registry=registry).validate(page)
+        if page["status"] != "complete" or page["page"]["primary_node_ids"] or page["page"]["primary_relation_ids"]:
+            raise RuntimeError("zero-depth typed exploration must return origin context only")
 
 
 def _validate_contracts(repo_root: Path) -> None:
@@ -833,6 +861,7 @@ contracts = core.knowledge_contracts()
 assert contracts["schema"] == "tos_knowledge_contract_bundle_v1"
 assert set(contracts["contracts"]) == {
     "api", "knowledge_graph", "lens_spec", "lens_result",
+    "temporal_comparison_request", "temporal_comparison_result",
     "entity_type_registry_schema", "relation_type_registry_schema",
     "entity_type_registry", "relation_type_registry",
 }

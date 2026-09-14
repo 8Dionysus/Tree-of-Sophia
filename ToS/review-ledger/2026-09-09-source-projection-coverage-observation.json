@@ -1,0 +1,650 @@
+{
+  "observed_source_commit": "762ca0b6a2de3e4acd8538e5f31e7cb8051d9360",
+  "producer_ref": "scripts/source_witness_projection_coverage.py",
+  "producer_sha256": "7ac5b8b73389ebde84f40558b6f51b8936df48a927119776dbb474b792858422",
+  "observation_scope": "dated source-first diagnostic, not currentness, semantic or Foundation acceptance",
+  "summary": {
+    "catalog_sha256": "cef846e6f753a11b5c81e68b2d1337bcf3bf15c70f0f7022580417a15d5b90c3",
+    "claims": 363,
+    "enumeration_complete": true,
+    "grants_admission": false,
+    "groups": [
+      {
+        "kind": "agent",
+        "source_identities": 55,
+        "states": {
+          "mapped-directly": 55
+        }
+      },
+      {
+        "kind": "argument",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "artifact",
+        "source_identities": 18,
+        "states": {
+          "mapped-through-adapter": 18
+        }
+      },
+      {
+        "kind": "aspect",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "biographical-episode",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "biographical-phase",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "claim",
+        "source_identities": 363,
+        "states": {
+          "mapped-directly": 358,
+          "requires-clarification": 5
+        }
+      },
+      {
+        "kind": "collection",
+        "source_identities": 3,
+        "states": {
+          "conflicting-record-carriers": 1,
+          "mapped-directly": 2
+        }
+      },
+      {
+        "kind": "community",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "composite",
+        "source_identities": 11,
+        "states": {
+          "mapped-directly": 1,
+          "mapped-through-adapter": 10
+        }
+      },
+      {
+        "kind": "conception",
+        "source_identities": 4,
+        "states": {
+          "mapped-directly": 4
+        }
+      },
+      {
+        "kind": "crosscutting-concept",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "distinction",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "edition",
+        "source_identities": 24,
+        "states": {
+          "mapped-directly": 24
+        }
+      },
+      {
+        "kind": "expression",
+        "source_identities": 29,
+        "states": {
+          "mapped-directly": 29
+        }
+      },
+      {
+        "kind": "historical-environment",
+        "source_identities": 2,
+        "states": {
+          "mapped-directly": 2
+        }
+      },
+      {
+        "kind": "historical-event",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "historical-generation",
+        "source_identities": 2,
+        "states": {
+          "mapped-directly": 2
+        }
+      },
+      {
+        "kind": "historical-period",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "historical-process",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "ideal",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "inference-step",
+        "source_identities": 2,
+        "states": {
+          "mapped-directly": 2
+        }
+      },
+      {
+        "kind": "institutional-body",
+        "source_identities": 2,
+        "states": {
+          "mapped-directly": 2
+        }
+      },
+      {
+        "kind": "intellectual-movement",
+        "source_identities": 2,
+        "states": {
+          "mapped-directly": 2
+        }
+      },
+      {
+        "kind": "intellectual-school",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "intellectual-tradition",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "item",
+        "source_identities": 22,
+        "states": {
+          "mapped-directly": 22
+        }
+      },
+      {
+        "kind": "language",
+        "source_identities": 3,
+        "states": {
+          "mapped-directly": 3
+        }
+      },
+      {
+        "kind": "letter",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "lexeme",
+        "source_identities": 5,
+        "states": {
+          "mapped-directly": 5
+        }
+      },
+      {
+        "kind": "lexical-form",
+        "source_identities": 2,
+        "states": {
+          "mapped-directly": 2
+        }
+      },
+      {
+        "kind": "life-circumstance",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "linguistic-variety",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "link",
+        "source_identities": 5,
+        "states": {
+          "mapped-directly": 5
+        }
+      },
+      {
+        "kind": "metaphor",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "objection",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "ontological-commitment",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "opposition",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "organization",
+        "source_identities": 11,
+        "states": {
+          "mapped-directly": 11
+        }
+      },
+      {
+        "kind": "philosophical-category",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "place",
+        "source_identities": 5,
+        "states": {
+          "mapped-directly": 5
+        }
+      },
+      {
+        "kind": "position",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "problem",
+        "source_identities": 2,
+        "states": {
+          "mapped-directly": 2
+        }
+      },
+      {
+        "kind": "problem-family",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "question",
+        "source_identities": 2,
+        "states": {
+          "mapped-directly": 2
+        }
+      },
+      {
+        "kind": "quotation-passage",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "reception-process",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "rediscovery-episode",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "rhetorical-figure",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "script",
+        "source_identities": 2,
+        "states": {
+          "mapped-directly": 2
+        }
+      },
+      {
+        "kind": "sense",
+        "source_identities": 3,
+        "states": {
+          "mapped-directly": 3
+        }
+      },
+      {
+        "kind": "social-group",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "textual-fragment",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "thesis",
+        "source_identities": 6,
+        "states": {
+          "mapped-directly": 6
+        }
+      },
+      {
+        "kind": "thought-experiment",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "thought-image",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "thought-method",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "thought-move",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "thought-operation",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "transliteration-scheme",
+        "source_identities": 1,
+        "states": {
+          "mapped-directly": 1
+        }
+      },
+      {
+        "kind": "value",
+        "source_identities": 2,
+        "states": {
+          "mapped-directly": 2
+        }
+      },
+      {
+        "kind": "work",
+        "source_identities": 43,
+        "states": {
+          "mapped-directly": 43
+        }
+      }
+    ],
+    "limitations": [
+      "Only catalog-owned public metadata identities are enumerated, not all ToS corpus resources.",
+      "Private native semantic packets, payloads and owner-local material are outside this report.",
+      "Unknown uncatalogued families require their source owner; absence does not imply restriction or falsity.",
+      "Direct/adapted mapping means exact retained JSON fields and source return, not semantic understanding.",
+      "Source-file hashes bind observed bytes; a JSON carrier does not preserve file formatting.",
+      "Historical versions, form quality, assessment, rights and canon require their separate owner routes.",
+      "The report compares this snapshot; it does not certify full generated, runtime or deployment currentness.",
+      "Boundary rechecks do not provide an atomic snapshot against arbitrary non-cooperating editors."
+    ],
+    "objects": 302,
+    "performs_assessment": false,
+    "schema_version": "tos_source_projection_coverage_v1",
+    "scope": "current-public-source-witness-catalog",
+    "source_files": 390,
+    "source_files_digest": "sha256:261e7bc0e063b1271120698950e3041ce489473a42b029ca16167ef2222adf7e",
+    "source_identities": 665,
+    "source_revision": "df679b9d9d821635e19bf3631055c2459fa92420380f94abbc4322417c35609d",
+    "writes_to_source": false
+  },
+  "unresolved": [
+    {
+      "adapter": "source-record",
+      "carriers": [
+        {
+          "added_fields": [],
+          "changed_fields": [],
+          "id": "source-claims:identity:tos.collection.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996",
+          "kind": "node",
+          "mapping_state": "mapped",
+          "missing_fields": [],
+          "raw_record_state": "exact",
+          "record_pointer": "/attributes/source_record",
+          "source_graph": "source-claims",
+          "source_return_present": true
+        },
+        {
+          "added_fields": [],
+          "changed_fields": [
+            "record_version"
+          ],
+          "id": "source-navigation:tos.collection.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996",
+          "kind": "node",
+          "mapping_state": "mapped",
+          "missing_fields": [
+            "field_languages"
+          ],
+          "raw_record_state": "different",
+          "record_pointer": "/attributes/source_record",
+          "source_graph": "source-navigation",
+          "source_return_present": true
+        }
+      ],
+      "field_count": 14,
+      "identity": "tos.collection.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996",
+      "kind": "collection",
+      "next_action": "inspect-exact-source-and-projection-mapping-with-the-source-owner",
+      "next_owner": "ToS/source-witnesses",
+      "record_digest": "sha256:f14299bd238043c88f48b33e7116a12724d0e1285d5bb0861c69c78e1e3ace80",
+      "source_file_sha256": "acf3f17bded4bedccd6d950df078fc05d203a1b46ceb3ab1b38f13a89865b0af",
+      "source_line": null,
+      "source_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/collection.json",
+      "state": "conflicting-record-carriers"
+    },
+    {
+      "adapter": "reified-claim",
+      "carriers": [
+        {
+          "added_fields": [],
+          "changed_fields": [],
+          "id": "source-navigation:source-navigation:claim:tos.claim.link.cdli.cdlb-2006-1.article.describes-work",
+          "kind": "relation",
+          "mapping_state": "mapped",
+          "missing_fields": [],
+          "raw_record_state": "not-provided",
+          "record_pointer": null,
+          "source_graph": "source-navigation",
+          "source_return_present": true
+        }
+      ],
+      "field_count": 17,
+      "identity": "tos.claim.link.cdli.cdlb-2006-1.article.describes-work",
+      "kind": "claim",
+      "next_action": "inspect-exact-source-and-projection-mapping-with-the-source-owner",
+      "next_owner": "ToS/source-witnesses",
+      "record_digest": "sha256:7d99c99ba37fd99c3d8d6f9757c4b7481b2bc3ab455284cade729f0e170ae7d8",
+      "source_file_sha256": "01ec208aa6ddc9debdf366cdf4df169881f5a2d9c7ce29b708afa3d28b4e3d6f",
+      "source_line": 1,
+      "source_ref": "ToS/source-witnesses/relations/object-link/object-link-claims.jsonl",
+      "state": "requires-clarification"
+    },
+    {
+      "adapter": "reified-claim",
+      "carriers": [
+        {
+          "added_fields": [],
+          "changed_fields": [],
+          "id": "source-navigation:source-navigation:claim:tos.claim.link.cdli.cdlb-2006-1.pdf.downloads-work",
+          "kind": "relation",
+          "mapping_state": "mapped",
+          "missing_fields": [],
+          "raw_record_state": "not-provided",
+          "record_pointer": null,
+          "source_graph": "source-navigation",
+          "source_return_present": true
+        }
+      ],
+      "field_count": 17,
+      "identity": "tos.claim.link.cdli.cdlb-2006-1.pdf.downloads-work",
+      "kind": "claim",
+      "next_action": "inspect-exact-source-and-projection-mapping-with-the-source-owner",
+      "next_owner": "ToS/source-witnesses",
+      "record_digest": "sha256:822344c6e99a0b6e92ac717bf9a35e1faba61b35c9eca266e7b1d8a2eb72c104",
+      "source_file_sha256": "01ec208aa6ddc9debdf366cdf4df169881f5a2d9c7ce29b708afa3d28b4e3d6f",
+      "source_line": 2,
+      "source_ref": "ToS/source-witnesses/relations/object-link/object-link-claims.jsonl",
+      "state": "requires-clarification"
+    },
+    {
+      "adapter": "reified-claim",
+      "carriers": [
+        {
+          "added_fields": [],
+          "changed_fields": [],
+          "id": "source-navigation:source-navigation:claim:tos.claim.link.internet-archive.onfoursongsconta00good.landing.describes-work",
+          "kind": "relation",
+          "mapping_state": "mapped",
+          "missing_fields": [],
+          "raw_record_state": "not-provided",
+          "record_pointer": null,
+          "source_graph": "source-navigation",
+          "source_return_present": true
+        }
+      ],
+      "field_count": 17,
+      "identity": "tos.claim.link.internet-archive.onfoursongsconta00good.landing.describes-work",
+      "kind": "claim",
+      "next_action": "inspect-exact-source-and-projection-mapping-with-the-source-owner",
+      "next_owner": "ToS/source-witnesses",
+      "record_digest": "sha256:a7b50a815a7fd32316bd6ae145e471bc66b3a9040dff36e25566aa0a3d0d3d86",
+      "source_file_sha256": "01ec208aa6ddc9debdf366cdf4df169881f5a2d9c7ce29b708afa3d28b4e3d6f",
+      "source_line": 3,
+      "source_ref": "ToS/source-witnesses/relations/object-link/object-link-claims.jsonl",
+      "state": "requires-clarification"
+    },
+    {
+      "adapter": "reified-claim",
+      "carriers": [
+        {
+          "added_fields": [],
+          "changed_fields": [],
+          "id": "source-navigation:source-navigation:claim:tos.claim.link.internet-archive.onfoursongsconta00good.metadata.describes-item",
+          "kind": "relation",
+          "mapping_state": "mapped",
+          "missing_fields": [],
+          "raw_record_state": "not-provided",
+          "record_pointer": null,
+          "source_graph": "source-navigation",
+          "source_return_present": true
+        }
+      ],
+      "field_count": 17,
+      "identity": "tos.claim.link.internet-archive.onfoursongsconta00good.metadata.describes-item",
+      "kind": "claim",
+      "next_action": "inspect-exact-source-and-projection-mapping-with-the-source-owner",
+      "next_owner": "ToS/source-witnesses",
+      "record_digest": "sha256:efd77191fa1b7e81a19d2efdd2531bc55293bbfca38859030e4b8359156aac95",
+      "source_file_sha256": "01ec208aa6ddc9debdf366cdf4df169881f5a2d9c7ce29b708afa3d28b4e3d6f",
+      "source_line": 4,
+      "source_ref": "ToS/source-witnesses/relations/object-link/object-link-claims.jsonl",
+      "state": "requires-clarification"
+    },
+    {
+      "adapter": "reified-claim",
+      "carriers": [
+        {
+          "added_fields": [],
+          "changed_fields": [],
+          "id": "source-navigation:source-navigation:claim:tos.claim.link.internet-archive.onfoursongsconta00good.pdf-download.downloads-item",
+          "kind": "relation",
+          "mapping_state": "mapped",
+          "missing_fields": [],
+          "raw_record_state": "not-provided",
+          "record_pointer": null,
+          "source_graph": "source-navigation",
+          "source_return_present": true
+        }
+      ],
+      "field_count": 17,
+      "identity": "tos.claim.link.internet-archive.onfoursongsconta00good.pdf-download.downloads-item",
+      "kind": "claim",
+      "next_action": "inspect-exact-source-and-projection-mapping-with-the-source-owner",
+      "next_owner": "ToS/source-witnesses",
+      "record_digest": "sha256:fc367b76213e58ef9432ac7fc2ff737bd20a71ddebaaf463778783683322e057",
+      "source_file_sha256": "01ec208aa6ddc9debdf366cdf4df169881f5a2d9c7ce29b708afa3d28b4e3d6f",
+      "source_line": 5,
+      "source_ref": "ToS/source-witnesses/relations/object-link/object-link-claims.jsonl",
+      "state": "requires-clarification"
+    }
+  ]
+}

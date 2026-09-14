@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-occurrence-motif-claim.schema.json",
+  "title": "Qualified motif proposal over exact Occurrences",
+  "description": "One focal-bound Claim is the candidate identity. Its whole member set and qualified interpretation are assessed together. The value is not a Sign, Concept, Collection, accepted recurrence or independent membership relation.",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"},
+    {"required": ["qualifiers"], "properties": {
+      "schema_version": {"const": "tos_source_occurrence_motif_claim_v1"},
+      "claim_type": {"const": "relation"},
+      "predicate": {"const": "occurrence_motif_proposal"},
+      "object": {
+        "allOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/source-structured-value.schema.json"}],
+        "required": ["members", "proposed_signification", "grouping_basis", "source_scope", "contrast", "limitations"],
+        "properties": {
+          "kind": {"const": "motif-proposal"},
+          "source_wording": {"required": ["wording_kind"], "properties": {
+            "wording_kind": {"const": "research_paraphrase", "description": "The researcher's qualified formulation, not a quotation of the witness. Exact quotations remain supporting_quotes with native anchors."}
+          }},
+          "members": {"type": "array", "minItems": 2, "maxItems": 8, "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^tos\\.occurrence\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+            "description": "The complete declared comparison set, including the focal subject. Sequence here is serialization order, not historical order or identity priority."},
+          "proposed_signification": {"$ref": "#/$defs/nonBlank"},
+          "grouping_basis": {"$ref": "#/$defs/nonBlank"},
+          "source_scope": {"$ref": "#/$defs/nonBlank"},
+          "contrast": {"$ref": "#/$defs/nonBlank", "description": "Alternative account or explicit limit of the comparison; it does not manufacture counterevidence."},
+          "limitations": {"$ref": "#/$defs/nonBlank"},
+          "extensions": {"type": "object"}
+        },
+        "unevaluatedProperties": false
+      },
+      "qualifiers": {"type": "object", "required": ["statement", "statement_language", "statement_script"],
+        "properties": {
+          "statement": {"$ref": "#/$defs/nonBlank"},
+          "statement_language": {"anyOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, {"type": "null"}]},
+          "statement_script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"}
+        }}
+    }}
+  ],
+  "unevaluatedProperties": false,
+  "$defs": {"nonBlank": {"type": "string", "pattern": "\\S"}}
+}

@@ -11,11 +11,13 @@ export type ResearchHypothesis = { id: string; title: string; body: string; targ
 export type ResearchProposalKind = "relation" | "interpretation" | "metadata_correction" | "source_route" | "concept_enrichment";
 export type ProposalConfidenceValue = "unknown" | "low" | "medium" | "high";
 export type ProposalConfidencePosture = { value: ProposalConfidenceValue; meaning: "maker_declared_uncertainty_not_truth_probability" };
+export type ProposalReviewStatus = "pending_review" | "pending_human_review";
+export type ProposalReviewRequirement = "human_or_authorized_agent";
 export type ResearchProposal = {
   id: string; kind: ResearchProposalKind; parentHypothesisId: string; targetId?: string; fromId?: string; toId?: string;
   statement: string; sourceRefs: string[]; evidenceRefs: string[]; confidencePosture: ProposalConfidencePosture;
   actorOrigin: "human" | "agent"; basePageRevision: number; baseWorkspaceRevision: number; dataFingerprint: string;
-  createdAt: string; digest: string; localOnly: true; reviewStatus: "pending_human_review"; canon: false;
+  createdAt: string; digest: string; localOnly: true; reviewStatus: ProposalReviewStatus; reviewRequirement?: ProposalReviewRequirement; canon: false;
 };
 export type ResearchProposalInput = {
   id: string; kind: ResearchProposalKind; parentHypothesisId: string; targetId?: string; fromId?: string; toId?: string;
@@ -111,7 +113,8 @@ function proposalPacketOf(proposal: ResearchProposal, includeDigest = true): Rec
     evidence_refs: [...proposal.evidenceRefs], confidence_posture: { ...proposal.confidencePosture }, actor_origin: proposal.actorOrigin,
     base_page_revision: proposal.basePageRevision, base_workspace_revision: proposal.baseWorkspaceRevision,
     data_fingerprint: proposal.dataFingerprint, created_at: proposal.createdAt, local_only: true,
-    review_status: "pending_human_review", canon: false, ...(includeDigest ? { digest: proposal.digest } : {}),
+    review_status: proposal.reviewStatus, ...(proposal.reviewRequirement ? { review_requirement: proposal.reviewRequirement } : {}),
+    canon: false, ...(includeDigest ? { digest: proposal.digest } : {}),
   };
 }
 function proposalDigestOf(proposal: ResearchProposal): string { return deterministicDigest(stableStringify(proposalPacketOf(proposal, false))); }
@@ -135,14 +138,18 @@ function validateProposalTargets(kind: ResearchProposalKind, targetId: string | 
 function proposalOf(value: unknown, index: number): ResearchProposal {
   const prefix = `proposals[${index}]`;
   const required = ["id", "kind", "parent_hypothesis_id", "statement", "source_refs", "evidence_refs", "confidence_posture", "actor_origin", "base_page_revision", "base_workspace_revision", "data_fingerprint", "created_at", "local_only", "review_status", "canon", "digest"];
-  const optional = ["target_id", "from_id", "to_id"];
+  const optional = ["target_id", "from_id", "to_id", "review_requirement"];
   if (!isRecord(value) || !only(value, required, optional)) throw new Error(`${prefix} is invalid`);
   const kind = stringValue(value.kind, `${prefix}.kind`, MAX_ID) as ResearchProposalKind;
   if (!["relation", "interpretation", "metadata_correction", "source_route", "concept_enrichment"].includes(kind)) throw new Error(`${prefix}.kind is invalid`);
   const targetId = stringValue(value.target_id, `${prefix}.target_id`, MAX_ID, false); const fromId = stringValue(value.from_id, `${prefix}.from_id`, MAX_ID, false); const toId = stringValue(value.to_id, `${prefix}.to_id`, MAX_ID, false);
   if ((fromId === undefined) !== (toId === undefined)) throw new Error(`${prefix} from_id and to_id must be paired`);
   validateProposalTargets(kind, targetId, fromId, toId, prefix);
-  if (value.local_only !== true || value.review_status !== "pending_human_review" || value.canon !== false) throw new Error(`${prefix} posture must remain local and pending human review`);
+  if (value.local_only !== true || !["pending_review", "pending_human_review"].includes(value.review_status as string) || value.canon !== false) throw new Error(`${prefix} posture must remain local and pending review`);
+  const reviewStatus = value.review_status as ProposalReviewStatus;
+  const reviewRequirement = value.review_requirement === undefined ? undefined : stringValue(value.review_requirement, `${prefix}.review_requirement`, MAX_ID) as ProposalReviewRequirement;
+  if (reviewStatus === "pending_review" && reviewRequirement !== "human_or_authorized_agent") throw new Error(`${prefix}.review_requirement is required for pending review`);
+  if (reviewRequirement !== undefined && reviewRequirement !== "human_or_authorized_agent") throw new Error(`${prefix}.review_requirement is invalid`);
   const actorOrigin = stringValue(value.actor_origin, `${prefix}.actor_origin`, MAX_ID) as "human" | "agent";
   if (actorOrigin !== "human" && actorOrigin !== "agent") throw new Error(`${prefix}.actor_origin is invalid`);
   const proposal: ResearchProposal = {
@@ -152,7 +159,7 @@ function proposalOf(value: unknown, index: number): ResearchProposal {
     confidencePosture: confidencePostureOf(value.confidence_posture, `${prefix}.confidence_posture`), actorOrigin,
     basePageRevision: integerValue(value.base_page_revision, `${prefix}.base_page_revision`, MAX_REVISION), baseWorkspaceRevision: integerValue(value.base_workspace_revision, `${prefix}.base_workspace_revision`, MAX_REVISION),
     dataFingerprint: stringValue(value.data_fingerprint, `${prefix}.data_fingerprint`, MAX_REF) as string, createdAt: createdAtValue(value.created_at, `${prefix}.created_at`),
-    digest: idValue(value.digest, `${prefix}.digest`), localOnly: true, reviewStatus: "pending_human_review", canon: false,
+    digest: idValue(value.digest, `${prefix}.digest`), localOnly: true, reviewStatus, ...(reviewRequirement ? { reviewRequirement } : {}), canon: false,
   };
   if (proposalDigestOf(proposal) !== proposal.digest) throw new Error(`${prefix} digest mismatch`);
   return proposal;
@@ -227,7 +234,7 @@ export function createResearchWorkspace(options: ResearchWorkspaceOptions = {}) 
         id, kind: input.kind, parentHypothesisId: idValue(input.parentHypothesisId, "proposal.parentHypothesisId"), ...(targetId ? { targetId } : {}), ...(fromId ? { fromId } : {}), ...(toId ? { toId } : {}),
         statement: stringValue(input.statement, "proposal.statement", MAX_TEXT) as string, sourceRefs: refListValue(input.sourceRefs, "proposal.sourceRefs"), evidenceRefs: refListValue(input.evidenceRefs, "proposal.evidenceRefs"),
         confidencePosture: confidencePostureOf(input.confidencePosture, "proposal.confidencePosture"), actorOrigin: input.actorOrigin, basePageRevision: integerValue(input.basePageRevision, "proposal.basePageRevision", MAX_REVISION), baseWorkspaceRevision: integerValue(input.baseWorkspaceRevision, "proposal.baseWorkspaceRevision", MAX_REVISION),
-        dataFingerprint: stringValue(input.dataFingerprint, "proposal.dataFingerprint", MAX_REF) as string, createdAt: createdAtValue(input.createdAt ?? new Date().toISOString(), "proposal.createdAt"), digest: "", localOnly: true, reviewStatus: "pending_human_review", canon: false,
+        dataFingerprint: stringValue(input.dataFingerprint, "proposal.dataFingerprint", MAX_REF) as string, createdAt: createdAtValue(input.createdAt ?? new Date().toISOString(), "proposal.createdAt"), digest: "", localOnly: true, reviewStatus: "pending_review", reviewRequirement: "human_or_authorized_agent", canon: false,
       };
       if (draft.actorOrigin !== "human" && draft.actorOrigin !== "agent") throw new Error("proposal.actorOrigin is invalid");
       draft.digest = proposalDigestOf(draft);

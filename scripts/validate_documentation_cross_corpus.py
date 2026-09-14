@@ -51,7 +51,7 @@ EXPECTED_FAMILY_IDS = {
 ROLE_KEYS = {"authored", "generated", "executable", "runtime", "tool", "receipt"}
 MARKDOWN_SUFFIXES = {".md", ".txt", ".yaml", ".yml"}
 COMMAND_REFERENCE_RE = re.compile(
-    r"(?<![A-Za-z0-9_.-])((?:\.\./)*(?:scripts|mechanics)/[A-Za-z0-9_./-]+\.(?:py|sh))"
+    r"(?<![A-Za-z0-9_./-])((?:\.\./)*(?:[A-Za-z0-9_.-]+/)*(?:scripts|mechanics)/[A-Za-z0-9_./-]+\.(?:py|sh))"
 )
 EXTERNAL_OWNER_MARKERS = (
     "aoa-kag",

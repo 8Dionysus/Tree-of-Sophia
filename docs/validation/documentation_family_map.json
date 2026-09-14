@@ -330,7 +330,7 @@
       ],
       "next_organ": [
         "nearest ToS branch card",
-        "human review",
+        "source-visible review by authorized competent humans or agents",
         "named mechanics or downstream owner"
       ],
       "context": {
@@ -356,6 +356,7 @@
       "authority_keys": [
         "tos_meaning",
         "source_witness_identity",
+        "knowledge_assessment",
         "human_review",
         "canon_acceptance"
       ]
@@ -610,7 +611,9 @@
         "kag/AGENTS.md",
         "kag/VALIDATION.md",
         "kag/manifest.json",
+        "kag/provider_pin.json",
         "scripts/validate_local_kag_provider.py",
+        "scripts/validate_local_segmented_kag_provider.py",
         "ToS/derived-exports/"
       ],
       "next_organ": [
@@ -1030,6 +1033,13 @@
     {
       "id": "source_witness_identity",
       "owner": "ToS/source-witnesses/",
+      "strength": "authored",
+      "family_id": "tos",
+      "family_owner": "nearest ToS/AGENTS.md and the exact source, doctrine, review, canon, or export owner"
+    },
+    {
+      "id": "knowledge_assessment",
+      "owner": "ToS/doctrine/KNOWLEDGE_ASSESSMENT.md",
       "strength": "authored",
       "family_id": "tos",
       "family_owner": "nearest ToS/AGENTS.md and the exact source, doctrine, review, canon, or export owner"

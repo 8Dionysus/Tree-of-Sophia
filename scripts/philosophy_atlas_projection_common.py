@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import copy
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,13 @@ TOS_ROOT = REPO_ROOT / "ToS"
 PROJECTION_PATH = TOS_ROOT / "derived-exports" / "philosophy_atlas_projection.min.json"
 SCHEMA_REF = "ToS/contracts/philosophy-atlas-projection.schema.json"
 SOURCE_ATLAS_REF = "ToS/philosophy/atlas/atlas.manifest.json"
+DOSSIER_MANIFEST_REF = "ToS/philosophy/atlas/dossiers/branch.manifest.json"
+# Existing manifest fields and dossier count fields, not new source identities.
+BACKLOG_FIELDS = {
+    "source_anchor_backlog": "source_anchor_count",
+    "term_index": "term_count",
+    "transmission_backlog": "transmission_count",
+}
 CANDIDATE_NODES_REF = "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl"
 CANDIDATE_RELATIONS_REF = "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl"
 CANDIDATE_NODES_REFS = (
@@ -67,6 +75,216 @@ def load_optional_jsonl(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     return load_jsonl(path)
+
+
+class AuthoredAtlasSnapshot:
+    """Exact public atlas/proposal inputs, not native corpus record admission.
+
+    Row ordinals address parsed JSONL records; physical lines and exact byte
+    digests are separate. Unknown nested source fields are never normalized.
+    """
+
+    def __init__(self, root: Path):
+        self.root = root
+        self.digests: dict[str, str] = {}
+
+    def _bytes(self, ref: str) -> bytes:
+        path = self.root / ref
+        if (not ref.startswith('ToS/philosophy/') or path.is_symlink() or not path.is_file()
+                or path.resolve() != path.absolute() or '..' in Path(ref).parts):
+            raise ValueError('atlas source return requires an exact regular philosophy source file')
+        with path.open('rb') as stream:
+            raw = stream.read(32 * 1024 * 1024 + 1)
+        if len(raw) > 32 * 1024 * 1024:
+            raise ValueError('atlas source return exceeds its bounded source byte budget')
+        return raw
+
+    @staticmethod
+    def _object(raw: bytes) -> dict[str, Any]:
+        def unique(pairs):
+            value = {}
+            for key, entry in pairs:
+                if key in value:
+                    raise ValueError('duplicate JSON key in atlas source return')
+                value[key] = entry
+            return value
+
+        def nonfinite(value):
+            raise ValueError('nonfinite JSON value in atlas source return')
+
+        record = json.loads(raw, object_pairs_hook=unique, parse_constant=nonfinite)
+        if not isinstance(record, dict):
+            raise ValueError('atlas source return requires a JSON object')
+        return record
+
+    def _context(self, ref, digest, record, **locator):
+        if ref in self.digests and self.digests[ref] != digest:
+            raise ValueError('atlas source changed during source return')
+        self.digests[ref] = digest
+        canonical = json.dumps(record, ensure_ascii=False, sort_keys=True,
+                               separators=(',', ':'), allow_nan=False).encode('utf-8')
+        return {'source_record': copy.deepcopy(record), 'source_record_ref': ref,
+                'source_file_sha256': digest, 'source_record_sha256': hashlib.sha256(canonical).hexdigest(),
+                **locator}
+
+    def object(self, ref):
+        raw = self._bytes(ref)
+        record = self._object(raw)
+        return record, self._context(ref, hashlib.sha256(raw).hexdigest(), record,
+                                     source_format='json', source_pointer='')
+
+    def rows(self, ref, identity_key):
+        if not isinstance(identity_key, str) or not identity_key:
+            raise ValueError('atlas keyed source return requires its declared identity field')
+        return self._rows(ref, identity_key)
+
+    def unkeyed_rows(self, ref):
+        """Return every occurrence by exact file/row locator, never minted ID.
+
+        Identical raw rows still occupy distinct source lines. A DOCX cell or
+        optional dossier-local label is source context, not global identity.
+        """
+        return self._rows(ref, None)
+
+    def _rows(self, ref, identity_key):
+        raw = self._bytes(ref)
+        rows, seen = [], set()
+        # Bind an empty declared source too; absence of rows is not absence of input.
+        digest = hashlib.sha256(raw).hexdigest()
+        if ref in self.digests and self.digests[ref] != digest:
+            raise ValueError('atlas source changed during source return')
+        self.digests[ref] = digest
+        for line, content in enumerate(raw.splitlines(), start=1):
+            if not content.strip():
+                continue
+            record = self._object(content)
+            if identity_key is not None:
+                identity = record.get(identity_key)
+                if not isinstance(identity, str) or not identity or identity in seen:
+                    raise ValueError('atlas source row identity is missing or duplicated')
+                seen.add(identity)
+            if 'source_ref' in record and record['source_ref'] != ref:
+                raise ValueError('atlas source row source_ref differs from its exact stream')
+            rows.append((record, self._context(ref, digest, record, source_format='jsonl',
+                                              source_row=len(rows) + 1, source_line=line)))
+        return rows
+
+    def verify_current(self):
+        for ref, digest in self.digests.items():
+            if hashlib.sha256(self._bytes(ref)).hexdigest() != digest:
+                raise ValueError('atlas source changed during source return')
+
+
+def build_dossier_source_backlogs(snapshot, dossiers):
+    """Full existing backlog records attached to their already-owned dossier.
+
+    Only the aggregate manifest routes supply these rows. Branch mirrors and
+    reviewed discovery leads remain separate routes and are not counted twice.
+    """
+    manifest, _ = snapshot.object(DOSSIER_MANIFEST_REF)
+    refs = [manifest.get(field) for field in BACKLOG_FIELDS]
+    if (manifest.get('branch_id') != 'philosophy.atlas.dossiers'
+            or any(not isinstance(ref, str) or not ref.endswith('.jsonl') for ref in refs)
+            or len(set(refs)) != len(refs)):
+        raise ValueError('atlas backlog manifest has missing or ambiguous source family refs')
+    by_id = {row['dossier_id']: row for row in dossiers}
+    if len(by_id) != len(dossiers):
+        raise ValueError('atlas backlog parent dossier identity is ambiguous')
+    result = {identity: {} for identity in by_id}
+    for family, count_field in BACKLOG_FIELDS.items():
+        ref = manifest[family]
+        rows = snapshot.unkeyed_rows(ref)
+        digest = snapshot.digests[ref]
+        for identity in by_id:
+            result[identity][family] = {'source_ref': ref, 'source_file_sha256': digest,
+                                      'record_count': 0, 'records': []}
+        for record, context in rows:
+            parent = by_id.get(record.get('dossier_id'))
+            if (parent is None or record.get('atlas_row_id') != parent['dossier_id']
+                    or record.get('source_ref') != ref
+                    or any(record.get(key) != parent.get(key) for key in ('source_document', 'branch_path'))
+                    or 'table_id' in record and record['table_id'] != parent.get('table_id')):
+                raise ValueError('atlas backlog source row has no exact matching parent dossier')
+            result[parent['dossier_id']][family]['records'].append(context)
+        for identity, dossier in by_id.items():
+            family_context = result[identity][family]
+            count = len(family_context['records'])
+            if type(dossier.get(count_field)) is not int or dossier[count_field] != count:
+                raise ValueError('atlas backlog source rows differ from the declared dossier count')
+            family_context['record_count'] = count
+    return result
+
+
+def validate_dossier_source_backlogs(item):
+    """Portable locator/body consistency; source admission remains elsewhere."""
+    properties = item.get('properties') or {}
+    if 'source_backlogs' not in properties:
+        return
+    families = properties['source_backlogs']
+    parent = properties.get('source_record')
+    if (not isinstance(families, dict) or set(families) != set(BACKLOG_FIELDS)
+            or not isinstance(parent, dict) or not isinstance(parent.get('dossier_id'), str)
+            or item.get('node_id') != 'atlas-dossier:' + parent['dossier_id']):
+        raise ValueError('atlas backlog context has no exact dossier owner')
+    refs = set()
+    for family, count_field in BACKLOG_FIELDS.items():
+        context = families[family]
+        if not isinstance(context, dict):
+            raise ValueError('atlas backlog family context is not an object')
+        ref, records = context.get('source_ref'), context.get('records')
+        if (not isinstance(ref, str) or not ref.startswith('ToS/philosophy/') or not ref.endswith('.jsonl')
+                or ref in refs or not isinstance(records, list)
+                or type(context.get('record_count')) is not int
+                or context['record_count'] != len(records)
+                or type(parent.get(count_field)) is not int or parent[count_field] != len(records)):
+            raise ValueError('atlas backlog family refs or declared counts are ambiguous')
+        refs.add(ref)
+        prior_row = prior_line = 0
+        for entry in records:
+            if not isinstance(entry, dict) or not isinstance(entry.get('source_record'), dict):
+                raise ValueError('atlas backlog source envelope is incomplete')
+            record = entry['source_record']
+            if (entry.get('source_format') != 'jsonl' or record.get('source_ref') != ref
+                    or entry.get('source_file_sha256') != context.get('source_file_sha256')
+                    or record.get('dossier_id') != parent['dossier_id']
+                    or record.get('atlas_row_id') != parent['dossier_id']
+                    or any(record.get(key) != parent.get(key) for key in ('source_document', 'branch_path'))
+                    or 'table_id' in record and record['table_id'] != parent.get('table_id')
+                    or type(entry.get('source_row')) is not int or entry['source_row'] <= prior_row
+                    or type(entry.get('source_line')) is not int or entry['source_line'] <= prior_line):
+                raise ValueError('atlas backlog source locator or parent binding differs')
+            validate_authored_source_context({'source_ref': ref, 'properties': entry})
+            prior_row, prior_line = entry['source_row'], entry['source_line']
+
+
+def validate_authored_source_context(item):
+    """Portable body/locator consistency, never authentication of an export."""
+    properties = item.get('properties') or {}
+    if 'source_record' not in properties:
+        return
+    record = properties['source_record']
+    if not isinstance(record, dict) or properties.get('source_record_ref') != item.get('source_ref'):
+        raise ValueError('atlas source context has no exact owner path')
+    canonical = json.dumps(record, ensure_ascii=False, sort_keys=True,
+                           separators=(',', ':'), allow_nan=False).encode('utf-8')
+    if properties.get('source_record_sha256') != hashlib.sha256(canonical).hexdigest():
+        raise ValueError('atlas source context body differs from its canonical record digest')
+    for field in ('source_row', 'source_line'):
+        if field in properties and (type(properties[field]) is not int or properties[field] < 1):
+            raise ValueError('atlas source row and physical line must be positive integer locators')
+    alias_source = properties.get('endpoint_alias_source')
+    if alias_source is not None:
+        if not isinstance(alias_source, dict) or properties.get('endpoint_alias_ref') != ENDPOINT_ALIASES_REF:
+            raise ValueError('atlas endpoint alias context has no exact owner route')
+        validate_authored_source_context({'source_ref': ENDPOINT_ALIASES_REF, 'properties': alias_source})
+        aliases = alias_source['source_record'].get('aliases')
+        pointers = properties.get('endpoint_alias_pointers')
+        if (not isinstance(aliases, list) or not isinstance(pointers, list) or not pointers
+                or any(not isinstance(pointer, str) or not pointer.startswith('/aliases/')
+                       or not pointer.removeprefix('/aliases/').isdigit()
+                       or int(pointer.removeprefix('/aliases/')) >= len(aliases) for pointer in pointers)):
+            raise ValueError('atlas endpoint alias pointer does not select its exact source context')
+    validate_dossier_source_backlogs(item)
 
 
 def add_node(
@@ -178,8 +396,10 @@ def load_reviewed_endpoint_aliases(
     candidate_nodes: list[dict[str, Any]],
     candidate_relations: list[dict[str, Any]],
     admitted_dossier_ids: set[str],
+    *, payload=None,
 ) -> dict[tuple[str, str, str], str]:
-    payload = load_json(REPO_ROOT / ENDPOINT_ALIASES_REF)
+    if payload is None:
+        payload = load_json(REPO_ROOT / ENDPOINT_ALIASES_REF)
     if payload.get("schema_version") != "tos_reviewed_endpoint_aliases_v2":
         raise ValueError(f"{ENDPOINT_ALIASES_REF} has unsupported schema_version")
     rows = payload.get("aliases")
@@ -290,25 +510,37 @@ def validate_payload_schema(payload: dict[str, Any]) -> None:
         error = errors[0]
         path = "".join(f"[{item}]" if isinstance(item, int) else f".{item}" for item in error.absolute_path)
         raise ValueError(f"schema violation at {path.lstrip('.') or '<root>'}: {error.message}")
+    for item in [*payload.get('nodes', []), *payload.get('edges', [])]:
+        validate_authored_source_context(item)
 
 
 def build_payload() -> dict[str, Any]:
     diagnostics: list[dict[str, str]] = []
-    atlas = load_json(REPO_ROOT / SOURCE_ATLAS_REF)
+    source_snapshot = AuthoredAtlasSnapshot(REPO_ROOT)
+    atlas, atlas_context = source_snapshot.object(SOURCE_ATLAS_REF)
     dossier_index_path = REPO_ROOT / "ToS/philosophy/atlas/dossiers/index.jsonl"
     graph_shape_path = REPO_ROOT / "ToS/philosophy/atlas/dossiers/graph-shape-summary.json"
-    dossier_rows = load_jsonl(dossier_index_path)
+    dossier_sources = source_snapshot.rows(repo_ref(dossier_index_path), 'dossier_id')
+    dossier_rows = [row for row, context in dossier_sources]
+    dossier_backlogs = build_dossier_source_backlogs(source_snapshot, dossier_rows)
     graph_shape = load_json(graph_shape_path)
-    candidate_nodes = [
-        row
+    candidate_node_sources = [
+        pair
         for source_ref in CANDIDATE_NODES_REFS
-        for row in load_optional_jsonl(REPO_ROOT / source_ref)
+        if (REPO_ROOT / source_ref).exists()
+        for pair in source_snapshot.rows(source_ref, 'candidate_id')
     ]
-    candidate_relations = [
-        row
+    candidate_relation_sources = [
+        pair
         for source_ref in CANDIDATE_RELATIONS_REFS
-        for row in load_optional_jsonl(REPO_ROOT / source_ref)
+        if (REPO_ROOT / source_ref).exists()
+        for pair in source_snapshot.rows(source_ref, 'candidate_id')
     ]
+    candidate_nodes = [row for row, context in candidate_node_sources]
+    candidate_relations = [row for row, context in candidate_relation_sources]
+    for records in (candidate_nodes, candidate_relations):
+        if len({row['candidate_id'] for row in records}) != len(records):
+            raise ValueError('atlas candidate identity is duplicated across source streams')
 
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
@@ -316,7 +548,7 @@ def build_payload() -> dict[str, Any]:
     master_row_ids: set[str] = set()
 
     add_node(nodes, "philosophy", "domain-root", "Philosophy", "ToS/philosophy/philosophy.manifest.json")
-    add_node(nodes, "philosophy.atlas", "atlas", "Philosophy Atlas", SOURCE_ATLAS_REF)
+    add_node(nodes, "philosophy.atlas", "atlas", "Philosophy Atlas", SOURCE_ATLAS_REF, **atlas_context)
     add_node(
         nodes,
         "philosophy.atlas.master-tables",
@@ -379,8 +611,9 @@ def build_payload() -> dict[str, Any]:
         table_node_id = f"atlas-table:{table_id}"
         table_manifest_ref = str(table.get("manifest") or "")
         rows_ref = str(table.get("rows") or "")
-        rows_path = REPO_ROOT / rows_ref
-        rows = load_jsonl(rows_path)
+        row_sources = source_snapshot.rows(rows_ref, 'row_id')
+        rows = [row for row, context in row_sources]
+        _, table_context = source_snapshot.object(table_manifest_ref)
         row_count += len(rows)
         add_node(
             nodes,
@@ -392,6 +625,7 @@ def build_payload() -> dict[str, Any]:
             row_count=len(rows),
             source_document=table.get("source_document"),
             rows_ref=rows_ref,
+            **table_context,
         )
         add_edge(
             edges,
@@ -402,13 +636,15 @@ def build_payload() -> dict[str, Any]:
             table_manifest_ref,
             row_count=len(rows),
         )
-        for row in rows:
+        for row, source_context in row_sources:
             row_id = str(row.get("row_id") or "")
             if row_id:
+                if row_id in master_row_ids:
+                    raise ValueError('atlas master row identity is duplicated across tables')
                 master_row_ids.add(row_id)
             node_id = f"atlas-row:{row_id}"
             fields = row_projection_fields(row)
-            add_node(nodes, node_id, "master-table-row", row_id, rows_ref, **fields)
+            add_node(nodes, node_id, "master-table-row", row_id, rows_ref, **fields, **source_context)
             add_edge(
                 edges,
                 f"edge:{table_id}:contains-row:{row_id}",
@@ -429,7 +665,7 @@ def build_payload() -> dict[str, Any]:
                     rows_ref,
                 )
 
-    for dossier in dossier_rows:
+    for dossier, source_context in dossier_sources:
         dossier_id = str(dossier.get("dossier_id") or "")
         node_id = f"atlas-dossier:{dossier_id}"
         add_node(
@@ -449,6 +685,8 @@ def build_payload() -> dict[str, Any]:
             review_reason=dossier.get("review_reason"),
             master_status=dossier.get("master_status"),
             master_confidence=dossier.get("master_confidence"),
+            source_backlogs=dossier_backlogs[dossier_id],
+            **source_context,
         )
         add_edge(
             edges,
@@ -523,7 +761,7 @@ def build_payload() -> dict[str, Any]:
             count=count,
         )
 
-    for candidate in candidate_nodes:
+    for candidate, source_context in candidate_node_sources:
         candidate_id = str(candidate.get("candidate_id") or "")
         dossier_id = str(candidate.get("dossier_id") or "")
         candidate_source_ref = str(candidate.get("source_ref") or CANDIDATE_NODES_REF)
@@ -560,6 +798,7 @@ def build_payload() -> dict[str, Any]:
             review_reason=candidate.get("review_reason"),
             master_status=candidate.get("master_status"),
             master_confidence=candidate.get("master_confidence"),
+            **source_context,
         )
         if dossier_id:
             add_edge(
@@ -577,11 +816,15 @@ def build_payload() -> dict[str, Any]:
         if isinstance(dossier.get("dossier_id"), str) and dossier.get("dossier_id")
     }
     unavailable_master_row_ids = master_row_ids - admitted_dossier_ids
+    alias_payload, alias_context = source_snapshot.object(ENDPOINT_ALIASES_REF)
     endpoint_aliases = load_reviewed_endpoint_aliases(
         candidate_nodes,
         candidate_relations,
         admitted_dossier_ids,
+        payload=alias_payload,
     )
+    alias_pointers = {(row['origin_dossier_id'], row['endpoint_role'], row['endpoint_label']):
+                      f'/aliases/{index}' for index, row in enumerate(alias_payload['aliases'])}
     endpoint_roles_by_id: dict[str, set[str]] = {}
     for relation in candidate_relations:
         dossier_id = str(relation.get("dossier_id") or "")
@@ -627,7 +870,7 @@ def build_payload() -> dict[str, Any]:
             endpoint_roles_by_id.setdefault(endpoint_ref(dossier_id, target_label), set()).add("target")
 
     endpoint_nodes: set[str] = set()
-    for relation in candidate_relations:
+    for relation, source_context in candidate_relation_sources:
         candidate_id = str(relation.get("candidate_id") or "")
         dossier_id = str(relation.get("dossier_id") or "")
         relation_kind = str(relation.get("relation_kind") or "related_to")
@@ -777,6 +1020,17 @@ def build_payload() -> dict[str, Any]:
                 if source_alias_candidate_id is not None or target_alias_candidate_id is not None
                 else None
             ),
+            endpoint_alias_source=(
+                copy.deepcopy(alias_context)
+                if source_alias_candidate_id is not None or target_alias_candidate_id is not None else None
+            ),
+            endpoint_alias_pointers=(
+                [alias_pointers[key] for key, target in
+                 (((dossier_id, 'source', source_label), source_alias_candidate_id),
+                  ((dossier_id, 'target', target_label), target_alias_candidate_id)) if target is not None]
+                if source_alias_candidate_id is not None or target_alias_candidate_id is not None else None
+            ),
+            **source_context,
         )
 
     views_root = REPO_ROOT / "ToS/philosophy/graph-workbench/views"
@@ -833,6 +1087,7 @@ def build_payload() -> dict[str, Any]:
         "diagnostics": diagnostics,
     }
     validate_payload_schema(payload)
+    source_snapshot.verify_current()
     return payload
 
 

@@ -26,6 +26,23 @@ comparison, changed snapshots, delayed/offline/restricted reads, and the
 40-node/80-relation scene budget. Its short frame sample is a local diagnostic,
 not a sustained performance guarantee. Fixtures are not production build entries.
 
+For the reading-return regression, pin two distinct fixture items, reload, and
+open an inspector. Choose **Проверить возврат к чтению**: five hit-test points
+must reach the return button, then one activation must reopen both exact pins
+and move focus into reading. Run with the inspector on the left and at a narrow
+viewport. This catches covered controls that a programmatic click alone misses.
+
+The same fixture includes checks for complete readable context across RU/EN/ES,
+keyboard and focus continuity with two loaded pins, and recovery of the exact
+reading position after a temporary access refusal. Use long material and the
+normal connection for recovery. The removal check deliberately removes the
+active **fixture** pin and verifies focus on the remaining one. The header check
+focuses each visible tool and checks three hit points, including tools reached
+by horizontal scrolling. Native keyboard/pointer checks complement these DOM
+checks. `?scenario=context` selects artificial required context; `?stage=1`
+hides the development controls for viewport measurements. Neither is a
+production entry or source-authority claim.
+
 `/static/fixtures/lens.html` also exercises search, capability-bound conditions,
 context and returns to paired reading at either 6 or 40 nodes. Its optional
 ten-minute probe keeps bounded frame/event histograms and at most 121 samples.
@@ -83,11 +100,51 @@ CSP is required.
   disabled. Network failure retains a labelled earlier copy, while an observed
   403/404/410 removes its reading copy. Available language/form fields retain
   their delivered wording and identify fallback or unspecified language.
+  Record context follows the inspected response's `essential_context_pointers`
+  in both the inspector and pinned reading. Delivered context retains unknown
+  fields and explicit nulls; missing pointers produce a visible gap. The
+  reader presents this context as fields, paragraphs and ordered lists. Only
+  recognized field names receive interface labels; supplied values retain
+  their wording and order. Empty values are distinguished, and each context
+  keeps an expandable exact JSON copy. Numeric context-position anchors carry
+  no source wording into durable browser storage. Focus follows the active
+  comparison column through narrow tabs, tool handoffs and removal. A transient
+  retry repeats the failed request's version intent; explicit refresh remains
+  the route to a newer snapshot. Local status messages follow RU/EN/ES while
+  original error details remain verbatim. The
+  response's version-bound display selection owns the actual language of each
+  selected field, including a known language behind `default` or `original`.
   This compares supplied material side by side; it does not generate semantic
   conclusions, full text, translations, or stable corpus text addresses.
 - `knowledge-ui.mjs` handles paged search, inspection, scene request cancellation
   and explicit retry. A failed request retains the current graph. Inspection
   checks both source and content revisions before entering the card cache.
+- `exploration-cache.mjs` retains exact-origin exploration v2 pages as a bounded
+  browser reading space, not a new LensResult or corpus membership. It admits
+  complete pages atomically: 200 raw nodes, 600 raw relations, 32 query contexts,
+  128 pages per context, and 4 MiB including the retained replay packet. Limits
+  may only narrow. Absence on a later page does not delete earlier carriers.
+  Source, snapshot, execution, origin and continuation are checked; conflicting
+  row bytes fail even with an unchanged advertised digest. Identity and compact
+  Claim paths use the same packet-local compositor as the backend. Distinct
+  inclusion reasons retain their query and first-observed page. A failed new
+  query keeps both the last good space and its resumable continuation; `resume`
+  issues a fresh generation so ignored cancellation cannot revive an old reply.
+  A different publication needs explicit replacement. Capacity failure never
+  evicts, truncates, accepts a partial page, writes to ToS or admits knowledge.
+  Layout and camera are consumer state outside this record cache.
+- `KnowledgeClient.request` admits real response streams by actual UTF-8 body
+  bytes before JSON decoding/parsing: 4 MiB by default, configurable through
+  `maxResponseBytes` up to a hard 8 MiB browser ceiling. This is a narrower
+  browser transport profile, not a changed backend response allowance or ABI.
+  A valid oversized `Content-Length` rejects early; absent, malformed or small
+  declarations never bypass actual stream accounting. Oversize maps to the
+  existing readable 413 error and cancellation/timeout cleans up the reader.
+  Fetch/read completion is raced against abort, including custom transports
+  that ignore the signal; late packets cannot complete the cancelled request.
+  Existing in-memory `json()`-only custom/test transports retain compatibility
+  with a post-parse UTF-8 size check, which is **not** a network-memory bound.
+  A non-null body must expose a byte reader and never uses that fallback.
 - `workspace.mjs` rebuilds source dossiers, notes, hypotheses, proposals, source
   gaps and source-bound word-analysis preparation in floating panels. It reuses
   `query-operations.ts` and `research-workspace.ts`; there is no second backend.
@@ -366,6 +423,8 @@ The next UI slice builds on the live lens constructor at `6440248cf`:
   existing choice among delivered language/form variants; interface language
   never requests or invents a translated source. Both language and theme persist
   in the local preferences and workspace copy.
+  A pinned item's missing-title placeholder updates with the interface language
+  in its heading, tab and reading label without reloading the material.
   Navigation titles and previews select the supplied variant for the interface
   language through `display-language.mjs`; the inspector uses its material
   selector, and each pinned item keeps its own choice. A language switch only
@@ -475,6 +534,26 @@ not select among candidates, materialize source forms or perform assessment.
 The canonical ToS human-form materialization and access selection contracts
 remain the owners; this isolated UI branch does not copy their implementation.
 
+The consumer accepts both selection versions. V2 imports the existing
+`access/shared/human-form-selection-codec.ts` through Vite and reconstructs
+complete packets before applying the same logical validation as v1. The raw
+envelope remains unchanged in page-memory snapshots. V2 uses the codec's
+16 KiB conservative wire bound, 64 KiB packet bound and 512 KiB expanded bound;
+the legacy v1 browser keeps its existing 16 KiB actual UTF-8 wire check.
+Expanded v2 selections are not retested as v1 wire payloads. Unknown versions,
+corrupt reconstruction or unresolved declared mandatory carrier context reject
+the whole form delivery before wording appears. When the full carrier supplies
+an exact source subject, its version and digest must also match the packet.
+
+Compact Claim reading supports the existing `claim-with-shared-form-context-v2`
+mode: its raw `/human_form_selection/roles/<role>` reference is decoded through
+the enclosing v2 selection, never read as a standalone delta. The legacy
+`.../<role>/packet` path remains specific to v1. Display-field fallback retains
+its v1 reading mode even on a v2 carrier. Semantic, epistemic and relation context
+remain mandatory; generic carrier-context pointers still resolve the exact raw
+response. Labels and hover retain their navigation role, and stored reading
+identities and positions do not change merely because the wire encoding does.
+
 Inspector and pinned reading share `human-forms-view.mjs`. All seven roles are
 available: name, caption, hover, statement, grounds, history and technical.
 Ready wording and every mandatory context value are one complete scrolling
@@ -511,6 +590,22 @@ context; it is never combined with wording from the older displayed scene.
 The current request must still own the same scene, selection and language
 before the card becomes ready. Loading, damaged or denied delivery clears the
 earlier wording. Ordinary node reads remain isolated to one node.
+
+The common reading shelf follows the same compound path when a Claim is pinned.
+It retains the full bounded node closure and resolved Claim context in page
+memory and renders the same semantic, epistemic and relation assertion contexts
+as the inspector. Language changes check every captured record revision.
+Durable reading stores only the Claim/path identity and exact node/relation
+selectors, alongside the existing language and position references. Refresh or
+reload re-queries that bounded selection at the current backend revision; a
+missing, changed or incomplete path clears the reading copy. It cannot silently
+downgrade a compound selection to a one-node response. Saved selectors carry
+neither source wording nor semantic acceptance, and network failures retain only
+the already marked earlier in-page copy.
+Earlier identity-only Claim pins remain readable with an explicit missing-context
+notice. Repinning from a current area that supplies the compact path upgrades the
+existing shelf slot and preserves its chosen language; no automatic source or
+closure is inferred from the old reference.
 
 This supports the two-leg Claim path with `claim-supported-by` and
 `claim-value-member` details. The latter requires the normalized

@@ -1,21 +1,426 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import sqlite3
 import sys
 import tempfile
 import unittest
 import os
+import shutil
 from pathlib import Path
 from contextlib import closing
 from types import SimpleNamespace
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'deploy/cloudflare-worker/scripts'))
-from incremental_runtime import DeltaRecorder, PRIMARY_KEYS
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
+from incremental_runtime import (
+    DiskRowBaseline,
+    DiskRowIndex,
+    DeltaRecorder,
+    PRIMARY_KEYS,
+    REGISTERED_KEYS,
+    ROW_INDEX_MAX_KEY_CHARS,
+    prepare_search_address_indexes_transaction,
+    plan_search_addresses_transaction,
+    MAX_SEARCH_ADDRESS,
+    delete_staged_keys_sql,
+)
 
 
 class IncrementalRuntimeTests(unittest.TestCase):
+    def test_partial_output_close_is_not_publication_and_does_not_remove_reused_scratch(self):
+        from build_runtime import SqlStatementWriter
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            scratch = root / 'rows.sqlite'
+            recorder = DeltaRecorder(root / 'delta.sql', 'a' * 64, 'test-schema', index_store_path=scratch)
+            writer = SqlStatementWriter(root / 'full.sql', recorder)
+            writer.append("INSERT INTO knowledge_nodes_next (id,value) VALUES ('one','partial');")
+            writer.close()
+            recorder.close()
+            self.assertTrue(writer.stream.closed and recorder.stream.closed)
+            self.assertFalse(writer.finished or recorder.finished or writer.published or recorder.published)
+            self.assertFalse(writer.target.exists() or recorder.target.exists() or scratch.exists())
+            self.assertIn('partial', writer.pending.read_text())
+            self.assertTrue(recorder.pending_path.exists())
+            scratch.write_text('new owner scratch')
+            writer.close()
+            recorder.close()
+            self.assertEqual(scratch.read_text(), 'new owner scratch')
+
+    def test_failed_full_production_closes_outputs_while_traceback_is_retained(self):
+        import build_runtime as builder
+        from test_access_contract import write_fixture
+        from tos_access.core import ToSAccessCore
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            with patch.object(builder, 'REPO_ROOT', root):
+                carriers = builder.ProducerCarrierSet.from_core(core)
+                revision = builder.data_revision(core, carriers)
+                writer_type, recorder_type = builder.SqlStatementWriter, builder.DeltaRecorder
+                real_append = writer_type.append
+                for emit_baseline in (False, True):
+                    for fault in ('auxiliary-budget', 'posting-budget', 'interrupt'):
+                        with self.subTest(emit_baseline=emit_baseline, fault=fault):
+                            target = root / f'{emit_baseline}-{fault}' / 'read-model.sql'
+                            held = []
+                            def writer(*args, **kwargs):
+                                value = writer_type(*args, **kwargs)
+                                held.append(value)
+                                return value
+                            def recorder(*args, **kwargs):
+                                value = recorder_type(*args, **kwargs)
+                                held.append(value)
+                                return value
+                            def append(value, statement):
+                                real_append(value, statement)
+                                if fault == 'interrupt' and value.count == 10:
+                                    raise KeyboardInterrupt('injected producer interruption')
+                            kwargs = {'emit_delta_baseline': emit_baseline}
+                            if fault == 'auxiliary-budget':
+                                kwargs['max_lens_auxiliary_bytes'] = 1
+                            elif fault == 'posting-budget':
+                                kwargs['max_search_postings'] = 1
+                            retained_error = None
+                            with patch.object(builder, 'SqlStatementWriter', side_effect=writer), \
+                                    patch.object(builder, 'DeltaRecorder', side_effect=recorder), \
+                                    patch.object(writer_type, 'append', append):
+                                try:
+                                    builder.build_read_model_sql(core, target, revision, carriers, **kwargs)
+                                except BaseException as error:
+                                    retained_error = error
+                            self.assertIsInstance(retained_error, KeyboardInterrupt if fault == 'interrupt' else RuntimeError)
+                            self.assertEqual(len(held), 2 if emit_baseline else 1)
+                            self.assertTrue(all(value.stream.closed for value in held), 'cleanup must not depend on traceback GC')
+                            self.assertFalse(target.exists())
+                            self.assertTrue(target.with_name(target.name + '.next').is_file())
+                            self.assertFalse(target.with_name('read-model.rows.index.sqlite').exists())
+                            self.assertFalse(target.with_name('read-model.baseline.sqlite').exists())
+                            self.assertFalse(target.with_name('read-model.rows.json').exists())
+                            self.assertFalse(target.with_name('read-model.delta.sql').exists())
+
+    def test_posting_insert_shape_and_bytes_are_both_bounded_without_row_loss(self):
+        import build_runtime as builder
+        from incremental_runtime import INSERT, sql_value_rows, sql_value_literals
+        rows = [("'nodes'", '3', builder.sql_text(str(i)), str(i)) for i in range(4901)]
+        rows += [("'nodes'", '3', builder.sql_text('🌳' * 8000), '4901')]
+        output = []
+        builder.append_batched_inserts(output, 'knowledge_search_gram_stats_next',
+                                      ('kind', 'n', 'gram', 'postings'), rows)
+        actual = []
+        for statement in output:
+            self.assertLessEqual(len(statement.encode('utf-8')), builder.MAX_D1_SQL_STATEMENT_BYTES)
+            values = sql_value_rows(INSERT.match(statement).group(3))
+            self.assertLessEqual(len(values), builder.MAX_D1_SQL_INSERT_ROWS)
+            actual.extend(tuple(sql_value_literals(value)) for value in values)
+        self.assertEqual(actual, rows)
+
+    def test_full_only_sql_preserves_publication_and_explicit_posting_budget(self):
+        import build_runtime as builder
+        from test_access_contract import write_fixture
+        from tos_access.core import ToSAccessCore
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            with patch.object(builder, 'REPO_ROOT', root):
+                carriers = builder.ProducerCarrierSet.from_core(core)
+                revision = builder.data_revision(core, carriers)
+                legacy = root / 'legacy' / 'read-model.sql'
+                full = root / 'full' / 'read-model.sql'
+                expected = builder.build_read_model_sql(core, legacy, revision, carriers)
+                actual = builder.build_read_model_sql(core, full, revision, carriers,
+                    emit_delta_baseline=False,
+                    max_search_postings=expected['knowledge_search_postings'])
+                self.assertEqual(full.read_bytes(), legacy.read_bytes())
+                saved = {path: path.read_bytes() for path in legacy.parent.iterdir() if path.is_file()}
+                for budget in ({'max_lens_auxiliary_bytes': 1}, {'max_lens_memberships': 1}):
+                    with self.subTest(budget=budget), self.assertRaisesRegex(RuntimeError, 'lens auxiliary production budget'):
+                        builder.build_read_model_sql(core, legacy, revision, carriers, **budget)
+                    for path, original in saved.items():
+                        self.assertEqual(path.read_bytes(), original)
+                self.assertEqual({k: v for k, v in actual.items() if k != 'delta'},
+                                 {k: v for k, v in expected.items() if k != 'delta'})
+                self.assertIsNone(actual['delta'])
+                self.assertEqual({p.name for p in full.parent.iterdir()}, {'read-model.sql'})
+                with closing(sqlite3.connect(':memory:')) as db:
+                    db.executescript(full.read_text())
+                    lookup_columns = ('kind', 'n', 'gram', 'position')
+                    covering = []
+                    for index in db.execute('PRAGMA index_list(knowledge_search_grams)').fetchall():
+                        quoted = "'" + index[1].replace("'", "''") + "'"
+                        columns = tuple(row[2] for row in db.execute(f'PRAGMA index_info({quoted})'))
+                        if columns == lookup_columns:
+                            covering.append(index)
+                    self.assertEqual(len(covering), 1, 'duplicate posting lookup duplicates corpus-scale storage')
+                    self.assertEqual(covering[0][3], 'pk')
+                    sample = db.execute('SELECT kind,n,gram FROM knowledge_search_grams LIMIT 1').fetchone()
+                    self.assertIsNotNone(sample)
+                    query = ('SELECT position FROM knowledge_search_grams WHERE kind=? AND n=? AND gram=? '
+                             'ORDER BY position LIMIT 16')
+                    for args in (sample, (sample[0], sample[1], '\x00absent')):
+                        plan = ' '.join(row[3] for row in db.execute('EXPLAIN QUERY PLAN ' + query, args))
+                        self.assertIn('SEARCH', plan)
+                        self.assertIn('COVERING INDEX', plan)
+                        self.assertNotIn('SCAN', plan)
+                        self.assertNotIn('TEMP B-TREE', plan)
+                    self.assertTrue(db.execute(query, sample).fetchall())
+                    self.assertFalse(db.execute(query, (sample[0], sample[1], '\x00absent')).fetchall())
+                with self.assertRaisesRegex(ValueError, 'fresh output'):
+                    builder.build_read_model_sql(core, full, revision, carriers, emit_delta_baseline=False)
+                self.assertEqual(full.read_bytes(), legacy.read_bytes())
+                refused = root / 'refused' / 'read-model.sql'
+                with self.assertRaisesRegex(RuntimeError, 'posting budget exceeded'):
+                    builder.build_read_model_sql(core, refused, revision, carriers,
+                        emit_delta_baseline=False,
+                        max_search_postings=expected['knowledge_search_postings'] - 1)
+                self.assertFalse(refused.exists())
+                self.assertFalse(refused.with_name('read-model.rows.json').exists())
+                invalid = root / 'invalid' / 'read-model.sql'
+                for budget in (0, -1, True, 1.5):
+                    with self.subTest(budget=budget), self.assertRaises(ValueError):
+                        builder.build_read_model_sql(core, invalid, revision, carriers,
+                            max_search_postings=budget)
+                self.assertFalse(invalid.parent.exists())
+                conflict = root / 'conflict' / 'read-model.sql'
+                conflict.parent.mkdir()
+                conflict.with_name('read-model.deployed.rows.json').write_text('existing')
+                with self.assertRaisesRegex(ValueError, 'fresh output'):
+                    builder.build_read_model_sql(core, conflict, revision, carriers, emit_delta_baseline=False)
+                self.assertFalse(conflict.exists())
+
+    def test_auxiliary_baseline_requires_explicit_migration_and_valid_identity(self):
+        import copy
+        import build_runtime as builder
+        import lens_auxiliary_runtime as auxiliary
+        from test_access_contract import write_fixture
+        from tos_access.core import ToSAccessCore
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            target = root / 'runtime' / 'read-model.sql'
+            with patch.object(builder, 'REPO_ROOT', root):
+                carriers = builder.ProducerCarrierSet.from_core(core)
+                revision = builder.data_revision(core, carriers)
+                builder.build_read_model_sql(core, target, revision, carriers)
+                index = target.with_name('read-model.rows.json')
+                baseline = json.loads(index.read_text())
+                top = auxiliary.baseline_publication_top(baseline)
+                self.assertEqual(top['data_revision'], revision)
+                old = copy.deepcopy(baseline)
+                del old['auxiliary_publication']
+                for table in auxiliary.STORES:
+                    del old['rows'][table]
+                index.write_text(json.dumps(old))
+                result = builder.build_read_model_sql(core, target, revision, carriers)
+                self.assertEqual(result['auxiliary_migration'], 'lens-auxiliary-initial-migration-required')
+                self.assertFalse(result['delta']['available'])
+                self.assertEqual(json.loads(index.read_text()), baseline)
+                with closing(sqlite3.connect(':memory:')) as db:
+                    db.executescript(target.read_text())
+                    first_epoch = db.execute('SELECT epoch FROM knowledge_exploration_clock').fetchone()[0]
+                    db.executescript(target.read_text())
+                    epoch = db.execute('SELECT epoch FROM knowledge_exploration_clock').fetchone()[0]
+                    self.assertGreater(epoch, first_epoch)
+                    for table, (state, schema) in auxiliary.STORES.items():
+                        self.assertEqual(db.execute(f'SELECT schema,binding,valid FROM {state}').fetchall(),
+                            [(schema, auxiliary._compact(auxiliary.published_snapshot_binding(top, epoch)), 1)])
+                for field, invalid in (('schema', 'unknown'), ('stores', {}),
+                                       ('reader_top', {**top, 'data_revision': 'f' * 64})):
+                    broken = copy.deepcopy(baseline)
+                    broken['auxiliary_publication'][field] = invalid
+                    index.write_text(json.dumps(broken))
+                    saved = {path: path.read_bytes() for path in (target, index, target.with_name('read-model.delta.sql'))}
+                    with self.subTest(field=field), self.assertRaises(ValueError):
+                        builder.build_read_model_sql(core, target, revision, carriers)
+                    for path, raw in saved.items():
+                        self.assertEqual(path.read_bytes(), raw)
+
+    def test_data_revision_binds_catalog_even_when_graph_is_identical(self):
+        import copy
+        import build_runtime as builder
+        from test_access_contract import write_fixture
+        from tos_access.core import ToSAccessCore
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            graph = core.knowledge_graph()
+            catalog = core.knowledge_catalog()
+            changed_catalog = copy.deepcopy(catalog)
+            changed_catalog["capabilities"]["catalog_revision_probe"] = "changed"
+            changed_graph = copy.deepcopy(graph)
+            changed_graph["normalization_binding"]["processor_digest"] = "f" * 64
+            with patch.object(builder, "REPO_ROOT", root), patch.object(
+                ToSAccessCore,
+                "knowledge_snapshot",
+                return_value={"graph": graph, "catalog": catalog},
+            ):
+                baseline = builder.data_revision(core)
+            with patch.object(builder, "REPO_ROOT", root), patch.object(
+                ToSAccessCore,
+                "knowledge_snapshot",
+                return_value={"graph": graph, "catalog": changed_catalog},
+            ):
+                changed = builder.data_revision(core)
+            with patch.object(builder, "REPO_ROOT", root), patch.object(
+                ToSAccessCore,
+                "knowledge_snapshot",
+                return_value={"graph": changed_graph, "catalog": catalog},
+            ):
+                metadata_changed = builder.data_revision(core)
+            self.assertEqual(graph, core.knowledge_graph())
+            self.assertNotEqual(baseline, changed)
+            self.assertNotEqual(baseline, metadata_changed)
+
+    def test_explicit_producer_carrier_set_preserves_legacy_parity_and_bindings(self):
+        import build_runtime as builder
+        from test_access_contract import write_fixture
+        from tos_access.core import ToSAccessCore
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture(root)
+            with patch.object(builder, "REPO_ROOT", root):
+                core = ToSAccessCore.discover(root)
+                legacy_revision = builder.data_revision(core)
+                captured = builder.ProducerCarrierSet.from_core(core)
+                self.assertEqual(legacy_revision, builder.data_revision(core, captured))
+
+                legacy_sql = root / "legacy" / "read-model.sql"
+                captured_sql = root / "captured" / "read-model.sql"
+                builder.build_read_model_sql(core, legacy_sql, legacy_revision)
+                builder.build_read_model_sql(core, captured_sql, legacy_revision, captured)
+                self.assertEqual(legacy_sql.read_bytes(), captured_sql.read_bytes())
+
+                # Physical scratch locations do not participate in the
+                # revision; their explicit logical labels and bytes do.
+                scratch = root / "external-scratch"
+                external_paths = []
+                for index, (label, path) in enumerate(captured.carrier_paths):
+                    destination = scratch / f"carrier-{index}.json"
+                    if path.is_file():
+                        destination.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(path, destination)
+                    external_paths.append((label, destination))
+                external = builder.ProducerCarrierSet.admit(
+                    corpus=captured.corpus,
+                    philosophy=captured.philosophy,
+                    knowledge=captured.knowledge,
+                    knowledge_catalog=captured.knowledge_catalog,
+                    evidence=captured.evidence,
+                    philosophy_audit=captured.philosophy_audit,
+                    word_analysis_capability=captured.word_analysis_capability,
+                    carrier_paths=external_paths,
+                    logical_bindings={"source_revision": captured.source_revision},
+                )
+                relocated_paths = []
+                for index, (_label, path) in enumerate(external_paths):
+                    relocated_path = root / "external-scratch-relocated" / f"carrier-{index}.json"
+                    if path.is_file():
+                        relocated_path.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(path, relocated_path)
+                    relocated_paths.append((external_paths[index][0], relocated_path))
+                relocated = builder.ProducerCarrierSet.admit(
+                    corpus=captured.corpus,
+                    philosophy=captured.philosophy,
+                    knowledge=captured.knowledge,
+                    knowledge_catalog=captured.knowledge_catalog,
+                    evidence=captured.evidence,
+                    philosophy_audit=captured.philosophy_audit,
+                    word_analysis_capability=captured.word_analysis_capability,
+                    carrier_paths=relocated_paths,
+                    logical_bindings={"source_revision": captured.source_revision},
+                )
+                self.assertNotEqual(legacy_revision, builder.data_revision(core, external))
+                self.assertEqual(builder.data_revision(core, external), builder.data_revision(core, relocated))
+
+                bound = builder.ProducerCarrierSet.from_core(
+                    core,
+                    logical_bindings={
+                        "source_revision": captured.source_revision,
+                        "source-vector-root": "root-a",
+                    },
+                )
+                changed_binding = builder.ProducerCarrierSet.from_core(
+                    core,
+                    logical_bindings={
+                        "source_revision": captured.source_revision,
+                        "source-vector-root": "root-b",
+                    },
+                )
+                self.assertNotEqual(
+                    builder.data_revision(core, bound),
+                    builder.data_revision(core, changed_binding),
+                )
+
+                mismatch = captured.knowledge_catalog["source_revision"]
+                target = root / "mismatch" / "read-model.sql"
+                captured.knowledge_catalog["source_revision"] = "b" * 64
+                try:
+                    with self.assertRaisesRegex(ValueError, "source revisions do not match"):
+                        builder.build_read_model_sql(core, target, legacy_revision, captured)
+                    self.assertFalse(target.exists())
+                finally:
+                    captured.knowledge_catalog["source_revision"] = mismatch
+
+    def test_explicit_producer_carriers_reject_one_shot_collections_before_sql(self):
+        import build_runtime as builder
+        from test_prepared_publication import fixture as publication_fixture
+
+        graph, catalog = publication_fixture()
+        packs = [{'pack_id': 'fixture-pack', 'path': 'ToS/fixture/edges.csv'}]
+        edges = [{'edge_id': 'fixture-edge', 'pack_id': 'fixture-pack',
+                  'from_id': 'a', 'to_id': 'b'}]
+        base = {
+            'philosophy': {}, 'evidence': {}, 'philosophy_audit': {},
+            'word_analysis_capability': {'available': False}, 'carrier_paths': {},
+            'logical_bindings': {'source_revision': graph['source_revision']},
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cases = (
+                ('relation-packs',
+                 {**graph},
+                 {'relation_packs': (item for item in packs), 'relation_edges': edges}),
+                ('knowledge-nodes',
+                 {**graph, 'nodes': (item for item in graph['nodes'])},
+                 {'relation_packs': packs, 'relation_edges': edges}),
+            )
+            for name, bad_graph, bad_corpus in cases:
+                target = root / name / 'read-model.sql'
+                with self.subTest(case=name), self.assertRaisesRegex(ValueError, r'producer .*list'):
+                    carriers = builder.ProducerCarrierSet.admit(
+                        corpus=bad_corpus, knowledge=bad_graph, knowledge_catalog=catalog, **base
+                    )
+                    builder.build_read_model_sql(
+                        None, target, 'c' * 64, carriers, emit_delta_baseline=False
+                    )
+                self.assertFalse(target.exists())
+
+            valid = builder.ProducerCarrierSet.admit(
+                corpus={'relation_packs': packs, 'relation_edges': edges},
+                knowledge=graph, knowledge_catalog=catalog, **base
+            )
+            target = root / 'valid' / 'read-model.sql'
+            result = builder.build_read_model_sql(
+                None, target, 'c' * 64, valid, emit_delta_baseline=False
+            )
+            self.assertEqual(result['corpus_packs'], 1)
+            self.assertEqual(result['corpus_edges'], 1)
+            with closing(sqlite3.connect(':memory:')) as database:
+                database.executescript(target.read_text(encoding='utf-8'))
+                self.assertEqual(database.execute('SELECT count(*) FROM corpus_packs').fetchone()[0], 1)
+                self.assertEqual(database.execute('SELECT count(*) FROM corpus_edges').fetchone()[0], 1)
+
     def test_cache_budget_cli_and_real_builder_admission(self):
         import build_runtime as builder
         from test_access_contract import write_fixture
@@ -88,6 +493,208 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 schema.write_text(schema.read_text()+'\n')
                 self.assertNotEqual(builder.build_inputs(core),before)
 
+    def test_real_builder_search_delta_add_edit_delete_replay_and_stale_guard(self):
+        self._check_builder_search_delta(overflow=False)
+
+    def test_native_overflow_joins_atomic_delta_replay_and_full_equivalence(self):
+        self._check_builder_search_delta(overflow=True)
+
+    def _check_builder_search_delta(self, *, overflow):
+        import copy
+        import build_runtime as builder
+        import lens_auxiliary_runtime as auxiliary
+        from tos_access.published_read_metadata import _compact, published_snapshot_binding
+        from test_access_contract import write_fixture
+        from tos_access.core import ToSAccessCore
+
+        def serving_snapshot(database):
+            tables = (
+                'edge_meta',
+                'knowledge_search_documents',
+                'knowledge_search_grams',
+                'knowledge_search_gram_stats',
+                'knowledge_lens_order',
+                *auxiliary.STORES,
+            )
+            snapshot = {}
+            for table in tables:
+                order = ','.join(REGISTERED_KEYS[table])
+                snapshot[table] = database.execute(
+                    f'SELECT * FROM {table} ORDER BY {order}'
+                ).fetchall()
+            top = edge_meta_packet(database, 'knowledge_reader_top')
+            epoch = database.execute('SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1').fetchone()[0]
+            for table, (state, schema) in auxiliary.STORES.items():
+                self.assertEqual(database.execute(f'SELECT schema,binding,valid FROM {state}').fetchall(),
+                                 [(schema, _compact(published_snapshot_binding(top, epoch)), 1)])
+                projected = []
+                for kind in ('node', 'relation'):
+                    for identifier, raw in database.execute(f'SELECT id,json FROM knowledge_{kind}s'):
+                        if raw == '':
+                            raw = ''.join(row[0] for row in database.execute(
+                                'SELECT json_chunk FROM edge_meta WHERE key=? ORDER BY part',
+                                (f'knowledge_{kind}_payload:{identifier}',)))
+                        projected.extend(auxiliary.projected_rows(table, kind, identifier, raw))
+                self.assertEqual(sorted(snapshot[table]), sorted(projected))
+            return snapshot
+
+        def edge_meta_packet(database, key):
+            chunks = database.execute(
+                "SELECT json_chunk FROM edge_meta WHERE key=? ORDER BY part", (key,)
+            ).fetchall()
+            self.assertTrue(chunks, f"missing edge metadata: {key}")
+            return json.loads("".join(row[0] for row in chunks))
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture(root)
+            runtime = root / 'runtime'
+            runtime.mkdir()
+            with patch.object(builder, 'REPO_ROOT', root):
+                source_core = ToSAccessCore.discover(root)
+                source_graph = source_core.knowledge_graph()
+                # Keep the fixture build bounded while still using the actual
+                # producer, including its batched posting/stat rows.
+                graph_v1 = copy.deepcopy(source_graph)
+                graph_v1['source_revision'] = 'a' * 64
+                graph_v1['nodes'] = copy.deepcopy(source_graph['nodes'][:3])
+                graph_v1['relations'] = copy.deepcopy(source_graph['relations'][:1])
+                graph_v2 = copy.deepcopy(graph_v1)
+                graph_v2['source_revision'] = 'b' * 64
+                graph_v2['nodes'][0]['display']['title']['default'] = 'Edited fixture node'
+                if overflow:
+                    graph_v2['nodes'][0]['attributes']['overflow_probe'] = 'payload seam-' + 'x' * 2_100_000
+                deleted_id = graph_v2['nodes'][1]['id']
+                graph_v2['nodes'] = [graph_v2['nodes'][0], graph_v2['nodes'][2]]
+                added = copy.deepcopy(graph_v1['nodes'][1])
+                added['id'] = 'fixture:added-node'
+                added['native_id'] = 'fixture:added-node'
+                added['display']['title']['default'] = 'Added fixture node'
+                graph_v2['nodes'].append(added)
+                graph_v2['relations'][0]['to_id'] = added['id']
+
+                first_sql = runtime / 'read-model.v1.sql'
+                with patch.object(ToSAccessCore, 'knowledge_graph', return_value=graph_v1):
+                    revision_v1 = builder.data_revision(source_core)
+                    builder.build_read_model_sql(source_core, first_sql, revision_v1)
+                shutil.copy2(runtime / 'read-model.rows.json', runtime / 'read-model.deployed.rows.json')
+
+                first_database = root / 'first.sqlite'
+                with closing(sqlite3.connect(first_database)) as database:
+                    database.executescript(first_sql.read_text(encoding='utf-8'))
+                    before = serving_snapshot(database)
+                    before_ids = {row[2] for row in before['knowledge_search_documents']}
+                    reader_top = edge_meta_packet(database, "knowledge_reader_top")
+                    self.assertEqual(reader_top["schema"], "tos_published_knowledge_reader_v2")
+                    self.assertEqual(reader_top["read_model_schema"], builder.READ_MODEL_SCHEMA_VERSION)
+                    self.assertEqual(reader_top["data_revision"], revision_v1)
+                    self.assertEqual(
+                        edge_meta_packet(database, "knowledge_catalog")["schema"],
+                        "tos_knowledge_catalog_v1",
+                    )
+                    node_json = database.execute(
+                        "SELECT id,json FROM knowledge_nodes ORDER BY id LIMIT 1"
+                    ).fetchone()
+                    node_digest = edge_meta_packet(
+                        database, f"knowledge_node_digest:{node_json[0]}"
+                    )
+                    self.assertEqual(
+                        node_digest["sha256"],
+                        hashlib.sha256(node_json[1].encode("utf-8")).hexdigest(),
+                    )
+                    deleted_json = database.execute(
+                        "SELECT id,json FROM knowledge_nodes WHERE id=?", (deleted_id,)
+                    ).fetchone()
+                    self.assertIsNotNone(
+                        edge_meta_packet(database, f"knowledge_node_digest:{deleted_json[0]}")
+                    )
+                    initial_catalog_sha = reader_top["catalog_sha256"]
+
+                second_sql = runtime / 'read-model.v2.sql'
+                with patch.object(ToSAccessCore, 'knowledge_graph', return_value=graph_v2):
+                    revision_v2 = builder.data_revision(source_core)
+                    result = builder.build_read_model_sql(source_core, second_sql, revision_v2)
+                self.assertFalse((runtime / 'read-model.baseline.sqlite').exists())
+                delta_sql = runtime / 'read-model.delta.sql'
+                delta_text = delta_sql.read_text(encoding='utf-8')
+                self.assertIn('knowledge_search_documents', delta_text)
+                self.assertIn('knowledge_search_grams', delta_text)
+                self.assertIn('knowledge_search_gram_stats', delta_text)
+                self.assertNotIn('INSERT INTO knowledge_search_gram_stats(kind,n,gram,postings) SELECT', delta_text)
+                self.assertGreater(result['delta']['changed_rows'], 0)
+                self.assertGreater(result['delta']['removed_rows'], 0)
+
+                delta_database = root / 'delta.sqlite'
+                with closing(sqlite3.connect(delta_database)) as database:
+                    database.executescript(first_sql.read_text(encoding='utf-8'))
+                    stale_baseline = serving_snapshot(database)
+                    database.executescript(delta_text)
+                    after = serving_snapshot(database)
+                    self.assertEqual(
+                        edge_meta_packet(database, "knowledge_reader_top")["data_revision"],
+                        revision_v2,
+                    )
+                    updated_top = edge_meta_packet(database, "knowledge_reader_top")
+                    self.assertNotEqual(updated_top["catalog_sha256"], initial_catalog_sha)
+                    self.assertIsNone(
+                        database.execute(
+                            "SELECT 1 FROM edge_meta WHERE key=? LIMIT 1",
+                            (f"knowledge_node_digest:{deleted_id}",),
+                        ).fetchone()
+                    )
+                    edited_json = database.execute(
+                        "SELECT json FROM knowledge_nodes WHERE id=?", (graph_v2["nodes"][0]["id"],)
+                    ).fetchone()[0]
+                    if overflow:
+                        self.assertEqual(edited_json, '')
+                        edited_json = ''.join(row[0] for row in database.execute(
+                            'SELECT json_chunk FROM edge_meta WHERE key=? ORDER BY part',
+                            (f"knowledge_node_payload:{graph_v2['nodes'][0]['id']}",)))
+                        self.assertEqual(json.loads(edited_json)['attributes']['overflow_probe'],
+                                         graph_v2['nodes'][0]['attributes']['overflow_probe'])
+                    self.assertNotEqual(
+                        hashlib.sha256(edited_json.encode("utf-8")).hexdigest(),
+                        node_digest["sha256"],
+                    )
+                    self.assertEqual(
+                        edge_meta_packet(
+                            database, f"knowledge_node_digest:{graph_v2['nodes'][0]['id']}"
+                        )["sha256"],
+                        hashlib.sha256(edited_json.encode("utf-8")).hexdigest(),
+                    )
+                    self.assertNotEqual(stale_baseline, after)
+                    self.assertIn('fixture:added-node', {row[2] for row in after['knowledge_search_documents']})
+                    self.assertNotIn(deleted_id, {row[2] for row in after['knowledge_search_documents']})
+                    order_rows = {row[1]: row for row in after['knowledge_lens_order'] if row[0] == 'relation'}
+                    self.assertEqual(order_rows[graph_v2['relations'][0]['id']][4], added['id'])
+                    replayed = serving_snapshot(database)
+                    database.executescript(delta_text)
+                    self.assertEqual(replayed, serving_snapshot(database))
+
+                full_database = root / 'full.sqlite'
+                with closing(sqlite3.connect(full_database)) as database:
+                    database.executescript(second_sql.read_text(encoding='utf-8'))
+                    expected = serving_snapshot(database)
+                self.assertEqual(after, expected)
+                self.assertNotEqual(before, after)
+                self.assertNotEqual(before_ids, {row[2] for row in after['knowledge_search_documents']})
+
+                stale_database = root / 'stale.sqlite'
+                with closing(sqlite3.connect(stale_database)) as database:
+                    database.executescript(first_sql.read_text(encoding='utf-8'))
+                    database.execute(
+                        "UPDATE edge_meta SET json_chunk=? WHERE key='data_revision' AND part=0",
+                        (json.dumps({'sha256': 'f' * 64}),),
+                    )
+                    database.commit()
+                    with self.assertRaisesRegex(sqlite3.IntegrityError, 'stale delta baseline'):
+                        database.executescript(delta_text)
+                    self.assertEqual(
+                        database.execute("SELECT json_chunk FROM edge_meta WHERE key='data_revision' AND part=0").fetchone()[0],
+                        json.dumps({'sha256': 'f' * 64}),
+                    )
+
+
     def test_partitioned_worker_emits_source_navigation_tables_and_chunks_large_rows(self):
         import build_runtime as builder
         from test_access_contract import write_fixture
@@ -148,12 +755,34 @@ class IncrementalRuntimeTests(unittest.TestCase):
                     )
                 )
                 self.assertEqual(json.loads(payload)['properties']['large_note'], large_note)
+                # The shared knowledge projection must retain the same full
+                # source value, even though native request budgets may refuse
+                # its delivery. Overflow is not a lossy replacement object.
+                identifier, inline = database.execute(
+                    "SELECT id,json FROM knowledge_nodes WHERE native_id='tos.work.fixture' "
+                    "AND source_graph='source-navigation'"
+                ).fetchone()
+                self.assertEqual(inline, '')
+                retained = ''.join(row[0] for row in database.execute(
+                    'SELECT json_chunk FROM edge_meta WHERE key=? ORDER BY part',
+                    ('knowledge_node_payload:' + identifier,)))
+                self.assertEqual(json.loads(retained)['attributes']['large_note'], large_note)
+                digest = json.loads(database.execute(
+                    'SELECT json_chunk FROM edge_meta WHERE key=? AND part=0',
+                    ('knowledge_node_digest:' + identifier,)).fetchone()[0])
+                self.assertEqual(digest, {'sha256': hashlib.sha256(retained.encode()).hexdigest()})
+                search_fragments = [row[0] for row in database.execute(
+                    'SELECT json_chunk FROM edge_meta WHERE key=? ORDER BY part',
+                    ('knowledge_node_search:' + identifier,))]
+                self.assertTrue(any('needle-' in chunk for chunk in search_fragments))
+                self.assertTrue(all(len(chunk.encode()) < 100_000 for chunk in search_fragments))
                 top = json.loads(
                     database.execute(
                         "SELECT group_concat(json_chunk, '') FROM edge_meta WHERE key='source_navigation_top'"
                     ).fetchone()[0]
                 )
                 self.assertEqual(top['schema_version'], 'tos_source_navigation_v1')
+
 
     def test_build_stage_restart_integrity_inputs_and_lock(self):
         from build_stages import BuildStages, build_lock, fingerprint, tree_paths
@@ -439,6 +1068,62 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 db.executescript(path.read_text())
             self.assertEqual(db.execute("SELECT value FROM knowledge_nodes WHERE id='one'").fetchone()[0], 'new')
 
+    def test_delta_staging_batches_preserve_exact_rows_with_bounded_shape_and_bytes(self):
+        from incremental_runtime import MAX_D1_SQL_INSERT_ROWS, MAX_D1_SQL_STATEMENT_BYTES, sql_value_rows
+        with tempfile.TemporaryDirectory() as directory, closing(self.database()) as db:
+            path = Path(directory) / 'delta.sql'
+            base, _ = self.build(path, 'a'*64, [('one', 'old'), ('two', 'stable'), ('three', 'removed')])
+            values = [(f'short-{i:04}', str(i)) for i in range(1200)]
+            values += [(f'long-{i:04}', '🌳'*800) for i in range(60)]
+            after, counts = self.build(path, 'b'*64, values, base)
+            sql = path.read_text()
+            inserts = [line for line in sql.splitlines() if line.startswith('INSERT INTO tos_delta_') and ' VALUES ' in line]
+            self.assertLess(len(inserts), 30)  # Not one SQL round trip per key/row.
+            sizes = []
+            for statement in inserts:
+                self.assertLessEqual(len(statement.encode('utf-8')), MAX_D1_SQL_STATEMENT_BYTES)
+                rows = sql_value_rows(statement.split(' VALUES ', 1)[1][:-1])
+                sizes.append(len(rows))
+                self.assertLessEqual(len(rows), MAX_D1_SQL_INSERT_ROWS)
+            self.assertIn(MAX_D1_SQL_INSERT_ROWS, sizes)
+            self.assertEqual(counts['changed_rows'], len(values)+1)
+            db.executescript(sql)
+            self.assertEqual(db.execute('SELECT * FROM knowledge_nodes ORDER BY id').fetchall(), sorted(values))
+            db.executescript(sql)
+            self.assertEqual(db.execute('SELECT * FROM knowledge_nodes ORDER BY id').fetchall(), sorted(values))
+            # The baseline remains per original row, independent of transport
+            # grouping, so a subsequent identical content build reuses it.
+            _, repeat = self.build(path, 'c'*64, values, after)
+            self.assertEqual(repeat['changed_rows'], 1)
+            self.assertEqual(repeat['reused_rows'], len(values))
+
+    def test_stage_driven_delete_seeks_composite_keys_and_preserves_null_semantics(self):
+        with closing(self.database()) as db:
+            db.executemany('INSERT INTO knowledge_search_grams VALUES (?,?,?,?,?)',
+                (('nodes', '3', f'g{i}', str(i), 'stable') for i in range(10000)))
+            db.execute('INSERT INTO knowledge_search_grams VALUES (NULL,?,?,?,?)', ('3', 'null-key', '0', 'removed'))
+            db.execute('CREATE TABLE staged_keys AS SELECT kind,n,gram,position FROM knowledge_search_grams WHERE 0')
+            db.executemany('INSERT INTO staged_keys VALUES (?,?,?,?)',
+                [('nodes', '3', 'g5000', '5000'), (None, '3', 'null-key', '0'), ('nodes', '3', 'absent', '9')])
+            sql = delete_staged_keys_sql('knowledge_search_grams', 'staged_keys')
+            plan = [row[3] for row in db.execute('EXPLAIN QUERY PLAN ' + sql)]
+            self.assertTrue(any('SEARCH target USING' in row for row in plan), plan)
+            self.assertFalse(any('SCAN knowledge_search_grams' in row or 'SCAN target' in row for row in plan), plan)
+            steps = 0
+            def budget():
+                nonlocal steps
+                steps += 1
+                return int(steps > 2000)
+            db.set_progress_handler(budget, 1)
+            try:
+                db.execute(sql)
+            finally:
+                db.set_progress_handler(None, 0)
+            self.assertLess(steps, 2000)
+            self.assertEqual(db.execute('SELECT count(*) FROM knowledge_search_grams').fetchone()[0], 9999)
+            self.assertEqual(db.execute("SELECT value FROM knowledge_search_grams WHERE gram='g4999'").fetchone(), ('stable',))
+            self.assertIsNone(db.execute("SELECT value FROM knowledge_search_grams WHERE gram='null-key'").fetchone())
+
     def test_changed_chunked_row_has_complete_value_and_key_parser_handles_quotes(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'patch.sql'
@@ -452,8 +1137,327 @@ class IncrementalRuntimeTests(unittest.TestCase):
             self.assertEqual(len(row['digest']), 64)
             self.assertEqual(recorder.summary()['changed_rows'], 1)
 
+    def test_batched_search_rows_are_indexed_individually(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'patch.sql'
+            recorder = DeltaRecorder(path, 'a' * 64, 'test-schema')
+            recorder.observe(
+                "INSERT INTO knowledge_search_grams_next (kind,n,gram,position) VALUES "
+                "('nodes',3,'a''b,c',0),('nodes',3,'def',1);"
+            )
+            recorder.observe(
+                "INSERT INTO knowledge_search_gram_stats_next (kind,n,gram,postings) VALUES "
+                "('nodes',3,'a''b,c',1),('nodes',3,'def',1);"
+            )
+            index = recorder.finish()
+            self.assertEqual(len(index['rows']['knowledge_search_grams']), 2)
+            self.assertEqual(len(index['rows']['knowledge_search_gram_stats']), 2)
+            grams = list(index['rows']['knowledge_search_grams'].values())
+            self.assertIn(["'a''b,c'", '0'], [row['values'][2:] for row in grams])
+            self.assertEqual(recorder.summary()['changed_rows'], 4)
+
+    def test_disk_row_index_preserves_memory_contract_and_is_removed_after_finish(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            statements = [
+                "INSERT INTO edge_meta_next (key, part, json_chunk) VALUES ('data_revision', 0, '{\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}');",
+                "INSERT INTO knowledge_nodes_next (id, value) VALUES ('a''b,c', '');",
+                "UPDATE knowledge_nodes_next SET value = value || 'part1' WHERE id = 'a''b,c';",
+                "UPDATE knowledge_nodes_next SET value = value || 'part2' WHERE id = 'a''b,c';",
+                "INSERT INTO knowledge_search_grams_next (kind,n,gram,position) VALUES ('nodes',3,'a''b,c',0),('nodes',3,'def',1);",
+            ]
+
+            memory = DeltaRecorder(root / 'memory.sql', 'a' * 64, 'test-schema')
+            for statement in statements:
+                memory.observe(statement)
+            expected = memory.finish()
+
+            disk = DeltaRecorder(
+                root / 'disk.sql',
+                'a' * 64,
+                'test-schema',
+                index_store_path=root / 'disk.rows.index.sqlite',
+            )
+            for statement in statements:
+                disk.observe(statement)
+            index_output = root / 'disk.rows.json.next'
+            self.assertIsNone(disk.finish(index_output=index_output))
+            self.assertEqual(json.loads(index_output.read_text()), expected)
+            self.assertFalse((root / 'disk.rows.index.sqlite').exists())
+
+    def test_posting_stats_sidecar_is_removed_on_success_and_failure(self):
+        import build_runtime as builder
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'search-gram-stats.sqlite'
+            with builder.PostingStatsStore(path) as store:
+                store.add('nodes', 'abc')
+            self.assertFalse(path.exists())
+
+            with self.assertRaisesRegex(RuntimeError, 'synthetic failure'):
+                with builder.PostingStatsStore(path) as store:
+                    store.add('relations', 'xyz')
+                    raise RuntimeError('synthetic failure')
+            self.assertFalse(path.exists())
+
+    def test_disk_baseline_streams_large_rows_and_preserves_digest_lookup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'baseline.rows.json'
+            source_index = DiskRowIndex(root / 'source.rows.sqlite')
+            large_literal = "'" + ('x' * (1024 * 1024 + 17)) + "'"
+            source_index.record(
+                'knowledge_nodes',
+                '["large"]',
+                'a' * 64,
+                ["'large'", large_literal],
+            )
+            source_index.write_json(source, 'test-schema', 'b' * 64)
+            source_index.close()
+            source_index.path.unlink(missing_ok=True)
+
+            baseline = DiskRowBaseline(source, 'test-schema', root / 'baseline.sqlite')
+            self.assertEqual((baseline.schema, baseline.revision), ('test-schema', 'b' * 64))
+            self.assertEqual(baseline.digest('knowledge_nodes', '["large"]'), 'a' * 64)
+            row = next(baseline.iter_table('knowledge_nodes'))
+            self.assertEqual(json.loads(row[2]), ["'large'", large_literal])
+            baseline.close()
+            self.assertFalse((root / 'baseline.sqlite').exists())
+
+    def test_disk_baseline_rejects_overbudget_truncated_value(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'broken.rows.json'
+            source.write_text(
+                '{"schema":"test-schema","revision":"' + ('b' * 64)
+                + '","rows":{"knowledge_nodes":{"[\\"one\\"]":{"digest":"'
+                + ('a' * 64) + '","values":["' + ('x' * 1024) + '"',
+                encoding='utf-8',
+            )
+            with self.assertRaisesRegex(ValueError, 'bounded size'):
+                DiskRowBaseline(source, 'test-schema', root / 'baseline.sqlite', max_value_chars=128)
+            self.assertFalse((root / 'baseline.sqlite').exists())
+
+    def test_disk_baseline_roundtrips_long_escaped_producer_key(self):
+        import build_runtime as builder
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            raw_key = 'x' * 8_300 + '"' + '\\' + '\n' + '\r' + '\t'
+            key_literal = builder.sql_text(raw_key)
+            statement = builder.sql_insert(
+                'knowledge_nodes_next',
+                ('id', 'value'),
+                (key_literal, builder.sql_text('payload')),
+            )
+            key = json.dumps([key_literal], ensure_ascii=False, separators=(',', ':'))
+            self.assertGreater(len(key), 8_192)
+            self.assertLess(
+                len(json.dumps(key, ensure_ascii=False, separators=(',', ':'))),
+                ROW_INDEX_MAX_KEY_CHARS,
+            )
+
+            first_target = root / 'first.sql'
+            first_recorder = DeltaRecorder(
+                first_target,
+                'a' * 64,
+                'test-schema',
+                index_store_path=root / 'first.rows.sqlite',
+            )
+            first_writer = builder.SqlStatementWriter(first_target, first_recorder)
+            first_writer.append(statement)
+            first_writer.finish(publish=False)
+            first_index = root / 'first.rows.json.next'
+            first_recorder.finish(index_output=first_index, publish=False)
+
+            baseline = DiskRowBaseline(
+                first_index,
+                'test-schema',
+                root / 'baseline.sqlite',
+            )
+            self.assertEqual(
+                baseline.digest('knowledge_nodes', key),
+                hashlib.sha256(statement.encode()).hexdigest(),
+            )
+
+            second_target = root / 'second.sql'
+            second_recorder = DeltaRecorder(
+                second_target,
+                'b' * 64,
+                'test-schema',
+                baseline,
+                index_store_path=root / 'second.rows.sqlite',
+            )
+            second_writer = builder.SqlStatementWriter(second_target, second_recorder)
+            second_writer.append(statement)
+            second_writer.finish(publish=False)
+            second_index = root / 'second.rows.json.next'
+            second_recorder.finish(index_output=second_index, publish=False)
+            self.assertEqual(second_recorder.summary()['reused_rows'], 1)
+            self.assertEqual(second_recorder.summary()['changed_rows'], 0)
+            self.assertFalse((root / 'first.rows.sqlite').exists())
+            self.assertFalse((root / 'second.rows.sqlite').exists())
+
+    def test_disk_delta_materialization_failure_does_not_publish_sql_target(self):
+        with tempfile.TemporaryDirectory() as directory:
+            from unittest.mock import patch
+
+            root = Path(directory)
+            target = root / 'delta.sql'
+            target.write_text('old delta\n', encoding='utf-8')
+            recorder = DeltaRecorder(
+                target,
+                'a' * 64,
+                'test-schema',
+                index_store_path=root / 'rows.sqlite',
+            )
+            recorder.observe("INSERT INTO knowledge_nodes_next (id, value) VALUES ('one', 'new');")
+            with patch.object(DiskRowIndex, 'write_json', side_effect=OSError('synthetic disk failure')):
+                with self.assertRaisesRegex(OSError, 'synthetic disk failure'):
+                    recorder.finish(index_output=root / 'rows.json.next')
+            self.assertEqual(target.read_text(encoding='utf-8'), 'old delta\n')
+            self.assertFalse((root / 'rows.sqlite').exists())
+
+    def test_prepared_output_rename_rolls_back_partial_publish(self):
+        import build_runtime as builder
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pairs = []
+            for name in ('sql', 'delta', 'rows'):
+                pending = root / f'{name}.next'
+                target = root / name
+                pending.write_text(f'new {name}\n', encoding='utf-8')
+                target.write_text(f'old {name}\n', encoding='utf-8')
+                pairs.append((pending, target))
+            real_replace = builder.os.replace
+
+            def fail_rows(source, target):
+                if Path(source).name == 'rows.next':
+                    raise OSError('synthetic rename failure')
+                return real_replace(source, target)
+
+            with patch.object(builder.os, 'replace', side_effect=fail_rows):
+                with self.assertRaisesRegex(OSError, 'synthetic rename failure'):
+                    builder.publish_prepared_files(tuple(pairs))
+            for name in ('sql', 'delta', 'rows'):
+                self.assertEqual((root / name).read_text(encoding='utf-8'), f'old {name}\n')
+                self.assertFalse((root / f'{name}.rollback').exists())
+
     def test_schema_change_requires_full_baseline(self):
         with tempfile.TemporaryDirectory() as directory:
             recorder = DeltaRecorder(Path(directory)/'patch.sql', 'a'*64, 'new-schema', {'schema': 'old-schema'})
             recorder.finish()
             self.assertFalse(recorder.summary()['available'])
+
+
+class SearchAddressPlanTests(unittest.TestCase):
+    def database(self, members=('Alpha', 'alpha', 'stable')):
+        db = sqlite3.connect(':memory:')
+        self.addCleanup(db.close)
+        db.execute('CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(key,part))')
+        db.execute('INSERT INTO edge_meta VALUES (?,?,?)', ('data_revision', 0, json.dumps({'sha256': 'a'*64})))
+        db.execute('CREATE TABLE knowledge_search_documents(kind TEXT,position INTEGER,id TEXT,id_lower TEXT,PRIMARY KEY(kind,position))')
+        db.execute('CREATE TABLE knowledge_search_grams(kind TEXT,gram TEXT,position INTEGER,PRIMARY KEY(kind,gram,position))')
+        for position, identity in enumerate(members):
+            db.execute('INSERT INTO knowledge_search_documents VALUES (?,?,?,?)', ('nodes', position, identity, identity.lower()))
+            db.execute('INSERT INTO knowledge_search_grams VALUES (?,?,?)', ('nodes', 'common', position))
+        db.commit()
+        return db
+
+    def ready(self, db):
+        db.execute('BEGIN IMMEDIATE')
+        return prepare_search_address_indexes_transaction(db, expected_revision='a'*64)
+
+    def plan(self, db, groups, **limits):
+        return plan_search_addresses_transaction(db, expected_revision='a'*64,
+            kind='nodes', successor_groups=groups, **limits)
+
+    def apply_plan(self, db, plan):
+        # Test-only source caller: one bounded posting per item. Actual publisher
+        # must reconstruct complete documents/postings and all remaining lanes.
+        for identity in plan['changed_ids']:
+            old = plan['before'].get(identity)
+            if old is not None:
+                db.execute('DELETE FROM knowledge_search_grams WHERE kind=? AND position=?', ('nodes', old))
+                db.execute('DELETE FROM knowledge_search_documents WHERE kind=? AND position=?', ('nodes', old))
+        for identity in plan['changed_ids']:
+            position = plan['after'].get(identity)
+            if position is not None:
+                db.execute('INSERT INTO knowledge_search_documents VALUES (?,?,?,?)', ('nodes', position, identity, identity.lower()))
+                db.execute('INSERT INTO knowledge_search_grams VALUES (?,?,?)', ('nodes', 'common', position))
+
+    def test_middle_insertion_preserves_unrelated_postings_and_exact_case_tie_order(self):
+        db = self.database()
+        before = list(db.iterdump())
+        receipt = self.ready(db)
+        self.assertEqual(receipt['posting_mutations'], 0)
+        planned = self.plan(db, {'alpha': ['Alpha', 'aLpha', 'alpha'], 'beta': ['beta']})
+        self.assertFalse(planned['source_closure_verified'])
+        self.assertEqual(planned['before'], {'Alpha': 0, 'alpha': 1})
+        self.assertEqual(planned['after'], {'Alpha': 3, 'aLpha': 4, 'alpha': 5, 'beta': 6})
+        self.apply_plan(db, planned)
+        # Same public rank/id_lower/source-order result as independent full
+        # successor enumeration, although physical posting addresses differ.
+        actual = [row[0] for row in db.execute('SELECT d.id FROM knowledge_search_grams g JOIN '
+            'knowledge_search_documents d USING(kind,position) WHERE g.gram=? ORDER BY d.id_lower,d.position', ('common',))]
+        successor = ['Alpha', 'aLpha', 'alpha', 'beta', 'stable']
+        self.assertEqual(actual, sorted(successor, key=lambda identity: (identity.lower(), successor.index(identity))))
+        self.assertEqual(db.execute("SELECT position FROM knowledge_search_documents WHERE id='stable'").fetchone(), (2,))
+        self.assertEqual(db.execute("SELECT position FROM knowledge_search_grams WHERE position=2").fetchall(), [(2,)])
+        db.rollback()
+        self.assertEqual(list(db.iterdump()), before)  # optional indexes and test writes roll back together
+
+    def test_content_deletion_reordering_and_distinct_insertions_are_bounded(self):
+        db = self.database(tuple(f'old-{i:04}' for i in range(1000)) + ('Alpha', 'alpha'))
+        self.ready(db)
+        self.assertEqual(self.plan(db, {'alpha': ['Alpha', 'alpha']})['changed_ids'], [])
+        removed = self.plan(db, {'alpha': ['alpha']})
+        self.assertEqual(removed['after'], {'alpha': 1001})
+        self.assertEqual(removed['changed_ids'], ['Alpha'])
+        reordered = self.plan(db, {'alpha': ['alpha', 'Alpha']})
+        self.assertEqual(list(reordered['after']), ['alpha', 'Alpha'])
+        added = self.plan(db, {'middle': ['middle']}, max_groups=1, max_members=1)
+        self.assertEqual(added['after'], {'middle': 1002})
+        self.assertEqual(added['before'], {})
+        empty = self.plan(db, {'alpha': []})
+        self.assertEqual(empty['after'], {})
+        self.assertEqual(empty['changed_ids'], ['Alpha', 'alpha'])
+        query = list(db.execute("EXPLAIN QUERY PLAN SELECT id,position FROM knowledge_search_documents "
+            "INDEXED BY knowledge_search_address_tie_idx WHERE kind='nodes' AND id_lower='alpha' ORDER BY position LIMIT 3"))
+        self.assertTrue(any('SEARCH' in r[3] and 'knowledge_search_address_tie_idx' in r[3] for r in query))
+
+    def test_refuses_unprepared_stale_oversized_or_corrupt_inputs_without_writes(self):
+        db = self.database()
+        with self.assertRaisesRegex(ValueError, 'caller transaction'):
+            self.plan(db, {})
+        db.execute('BEGIN')
+        with self.assertRaisesRegex(ValueError, 'index preparation'):
+            self.plan(db, {})
+        with self.assertRaisesRegex(ValueError, 'preparation budget'):
+            prepare_search_address_indexes_transaction(db, expected_revision='a'*64, max_documents=2)
+        prepare_search_address_indexes_transaction(db, expected_revision='a'*64)
+        before = list(db.iterdump())
+        for groups, limits in (({'alpha': ['Alpha', 'Alpha']}, {}), ({'ALPHA': []}, {}),
+                ({'alpha': ['not-alpha']}, {}), ({'alpha': []}, {'max_members': 1}),
+                ({'alpha': []}, {'max_key_bytes': 6}), ({'a': [], 'b': []}, {'max_groups': 1})):
+            with self.subTest(groups=groups, limits=limits), self.assertRaises(ValueError):
+                self.plan(db, groups, **limits)
+            self.assertEqual(list(db.iterdump()), before)
+        with self.assertRaisesRegex(ValueError, 'predecessor differs'):
+            plan_search_addresses_transaction(db, expected_revision='b'*64, kind='nodes', successor_groups={})
+        db.execute("UPDATE knowledge_search_documents SET id_lower='wrong' WHERE id='Alpha'")
+        with self.assertRaisesRegex(ValueError, 'omitted'):
+            self.plan(db, {'alpha': ['Alpha', 'alpha']})
+        db.execute("UPDATE knowledge_search_documents SET position=? WHERE id='stable'", (MAX_SEARCH_ADDRESS,))
+        with self.assertRaisesRegex(ValueError, 'space exhausted'):
+            self.plan(db, {'new': ['new']})
+
+    def test_wrong_index_definition_is_not_silently_replaced(self):
+        db = self.database()
+        db.execute('CREATE INDEX knowledge_search_address_id_idx ON knowledge_search_documents(id)')
+        db.execute('BEGIN')
+        with self.assertRaisesRegex(ValueError, 'index preparation'):
+            prepare_search_address_indexes_transaction(db, expected_revision='a'*64)
+        db.rollback()
+        self.assertEqual([r[2] for r in db.execute('PRAGMA index_info(knowledge_search_address_id_idx)')], ['id'])

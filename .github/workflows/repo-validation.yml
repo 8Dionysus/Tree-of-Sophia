@@ -19,18 +19,28 @@ jobs:
     steps:
       - name: Checkout software and bounded test fixtures
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        # Select complete implementation modules, not their current import graph.
+        # Corpus inputs remain limited to contracts and named synthetic fixtures.
         with:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /access/
             !/access/web/dist/
             /scripts/
+            /mechanics/growth-cycle/parts/branch-growth-cycle/scripts/
+            /mechanics/growth-cycle/tests/test_source_revisions.py
             /docs/validation/validation_lanes.json
             /tests/test_validation_lanes.py
+            /tests/test_source_catalog_projection.py
+            /tests/test_source_catalog_slots.py
+            /tests/test_native_text_binding.py
             /ToS/contracts/
             /ToS/canon/registries/predicates.csv
             /ToS/doctrine/semantic-interchange/entity-types.v1.json
             /ToS/doctrine/semantic-interchange/relation-types.v1.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-b.anchor.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-a.layer.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-a-source-layout-observation.json
             /requirements-dev.txt
             /pytest.ini
             /.github/workflows/repo-validation.yml
@@ -82,12 +92,17 @@ jobs:
     steps:
       - name: Checkout Worker software
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        # Keep the same owner implementation boundary as the Python software job.
         with:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /access/
             !/access/web/dist/
             /scripts/
+            /mechanics/growth-cycle/parts/branch-growth-cycle/scripts/
+            /mechanics/growth-cycle/tests/test_identity_proposals.py
+            /mechanics/growth-cycle/tests/test_source_claim_commands.py
+            /mechanics/growth-cycle/tests/test_source_commands.py
             /ToS/contracts/
             /ToS/canon/registries/predicates.csv
             /ToS/doctrine/semantic-interchange/entity-types.v1.json
@@ -97,7 +112,8 @@ jobs:
       - name: Setup Python for cross-adapter fixture checks
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
-          python-version: "3.12"
+          # Worker native-string ABI uses the CPython Unicode 16 tables.
+          python-version: "3.14"
 
       - name: Install cross-adapter test dependencies
         run: python -m pip install -r requirements-dev.txt 'mcp>=1.27,<2'

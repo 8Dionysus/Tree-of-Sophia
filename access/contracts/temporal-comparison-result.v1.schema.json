@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.com/contracts/temporal-comparison-result.v1.schema.json",
+  "title": "Date envelope comparison, not historical judgment or admission",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "source_revision", "request", "comparison", "left", "right", "source_refs", "authority_boundary"],
+  "properties": {
+    "schema_version": {"const": "tos_temporal_comparison_result_v1"},
+    "source_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "request": {"$ref": "temporal-comparison-request.v1.schema.json"},
+    "comparison": {
+      "type": "object", "additionalProperties": false, "required": ["status", "relation", "reasons", "basis"],
+      "properties": {
+        "status": {"enum": ["comparable", "undetermined", "unsupported"]},
+        "relation": {"enum": [null, "before", "after", "equal", "contains", "contained-by", "overlaps"]},
+        "basis": {"const": "normalized-source-date-envelopes"},
+        "reasons": {"type": "array", "items": {
+          "type": "object", "additionalProperties": false, "required": ["side", "code"],
+          "properties": {"side": {"enum": ["left", "right", "pair"]}, "code": {"type": "string", "minLength": 1}}
+        }}
+      },
+      "allOf": [{"if": {"properties": {"status": {"const": "comparable"}}},
+        "then": {"properties": {"relation": {"type": "string"}, "reasons": {"maxItems": 0}}},
+        "else": {"properties": {"relation": {"type": "null"}, "reasons": {"minItems": 1}}}}]
+    },
+    "left": {"$ref": "#/$defs/operand"}, "right": {"$ref": "#/$defs/operand"},
+    "source_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "authority_boundary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["is_source", "writes_to_tree", "performs_assessment", "creates_inferred_claim", "comparison_basis", "note"],
+      "properties": {
+        "is_source": {"const": false}, "writes_to_tree": {"const": false}, "performs_assessment": {"const": false},
+        "creates_inferred_claim": {"const": false}, "comparison_basis": {"const": "normalized-source-date-envelopes"},
+        "note": {"type": "string", "minLength": 1}
+      }
+    }
+  },
+  "$defs": {
+    "operand": {
+      "type": "object", "additionalProperties": false, "required": ["claim", "value", "normalized_time"],
+      "properties": {
+        "claim": {"$ref": "knowledge-graph.v1.schema.json#/$defs/node"},
+        "value": {"oneOf": [{"type": "null"}, {"$ref": "knowledge-graph.v1.schema.json#/$defs/node"}]},
+        "normalized_time": {"type": ["object", "null"], "description": "Lossless current normalization of the selected Claim object; no new calendar conversion or relative-anchor resolution."}
+      }
+    }
+  }
+}

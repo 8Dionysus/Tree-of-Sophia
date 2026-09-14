@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/custody",
+          "record": {
+            "digest": "sha256:4389a27db40bd9e521af0e4f29d073099857af7d49dd4fdec960e9f1fe5eeb01",
+            "id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:4389a27db40bd9e521af0e4f29d073099857af7d49dd4fdec960e9f1fe5eeb01",
+            "id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:4389a27db40bd9e521af0e4f29d073099857af7d49dd4fdec960e9f1fe5eeb01",
+            "id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:4389a27db40bd9e521af0e4f29d073099857af7d49dd4fdec960e9f1fe5eeb01",
+            "id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:4389a27db40bd9e521af0e4f29d073099857af7d49dd4fdec960e9f1fe5eeb01",
+            "id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:fb478eec49b7793e545a0ad64a15486eeff01751a710452291997a12cb4b93c7",
+        "id": "tos.form.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:4389a27db40bd9e521af0e4f29d073099857af7d49dd4fdec960e9f1fe5eeb01",
+        "id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:4389a27db40bd9e521af0e4f29d073099857af7d49dd4fdec960e9f1fe5eeb01",
+            "id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/path_identity/note",
+          "record": {
+            "digest": "sha256:4389a27db40bd9e521af0e4f29d073099857af7d49dd4fdec960e9f1fe5eeb01",
+            "id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:4389a27db40bd9e521af0e4f29d073099857af7d49dd4fdec960e9f1fe5eeb01",
+        "id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+        "version": 1
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+      "owner_configuration": "sha256:e9f9c63f1bf5871ece48869077f04ba50df2a7fe3c5066b2c1c4946626b9a8f9",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:09.244011+00:00",
+      "request_digest": "sha256:ebacc5a2c4358a23194ea140d7fe71d500518c6b7de1e46a52316d20e53840fc",
+      "results": [
+        {
+          "digest": "sha256:fb478eec49b7793e545a0ad64a15486eeff01751a710452291997a12cb4b93c7",
+          "id": "tos.form.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:60e5cd3ea34eec713f02acf1e52c9d711d213bdf520951543f5f2606cec6f6c6",
+          "id": "tos.form.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:4389a27db40bd9e521af0e4f29d073099857af7d49dd4fdec960e9f1fe5eeb01",
+        "id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness-v2.schema.json": "sha256:49690ed8397f2a1febed114a5aa80c11225103f6cc6dd53a149424f64e91cbfb"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+      "request_digest": "sha256:b124b0de8583b06eccbd266594222d8b371f6e47d9d536eee93af541419badaf",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:e9f9c63f1bf5871ece48869077f04ba50df2a7fe3c5066b2c1c4946626b9a8f9",
+      "recorded_at": "2026-09-07T21:40:09.916486+00:00",
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness-v2.schema.json": "sha256:49690ed8397f2a1febed114a5aa80c11225103f6cc6dd53a149424f64e91cbfb"
+      },
+      "source": {
+        "id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+        "version": 1,
+        "digest": "sha256:4389a27db40bd9e521af0e4f29d073099857af7d49dd4fdec960e9f1fe5eeb01"
+      },
+      "previous_revision": "sha256:cb85e66a418f82c5d2752493287c002149c8ee0fca68320c890fafd5348f593a",
+      "results": [
+        {
+          "id": "tos.form.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842.source-name",
+          "version": 2,
+          "digest": "sha256:8cb8a4522a4667ef2032f19bc5e57a12abbdbd91aee8b7e786cfe89a72910566"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:4389a27db40bd9e521af0e4f29d073099857af7d49dd4fdec960e9f1fe5eeb01",
+            "id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:4389a27db40bd9e521af0e4f29d073099857af7d49dd4fdec960e9f1fe5eeb01",
+            "id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:4389a27db40bd9e521af0e4f29d073099857af7d49dd4fdec960e9f1fe5eeb01",
+        "id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.artifact.egyptian.deir-el-bersha.sen-inner-coffin-b3l-ea30842",
+    "version": 1,
+    "digest": "sha256:4389a27db40bd9e521af0e4f29d073099857af7d49dd4fdec960e9f1fe5eeb01"
+  }
+}

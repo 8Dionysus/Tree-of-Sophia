@@ -5,12 +5,26 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import json
+import os
+import re
+import stat
+from dataclasses import dataclass
 from pathlib import Path
 import subprocess
 from typing import Any
 
 from jsonschema import Draft202012Validator
+from source_metadata_snapshot import PublicationSnapshot, PublicationChanged
+from build_source_witness_catalog import (artifact_catalog_entry, artifact_display_fields,
+                                         load_artifact_record, load_link_record, canonical_json, RECORD_FILES, ADAPTED_RECORD_FILES,
+                                         composite_catalog_entry, load_composite_record, composite_display_fields, COMPOSITE_SCHEMA,
+                                         verify_catalog_publication)
+from source_witness_human_forms import (AssessedFormSnapshot, load_metadata_forms,
+                                       load_canonical_forms, metadata_subject)
+from source_record_profiles import SourceRecordProfiles
+from source_object_link_read import LegacyObjectLinkReader, SOURCE_REF as LEGACY_OBJECT_LINK_REF
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -255,10 +269,14 @@ def resource_kind(path: Path) -> str:
 
 
 def canonical_label(payload: dict[str, Any]) -> str:
-    for key in ("canonical_label", "source_anchor", "distilled_thesis", "node_id"):
+    for key in ("canonical_label", "preferred_label", "label", "title", "name"):
         value = payload.get(key)
         if isinstance(value, str) and value.strip():
             return value.strip()
+    node_id = payload.get("node_id")
+    if isinstance(node_id, str) and node_id.strip():
+        leaf = node_id.strip().rsplit(".", 1)[-1]
+        return leaf.replace("-", " ").replace("_", " ")
     return "unnamed-node"
 
 
@@ -369,37 +387,131 @@ def build_nodes(
         if not isinstance(node_type, str) or not node_type:
             diagnostics.append({"level": "error", "path": path_ref, "message": "node payload is missing node_type"})
             continue
-        nodes.append(
-            {
-                "node_id": node_id,
-                "node_type": node_type,
-                "label": canonical_label(payload),
-                "owner_branch": owner_branch(path_ref),
-                "authority_layer": authority_layer(path_ref),
-                "source_path": path_ref,
-                "source_sha256": sha256(path),
-                "route_hint": route_hint_for_node(path_ref),
-            }
-        )
+        node = {
+            "node_id": node_id,
+            "node_type": node_type,
+            "label": canonical_label(payload),
+            "owner_branch": owner_branch(path_ref),
+            "authority_layer": authority_layer(path_ref),
+            "source_path": path_ref,
+            "source_sha256": sha256(path),
+            "route_hint": route_hint_for_node(path_ref),
+            "properties": dict(payload),
+        }
+        if payload.get('schema_version') == 'tos_canonical_node_v1':
+            forms = load_canonical_forms(REPO_ROOT, path_ref, payload, access_allowed=True)
+            node['source_record_sha256'] = metadata_subject(payload).ref['digest'].removeprefix('sha256:')
+            if forms is not None:
+                form_ref, form_raw, packets = forms
+                node.update(human_forms=packets, human_forms_source_ref=form_ref,
+                            human_forms_source_sha256=hashlib.sha256(form_raw).hexdigest())
+        elif path.with_name('node.human-forms.json').exists():
+            raise ValueError('canonical forms require an explicitly versioned native node: ' + path_ref)
+        nodes.append(node)
     return nodes
 
 
-def read_edge_rows(path: Path) -> tuple[list[str], list[dict[str, str]]]:
-    with path.open("r", encoding="utf-8", newline="") as handle:
-        reader = csv.DictReader(handle)
-        return list(reader.fieldnames or []), list(reader)
+def read_edge_rows(path: Path) -> tuple[list[str], list[dict[str, str | None]], str]:
+    """Retain every CSV field and bind rows to the exact bytes parsed.
+
+    Row ordinals are data records, not physical lines: quoted fields may span
+    lines. Missing cells remain null; empty cells remain empty strings. A
+    duplicate/empty header or unnamed surplus cell cannot be represented by a
+    lossless keyed record and must not silently disappear.
+    """
+    raw = path.read_bytes()
+    reader = csv.DictReader(io.StringIO(raw.decode("utf-8"), newline=""), strict=True)
+    columns = list(reader.fieldnames or [])
+    if not columns or any(not column for column in columns) or len(set(columns)) != len(columns):
+        raise csv.Error("relation CSV requires nonempty unique column names")
+    rows = list(reader)
+    if any(None in row for row in rows):
+        raise csv.Error("relation CSV row has unnamed cells outside its declared columns")
+    return columns, rows, hashlib.sha256(raw).hexdigest()
+
+
+def read_exact_edge_row(
+    path: Path, *, source_file_sha256: str, source_row: int,
+    source_record: dict[str, str | None], max_file_bytes: int = 8 * 1024 * 1024,
+    max_record_bytes: int = 1024 * 1024,
+) -> dict[str, Any]:
+    """Read one exact retained corpus-index CSV row, without authoring meaning.
+
+    The caller must admit the owner path and its selected index membership;
+    this helper is not a path-based public access API or a permission grant.
+    Logical row ordinals exclude the header/blank records, not quoted newlines.
+    Both original CSV bytes and every parsed cell are preserved. Existing index
+    records suffice; no second registry or current-file fallback is created.
+    """
+    if (type(source_file_sha256) is not str or re.fullmatch('[a-f0-9]{64}', source_file_sha256) is None
+            or type(source_row) is not int or source_row < 1
+            or type(source_record) is not dict
+            or any(type(k) is not str or (v is not None and type(v) is not str) for k, v in source_record.items())
+            or any(type(v) is not int or v < 1 for v in (max_file_bytes, max_record_bytes))):
+        raise ValueError('exact CSV source binding and positive budgets required')
+    signature = lambda info: (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(descriptor, 'rb') as stream:
+        before = os.fstat(stream.fileno())
+        if not stat.S_ISREG(before.st_mode):
+            raise ValueError('CSV source must be a regular owner file')
+        if before.st_size > max_file_bytes:
+            raise ValueError('CSV source file exceeds read budget')
+        raw = stream.read(max_file_bytes + 1)
+        after = os.fstat(stream.fileno())
+    if (signature(before) != signature(after)
+            or signature(after) != signature(path.stat(follow_symlinks=False))):
+        raise ValueError('CSV source changed during exact read')
+    if len(raw) > max_file_bytes:
+        raise ValueError('CSV source file exceeds read budget')
+    if hashlib.sha256(raw).hexdigest() != source_file_sha256:
+        raise ValueError('CSV source file digest differs from selected index')
+    text = raw.decode('utf-8')
+    stream = io.StringIO(text, newline='')
+    reader = csv.reader(stream, strict=True)
+    columns = next(reader, [])
+    if not columns or any(not column for column in columns) or len(set(columns)) != len(columns):
+        raise csv.Error('relation CSV requires nonempty unique column names')
+    previous = stream.tell()
+    offset = len(text[:previous].encode('utf-8'))
+    ordinal = 0
+    for cells in reader:
+        position = stream.tell()
+        record_raw = text[previous:position].encode('utf-8')
+        start, offset, previous = offset, offset + len(record_raw), position
+        if not cells:
+            continue
+        ordinal += 1
+        if len(cells) > len(columns):
+            raise csv.Error('relation CSV row has unnamed cells outside its declared columns')
+        if ordinal != source_row:
+            continue
+        if len(record_raw) > max_record_bytes:
+            raise ValueError('CSV source record exceeds read budget')
+        record = {column: cells[i] if i < len(cells) else None for i, column in enumerate(columns)}
+        if record != source_record:
+            raise ValueError('CSV source row differs from selected index record')
+        # Recheck pathname identity after parsing too. A replaced file is not
+        # silently treated as the selected source even when a descriptor lived.
+        if signature(after) != signature(path.stat(follow_symlinks=False)):
+            raise ValueError('CSV source changed during exact read')
+        return {'source_file_sha256': source_file_sha256, 'source_row': source_row,
+                'columns': columns, 'record': record, 'byte_offset': start,
+                'row_bytes': len(record_raw), 'raw_record': record_raw.decode('utf-8'),
+                'raw_record_sha256': hashlib.sha256(record_raw).hexdigest()}
+    raise ValueError('CSV source row is absent from selected file')
 
 
 def build_relations(
     diagnostics: list[dict[str, str]],
     tracked_paths: tuple[Path, ...],
-) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     relation_packs: list[dict[str, Any]] = []
-    relation_edges: list[dict[str, str]] = []
+    relation_edges: list[dict[str, Any]] = []
     for path in (candidate for candidate in tracked_paths if candidate.name == "edges.csv"):
         path_ref = repo_ref(path)
         try:
-            columns, rows = read_edge_rows(path)
+            columns, rows, source_digest = read_edge_rows(path)
         except csv.Error as exc:
             diagnostics.append({"level": "error", "path": path_ref, "message": f"invalid CSV: {exc}"})
             continue
@@ -413,10 +525,10 @@ def build_relations(
                 "authority_layer": authority_layer(path_ref),
                 "edge_count": len(rows),
                 "columns": columns,
-                "sha256": sha256(path),
+                "sha256": source_digest,
             }
         )
-        for row in rows:
+        for ordinal, row in enumerate(rows, 1):
             edge_id = str(row.get("edge_id") or f"{pack_id}:{len(relation_edges) + 1}")
             relation_edges.append(
                 {
@@ -429,8 +541,15 @@ def build_relations(
                     "authority_layer": authority_layer(path_ref),
                     "layer": str(row.get("layer") or ""),
                     "status": str(row.get("status") or ("canon" if path_ref.startswith("ToS/canon/") else "unmarked")),
+                    "properties": {
+                        "source_record": dict(row),
+                        "source_row": ordinal,
+                        "source_file_sha256": source_digest,
+                    },
                 }
             )
+        if sha256(path) != source_digest:
+            raise ValueError(f"relation source changed during projection: {path_ref}")
     return relation_packs, relation_edges
 
 
@@ -476,6 +595,140 @@ def _source_navigation_branch_kind(path_ref: str) -> str:
     return "branch"
 
 
+def project_text_packet(packet: dict[str, Any], source_ref: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Project declared stand-off structure, never read the underlying text.
+
+    Restricted packets are not exported. Public metadata of a private text uses
+    an explicit field allowlist, excluding exact-form hashes and display text.
+    IDs of representations include packet/version, while record_id keeps the
+    source-owned entity identity. Competing schemes therefore never overwrite.
+    """
+    schema = packet.get('schema_version')
+    if schema not in {'tos_source_text_unit_packet_v1', 'tos_semantic_annotation_packet_v2'}:
+        return [], []
+    rights = packet.get('rights_and_visibility', {})
+    visibility = rights.get('packet_visibility', rights.get('record_visibility'))
+    if visibility not in {'public', 'public_metadata_only'}:
+        return [], []
+    content = (visibility == 'public' and rights.get('publication_authorized') is True
+               and not rights.get('private_source_used')
+               and rights.get('effective_visibility', rights.get('source_content_visibility')) in {'public', 'public_synthetic'})
+    # Semantic bodies must not be reconstructed from restricted lexical hashes.
+    if schema == 'tos_semantic_annotation_packet_v2' and not content:
+        return [], []
+    schema_name = 'source-text-unit-packet-v1.schema.json' if schema == 'tos_source_text_unit_packet_v1' else 'semantic-annotation-packet-v2.schema.json'
+    Draft202012Validator(load_json(REPO_ROOT / 'ToS/contracts' / schema_name)).validate(packet)
+    scope = packet['source_scope']
+    packet_id = packet.get('packet_id', packet.get('annotation_id'))
+    version = packet.get('packet_version', packet.get('annotation_version'))
+    namespace = hashlib.sha256(f'{source_ref}:{packet_id}:{version}'.encode()).hexdigest()[:20]
+    nodes: list[dict[str, Any]] = []
+    edges: list[dict[str, Any]] = []
+    identities: dict[str, str] = {}
+
+    def add(identity: str, kind: str, record: dict[str, Any], title: str | None = None) -> str:
+        identifier = f'{identity}@{namespace}'
+        identities[identity] = identifier
+        nodes.append({'node_id': identifier, 'node_kind': kind, 'label': title or identity,
+                      'source_ref': source_ref, 'identity_status': 'source-declared-versioned-record',
+                      'properties': {**record, 'record_id': identity, 'packet_id': packet_id,
+                         'packet_version': version, 'content_available': content,
+                         'publication_posture': 'public' if content else 'public_metadata_only',
+                         'content_posture': packet.get('content_posture'),
+                         'review_status': record.get('admission_status', record.get('boundary_posture', 'not-recorded'))}})
+        return identifier
+
+    def edge(left: str, predicate: str, right: str, claim_ref: str | None = None):
+        key = hashlib.sha256(f'{namespace}:{left}:{predicate}:{right}'.encode()).hexdigest()
+        value = {'edge_id': f'text-spine:{key}', 'from_id': left, 'to_id': right,
+                 'predicate_id': predicate, 'edge_kind': 'stand-off-source-structure',
+                 'source_refs': [source_ref], 'review_status': 'source-declared-not-semantic-acceptance'}
+        if claim_ref:
+            value['claim_ref'] = claim_ref
+        edges.append(value)
+
+    layer = packet.get('source_layer', {})
+    layer_ref = layer.get('text_layer_ref', scope.get('source_text_layer_ref'))
+    layer_digest = layer.get('text_layer_sha256')
+    layer_identity = 'text-layer:' + hashlib.sha256(f'{layer_ref}:{layer_digest}'.encode()).hexdigest()
+    layer_id = add(layer_identity, 'text-layer', dict(layer) if content else
+                   {k: layer[k] for k in ('text_layer_ref', 'language', 'immutable', 'position_unit', 'interval', 'visibility') if k in layer},
+                   f"Text layer · {layer.get('language', 'source')} · {source_ref.rsplit('/', 1)[-1]}")
+    edge(scope['work_ref'], 'has_text_layer', layer_id)
+    annotation = add(packet_id, 'annotation', {'rights_and_visibility': rights, 'source_scope': scope},
+                     f"Stand-off packet · version {version}")
+    edge(layer_id, 'has_annotation', annotation)
+    anchors = packet.get('anchors', scope.get('source_anchors', []))
+    for anchor in anchors:
+        if anchor['selector']['start'] > anchor['selector']['end']:
+            raise ValueError(f'{source_ref}: reversed anchor selector')
+        record = dict(anchor) if content else {key: anchor[key] for key in ('anchor_ref', 'ordinal', 'selector', 'anchor_role', 'text_layer_ref') if key in anchor}
+        identifier = add(anchor['anchor_ref'], 'anchor', record, f"Anchor · {anchor.get('ordinal', anchor['anchor_ref'])}")
+        edge(identifier, 'anchored_in', layer_id)
+    for unit in packet.get('units', []):
+        record = dict(unit) if content else {key: unit[key] for key in ('unit_id', 'unit_version', 'unit_kind', 'surface_posture', 'continuity', 'ordered_anchor_refs', 'parent_unit_refs', 'ordered_child_unit_refs', 'boundary_posture', 'semantic_promotion') if key in unit}
+        identifier = add(unit['unit_id'], 'text-unit', record, f"{unit['unit_kind']} · {unit['unit_id']}")
+        edge(layer_id, 'has_text_unit', identifier)
+        for anchor in unit['ordered_anchor_refs']:
+            if anchor not in identities:
+                raise ValueError(f'{source_ref}: unresolved unit anchor {anchor}')
+            edge(identifier, 'has_anchor', identities[anchor])
+    for entity in packet.get('entities', []):
+        labels = entity.get('display_labels', [])
+        record = {**entity, 'variant_labels': labels}
+        # Native stand-off entities are not authored description profiles.
+        # Only the adapter kind changes; source kind, identity and body remain
+        # exact, including lexical_sense's native spelling and admission state.
+        kind = entity['entity_kind'].replace('_', '-')
+        if entity['entity_kind'] in {'occurrence', 'lexeme', 'lexical_sense', 'sign'}:
+            kind = 'annotation-' + kind
+        identifier = add(entity['entity_id'], kind, record,
+                         labels[0]['value'] if labels else None)
+        edge(annotation, 'annotation_member', identifier)
+        for anchor in entity['identity_basis']['anchor_refs']:
+            if anchor not in identities:
+                raise ValueError(f'{source_ref}: unresolved occurrence anchor {anchor}')
+            edge(identifier, 'has_anchor', identities[anchor])
+    # Keep assertions, their evidence, and reviews addressable; no materialized
+    # semantic edge is emitted merely because an annotation mentions two things.
+    for claim in packet.get('claims', []):
+        identifier = add(claim['claim_id'], 'annotation-claim', dict(claim), claim['proposition']['predicate'])
+        edge(annotation, 'annotation_member', identifier)
+        subject = identities.get(claim['proposition']['subject_ref'])
+        if subject is None:
+            raise ValueError(f'{source_ref}: unresolved annotation claim subject')
+        edge(identifier, 'assertion_subject', subject)
+        obj = claim['proposition']['object']
+        if obj.get('kind') == 'entity_ref':
+            if obj['entity_ref'] not in identities:
+                raise ValueError(f'{source_ref}: unresolved annotation claim object')
+            edge(identifier, 'assertion_object', identities[obj['entity_ref']])
+        else:
+            value_id = add(f"{claim['claim_id']}:object", 'literal', dict(obj), f"Claim object · {obj['kind']}")
+            edge(identifier, 'assertion_object', value_id)
+        for anchor in claim['target_anchor_refs']:
+            edge(identifier, 'has_anchor', identities[anchor])
+        for index, evidence in enumerate(claim['evidence']):
+            evidence_id = add(f"{claim['claim_id']}:evidence:{index}", 'annotation-evidence', dict(evidence), evidence['description'])
+            edge(identifier, 'assertion_evidence', evidence_id)
+            for anchor in evidence['anchor_refs']:
+                edge(evidence_id, 'has_anchor', identities[anchor])
+    for review in packet.get('reviews', []):
+        identifier = add(review['review_id'], 'annotation-review', dict(review), f"Review · {review.get('decision', review.get('outcome'))}")
+        edge(annotation, 'annotation_member', identifier)
+        for claim in packet.get('claims', []):
+            if review['review_id'] in claim['review_refs']:
+                edge(identities[claim['claim_id']], 'assertion_review', identifier)
+    for relation in packet.get('relations', []):
+        if relation['claim_ref'] not in identities:
+            raise ValueError(f'{source_ref}: unresolved semantic relation claim')
+        identifier = add(relation['relation_id'], 'annotation-relation', dict(relation), relation['relation_type'])
+        edge(identifier, 'assertion_subject', identities[relation['subject_ref']])
+        edge(identifier, 'assertion_object', identities[relation['object_ref']])
+        edge(identifier, 'asserted_by', identities[relation['claim_ref']])
+    return nodes, edges
+
+
 def _nearest_branch_parents(branch_paths: list[str]) -> dict[str, str]:
     ordered = sorted(branch_paths, key=lambda item: (len(Path(item).parts), item))
     # Preserve the previous lexical tie-break for equivalent path spellings.
@@ -493,12 +746,146 @@ def _nearest_branch_parents(branch_paths: list[str]) -> dict[str, str]:
     return parents
 
 
-def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]:
+@dataclass(frozen=True)
+class SourceNavigationRecordInput:
+    """Caller-supplied owner inputs, not a source-verification receipt.
+
+    The full loader verifies its inputs before rendering. Addressed callers
+    must independently retain those checks; this type does not perform them.
+    Forms are the owner's materialized (source_ref, raw, packets) tuple.
+    History resolutions must cover exactly history.refs in its original order.
+    The caller owns source/schema/catalog binding and complete external
+    incidence, including claims, plantings and assessment dependencies.
+    """
+
+    record_type: str
+    entry: dict[str, Any]
+    source_record: dict[str, Any]
+    forms: tuple[str, bytes, list[dict[str, Any]]] | None = None
+    history: dict[str, Any] | None = None
+    versions: tuple[tuple[dict[str, Any], dict[str, Any]], ...] = ()
+    native_composite: bool = False
+
+
+@dataclass(frozen=True)
+class SourceNavigationRecordProjection:
+    nodes: tuple[dict[str, Any], ...]
+    edges: tuple[dict[str, Any], ...]
+    diagnostics: tuple[dict[str, str], ...]
+
+    @property
+    def incident_closure_verified(self) -> bool:
+        return False
+
+    @property
+    def source_verification_performed(self) -> bool:
+        return False
+
+
+def project_record_version(reference: dict[str, Any], resolved: dict[str, Any],
+                           record_kind: str) -> dict[str, Any]:
+    """Render one exact resolved version, without resolving or assessing it."""
+    available = resolved['status'] == 'available'
+    view = {'schema_version': 'tos_record_version_view_v1',
+        'record_ref': dict(reference), 'record_kind': record_kind,
+        'status': resolved['status'], 'reason': resolved['reason'],
+        'version_status': resolved['version_status'], 'record': resolved['record'],
+        'provenance': resolved['provenance'] if available else {},
+        'grants_current_use': False, 'performs_assessment': False}
+    version_id = 'record-version:' + hashlib.sha256(canonical_json(reference).encode('utf-8')).hexdigest()
+    version_ref = 'ToS/contracts/record-version-view.schema.json#/properties/record_ref'
+    if available:
+        locator = resolved['provenance']['source']
+        version_ref = locator['archive_blob_ref'] or locator['source_ref']
+        if record_kind == 'claim':
+            version_ref += '#L' + str(locator['line'])
+    return {'node_id': version_id, 'node_kind': 'record-version',
+        'label': 'Exact record version', 'source_ref': version_ref,
+        'identity_status': 'not_applicable', 'properties': {'record_version_view': view}}
+
+
+def project_source_navigation_record(inputs: SourceNavigationRecordInput) -> SourceNavigationRecordProjection:
+    """Shared full/addressed renderer for a record and its exact history only.
+
+    This performs no I/O and does not validate source admission or discover
+    dependencies. In particular Sign promotion-basis and external incident
+    edges remain the caller's responsibility. Input dictionaries are borrowed
+    read-only, as in the full builder; this is not an immutable snapshot API.
+    """
+    record_type, entry, source_record = inputs.record_type, inputs.entry, inputs.source_record
+    record_id = str(entry.get('record_id') or '')
+    source_ref = str(entry.get('source_record_ref') or '')
+    history = inputs.history
+    if [reference for reference, _ in inputs.versions] != ([] if history is None else history['refs']):
+        raise ValueError('record projector requires the exact ordered history resolution set')
+    properties = dict(source_record)
+    properties['source_record'] = dict(source_record)
+    if record_type == 'artifact':
+        properties.update(artifact_display_fields(source_record))
+    if inputs.native_composite:
+        properties.update(composite_display_fields(source_record))
+    if inputs.forms is not None:
+        forms_ref, _forms_raw, materialized = inputs.forms
+        properties.update(human_forms=materialized, human_forms_source_ref=forms_ref,
+                          source_sha256=entry['record_sha256'])
+    properties.update(dict(entry.get('links') or {}))
+    variant_labels = source_record.get('variant_labels')
+    if isinstance(variant_labels, list):
+        properties['variant_labels'] = variant_labels
+    notes = source_record.get('notes')
+    if isinstance(notes, str) and notes.strip():
+        properties['description'] = notes.strip()
+    external_identifiers = source_record.get('external_identifiers')
+    if isinstance(external_identifiers, list):
+        properties['external_identifiers'] = external_identifiers
+    if record_type == 'link':
+        properties.update({key: source_record.get(key) for key in (
+            'uri', 'link_kind', 'provider_label', 'interface_type', 'access_status',
+            'observed_at', 'observation_ref', 'mutable', 'provenance_event_ref')})
+    if history is not None:
+        properties['record_history'] = {'schema_version': 'tos_metadata_record_history_v1', **history}
+    nodes = [{'node_id': record_id, 'node_kind': str(record_type),
+        'label': str(entry.get('preferred_label') or record_id), 'source_ref': source_ref,
+        'identity_status': str(entry.get('identity_status') or 'unknown'), 'properties': properties}]
+    edges, diagnostics = [], []
+    for reference, resolved in inputs.versions:
+        node = project_record_version(reference, resolved, 'metadata')
+        nodes.append(node)
+        edges.append({'edge_id': 'source-navigation:record-history:' + node['node_id'],
+            'from_id': record_id, 'predicate_id': 'has_record_version', 'to_id': node['node_id'],
+            'edge_kind': 'exact_historical_record_reference', 'review_status': 'not_applicable',
+            'source_refs': sorted(set((source_ref, node['source_ref'])))})
+    if history is not None and history['status'] != 'available':
+        diagnostics.append({'level': 'warning', 'path': source_ref,
+            'message': 'exact metadata history unavailable: ' + history['status'] + '/' + history['reason']})
+    return SourceNavigationRecordProjection(tuple(nodes), tuple(edges), tuple(diagnostics))
+
+
+def build_source_navigation(diagnostics: list[dict[str, str]], *,
+                            assessed_forms: AssessedFormSnapshot | None = None,
+                            catalog_snapshot=None) -> dict[str, Any]:
+    """Full source projection; addressed provenance is an explicit new profile.
+
+    The legacy default remains unchanged. An explicit source-catalog snapshot
+    selects the real per-record metadata reader, not a rewritten provenance
+    dictionary; it must bind the same live participating publication.
+    """
+    snapshot = PublicationSnapshot(REPO_ROOT)
+    result = _build_source_navigation(diagnostics, assessed_forms=assessed_forms, publication=snapshot,
+                                      catalog_snapshot=catalog_snapshot)
+    snapshot.verify_current()
+    return result
+
+
+def _build_source_navigation(diagnostics, *, assessed_forms, publication, catalog_snapshot=None):
     """Join authored topology and source records into a read-only descent graph."""
 
     nodes: dict[str, dict[str, Any]] = {}
     edges: dict[str, dict[str, Any]] = {}
     rights: list[dict[str, Any]] = []
+    version_reader = None
+    metadata_reader = None
+    catalog_digests = None
 
     def add_node(
         node_id: str,
@@ -537,6 +924,7 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
         source_refs: list[str],
         review_status: str = "not_applicable",
         claim_ref: str | None = None,
+        properties: dict[str, Any] | None = None,
     ) -> None:
         candidate: dict[str, Any] = {
             "edge_id": edge_id,
@@ -549,6 +937,8 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
         }
         if claim_ref:
             candidate["claim_ref"] = claim_ref
+        if properties is not None:
+            candidate['properties'] = properties
         existing = edges.get(edge_id)
         if existing is not None and existing != candidate:
             diagnostics.append(
@@ -560,6 +950,11 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
             )
             return
         edges[edge_id] = candidate
+
+    def add_version_node(reference: dict[str, Any], resolved: dict[str, Any], record_kind: str) -> tuple[str, str]:
+        node = project_record_version(reference, resolved, record_kind)
+        add_node(**node)
+        return node['node_id'], node['source_ref']
 
     branch_by_path: dict[str, dict[str, Any]] = {}
     for manifest_path in sorted((TOS_ROOT / "philosophy" / "eras").rglob("branch.manifest.json")):
@@ -595,41 +990,96 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
 
     catalog_root = TOS_ROOT / "source-witnesses" / "catalog"
     catalog_manifest_path = catalog_root / "catalog.manifest.json"
+    if publication.token is not None and not catalog_manifest_path.is_file():
+        raise PublicationChanged('initialized source publication requires its catalog manifest')
     if catalog_manifest_path.is_file():
-        catalog_manifest = load_json(catalog_manifest_path)
+        from metadata_version_reader import MetadataVersionReader
+        metadata_reader = (MetadataVersionReader(REPO_ROOT) if catalog_snapshot is None
+                           else MetadataVersionReader(REPO_ROOT, catalog_snapshot=catalog_snapshot))
+        catalog_manifest_raw = catalog_manifest_path.read_bytes()
+        catalog_manifest = json.loads(catalog_manifest_raw)
+        artifact_validators = {}
+        profiles = SourceRecordProfiles(REPO_ROOT)
+        corpus_validator = Draft202012Validator(load_json(REPO_ROOT / 'ToS/contracts/corpus-record.schema.json'))
+        allowed_files = {**RECORD_FILES, **profiles.catalog_files, **ADAPTED_RECORD_FILES}
+        # Validate the closure before opening any path supplied by a manifest.
+        for record_type, file_ref in catalog_manifest.get('record_files', {}).items():
+            if (record_type not in allowed_files
+                    or file_ref != 'ToS/source-witnesses/catalog/' + allowed_files[record_type]):
+                raise ValueError('catalog family has no exact understood source-profile path')
+        if publication.token is not None or 'selected_metadata_publication' in catalog_manifest:
+            if catalog_manifest.get('claim_file') != 'ToS/source-witnesses/catalog/claims.jsonl':
+                raise ValueError('catalog has no exact understood claim path')
+            catalog_digests = {ref: sha256(REPO_ROOT / ref) for ref in
+                              [*catalog_manifest.get('record_files', {}).values(), catalog_manifest['claim_file']]}
+            verify_catalog_publication(catalog_manifest, publication.token, catalog_digests)
         for record_type, file_ref in sorted(catalog_manifest.get("record_files", {}).items()):
+            if (record_type not in allowed_files
+                    or file_ref != 'ToS/source-witnesses/catalog/' + allowed_files[record_type]):
+                raise ValueError('catalog family has no exact understood source-profile path')
             for entry in _jsonl(REPO_ROOT / str(file_ref)):
                 record_id = str(entry.get("record_id") or "")
                 source_ref = str(entry.get("source_record_ref") or "")
                 if not record_id or not source_ref:
                     continue
-                properties = dict(entry.get("links") or {})
-                if record_type == "link":
-                    link_record = load_json(REPO_ROOT / source_ref)
-                    properties.update(
-                        {
-                            key: link_record.get(key)
-                            for key in (
-                                "uri",
-                                "link_kind",
-                                "provider_label",
-                                "interface_type",
-                                "access_status",
-                                "observed_at",
-                                "observation_ref",
-                                "mutable",
-                                "provenance_event_ref",
-                            )
-                        }
-                    )
-                add_node(
-                    record_id,
-                    str(record_type),
-                    str(entry.get("preferred_label") or record_id),
-                    source_ref,
-                    str(entry.get("identity_status") or "unknown"),
-                    properties,
-                )
+                native_composite = record_type == 'composite' and (
+                    entry.get('source_schema_ref') == COMPOSITE_SCHEMA or record_type not in profiles.profiles)
+                source_record = (load_composite_record(REPO_ROOT, source_ref) if native_composite
+                                 else profiles.verify_entry(record_type, entry) if record_type in profiles.profiles
+                                 else load_artifact_record(REPO_ROOT, source_ref) if record_type == 'artifact'
+                                 else load_link_record(REPO_ROOT, source_ref) if record_type == 'link'
+                                 else load_json(REPO_ROOT / source_ref))
+                if record_type == 'artifact' and entry != artifact_catalog_entry(
+                        REPO_ROOT, source_record, source_ref, artifact_validators):
+                    raise ValueError(f'{source_ref}: physical artifact catalog/source mapping drifted')
+                if native_composite and entry != composite_catalog_entry(
+                        REPO_ROOT, source_record, source_ref, artifact_validators):
+                    raise ValueError(f'{source_ref}: scholarly composite catalog/source mapping drifted')
+                native_metadata = record_type in RECORD_FILES and record_type != 'link'
+                if record_type == 'link' and (source_record['record_id'] != record_id
+                        or hashlib.sha256(canonical_json(source_record).encode('utf-8')).hexdigest() != entry.get('record_sha256')):
+                    raise ValueError(f'{source_ref}: native Link catalog/source binding drifted')
+                if native_metadata:
+                    if (not corpus_validator.is_valid(source_record)
+                            or source_record.get('record_id') != record_id
+                            or source_record.get('record_type') != record_type):
+                        raise ValueError(f'{source_ref}: native metadata catalog/source identity drifted')
+                    if hashlib.sha256(canonical_json(source_record).encode('utf-8')).hexdigest() != entry.get('record_sha256'):
+                        raise ValueError(f'{source_ref}: native metadata catalog/source digest drifted')
+                forms = None
+                if record_type in profiles.profiles or native_metadata or record_type in {'artifact', 'link'} or native_composite:
+                    forms = load_metadata_forms(REPO_ROOT, source_ref, source_record, access_allowed=True)
+                history = None
+                if metadata_reader.supports(record_type, source_ref=source_ref):
+                    history = metadata_reader.exact_refs(record_id)
+                projected = project_source_navigation_record(SourceNavigationRecordInput(
+                    record_type, entry, source_record, forms, history,
+                    tuple((reference, metadata_reader.resolve(reference)) for reference in history['refs'])
+                    if history is not None else (), native_composite))
+                for node in projected.nodes:
+                    add_node(**node)
+                for edge in projected.edges:
+                    add_edge(**edge)
+                diagnostics.extend(projected.diagnostics)
+                if record_type == 'sign':
+                    # The immutable issuance reference points to a version,
+                    # never to a convenient current Claim with the same ID.
+                    # Read only source metadata here; access consumes this view
+                    # without scanning archives or consulting live authority.
+                    if version_reader is None:
+                        from claim_version_reader import ClaimVersionReader
+                        version_reader = ClaimVersionReader(REPO_ROOT)
+                    reference = source_record['promotion_basis']['candidate']
+                    resolved = version_reader.resolve(reference)
+                    available = resolved['status'] == 'available'
+                    version_id, version_ref = add_version_node(reference, resolved, 'claim')
+                    basis_ref = source_ref + '#/promotion_basis/candidate'
+                    add_edge('source-navigation:promotion-basis:' + record_id, record_id,
+                             'promotion_basis_version', version_id, 'exact_historical_record_reference',
+                             [basis_ref, version_ref])
+                    if not available:
+                        diagnostics.append({'level': 'warning', 'path': source_ref,
+                            'message': 'exact Sign promotion basis unavailable: ' + resolved['status'] + '/' + resolved['reason']})
 
     planting_root = TOS_ROOT / "philosophy" / "eras"
     for planting_path in sorted(planting_root.rglob("source-planting.json")):
@@ -685,16 +1135,25 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
                 [planting_ref, witness_ref],
             )
 
+    legacy_links = None
     claim_files = (
         "work-expression-claims.jsonl",
         "expression-edition-claims.jsonl",
         "edition-item-claims.jsonl",
         "object-link-claims.jsonl",
+        "responsibility-claims.jsonl",
     )
     for basename in claim_files:
         for claim_path in sorted((TOS_ROOT / "source-witnesses").rglob(basename)):
             claim_ref = repo_ref(claim_path)
-            for claim in _jsonl(claim_path):
+            if claim_ref == LEGACY_OBJECT_LINK_REF:
+                legacy_links = LegacyObjectLinkReader(REPO_ROOT)
+                claim_rows = legacy_links.rows()
+            else:
+                claim_rows = enumerate(_jsonl(claim_path), start=1)
+            for source_line, claim in claim_rows:
+                if claim.get("visibility") not in {"public", "public_payload", "public_metadata_only"}:
+                    continue
                 subject_ref = claim.get("subject_ref")
                 object_ref = claim.get("object")
                 claim_id = claim.get("claim_id")
@@ -718,6 +1177,7 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
                     [claim_ref, *[str(ref) for ref in claim.get("evidence_refs", [])]],
                     str(claim.get("review_status") or "unknown"),
                     claim_id,
+                    (legacy_links.context(source_line, claim) if claim_ref == LEGACY_OBJECT_LINK_REF else None),
                 )
 
     for manifest_path in sorted((TOS_ROOT / "source-witnesses").rglob("item.manifest.json")):
@@ -750,6 +1210,24 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
                 [manifest_ref],
             )
 
+    # Source packet metadata only; no local-content or payload reads.
+    packet_paths = sorted({* (TOS_ROOT / 'source-witnesses').rglob('source-text-unit*.json'),
+                           * (TOS_ROOT / 'source-witnesses').rglob('*.source-text-unit.v1.json'),
+                           * (TOS_ROOT / 'source-witnesses').rglob('semantic-annotation*.json')})
+    for packet_path in packet_paths:
+        packet_ref = repo_ref(packet_path)
+        if any(part in {'payload', 'local-content'} for part in packet_path.parts):
+            continue
+        packet = load_json(packet_path)
+        projected_nodes, projected_edges = project_text_packet(packet, packet_ref)
+        for node in projected_nodes:
+            add_node(node['node_id'], node['node_kind'], node['label'], node['source_ref'], node['identity_status'], node['properties'])
+        for edge in projected_edges:
+            if edge['from_id'] not in nodes or edge['to_id'] not in nodes:
+                diagnostics.append({'level': 'warning', 'path': packet_ref, 'message': 'text spine endpoint not projected: ' + edge['edge_id']})
+                continue
+            add_edge(edge['edge_id'], edge['from_id'], edge['predicate_id'], edge['to_id'], edge['edge_kind'], edge['source_refs'], edge['review_status'], edge.get('claim_ref'))
+
     for rights_path in sorted((TOS_ROOT / "source-witnesses").rglob("rights.json")):
         record = load_json(rights_path)
         if record.get("visibility") not in {"public", "public_payload", "public_metadata_only"}:
@@ -775,14 +1253,31 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
                 }
             )
 
+    projected_nodes = [nodes[key] for key in sorted(nodes)]
+    if assessed_forms is not None:
+        if not isinstance(assessed_forms, AssessedFormSnapshot):
+            raise TypeError('assessed forms require an explicit protected owner snapshot')
+        projected_nodes = assessed_forms.materialize(projected_nodes)
+    if version_reader is not None:
+        version_reader.verify_current()
+    if metadata_reader is not None:
+        metadata_reader.verify_current()
+    if legacy_links is not None:
+        legacy_links.verify_current()
+    if catalog_digests is not None and (
+            catalog_manifest_path.read_bytes() != catalog_manifest_raw
+            or any(sha256(REPO_ROOT / ref) != digest for ref, digest in catalog_digests.items())):
+        raise PublicationChanged('catalog bytes changed during corpus source navigation')
     return {
         "schema_version": "tos_source_navigation_v1",
         "authority_boundary": (
             "generated read-only navigation; authored branch manifests, source records, claims, "
             "item manifests, and rights records retain authority"
+            + ('; local assessed research candidate, not public clearance or a current runtime grant'
+               if assessed_forms is not None else '')
         ),
         "counts": {"nodes": len(nodes), "edges": len(edges), "rights": len(rights)},
-        "nodes": [nodes[key] for key in sorted(nodes)],
+        "nodes": projected_nodes,
         "edges": [edges[key] for key in sorted(edges)],
         "rights": sorted(rights, key=lambda item: item["rights_id"]),
     }
@@ -801,7 +1296,14 @@ def validate_payload_schema(payload: dict[str, Any]) -> None:
         raise ValueError(f"schema violation at {path.lstrip('.') or '<root>'}: {error.message}")
 
 
-def build_payload() -> dict[str, Any]:
+def build_payload(*, assessed_forms: AssessedFormSnapshot | None = None) -> dict[str, Any]:
+    snapshot = PublicationSnapshot(REPO_ROOT)
+    payload = _build_payload(assessed_forms=assessed_forms)
+    snapshot.verify_current()
+    return payload
+
+
+def _build_payload(*, assessed_forms) -> dict[str, Any]:
     diagnostics: list[dict[str, str]] = []
     tracked_paths = tracked_tos_paths()
     source_home = load_json(TOS_ROOT / "source_home.manifest.json")
@@ -810,7 +1312,7 @@ def build_payload() -> dict[str, Any]:
     nodes = build_nodes(diagnostics, tracked_paths)
     relation_packs, relation_edges = build_relations(diagnostics, tracked_paths)
     resources = build_resources(tracked_paths)
-    source_navigation = build_source_navigation(diagnostics)
+    source_navigation = build_source_navigation(diagnostics, assessed_forms=assessed_forms)
     payload: dict[str, Any] = {
         "schema_version": "tos_corpus_index_v1",
         "schema_ref": SCHEMA_REF,

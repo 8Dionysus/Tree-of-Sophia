@@ -22,6 +22,16 @@ code or a mutation. A synthesized description is explicitly marked and never
 presented as authored ToS meaning. The live catalog also publishes observed
 attribute fields and types, filter-value contracts, facets, bounds, and stored
 lenses, so clients do not need to hard-code the current corpus vocabulary.
+
+Exact node and relation inspection packets may additionally carry
+`source_read_targets`. Each entry is keyed by the exact normalized material ID
+returned in that packet and contains the packet `source_revision` plus one
+`source-read.v1.schema.json#/$defs/target` built from a retained raw
+`source_record` or full `source_claim`. This is a pure target projection: a
+source path, `claim_ref`, ID prefix, `latest` lookup, or owner scan cannot create
+an entry, and an entry does not promise that a source-read owner is configured
+or current. `SourceReadService` revalidates the exact target and owner epoch
+before issuing any handle; unsupported or ambiguous carriers remain absent.
 The ToS-owned entity and relation registries under
 `ToS/doctrine/semantic-interchange/` add stable machine type IDs, hierarchy,
 source crosswalks, localized definitions, relation domain/range, direction,
@@ -42,6 +52,49 @@ reading. These fields are materialized by the Python producer and transported
 unchanged to D1; existing read snapshots require regeneration to gain this
 correction. Processor dependency digests invalidate affected normalization
 cache entries, not source history.
+
+`tos.knowledge.temporal.compare` compares two explicitly selected source
+Claim date envelopes within one required `source_revision`. Its request binds
+each exact normalized Claim ID and `content_revision`; native IDs, entity IDs
+and source-priority resolution are not accepted. The selected Claim's declared
+object binding resolves its own temporal carrier. Claim identity/version,
+mapped predicate, object ownership, lossless raw value and normalized input
+must agree. Responses retain both full Claim and value carriers, including
+their revisions, original wording, unknown qualifiers, polarity and review
+posture. The operation does not select a preferred Claim or accept either one.
+
+The v1 comparison supports the source-defined `historical-time` role, with
+explicit exact certainty and complete comparable date bounds. Unknown roles,
+missing calendars/numbering/certainty, relative order and open bounds cannot
+yield a relation. Known unsupported systems, incompatible roles and
+invalid/conflicting shapes return `unsupported`; missing or uncertain grounds
+return `undetermined`. Reasons identify the left, right or pair-level limit.
+No relative anchor traversal, calendar conversion, uncertainty expansion,
+prose parsing or record-version-as-historical-time interpretation occurs.
+
+`comparable` describes **closed normalized date envelopes**, not historical
+truth. Equal envelopes are `equal`; disjoint envelopes are strict `before` or
+`after`; inclusive containment excluding equality is `contains` or
+`contained-by`; all other intersections, including shared endpoints, are
+`overlaps`. Year/month precision retains its outer envelope. Equality does not
+establish simultaneous events, identity or independent evidence; subtraction
+of date ordering keys is not a duration. Negated and disputed Claims can have
+their stated envelopes compared without affirming their propositions.
+
+The read performs at most four exact lookups after shared snapshot/index
+preparation; it is not a claim about cold graph construction. 409 requires
+reselection after snapshot/content drift; 404 means an exact selected node is
+unavailable or ambiguous. The discoverable request/result schemas are
+`temporal-comparison-request.v1.schema.json` and
+`temporal-comparison-result.v1.schema.json`. This structured POST creates no
+query checkpoint, inferred Claim, assessment or source write.
+
+Invalid structural containers in a selected normalized carrier yield HTTP 503,
+not a schema-invalid successful operand or a rewritten source. Repair the
+projection before retrying. This is distinct from a structurally valid
+temporal object whose kind, calendar or dating grounds are unsupported or
+unknown; that object is retained in the normal comparison result.
+
 `seed.focus_node_id` and `tos.knowledge.focus` make the selected center
 machine-readable in both request and result. Resolution is exact normalized
 ID first, then stable entity ID, then unique native ID; ambiguity is rejected. Catalog entity routes connect
@@ -128,7 +181,12 @@ compact attributes stay empty. The role packet itself retains context,
 dependencies and provenance. Inputs are capped at 32 source materializations;
 delivery has a 16 KiB conservative JSON-byte budget. Oversized forms return a
 ref, not a substring; an oversized candidate inventory requires full
-inspection. Language preferences are bounded at 128 characters independently
+inspection. After resolving each role without adjudicating alternatives,
+allocation reserves all role refs, then gives intact exact-language packets
+priority over less-specific language matches and unrelated fallbacks across
+roles. Equal-priority packets retain the seven-role order above; `auto` and
+`original` also retain that order. An oversized matching packet is not replaced
+with a different-language form. Language preferences are bounded at 128 characters independently
 of whether the current query finds Forms. This is a request budget, not a
 closed language vocabulary. Local Python and Worker/D1 run the same selection
 contract; actual UI consumption remains a separate integration requirement.
@@ -200,6 +258,20 @@ D1 may pause earlier for its SQL-query budget, so page partitions and snapshot
 digests need not match Python. Ordered discoveries and relation emission agree;
 cursors are backend-specific. D1 413 requires narrowing the request, and 503
 means the migration or compatible data metadata is missing.
+
+The additive `exploration-request.v2.schema.json` /
+`exploration-result.v2.schema.json` pair uses a typed exact `origin` (node or
+relation), pinned by source and selected content revisions. It shares the
+endpoint and cursor-only continuation, but never mixes with legacy
+`focus_node_id`. Discovery preserves v1 `request`/`result` and adds
+`request_v2`/`result_v2`. A relation seeds both exact endpoint carriers at depth
+zero and remains context on every page, without creating a graph identity or
+Claim. Page discovery budgets exclude mandatory origin closure (at most two
+nodes and one relation); emitted-relation counts exclude that seed. Selected
+Claim legs remain visible in the compact scene. The access README defines
+depth/direction/filter behavior, context partitions, and 400/404/409/503
+binding failures. V1 callers retain their result shape; execution v6 requires
+fresh checkpoints on both runtimes.
 
 `tos.zarathustra.word-analysis.prepare` is a local-full-Tree operation. It
 returns a ToS-owned exact-source task when the provider is present and an

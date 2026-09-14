@@ -40,6 +40,7 @@ AUTHORITY_BOUNDARY = (
     "clearance, translation, semantics, or canon authority"
 )
 TEI_NS = "http://www.tei-c.org/ns/1.0"
+MAX_PLAIN_UTF8_BYTES = 131072
 
 
 class InventoryBuildError(RuntimeError):
@@ -1001,6 +1002,36 @@ def _abbyy_xml_inventory(
     }
 
 
+def _plain_utf8_inventory(payload_path: Path, *, file_id: str, file_sha256: str, media_type: str) -> dict[str, Any]:
+    """Enumerate one inert exact UTF-8 file, not rendered Markdown or units."""
+    with payload_path.open('rb') as stream:
+        raw = stream.read(MAX_PLAIN_UTF8_BYTES + 1)
+    if not raw or len(raw) > MAX_PLAIN_UTF8_BYTES:
+        raise InventoryBuildError('plain UTF-8 inventory exceeds its bounded file profile')
+    if _sha256_bytes(raw) != file_sha256:
+        raise InventoryBuildError('plain UTF-8 inventory differs from exact File fixity')
+    try:
+        text = raw.decode('utf-8', errors='strict')
+    except UnicodeDecodeError:
+        raise InventoryBuildError('plain UTF-8 inventory requires exact valid encoding') from None
+    if '\x00' in text:
+        raise InventoryBuildError('NUL-bearing data is outside the plain UTF-8 profile')
+    crlf = text.count('\r\n')
+    nfc, nfd = unicodedata.is_normalized('NFC', text), unicodedata.is_normalized('NFD', text)
+    return {'file_id': file_id, 'file_sha256': file_sha256, 'media_type': media_type,
+        'profile': 'plain_utf8_file_v1', 'summary': {'resource_count': 1},
+        'utf8_observation': {'encoding': 'UTF-8', 'bom_byte_count': 3 if raw.startswith(b'\xef\xbb\xbf') else 0,
+            'code_point_count': len(text), 'code_point_count_includes_bom': True,
+            'crlf_count': crlf, 'lone_cr_count': text.count('\r') - crlf, 'lone_lf_count': text.count('\n') - crlf,
+            'terminal_newline': 'crlf' if text.endswith('\r\n') else 'cr' if text.endswith('\r') else 'lf' if text.endswith('\n') else 'none',
+            'normalization_observation': 'nfc_and_nfd' if nfc and nfd else 'nfc' if nfc else 'nfd' if nfd else 'neither',
+            'unicode_version': unicodedata.unidata_version, 'normalization_performed': False,
+            'markup_interpretation_performed': False},
+        'resources': [{'resource_id': 'plain-utf8-file', 'resource_kind': 'plain_text_file',
+            'locator': {'byte_start': 0, 'byte_end': len(raw)}, 'media_type': media_type,
+            'byte_size': len(raw), 'sha256': file_sha256, 'structural_role': 'contents'}]}
+
+
 def build_file_inventory(
     payload_path: Path, payload_entry: dict[str, Any]
 ) -> dict[str, Any]:
@@ -1010,6 +1041,8 @@ def build_file_inventory(
         "file_sha256": payload_entry["sha256"],
         "media_type": media_type,
     }
+    if media_type in {'text/plain', 'text/markdown'}:
+        return _plain_utf8_inventory(payload_path, **kwargs)
     if media_type == "application/pdf":
         return _pdf_inventory(payload_path, **kwargs)
     if media_type == "application/epub+zip":

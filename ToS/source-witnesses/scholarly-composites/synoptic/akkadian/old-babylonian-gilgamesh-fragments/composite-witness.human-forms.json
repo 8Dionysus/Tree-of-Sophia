@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:01e1778896740be69e19b56ceb30ff503118cb827f2ae77b5cde61679d0f3afc",
+            "id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:01e1778896740be69e19b56ceb30ff503118cb827f2ae77b5cde61679d0f3afc",
+            "id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:01e1778896740be69e19b56ceb30ff503118cb827f2ae77b5cde61679d0f3afc",
+            "id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:01e1778896740be69e19b56ceb30ff503118cb827f2ae77b5cde61679d0f3afc",
+            "id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:01e1778896740be69e19b56ceb30ff503118cb827f2ae77b5cde61679d0f3afc",
+            "id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.akkadian.old-babylonian-gilgamesh-fragments.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:13be5bf2f9004c37e5ed794d50d4c83b1a97a99e706ea6964e52cb80861d3fab",
+        "id": "tos.form.composite.akkadian.old-babylonian-gilgamesh-fragments.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:01e1778896740be69e19b56ceb30ff503118cb827f2ae77b5cde61679d0f3afc",
+        "id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:01e1778896740be69e19b56ceb30ff503118cb827f2ae77b5cde61679d0f3afc",
+            "id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/editorial_object/description",
+          "record": {
+            "digest": "sha256:01e1778896740be69e19b56ceb30ff503118cb827f2ae77b5cde61679d0f3afc",
+            "id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.akkadian.old-babylonian-gilgamesh-fragments.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:01e1778896740be69e19b56ceb30ff503118cb827f2ae77b5cde61679d0f3afc",
+        "id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+        "version": 1
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:composite.akkadian.old-babylonian-gilgamesh-fragments",
+      "owner_configuration": "sha256:a004619f4d82e91d0a42019bd5f7050d42d3ccf0b2a8c3558db680362e210a81",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:10.458249+00:00",
+      "request_digest": "sha256:408d9aa96cd0f2b43d3f1caa90df897d4ab6179eae32ab5feb9f8e6b43d05848",
+      "results": [
+        {
+          "digest": "sha256:13be5bf2f9004c37e5ed794d50d4c83b1a97a99e706ea6964e52cb80861d3fab",
+          "id": "tos.form.composite.akkadian.old-babylonian-gilgamesh-fragments.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:c0a27da3d4fd6ce89cdd789d24a23731f68d3b39ba28339f87c214000811a59e",
+          "id": "tos.form.composite.akkadian.old-babylonian-gilgamesh-fragments.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:01e1778896740be69e19b56ceb30ff503118cb827f2ae77b5cde61679d0f3afc",
+        "id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:composite.akkadian.old-babylonian-gilgamesh-fragments",
+      "request_digest": "sha256:0e09c4d1f0e50379a6e56449b7aeea221d0ab381dd300ed79aa23c587b2d5da2",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:a004619f4d82e91d0a42019bd5f7050d42d3ccf0b2a8c3558db680362e210a81",
+      "recorded_at": "2026-09-07T21:40:11.180080+00:00",
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      },
+      "source": {
+        "id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+        "version": 1,
+        "digest": "sha256:01e1778896740be69e19b56ceb30ff503118cb827f2ae77b5cde61679d0f3afc"
+      },
+      "previous_revision": "sha256:0700234c82f3fd324da234644b4239dae296f4c64ddb6d2cb8e38beab90f0ae4",
+      "results": [
+        {
+          "id": "tos.form.composite.akkadian.old-babylonian-gilgamesh-fragments.source-name",
+          "version": 2,
+          "digest": "sha256:e8d969db7ccaebb6b26635b1f310c18b39edfa7519fb5ee21e47a2b357ce0856"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:01e1778896740be69e19b56ceb30ff503118cb827f2ae77b5cde61679d0f3afc",
+            "id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:01e1778896740be69e19b56ceb30ff503118cb827f2ae77b5cde61679d0f3afc",
+            "id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.akkadian.old-babylonian-gilgamesh-fragments.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:01e1778896740be69e19b56ceb30ff503118cb827f2ae77b5cde61679d0f3afc",
+        "id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.composite.akkadian.old-babylonian-gilgamesh-fragments",
+    "version": 1,
+    "digest": "sha256:01e1778896740be69e19b56ceb30ff503118cb827f2ae77b5cde61679d0f3afc"
+  }
+}

@@ -145,6 +145,11 @@ KAG_TIERED_DECISION_REF = (
     "aoa-kag:docs/decisions/"
     "AOA-KAG-D-0039-tiered-content-addressed-kag-distribution.md"
 )
+KAG_SEGMENTED_DECISION_REF = (
+    "aoa-kag:docs/decisions/"
+    "AOA-KAG-D-0051-bounded-segmented-kag-family.md"
+)
+KAG_SEGMENTED_FAMILY_SCHEMA = "aoa-repo-local-kag-segmented-family-v1"
 KAG_BUDGET_RECEIPT_REQUIRED_FIELDS = {
     "schema_version",
     "repo",
@@ -1088,16 +1093,11 @@ def _v2_candidate_inventory(root: Path, excluded_path: Path) -> list[dict[str, A
         try:
             metadata = path.lstat()
         except FileNotFoundError:
-            inventory.append(
-                {
-                    "path": relative.as_posix(),
-                    "state": "missing",
-                    "kind": "missing",
-                    "mode": "missing",
-                    "bytes": 0,
-                    "content_digest": KAG_BUDGET_CANDIDATE_ZERO_DIGEST,
-                }
-            )
+            # Match aoa-kag's portable candidate identity: a tracked path
+            # deleted in the worktree is absent from the effective candidate.
+            # Keeping a synthetic ``missing`` record here would make the
+            # downstream validator disagree with the owner receipt across the
+            # dirty-to-commit boundary.
             continue
         if stat.S_ISREG(metadata.st_mode):
             content = path.read_bytes()
@@ -1341,12 +1341,15 @@ def _v2_expected_generated_paths(
 ) -> tuple[set[Path], set[Path]]:
     """Mirror aoa-kag's portable generated path set for delta recomputation."""
     head_paths = {_V2_MANIFEST_PATH}
-    descriptors = manifest.get("shards")
+    segmented = manifest.get("schema_version") == KAG_SEGMENTED_FAMILY_SCHEMA
+    descriptors = manifest.get("segments" if segmented else "shards")
     if not isinstance(descriptors, list):
-        raise ValueError("current family manifest shards must be an array")
+        field = "segments" if segmented else "shards"
+        raise ValueError(f"current family manifest {field} must be an array")
     for descriptor in descriptors:
         if not isinstance(descriptor, Mapping) or not isinstance(descriptor.get("path"), str):
-            raise ValueError("current family manifest contains a malformed shard descriptor")
+            label = "segment" if segmented else "shard"
+            raise ValueError(f"current family manifest contains a malformed {label} descriptor")
         head_paths.add(
             _v2_safe_generated_path(
                 root,
@@ -1414,12 +1417,15 @@ def _v2_expected_generated_paths(
                 )
         return head_paths, base_paths
     base_paths = {_V2_MANIFEST_PATH}
-    base_shards = base_manifest.get("shards")
+    base_segmented = base_manifest.get("schema_version") == KAG_SEGMENTED_FAMILY_SCHEMA
+    base_shards = base_manifest.get("segments" if base_segmented else "shards")
     if not isinstance(base_shards, list):
-        raise ValueError("base family manifest shards must be an array")
+        field = "segments" if base_segmented else "shards"
+        raise ValueError(f"base family manifest {field} must be an array")
     for descriptor in base_shards:
         if not isinstance(descriptor, Mapping) or not isinstance(descriptor.get("path"), str):
-            raise ValueError("base family manifest contains a malformed shard descriptor")
+            label = "segment" if base_segmented else "shard"
+            raise ValueError(f"base family manifest contains a malformed {label} descriptor")
         base_paths.add(
             _v2_safe_generated_path(
                 root,
@@ -2120,12 +2126,35 @@ def v2_budget_receipt_identity_issues(
                         "producer_identity.execution_inputs.command_targets.repo_root",
                     )
                 )
-                if command_targets.get("family_mode") != "portable":
-                    issues.append((label, "budget receipt producer command target family_mode must be 'portable'"))
+                expected_family_mode = (
+                    "segmented"
+                    if manifest.get("schema_version") == KAG_SEGMENTED_FAMILY_SCHEMA
+                    else "portable"
+                )
+                if command_targets.get("family_mode") != expected_family_mode:
+                    issues.append(
+                        (
+                            label,
+                            "budget receipt producer command target family_mode must be "
+                            f"{expected_family_mode!r}",
+                        )
+                    )
                 if command_targets.get("artifact_root") is not None:
-                    issues.append((label, "budget receipt producer command target artifact_root must be null for portable family"))
+                    issues.append(
+                        (
+                            label,
+                            "budget receipt producer command target artifact_root must be null "
+                            f"for {expected_family_mode} family",
+                        )
+                    )
                 if command_targets.get("externalized") is not False:
-                    issues.append((label, "budget receipt producer command target externalized must be false for portable family"))
+                    issues.append(
+                        (
+                            label,
+                            "budget receipt producer command target externalized must be false "
+                            f"for {expected_family_mode} family",
+                        )
+                    )
                 if legacy_jobs_contract and (
                     not isinstance(command_targets.get("jobs"), str)
                     or not re.fullmatch(r"[1-3]", command_targets["jobs"])
@@ -2321,11 +2350,12 @@ def budget_receipt_contract_issues(
         expected_values["tracked_bytes_max"] = budgets.get("tracked_bytes_max")
     if isinstance(summary, dict):
         expected_values["tracked_bytes"] = summary.get("tracked_bytes")
-    expected_values["decision_ref"] = (
-        KAG_TIERED_DECISION_REF
-        if manifest.get("schema_version") == "aoa-repo-local-kag-distribution-manifest-v1"
-        else KAG_BUDGET_DECISION_REF
-    )
+    if manifest.get("schema_version") == KAG_SEGMENTED_FAMILY_SCHEMA:
+        expected_values["decision_ref"] = KAG_SEGMENTED_DECISION_REF
+    elif manifest.get("schema_version") == "aoa-repo-local-kag-distribution-manifest-v1":
+        expected_values["decision_ref"] = KAG_TIERED_DECISION_REF
+    else:
+        expected_values["decision_ref"] = KAG_BUDGET_DECISION_REF
     for field, expected in expected_values.items():
         if expected is not None and receipt.get(field) != expected:
             issues.append((label, f"budget receipt field {field} does not match the family contract"))
@@ -2445,11 +2475,18 @@ def generated_family_issues(
     if not isinstance(family, dict):
         return [("kag_provider", "generated_family carrier declaration is required")]
     manifest_text = family.get("manifest")
-    shards_text = family.get("shards")
+    # v3/v4 carriers call this route ``shards``; segmented v5 calls it
+    # ``segments``.  Keep the historical field accepted for old synthetic
+    # fixtures while making the current carrier explicit in the authored map.
+    carrier_text = family.get("segments")
+    carrier_label = "segments"
+    if not isinstance(carrier_text, str) or not carrier_text:
+        carrier_text = family.get("shards")
+        carrier_label = "shards"
     receipt_root_text = family.get("receipt_root")
     for label, relative in (
         ("manifest", manifest_text),
-        ("shards", shards_text),
+        (carrier_label, carrier_text),
         ("receipt_root", receipt_root_text),
     ):
         if not isinstance(relative, str) or not relative:

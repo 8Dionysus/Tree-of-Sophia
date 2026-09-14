@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996",
+    "version": 2,
+    "digest": "sha256:1c999f88e2d0bb9bd6ce00829a8ca7d7918c692ab10f9da5df471ae0909f9a32"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.5395b80e863c6c243583a2e816c534d818606fea71b3cad53cfb1d8eb3d2349c",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996",
+        "version": 2,
+        "digest": "sha256:1c999f88e2d0bb9bd6ce00829a8ca7d7918c692ab10f9da5df471ae0909f9a32"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996",
+            "version": 2,
+            "digest": "sha256:1c999f88e2d0bb9bd6ce00829a8ca7d7918c692ab10f9da5df471ae0909f9a32"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996",
+            "version": 2,
+            "digest": "sha256:1c999f88e2d0bb9bd6ce00829a8ca7d7918c692ab10f9da5df471ae0909f9a32"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996",
+            "version": 2,
+            "digest": "sha256:1c999f88e2d0bb9bd6ce00829a8ca7d7918c692ab10f9da5df471ae0909f9a32"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.fbdb7c132d9d0de5527277c3e65caab41e48bb556fa1158414436d721d9b551d",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996",
+        "version": 2,
+        "digest": "sha256:1c999f88e2d0bb9bd6ce00829a8ca7d7918c692ab10f9da5df471ae0909f9a32"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996",
+            "version": 2,
+            "digest": "sha256:1c999f88e2d0bb9bd6ce00829a8ca7d7918c692ab10f9da5df471ae0909f9a32"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996",
+            "version": 2,
+            "digest": "sha256:1c999f88e2d0bb9bd6ce00829a8ca7d7918c692ab10f9da5df471ae0909f9a32"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996",
+            "version": 2,
+            "digest": "sha256:1c999f88e2d0bb9bd6ce00829a8ca7d7918c692ab10f9da5df471ae0909f9a32"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996",
+      "request_digest": "sha256:8f82d18a47d4ea0c9500334bdf5372ee17d00ad23ee021196b5c392c08b0de3d",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:80b11ab386902822f3801bfd08f5aae14a0544164232e9eae1b7e8169d5771f5",
+      "recorded_at": "2026-09-07T03:13:27.441316+00:00",
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996",
+        "version": 2,
+        "digest": "sha256:1c999f88e2d0bb9bd6ce00829a8ca7d7918c692ab10f9da5df471ae0909f9a32"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.5395b80e863c6c243583a2e816c534d818606fea71b3cad53cfb1d8eb3d2349c",
+          "version": 1,
+          "digest": "sha256:3d0b429cc1ebee879c747e789b130b856c4357fb36811f468490f578ac3178d5"
+        },
+        {
+          "id": "tos.form.metadata.fbdb7c132d9d0de5527277c3e65caab41e48bb556fa1158414436d721d9b551d",
+          "version": 1,
+          "digest": "sha256:6c332d0e74031bba3be7f1062665838aaba095c6104f96caba839eb41d60de9f"
+        }
+      ]
+    }
+  ]
+}

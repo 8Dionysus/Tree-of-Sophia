@@ -61,9 +61,14 @@ Before widening the corpus:
 AI may assist with extraction, clustering, cross-link suggestions, contrast
 proposals, translation comparison, graph views, or lineage hypotheses.
 
-AI does not become the primary author of interpretive stance, node judgment,
-canon promotion, or philosophical authority. Human-reviewed curation remains
-the owning judgment layer in ToS.
+Agents may author interpretations and perform source-visible assessment within
+explicit operator delegation and relevant competence under
+[Knowledge Assessment](ToS/doctrine/KNOWLEDGE_ASSESSMENT.md). Their findings can
+support scoped research admission without a mandatory human signature per
+record. They cannot appoint themselves, manufacture competence or replace
+source evidence with a model verdict. Operator direction, personal consent,
+rights, publication and canon retain their actual owner authority; research
+admission does not grant those separate permissions.
 
 ## Calibration Boundary
 

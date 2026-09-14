@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/custody",
+          "record": {
+            "digest": "sha256:b687c5f5d8404c51ba6f99ad1dac8d19e35eac1664c8463e90e4421c1da156d2",
+            "id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:b687c5f5d8404c51ba6f99ad1dac8d19e35eac1664c8463e90e4421c1da156d2",
+            "id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:b687c5f5d8404c51ba6f99ad1dac8d19e35eac1664c8463e90e4421c1da156d2",
+            "id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:b687c5f5d8404c51ba6f99ad1dac8d19e35eac1664c8463e90e4421c1da156d2",
+            "id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:b687c5f5d8404c51ba6f99ad1dac8d19e35eac1664c8463e90e4421c1da156d2",
+            "id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:19ef6c4a61fea0d8023e792ffd3bba14257eba5c37dce220531e4009c4574a23",
+        "id": "tos.form.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:b687c5f5d8404c51ba6f99ad1dac8d19e35eac1664c8463e90e4421c1da156d2",
+        "id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:b687c5f5d8404c51ba6f99ad1dac8d19e35eac1664c8463e90e4421c1da156d2",
+            "id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/path_identity/note",
+          "record": {
+            "digest": "sha256:b687c5f5d8404c51ba6f99ad1dac8d19e35eac1664c8463e90e4421c1da156d2",
+            "id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:b687c5f5d8404c51ba6f99ad1dac8d19e35eac1664c8463e90e4421c1da156d2",
+        "id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+        "version": 1
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+      "owner_configuration": "sha256:7bdc81b60fb3c19d1d3b886fc4fd369922cafb28f79298566632bac0f6c864a5",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:09.301678+00:00",
+      "request_digest": "sha256:00232c3aa4a51bb2723110f79691f82784fa6e4556ca2a2c6122a1a24ebb8665",
+      "results": [
+        {
+          "digest": "sha256:19ef6c4a61fea0d8023e792ffd3bba14257eba5c37dce220531e4009c4574a23",
+          "id": "tos.form.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:c822ec7afd3beb0d2340c491339b9aba95b4e6873f581d95e4c490fdd18280c2",
+          "id": "tos.form.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:b687c5f5d8404c51ba6f99ad1dac8d19e35eac1664c8463e90e4421c1da156d2",
+        "id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness-v2.schema.json": "sha256:49690ed8397f2a1febed114a5aa80c11225103f6cc6dd53a149424f64e91cbfb"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+      "request_digest": "sha256:0f4a59aee266833b43f7c9c0b7a851a4d1fd076a5d9278031d7f64e0b6333460",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:7bdc81b60fb3c19d1d3b886fc4fd369922cafb28f79298566632bac0f6c864a5",
+      "recorded_at": "2026-09-07T21:40:09.981380+00:00",
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness-v2.schema.json": "sha256:49690ed8397f2a1febed114a5aa80c11225103f6cc6dd53a149424f64e91cbfb"
+      },
+      "source": {
+        "id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+        "version": 1,
+        "digest": "sha256:b687c5f5d8404c51ba6f99ad1dac8d19e35eac1664c8463e90e4421c1da156d2"
+      },
+      "previous_revision": "sha256:e8b333ffb6ec20fadfa52ca11b5490ed68c758fc75de3d82acb9ebffdfc5e7bf",
+      "results": [
+        {
+          "id": "tos.form.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014.source-name",
+          "version": 2,
+          "digest": "sha256:af2eba60024722c96c80036a056420fa353af1f2ffc86ae1f6dcf3fd158f84a8"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:b687c5f5d8404c51ba6f99ad1dac8d19e35eac1664c8463e90e4421c1da156d2",
+            "id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:b687c5f5d8404c51ba6f99ad1dac8d19e35eac1664c8463e90e4421c1da156d2",
+            "id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:b687c5f5d8404c51ba6f99ad1dac8d19e35eac1664c8463e90e4421c1da156d2",
+        "id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.artifact.egyptian.deir-el-medina.museo-egizio-cgt-54014",
+    "version": 1,
+    "digest": "sha256:b687c5f5d8404c51ba6f99ad1dac8d19e35eac1664c8463e90e4421c1da156d2"
+  }
+}

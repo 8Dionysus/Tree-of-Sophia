@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/formation-relation-claim.schema.json",
+  "title": "Grounded relation involving an intellectual formation",
+  "description": "Separates intellectual association, historical tradition, transformation and expression. Required scope and time wording do not normalize dates or establish intellectual influence.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"
+    },
+    {
+      "required": [
+        "qualifiers"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "tos_formation_relation_claim_v1"
+        },
+        "claim_type": {
+          "const": "relation"
+        },
+        "object": {
+          "type": "string",
+          "pattern": "^tos\\.[a-z][a-z0-9-]*\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "qualifiers": {
+          "type": "object",
+          "required": [
+            "statement",
+            "statement_language",
+            "statement_script",
+            "relation_basis",
+            "formation_scope",
+            "time_scope_note"
+          ],
+          "properties": {
+            "statement": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "statement_language": {
+              "anyOf": [
+                {
+                  "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "statement_script": {
+              "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"
+            },
+            "relation_basis": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "formation_scope": {
+              "type": "string",
+              "pattern": "\\S",
+              "description": "The specific intellectual association, continuity or articulation asserted; not unconditional endorsement."
+            },
+            "time_scope_note": {
+              "type": "string",
+              "pattern": "\\S",
+              "description": "Historical limits or explicitly unknown bounds; not provenance time or a sortable interval."
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

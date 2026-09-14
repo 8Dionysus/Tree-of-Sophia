@@ -1,0 +1,242 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "schema_version": "tos_source_resource_inventory_v1",
+  "item_id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+  "generated_from_manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/item.manifest.json",
+  "inventory_authority": "mechanical_metadata_only",
+  "source_text_included": false,
+  "files": [
+    {
+      "file_id": "tos.file.sha256.9c894ce0ab9e1861b8326be82e95657e9d81d3a1ab3720a66b0649d156d019e1",
+      "file_sha256": "9c894ce0ab9e1861b8326be82e95657e9d81d3a1ab3720a66b0649d156d019e1",
+      "media_type": "application/epub+zip",
+      "profile": "epub_resources_v1",
+      "resources": [
+        {
+          "byte_size": 20,
+          "locator": {
+            "container_order": 1,
+            "member_path": "mimetype"
+          },
+          "media_type": "application/epub+zip",
+          "resource_id": "epub-member-0001",
+          "resource_kind": "epub_member",
+          "sha256": "e468e350d1143eb648f60c7b0bd6031101ec0544a361ca74ecef256ac901f48b",
+          "structural_role": "auxiliary_resource"
+        },
+        {
+          "byte_size": 252,
+          "locator": {
+            "container_order": 2,
+            "member_path": "META-INF/container.xml"
+          },
+          "media_type": "text/xml",
+          "resource_id": "epub-member-0002",
+          "resource_kind": "epub_member",
+          "sha256": "623bec1644397fb6daa6d642704225fa03445e0b08b83e8f95fc64572f42071f",
+          "structural_role": "container_metadata"
+        },
+        {
+          "byte_size": 62161,
+          "locator": {
+            "container_order": 3,
+            "member_path": "OEBPS/100412449285727333_4363-cover.png"
+          },
+          "media_type": "image/png",
+          "resource_id": "epub-member-0003",
+          "resource_kind": "epub_member",
+          "sha256": "3f09c6c390aabc5ee924696c08b0314fffb62f05c43f3d6e03fb2ac1f4fb9e52",
+          "structural_role": "auxiliary_resource"
+        },
+        {
+          "byte_size": 986,
+          "locator": {
+            "container_order": 4,
+            "member_path": "OEBPS/pgepub.css"
+          },
+          "media_type": "text/css",
+          "resource_id": "epub-member-0004",
+          "resource_kind": "epub_member",
+          "sha256": "3fad3bf44c2283b3990bdb953ed1066b04184eb723cd585b9ddc1ba58e1770a7",
+          "structural_role": "auxiliary_resource"
+        },
+        {
+          "byte_size": 1535,
+          "locator": {
+            "container_order": 5,
+            "member_path": "OEBPS/0.css"
+          },
+          "media_type": "text/css",
+          "resource_id": "epub-member-0005",
+          "resource_kind": "epub_member",
+          "sha256": "7ad92450463f4023142f43a5ac88f6a389140577f0d97a1ee24cbfa7f0ada260",
+          "structural_role": "auxiliary_resource"
+        },
+        {
+          "byte_size": 1545,
+          "locator": {
+            "container_order": 6,
+            "member_path": "OEBPS/1.css"
+          },
+          "media_type": "text/css",
+          "resource_id": "epub-member-0006",
+          "resource_kind": "epub_member",
+          "sha256": "09b0d2b9797777999e40b3378c739c82fbcb005cb3bbc626cc21722aa1035aa2",
+          "structural_role": "auxiliary_resource"
+        },
+        {
+          "byte_size": 158949,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "character_count": 139527,
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "848b4272cf09b528290bb78ca20c4e35886c3c022136f478bb4b7ab507cbd3f7"
+          },
+          "locator": {
+            "container_order": 7,
+            "member_path": "OEBPS/3723322922754755846_4363-h-0.htm.xhtml",
+            "spine_index": 2
+          },
+          "media_type": "application/xhtml+xml",
+          "resource_id": "epub-member-0007",
+          "resource_kind": "epub_member",
+          "sha256": "41b592b8ef7ad584c13484df2dadb62fc09b3816eb60f0e812b75b75f4b34a44",
+          "structural_role": "spine_resource"
+        },
+        {
+          "byte_size": 194789,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "character_count": 176411,
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "73e58ea23d077046ed1fb96fcb691209247f30859fae9649d28bf4263a45dd23"
+          },
+          "locator": {
+            "container_order": 8,
+            "member_path": "OEBPS/3723322922754755846_4363-h-1.htm.xhtml",
+            "spine_index": 3
+          },
+          "media_type": "application/xhtml+xml",
+          "resource_id": "epub-member-0008",
+          "resource_kind": "epub_member",
+          "sha256": "3923e1a269bd6ca49d63f9ec1770c9a11202c31da1c42ea2b734e55d423f5762",
+          "structural_role": "spine_resource"
+        },
+        {
+          "byte_size": 73352,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "character_count": 65141,
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "1e235a712c7402709b305ec22dba7ee063cabe5019b4420998bba41a90946347"
+          },
+          "locator": {
+            "container_order": 9,
+            "member_path": "OEBPS/3723322922754755846_4363-h-2.htm.xhtml",
+            "spine_index": 4
+          },
+          "media_type": "application/xhtml+xml",
+          "resource_id": "epub-member-0009",
+          "resource_kind": "epub_member",
+          "sha256": "689d6c278648cbc15e8da6e51921ee38db70f68c9805c7fa21fdff8bf9f43ab2",
+          "structural_role": "spine_resource"
+        },
+        {
+          "byte_size": 20018,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "character_count": 18199,
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "f5ca819b2b2b1b82f947e3749aaa78e033630a054a0dc7d0562eb8a7175b5687"
+          },
+          "locator": {
+            "container_order": 10,
+            "member_path": "OEBPS/3723322922754755846_4363-h-3.htm.xhtml",
+            "spine_index": 5
+          },
+          "media_type": "application/xhtml+xml",
+          "resource_id": "epub-member-0010",
+          "resource_kind": "epub_member",
+          "sha256": "dab8d2f745ce25d0dd9282b802cba74b1774862818d2a657ef284b36a798614f",
+          "structural_role": "spine_resource"
+        },
+        {
+          "byte_size": 2961,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "character_count": 456,
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a5e4a70ac6538220f3a986f4b2cfd57648ad95f530a80de2f925f0f8a17ffbe7"
+          },
+          "locator": {
+            "container_order": 11,
+            "member_path": "OEBPS/toc.xhtml"
+          },
+          "media_type": "application/xhtml+xml",
+          "resource_id": "epub-member-0011",
+          "resource_kind": "epub_member",
+          "sha256": "afcdc08873edd6d277b6f222459546fe8684a3ea1c9ab17eb1bd030c27234832",
+          "structural_role": "navigation"
+        },
+        {
+          "byte_size": 3985,
+          "locator": {
+            "container_order": 12,
+            "member_path": "OEBPS/toc.ncx"
+          },
+          "media_type": "application/x-dtbncx+xml",
+          "resource_id": "epub-member-0012",
+          "resource_kind": "epub_member",
+          "sha256": "7d9cdb851867edca1fd5f9e4261943dd8bf65de688649f16ddc0b2f533a309e4",
+          "structural_role": "auxiliary_resource"
+        },
+        {
+          "byte_size": 559,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "character_count": 7,
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "cab8efccf91a591cdffb997fb40f2bc19c4aeaa4f980e833a17477e9a910a4b0"
+          },
+          "locator": {
+            "container_order": 13,
+            "member_path": "OEBPS/wrap0000.xhtml",
+            "spine_index": 1
+          },
+          "media_type": "application/xhtml+xml",
+          "resource_id": "epub-member-0013",
+          "resource_kind": "epub_member",
+          "sha256": "e6ebd38177166d7fd588dde612bb2a08d48061152e7787ec8a931df595134a16",
+          "structural_role": "spine_resource"
+        },
+        {
+          "byte_size": 3117,
+          "locator": {
+            "container_order": 14,
+            "member_path": "OEBPS/content.opf"
+          },
+          "media_type": "application/oebps-package+xml",
+          "resource_id": "epub-member-0014",
+          "resource_kind": "epub_member",
+          "sha256": "3aa34037fc9b8052a06d987efc36a387e929c84f7c15ddb413fbecb5a6f2eeee",
+          "structural_role": "package_metadata"
+        }
+      ],
+      "summary": {
+        "image_resource_count": 1,
+        "member_count": 14,
+        "resource_count": 14,
+        "spine_item_count": 5,
+        "xhtml_count": 6
+      }
+    }
+  ],
+  "generator": {
+    "name": "build_source_resource_inventories.py",
+    "version": "1"
+  },
+  "provenance_event_ref": "tos.event.forensic.jenseits-gutenberg-4363.epub-inventory.2026-09-09",
+  "inventory_version": 1,
+  "supersedes_inventory_ref": null,
+  "authority_boundary": "resource enumeration, geometry, ordering, counts, and one-way fingerprints only; no source text, bibliographic acceptance, textual acceptance, rights clearance, translation, semantics, or canon authority"
+}

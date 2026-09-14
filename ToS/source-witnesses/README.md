@@ -28,6 +28,10 @@ source-witnesses/
 │   └── <place>/place.json
 ├── organizations/
 │   └── <historical-organization>/organization.json
+├── social-bodies/                          # source-described groups, communities, institutions
+│   └── <kind>-<subject>/<kind>.json         # separate membership and activity Claims
+├── intellectual-formations/               # schools, traditions and movements, not atlas categories
+│   └── <kind>-<subject>/<kind>.json         # source-described continuity, separate association Claims
 ├── links/                                  # first-class observed web/API/file routes
 │   └── <provider>/<object>/<route>/link.json
 ├── discovery/                              # reviewed candidate queue + ordered query/result evidence
@@ -48,6 +52,7 @@ source-witnesses/
 │   ├── collections.jsonl
 │   ├── items.jsonl
 │   ├── links.jsonl
+│   ├── artifacts.jsonl                    # native physical IDs; no book-ladder coercion
 │   └── claims.jsonl                       # generated source-returnable relation index
 ├── relations/                             # corpus-wide identity-ladder assertions
 │   ├── work-expression/
@@ -118,6 +123,19 @@ speaking routes and explicit responsibility claims in the catalog.
 
 ## Identity and path boundary
 
+Historical people and collective descriptions use the
+[social profile and relationship contract](../doctrine/semantic-interchange/README.md#social-bodies-and-source-attributed-relationships).
+The source-described body, its place, an intellectual formation and an atlas
+navigation category are not interchangeable. Adjacent native Corpus and
+declared-profile human forms reach both source graph carriers with their exact
+bindings and quality gaps; catalog presence does not admit their content.
+
+Source-described reception, legacy, historical canon formation, forgetting and
+rediscovery use the [reception profiles](../doctrine/semantic-interchange/README.md#reception-historical-recognition-and-later-life).
+Their historical scope and receiving context remain content. Claims separately
+identify targets, carriers, participants and dates; a historical canon is not a
+ToS admission, and catalog absence is not evidence of forgetting.
+
 Object and claim records own stable ToS IDs. The catalog is their rebuildable
 navigation projection: `claims.jsonl` makes tracked membership, responsibility,
 publication, provision activity, chronology, and identity-ladder assertions
@@ -129,6 +147,236 @@ projection admits only `public` or
 reviewed public-safe derivative. Filesystem paths are human navigation and may
 improve through reviewed migrations. A path change never silently changes
 object or claim identity.
+
+### Explicit addressed record catalog
+
+The additive [catalog-v2 contract](../contracts/source-catalog-projection-v2.schema.json)
+and [`source_catalog_projection.py`](../../scripts/source_catalog_projection.py)
+provide an explicit immutable `records` collection keyed and ordered by stable
+record ID. This is not a replacement publication of the tracked legacy catalog.
+Each row preserves its exact legacy entry plus the original source locator,
+raw-byte SHA-256/length and canonical record ref. The legacy canonical record
+digest, raw source-byte digest and addressed row digest are different bindings.
+Source body, HumanForms and retained history remain with their source owners;
+the catalog does not copy them into another authority surface.
+
+`bootstrap_source_catalog(root, namespace_path, catalog_namespace=...,
+expected_manifest_sha256=..., expected_publication_token=..., work_dir=...)`
+is explicitly a full bootstrap. It checks complete record membership,
+duplicates and native identity reservations, native/declared source schemas,
+exact row rendering and full legacy catalog parity, then rechecks observed
+bytes, membership, profile inputs and the cooperating publication snapshot.
+The existing full collector and pure file renderer remain the parity owner;
+native Agent validation uses its actual Corpus schema and registry mappings,
+never the declared-profile adapter. Native reservation/text dependencies retain
+their owner's bounded opaque snapshot checks. This is catalog/source mechanical
+closure, not the whole foundation validator, reference closure, historical
+completeness, rights, assessment, or Claim admission.
+
+The full writer uses only explicit disposable bootstrap scratch. Immutable parts
+are installed without replacement into the caller's existing namespace parent;
+the target root pathname is never written or selected. The result returns exact
+root bytes for a separately owned paired publication. A failure may leave
+unselected immutable parts, never permission to prune source or retained parts.
+
+`SourceCatalogSnapshot(ProjectionSnapshotView(...), expected_root_sha256=...,
+trusted_baseline_sha256=...)` performs budgeted keyed access without opening the
+root pathname or reading a legacy JSONL family. `lookup(record_id)` distinguishes
+absence in that explicit snapshot; `get(record_id)` requires presence. Returned
+`CatalogRecord.entry`, `.source` and `.provenance` are detached. A row's provenance
+contains stable catalog namespace/profile, key, row digest and exact source/ref
+bindings only. Global catalog root digests, publication tokens, baseline anchors,
+processor/schema bindings and prepared epochs belong to the outer envelope, not
+to every record/history/version row. An unrelated Agent revision must not change
+another record's provenance merely by changing the catalog root.
+
+`stage_agent_catalog_transition(root, before, transaction_id=...,
+expected_publication_token=...)` supports only one immediate committed,
+present-to-present native Agent descriptive correction. It checks the retained
+transaction, exact old row/raw binding, current after bytes, unchanged ID/type/path,
+allowed descriptive fields, version increment, reconstructed HumanForms/history,
+predecessor archive and revision dependencies. It executes no source command.
+Insertions, deletions, moves, non-Agent transitions and a skipped publication
+predecessor fail; missing source/carrier files are never deletion authority.
+Candidates remain unpublished and establish neither a prepared epoch nor fresh
+availability of reused sibling parts. Native writer/archive/transaction reads
+keep their existing per-package bounds; catalog capture and COW access have their
+own explicit `CatalogLimits` and `MutationLimits`. Full bootstrap is not a hidden
+fallback when a bounded transition refuses.
+
+An explicitly requested `include_claims=True` bootstrap adds `claims` and
+`source_slots` collections without changing the `records` API. The default
+records-only snapshot retains `claims_addressed=false`; the expanded snapshot
+declares `claims_addressed=true`, exact counts and
+`tos.source-catalog.current-jsonl-slots.v1`. `lookup_claim`/`get_claim` return a
+detached exact native catalog entry and canonical Claim ref. `lookup_slot(kind,
+identity)`/`get_slot` address current `claim`, `provenance_event` and `anchor`
+rows through a reversible canonical JSON pair key, not a delimiter heuristic.
+Full bootstrap uses only the existing native Claim basenames and event/anchor
+producer patterns (`*provenance*.jsonl`, `*anchor*.jsonl`) in public source scope.
+Duplicate typed identities, source membership drift and malformed rows refuse.
+
+Slot bindings retain the original physical line number (blank lines count),
+byte offset and row length, LF/CRLF/CR/EOF delimiter, exact raw row digest,
+canonical payload digest and complete source-file digest/length from bootstrap.
+Bodies remain at their source, including unknown and literal fields. Non-JSONL
+Unicode line separators refuse rather than inventing a physical source line.
+The existing pure `render_claim_catalog_entry` is shared with the full collector;
+schema and source checks remain separate from rendering.
+
+`SourceCatalogSourceReader(root, catalog_snapshot=...)` verifies exact source and
+processor profile inputs, then `read_claim(claim_id, expected_row_sha256=...)`
+or `read_slot(kind, identity)` uses protected descriptors, bounded byte ranges,
+boundary/digest/identity checks and file metadata before/after. `verify_current()`
+rechecks the observed paths and coherent publication token/generation. It never
+loads a whole JSONL file to locate a row or rehashes unread source-file bytes.
+`SourceSlotLimits` bound source files, slots, row/read bytes and profile inputs.
+Changed profiles require explicit bootstrap; there is no automatic migration.
+`whole_file_rehashed=false` is explicit: source line/range and full-file fixity
+rely on the trusted bootstrap and cooperating source owner, not protection
+against arbitrary same-UID changes to unobserved bytes. A selected Agent
+transition reuses Claim/slot descriptors without changing their local addresses.
+General Claim mutation/history transport is unsupported by this current-slot
+reader. The bounded assembler uses the owner ClaimVersionReader only for an
+explicit collection-order version basis; a historical Claim cannot be
+silently rebound to its current row.
+
+### Concrete selected source assembly
+
+[`BibliographicClaimAssembler`](../../scripts/bibliographic_claim_assembler.py)
+joins one explicit `SourceCatalogSnapshot` to the real current-slot reader and
+one concrete `MetadataVersionReader` using that same catalog/publication.
+`assemble(claim_id, expected_row_sha256=...)` returns detached
+`BibliographicClaimInput`, the shared forward dependency rows and observed
+source/catalog/file bindings. `project()` uses the full builder's pure renderer
+for all raw nodes, edges and the Claim trace. Exact source line, raw versus
+canonical digests, unknown Claim/review/provenance fields, ordered duplicate
+evidence, typed members, normalized provision/date references, alternative and
+superseded Claims, current adjacent Forms and address-only external citations
+retain their source roles. No network address is opened. Unknown strings in
+literal values are not mined for identities.
+
+`assemble_record(record_id, expected_row_sha256=...)` currently accepts only a
+native Agent. It returns detached `SourceNavigationRecordInput` (current record,
+Forms, exact retained history and every ordered version resolution) plus
+`BibliographicIdentityInput`, using the same metadata reader and Forms as Claim
+endpoints. `project_navigation()` and `project_bibliographic()` share the full
+owner renderers. Historical metadata remains an exact version return with its
+actual retained source/archive provenance, never current-use permission.
+
+`ClaimAssemblyLimits` bound selected Claim/metadata counts, addressed lookups,
+protected adjacent/schema/evidence files, bytes read and complete returned
+inputs plus expanded projection bytes. The catalog's explicit `MutationLimits`,
+source reader's `SourceSlotLimits`, metadata reader's and ClaimVersionReader's
+existing bounded aggregate/per-record/history limits remain separate owner
+bounds. A limit refusal returns no partial cohort. The addressed current-slot
+lane performs no source discovery or whole-JSONL lookup. An explicit
+collection-order version basis is different by design: its owner
+`ClaimVersionReader` reads the bounded Claim catalog and selected source package
+to resolve each exact retained ref; its aggregate work is exposed in the
+`claim_versions` accounting, but is not a selected-work scaling proof. Neither
+lane accepts a caller-supplied node/verification flag, performs an implicit
+bootstrap or fetches remote schemas. Unsupported metadata transport and
+historical Claim versions outside the explicit collection-order basis fail
+closed without latest fallback; that basis is resolved through exact retained
+Claim refs.
+
+The assembler takes no writer lock. `verify_current()` rechecks the cooperating
+source publication, observed protected metadata and source-slot inputs, plus
+adjacent-form absence. The calling source/prepared owner must maintain its
+guarded publication boundary. A before cohort must be captured before a real
+source revision; an old catalog after revision is rejected, not dressed up as
+a historical current-source snapshot. Assembly neither mutates source nor
+selects roots, proves reverse incidence, normalizes neighborhoods, authorizes
+new membership, admits Claims or establishes a prepared epoch. A result's
+detached public fields may be modified by its caller without changing the
+assembler's private snapshot; such edits are not source verification.
+
+Graph incidence alone cannot prove source-reference dependency closure: an
+Agent may supply maker/evidence labels and digests without a direct identity
+graph edge. The separate offline
+[selected Agent publication profile](../../access/contracts/source-agent-publication.v1.md)
+joins real reverse Claim declarations, current source/history readers, COW raw
+roots and shared normalization to one guarded prepared transaction. It requires
+an explicit root-vector/WAL bootstrap and verifies the old prepared cohort;
+it does not silently adopt the legacy global-catalog-provenance profile.
+`build_source_navigation(..., catalog_snapshot=...)` provides the full new-profile
+bootstrap/oracle using the same actual addressed metadata reader; its legacy
+default is unchanged. General source membership, Claim mutation transport and
+non-descriptive transitions remain outside this bounded profile, not
+implicitly covered by a green Agent correction. Explicit collection-order
+version bases are a separate exact reader path, not membership admission.
+
+`scripts/source_claim_catalog.py` adds a separate addressed **catalog** step
+for an exact, already committed initial `claims.create` package. The caller
+selects its protected v1 delegation, exact request digest, receipt byte digest
+and admitted catalog predecessor. Within the existing source writer lock,
+`claim_catalog_addition(...)` checks current delegation, unchanged initial
+package bytes, source-bound endpoint versions, public metadata path evidence,
+declared identity-relation profiles and absence of the new Claim/event slots.
+It stages only changed immutable Claim and source-slot parts and increments
+their counts; it does not scan the corpus or rewrite the selected root.
+
+The source metadata publication token stays unchanged: this creation package
+is not a selected Agent transaction. `last_transition` is cleared rather than
+inventing a metadata transaction. The detached candidate receipt binds the
+exact creation request and receipt; the candidate binds both catalog roots.
+Current scope and bytes are rechecked through `verify_current()` while its
+context is open. Revocation, drift, occupied identities and exhausted budgets
+refuse; staged parts may remain unselected and are not automatically deleted.
+
+This initial profile supports existing identity endpoints and exact public
+metadata path evidence, not temporal/structured values, identity proposals,
+correction/history, assessment or arbitrary evidence transports. It does not
+replay the source command, assess meaning, establish global source currentness
+or prove reverse dependency closure. A prepared publisher still must assemble
+the new Claim and affected shared contexts, update declarations and all reader
+lanes atomically, and verify source guards before its own commit. Catalog
+staging alone does not make a new Claim visible to a running human/agent reader.
+The separate [initial Claim publication composition](../../access/contracts/source-claim-publication.v1.md)
+joins this exact catalog candidate to complete affected incidence, new source
+declarations, singleton Claim contexts and all prepared lanes in one guarded
+transaction. Consumer switching and other mutation profiles remain separate.
+
+Evidence nodes carry a bounded readable `display` from owner metadata.
+An identity can reuse its catalog `preferred_label`. Direct Markdown
+notes in `ToS/review-ledger/` and in
+`ToS/research-packets/foundation-laboratory-2026-07/` can supply their exact first
+H1 when that exact reference is selected by the existing verified public Claim
+catalog. The citing Claim, digest and public visibility must agree with its
+catalog entry; an unselected local file is not eligible. Git tracking remains
+an authoring concern, not a runtime dependency: an exported source snapshot
+with the same catalog and bytes yields the same title without `.git`.
+This selected-public-Evidence route uses the protected owner metadata reader:
+no symlink component or special file, at most 1 MiB, same-read file digest,
+change/replacement detection, and a first-line UTF-8 header of at most 4096 bytes.
+Research titles retain research-lead provenance, not source-witness authority.
+Other repository references or missing/overlong headings use the exact filename;
+anchors and provenance events use their source-file slot, and external citations
+use the declared address.
+Fallbacks remain explicitly marked as navigation, not supplied source titles.
+Descriptions explain the reference role and source return, not the contents or
+credibility of the evidence; external content remains unobserved. This route
+does not scan arbitrary document headings, open source payloads, fetch remote
+titles, create HumanForms, translate names, or confer assessment authority.
+Full addresses, source references, IDs and digests remain unchanged in their
+existing fields even when the display's 240-character title or 1024-character
+description is shortened.
+
+For an explicit source-first migration observation, run
+`python scripts/source_witness_projection_coverage.py --rows` from the repository.
+It verifies the public catalog against its current sources, enumerates every
+catalog-owned object and Claim (including carriers filtered out by one graph
+builder), and compares complete retained JSON fields in the ordinary normalized
+reader. Rows distinguish direct/adapted mapping, missing carriers, conflicting
+records and unresolved source return. The final summary alone confirms that
+enumeration completed; an interrupted or stale-input stream is incomplete.
+This is an offline diagnostic, not a query hot path, automatic repair or new
+source registry. It reports no source wording, private native inventory or
+payload. Exact JSON-field retention is separate from source-file byte formatting,
+semantic understanding, form quality and admission. Uncatalogued families and
+the rest of the ToS corpus remain outside this bounded report and require their
+own source routes; a missing carrier does not imply restricted access or falsity.
 
 A `Link` is a first-class observed route with provider, interface kind,
 technical access status, observation timestamp, provenance event, and a stable
@@ -206,6 +454,16 @@ that both surfaces happen to exist. These relations remain bibliographic:
 `embodied_by` never implies textual identity, critical equivalence, accepted
 source text, translation quality, or semantics.
 
+Native growth retains those legacy streams unchanged. The separate
+[local Item adoption command](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_ITEM_ADOPTION.md)
+can retain one already obtained file at the canonical local payload root,
+create its provisional Item and distinct `exemplified_by` Claim, and append
+only the existing Edition's exact backlink. The source-safe metadata package
+and private byte-copy continuation are separate; their receipts preserve the
+compound history. This operation does not fetch a URL, clear rights, establish
+textual equivalence, or publish the local file. Generic Claim correction cannot
+rewrite that compound topology independently.
+
 Expression derivation is a separate evidence-bearing claim family rather than
 a fourth structural rung. Its directed `is_derivative_of` packets identify a
 reported source Expression, derivation kind, directness, statement basis, and
@@ -214,7 +472,7 @@ and no-equivalence: chronology, edition numbering, a shared translator label,
 or a generated graph cannot fill a missing historical edge.
 
 Work, Expression, and Edition records may close over evidence-bearing
-`responsibility-claims.jsonl` rows through `responsibility_claim_refs`.
+legacy `responsibility-claims.jsonl` rows through `responsibility_claim_refs`.
 The initial typed predicates are `authored_by` and `contributed_by` on a Work,
 `translated_by` on an Expression, and `edited_by`, `afterword_by`, or
 `designed_by` on an Edition. Every object resolves to an Agent. Every claim is
@@ -223,6 +481,14 @@ provenance event, and unreferenced or cross-subject claims fail validation. A
 role statement remains a versioned claim: it does not collapse author,
 contributor, translator, copyist, editor, paratext author, designer, publisher,
 or rights holder into one generic “creator”.
+
+The [native translator attachment](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md)
+adds a separately scoped Expression-to-existing-Agent Claim in a new
+`relations/<slug>/source-claims.jsonl` home. The foundation joins only its exact
+committed, continuously retained evidence with the unchanged legacy carriers.
+Competing translator reports are not collapsed by endpoint equality. External
+URLs remain attribution citations, with local citing-Claim source return and
+no implied remote reading; endpoint metadata bindings are not extra witnesses.
 
 In the current bounded corpus, all seven Nietzsche Work records close over one
 `authored_by` claim to the GND-backed Friedrich Nietzsche Agent. Each claim
@@ -483,6 +749,10 @@ page-break/division structure, or provider DjVu/ABBYY OCR page geometry and
 counts. Text-bearing EPUB, TEI, and OCR resources may carry only one-way
 normalized fingerprints and character or word counts. The inventory cannot
 accept a reading, settle an edition, clear rights, or expose source text.
+The bounded `plain_utf8_file_v1` profile adds one inert complete plain-text or
+Markdown file: exact raw-byte extent/fixity and UTF-8/BOM, code-point, newline
+and observed Unicode-form facts only. It neither rewrites bytes nor interprets
+markup, follows links, executes code or supplies a TextLayer/segmentation.
 
 Large working derivatives, model caches, OCR scratch, page renders, and
 benchmark outputs belong to the `abyss-stack` laboratory or host-managed cache,

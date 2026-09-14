@@ -127,7 +127,7 @@ function compactSearchResult(result: Record<string, unknown>): unknown {
   const results = Array.isArray(value?.results) ? value.results as Array<Record<string, unknown>> : [];
   return {
     query: clipped(value?.query, 160),
-    result_count: Number(value?.result_count || 0),
+    result_count: value?.result_count === null ? null : Number(value?.result_count || 0),
     results: results.slice(0, 6).map((item) => ({
       id: identity(item.id),
       kind: clipped(item.semantic_kind || item.kind, 48),
@@ -139,6 +139,43 @@ function compactSearchResult(result: Record<string, unknown>): unknown {
     context_revision: result.context_revision,
     deep_link: context?.deep_link,
     next_action: "select one result by stable id",
+  };
+}
+
+function compactKnowledgeSearchResult(result: Record<string, unknown>): unknown {
+  const value = result.value as Record<string, unknown> | undefined;
+  const context = result.context as Record<string, unknown> | undefined;
+  const compactItems = (items: unknown): unknown[] => (Array.isArray(items) ? items : [])
+    .slice(0, 6)
+    .map((item) => {
+      const source = item && typeof item === "object" && !Array.isArray(item) ? item as Record<string, unknown> : {};
+      return {
+        id: identity(source.id),
+        kind: clipped(source.semantic_kind || source.kind || source.knowledge_search_kind, 48),
+        label: clipped(source.label, 120),
+        subtitle: clipped(source.subtitle || source.node_type || source.predicate_id, 80),
+        from_id: identity(source.from_id) || undefined,
+        to_id: identity(source.to_id) || undefined,
+        source_refs: Array.isArray(source.source_refs) ? source.source_refs.slice(0, 3).map(identity) : [],
+      };
+    });
+  const page = value?.page && typeof value.page === "object" ? value.page as Record<string, unknown> : {};
+  return {
+    schema: value?.schema,
+    search_mode: value?.search_mode,
+    query: clipped(value?.query, 160),
+    result_count: Number(value?.result_count || 0),
+    nodes: compactItems(value?.nodes),
+    relations: compactItems(value?.relations),
+    counts: value?.counts,
+    // Cursors are opaque continuation state.  Do not truncate them while
+    // compacting the human-readable result envelope.
+    next_cursor: typeof page.next_cursor === "string" && page.next_cursor ? page.next_cursor : null,
+    has_more: page.has_more === true,
+    source_revision: clipped(value?.source_revision, 96),
+    context_revision: result.context_revision,
+    deep_link: context?.deep_link,
+    next_action: page.has_more === true ? "invoke this tool again with next_cursor" : "select one returned stable id",
   };
 }
 
@@ -409,6 +446,25 @@ function stableTools(registry: PageCommandRegistry): WebMCPTool[] {
       inputSchema: objectSchema({ query: { type: "string" } }, ["query"]),
       annotations: { readOnlyHint: false },
     }, undefined, compactSearchResult),
+    commandTool(registry, "tos.page.knowledge-search", {
+      name: "tos.page.knowledge-search",
+      title: "Search the ToS knowledge carrier",
+      description: "Search normalized Tree of Sophia nodes and relations through a source-revision-bound engine advertised by the selected backend. Keep returned search_mode with an opaque continuation cursor. This is a derived access view; projection search remains available through tos.page.search.",
+      inputSchema: objectSchema({
+        query: { type: "string", minLength: 1, maxLength: 256 },
+        cursor: { type: "string", maxLength: 65536 },
+        search_mode: { type: "string", enum: ["indexed", "compressed"] },
+        limit: { type: "integer", minimum: 1, maximum: 6, default: 6 },
+      }, ["query"]),
+      annotations: { readOnlyHint: false, untrustedContentHint: true },
+    }, undefined, compactKnowledgeSearchResult, (input) => ({
+      ...input,
+      // The page keeps up to forty results for the human UI, while the agent
+      // envelope is intentionally bounded to six per kind.  Binding this
+      // default before invoking the page command prevents a backend cursor
+      // from advancing past items that compaction cannot return.
+      limit: Math.max(1, Math.min(6, Math.trunc(Number(input.limit) || 6))),
+    })),
     commandTool(registry, "tos.page.find-source-gaps", {
       name: "tos.page.find-source-gaps",
       title: "Find recorded source-access gaps",
@@ -464,7 +520,7 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
     commandTool(registry, "tos.page.stage-proposal", {
       name: "tos.page.stage-proposal",
       title: "Stage a traceable proposal from this selection",
-      description: `Stage a local, exportable proposal anchored to ${selected.id}. It remains pending human review, never writes to source, and never changes canon.`,
+      description: `Stage a local, exportable proposal anchored to ${selected.id}. It remains pending scoped review by a competent authorized human or agent, never writes to source, and never changes canon.`,
       inputSchema: objectSchema({
         kind: { type: "string", enum: ["relation", "interpretation", "metadata_correction", "source_route", "concept_enrichment"] },
         statement: { type: "string", minLength: 1, maxLength: 2000 },

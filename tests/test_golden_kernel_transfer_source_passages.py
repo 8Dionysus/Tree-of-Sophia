@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import copy
 import json
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
 
@@ -28,7 +31,53 @@ class GoldenKernelTransferSourcePassageTests(unittest.TestCase):
         )
 
     def test_release_safe_tracked_closure_passes(self) -> None:
-        self.assertEqual(0, validator.main(["--repo-root", str(REPO_ROOT)]))
+        with patch.object(validator, "_validate_local_content", side_effect=AssertionError("no implicit private root")):
+            self.assertEqual(0, validator.main(["--repo-root", str(REPO_ROOT)]))
+
+    def private_git_fixture(self) -> tuple[Path, Path, dict]:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+        subprocess.run(["git", "config", "core.excludesFile", "/dev/null"],
+                       cwd=root, check=True, capture_output=True)
+        local_ref = validator.GOLD_ROOT / "local-content"
+        local = root / local_ref
+        candidate = local / "transfer-source-passages/v1/synthetic-candidate.json"
+        candidate.parent.mkdir(parents=True)
+        candidate.write_text('{"synthetic": "No source witness content."}\n', encoding="utf-8")
+        candidate.chmod(0o600)
+        (local / "README.md").write_text("Synthetic private custody route.\n", encoding="utf-8")
+        (root / ".gitignore").write_text(
+            f"/{local_ref.as_posix()}/*\n!/{local_ref.as_posix()}/README.md\n", encoding="utf-8")
+        subprocess.run(["git", "add", ".gitignore", (local_ref / "README.md").as_posix()],
+                       cwd=root, check=True, capture_output=True)
+        payload = {"passage_candidates": [
+            {"private_content_ref": candidate.relative_to(root).as_posix()},
+            {"private_content_ref": None},
+        ]}
+        return root, candidate, payload
+
+    def test_ignored_private_candidate_may_exist_without_being_read(self) -> None:
+        root, candidate, payload = self.private_git_fixture()
+        self.assertTrue(candidate.is_file())
+        with (patch.object(Path, "open", side_effect=AssertionError("no private bytes in Git boundary check")),
+              patch.object(validator, "_read_json", side_effect=AssertionError("no private JSON read")),
+              patch.object(validator, "_sha256_path", side_effect=AssertionError("no private digest read"))):
+            validator._validate_no_tracked_private_content(root, payload)
+
+    def test_force_tracked_private_candidate_is_rejected(self) -> None:
+        root, candidate, payload = self.private_git_fixture()
+        subprocess.run(["git", "add", "-f", candidate.relative_to(root).as_posix()],
+                       cwd=root, check=True, capture_output=True)
+        with self.assertRaisesRegex(validator.ValidationFailure, "private local content entered Git"):
+            validator._validate_no_tracked_private_content(root, payload)
+
+    def test_removed_private_ignore_rule_is_rejected(self) -> None:
+        root, _candidate, payload = self.private_git_fixture()
+        (root / ".gitignore").write_text("", encoding="utf-8")
+        with self.assertRaisesRegex(validator.ValidationFailure, "private content ref is not ignored"):
+            validator._validate_no_tracked_private_content(root, payload)
 
     def test_exact_counts_layers_and_unresolved_boundaries_are_preserved(self) -> None:
         self.assertEqual(validator.EXPECTED_SUMMARY, self.payload["summary"])
@@ -182,7 +231,6 @@ class GoldenKernelTransferSourcePassageTests(unittest.TestCase):
                 self.assertIsNone(private_ref)
                 continue
             self.assertIn("/local-content/transfer-source-passages/v1/", private_ref)
-            self.assertFalse((REPO_ROOT / private_ref).exists())
 
 
 if __name__ == "__main__":

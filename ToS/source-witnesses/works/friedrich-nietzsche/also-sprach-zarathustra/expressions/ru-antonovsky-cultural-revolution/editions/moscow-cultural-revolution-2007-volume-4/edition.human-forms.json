@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+    "version": 3,
+    "digest": "sha256:d75a2987801c3478f59de7d7dc664efb429d0354fb81139143973181ed598389"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.48f4a65a8ca7d6660c845ff8453bc0d39746a8ca5f6b7062028f63e423d7e44a",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+        "version": 3,
+        "digest": "sha256:d75a2987801c3478f59de7d7dc664efb429d0354fb81139143973181ed598389"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+            "version": 3,
+            "digest": "sha256:d75a2987801c3478f59de7d7dc664efb429d0354fb81139143973181ed598389"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+            "version": 3,
+            "digest": "sha256:d75a2987801c3478f59de7d7dc664efb429d0354fb81139143973181ed598389"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+            "version": 3,
+            "digest": "sha256:d75a2987801c3478f59de7d7dc664efb429d0354fb81139143973181ed598389"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.efc67bf86b31d2d9ce207f722224d51f2722cda55d25d1406ca495edbf4519ce",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+        "version": 3,
+        "digest": "sha256:d75a2987801c3478f59de7d7dc664efb429d0354fb81139143973181ed598389"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+            "version": 3,
+            "digest": "sha256:d75a2987801c3478f59de7d7dc664efb429d0354fb81139143973181ed598389"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+            "version": 3,
+            "digest": "sha256:d75a2987801c3478f59de7d7dc664efb429d0354fb81139143973181ed598389"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+            "version": 3,
+            "digest": "sha256:d75a2987801c3478f59de7d7dc664efb429d0354fb81139143973181ed598389"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+      "request_digest": "sha256:a2504368ebc4a76fa1556745e38a307111b9d084b8889cdb82239e516b2c9f4f",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:71189be7fb26d3c1083b63d90801acffcfd9e2735c23e29f2ace1b6be7ee2989",
+      "recorded_at": "2026-09-07T03:13:28.126869+00:00",
+      "source": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+        "version": 3,
+        "digest": "sha256:d75a2987801c3478f59de7d7dc664efb429d0354fb81139143973181ed598389"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.48f4a65a8ca7d6660c845ff8453bc0d39746a8ca5f6b7062028f63e423d7e44a",
+          "version": 1,
+          "digest": "sha256:7cada7cb97046c35d59e9b1e2e5cc52a98d76ef7e9340b70ea2b01bb8fde8b61"
+        },
+        {
+          "id": "tos.form.metadata.efc67bf86b31d2d9ce207f722224d51f2722cda55d25d1406ca495edbf4519ce",
+          "version": 1,
+          "digest": "sha256:fa587a56690d63a9c6e3cfdf88f95a90aa7286309433c2ce47be9182f052e0cd"
+        }
+      ]
+    }
+  ]
+}

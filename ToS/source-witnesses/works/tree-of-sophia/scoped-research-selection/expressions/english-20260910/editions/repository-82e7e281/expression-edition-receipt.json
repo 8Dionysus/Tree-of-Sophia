@@ -1,0 +1,130 @@
+{
+  "schema_version": "tos_expression_edition_receipt_v1",
+  "operation": "expression.edition.create",
+  "transaction_id": "sha256:5ff0799b0c10aab49967eedbecb76c2d92571ac4c7fabf8642254820c275576e",
+  "command_id": "tos.event.sid-b83cb02d9554439fb1ecc4ee1ff76146",
+  "request_digest": "sha256:c8a5ea9d87ca10f945cb0668717a57f789898c2dc33769bbc70cab9d24081b17",
+  "principal_id": "agent:codex-tos-public-native-occurrence",
+  "authority_ref": "operator:tos-foundation-v1",
+  "owner_configuration": "sha256:2ebbbc20f41c9a1af8d6e26f509df2a99b8d80024b75ec81532ac55ba69e4e15",
+  "recorded_at": "2026-09-10T01:45:46.136857+00:00",
+  "scope": {
+    "allowed_claim_form_ids": [
+      "tos.form.sid-6afd36eef3a8450b832d0383c8a34453"
+    ],
+    "allowed_edition_form_ids": [
+      "tos.form.sid-3cdbc8360466437a82d02fd111ea60bd"
+    ],
+    "allowed_expression_form_ids": [
+      "tos.form.sid-4499af33ce98498dbec5d8d9904716bc"
+    ],
+    "claim_id": "tos.claim.sid-2fbcb28c09c94f19af4e3e77e6b4ece5",
+    "edition_id": "tos.edition.sid-89a5d842830345d48c3c435dd4c6172e",
+    "edition_source_path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/edition.json",
+    "expression_id": "tos.expression.sid-cede0d111ef7427d8acfac8c6997e241",
+    "expression_source_path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/expression.json",
+    "provenance_event_id": "tos.event.sid-b83cb02d9554439fb1ecc4ee1ff76146",
+    "work_id": "tos.work.sid-264c1ef4300f444c850494627ff8ce5f",
+    "work_source_path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/work.json"
+  },
+  "dependencies": "sha256:f1cde661968e3d9be570e7dfb30cce44abc77cecc495457d0ec71e0b9fe0c978",
+  "parent_before": {
+    "id": "tos.expression.sid-cede0d111ef7427d8acfac8c6997e241",
+    "version": 1,
+    "digest": "sha256:703bed134498dc223044043f5bd6e18505ff828e1498d9802497d0f6af667149"
+  },
+  "parent_after": {
+    "id": "tos.expression.sid-cede0d111ef7427d8acfac8c6997e241",
+    "version": 2,
+    "digest": "sha256:10846650a3d9107d9cf8c8d28e6580fb5c5cae71586b516d489c1e941693b311"
+  },
+  "parent_revision": "sha256:b4827e1e117ba75190e05857132980f6066e827974b88bac90a095b627b1c2d8",
+  "parent_archive_ref": "ToS/source-witnesses/.record-revisions/af858414993ec75062696d047531b34a0c18e77459251ec9bd9e1c502f66e4cb-b4827e1e117ba75190e05857132980f6066e827974b88bac90a095b627b1c2d8",
+  "parent_transition_sha256": "sha256:11ba0ea0f4c342d2f9b9211624bad51c58bb82a1dd3fc5dc8bb7389d420d1e75",
+  "parent_before_files": {
+    "expression.json": {
+      "sha256": "sha256:a14841b7944141f1f12e2f54569defbcbf929ee3818dab6623ab531e2e95d654",
+      "bytes": 1053
+    },
+    "expression.human-forms.json": {
+      "sha256": "sha256:3b68b3622bee9b6cd7fbc1aa7b53ab42fdd5b025ca269dfe31d9756e3ab2a51e",
+      "bytes": 2136
+    }
+  },
+  "edition": {
+    "id": "tos.edition.sid-89a5d842830345d48c3c435dd4c6172e",
+    "version": 1,
+    "digest": "sha256:1ebea24aac39d22519bb98985066e1b98008d47b3eb4350c0a5f86fc1f7a1b7c"
+  },
+  "claim": {
+    "id": "tos.claim.sid-2fbcb28c09c94f19af4e3e77e6b4ece5",
+    "version": 1,
+    "digest": "sha256:3102662ce5a1d84be82852dcb6384c5bd5150f6150c3f766e22c4d3248bb04f3"
+  },
+  "forms": {
+    "expression": [
+      {
+        "id": "tos.form.sid-4499af33ce98498dbec5d8d9904716bc",
+        "version": 2,
+        "digest": "sha256:c4ee90ac1cc7764e7e381b452c24f97ba7d34a0bfcde23777a32f9cdc5514281"
+      }
+    ],
+    "edition": [
+      {
+        "id": "tos.form.sid-3cdbc8360466437a82d02fd111ea60bd",
+        "version": 1,
+        "digest": "sha256:1460b1799aa6e9376163369614c4d3ab33eb0764a4e7eeb154341d3e4eac99bc"
+      }
+    ],
+    "claim": [
+      {
+        "id": "tos.form.sid-6afd36eef3a8450b832d0383c8a34453",
+        "version": 1,
+        "digest": "sha256:a09ba839bfd103bb1724cb398667c098f20d3899c16986c8f403a3f611e4fdd5"
+      }
+    ]
+  },
+  "files": {
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/expression.json": {
+      "sha256": "sha256:cd1fedd504f948a3c7a697abbf32b31657d5d29eecf76c7391d0d3b1ce38efda",
+      "bytes": 1109
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/expression.human-forms.json": {
+      "sha256": "sha256:51656ad8a8bee24d598a0e47c1f1cd081e99bc5eb189bab8c9e19bc8ff0de1ca",
+      "bytes": 4179
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-revision-history.json": {
+      "sha256": "sha256:fc31e378d4d59ed60a2522077d29ad93f4aa296a38356de1d208a82b2a124781",
+      "bytes": 6644
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/edition.json": {
+      "sha256": "sha256:fe1266ac3baac9d6a8f764dd25f806e1e3e4b4b75a12dd0b39cd7ac58df9b670",
+      "bytes": 1036
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/edition.human-forms.json": {
+      "sha256": "sha256:9ffcd7d4faa984f379fbb336c688b9aa96c5efb271d4fdff775154c78efb816e",
+      "bytes": 2118
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/source-claims.jsonl": {
+      "sha256": "sha256:13b56f1cc093d5ce1e936432519aade2c047bf61ade3481be5981f025be2775c",
+      "bytes": 1139
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/source-claims.0c795243c597698034d1e27871814a22f3b4f7ea5812217336fb0dc4f1c482e5.human-forms.json": {
+      "sha256": "sha256:a08097ef611578cc700053eb89fe7640e1081d947aa4de4fc7906bf05d320159",
+      "bytes": 1486
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/source-create-request.json": {
+      "sha256": "sha256:27140fe152d897649b2f08c6e8e4b8457f7cc63d968bc4985f409b4ca3bf0c0f",
+      "bytes": 3285
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/source-create-environment.json": {
+      "sha256": "sha256:123346d4a012b864ddbcd6e858b133666692cacf09f24515b4ae782542e14276",
+      "bytes": 325
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/source-create-provenance.jsonl": {
+      "sha256": "sha256:921f86e960a24dc01b8384a0aa33e6c8da85b95fe15f36719f17fa2194174f99",
+      "bytes": 14016
+    }
+  },
+  "grants_admission": false
+}

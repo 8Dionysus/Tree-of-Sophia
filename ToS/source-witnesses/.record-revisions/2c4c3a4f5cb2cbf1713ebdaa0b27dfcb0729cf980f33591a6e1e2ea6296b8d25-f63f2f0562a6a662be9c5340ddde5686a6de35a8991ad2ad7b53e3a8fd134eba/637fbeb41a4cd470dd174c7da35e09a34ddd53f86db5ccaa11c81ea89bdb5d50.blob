@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.claim.nietzsche-letter-705.addressee",
+    "version": 1,
+    "digest": "sha256:166d57a5decfa28a68f6a2a0b3213cf6454648a52dc567e3872a59de0024063f"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:166d57a5decfa28a68f6a2a0b3213cf6454648a52dc567e3872a59de0024063f",
+            "id": "tos.claim.nietzsche-letter-705.addressee",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/qualifiers/statement",
+          "record": {
+            "digest": "sha256:166d57a5decfa28a68f6a2a0b3213cf6454648a52dc567e3872a59de0024063f",
+            "id": "tos.claim.nietzsche-letter-705.addressee",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.nietzsche-letter-705.addressee.statement-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "statement",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:166d57a5decfa28a68f6a2a0b3213cf6454648a52dc567e3872a59de0024063f",
+        "id": "tos.claim.nietzsche-letter-705.addressee",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "claim-form:letter-705-addressee:2026-09-07",
+      "request_digest": "sha256:57e26f5910e21b7d6e0be606467ac144b65ea5782900c807eea5905c80532966",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:40f18e2381cfcfa97d7d98494ff13dcecd1967e235f11c8e5d61a187b66825ff",
+      "recorded_at": "2026-09-07T10:21:16.433021+00:00",
+      "source_contracts": {
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json": "sha256:23f7419ef61bf235e8ba943f792aeacbdca6185ac8fc4697c8f4d6786233a56d",
+        "ToS/contracts/semantic-relation-type-registry.schema.json": "sha256:4c8a5cf3515dc2d48f2347a0640a78419b5ec1c029da4f536578e9a690661438",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json": "sha256:198f6d7898d0f82209b2e37a31c5e2055037b39e7632139874a3f25d6f9ffed9",
+        "ToS/contracts/semantic-entity-type-registry.schema.json": "sha256:25554397df09e181b7b1977e13a27794f8f0c93278101fec35400dec96ba8cea",
+        "ToS/contracts/claim-packet.schema.json": "sha256:cc982ceeaa3a62dc8cb1367cd4b10cc76073b252a1ac5c9977f6b0ee6d47588c",
+        "ToS/contracts/knowledge-assessment.schema.json": "sha256:83163d105944db9a54bd57a8e730c3d459a00239de0df65cb63ac18c305e60be",
+        "ToS/contracts/source-claim-record.schema.json": "sha256:2c744903214248c4de29a17e1e21e67745cf838da46508cc05ec4dac6aa75430",
+        "ToS/contracts/source-relation-claim.schema.json": "sha256:14a7bbf923b30ced37953649cfced1b10069adb2f63266c56aea7f115318defe"
+      },
+      "source": {
+        "id": "tos.claim.nietzsche-letter-705.addressee",
+        "version": 1,
+        "digest": "sha256:166d57a5decfa28a68f6a2a0b3213cf6454648a52dc567e3872a59de0024063f"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.nietzsche-letter-705.addressee.statement-ru",
+          "version": 1,
+          "digest": "sha256:e08bd4bffd41ba2149ebb537d6bc64409f6227bd0ee284a9747f27e5d5e4d02d"
+        }
+      ]
+    }
+  ]
+}

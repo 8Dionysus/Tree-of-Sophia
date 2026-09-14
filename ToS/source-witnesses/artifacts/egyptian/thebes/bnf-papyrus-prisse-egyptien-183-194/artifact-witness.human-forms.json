@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/custody",
+          "record": {
+            "digest": "sha256:835c6861d3d8816955174cebf0ab6bd0c9c4ab3c733628fd240f14b2fe4214b8",
+            "id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:835c6861d3d8816955174cebf0ab6bd0c9c4ab3c733628fd240f14b2fe4214b8",
+            "id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:835c6861d3d8816955174cebf0ab6bd0c9c4ab3c733628fd240f14b2fe4214b8",
+            "id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:835c6861d3d8816955174cebf0ab6bd0c9c4ab3c733628fd240f14b2fe4214b8",
+            "id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:835c6861d3d8816955174cebf0ab6bd0c9c4ab3c733628fd240f14b2fe4214b8",
+            "id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:fef53b107e97a40f172deed76f71aad447712c393694921ba7fa150070645202",
+        "id": "tos.form.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:835c6861d3d8816955174cebf0ab6bd0c9c4ab3c733628fd240f14b2fe4214b8",
+        "id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:835c6861d3d8816955174cebf0ab6bd0c9c4ab3c733628fd240f14b2fe4214b8",
+            "id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/path_identity/note",
+          "record": {
+            "digest": "sha256:835c6861d3d8816955174cebf0ab6bd0c9c4ab3c733628fd240f14b2fe4214b8",
+            "id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:835c6861d3d8816955174cebf0ab6bd0c9c4ab3c733628fd240f14b2fe4214b8",
+        "id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+        "version": 1
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+      "owner_configuration": "sha256:fc20f6b6ecc63d4685d745b9fd7a26442e04a8202015dc98846ba7227a1923b4",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:09.600407+00:00",
+      "request_digest": "sha256:8d42165df84a41d7be2d2734c3f08f9f6d9e76130912f8327ce1b0c15c8c4715",
+      "results": [
+        {
+          "digest": "sha256:fef53b107e97a40f172deed76f71aad447712c393694921ba7fa150070645202",
+          "id": "tos.form.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:dada49fab13422cdd028083a07b78ce3a52bef4724271991edd756eaa1126d99",
+          "id": "tos.form.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:835c6861d3d8816955174cebf0ab6bd0c9c4ab3c733628fd240f14b2fe4214b8",
+        "id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness.schema.json": "sha256:1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+      "request_digest": "sha256:0947bf3955d9a472d71cd444d477b258a5de1719fe5b5d98d5a7eecb636986ba",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:fc20f6b6ecc63d4685d745b9fd7a26442e04a8202015dc98846ba7227a1923b4",
+      "recorded_at": "2026-09-07T21:40:10.304067+00:00",
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness.schema.json": "sha256:1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f"
+      },
+      "source": {
+        "id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+        "version": 1,
+        "digest": "sha256:835c6861d3d8816955174cebf0ab6bd0c9c4ab3c733628fd240f14b2fe4214b8"
+      },
+      "previous_revision": "sha256:7f22392d63c0aabb255c32567755746a4c35895c5e8e19ef27af107143fec599",
+      "results": [
+        {
+          "id": "tos.form.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194.source-name",
+          "version": 2,
+          "digest": "sha256:a2c1a0bb7b66b688f973fd2f7710fcbef154c666a28b95cbff37ca51467f9134"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:835c6861d3d8816955174cebf0ab6bd0c9c4ab3c733628fd240f14b2fe4214b8",
+            "id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:835c6861d3d8816955174cebf0ab6bd0c9c4ab3c733628fd240f14b2fe4214b8",
+            "id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:835c6861d3d8816955174cebf0ab6bd0c9c4ab3c733628fd240f14b2fe4214b8",
+        "id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.artifact.egyptian.thebes.bnf-papyrus-prisse-egyptien-183-194",
+    "version": 1,
+    "digest": "sha256:835c6861d3d8816955174cebf0ab6bd0c9c4ab3c733628fd240f14b2fe4214b8"
+  }
+}

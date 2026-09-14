@@ -1,0 +1,59 @@
+{
+  "observation": "qualified-inversion-current-core",
+  "source_revision": "df679b9d9d821635e19bf3631055c2459fa92420380f94abbc4322417c35609d",
+  "claim": {
+    "digest": "sha256:3a1bef428f11f9b61a2ef5e46bd03f47407313d85e0653df7e99844815a5ee94",
+    "id": "tos.claim.jgb21-conception-inversion",
+    "version": 1
+  },
+  "form": {
+    "digest": "sha256:c05de961753c6ab231a09caa2f8628719efd83370e277fd3c43c98b28606d158",
+    "id": "tos.form.jgb21-conception-inversion.statement-en",
+    "version": 1
+  },
+  "context_kept": [
+    "assertion_layer",
+    "claim_id",
+    "claim_type",
+    "claim_version",
+    "counterevidence_refs",
+    "epistemic_status",
+    "evidence_refs",
+    "maker",
+    "object",
+    "polarity",
+    "predicate",
+    "provenance_event_ref",
+    "qualifiers",
+    "review_status",
+    "schema_version",
+    "subject_ref",
+    "visibility"
+  ],
+  "endpoints": {
+    "tos.conception.unfree-will-reversal-jgb21": {
+      "carriers": [
+        "source-claims:identity:tos.conception.unfree-will-reversal-jgb21",
+        "source-navigation:tos.conception.unfree-will-reversal-jgb21"
+      ],
+      "relation_ids": [
+        "source-claims:edge:tos.claim.jgb21-conception-inversion:has_subject:001"
+      ]
+    },
+    "tos.conception.metaphysical-self-origination-jgb21": {
+      "carriers": [
+        "source-claims:identity:tos.conception.metaphysical-self-origination-jgb21",
+        "source-navigation:tos.conception.metaphysical-self-origination-jgb21"
+      ],
+      "relation_ids": [
+        "source-claims:edge:tos.claim.jgb21-conception-inversion:has_object:002"
+      ]
+    }
+  },
+  "language": "en",
+  "derivation": "source-copy",
+  "form_state": "ready",
+  "performs_assessment": false,
+  "grants_admission": false,
+  "elapsed_seconds": 20.294
+}

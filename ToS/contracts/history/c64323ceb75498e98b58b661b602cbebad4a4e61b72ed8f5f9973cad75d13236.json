@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json",
+  "title": "Tree of Sophia historical association claim",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "claim_id",
+    "claim_type",
+    "assertion_layer",
+    "subject_ref",
+    "predicate",
+    "object",
+    "evidence_refs",
+    "maker",
+    "provenance_event_ref",
+    "epistemic_status",
+    "review_status",
+    "claim_version",
+    "visibility"
+  ],
+  "properties": {
+    "object": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/object"
+    },
+    "evidence_refs": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/evidence_refs"
+    },
+    "supporting_quotes": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/supporting_quotes"
+    },
+    "maker": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/maker"
+    },
+    "provenance_event_ref": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/provenance_event_ref"
+    },
+    "epistemic_status": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/epistemic_status"
+    },
+    "confidence": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/confidence"
+    },
+    "alternative_claim_refs": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/alternative_claim_refs"
+    },
+    "counterevidence_refs": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/counterevidence_refs"
+    },
+    "qualifiers": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/qualifiers"
+    },
+    "visibility": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/visibility"
+    },
+    "claim_version": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/claim_version"
+    },
+    "supersedes_claim_ref": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/supersedes_claim_ref"
+    },
+    "schema_version": {
+      "const": "tos_historical_claim_v1"
+    },
+    "claim_id": {
+      "type": "string",
+      "pattern": "^tos\\.claim\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "subject_ref": {
+      "type": "string",
+      "pattern": "^tos\\.(historical-event|historical-process|historical-state)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "claim_type": {
+      "const": "relation"
+    },
+    "assertion_layer": {
+      "const": "scholarly_report"
+    },
+    "predicate": {
+      "enum": [
+        "historical_participant",
+        "historical_place",
+        "historical_work",
+        "historical_dating"
+      ]
+    },
+    "review_status": {
+      "const": "unreviewed",
+      "description": "Initial source-record posture for the legacy carrier, not the current admission decision. Current scoped decisions belong to separately bound assessment records; no embedded human signature is required."
+    },
+    "assessment_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json#/$defs/exactRef"
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Uninterpreted source fields; no authority or inference."
+    }
+  },
+  "$defs": {
+    "historicalDate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "role", "calendar", "year_numbering", "certainty", "source_wording"],
+      "properties": {
+        "kind": {"enum": ["date-assertion", "interval-assertion", "relative-order", "unknown-date"]},
+        "role": {"const": "historical-time"},
+        "calendar": {"type": ["string", "null"], "minLength": 1},
+        "year_numbering": {"type": ["string", "null"], "minLength": 1},
+        "certainty": {"enum": ["exact", "approximate", "uncertain", "unknown"]},
+        "source_wording": {
+          "type": "object", "additionalProperties": false, "required": ["text", "language"],
+          "properties": {"text": {"type": "string", "pattern": "\\S"}, "language": {"type": ["string", "null"], "minLength": 1}}
+        },
+        "value": {"type": "string", "pattern": "\\S"},
+        "interval": {
+          "type": "object", "additionalProperties": false,
+          "anyOf": [{"required": ["start"]}, {"required": ["end"]}],
+          "properties": {"start": {"type": "string", "pattern": "\\S"}, "end": {"type": "string", "pattern": "\\S"}}
+        },
+        "relative": {
+          "type": "object", "additionalProperties": false, "required": ["relation", "anchor_ref"],
+          "properties": {
+            "relation": {"enum": ["before", "after", "during", "overlaps"]},
+            "anchor_ref": {"type": "string", "pattern": "^tos\\.(historical-event|historical-process|historical-state)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}
+          }
+        },
+        "extensions": {"type": "object"}
+      },
+      "oneOf": [
+        {"properties": {"kind": {"const": "date-assertion"}}, "required": ["value"], "not": {"anyOf": [{"required": ["interval"]}, {"required": ["relative"]}]}},
+        {"properties": {"kind": {"const": "interval-assertion"}}, "required": ["interval"], "not": {"anyOf": [{"required": ["value"]}, {"required": ["relative"]}]}},
+        {"properties": {"kind": {"const": "relative-order"}}, "required": ["relative"], "not": {"anyOf": [{"required": ["value"]}, {"required": ["interval"]}]}},
+        {"properties": {"kind": {"const": "unknown-date"}, "certainty": {"const": "unknown"}}, "not": {"anyOf": [{"required": ["value"]}, {"required": ["interval"]}, {"required": ["relative"]}]}}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"predicate": {"const": "historical_dating"}}},
+      "then": {"properties": {"object": {"$ref": "#/$defs/historicalDate"}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "predicate": {
+            "const": "historical_participant"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "qualifiers"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "pattern": "^tos\\.(agent|organization)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+          },
+          "qualifiers": {
+            "required": [
+              "participation_role"
+            ],
+            "properties": {
+              "participation_role": {
+                "type": "string",
+                "pattern": "\\S"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "predicate": {
+            "const": "historical_place"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "pattern": "^tos\\.place\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "predicate": {
+            "const": "historical_work"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "pattern": "^tos\\.work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+          }
+        }
+      }
+    }
+  ]
+}

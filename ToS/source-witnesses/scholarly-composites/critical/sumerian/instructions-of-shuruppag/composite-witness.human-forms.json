@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b358d708fde1e6286b7877fabdb177caa74519db9a30c8f833b7f5d01f23cb1c",
+            "id": "tos.composite.sumerian.instructions-of-shuruppag",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:b358d708fde1e6286b7877fabdb177caa74519db9a30c8f833b7f5d01f23cb1c",
+            "id": "tos.composite.sumerian.instructions-of-shuruppag",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:b358d708fde1e6286b7877fabdb177caa74519db9a30c8f833b7f5d01f23cb1c",
+            "id": "tos.composite.sumerian.instructions-of-shuruppag",
+            "version": 2
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:b358d708fde1e6286b7877fabdb177caa74519db9a30c8f833b7f5d01f23cb1c",
+            "id": "tos.composite.sumerian.instructions-of-shuruppag",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:b358d708fde1e6286b7877fabdb177caa74519db9a30c8f833b7f5d01f23cb1c",
+            "id": "tos.composite.sumerian.instructions-of-shuruppag",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.sumerian.instructions-of-shuruppag.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:817029a8a0bd03f680dc465b39bfea16695ff7bbffa38d13cd223ea9418ce0ee",
+        "id": "tos.form.composite.sumerian.instructions-of-shuruppag.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:b358d708fde1e6286b7877fabdb177caa74519db9a30c8f833b7f5d01f23cb1c",
+        "id": "tos.composite.sumerian.instructions-of-shuruppag",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:b358d708fde1e6286b7877fabdb177caa74519db9a30c8f833b7f5d01f23cb1c",
+            "id": "tos.composite.sumerian.instructions-of-shuruppag",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/editorial_object/description",
+          "record": {
+            "digest": "sha256:b358d708fde1e6286b7877fabdb177caa74519db9a30c8f833b7f5d01f23cb1c",
+            "id": "tos.composite.sumerian.instructions-of-shuruppag",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.sumerian.instructions-of-shuruppag.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:b358d708fde1e6286b7877fabdb177caa74519db9a30c8f833b7f5d01f23cb1c",
+        "id": "tos.composite.sumerian.instructions-of-shuruppag",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:composite.sumerian.instructions-of-shuruppag",
+      "owner_configuration": "sha256:b5f44fc3236eb5aafa7c5e4ee5eb2c91e1b3c9a76fa43f95373f0278a77dd643",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:10.784278+00:00",
+      "request_digest": "sha256:9e4b2866e1a4a7600d77685c150b8d39e85da768567e19bd638d6aa04a9e4ee7",
+      "results": [
+        {
+          "digest": "sha256:817029a8a0bd03f680dc465b39bfea16695ff7bbffa38d13cd223ea9418ce0ee",
+          "id": "tos.form.composite.sumerian.instructions-of-shuruppag.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:39881aa968be21df09599e6be782e66c87c64f8450eaa53bc3641d384e0832ec",
+          "id": "tos.form.composite.sumerian.instructions-of-shuruppag.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:b358d708fde1e6286b7877fabdb177caa74519db9a30c8f833b7f5d01f23cb1c",
+        "id": "tos.composite.sumerian.instructions-of-shuruppag",
+        "version": 2
+      },
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:composite.sumerian.instructions-of-shuruppag",
+      "request_digest": "sha256:97f859245e6f91eac25af972c2ae3c53434eb36614970cfed83702a07e53d77f",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:b5f44fc3236eb5aafa7c5e4ee5eb2c91e1b3c9a76fa43f95373f0278a77dd643",
+      "recorded_at": "2026-09-07T21:40:11.515058+00:00",
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      },
+      "source": {
+        "id": "tos.composite.sumerian.instructions-of-shuruppag",
+        "version": 2,
+        "digest": "sha256:b358d708fde1e6286b7877fabdb177caa74519db9a30c8f833b7f5d01f23cb1c"
+      },
+      "previous_revision": "sha256:626f357a3dbdb8fb0e83691037d644af5945441705fbc556868a01e94a35ba05",
+      "results": [
+        {
+          "id": "tos.form.composite.sumerian.instructions-of-shuruppag.source-name",
+          "version": 2,
+          "digest": "sha256:1df740395f63af0593a49c07d189d0c52f940ccdc2c2dbb3e7dd362cb5d259e6"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:b358d708fde1e6286b7877fabdb177caa74519db9a30c8f833b7f5d01f23cb1c",
+            "id": "tos.composite.sumerian.instructions-of-shuruppag",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:b358d708fde1e6286b7877fabdb177caa74519db9a30c8f833b7f5d01f23cb1c",
+            "id": "tos.composite.sumerian.instructions-of-shuruppag",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.sumerian.instructions-of-shuruppag.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:b358d708fde1e6286b7877fabdb177caa74519db9a30c8f833b7f5d01f23cb1c",
+        "id": "tos.composite.sumerian.instructions-of-shuruppag",
+        "version": 2
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.composite.sumerian.instructions-of-shuruppag",
+    "version": 2,
+    "digest": "sha256:b358d708fde1e6286b7877fabdb177caa74519db9a30c8f833b7f5d01f23cb1c"
+  }
+}

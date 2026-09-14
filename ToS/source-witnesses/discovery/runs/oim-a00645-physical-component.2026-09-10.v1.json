@@ -1,0 +1,79 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.oim-a00645-physical-component-20260910",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "artifact",
+    "known_tos_refs": ["tos.artifact.sumerian.adab.oim-a00645"],
+    "description": "Reported OIM A00645 component of the existing P222243 inventory ensemble, distinct from the ensemble and its digital catalog record.",
+    "required_properties": ["Exact reported inventory designation", "Explicitly bounded relationship to the ensemble", "Preserved source-page fingerprint and uncertainty"],
+    "acceptable_substitutions": [],
+    "languages": ["en"],
+    "formats": ["text/html metadata snapshot"],
+    "purpose_ref": "ToS/review-ledger/2026-09-10-oim-a00645-physical-component-source-reading.md"
+  },
+  "channels": [{
+    "channel_id": "channel-cdli-exact-ensemble",
+    "sequence": 1,
+    "channel_type": "specialized-scholarly-project",
+    "role": "digital-object-record",
+    "source_name": "Cuneiform Digital Library Initiative",
+    "endpoint_url": "https://cdli.earth/artifacts/222243",
+    "interface_type": "web",
+    "interface_version": null,
+    "exact_query": "GET https://cdli.earth/artifacts/222243 (no query parameters); exact existing ensemble record, not a broad search",
+    "queried_at": "2026-09-10T01:22:50Z",
+    "elapsed_seconds": 3.822093,
+    "result_order_preserved": true,
+    "results": [{
+      "result_id": "tos-discovery-result.oim-a00645-component-p222243-20260910",
+      "rank": 1,
+      "title_as_displayed": "OIM A00645 + OIM A00649a–i",
+      "result_url": "https://cdli.earth/artifacts/222243",
+      "originating_record_url": null,
+      "identifiers": [{"scheme": "CDLI ensemble record", "value": "P222243"}],
+      "available_formats": ["text/html"],
+      "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+      "availability": "open-view",
+      "machine_interface": "html",
+      "decision": "select",
+      "rationale": "The displayed inventory expression supports a bounded reported component identity. It does not independently establish a join, complete set, date, reading or museum-record equivalence.",
+      "acquisition": {
+        "downloaded": true,
+        "acquired_at": "2026-09-10T01:22:54Z",
+        "byte_size": 84319,
+        "sha256": "043129322cc92daef0306768e01128c06fc0deefc30584ff6811ad45ecd9863a",
+        "event_ref": "tos.event.oim-a00645-catalog-snapshot-20260910"
+      },
+      "snapshot": {
+        "state": "captured",
+        "format": "static-snapshot",
+        "sha256": "043129322cc92daef0306768e01128c06fc0deefc30584ff6811ad45ecd9863a",
+        "reason": "Exact catalog HTML retained as access-restricted local evidence. Acquisition concerns this response, not artifact/media bytes or an admitted transcription. The snapshot is not included in tracked or public projections."
+      }
+    }]
+  }],
+  "channel_comparison": [{
+    "channel_id": "channel-cdli-exact-ensemble",
+    "completeness": "limited",
+    "metadata_precision": "adequate",
+    "rights_clarity": "unknown",
+    "machine_interface_quality": "adequate",
+    "human_minutes": 0,
+    "machine_seconds": 3.822093,
+    "notes": "This timed capture continues the exact existing ensemble source route. Earlier browser inspection and two unsuccessful originating-museum link opens were not separately timed and are not reconstructed as measured channels; their limits are recorded in the source-reading note. No human participated. Transfer timing excludes agent interpretation, source writing and earlier browsing. Independent museum reconciliation remains incomplete."
+  }],
+  "selected_result_ids": ["tos-discovery-result.oim-a00645-component-p222243-20260910"],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "agent:codex-tos-foundation"},
+  "started_at": "2026-09-10T01:22:50Z",
+  "ended_at": "2026-09-10T01:22:54Z",
+  "status": "incomplete",
+  "provenance_event_refs": ["tos.event.oim-a00645-catalog-snapshot-20260910"],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

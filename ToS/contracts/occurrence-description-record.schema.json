@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/occurrence-description-record.schema.json",
+  "title": "Situated occurrence with an exact native text-unit return",
+  "description": "A correctable research description of one particular use, not its Lexeme, written form, sense, TextUnit or Anchor. A frozen native binding fixes the addressed unit; linguistic attribution is expressed by separately assessed Claims. Unit granularity and proposed segmentation posture remain those of the native packet, never inferred from the description label.",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"},
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"},
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields"},
+    {"required": ["native_text_binding"], "properties": {
+      "schema_version": {"const": "tos_occurrence_description_record_v1"},
+      "record_type": {"const": "occurrence"},
+      "record_id": {"pattern": "^tos\\.occurrence\\."},
+      "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.occurrence\\."},
+      "native_text_binding": {"$ref": "https://tree-of-sophia.local/ToS/contracts/native-text-unit-binding.schema.json"},
+      "semantic_content": {"required": ["occurrence_account", "context_account"], "properties": {
+        "occurrence_account": {"type": "string", "pattern": "\\S", "description": "The source-described use and its uncertainty; its token, sentence or other granularity is not proof of a particular linguistic reading."},
+        "context_account": {"type": "string", "pattern": "\\S", "description": "The situated reading context and limits, without turning surrounding text or a work label into an exact source binding."}
+      }}
+    }}
+  ],
+  "unevaluatedProperties": false
+}

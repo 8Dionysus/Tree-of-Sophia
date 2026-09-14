@@ -118,6 +118,8 @@ class ProcessingScheduler:
             run_id TEXT NOT NULL, task_id TEXT NOT NULL, dependency_id TEXT NOT NULL,
             PRIMARY KEY(run_id,task_id,dependency_id)
           );
+          CREATE INDEX IF NOT EXISTS processing_dependencies_reverse
+            ON processing_dependencies(run_id,dependency_id,task_id);
           CREATE TABLE IF NOT EXISTS completed_steps (cache_key TEXT PRIMARY KEY, payload TEXT NOT NULL);
           CREATE TABLE IF NOT EXISTS processing_publication (
             singleton INTEGER PRIMARY KEY CHECK(singleton=1), run_id TEXT NOT NULL

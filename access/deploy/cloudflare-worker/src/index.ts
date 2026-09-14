@@ -22,12 +22,20 @@ import {
   knowledgeNodeD1,
   knowledgeRelationD1,
   knowledgeSearchD1,
+  knowledgeSearchD1Indexed,
+  knowledgeTemporalCompareD1,
+  knowledgeCatalogD1,
+  storedKnowledgeLensD1,
 } from "./knowledge-store";
 import { SourceNavigationError } from "./source-navigation";
 import { sourceDescendD1, sourceDossierD1 } from "./source-navigation-store";
 import { metaItem } from "./store";
 import { KnowledgeRevisionConflict } from "./lens-pagination";
 import { exploreD1, explorationCapabilitiesD1 } from "./exploration";
+import {parseNativeRequest, type NativeRef} from './native-lens.ts';
+import {nativeLensResponse, nativePacketResponse} from './native-lens-response.ts';
+import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
+import {nativeStrip,nativeIntegerString} from '../../../shared/native-unicode.ts';
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
 const STATIC_PHILOSOPHY_LIMITS = new Set([1, 1000]);
@@ -84,7 +92,7 @@ async function sourceGapResponse(request: Request, env: Env, search: URLSearchPa
   return jsonResponse({ ...packet, query, result_count: gaps.length, gaps }, 200, request.method);
 }
 
-async function lensCompileResponse(request: Request, env: Env, exploration = false): Promise<Response> {
+async function lensCompileResponse(request: Request, env: Env, operation: 'lens' | 'exploration' | 'temporal' = 'lens'): Promise<Response> {
   const contentType = ((request.headers.get("Content-Type") ?? "").split(";").at(0) ?? "").trim().toLowerCase();
   if (contentType !== "application/json") throw new HttpError(415, "lens request must use application/json");
   const declaredLength = request.headers.get("Content-Length");
@@ -116,19 +124,25 @@ async function lensCompileResponse(request: Request, env: Env, exploration = fal
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  let spec: unknown;
+  let spec: unknown, nativeSpec: NativeRef | null = null;
   try {
-    spec = JSON.parse(new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(bytes));
+    const raw = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
+    if (operation === 'lens' || operation === 'exploration') {nativeSpec = parseNativeRequest(raw, {maxBytes: MAX_LENS_REQUEST_BYTES}); spec = nativeSpec.value;}
+    else spec = JSON.parse(raw);
   } catch (error) {
     throw new HttpError(400, `invalid LensSpec JSON: ${error instanceof Error ? error.message : "decode failed"}`);
   }
   if (!spec || typeof spec !== "object" || Array.isArray(spec)) throw new HttpError(400, "lens spec must be an object");
   try {
-    return jsonResponse(await (exploration ? exploreD1(env.DB, spec) : executeKnowledgeLensD1(env.DB, spec)), 200, request.method);
+    if (nativeSpec && operation === 'lens') return nativeLensResponse(await executeKnowledgeLensD1(env.DB, nativeSpec), 200, request.method);
+    if (operation === 'temporal') return nativePacketResponse(await knowledgeTemporalCompareD1(env.DB,spec),200,request.method);
+    return withSecurity(new Response(await exploreD1(env.DB,spec,nativeSpec??undefined),{status:200,
+      headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}}));
   } catch (error) {
     if (error instanceof KnowledgeRevisionConflict) throw error;
     if (error instanceof HttpError) throw error;
-    if (!exploration && error instanceof Error) throw new HttpError(400, error.message);
+    if (error instanceof NativeBudgetExceeded) throw new HttpError(413, error.message);
+    if (operation === 'lens' && error instanceof Error) throw new HttpError(400, error.message);
     throw error;
   }
 }
@@ -205,7 +219,6 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   const fixedAssets: Record<string, string> = {
     "/api/corpus/status": "corpus/status.json",
     "/api/corpus/summary": "corpus/summary.json",
-    "/api/knowledge/catalog": "knowledge/catalog.json",
     "/api/knowledge/contracts": "knowledge/contracts.json",
     "/api/philosophy/status": "philosophy/status.json",
     "/api/philosophy/views": "philosophy/views.json",
@@ -216,20 +229,46 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   };
   const fixedAsset = fixedAssets[path];
   if (fixedAsset) return staticApi(env, request, fixedAsset);
+  if (path === '/api/knowledge/catalog') return nativePacketResponse(await knowledgeCatalogD1(env.DB),200,method);
 
   if (path === "/api/knowledge/search") {
-    return jsonResponse(await knowledgeSearchD1(env.DB, {
-      query: search.get("query") ?? "",
-      sources: listParam(search, "sources").length ? listParam(search, "sources") : null,
-      kindIds: listParam(search, "kind_ids"),
-      predicateIds: listParam(search, "predicate_ids"),
-      offset: boundedInt(search.get("offset"), 0, 0, 100_000),
-      limit: boundedInt(search.get("limit"), 40, 1, 100),
+    // Match the Python HTTP adapter's list and integer parsing here; other
+    // routes retain their independently owned input compatibility behavior.
+    // parse_qs drops empty values before _single chooses the first value.
+    const searchValue=(key:string)=>search.getAll(key).find(value=>value!=='')??null;
+    const searchList=(key:string)=>(searchValue(key)??'').split(',').filter(Boolean);
+    const searchInteger=(key:string,fallback:number,minimum:number,maximum:number)=>{
+      const raw=searchValue(key);if(raw===null)return fallback;
+      const parsed=nativeIntegerString(raw);
+      // Python's default decimal-int conversion limit counts digits, not signs
+      // or separators. A failed parse uses the transport's default then clamp.
+      return Math.max(minimum,Math.min(maximum,Number.isNaN(parsed)||[...nativeStrip(raw).replace(/[_+-]/g,'')].length>4300?fallback:parsed));
+    };
+    const mode = searchValue("mode") ?? "legacy";
+    if (mode === "indexed") {
+      if (searchInteger('offset',0,0,100_000) !== 0) throw new HttpError(400, "indexed knowledge search uses cursor continuation, not offset");
+      return nativePacketResponse(await knowledgeSearchD1Indexed(env.DB, {
+        query: searchValue("query") ?? "",
+        sources: searchList('sources').length ? searchList('sources') : null,
+        kindIds: searchList('kind_ids'),
+        predicateIds: searchList('predicate_ids'),
+        cursor: searchValue("cursor"),
+        limit: searchInteger('limit',40,1,100),
+      }), 200, method);
+    }
+    if (mode !== "legacy") throw new HttpError(400, "knowledge search mode must be legacy or indexed");
+    return nativePacketResponse(await knowledgeSearchD1(env.DB, {
+      query: searchValue("query") ?? "",
+      sources: searchList('sources').length ? searchList('sources') : null,
+      kindIds: searchList('kind_ids'),
+      predicateIds: searchList('predicate_ids'),
+      offset: searchInteger('offset',0,0,100_000),
+      limit: searchInteger('limit',40,1,100),
     }), 200, method);
   }
   const knowledgeNodePrefix = "/api/knowledge/nodes/";
   if (path.startsWith(knowledgeNodePrefix)) {
-    return jsonResponse(
+    return nativePacketResponse(
       await knowledgeNodeD1(env.DB, segment(path, knowledgeNodePrefix), boundedInt(search.get("relation_limit"), 200, 0, 1000)),
       200,
       method,
@@ -237,7 +276,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   }
   const knowledgeRelationPrefix = "/api/knowledge/relations/";
   if (path.startsWith(knowledgeRelationPrefix)) {
-    return jsonResponse(await knowledgeRelationD1(env.DB, segment(path, knowledgeRelationPrefix)), 200, method);
+    return nativePacketResponse(await knowledgeRelationD1(env.DB, segment(path, knowledgeRelationPrefix)), 200, method);
   }
   const knowledgeFocusPrefix = "/api/knowledge/focus/";
   if (path.startsWith(knowledgeFocusPrefix)) {
@@ -248,7 +287,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
       throw new HttpError(400, "direction must be outgoing, incoming, or either");
     }
     const sources = listParam(search, "sources");
-    return jsonResponse(await focusKnowledgeNodeD1(env.DB, segment(path, knowledgeFocusPrefix), {
+    return nativeLensResponse(await focusKnowledgeNodeD1(env.DB, segment(path, knowledgeFocusPrefix), {
       ...(sources.length ? { sources } : {}),
       depth: boundedInt(search.get("depth"), 1, 0, 5),
       direction,
@@ -261,12 +300,9 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   const knowledgeLensPrefix = "/api/knowledge/lenses/";
   if (path.startsWith(knowledgeLensPrefix)) {
     const lensId = segment(path, knowledgeLensPrefix);
-    const catalog = await staticItem(env, request, "knowledge/catalog.json");
-    const lenses = Array.isArray(catalog.lenses) ? catalog.lenses : [];
-    const spec = lenses.find((item) => item && typeof item === "object" && !Array.isArray(item) && (item as Item).lens_id === lensId);
-    if (!spec) throw new HttpError(404, `unknown ToS knowledge lens: ${lensId}`);
-    return jsonResponse(await executeKnowledgeLensD1(env.DB, spec), 200, method);
+    return nativeLensResponse(await storedKnowledgeLensD1(env.DB, lensId), 200, method);
   }
+
 
   if (path === "/api/philosophy/review-packet") {
     const viewId = (search.get("view_id") || "chronology").trim();
@@ -420,9 +456,11 @@ export default {
       url.hostname = "treeofsophia.com";
       return Response.redirect(url.toString(), 308);
     }
-    if (request.method === "POST" && ["/api/knowledge/lenses/compile", "/api/knowledge/explore"].includes(url.pathname)) {
+    if (request.method === "POST" && ["/api/knowledge/lenses/compile", "/api/knowledge/explore", "/api/knowledge/temporal/compare"].includes(url.pathname)) {
       try {
-        return await lensCompileResponse(request, env, url.pathname === "/api/knowledge/explore");
+        const operation = url.pathname === '/api/knowledge/explore' ? 'exploration'
+          : url.pathname === '/api/knowledge/temporal/compare' ? 'temporal' : 'lens';
+        return await lensCompileResponse(request, env, operation);
       } catch (error) {
         if (error instanceof KnowledgeRevisionConflict) return jsonResponse({ error: error.message }, 409, request.method);
         if (error instanceof HttpError) return jsonResponse({ error: error.message }, error.status, request.method);
@@ -437,6 +475,9 @@ export default {
       try {
         return await apiResponse(request, env, url);
       } catch (error) {
+        if (error instanceof NativeBudgetExceeded && (['/api/knowledge/search','/api/knowledge/catalog'].includes(url.pathname)||['/api/knowledge/focus/','/api/knowledge/lenses/','/api/knowledge/nodes/','/api/knowledge/relations/'].some(prefix => url.pathname.startsWith(prefix)))) {
+          return jsonResponse({error: error.message}, 413, request.method);
+        }
         if (error instanceof HttpError || error instanceof SourceNavigationError) {
           return jsonResponse({ error: error.message }, error.status, request.method);
         }

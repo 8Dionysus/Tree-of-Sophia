@@ -1,0 +1,48 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "work",
+  "record_id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+  "preferred_label": "Jenseits von Gut und Böse",
+  "variant_labels": [
+    {
+      "value": "По ту сторону добра и зла",
+      "language": "ru",
+      "source_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/runs/nietzsche-mysl-volume-2-member-works.2026-07-28.v1.json",
+    "ToS/source-witnesses/discovery/runs/jenseits-authorial-witness-route.2026-07-30.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_AUTHORIAL_WITNESS_ROUTE.md",
+    "https://d-nb.info/gnd/4211811-6",
+    "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75093",
+    "https://opac.lbs-weimar.gbv.de/DB=2/XMLPRS=N/PPN?PPN=30939905X",
+    "http://www.nietzschesource.org/DFGA/D-18",
+    "http://www.nietzschesource.org/eKGWB/JGB",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "GND",
+      "value": "4211811-6",
+      "source_ref": "https://d-nb.info/gnd/4211811-6",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "responsibility_claim_refs": [
+    "tos.claim.work.jenseits-von-gut-und-boese.authored-by-friedrich-nietzsche"
+  ],
+  "chronology_claim_refs": [
+    "tos.claim.work.jenseits-von-gut-und-boese.first-publication-chronology"
+  ],
+  "expression_claim_refs": [
+    "tos.claim.topology.work-expression.friedrich-nietzsche.jenseits-von-gut-und-boese.has-expression.de-naumann-1886",
+    "tos.claim.topology.work-expression.friedrich-nietzsche.jenseits-von-gut-und-boese.has-expression.ru-polilov-mysl-1996"
+  ],
+  "notes": "Work identity follows the current GND work authority. Its 1886 German first-print item and Russian Polilov/Mysl expression are represented separately. The metadata-only authorial route now distinguishes region-specific W I 3-W I 8 and loose-leaf material, the reassembled D 18 print manuscript, HAAB C 4615 and C 4619 correction witnesses, the historical first print, and stable eKGWB critical addresses. It creates no remote Item, whole-notebook work-membership claim, accepted German, author-final synthesis, semantic authority, or publication permission.",
+  "record_version": 5,
+  "supersedes_ref": null
+}

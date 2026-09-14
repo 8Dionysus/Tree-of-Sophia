@@ -1,0 +1,158 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.event.thus-spoke-zarathustra.prologue.departure-from-origin",
+    "version": 1,
+    "digest": "sha256:6a66446b937f6e4893c1edd8abb852467e5f7ad2c1487858e36d80e854c3b386"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:6a66446b937f6e4893c1edd8abb852467e5f7ad2c1487858e36d80e854c3b386",
+            "id": "tos.event.thus-spoke-zarathustra.prologue.departure-from-origin",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:6a66446b937f6e4893c1edd8abb852467e5f7ad2c1487858e36d80e854c3b386",
+            "id": "tos.event.thus-spoke-zarathustra.prologue.departure-from-origin",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "software:tos-foundation-primary-agent",
+      "form_id": "tos.form.canon.departure-from-origin.preferred-name",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6a66446b937f6e4893c1edd8abb852467e5f7ad2c1487858e36d80e854c3b386",
+        "id": "tos.event.thus-spoke-zarathustra.prologue.departure-from-origin",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:6a66446b937f6e4893c1edd8abb852467e5f7ad2c1487858e36d80e854c3b386",
+            "id": "tos.event.thus-spoke-zarathustra.prologue.departure-from-origin",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:6a66446b937f6e4893c1edd8abb852467e5f7ad2c1487858e36d80e854c3b386",
+            "id": "tos.event.thus-spoke-zarathustra.prologue.departure-from-origin",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "software:tos-foundation-primary-agent",
+      "form_id": "tos.form.canon.departure-from-origin.variant-name-0",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:6a66446b937f6e4893c1edd8abb852467e5f7ad2c1487858e36d80e854c3b386",
+        "id": "tos.event.thus-spoke-zarathustra.prologue.departure-from-origin",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:6a66446b937f6e4893c1edd8abb852467e5f7ad2c1487858e36d80e854c3b386",
+            "id": "tos.event.thus-spoke-zarathustra.prologue.departure-from-origin",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/distilled_thesis",
+          "record": {
+            "digest": "sha256:6a66446b937f6e4893c1edd8abb852467e5f7ad2c1487858e36d80e854c3b386",
+            "id": "tos.event.thus-spoke-zarathustra.prologue.departure-from-origin",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "software:tos-foundation-primary-agent",
+      "form_id": "tos.form.canon.departure-from-origin.thesis",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "statement",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6a66446b937f6e4893c1edd8abb852467e5f7ad2c1487858e36d80e854c3b386",
+        "id": "tos.event.thus-spoke-zarathustra.prologue.departure-from-origin",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation:canonical-departure-from-origin:20260914-r1",
+      "request_digest": "sha256:6a34f85064082c7285dd45d1187dbf23c71869e6aaffb896a19b00ff7e4e21ed",
+      "principal_id": "software:tos-foundation-primary-agent",
+      "authority_ref": "ToS/review-ledger/2026-09-14-canonical-node-wording.md",
+      "owner_configuration": "sha256:34e8feaaeee2de00fe72e3f41a076bb2d6dcb8c8e676279d37738a95de5350a8",
+      "recorded_at": "2026-09-14T07:04:17.795751+00:00",
+      "source_contracts": {
+        "ToS/contracts/tos-node-contract.schema.json": "sha256:8bd303ef4ee8d5f50d7440276bb52f06dca150cde4107daf4ca3e5e347c43040"
+      },
+      "source": {
+        "id": "tos.event.thus-spoke-zarathustra.prologue.departure-from-origin",
+        "version": 1,
+        "digest": "sha256:6a66446b937f6e4893c1edd8abb852467e5f7ad2c1487858e36d80e854c3b386"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.canon.departure-from-origin.preferred-name",
+          "version": 1,
+          "digest": "sha256:26ed335ee06c4dbc91710ac742d3e220cf2b56c432c75bf2a5a370597fdd8966"
+        },
+        {
+          "id": "tos.form.canon.departure-from-origin.variant-name-0",
+          "version": 1,
+          "digest": "sha256:5dd20690a33c330fd770f7db57c6ba41b4e679891002f3acd1557084cc3516f1"
+        },
+        {
+          "id": "tos.form.canon.departure-from-origin.thesis",
+          "version": 1,
+          "digest": "sha256:a07a61e4bf9bb3e51adb1334b5d5a549383f7c096dbfe75a2e865b74a0783d98"
+        }
+      ]
+    }
+  ]
+}

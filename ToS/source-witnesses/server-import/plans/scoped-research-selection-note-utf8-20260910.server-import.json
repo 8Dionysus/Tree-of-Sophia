@@ -1,0 +1,123 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "alignments": {
+      "conditions": [
+        "This future-server plan covers the original acquired Item only and permits no payload transfer or content-bearing server processing. Separately scoped public project-note output does not alter this Item policy."
+      ],
+      "state": "prohibited"
+    },
+    "annotations": {
+      "conditions": [
+        "This future-server plan covers the original acquired Item only and permits no payload transfer or content-bearing server processing. Separately scoped public project-note output does not alter this Item policy."
+      ],
+      "state": "prohibited"
+    },
+    "embeddings": {
+      "conditions": [
+        "This future-server plan covers the original acquired Item only and permits no payload transfer or content-bearing server processing. Separately scoped public project-note output does not alter this Item policy."
+      ],
+      "state": "prohibited"
+    },
+    "graph_projection": {
+      "conditions": [
+        "Reviewed public-safe original-Item identity, fixity, rights posture and provenance metadata only; no automatic payload discovery, original text transfer or deployment authority."
+      ],
+      "state": "conditional"
+    },
+    "lexical_index": {
+      "conditions": [
+        "This future-server plan covers the original acquired Item only and permits no payload transfer or content-bearing server processing. Separately scoped public project-note output does not alter this Item policy."
+      ],
+      "state": "prohibited"
+    },
+    "ocr": {
+      "conditions": [
+        "This future-server plan covers the original acquired Item only and permits no payload transfer or content-bearing server processing. Separately scoped public project-note output does not alter this Item policy."
+      ],
+      "state": "prohibited"
+    },
+    "page_images": {
+      "conditions": [
+        "This future-server plan covers the original acquired Item only and permits no payload transfer or content-bearing server processing. Separately scoped public project-note output does not alter this Item policy."
+      ],
+      "state": "prohibited"
+    },
+    "search_projection": {
+      "conditions": [
+        "Reviewed public-safe original-Item identity, fixity, rights posture and provenance metadata only; no automatic payload discovery, original text transfer or deployment authority."
+      ],
+      "state": "conditional"
+    },
+    "snippets": {
+      "conditions": [
+        "This future-server plan covers the original acquired Item only and permits no payload transfer or content-bearing server processing. Separately scoped public project-note output does not alter this Item policy."
+      ],
+      "state": "prohibited"
+    },
+    "transcription": {
+      "conditions": [
+        "This future-server plan covers the original acquired Item only and permits no payload transfer or content-bearing server processing. Separately scoped public project-note output does not alter this Item policy."
+      ],
+      "state": "prohibited"
+    },
+    "translations": {
+      "conditions": [
+        "This future-server plan covers the original acquired Item only and permits no payload transfer or content-bearing server processing. Separately scoped public project-note output does not alter this Item policy."
+      ],
+      "state": "prohibited"
+    }
+  },
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 2,
+  "item_ref": "tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.manifest.json",
+    "sha256": "375804c4b5165d12b9591a1a75c00c728f0586d8c22909e7fe44a28c2eabb37f",
+    "verified": true
+  },
+  "operator_transfer_approval": {
+    "approval_ref": null,
+    "approved": false,
+    "approved_at": null,
+    "approved_by_real_human": false
+  },
+  "payload_files": [
+    {
+      "byte_size": 3320,
+      "file_ref": "tos.file.sha256.94f66621e381f4a1f34782943f45d4ab65e3b4ba056b8a67df4b500ac897813c",
+      "relative_path": "payload/scoped-research-selection.md",
+      "sha256": "94f66621e381f4a1f34782943f45d4ab65e3b4ba056b8a67df4b500ac897813c",
+      "verified": true
+    }
+  ],
+  "payload_transfer_authorized": false,
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.scoped-research-selection-note-utf8.20260910"
+  ],
+  "publication_status": "metadata-only",
+  "rights_policy": {
+    "assessment_status": "rights-unknown",
+    "expires_at": null,
+    "jurisdictions_reviewed": [],
+    "permission_or_license_refs": [],
+    "recheck_before_transfer": true,
+    "review_status": "unreviewed",
+    "rights_record_ref": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/rights.json",
+    "rights_record_sha256": "509b9cf12117343782c66e4cda06a9aa1e9e7cb7e0338c6108787851fad36aae"
+  },
+  "schema_version": "tos_server_import_contract_v1",
+  "server_copy_is_authority": false,
+  "server_import_id": "tos.server-import.scoped-research-selection-note-utf8-20260910",
+  "server_import_status": "blocked-rights",
+  "server_receipt_refs": [],
+  "supersedes_server_import_ref": null,
+  "takedown": {
+    "delete_supported": true,
+    "disable_supported": true,
+    "last_reviewed_at": "2026-09-10T01:58:41.962523+00:00",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues"
+  }
+}

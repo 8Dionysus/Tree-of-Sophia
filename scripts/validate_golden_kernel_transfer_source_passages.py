@@ -604,6 +604,9 @@ def _validate_provenance(
 def _validate_no_tracked_private_content(
     repo_root: Path, payload: dict[str, Any]
 ) -> None:
+    # The source-near custody route may contain ignored private candidates.
+    # Default validation checks the Git boundary without opening those bytes;
+    # content/fixity/mode checks require the explicit local-output root below.
     result = subprocess.run(
         ["git", "ls-files", f"{GOLD_ROOT.as_posix()}/local-content"],
         cwd=repo_root,
@@ -621,8 +624,6 @@ def _validate_no_tracked_private_content(
         ref = candidate["private_content_ref"]
         if ref is None:
             continue
-        if (repo_root / ref).exists():
-            raise ValidationFailure(f"private content entered checkout: {ref}")
         ignored = subprocess.run(
             ["git", "check-ignore", "-q", ref], cwd=repo_root, check=False
         )

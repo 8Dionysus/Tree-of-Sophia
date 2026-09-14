@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:21825c89817b7254cfcc27e77f2d44f47cb3ea7caf54ba902192c668a8d254db",
+            "id": "tos.composite.egyptian.harpers-songs-witnesses",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:21825c89817b7254cfcc27e77f2d44f47cb3ea7caf54ba902192c668a8d254db",
+            "id": "tos.composite.egyptian.harpers-songs-witnesses",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:21825c89817b7254cfcc27e77f2d44f47cb3ea7caf54ba902192c668a8d254db",
+            "id": "tos.composite.egyptian.harpers-songs-witnesses",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:21825c89817b7254cfcc27e77f2d44f47cb3ea7caf54ba902192c668a8d254db",
+            "id": "tos.composite.egyptian.harpers-songs-witnesses",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:21825c89817b7254cfcc27e77f2d44f47cb3ea7caf54ba902192c668a8d254db",
+            "id": "tos.composite.egyptian.harpers-songs-witnesses",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.egyptian.harpers-songs-witnesses.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:927283c02d71d626c8a059d25dd6a9909c8d850a39e762b8c0988dddd92b1737",
+        "id": "tos.form.composite.egyptian.harpers-songs-witnesses.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:21825c89817b7254cfcc27e77f2d44f47cb3ea7caf54ba902192c668a8d254db",
+        "id": "tos.composite.egyptian.harpers-songs-witnesses",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:21825c89817b7254cfcc27e77f2d44f47cb3ea7caf54ba902192c668a8d254db",
+            "id": "tos.composite.egyptian.harpers-songs-witnesses",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/editorial_object/description",
+          "record": {
+            "digest": "sha256:21825c89817b7254cfcc27e77f2d44f47cb3ea7caf54ba902192c668a8d254db",
+            "id": "tos.composite.egyptian.harpers-songs-witnesses",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.egyptian.harpers-songs-witnesses.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:21825c89817b7254cfcc27e77f2d44f47cb3ea7caf54ba902192c668a8d254db",
+        "id": "tos.composite.egyptian.harpers-songs-witnesses",
+        "version": 1
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:composite.egyptian.harpers-songs-witnesses",
+      "owner_configuration": "sha256:9c9bcfec3861e90329883c4e85b51b8f880898e04b22fe4796cf79637efe888d",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:10.583408+00:00",
+      "request_digest": "sha256:f0bb7ea746044ff2c2ad72c7a3b6cd94c1ac30a393278a01e511938b30eef213",
+      "results": [
+        {
+          "digest": "sha256:927283c02d71d626c8a059d25dd6a9909c8d850a39e762b8c0988dddd92b1737",
+          "id": "tos.form.composite.egyptian.harpers-songs-witnesses.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:c2e80ee339634d213a7148a2af4519c6e155864915f084b028245accd91b2d24",
+          "id": "tos.form.composite.egyptian.harpers-songs-witnesses.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:21825c89817b7254cfcc27e77f2d44f47cb3ea7caf54ba902192c668a8d254db",
+        "id": "tos.composite.egyptian.harpers-songs-witnesses",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:composite.egyptian.harpers-songs-witnesses",
+      "request_digest": "sha256:c6459fcf302f4440d86a99d83ab61ee5e8b891dcd52025273efa1141c0f2564f",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:9c9bcfec3861e90329883c4e85b51b8f880898e04b22fe4796cf79637efe888d",
+      "recorded_at": "2026-09-07T21:40:11.317150+00:00",
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      },
+      "source": {
+        "id": "tos.composite.egyptian.harpers-songs-witnesses",
+        "version": 1,
+        "digest": "sha256:21825c89817b7254cfcc27e77f2d44f47cb3ea7caf54ba902192c668a8d254db"
+      },
+      "previous_revision": "sha256:26178e6865dac601a32dc0fe39510b5e0ff929f6788185623bab7357ff7f9c62",
+      "results": [
+        {
+          "id": "tos.form.composite.egyptian.harpers-songs-witnesses.source-name",
+          "version": 2,
+          "digest": "sha256:e83538a94bfd3e79ed5e92bd5c337fa4002e0be50d4774bf1f42b35ce854d662"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:21825c89817b7254cfcc27e77f2d44f47cb3ea7caf54ba902192c668a8d254db",
+            "id": "tos.composite.egyptian.harpers-songs-witnesses",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:21825c89817b7254cfcc27e77f2d44f47cb3ea7caf54ba902192c668a8d254db",
+            "id": "tos.composite.egyptian.harpers-songs-witnesses",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.egyptian.harpers-songs-witnesses.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:21825c89817b7254cfcc27e77f2d44f47cb3ea7caf54ba902192c668a8d254db",
+        "id": "tos.composite.egyptian.harpers-songs-witnesses",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.composite.egyptian.harpers-songs-witnesses",
+    "version": 1,
+    "digest": "sha256:21825c89817b7254cfcc27e77f2d44f47cb3ea7caf54ba902192c668a8d254db"
+  }
+}

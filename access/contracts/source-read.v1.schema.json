@@ -1,0 +1,339 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.local/access/contracts/source-read.v1.schema.json",
+  "title": "Bounded owner-issued exact source read",
+  "description": "Owner-selected exact metadata, Claim or source-slot delivery, with an optional separately gated native public-unit representation. A metadata handle is not text permission: native closure and unconditional public rights must independently pass. Targets come from owner cards/catalogs, never guessed paths, ranges or digests. No source authority, use-rights grant or semantic admission follows.",
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "bareDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "safeInteger": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "metadataRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "digest"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^tos\\.(?!claim\\.)[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+        "version": {"$ref": "#/$defs/safeInteger", "minimum": 1},
+        "digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "claimRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "digest"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^tos\\.claim\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+        "version": {"$ref": "#/$defs/safeInteger", "minimum": 1},
+        "digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "epoch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_revision", "catalog_root_sha256", "catalog_namespace", "source_publication"],
+      "properties": {
+        "source_revision": {"$ref": "#/$defs/bareDigest"},
+        "catalog_root_sha256": {"$ref": "#/$defs/bareDigest"},
+        "catalog_namespace": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]{0,127}$"},
+        "source_publication": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["protocol", "token", "generation"],
+          "properties": {
+            "protocol": {"const": "tos_selected_source_metadata_v1"},
+            "token": {"$ref": "#/$defs/digest"},
+            "generation": {"$ref": "#/$defs/safeInteger"}
+          }
+        }
+      }
+    },
+    "metadataTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["layer", "record_type", "record_ref", "content_revision"],
+      "properties": {
+        "layer": {"const": "metadata_record"},
+        "record_type": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$"},
+        "record_ref": {"$ref": "#/$defs/metadataRef", "description": "Owner-issued exact id/version/digest; not a caller-invented lookup key."},
+        "content_revision": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "claimTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["layer", "record_ref", "content_revision"],
+      "properties": {
+        "layer": {"const": "claim_record"},
+        "record_ref": {"$ref": "#/$defs/claimRef", "description": "Owner-issued exact id/version/digest; not a caller-invented lookup key."},
+        "content_revision": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "slotTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["layer", "slot_kind", "identity", "row_sha256", "content_revision"],
+      "properties": {
+        "layer": {"const": "source_slot"},
+        "slot_kind": {"enum": ["claim", "provenance_event", "anchor"]},
+        "identity": {"type": "string", "pattern": "^tos\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$", "description": "Owner-issued typed slot identity; it is not a filesystem locator."},
+        "row_sha256": {"$ref": "#/$defs/bareDigest"},
+        "content_revision": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "csvTarget": {
+      "type": "object", "additionalProperties": false,
+      "required": ["layer", "pack_id", "edge_id", "source_row", "source_file_sha256", "content_revision"],
+      "properties": {
+        "layer": {"const": "authored_csv_record"},
+        "pack_id": {"type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^(canon/relations/|candidate-intake/)"},
+        "edge_id": {"type": "string", "minLength": 1, "maxLength": 2048},
+        "source_row": {"$ref": "#/$defs/safeInteger", "minimum": 1},
+        "source_file_sha256": {"$ref": "#/$defs/bareDigest"},
+        "content_revision": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "csvSelector": {
+      "type": "object", "additionalProperties": false,
+      "required": ["layer", "pack_id", "edge_id"],
+      "properties": {
+        "layer": {"const": "authored_csv_record"},
+        "pack_id": {"type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^(canon/relations/|candidate-intake/)"},
+        "edge_id": {"type": "string", "minLength": 1, "maxLength": 2048}
+      }
+    },
+    "target": {
+      "oneOf": [
+        {"$ref": "#/$defs/metadataTarget"},
+        {"$ref": "#/$defs/claimTarget"},
+        {"$ref": "#/$defs/slotTarget"},
+        {"$ref": "#/$defs/csvTarget"}
+      ]
+    },
+    "metadataSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["layer", "record_type", "record_id"],
+      "properties": {
+        "layer": {"const": "metadata_record"},
+        "record_type": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$", "description": "Owner-declared metadata family; it is not inferred from an ID."},
+        "record_id": {"type": "string", "pattern": "^tos\\.(?!claim\\.)[a-z0-9]+(?:[.-][a-z0-9]+)*$", "description": "Stable identity looked up in the selected owner catalog; no path is accepted."}
+      }
+    },
+    "claimSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["layer", "claim_id"],
+      "properties": {
+        "layer": {"const": "claim_record"},
+        "claim_id": {"type": "string", "pattern": "^tos\\.claim\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$", "description": "Stable Claim identity looked up in the selected owner catalog."}
+      }
+    },
+    "slotSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["layer", "slot_kind", "identity"],
+      "properties": {
+        "layer": {"const": "source_slot"},
+        "slot_kind": {"enum": ["claim", "provenance_event", "anchor"]},
+        "identity": {"type": "string", "pattern": "^tos\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$", "description": "Typed source-slot identity looked up in the selected owner catalog."}
+      }
+    },
+    "selector": {
+      "oneOf": [
+        {"$ref": "#/$defs/metadataSelector"},
+        {"$ref": "#/$defs/claimSelector"},
+        {"$ref": "#/$defs/slotSelector"},
+        {"$ref": "#/$defs/csvSelector"}
+      ]
+    },
+    "discoveryRequest": {
+      "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["target"], "properties": {"target": {"$ref": "#/$defs/target"}}},
+        {"type": "object", "additionalProperties": false, "required": ["selector"], "properties": {"selector": {"$ref": "#/$defs/selector"}}}
+      ]
+    },
+    "readRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["handle", "representation"],
+      "properties": {
+        "handle": {"$ref": "#/$defs/handle"},
+        "representation": {"enum": ["record", "native_public_unit", "native_local_unit"], "description": "Native reads need the selected source owner; local reads additionally require a protected current condition review with license and attribution notices. A metadata handle grants no text access or publication."}
+      }
+    },
+    "access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "visibility", "visibility_verified", "rights_revalidated", "rights_scope", "authority"],
+      "properties": {
+        "scope": {"enum": ["public-metadata-record", "public-claim-record", "public-source-slot-metadata", "public-authored-csv-record"]},
+        "visibility": {"enum": ["public", "public_metadata_only"]},
+        "visibility_verified": {"const": true},
+        "rights_revalidated": {"const": false},
+        "rights_scope": {"const": "metadata-disclosure-only"},
+        "authority": {"const": "source-owner-public-metadata-contract"}
+      }
+    },
+    "handle": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [{"if": {"properties": {"target": {"properties": {"layer": {"const": "authored_csv_record"}}}}},
+        "then": {"properties": {"issuer": {"const": "Tree-of-Sophia/authored-corpus"}, "access": {"properties": {"scope": {"const": "public-authored-csv-record"}}}}},
+        "else": {"properties": {"issuer": {"const": "Tree-of-Sophia/source-witnesses"}, "access": {"properties": {"scope": {"not": {"const": "public-authored-csv-record"}}}}}}}],
+      "required": ["schema_version", "issuer", "epoch", "target", "access", "handle_digest"],
+      "properties": {
+        "schema_version": {"const": "tos_source_read_handle_v1"},
+        "issuer": {"enum": ["Tree-of-Sophia/source-witnesses", "Tree-of-Sophia/authored-corpus"]},
+        "epoch": {"$ref": "#/$defs/epoch"},
+        "target": {"$ref": "#/$defs/target"},
+        "access": {"$ref": "#/$defs/access"},
+        "handle_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "status": {
+      "enum": ["available", "missing", "stale", "corrupt", "access-restricted", "over-budget", "unsupported"]
+    },
+    "commonFlags": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["grants_current_use", "performs_assessment", "writes_to_source"],
+      "properties": {
+        "grants_current_use": {"const": false},
+        "performs_assessment": {"const": false},
+        "writes_to_source": {"const": false}
+      }
+    },
+    "discovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"properties": {"target": {"type": "null"}}, "required": ["target"]},
+          "then": {
+            "required": ["selector"],
+            "properties": {
+              "status": {"not": {"const": "available"}},
+              "handle": {"type": "null"},
+              "content_revision": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"status": {"const": "available"}}, "required": ["status"]},
+          "then": {"properties": {
+            "target": {"$ref": "#/$defs/target"},
+            "handle": {"$ref": "#/$defs/handle"},
+            "content_revision": {"$ref": "#/$defs/digest"}
+          }}
+        }
+      ],
+      "required": ["schema_version", "status", "reason", "target", "handle", "source_revision", "content_revision", "provenance", "access", "grants_current_use", "performs_assessment", "writes_to_source"],
+      "properties": {
+        "schema_version": {"const": "tos_source_handle_discovery_v1"},
+        "status": {"$ref": "#/$defs/status"},
+        "reason": {"type": "string", "minLength": 1, "maxLength": 256},
+        "target": {"anyOf": [{"$ref": "#/$defs/target"}, {"type": "null"}]},
+        "selector": {"$ref": "#/$defs/selector"},
+        "handle": {"anyOf": [{"$ref": "#/$defs/handle"}, {"type": "null"}]},
+        "source_revision": {"$ref": "#/$defs/bareDigest"},
+        "content_revision": {"anyOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]},
+        "provenance": {"anyOf": [{"type": "object"}, {"type": "null"}]},
+        "access": {"anyOf": [{"$ref": "#/$defs/access"}, {"type": "null"}]},
+        "grants_current_use": {"const": false},
+        "performs_assessment": {"const": false},
+        "writes_to_source": {"const": false}
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [{"if": {"properties": {"schema_version": {"const": "tos_source_native_unit_read_result_v1"}}},
+        "then": {"required": ["native_unit", "text_access"], "properties": {"record": {"type": "null"}},
+          "allOf": [{"if": {"properties": {"status": {"const": "available"}}},
+            "then": {"properties": {"native_unit": {"$ref": "#/$defs/nativeUnit"}, "text_access": {"$ref": "#/$defs/textAccess"}},
+              "allOf": [{"if": {"properties": {"native_unit": {"properties": {"schema_version": {"const": "tos_native_local_unit_return_v1"}}}}},
+                "then": {"properties": {"text_access": {"properties": {"scope": {"const": "local-native-unit"}}}}},
+                "else": {"properties": {"text_access": {"properties": {"scope": {"const": "public-native-unit"}}}}}}]},
+            "else": {"properties": {"native_unit": {"type": "null"}, "text_access": {"type": "null"}}}}]},
+        "else": {"properties": {"native_unit": false, "text_access": false}}}],
+      "required": ["schema_version", "status", "reason", "handle", "source_revision", "content_revision", "layer", "record_kind", "record_ref", "record", "provenance", "access", "grants_current_use", "performs_assessment", "writes_to_source"],
+      "properties": {
+        "schema_version": {"enum": ["tos_source_read_result_v1", "tos_source_native_unit_read_result_v1"]},
+        "native_unit": {"anyOf": [{"$ref": "#/$defs/nativeUnit"}, {"type": "null"}]},
+        "text_access": {"anyOf": [{"$ref": "#/$defs/textAccess"}, {"type": "null"}]},
+        "status": {"$ref": "#/$defs/status"},
+        "reason": {"type": "string", "minLength": 1, "maxLength": 256},
+        "handle": {"$ref": "#/$defs/handle"},
+        "source_revision": {"$ref": "#/$defs/bareDigest"},
+        "content_revision": {"$ref": "#/$defs/digest"},
+        "layer": {"enum": ["metadata_record", "claim_record", "source_slot", "authored_csv_record"]},
+        "record_kind": {"enum": ["metadata", "claim", "source_slot", "authored_csv"]},
+        "record_ref": {"anyOf": [{"$ref": "#/$defs/metadataRef"}, {"$ref": "#/$defs/claimRef"}, {"type": "null"}]},
+        "record": {"anyOf": [{"type": "object"}, {"type": "null"}]},
+        "provenance": {"anyOf": [{"type": "object"}, {"type": "null"}]},
+        "access": {"anyOf": [{"$ref": "#/$defs/access"}, {"type": "null"}]},
+        "grants_current_use": {"const": false},
+        "performs_assessment": {"const": false},
+        "writes_to_source": {"const": false}
+      }
+    },
+    "textAccess": {
+      "type": "object", "additionalProperties": false,
+      "required": ["scope", "recorded_rights_verified", "conditional_rights", "grants_current_use"],
+      "properties": {"scope": {"enum": ["public-native-unit", "local-native-unit"]}, "recorded_rights_verified": {"const": true},
+        "conditional_rights": {"type": "boolean"}, "grants_current_use": {"const": false}, "external_publication_authorized": {"const": false}},
+      "allOf": [{"if": {"properties": {"scope": {"const": "local-native-unit"}}},
+        "then": {"required": ["external_publication_authorized"], "properties": {"conditional_rights": {"const": true}}},
+        "else": {"properties": {"conditional_rights": {"const": false}, "external_publication_authorized": false}}}]
+    },
+    "localConditions": {
+      "type": "object", "additionalProperties": false,
+      "required": ["selection_sha256", "expires_at", "condition_review", "notices"],
+      "properties": {
+        "selection_sha256": {"$ref": "#/$defs/bareDigest"}, "expires_at": {"type": "string", "format": "date-time"},
+        "condition_review": {"type": "string", "minLength": 1, "maxLength": 4096},
+        "notices": {"type": "array", "minItems": 2, "maxItems": 16, "items": {
+          "type": "object", "additionalProperties": false, "required": ["ref", "sha256", "role", "text"],
+          "properties": {"ref": {"type": "string", "minLength": 1, "maxLength": 2048}, "sha256": {"$ref": "#/$defs/bareDigest"},
+            "role": {"enum": ["license", "attribution", "notice"]}, "text": {"type": "string"}}
+        }, "allOf": [{"contains": {"properties": {"role": {"const": "license"}}}}, {"contains": {"properties": {"role": {"const": "attribution"}}}}]}
+      }
+    },
+    "nativeUnit": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "summary", "packet", "layer_record_sha256", "representation_sha256", "spans", "closure_fingerprint"],
+      "allOf": [{"if": {"properties": {"schema_version": {"const": "tos_native_local_unit_return_v1"}}},
+        "then": {"required": ["local_conditions"]}, "else": {"properties": {"local_conditions": false}}}],
+      "properties": {
+        "schema_version": {"enum": ["tos_native_public_unit_return_v1", "tos_native_local_unit_return_v1"]},
+        "local_conditions": {"$ref": "#/$defs/localConditions"},
+        "summary": {"type": "object", "required": ["unit_id", "unit_version", "content_verified", "public_content_available", "assessment_applied"],
+          "properties": {"unit_id": {"type": "string", "pattern": "^tos\\.text-unit\\."}, "unit_version": {"$ref": "#/$defs/safeInteger", "minimum": 1},
+            "content_verified": {"const": true}, "public_content_available": {"const": true}, "assessment_applied": {"const": false}}},
+        "packet": {"type": "object", "additionalProperties": false, "required": ["id", "version", "sha256"],
+          "properties": {"id": {"type": "string"}, "version": {"$ref": "#/$defs/safeInteger", "minimum": 1}, "sha256": {"$ref": "#/$defs/bareDigest"}}},
+        "layer_record_sha256": {"$ref": "#/$defs/bareDigest"}, "representation_sha256": {"$ref": "#/$defs/bareDigest"},
+        "closure_fingerprint": {"$ref": "#/$defs/digest"},
+        "spans": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false,
+          "required": ["anchor_ref", "selector", "exact_sha256", "text"],
+          "properties": {"anchor_ref": {"type": "string"}, "selector": {"type": "object"},
+            "exact_sha256": {"$ref": "#/$defs/bareDigest"}, "text": {"type": "string"}}}}
+      }
+    }
+  },
+  "oneOf": [
+    {"$ref": "#/$defs/handle"},
+    {"$ref": "#/$defs/discovery"},
+    {"$ref": "#/$defs/result"}
+  ]
+}

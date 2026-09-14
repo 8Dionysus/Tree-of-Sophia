@@ -1,0 +1,210 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-date/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "claim-display:tos.claim.nietzsche-letter-705.catalogue-date:2026-09-10",
+      "request_digest": "sha256:cb72f259bc2d7bd71d210b4b140e6e16c02152be364623c7abe812cfb0b72475",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1/letter-705-qualified-display",
+      "owner_configuration": "sha256:3dc4f47089fe08e513c54b816b46fe324fdd1fb842cf3ca3c6abb6ef76e8d6df",
+      "recorded_at": "2026-09-10T15:09:37.010895+00:00",
+      "reason": "Добавить явно атрибутированные короткие формы для сцены и наведения, сохранив полное исходное утверждение, все оговорки и прежние версии. Это не изменение исторических оснований или содержательный допуск.",
+      "previous_source": {
+        "id": "tos.claim.nietzsche-letter-705.catalogue-date",
+        "version": 1,
+        "digest": "sha256:8ba456b412cac684247531bc59183ba245d53ab14d2502d4f1fb52af397ed505"
+      },
+      "source": {
+        "id": "tos.claim.nietzsche-letter-705.catalogue-date",
+        "version": 2,
+        "digest": "sha256:b884e76996edac910334e3abf44cf0f82bee3be37d00c001e18e3295ebe3dee8"
+      },
+      "previous_revision": "sha256:babdd285ba275492edcb51984808cac53ae609d5e6b874dd66d75cf8a5a67b5e",
+      "archive_path": "ToS/source-witnesses/.record-revisions/221bfcc7fc9f65c63ffdd361506f91edc8130b9475f3b3c272ef6fe4980fb4e5-babdd285ba275492edcb51984808cac53ae609d5e6b874dd66d75cf8a5a67b5e",
+      "dependencies": "sha256:ea2e3e606c6eb4face88cba914ce5fb303a64e89cfc711218f2c46e997b02d70",
+      "source_bindings": {
+        "objects": {
+          "tos.letter.nietzsche-naumann-1886-705": {
+            "source_ref": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+            "source_sha256": "sha256:7438af2a6b90c1a705c04c650a74e0635525c0450f303079a20d47b372446b6e",
+            "canonical_record_sha256": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5",
+            "schema_version": "tos_document_record_v1",
+            "record_version": 1
+          }
+        },
+        "evidence": {
+          "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md": {
+            "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+            "source_sha256": "sha256:1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          },
+          "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_ARCHIVE_METADATA_2026_09_10.md": {
+            "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_ARCHIVE_METADATA_2026_09_10.md",
+            "source_sha256": "sha256:cd330647ba8f3b33ed78648b3010dbe5e4347879cbb165e346a52c48b865b76d",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          },
+          "ToS/research-packets/foundation-laboratory-2026-07/LETTER_705_CATALOGUE_FIELD_SELECTION_2026_09_10.md": {
+            "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/LETTER_705_CATALOGUE_FIELD_SELECTION_2026_09_10.md",
+            "source_sha256": "sha256:f2b0f1498980b76eccaa9e7695ea2619ef81c241ae2c12c51733969563f51cbf",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        },
+        "values": {
+          "tos.claim.nietzsche-letter-705.catalogue-date": {
+            "value": {
+              "calendar": null,
+              "certainty": "exact",
+              "kind": "date-assertion",
+              "role": "catalogue-assigned-document-date",
+              "source_wording": {
+                "language": null,
+                "text": "3.6.1886"
+              },
+              "value": "1886-06-03",
+              "year_numbering": null
+            },
+            "sha256": "sha256:baa0972ecaf2879770d1fcf656d04886ef79d9c3a9b340e45bbdfe43c83ced8c",
+            "type_ids": [
+              "tos.entity.temporal-assertion"
+            ]
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.nietzsche-letter-705.catalogue-date-statement",
+          "version": 1,
+          "digest": "sha256:a5788dcc4969d889a9729b9bff636c01d028f783970c1db34bdae51f9c15247e"
+        },
+        {
+          "id": "tos.form.nietzsche-letter-705.catalogue-date-name",
+          "version": 1,
+          "digest": "sha256:cba703fa390715d22c91ddf267437d00764a4f1053f73e6be737f5e9153ef19a"
+        },
+        {
+          "id": "tos.form.nietzsche-letter-705.catalogue-date-caption",
+          "version": 1,
+          "digest": "sha256:79ee0ba5840107d2b073e0d6801bac37cfee5c8d9c0fbe11f17328e35bbba042"
+        },
+        {
+          "id": "tos.form.nietzsche-letter-705.catalogue-date-hover",
+          "version": 1,
+          "digest": "sha256:04967dd8a1f82a6c90061ea10050531bb0d35da9a62388a1d58c9fb5adabf61d"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "claim-display:tos.claim.nietzsche-letter-705.catalogue-date:2026-09-10",
+        "expected_configuration": "sha256:3dc4f47089fe08e513c54b816b46fe324fdd1fb842cf3ca3c6abb6ef76e8d6df",
+        "expected_dependencies": "sha256:ea2e3e606c6eb4face88cba914ce5fb303a64e89cfc711218f2c46e997b02d70",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_ARCHIVE_METADATA_2026_09_10.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_ARCHIVE_METADATA_2026_09_10.md",
+              "source_sha256": "sha256:cd330647ba8f3b33ed78648b3010dbe5e4347879cbb165e346a52c48b865b76d"
+            },
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+              "source_sha256": "sha256:1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed"
+            },
+            "ToS/research-packets/foundation-laboratory-2026-07/LETTER_705_CATALOGUE_FIELD_SELECTION_2026_09_10.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/LETTER_705_CATALOGUE_FIELD_SELECTION_2026_09_10.md",
+              "source_sha256": "sha256:f2b0f1498980b76eccaa9e7695ea2619ef81c241ae2c12c51733969563f51cbf"
+            }
+          },
+          "objects": {
+            "tos.letter.nietzsche-naumann-1886-705": {
+              "canonical_record_sha256": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5",
+              "record_version": 1,
+              "schema_version": "tos_document_record_v1",
+              "source_ref": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+              "source_sha256": "sha256:7438af2a6b90c1a705c04c650a74e0635525c0450f303079a20d47b372446b6e"
+            }
+          },
+          "values": {
+            "tos.claim.nietzsche-letter-705.catalogue-date": {
+              "sha256": "sha256:baa0972ecaf2879770d1fcf656d04886ef79d9c3a9b340e45bbdfe43c83ced8c",
+              "type_ids": [
+                "tos.entity.temporal-assertion"
+              ],
+              "value": {
+                "calendar": null,
+                "certainty": "exact",
+                "kind": "date-assertion",
+                "role": "catalogue-assigned-document-date",
+                "source_wording": {
+                  "language": null,
+                  "text": "3.6.1886"
+                },
+                "value": "1886-06-03",
+                "year_numbering": null
+              }
+            }
+          }
+        },
+        "expected_revision": "sha256:babdd285ba275492edcb51984808cac53ae609d5e6b874dd66d75cf8a5a67b5e",
+        "expected_source": {
+          "digest": "sha256:8ba456b412cac684247531bc59183ba245d53ab14d2502d4f1fb52af397ed505",
+          "id": "tos.claim.nietzsche-letter-705.catalogue-date",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "display_fields": {
+              "caption": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "По архивной карточке: 3.6.1886"
+              },
+              "hover": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "GSA, Eintrag: дата по каталогу; не устанавливает даты написания, отправки или получения. Календарь неизвестен."
+              },
+              "name": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "Каталожная дата письма"
+              },
+              "schema_version": "tos_claim_display_fields_v1"
+            }
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.nietzsche-letter-705.catalogue-date-statement"
+          },
+          {
+            "field_id": "claim.name",
+            "form_id": "tos.form.nietzsche-letter-705.catalogue-date-name"
+          },
+          {
+            "field_id": "claim.caption",
+            "form_id": "tos.form.nietzsche-letter-705.catalogue-date-caption"
+          },
+          {
+            "field_id": "claim.hover",
+            "form_id": "tos.form.nietzsche-letter-705.catalogue-date-hover"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Добавить явно атрибутированные короткие формы для сцены и наведения, сохранив полное исходное утверждение, все оговорки и прежние версии. Это не изменение исторических оснований или содержательный допуск.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

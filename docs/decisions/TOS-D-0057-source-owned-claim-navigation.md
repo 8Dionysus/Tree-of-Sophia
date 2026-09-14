@@ -90,3 +90,11 @@ The UI owner consumes the ordinary display contract without changing spatial
 composition or inventing names. Worker/D1 preserves the normalized carrier, not
 a second renderer. Real legacy source-copy forms and broader human-form coverage
 remain with the source owner; CI, merge and deployment are separate outcomes.
+
+## Dated successor: 2026-09-10
+
+[TOS-D-0067](TOS-D-0067-typed-time-claim-navigation.md) supersedes only the initial
+identity-only eligibility limit when a version-2 template explicitly opts into
+the historical-time source-wording adapter. This record's original v1 decision
+and its nonstandalone/source-context boundary remain historical facts; templates
+without that opt-in keep the original behavior.

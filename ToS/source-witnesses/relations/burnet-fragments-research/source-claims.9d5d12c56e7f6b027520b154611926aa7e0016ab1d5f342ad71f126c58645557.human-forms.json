@@ -1,0 +1,82 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.claim.burnet-fragments.container",
+    "version": 1,
+    "digest": "sha256:afb9a6c7ec3aa7619a95e4de53c7afdae81dc3105965b77505de28d727c4dd81"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:afb9a6c7ec3aa7619a95e4de53c7afdae81dc3105965b77505de28d727c4dd81",
+            "id": "tos.claim.burnet-fragments.container",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/qualifiers/statement",
+          "record": {
+            "digest": "sha256:afb9a6c7ec3aa7619a95e4de53c7afdae81dc3105965b77505de28d727c4dd81",
+            "id": "tos.claim.burnet-fragments.container",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.burnet-fragments.container.statement-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "statement",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:afb9a6c7ec3aa7619a95e4de53c7afdae81dc3105965b77505de28d727c4dd81",
+        "id": "tos.claim.burnet-fragments.container",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "burnet-fragments:20260907:form:tos.claim.burnet-fragments.container",
+      "request_digest": "sha256:9782175d5d412a90309922fb819a62daed95cfb978e9b780eedce3ceff57e2cc",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:2d6de7650b64849c743fa38b06039c89dd7d990feb4f3f2162726e35557cd652",
+      "recorded_at": "2026-09-07T20:09:28.908719+00:00",
+      "source_contracts": {
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json": "sha256:3a1a2cef32f25f0607821e648f7476c2518d6071014fbfdaab11c3e431d33f48",
+        "ToS/contracts/semantic-relation-type-registry.schema.json": "sha256:5b3eea795cf81ce2cd8872f21f20fa37ebb52d874fe195c653bf116601cee4da",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json": "sha256:bba95a5a5d1ccf4f72cb38a52a492a8129ce78097ed4578272e17b0f1d6f72d0",
+        "ToS/contracts/semantic-entity-type-registry.schema.json": "sha256:a6effb9f6339c237a994334df7389e04892a5ba7ddd54b4552b2e3dc78fae088",
+        "ToS/contracts/claim-packet.schema.json": "sha256:cc982ceeaa3a62dc8cb1367cd4b10cc76073b252a1ac5c9977f6b0ee6d47588c",
+        "ToS/contracts/knowledge-assessment.schema.json": "sha256:83163d105944db9a54bd57a8e730c3d459a00239de0df65cb63ac18c305e60be",
+        "ToS/contracts/source-claim-record.schema.json": "sha256:2c744903214248c4de29a17e1e21e67745cf838da46508cc05ec4dac6aa75430",
+        "ToS/contracts/corpus-record.schema.json": "sha256:baccf59bc5c6ffd1560848610ac812751d1e5182c89658814eeb2eedde4b6db1",
+        "ToS/contracts/textual-passage-claim.schema.json": "sha256:9de2713aa7fb847ddbfb1a3f0f97c1e412da94f1b333147aab105183b1c34bd2"
+      },
+      "source": {
+        "id": "tos.claim.burnet-fragments.container",
+        "version": 1,
+        "digest": "sha256:afb9a6c7ec3aa7619a95e4de53c7afdae81dc3105965b77505de28d727c4dd81"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.burnet-fragments.container.statement-ru",
+          "version": 1,
+          "digest": "sha256:1e1c4e9410004bfc8904a05176d1d10f493913e58f626f4e6d3a610ea7f5b290"
+        }
+      ]
+    }
+  ]
+}

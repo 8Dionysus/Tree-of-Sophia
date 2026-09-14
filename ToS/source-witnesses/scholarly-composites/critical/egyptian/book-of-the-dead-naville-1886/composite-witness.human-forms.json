@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:83655b7683ff5a8e3df19eabd3c6f7af8838eebef45afcf968d77655f668b6db",
+            "id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:83655b7683ff5a8e3df19eabd3c6f7af8838eebef45afcf968d77655f668b6db",
+            "id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:83655b7683ff5a8e3df19eabd3c6f7af8838eebef45afcf968d77655f668b6db",
+            "id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:83655b7683ff5a8e3df19eabd3c6f7af8838eebef45afcf968d77655f668b6db",
+            "id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:83655b7683ff5a8e3df19eabd3c6f7af8838eebef45afcf968d77655f668b6db",
+            "id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.egyptian.book-of-the-dead-naville-1886.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:37d9b4f7a6253c7884d6aac8cdf2953bd8928c92bab9b0ddd295aad27dd92115",
+        "id": "tos.form.composite.egyptian.book-of-the-dead-naville-1886.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:83655b7683ff5a8e3df19eabd3c6f7af8838eebef45afcf968d77655f668b6db",
+        "id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:83655b7683ff5a8e3df19eabd3c6f7af8838eebef45afcf968d77655f668b6db",
+            "id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/editorial_object/description",
+          "record": {
+            "digest": "sha256:83655b7683ff5a8e3df19eabd3c6f7af8838eebef45afcf968d77655f668b6db",
+            "id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.egyptian.book-of-the-dead-naville-1886.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:83655b7683ff5a8e3df19eabd3c6f7af8838eebef45afcf968d77655f668b6db",
+        "id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+        "version": 1
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:composite.egyptian.book-of-the-dead-naville-1886",
+      "owner_configuration": "sha256:ab1c5a675235a246a575064330c5e63ddd3f68d0cffa5f5ebf285a6d84154c9c",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:10.520327+00:00",
+      "request_digest": "sha256:dd2932e2e73e07e6521f79dcee404efb13cf777292ef6c60ec5fc536abca07ce",
+      "results": [
+        {
+          "digest": "sha256:37d9b4f7a6253c7884d6aac8cdf2953bd8928c92bab9b0ddd295aad27dd92115",
+          "id": "tos.form.composite.egyptian.book-of-the-dead-naville-1886.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:243aa410b48ba21b1625213651f2abcaf973ddddcc77e306d5d06d41adba0f90",
+          "id": "tos.form.composite.egyptian.book-of-the-dead-naville-1886.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:83655b7683ff5a8e3df19eabd3c6f7af8838eebef45afcf968d77655f668b6db",
+        "id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:composite.egyptian.book-of-the-dead-naville-1886",
+      "request_digest": "sha256:270932a641b13180e20ca797243e2a08db2da7030307d9e34027ac0ee584d26f",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:ab1c5a675235a246a575064330c5e63ddd3f68d0cffa5f5ebf285a6d84154c9c",
+      "recorded_at": "2026-09-07T21:40:11.249033+00:00",
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      },
+      "source": {
+        "id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+        "version": 1,
+        "digest": "sha256:83655b7683ff5a8e3df19eabd3c6f7af8838eebef45afcf968d77655f668b6db"
+      },
+      "previous_revision": "sha256:cae8542575c9e8d89b5d19d642b65890a0b2cb0df353e0ce31fc73e2f05d0393",
+      "results": [
+        {
+          "id": "tos.form.composite.egyptian.book-of-the-dead-naville-1886.source-name",
+          "version": 2,
+          "digest": "sha256:8f9b54bc9eb3045d2fe87df59e16107fd7f9c3fb71f2c57791b9c9952e7fc1e2"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:83655b7683ff5a8e3df19eabd3c6f7af8838eebef45afcf968d77655f668b6db",
+            "id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:83655b7683ff5a8e3df19eabd3c6f7af8838eebef45afcf968d77655f668b6db",
+            "id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.egyptian.book-of-the-dead-naville-1886.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:83655b7683ff5a8e3df19eabd3c6f7af8838eebef45afcf968d77655f668b6db",
+        "id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.composite.egyptian.book-of-the-dead-naville-1886",
+    "version": 1,
+    "digest": "sha256:83655b7683ff5a8e3df19eabd3c6f7af8838eebef45afcf968d77655f668b6db"
+  }
+}

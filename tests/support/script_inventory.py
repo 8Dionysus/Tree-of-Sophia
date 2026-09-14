@@ -60,6 +60,11 @@ def command_script_paths(repo_root: Path = REPO_ROOT) -> set[str]:
             command = step.get("command", [])
             if not isinstance(command, list):
                 continue
+            # pytest operands are test subjects, not executable entrypoints.
+            # Their coverage belongs to the test inventory, not a duplicate
+            # script entry for every focused validation target.
+            if command[1:3] == ["-m", "pytest"]:
+                continue
             for item in command:
                 if isinstance(item, str) and item.endswith(".py") and "/" in item:
                     paths.add(item)

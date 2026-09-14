@@ -1,5 +1,7 @@
 #sophia-gestures .sc-settings-open{flex:none;margin-left:3px;padding:8px;min-width:36px;justify-content:center}
-#sophia-gestures .sc-header-actions{min-width:0;max-width:calc(100% - 285px)}
+#sophia-gestures .sc-header{display:grid;grid-template-columns:auto minmax(0,1fr) auto}
+#sophia-gestures .sc-header-actions{min-width:0;width:max-content;max-width:100%;justify-self:end}
+#sophia-gestures .sc-header-actions>.sc-control:focus-visible{outline-offset:-3px}
 #sophia-gestures .sc-settings{display:flex;flex-direction:column;padding:17px 22px;background:linear-gradient(145deg,#121b29,#0c1420 70%);border-color:#465060;box-shadow:0 22px 65px #0008}
 #sophia-gestures .sc-settings-body{overflow:auto;overscroll-behavior:contain;min-height:0;scrollbar-width:thin;scrollbar-color:#425065 transparent;padding:12px 3px 5px 0}
 #sophia-gestures .sc-settings fieldset{border:0;border-top:1px solid #334051;padding:14px 0 22px;margin:0;min-width:0}
@@ -16,4 +18,18 @@
 #sophia-gestures .sc-settings .sc-settings-status{flex:none;margin:7px 0 0;max-height:65px;overflow:auto;color:#dcc18e}
 #sophia-gestures .sc-settings-status:empty{display:none}
 @container(min-width:651px){#sophia-gestures .sc-settings[data-panel-id][data-dock]{top:var(--sc-tool-top,220px);width:var(--sc-panel-width,430px);height:var(--sc-panel-height,560px);max-height:calc(100% - var(--sc-tool-top,220px) - 95px)}}
-@container(max-width:650px){#sophia-gestures .sc-header-actions{max-width:calc(100% - 197px)}#sophia-gestures .sc-settings legend{font-size:20px}#sophia-gestures .sc-settings-open{margin-left:0}}
+@container(max-width:650px){#sophia-gestures .sc-settings legend{font-size:20px}#sophia-gestures .sc-settings-open{margin-left:0}}
+/* Keep tools and their keyboard focus reachable beside the fixed settings button. */
+@container(max-width:420px){
+  #sophia-gestures .sc-header{grid-template-columns:minmax(0,1fr) auto;grid-template-rows:44px 50px;gap:4px 8px;height:114px;padding:8px 16px}
+  #sophia-gestures .sc-settings-open{grid-column:2;grid-row:1}
+  #sophia-gestures .sc-header-actions{grid-column:1/-1;grid-row:2;width:100%;padding-block:3px}
+  #sophia-gestures .sc-header-actions>.sc-studio-open{position:static;box-shadow:none}
+  #sophia-gestures .sc-context{top:130px}
+}
+@container(max-width:280px){
+  #sophia-gestures .sc-header-actions{gap:1px}
+}
+@media(pointer:coarse){
+  #sophia-gestures .sc-header .sc-control{min-width:44px;min-height:44px}
+}

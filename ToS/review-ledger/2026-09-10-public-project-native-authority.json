@@ -1,0 +1,70 @@
+{
+  "authority_id": "operator:tos-foundation-v1",
+  "expires_at": "2026-09-10T05:00:00Z",
+  "external_publication_authorized": false,
+  "granted_to": "agent:codex-tos-public-native-occurrence",
+  "human_review_performed": false,
+  "issued_at": "2026-09-10T01:46:51.463720+00:00",
+  "license_bindings": [
+    {
+      "ref": "README.md",
+      "sha256": "70757102598a316e61bbc8bc3875a138c87a730488f569436a93125c922b76ca"
+    },
+    {
+      "ref": "LICENSE",
+      "sha256": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a"
+    }
+  ],
+  "operator_scope": {
+    "delegated_by": "agent:codex-tos-foundation",
+    "goal_sha256": "58a14c36933d864d22d6a3485c8240b37459894448dd9580d53d6c7ac834e798",
+    "holder_task_ref": "01a06cc7-0452-77f2-b89a-fb77fb86c3bf",
+    "operator_ref": "operator:tos-foundation-v1"
+  },
+  "output_scope": {
+    "content_file_id": "tos.file.sha256.580c65a09d0e22470d95beb0fb56c7305e436bfea24f0ab7bf29319ded6e8d9a",
+    "content_sha256": "580c65a09d0e22470d95beb0fb56c7305e436bfea24f0ab7bf29319ded6e8d9a",
+    "native_identities": [
+      "tos.anchor.sid-10eb0497ccf949c4a11eb79649ad17be",
+      "tos.anchor.sid-267d151a5c5a4e84a35ecbd18c85beb6",
+      "tos.anchor.sid-50817e1bed3b4b4e8739ec4144d55427",
+      "tos.anchor.sid-a75aede4beac407ba75f4e2e127920b5",
+      "tos.anchor.sid-c1a9d08fb91a40e2ad6a90c87bdaaa39",
+      "tos.event.sid-da886a92e3f54be297067500db397615",
+      "tos.passage.sid-5b11d126b61d4253aa1512cae234341c",
+      "tos.source-text-unit-packet.sid-1452e219cb47472185f39fc1e0c3033a",
+      "tos.text-layer.sid-79fd5a31185b4ef08f17445af4106a37",
+      "tos.text-segmentation.sid-df08bcad03eb420c8f7ed0dbf0db01d4",
+      "tos.text-unit-scheme.sid-15beae80a9964738bd7e0ff34096b4c9",
+      "tos.text-unit.sid-4f3b3d3f752441f7be4103342da21c65"
+    ],
+    "package_ref": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/technical-markup/purpose-paragraph-public-v1"
+  },
+  "permissions": [
+    "native_public_representation",
+    "native_public_segmentation",
+    "source_branch_local_reader"
+  ],
+  "record_version": 1,
+  "schema_version": "tos_public_native_text_authority_v1",
+  "scope_statement": "Retains the actual operator Foundation v1 mandate and explicit master-agent delegation for this exact already-authored project note range and new native identities in the source branch and local reader. The master verified the exact goal attachment digest. FOUNDATION_V1.md is public owner orientation, not this delegation. No external deployment, third-party historical-text licensing, private-source publication, human review, semantic admission or canon authority is granted.",
+  "source": {
+    "byte_size": 3320,
+    "media_type": "text/markdown",
+    "ref": "ToS/review-ledger/2026-09-10-scoped-research-corpus-selection.md",
+    "selector": {
+      "end": 589,
+      "start": 291
+    },
+    "sha256": "94f66621e381f4a1f34782943f45d4ab65e3b4ba056b8a67df4b500ac897813c",
+    "source_posture": "project_authored"
+  },
+  "source_scope": {
+    "edition_ref": "tos.edition.sid-89a5d842830345d48c3c435dd4c6172e",
+    "expression_ref": "tos.expression.sid-cede0d111ef7427d8acfac8c6997e241",
+    "file_ref": "tos.file.sha256.94f66621e381f4a1f34782943f45d4ab65e3b4ba056b8a67df4b500ac897813c",
+    "file_sha256": "94f66621e381f4a1f34782943f45d4ab65e3b4ba056b8a67df4b500ac897813c",
+    "item_ref": "tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8",
+    "work_ref": "tos.work.sid-264c1ef4300f444c850494627ff8ce5f"
+  }
+}

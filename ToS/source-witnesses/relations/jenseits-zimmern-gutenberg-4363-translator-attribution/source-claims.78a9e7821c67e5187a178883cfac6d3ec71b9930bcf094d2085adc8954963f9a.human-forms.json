@@ -1,0 +1,48 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.claim.responsibility.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.translated-by-helen-zimmern",
+    "version": 1,
+    "digest": "sha256:ef5120dd2e3fc38d953cec4281a415480f88d8a24df22d0a870372a900a593ff"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.jenseits-zimmern-gutenberg-4363.translator-attribution.statement",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.claim.responsibility.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.translated-by-helen-zimmern",
+        "version": 1,
+        "digest": "sha256:ef5120dd2e3fc38d953cec4281a415480f88d8a24df22d0a870372a900a593ff"
+      },
+      "role": "statement",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "model:foundation-native-growth-source-review",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.claim.responsibility.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.translated-by-helen-zimmern",
+            "version": 1,
+            "digest": "sha256:ef5120dd2e3fc38d953cec4281a415480f88d8a24df22d0a870372a900a593ff"
+          },
+          "pointer": "/qualifiers/statement"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.claim.responsibility.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.translated-by-helen-zimmern",
+            "version": 1,
+            "digest": "sha256:ef5120dd2e3fc38d953cec4281a415480f88d8a24df22d0a870372a900a593ff"
+          },
+          "pointer": ""
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

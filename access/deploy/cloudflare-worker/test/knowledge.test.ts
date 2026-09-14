@@ -1,13 +1,52 @@
 import assert from "node:assert/strict";
+import { Buffer } from "node:buffer";
+import { createHash } from "node:crypto";
 import test from "node:test";
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
-import { executeKnowledgeLensD1, knowledgeSearchD1, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
+import { knowledgeSearchD1 as nativeSearchD1, knowledgeSearchD1Indexed as nativeSearchD1Indexed, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
+import {nativeChild, nativeField, nativePacketJson, parseNativeJson} from '../src/native-lens.ts';
+import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 
+import {executePublishedFixtureLens, executePublishedFixturePythonLens, publishNativeLensFixture, publishNativeSearchFixture} from './native-lens-fixture.ts';
 import { executeKnowledgeLens, focusKnowledgeNode, knowledgeScene, normalizeLensSpec, selectDisplayForm, type KnowledgeGraph } from "../src/knowledge.ts";
 import { selectHumanForms, formDeliveryCost, HUMAN_FORM_SELECTION_BUDGET } from '../src/human-forms.ts';
+import { decodeHumanFormSelection } from '../../../shared/human-form-selection-codec.ts';
+
+const knowledgeExplorationMigration = readFileSync(
+  new URL('../migrations/0001-exploration.sql', import.meta.url),
+  'utf8',
+).replace(/^--.*$/gm, '').trim();
+
+// These retained ordinary-number fixtures inspect the public packet shape;
+// native-search.test.mjs compares raw numeric kinds and ordered source keys.
+const knowledgeSearchD1=async(...args:Parameters<typeof nativeSearchD1>)=>JSON.parse(nativePacketJson(await nativeSearchD1(...args)));
+const knowledgeSearchD1Indexed=async(...args:Parameters<typeof nativeSearchD1Indexed>)=>JSON.parse(nativePacketJson(await nativeSearchD1Indexed(...args)));
+
+async function applyKnowledgeExplorationMigration(db: D1Database): Promise<void> {
+  await db.batch(knowledgeExplorationMigration.split(/\n(?=CREATE |INSERT )/).map((statement) => db.prepare(statement)));
+}
+
+function decodeIndexedCursor(value: string): Record<string, unknown> {
+  return JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Record<string, unknown>;
+}
+
+function encodeIndexedCursor(value: Record<string, unknown>): string {
+  return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+}
+
+function decodeDeliveredHumanForms(value: unknown): ReturnType<typeof selectHumanForms> {
+  return decodeHumanFormSelection(value) as ReturnType<typeof selectHumanForms>;
+}
+
+function hasHttpStatus(status: number) {
+  return (error: unknown): boolean => Boolean(
+    error && typeof error === "object" && "status" in error && (error as { status?: unknown }).status === status,
+  );
+}
 
 function realFormNode(): KnowledgeGraph['nodes'][number] {
   return JSON.parse(execFileSync('python3', ['-c',
@@ -97,11 +136,21 @@ record.update(claim_id='tos.claim.synthetic-exact-version-transport', claim_vers
 record['qualifiers'] = {'statement': 'Keine gesicherte Zuschreibung; synthetischer Transporttest.',
     'statement_language': 'de', 'statement_script': 'Latn', 'polarity': 'negative',
     'unknown_extension': {'false': False, 'zero': 0, 'null': None, 'empty': []}}
-reference = {'id': record['claim_id'], 'version': 1, 'digest': 'sha256:' + _exact_record_digest(record)}
 derived_versions = []
-for available in (True, False):
+version_cases = [('claim', record)]
+for language in ('de', None):
+    metadata = {'record_id': 'tos.agent.synthetic-version-transport-' + str(language).lower(),
+        'record_type': 'agent', 'record_version': 4, 'preferred_label': 'Synthetic historical description',
+        'notes': 'Keine gesicherte Gleichsetzung; synthetischer Metadatentest.',
+        'field_languages': {'notes': {'language': language, 'script': 'Latn'}},
+        'unknown_extension': {'polarity': 'negative', 'false': False, 'zero': 0, 'null': None, 'empty': []}}
+    version_cases.append(('metadata', metadata))
+for record_kind, record, available in [(kind, value, state) for kind, value in version_cases for state in (True, False)]:
+    reference = {'id': record['claim_id'] if record_kind == 'claim' else record['record_id'],
+        'version': record['claim_version'] if record_kind == 'claim' else record['record_version'],
+        'digest': 'sha256:' + _exact_record_digest(record)}
     ref = reference if available else {**reference, 'version': 2, 'digest': 'sha256:' + '0' * 64}
-    view = {'schema_version': 'tos_record_version_view_v1', 'record_ref': ref, 'record_kind': 'claim',
+    view = {'schema_version': 'tos_record_version_view_v1', 'record_ref': ref, 'record_kind': record_kind,
         'status': 'available' if available else 'missing', 'reason': 'synthetic-transport-only',
         'version_status': 'historical' if available else None, 'record': record if available else None,
         'provenance': {'fixture': 'not-an-archive-verification'} if available else {},
@@ -119,7 +168,7 @@ full_edges = [_normalize_relation({**edge, 'predicate_id': edge['edge_kind'],
 full_graph = {'schema': 'tos_knowledge_graph_v1', 'source_revision': _stable_digest([selected, relations, entities, derived_versions]),
     'nodes': list(by_id.values()), 'relations': full_edges,
     'counts': {'nodes': len(by_id), 'relations': len(full_edges)},
-    'authority_boundary': {'is_source': False, 'is_canon': False, 'writes_to_tree': False}}
+    'authority_boundary': {'source_owner': 'Tree-of-Sophia', 'is_source': False, 'is_canon': False, 'writes_to_tree': False}}
 graph = {**full_graph, 'nodes': [node for node in by_id.values()
     if node['native_id'] in selected_ids or node['type_id'] == 'tos.entity.record-version'],
     'relations': [edge for edge in full_edges if edge['predicate_id'] in {'has_subject', 'has_object'}]}
@@ -173,8 +222,109 @@ const graph: KnowledgeGraph = {
     },
   ],
   counts: { nodes: 3, relations: 2 },
-  authority_boundary: { is_source: false, is_canon: false },
+  authority_boundary: { source_owner: 'Tree-of-Sophia', is_source: false, is_canon: false, writes_to_tree: false },
 };
+
+test("knowledge reads require the publication clock and reject invalid or ABA snapshots", async () => {
+  const mf = new Miniflare(convertV4MiniflareOptions({modules: true,
+    script: 'export default {fetch(){return new Response()}}', d1Databases: ['DB']}));
+  try {
+    const db = await mf.getD1Database('DB');
+    await db.batch([
+      db.prepare('CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)'),
+      db.prepare('CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, search_text TEXT, json TEXT)'),
+      db.prepare('CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)'),
+      db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({sha256: graph.source_revision})),
+      db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({source_revision: graph.source_revision, authority_boundary: graph.authority_boundary})),
+      ...graph.nodes.map(n => db.prepare('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)').bind(
+        n.id, n.entity_id, n.native_id, n.source_graph, n.kind_id, n.type_id,
+        n.display.title.default.toLowerCase(), JSON.stringify(n).toLowerCase(), JSON.stringify(n))),
+      ...graph.relations.map(r => db.prepare('INSERT INTO knowledge_relations VALUES (?,?,?,?,?,?,?,?,?,?)').bind(
+        r.id, r.native_id, r.source_graph, r.from_id, r.to_id, r.predicate_id, r.relation_type_id,
+        r.display.label.default.toLowerCase(), JSON.stringify(r).toLowerCase(), JSON.stringify(r))),
+    ]);
+    const request = {query: '', sources: null, kindIds: [], predicateIds: [], offset: 0, limit: 2};
+    await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503),
+      'a database without the additive publication-clock migration is not ready');
+    await applyKnowledgeExplorationMigration(db);
+
+    await publishNativeSearchFixture(db);
+
+    await db.prepare('UPDATE knowledge_exploration_clock SET epoch=? WHERE singleton=1').bind(-1).run();
+    await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503));
+    await db.prepare('UPDATE knowledge_exploration_clock SET epoch=? WHERE singleton=1').bind(0).run();
+
+    for (const epoch of [1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      await db.prepare('UPDATE knowledge_exploration_clock SET epoch=? WHERE singleton=1').bind(epoch).run();
+      await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503));
+    }
+    await db.prepare('UPDATE knowledge_exploration_clock SET epoch=? WHERE singleton=1').bind(0).run();
+
+    for (const value of [null, [], {sha256: ''}]) {
+      await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'")
+        .bind(JSON.stringify(value)).run();
+      await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503));
+      await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'")
+        .bind(JSON.stringify({sha256: graph.source_revision})).run();
+    }
+
+    // The production schema has a singleton CHECK/PRIMARY KEY, but readiness
+    // must still fail closed if a legacy or hand-built table violates it.
+    await db.prepare('DROP TABLE knowledge_exploration_clock').run();
+    await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503));
+    await db.batch([
+      db.prepare('CREATE TABLE knowledge_exploration_clock (singleton INTEGER PRIMARY KEY CHECK(singleton=1), epoch INTEGER NOT NULL)'),
+      db.prepare('INSERT INTO knowledge_exploration_clock VALUES (1,0)'),
+    ]);
+    await db.prepare('DROP TABLE knowledge_exploration_clock').run();
+    await db.batch([
+      db.prepare('CREATE TABLE knowledge_exploration_clock (singleton INTEGER, epoch INTEGER)'),
+      db.prepare('INSERT INTO knowledge_exploration_clock VALUES (1,0)'),
+      db.prepare('INSERT INTO knowledge_exploration_clock VALUES (1,0)'),
+    ]);
+    await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503));
+    await db.prepare('DROP TABLE knowledge_exploration_clock').run();
+    await db.batch([
+      db.prepare('CREATE TABLE knowledge_exploration_clock (singleton INTEGER PRIMARY KEY CHECK(singleton=1), epoch INTEGER NOT NULL)'),
+      db.prepare('INSERT INTO knowledge_exploration_clock VALUES (1,0)'),
+    ]);
+
+    // A revision split with no part zero must not be treated as a valid
+    // one-part revision by the guard.
+    await db.prepare("UPDATE edge_meta SET part=1 WHERE key='data_revision'").run();
+    await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503));
+    await db.prepare("UPDATE edge_meta SET part=0 WHERE key='data_revision'").run();
+
+    const originalPrepare = db.prepare.bind(db);
+    let snapshotReads = 0;
+    const intercepted = new Proxy(db, {get(target, property) {
+      if (property === 'prepare') return (sql: string) => {
+        const statement = originalPrepare(sql);
+        if (!sql.includes('knowledge_exploration_clock')) return statement;
+        snapshotReads += 1;
+        if (snapshotReads !== 2) return statement;
+        const originalFirst = statement.first.bind(statement) as <T>(columnName?: string) => Promise<T | null>;
+        return new Proxy(statement, {get(inner, method, receiver) {
+          if (method !== 'first') return Reflect.get(inner, method, receiver);
+          return async <T>(columnName?: string) => {
+            await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'")
+              .bind(JSON.stringify({sha256: 'b'.repeat(64)})).run();
+            await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'")
+              .bind(JSON.stringify({sha256: graph.source_revision})).run();
+            return originalFirst<T>(columnName);
+          };
+        }});
+      };
+      const value = Reflect.get(target, property);
+      return typeof value === 'function' ? value.bind(target) : value;
+    }});
+    await assert.rejects(() => knowledgeSearchD1(intercepted, request), hasHttpStatus(409),
+      'the epoch rejects A->B->A even when the digest returns to A');
+    assert.equal(snapshotReads, 2);
+  } finally {
+    await mf.dispose();
+  }
+});
 
 test("indexed D1 path conditions and inclusion agree with the pure engine", async () => {
   const bundle = await build({ entryPoints: [fileURLToPath(new URL('../src/index.ts', import.meta.url))],
@@ -197,12 +347,13 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       ...graph.nodes.map(n => db.prepare("INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)").bind(n.id,n.entity_id,n.native_id,n.source_graph,n.kind_id,n.type_id,n.display.title.default.toLowerCase(),JSON.stringify(n).toLowerCase(),JSON.stringify(n))),
       ...graph.relations.map(r => db.prepare("INSERT INTO knowledge_relations VALUES (?,?,?,?,?,?,?,?,?,?)").bind(r.id,r.native_id,r.source_graph,r.from_id,r.to_id,r.predicate_id,r.relation_type_id,r.display.label.default.toLowerCase(),JSON.stringify(r).toLowerCase(),JSON.stringify(r))),
     ]);
+    await applyKnowledgeExplorationMigration(db);
     const base = { schema_version: 'tos_lens_spec_v1', lens_id: 'path-parity', sources: ['philosophy'], explain: true };
     for (const direction of ['outgoing', 'incoming', 'either']) {
       for (const quantifier of ['exists', 'not_exists']) {
         for (const length of [1, 2, 3, 4]) {
           const spec = {...base, path_query: [{path_id: 'p', quantifier, steps: Array.from({length}, () => ({direction}))}]};
-          assert.deepEqual(await executeKnowledgeLensD1(db, spec), await executeKnowledgeLens(graph, spec));
+          assert.deepEqual(await executePublishedFixtureLens(db, spec), await executeKnowledgeLens(graph, spec));
         }
       }
     }
@@ -210,11 +361,11 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       {path_id: 'agent', steps: [{}, {node_query: {filters: [{field: 'type_id', op: 'eq', value: 'tos.entity.agent'}]}}]},
       {path_id: 'work', steps: [{node_query: {filters: [{field: 'type_id', op: 'eq', value: 'tos.entity.work'}]}}]}
     ]};
-    const joinedResult = await executeKnowledgeLensD1(db, joined);
+    const joinedResult = await executePublishedFixtureLens(db, joined);
     assert.deepEqual(joinedResult, await executeKnowledgeLens(graph, joined));
     assert.deepEqual((joinedResult.nodes as {id:string}[]).map(n=>n.id), ['philosophy:a']);
     const focused = {...base, seed: {focus_node_id: 'philosophy:a'}, node_query: {enabled: false}, traversal: {depth: 2}};
-    assert.deepEqual(await executeKnowledgeLensD1(db, focused), await executeKnowledgeLens(graph, focused));
+    assert.deepEqual(await executePublishedFixtureLens(db, focused), await executeKnowledgeLens(graph, focused));
     // A shared record maker/provenance event is not semantic proximity.
     // Exact inspection and the full technical profile still expose the edge.
     for (const relationType of ['tos.relation.made-by', 'tos.relation.generated-by']) {
@@ -226,7 +377,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
         const spec = {...focused, traversal: {depth: 2, profile}};
         const pure = await executeKnowledgeLens(technical, spec);
         assert.deepEqual(pure.nodes.map(n => n.id), profile === 'overview' ? ['philosophy:a'] : graph.nodes.map(n => n.id));
-        assert.deepEqual(await executeKnowledgeLensD1(db, spec), pure);
+        assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
       }
     }
     await db.prepare('UPDATE knowledge_relations SET relation_type_id=?, json=? WHERE id=?')
@@ -259,7 +410,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
         const spec = {...base, detail, ...(path ? {path_query: [{path_id: 'property-target', steps: [{node_query}]}]} : {node_query})};
         const pure = await executeKnowledgeLens(propertyGraph, spec);
         assert.deepEqual(pure, python(spec, propertyGraph));
-        assert.deepEqual(await executeKnowledgeLensD1(db, spec), pure);
+        assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
         assert.equal(JSON.stringify(pure.lens).includes('_property_binding'), false);
       }
     }
@@ -268,7 +419,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
                          {property_id: 'tos.property.bad\n'}, {property_id: null}]) {
       const spec = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-score', op: 'eq', value: 3, ...change}]}};
       await assert.rejects(executeKnowledgeLens(propertyGraph, spec));
-      await assert.rejects(executeKnowledgeLensD1(db, spec));
+      await assert.rejects(executePublishedFixtureLens(db, spec));
     }
     for (const [name, op, value] of [['word', 'eq', 'Свобода Ω 🦉\u0000fin'], ['word', 'contains', 'Ω 🦉'],
         ['word', 'prefix', 'Свобода Ω 🦉\u0000fi'], ['word', 'prefix', ''],
@@ -278,7 +429,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       const spec = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-' + name, op, value}]}};
       const pure = await executeKnowledgeLens(propertyGraph, spec);
       assert.deepEqual(pure, python(spec, propertyGraph));
-      assert.deepEqual(await executeKnowledgeLensD1(db, spec), pure);
+      assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
     }
     // Returning to the old snapshot removes the binding as well as the synthetic values.
     await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_top'").bind(JSON.stringify({
@@ -286,15 +437,33 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     for (const n of graph.nodes) await db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(n), n.id).run();
     const absentProperty = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-score', op: 'eq', value: 3}]}};
     await assert.rejects(executeKnowledgeLens(graph, absentProperty));
-    await assert.rejects(executeKnowledgeLensD1(db, absentProperty));
+    await assert.rejects(executePublishedFixtureLens(db, absentProperty));
     const carriers = structuredClone(graph);
+    // In-memory continuation and published continuation intentionally bind
+    // different snapshots. Compare every other field, and verify the exact
+    // published token separately against the Python publication owner.
+    const assertPageContent = (published: Record<string, unknown>, pure: Record<string, unknown>) => {
+      const page = published.page as Record<string, unknown> | undefined;
+      if (!page) return assert.deepEqual(published, pure);
+      const memoryPage = pure.page as Record<string, unknown>;
+      assert.equal(page.next_cursor === null, memoryPage.next_cursor === null);
+      if (page.next_cursor !== null) assert.notEqual(page.next_cursor, memoryPage.next_cursor);
+      const withoutCursorTokens = (packet: Record<string, unknown>, info: Record<string, unknown>) => {
+        const lens = packet.lens as Record<string, unknown>;
+        return {...packet, page: {...info, next_cursor: null},
+          lens: {...lens, pagination: {...lens.pagination as Record<string, unknown>, cursor: null}}};
+      };
+      assert.deepEqual(withoutCursorTokens(published,page), withoutCursorTokens(pure,memoryPage));
+    };
     carriers.nodes[1]!.entity_id = carriers.nodes[0]!.entity_id;
     await db.prepare('UPDATE knowledge_nodes SET entity_id=?, json=? WHERE id=?')
       .bind(carriers.nodes[1]!.entity_id, JSON.stringify(carriers.nodes[1]), carriers.nodes[1]!.id).run();
     for (const paging of [null, {nodes: 1, relations: 1}]) {
       const spec = {...focused, pagination: paging};
       const pure = await executeKnowledgeLens(carriers, spec);
-      assert.deepEqual(await executeKnowledgeLensD1(db, spec), pure);
+      const published = await executePublishedFixtureLens(db, spec);
+      assertPageContent(published, pure);
+      if (paging) assert.deepEqual(published, await executePublishedFixturePythonLens(db, carriers, spec));
       assert.deepEqual(pure, python(spec, carriers));
       const scene = pure.scene as {vertices: {node_ids: string[]}[]};
       assert.equal(scene.vertices.filter(v => v.node_ids.includes('philosophy:a'))[0]!.node_ids.length, 2);
@@ -302,7 +471,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     for (const profile of ['overview', 'all']) for (const size of [1, 3]) {
       const spec = {...focused, traversal: {depth: 1, profile}, limits: {nodes: size}};
       const pure = await executeKnowledgeLens(carriers, spec);
-      assert.deepEqual(await executeKnowledgeLensD1(db, spec), pure);
+      assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
       assert.deepEqual(pure, python(spec, carriers));
       assert.equal(pure.nodes.some(n => n.id === 'philosophy:c'), profile === 'overview' && size > 1);
       assert.equal((pure.counts as {identity_expansion_limited:boolean}).identity_expansion_limited, profile === 'overview' && size === 1);
@@ -312,25 +481,33 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     const whole = await executeKnowledgeLens(graph, focused);
     const nodeIds: string[] = [], relationIds: string[] = [];
     let cursor: string | null = null;
+    let memoryCursor: string | null = null;
     for (let iteration = 0; iteration < 5; iteration++) {
       const spec = {...focused, pagination: {nodes: 1, relations: 1, cursor}};
-      const page = await executeKnowledgeLensD1(db, spec);
-      assert.deepEqual(page, await executeKnowledgeLens(graph, spec));
-      assert.deepEqual(page, python(spec));
+      const page = await executePublishedFixtureLens(db, spec);
+      const memorySpec = {...spec, pagination: {...spec.pagination, cursor: memoryCursor}};
+      const memoryPage = await executeKnowledgeLens(graph, memorySpec);
+      assertPageContent(page, memoryPage);
+      assert.deepEqual(memoryPage, python(memorySpec));
+      assert.deepEqual(page, await executePublishedFixturePythonLens(db, graph, spec));
+      memoryCursor = (memoryPage.page as {next_cursor:string|null}).next_cursor;
       assert.equal(page.fingerprint, whole.fingerprint);
       const info = page.page as {primary_node_ids:string[]; next_cursor:string|null};
       nodeIds.push(...info.primary_node_ids);
       relationIds.push(...(page.relations as {id:string}[]).map(r=>r.id));
       cursor = info.next_cursor;
       if (!cursor) break;
-      await assert.rejects(executeKnowledgeLensD1(db,{...spec,lens_id:'different',pagination:{...spec.pagination,cursor}}), /query or snapshot changed/);
+      await assert.rejects(executePublishedFixtureLens(db,{...spec,lens_id:'different',pagination:{...spec.pagination,cursor}}), /query or snapshot changed/);
     }
     assert.deepEqual(nodeIds, whole.nodes.map(n=>n.id));
     assert.deepEqual(relationIds, whole.relations.map(r=>r.id));
-    assert.deepEqual(await executeKnowledgeLensD1(db, joined), python(joined));
+    assert.deepEqual(await executePublishedFixtureLens(db, joined), python(joined));
     const httpSpec = {...focused, pagination: {nodes: 1, relations: 1, cursor: null as string|null}};
-    const requestPage = (spec: unknown) => mf.dispatchFetch('http://tos.test/api/knowledge/lenses/compile',
-      {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(spec)});
+    const requestPage = async (spec: unknown) => {
+      await publishNativeLensFixture(db);
+      return mf.dispatchFetch('http://tos.test/api/knowledge/lenses/compile',
+        {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(spec)});
+    };
     const firstResponse = await requestPage(httpSpec);
     assert.equal(firstResponse.status, 200);
     const firstPage = await firstResponse.json() as {page:{next_cursor:string}};
@@ -344,9 +521,43 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     assert.equal((await requestPage(httpSpec)).status, 409);
     await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_top'")
       .bind(JSON.stringify({source_revision:graph.source_revision,authority_boundary:graph.authority_boundary})).run();
-    for (const packet of [await knowledgeNodeD1(db,'philosophy:a',0), await knowledgeRelationD1(db,'philosophy:e'),
+    await publishNativeSearchFixture(db);
+    for (const packet of [JSON.parse(nativePacketJson(await knowledgeNodeD1(db,'philosophy:a',0))), JSON.parse(nativePacketJson(await knowledgeRelationD1(db,'philosophy:e'))),
       await knowledgeSearchD1(db,{query:'',sources:null,kindIds:[],predicateIds:[],offset:0,limit:2})]) {
       assert.equal(packet.source_revision, graph.source_revision);
+    }
+    // Search ordering must agree with Python when a reader-visible form is
+    // mixed with a digest-only match.  The substring filter remains broad;
+    // only the deterministic display-field ordering changes.
+    const rankingGraph = structuredClone(graph);
+    rankingGraph.nodes[0]!.display.title.default = 'Unrelated node';
+    rankingGraph.nodes[0]!.display.summary.default = 'A reader-visible note names 4363.';
+    rankingGraph.nodes[1]!.display.title.default = 'Anchor · 4363';
+    rankingGraph.nodes[2]!.attributes.content_revision = 'sha256:4363abc';
+    rankingGraph.relations[0]!.display.statement.default = 'Anchor · 4363 — relates Beta.';
+    rankingGraph.relations[1]!.attributes.content_revision = 'sha256:4363def';
+    const restoreRows = async () => {
+      for (const n of graph.nodes) await db.prepare('UPDATE knowledge_nodes SET json=?,search_text=? WHERE id=?')
+        .bind(JSON.stringify(n), JSON.stringify(n).toLowerCase(), n.id).run();
+      for (const r of graph.relations) await db.prepare('UPDATE knowledge_relations SET json=?,search_text=? WHERE id=?')
+        .bind(JSON.stringify(r), JSON.stringify(r).toLowerCase(), r.id).run();
+    };
+    try {
+      for (const n of rankingGraph.nodes) await db.prepare('UPDATE knowledge_nodes SET json=?,search_text=? WHERE id=?')
+        .bind(JSON.stringify(n), JSON.stringify(n).toLowerCase(), n.id).run();
+      for (const r of rankingGraph.relations) await db.prepare('UPDATE knowledge_relations SET json=?,search_text=? WHERE id=?')
+        .bind(JSON.stringify(r), JSON.stringify(r).toLowerCase(), r.id).run();
+      const expectedSearch = JSON.parse(execFileSync('python3', ['-c',
+        "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import search_knowledge_graph;p=json.load(sys.stdin);print(json.dumps(search_knowledge_graph(p['graph'],p['query'],limit=p['limit'])))"],
+        {cwd: fileURLToPath(new URL('../../../../', import.meta.url)),
+          input: JSON.stringify({graph: rankingGraph, query: '4363', limit: 3}), encoding: 'utf8'}));
+      await publishNativeSearchFixture(db);
+      const actualSearch = await knowledgeSearchD1(db,{query:'4363',sources:null,kindIds:[],predicateIds:[],offset:0,limit:3});
+      assert.deepEqual(actualSearch, expectedSearch);
+      assert.deepEqual((actualSearch.nodes as {id:string}[]).map(n => n.id), ['philosophy:a','philosophy:b','philosophy:c']);
+      assert.deepEqual((actualSearch.relations as {id:string}[]).map(r => r.id), ['philosophy:e','philosophy:f']);
+    } finally {
+      await restoreRows();
     }
     const scoped = structuredClone(graph);
     // New language/script keys pass through all three execution backends.
@@ -363,7 +574,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       node_query: {filters: [{field: 'display.title.grc-Grek', op: 'eq', value: 'λόγος'}]},
       relation_query: {filters: [{field: 'display.statement.fr', op: 'contains', value: 'non'}]},
       composition: {endpoint_policy: 'either'}};
-    const languageResult = await executeKnowledgeLensD1(db, languageSpec);
+    const languageResult = await executePublishedFixtureLens(db, languageSpec);
     assert.deepEqual(languageResult, await executeKnowledgeLens(scoped, languageSpec));
     const pythonLanguage = JSON.parse(execFileSync('python3', ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
@@ -385,7 +596,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       sourceFormNode.display.title.default.toLowerCase(), JSON.stringify(sourceFormNode).toLowerCase(), JSON.stringify(sourceFormNode)).run();
     const formSpec = {...base, sources: ['source-claims'], language: 'ru', detail: 'compact',
       seed: {focus_node_id: sourceFormNode.id}, node_query: {enabled: false}, relation_query: {enabled: false}};
-    const formResult = await executeKnowledgeLensD1(db, formSpec);
+    const formResult = await executePublishedFixtureLens(db, formSpec);
     assert.deepEqual(formResult, await executeKnowledgeLens(scoped, formSpec));
     const pythonForms = JSON.parse(execFileSync('python3', ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
@@ -393,7 +604,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     assert.deepEqual(formResult, pythonForms);
     const delivered = (formResult.nodes as KnowledgeGraph['nodes'])[0]!;
     assert.deepEqual(delivered.attributes, {});
-    const selectedForms = delivered.human_form_selection as ReturnType<typeof selectHumanForms>;
+    const selectedForms = decodeDeliveredHumanForms(delivered.human_form_selection);
     assert.equal(selectedForms.roles.name!.state, 'ready');
     assert.equal(selectedForms.roles.hover!.state, 'ready');
     assert.equal(selectedForms.roles.name!.packet!.display_text, 'По ту сторону добра и зла');
@@ -407,13 +618,13 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       if (state === 'invalid') (packet.assessment_snapshot as Record<string, unknown>).publication_authorized = true;
       scoped.nodes[sourceFormIndex] = candidate;
       await db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(candidate), candidate.id).run();
-      const edge = await executeKnowledgeLensD1(db, formSpec);
+      const edge = await executePublishedFixtureLens(db, formSpec);
       assert.deepEqual(edge, await executeKnowledgeLens(scoped, formSpec));
       const pythonAssessed = JSON.parse(execFileSync('python3', ['-c',
         "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
         {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: formSpec}), encoding:'utf8'}));
       assert.deepEqual(edge, pythonAssessed);
-      const forms = ((edge.nodes as KnowledgeGraph['nodes'])[0]!.human_form_selection as ReturnType<typeof selectHumanForms>);
+      const forms = decodeDeliveredHumanForms((edge.nodes as KnowledgeGraph['nodes'])[0]!.human_form_selection);
       assert.equal(forms.roles.hover!.state === 'ready', state === 'ready');
       if (state === 'ready') assert.deepEqual(forms.roles.hover!.packet, packet);
       if (state === 'invalid') assert.equal(forms.state, 'invalid');
@@ -426,19 +637,19 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       claimNode.native_id, claimNode.source_graph, claimNode.kind_id, claimNode.type_id,
       claimNode.display.title.default.toLowerCase(), JSON.stringify(claimNode).toLowerCase(), JSON.stringify(claimNode)).run();
     const claimSpec = {...formSpec, seed: {focus_node_id: claimNode.id}};
-    const claimResult = await executeKnowledgeLensD1(db, claimSpec);
+    const claimResult = await executePublishedFixtureLens(db, claimSpec);
     assert.deepEqual(claimResult, await executeKnowledgeLens(scoped, claimSpec));
     const pythonClaim = JSON.parse(execFileSync('python3', ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: claimSpec}), encoding:'utf8'}));
     assert.deepEqual(claimResult, pythonClaim);
-    const claimPacket = ((claimResult.nodes as KnowledgeGraph['nodes'])[0]!.human_form_selection as ReturnType<typeof selectHumanForms>).roles.statement!.packet!;
+    const claimPacket = decodeDeliveredHumanForms((claimResult.nodes as KnowledgeGraph['nodes'])[0]!.human_form_selection).roles.statement!.packet!;
     assert.equal(claimPacket.standalone_reading, false);
     assert.equal(claimPacket.admission, null);
     assert.deepEqual((claimPacket.context as {value: unknown}[])[0]!.value, claimNode.attributes.source_claim);
     scoped.nodes[1]!.source_graph = 'repository';
     await db.prepare("UPDATE knowledge_nodes SET source_graph='repository', json=? WHERE id=?").bind(JSON.stringify(scoped.nodes[1]), 'philosophy:b').run();
-    assert.deepEqual(await executeKnowledgeLensD1(db,joined), await executeKnowledgeLens(scoped,joined));
+    assert.deepEqual(await executePublishedFixtureLens(db,joined), await executeKnowledgeLens(scoped,joined));
     // Synthetic topology with an explicit disputed Claim; no historical fact
     // follows from the test's normalized endpoint declarations.
     const pathGraph = structuredClone(graph);
@@ -461,16 +672,256 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     for (const focus of ['philosophy:a', 'philosophy:c']) for (const paging of [null, {nodes: 1, relations: 1}]) {
       const spec = {...base, detail: 'compact', language: 'en', seed: {focus_node_id: focus}, pagination: paging};
       const result = await executeKnowledgeLens(pathGraph,spec);
-      assert.deepEqual(await executeKnowledgeLensD1(db,spec),result);
+      const published = await executePublishedFixtureLens(db,spec);
+      assertPageContent(published,result);
+      if (paging) assert.deepEqual(published,await executePublishedFixturePythonLens(db,pathGraph,spec));
       assert.deepEqual(result,python(spec,pathGraph));
       const view = (result.scene as {compact:{claim_paths:{claim_node_id:string;reading:{standalone:boolean}}[]}}).compact;
-      assert.equal(view.claim_paths.length,focus === 'philosophy:a' && paging === null ? 1 : 0);
+      assert.equal(view.claim_paths.length,
+        (focus === 'philosophy:a' || focus === 'philosophy:c') && paging === null ? 1 : 0);
       if (view.claim_paths.length) {
         assert.equal(view.claim_paths[0]!.claim_node_id,pathClaim.id);
         assert.equal(view.claim_paths[0]!.reading.standalone,false);
       }
     }
   } finally { await mf.dispose(); }
+});
+
+test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Python packet order", async () => {
+  const bundle = await build({ entryPoints: [fileURLToPath(new URL('../src/index.ts', import.meta.url))],
+    bundle: true, write: false, format: 'esm', platform: 'browser', target: 'es2022' });
+  const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: bundle.outputFiles[0]!.text, d1Databases: ["DB"] }));
+  try {
+    const db = await mf.getD1Database("DB");
+    const indexedGraph = structuredClone(graph);
+    indexedGraph.nodes.push(
+      {...indexedGraph.nodes[1]!, id: "philosophy:alpha-extra-1", native_id: "alpha-extra-1",
+        display: {...indexedGraph.nodes[1]!.display, title: {default: "Alpha extra one"}, summary: {default: "Alpha extra one"}}},
+      {...indexedGraph.nodes[2]!, id: "philosophy:alpha-extra-2", native_id: "alpha-extra-2",
+        display: {...indexedGraph.nodes[2]!.display, title: {default: "Alpha extra two"}, summary: {default: "Alpha extra two"}}},
+    );
+    const searchable = (item: Record<string, unknown>) => JSON.stringify(item).toLowerCase();
+    const grams = (value: string) => {
+      const result = new Set<string>();
+      for (let index = 0; index <= value.length - 3; index += 1) result.add(value.slice(index, index + 3));
+      return [...result];
+    };
+    const documentRows: D1PreparedStatement[] = [];
+    const gramRows: D1PreparedStatement[] = [];
+    const stats = new Map<string, number>();
+    for (const [kind, items] of [["nodes", indexedGraph.nodes], ["relations", indexedGraph.relations]] as const) {
+      items.forEach((item, position) => {
+        const json = JSON.stringify(item);
+        const lower = searchable(item as unknown as Record<string, unknown>);
+        const display = item.display as Record<string, unknown>;
+        const primary = kind === "nodes"
+          ? JSON.stringify([((display.title as Record<string, unknown>)?.default ?? "").toString().toLowerCase()])
+          : JSON.stringify([((display.label as Record<string, unknown>)?.default ?? "").toString().toLowerCase()]);
+        const visible = kind === "nodes"
+          ? JSON.stringify([((display.title as Record<string, unknown>)?.default ?? "").toString().toLowerCase()])
+          : JSON.stringify([((display.label as Record<string, unknown>)?.default ?? "").toString().toLowerCase()]);
+        documentRows.push(db.prepare("INSERT INTO knowledge_search_documents VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")
+          .bind(kind, position, item.id, item.source_graph, item.kind_id ?? "", item.predicate_id ?? "",
+            String(item.id).toLowerCase(), String(item.native_id).toLowerCase(), primary, visible, lower.length, ""));
+        for (const gram of grams(lower)) {
+          gramRows.push(db.prepare("INSERT INTO knowledge_search_grams VALUES (?,?,?,?)").bind(kind, 3, gram, position));
+          const key = `${kind}\0${gram}`;
+          stats.set(key, (stats.get(key) ?? 0) + 1);
+        }
+      });
+    }
+    await db.batch([
+      db.prepare("CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)"),
+      db.prepare("CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, search_text TEXT, json TEXT)"),
+      db.prepare("CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)"),
+      db.prepare("CREATE TABLE knowledge_search_documents (kind TEXT, position INTEGER, id TEXT, source_graph TEXT, kind_id TEXT, predicate_id TEXT, id_lower TEXT, native_id_lower TEXT, identity_values TEXT, visible_values TEXT, document_chars INTEGER, document_digest TEXT, PRIMARY KEY(kind,position))"),
+      db.prepare("CREATE TABLE knowledge_search_grams (kind TEXT, n INTEGER, gram TEXT, position INTEGER, PRIMARY KEY(kind,n,gram,position))"),
+      db.prepare("CREATE TABLE knowledge_search_gram_stats (kind TEXT, n INTEGER, gram TEXT, postings INTEGER, PRIMARY KEY(kind,n,gram))"),
+      db.prepare("INSERT INTO edge_meta VALUES ('data_revision',0,?)").bind(JSON.stringify({sha256: indexedGraph.source_revision})),
+      db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top',0,?)").bind(JSON.stringify({source_revision: indexedGraph.source_revision, authority_boundary: indexedGraph.authority_boundary})),
+      ...indexedGraph.nodes.map(n => db.prepare("INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)").bind(n.id,n.entity_id,n.native_id,n.source_graph,n.kind_id,n.type_id,n.display.title.default.toLowerCase(),searchable(n),JSON.stringify(n))),
+      ...indexedGraph.relations.map(r => db.prepare("INSERT INTO knowledge_relations VALUES (?,?,?,?,?,?,?,?,?,?)").bind(r.id,r.native_id,r.source_graph,r.from_id,r.to_id,r.predicate_id,r.relation_type_id,r.display.label.default.toLowerCase(),searchable(r),JSON.stringify(r))),
+      ...documentRows,
+      ...gramRows,
+      ...[...stats.entries()].map(([key, postings]) => {
+        const [kind, gram] = key.split("\0");
+        return db.prepare("INSERT INTO knowledge_search_gram_stats VALUES (?,?,?,?)").bind(kind, 3, gram, postings);
+      }),
+    ]);
+    await applyKnowledgeExplorationMigration(db);
+
+    await publishNativeSearchFixture(db);
+    const first = await knowledgeSearchD1Indexed(db, {query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1});
+    assert.deepEqual((first.nodes as {id:string}[]).map(item => item.id), ["philosophy:a"]);
+    assert.deepEqual((first.relations as {id:string}[]).map(item => item.id), ["philosophy:e"]);
+    assert.equal((first.counts as {matching_nodes:number|null}).matching_nodes, null);
+    assert.equal((first.counts as {matching_relations:number|null}).matching_relations, 1);
+    assert.ok((first.page as {next_cursor:string|null}).next_cursor);
+
+    const second = await knowledgeSearchD1Indexed(db, {
+      query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1,
+      cursor: (first.page as {next_cursor:string}).next_cursor,
+    });
+    assert.deepEqual((second.nodes as {id:string}[]).map(item => item.id), ["philosophy:alpha-extra-1"]);
+    assert.deepEqual(second.relations, []);
+    assert.equal((second.counts as {matching_nodes:number|null}).matching_nodes, null);
+    assert.equal((second.counts as {matching_relations:number|null}).matching_relations, null);
+    const third = await knowledgeSearchD1Indexed(db, {
+      query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1,
+      cursor: (second.page as {next_cursor:string}).next_cursor,
+    });
+    assert.deepEqual((third.nodes as {id:string}[]).map(item => item.id), ["philosophy:alpha-extra-2"]);
+    assert.equal((third.page as {next_cursor:string|null}).next_cursor, null);
+
+    // Compare the bounded packet semantics against the pure Python engine on
+    // this same synthetic graph. Indexed page/work counters and opaque cursor
+    // carriers are backend mechanics, so the comparison intentionally omits
+    // them while retaining source, filters, authority, and complete packets.
+    const python = JSON.parse(execFileSync('python3', ['-c', [
+      "import json,sys;sys.path.insert(0,'access/src');from tos_access.knowledge import search_knowledge_graph",
+      "p=json.load(sys.stdin);print(json.dumps(search_knowledge_graph(p['graph'],p['query'],sources=p['sources'],kind_ids=p['kind_ids'],predicate_ids=p['predicate_ids'],limit=p['limit'])))",
+    ].join(';')], {
+      cwd: fileURLToPath(new URL('../../../../', import.meta.url)),
+      input: JSON.stringify({graph: indexedGraph, query: "alpha", sources: null, kind_ids: [], predicate_ids: [], limit: 100}),
+      encoding: 'utf8',
+    }));
+    const packet = (value: Record<string, unknown>) => ({
+      source_revision: value.source_revision,
+      query: value.query,
+      filters: value.filters,
+      nodes: value.nodes,
+      relations: value.relations,
+      authority_boundary: value.authority_boundary,
+    });
+    assert.deepEqual(packet({
+      source_revision: first.source_revision,
+      query: first.query,
+      filters: first.filters,
+      nodes: [...(first.nodes as unknown[]), ...(second.nodes as unknown[]), ...(third.nodes as unknown[])],
+      relations: [...(first.relations as unknown[]), ...(second.relations as unknown[]), ...(third.relations as unknown[])],
+      authority_boundary: first.authority_boundary,
+    }), packet(python));
+
+    const firstCursor = (first.page as {next_cursor:string}).next_cursor;
+    const decodedOuter = decodeIndexedCursor(firstCursor);
+    assert.equal(decodedOuter.relations_exhausted, true);
+    assert.equal(typeof decodedOuter.nodes, "string");
+    const oldSchema = {...decodedOuter, schema: "tos_knowledge_search_indexed_cursor_v1"};
+    await assert.rejects(
+      () => knowledgeSearchD1Indexed(db, {
+        query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1, cursor: encodeIndexedCursor(oldSchema),
+      }),
+      hasHttpStatus(400),
+      'the pre-epoch cursor schema is not silently accepted',
+    );
+    const malformedOuter = {...decodedOuter};
+    delete malformedOuter.nodes_exhausted;
+    await assert.rejects(
+      () => knowledgeSearchD1Indexed(db, {
+        query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1, cursor: encodeIndexedCursor(malformedOuter),
+      }),
+      hasHttpStatus(400),
+    );
+
+    const malformedInner = decodeIndexedCursor(decodedOuter.nodes as string);
+    malformedInner.rank = 4;
+    await assert.rejects(
+      () => knowledgeSearchD1Indexed(db, {
+        query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1,
+        cursor: encodeIndexedCursor({...decodedOuter, nodes: encodeIndexedCursor(malformedInner)}),
+      }),
+      hasHttpStatus(400),
+    );
+
+    // The relation kind is already exhausted in this cursor. Filter changes
+    // must still invalidate the whole envelope before skipping that kind.
+    await assert.rejects(
+      () => knowledgeSearchD1Indexed(db, {
+        query: "alpha", sources: null, kindIds: ["concept"], predicateIds: [], limit: 1, cursor: firstCursor,
+      }),
+      hasHttpStatus(409),
+    );
+
+    // A valid continuation can have no rows left after its key. The outer
+    // cursor must close both kinds rather than restarting the node scan.
+    const zeroCandidateInner = decodeIndexedCursor(decodedOuter.nodes as string);
+    Object.assign(zeroCandidateInner, {rank: 3, id: "zzzzzz", position: Number.MAX_SAFE_INTEGER - 1});
+    const zeroCandidate = await knowledgeSearchD1Indexed(db, {
+      query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1,
+      cursor: encodeIndexedCursor({...decodedOuter, nodes: encodeIndexedCursor(zeroCandidateInner)}),
+    });
+    assert.deepEqual(zeroCandidate.nodes, []);
+    assert.deepEqual(zeroCandidate.relations, []);
+    assert.equal((zeroCandidate.page as {next_cursor:string|null}).next_cursor, null);
+    const zeroWork = zeroCandidate.work as {nodes:{candidate_rows:number; verified_chars:number}};
+    assert.ok(zeroWork.nodes.candidate_rows > 0);
+    assert.ok(zeroWork.nodes.verified_chars > 0);
+
+    const firstWork = first.work as {
+      nodes: {candidate_rows:number; verified_chars:number; selection_rows_read?:number};
+      relations: {candidate_rows:number; verified_chars:number; selection_rows_read?:number};
+    };
+    assert.ok(firstWork.nodes.candidate_rows > (first.nodes as unknown[]).length);
+    assert.ok(firstWork.nodes.verified_chars >= String(JSON.stringify((first.nodes as unknown[])[0])).length);
+    for (const work of [firstWork.nodes, firstWork.relations]) {
+      if (work.selection_rows_read !== undefined) assert.ok(Number.isSafeInteger(work.selection_rows_read));
+    }
+
+    // Guard the indexed path at the same transaction boundary as the legacy
+    // path: an A->B->A publication during the read must fail by epoch even
+    // though the data_revision digest ends at its original value.
+    const originalPrepare = db.prepare.bind(db);
+    let snapshotReads = 0;
+    const intercepted = new Proxy(db, {get(target, property) {
+      if (property === 'prepare') return (sql: string) => {
+        const statement = originalPrepare(sql);
+        if (!sql.includes('knowledge_exploration_clock')) return statement;
+        snapshotReads += 1;
+        if (snapshotReads !== 2) return statement;
+        const originalFirst = statement.first.bind(statement) as <T>(columnName?: string) => Promise<T | null>;
+        return new Proxy(statement, {get(inner, method, receiver) {
+          if (method !== 'first') return Reflect.get(inner, method, receiver);
+          return async <T>(columnName?: string) => {
+            await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'")
+              .bind(JSON.stringify({sha256: 'b'.repeat(64)})).run();
+            await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'")
+              .bind(JSON.stringify({sha256: indexedGraph.source_revision})).run();
+            return originalFirst<T>(columnName);
+          };
+        }});
+      };
+      const value = Reflect.get(target, property);
+      return typeof value === 'function' ? value.bind(target) : value;
+    }});
+    await assert.rejects(
+      () => knowledgeSearchD1Indexed(intercepted, {query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1}),
+      hasHttpStatus(409),
+      'indexed A->B->A reads are rejected by the publication epoch',
+    );
+    assert.equal(snapshotReads, 2);
+    await assert.rejects(
+      () => knowledgeSearchD1Indexed(db, {
+        query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1, cursor: firstCursor,
+      }),
+      hasHttpStatus(409),
+      'a continuation cursor remains bound to its publication epoch',
+    );
+
+    // The budget preflight must reject from carrier metadata before rank JSON
+    // fields or source search_text are evaluated. An invalid rank carrier is
+    // intentional: reaching rank evaluation would be a different failure.
+    await db.prepare(
+      "UPDATE knowledge_search_documents SET document_chars=?, identity_values=? WHERE kind='nodes' AND position=0",
+    ).bind(16_000_001, "not-json").run();
+    await assert.rejects(
+      () => knowledgeSearchD1Indexed(db, {
+        query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1,
+      }),
+      hasHttpStatus(413),
+    );
+  } finally {
+    await mf.dispose();
+  }
 });
 
 test('assessed forms preserve snapshot limits and reject malformed authority across Python and Worker', () => {
@@ -499,6 +950,75 @@ test('assessed forms preserve snapshot limits and reject malformed authority acr
   assert.deepEqual(results, python);
   assert.equal(results[0]!.roles.hover!.state, 'ready');
   assert.ok(results.slice(1).every(result => result.state === 'invalid'));
+});
+
+test('assessed source-copy and separate parent context have lossless bounded Python/Worker delivery', () => {
+  const node = assessedFormNode();
+  const packet = (node.attributes.human_forms as Record<string, unknown>[])[0]!;
+  const formAdmission = packet.admission as Record<string, unknown>;
+  packet.derivation = 'source-copy';
+  packet.standalone_reading = false;
+  (packet.assessment_snapshot as Record<string, unknown>).subject_assessment_required = true;
+  packet.subject_assessment = {schema_version: 'tos_human_form_subject_assessment_v1',
+    subject: structuredClone(packet.subject), journal_revision: 'a'.repeat(64), journal_batches: 2,
+    historical_withdrawals: [{id: 'tos.assessment.synthetic-withdrawal', version: 1, digest: 'sha256:' + 'b'.repeat(64)}],
+    form_admission_is_parent_endorsement: false,
+    admission: {schema_version: 'tos_knowledge_admission_v1', subject: structuredClone(packet.subject),
+      policy: structuredClone(formAdmission.policy), use: 'research', status: 'rejected', can_use: false,
+      limits: ['Synthetic rejected parent remains visible; no historical assessment.'], is_semantic_evaluation: false,
+      retained_unknown_member: {counterevidence: false}}};
+  const cases = [node];
+  for (const derivation of ['freeform', 'source-copy']) for (const status of ['admitted', 'admitted-with-limits', 'disputed', 'rejected', 'deferred', 'unreviewed']) {
+    const candidate = structuredClone(node);
+    const body = (candidate.attributes.human_forms as Record<string, unknown>[])[0]!;
+    body.derivation = derivation;
+    Object.assign((body.subject_assessment as Record<string, unknown>).admission as object,
+      {status, can_use: status.startsWith('admitted')});
+    cases.push(candidate);
+  }
+  const validCount = cases.length;
+  for (const change of ['missing-parent', 'missing-marker', 'false-marker', 'endorsement', 'standalone', 'template',
+    'bad-derivation', 'wrong-subject', 'wrong-admission-subject', 'wrong-use', 'wrong-policy', 'missing-limits',
+    'bad-limits', 'bad-status', 'boolean-count', 'unsafe-count', 'missing-head', 'empty-journal-with-withdrawal', 'bad-withdrawal', 'bad-can-use']) {
+    const candidate = structuredClone(node);
+    const body = (candidate.attributes.human_forms as Record<string, unknown>[])[0]!;
+    const parent = body.subject_assessment as Record<string, unknown>, admission = parent.admission as Record<string, unknown>;
+    if (change === 'missing-parent') delete body.subject_assessment;
+    else if (change === 'missing-marker') delete (body.assessment_snapshot as Record<string, unknown>).subject_assessment_required;
+    else if (change === 'false-marker') (body.assessment_snapshot as Record<string, unknown>).subject_assessment_required = false;
+    else if (change === 'endorsement') parent.form_admission_is_parent_endorsement = true;
+    else if (change === 'standalone') Object.assign(body, {standalone_reading: true, context: []});
+    else if (change === 'template' || change === 'bad-derivation') body.derivation = change === 'template' ? 'template' : ['source-copy'];
+    else if (change === 'wrong-subject') (parent.subject as Record<string, unknown>).id = 'tos.claim.other';
+    else if (change === 'wrong-admission-subject') (admission.subject as Record<string, unknown>).id = 'tos.claim.other';
+    else if (change === 'wrong-use') admission.use = 'publication';
+    else if (change === 'wrong-policy') (admission.policy as Record<string, unknown>).version = 2;
+    else if (change === 'missing-limits') delete admission.limits;
+    else if (change === 'bad-limits') admission.limits = [false];
+    else if (change === 'bad-status') admission.status = ['admitted'];
+    else if (change === 'boolean-count') parent.journal_batches = true;
+    else if (change === 'unsafe-count') parent.journal_batches = 9007199254740992;
+    else if (change === 'missing-head') parent.journal_revision = null;
+    else if (change === 'empty-journal-with-withdrawal') Object.assign(parent, {journal_batches: 0, journal_revision: null});
+    else if (change === 'bad-withdrawal') (parent.historical_withdrawals as Record<string, unknown>[])[0]!.version = true;
+    else admission.can_use = 0;
+    cases.push(candidate);
+  }
+  const large = structuredClone(node);
+  (((large.attributes.human_forms as Record<string, unknown>[])[0]!.subject_assessment as Record<string, unknown>).admission as Record<string, unknown>).limits = ['x'.repeat(20000)];
+  cases.push(large);
+  const before = structuredClone(cases);
+  const python = JSON.parse(execFileSync('python3', ['-c',
+    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
+    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8', maxBuffer: 4194304}));
+  const results = cases.map(item => selectHumanForms(item, 'ru'));
+  assert.deepEqual(results, python);
+  assert.deepEqual(cases, before);
+  for (let index = 0; index < validCount; index++) assert.deepEqual(results[index]!.roles.hover!.packet,
+    (cases[index]!.attributes.human_forms as Record<string, unknown>[])[0]);
+  assert.ok(results.slice(validCount, -1).every(result => result.state === 'invalid'));
+  assert.equal(results.at(-1)!.roles.hover!.state, 'over-budget');
+  assert.equal(results.at(-1)!.roles.hover!.packet, null);
 });
 
 test('source human forms preserve ambiguity, exact context and bounded delivery across Python and Worker', () => {
@@ -557,11 +1077,58 @@ test('source human forms preserve ambiguity, exact context and bounded delivery 
   assert.equal(selectHumanForms(node, 'ru').roles.name!.packet!.display_text, 'По ту сторону добра и зла');
 });
 
-test('native witness forms bind unchanged identities in Python and Worker', () => {
+test('form budget prioritizes requested language across roles in Python and Worker', () => {
+  // Synthetic packets test allocation and preservation, not language quality.
+  const subject = {id: 'tos.record.form-fixture', version: 1, digest: 'sha256:' + 'a'.repeat(64)};
+  const statement = {schema_version: 'tos_human_form_materialization_v1',
+    form: {id: 'tos.form.fixture-fr', version: 1, digest: 'sha256:' + 'b'.repeat(64)},
+    subject, state: 'ready', role: 'statement', language: 'fr' as string | null, script: 'Latn',
+    display_text: 'Cette attribution n’est pas établie.',
+    context: [{slot: 'qualifiers', binding: {record: subject, pointer: '/qualifiers'},
+      value: {negated: true, unknown: false, confidence: 0, condition: null, long_qualification: 'x'.repeat(11000)}}],
+    issues: [], admission: null, performs_semantic_assessment: false, standalone_reading: false,
+    derivation: 'source-copy', dependencies: [subject]};
+  const name = structuredClone(statement);
+  Object.assign(name, {role: 'name', language: null, display_text: 'Fallback name'});
+  name.form.id = 'tos.form.fixture-fallback-name';
+  name.context[0]!.value.long_qualification = 'y'.repeat(3500);
+  const node = {content_revision: 'c'.repeat(64), attributes: {
+    source_record: {record_id: subject.id, record_version: 1}, source_sha256: 'a'.repeat(64),
+    human_forms_source_ref: 'test-only:allocation-fixture', human_forms: [statement, name]}};
+  const cases = ['FR', 'fr-CA', 'auto', 'de'].map(language => ({item: structuredClone(node), language}));
+  name.language = 'fr';
+  cases.push({item: structuredClone(node), language: 'fr'});
+  statement.language = 'fr-CA';
+  cases.push({item: structuredClone(node), language: 'fr-CA'});
+  const before = structuredClone(cases);
+  const python = JSON.parse(execFileSync('python3', ['-c',
+    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(c['item'],c['language']) for c in json.load(sys.stdin)]))"],
+    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding: 'utf8'}));
+  const results = cases.map(({item, language}) => selectHumanForms(item, language));
+  assert.deepEqual(results, python);
+  assert.deepEqual(cases, before);
+  for (const [index, result] of results.entries()) {
+    const statementFirst = [0, 1, 5].includes(index);
+    const winner = statementFirst ? 'statement' : 'name', omitted = statementFirst ? 'name' : 'statement';
+    assert.deepEqual(result.roles[winner]!.packet, cases[index]!.item.attributes.human_forms.find(p => p.role === winner));
+    assert.equal(result.roles[omitted]!.state, 'over-budget');
+    assert.deepEqual(result.roles[omitted]!.form, cases[index]!.item.attributes.human_forms.find(p => p.role === omitted)!.form);
+    assert.equal(result.roles[omitted]!.packet, null);
+    assert.ok(formDeliveryCost(result) <= HUMAN_FORM_SELECTION_BUDGET);
+    assert.ok(new TextEncoder().encode(JSON.stringify(result)).length <= HUMAN_FORM_SELECTION_BUDGET);
+  }
+  assert.equal(results[0]!.roles.statement!.reason, 'exact-language');
+  assert.equal(results[1]!.roles.statement!.reason, 'less-specific-language');
+  results[0]!.roles.statement!.packet!.display_text = 'result-only mutation';
+  assert.deepEqual(cases, before);
+});
+
+test('native witness and canonical forms bind unchanged identities in Python and Worker', () => {
   for (const [schema, field, prefix] of [
     ['tos_scholarly_composite_witness_v1', 'composite_id', 'tos.composite.'],
     ['tos_artifact_source_witness_v1', 'artifact_id', 'tos.artifact.'],
     ['tos_artifact_source_witness_v2', 'artifact_id', 'tos.artifact.'],
+    ['tos_canonical_node_v1', 'node_id', 'tos.support.'],
   ] as const) {
     // Synthetic envelopes test the consumer binding, not historical metadata.
     const node = realFormNode();
@@ -573,6 +1140,7 @@ test('native witness forms bind unchanged identities in Python and Worker', () =
     delete nativeSource.record_id;
     nativeSource.schema_version = schema;
     nativeSource[field] = identifier;
+    if (field === 'node_id') nativeSource.node_type = 'support';
     replaced.entity_id = identifier;
     const badCarrier = structuredClone(replaced);
     badCarrier.entity_id = prefix + 'other';
@@ -583,6 +1151,15 @@ test('native witness forms bind unchanged identities in Python and Worker', () =
       (changed.attributes.source_record as Record<string, unknown>).schema_version = schemaVersion;
       return changed;
     })];
+    if (field === 'node_id') {
+      for (const mutation of [{node_type: 'event'}, {node_type: ['support']}, {node_type: {}},
+        {node_type: null}, {node_id: identifier + '\n'},
+        {record_version: true}, {record_version: 0}, {record_version: 9007199254740992}]) {
+        const changed = structuredClone(replaced);
+        Object.assign(changed.attributes.source_record as Record<string, unknown>, mutation);
+        cases.push(changed);
+      }
+    }
     const python = JSON.parse(execFileSync('python3', ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
@@ -600,7 +1177,8 @@ test('Claim forms bind the assertion rather than its object in Python and Worker
   const wrongIdentity = structuredClone(node);
   wrongIdentity.entity_id = 'tos.letter.not-the-claim';
   const changed = structuredClone(node);
-  (changed.attributes.source_claim as Record<string, unknown>).claim_version = 2;
+  const changedClaim = changed.attributes.source_claim as Record<string, unknown>;
+  changedClaim.claim_version = (changedClaim.claim_version as number) + 1;
   const missing = structuredClone(node);
   delete missing.attributes.source_claim;
   const cases = [node, conflicting, wrongIdentity, changed, missing];
@@ -613,7 +1191,7 @@ test('Claim forms bind the assertion rather than its object in Python and Worker
   for (const result of results.slice(1)) assert.equal(result.state, 'invalid');
 });
 
-test('Claim navigation and exact record versions survive RU/EN compact/full D1 reads without new authority', async () => {
+test('Claim navigation and exact Claim/metadata versions survive RU/EN compact/full D1 reads without new authority', async () => {
   const fixture = claimNavigationFixture(), source = structuredClone(fixture.graph);
   const fullScene = knowledgeScene(fixture.fullGraph.nodes, fixture.fullGraph.relations, null);
   assert.deepEqual(fullScene, fixture.fullScene, 'full real incident context agrees with Python');
@@ -643,13 +1221,14 @@ test('Claim navigation and exact record versions survive RU/EN compact/full D1 r
         r.id, r.native_id, r.source_graph, r.from_id, r.to_id, r.predicate_id, r.relation_type_id,
         r.display.label.default.toLowerCase(), JSON.stringify(r).toLowerCase(), JSON.stringify(r))),
     ]);
+    await applyKnowledgeExplorationMigration(db);
     for (const {spec, expected} of fixture.cases) {
       const {language, detail} = spec as {language: 'ru' | 'en'; detail: 'compact' | 'full'};
       const pure = await executeKnowledgeLens(source, spec);
-      const result = await executeKnowledgeLensD1(db, spec);
+      const result = await executePublishedFixtureLens(db, spec);
       assert.deepEqual(pure, expected, language + '/' + detail + ': Python/Worker parity');
       assert.deepEqual(result, pure, language + '/' + detail + ': D1 transport');
-      assert.deepEqual(await executeKnowledgeLensD1(db, spec), result, 'repeated reads preserve the same snapshot');
+      assert.deepEqual(await executePublishedFixtureLens(db, spec), result, 'repeated reads preserve the same snapshot');
       for (const id of fixture.claims) {
         const original = source.nodes.find(n => n.id === id)!;
         const node = result.nodes.find(n => n.id === id)!;
@@ -690,7 +1269,7 @@ test('Claim navigation and exact record versions survive RU/EN compact/full D1 r
         assert.deepEqual(node.display, original.display);
         assert.deepEqual(node.epistemic, {authority_layer: 'derived-export', canon_status: null,
           review_posture: 'not-recorded', confidence: null});
-        const version = node.semantics.record_version as {status: string; record_ref: {id: string};
+        const version = node.semantics.record_version as {status: string; record_kind: string; record_ref: {id: string};
           grants_current_use: boolean; performs_assessment: boolean};
         assert.notEqual(node.entity_id, version.record_ref.id, 'version is not the current Claim identity');
         assert.equal(version.grants_current_use, false);
@@ -702,7 +1281,15 @@ test('Claim navigation and exact record versions survive RU/EN compact/full D1 r
           assert.equal(node.display.provenance.source_summary_available, false);
         } else {
           assert.deepEqual(node.semantics.assertion_contexts, original.semantics.assertion_contexts);
-          assert.equal(node.display.summary.de, 'Keine gesicherte Zuschreibung; synthetischer Transporttest.');
+          const declaredLanguage = original.display.provenance.summary_source_language;
+          const selection = node.display_selection as {fields: {summary: {actual_language: string | null; content_available: boolean}}};
+          assert.equal(selection.fields.summary.actual_language, declaredLanguage);
+          assert.equal(selection.fields.summary.content_available, true);
+          assert.equal(node.display.summary.original, version.record_kind === 'claim'
+            ? 'Keine gesicherte Zuschreibung; synthetischer Transporttest.'
+            : 'Keine gesicherte Gleichsetzung; synthetischer Metadatentest.');
+          if (declaredLanguage === null) assert.equal(node.display.summary.de, undefined);
+          else assert.equal(node.display.summary.de, node.display.summary.original);
           assert.equal(node.display.provenance.summary, 'exact-record-quotation');
         }
         assert.deepEqual(node.attributes, detail === 'full' ? original.attributes : {});
@@ -719,6 +1306,66 @@ test('Claim navigation and exact record versions survive RU/EN compact/full D1 r
       }
     }
     assert.deepEqual(fixture.graph, source, 'transport does not rewrite source carriers');
+  } finally {
+    await mf.dispose();
+  }
+});
+
+test('V2 semantic identity proposals retain the whole frozen plan through Python Worker and D1', async () => {
+  // Use the real owner transaction and portable normalizer in a disposable
+  // synthetic source fixture. No canonical subjects or deployed DB are touched.
+  const fixture: {graph: KnowledgeGraph; claimId: string; plan: unknown; members: string[];
+    cases: {spec: unknown; expected: unknown}[]} = JSON.parse(execFileSync('python3', ['-c', `
+import json, sys
+sys.path[:0] = ['mechanics/growth-cycle/tests', 'access/src']
+from test_identity_proposals import SemanticIdentityProposalCommandTests
+from tos_access.knowledge import execute_knowledge_lens
+test = SemanticIdentityProposalCommandTests()
+with test.identity_creation() as (root, owner, config, claim, request, rebuild, helper, paths):
+    test.create(owner, request)
+    graph, _, _ = helper.historical_knowledge(root, rebuild())
+    specs = [{'schema_version': 'tos_lens_spec_v1', 'lens_id': 'semantic-proposal-transport',
+        'sources': ['source-claims'], 'language': language, 'detail': detail}
+        for language in ('ru', 'en') for detail in ('compact', 'full')]
+    result = {'graph': graph, 'claimId': 'source-claims:claim:' + claim['claim_id'],
+        'plan': claim['object'], 'members': ['source-claims:identity:' + key for key in claim['object']['members']],
+        'cases': [{'spec': spec, 'expected': execute_knowledge_lens(graph, spec)} for spec in specs]}
+print(json.dumps(result))
+`], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding: 'utf8', maxBuffer: 8 * 1024 * 1024}));
+  const source = fixture.graph, original = structuredClone(source);
+  const mf = new Miniflare(convertV4MiniflareOptions({modules: true,
+    script: 'export default {fetch(){return new Response()}}', d1Databases: ['DB']}));
+  try {
+    const db = await mf.getD1Database('DB');
+    await db.batch([
+      db.prepare('CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)'),
+      db.prepare('CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, search_text TEXT, json TEXT)'),
+      db.prepare('CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)'),
+      db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({sha256: source.source_revision})),
+      db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({source_revision: source.source_revision, authority_boundary: source.authority_boundary})),
+      ...source.nodes.map(n => db.prepare('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)').bind(
+        n.id, n.entity_id, n.native_id, n.source_graph, n.kind_id, n.type_id,
+        n.display.title.default.toLowerCase(), JSON.stringify(n).toLowerCase(), JSON.stringify(n))),
+      ...source.relations.map(r => db.prepare('INSERT INTO knowledge_relations VALUES (?,?,?,?,?,?,?,?,?,?)').bind(
+        r.id, r.native_id, r.source_graph, r.from_id, r.to_id, r.predicate_id, r.relation_type_id,
+        r.display.label.default.toLowerCase(), JSON.stringify(r).toLowerCase(), JSON.stringify(r))),
+    ]);
+    await applyKnowledgeExplorationMigration(db);
+    for (const {spec, expected} of fixture.cases) {
+      const pure = await executeKnowledgeLens(source, spec), result = await executePublishedFixtureLens(db, spec);
+      assert.deepEqual(pure, expected, 'Python/Worker parity');
+      assert.deepEqual(result, pure, 'D1 preserves the normalized proposal and members');
+      const proposal = result.nodes.find(n => n.id === fixture.claimId)!;
+      assert.ok(proposal);
+      const contexts = proposal.semantics.assertion_contexts as {fields: Record<string, {value: unknown}>}[];
+      assert.deepEqual(contexts[0]!.fields.object!.value, fixture.plan);
+      assert.deepEqual(proposal.semantics, source.nodes.find(n => n.id === fixture.claimId)!.semantics);
+      assert.equal(proposal.epistemic.review_posture, 'unreviewed');
+      assert.deepEqual(result.relations.filter(r => r.relation_type_id === 'tos.relation.claim-value-member')
+        .map(r => r.to_id).sort(), fixture.members.toSorted());
+      for (const id of fixture.members) assert.ok(result.nodes.some(n => n.id === id), 'each old subject stays independent');
+    }
+    assert.deepEqual(source, original, 'transport performs no subject transition');
   } finally {
     await mf.dispose();
   }
@@ -938,6 +1585,37 @@ test("focus is explicit and closure cannot escape the requested neighborhood", a
 });
 
 test("D1 reconstructs oversized knowledge payloads without losing search", async () => {
+  // Legacy payload-only rows without a bound published reader header are not
+  // an alternate native storage contract. The consumer must fail closed
+  // instead of treating an unbound payload table as a JSON fallback.
+  const legacyMf = new Miniflare(convertV4MiniflareOptions({
+    modules: true,
+    script: "export default {fetch(){return new Response()}}",
+    d1Databases: ["DB"],
+  }));
+  try {
+    const legacyDb = await legacyMf.getD1Database("DB");
+    await legacyDb.batch([
+      legacyDb.prepare("CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)"),
+      legacyDb.prepare("CREATE TABLE knowledge_exploration_clock (singleton INTEGER PRIMARY KEY CHECK(singleton=1), epoch INTEGER NOT NULL)"),
+      legacyDb.prepare("CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, summary_text TEXT, search_text TEXT, json TEXT)"),
+      legacyDb.prepare("CREATE TABLE knowledge_node_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
+      legacyDb.prepare("CREATE TABLE knowledge_node_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))"),
+      legacyDb.prepare("CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)"),
+      legacyDb.prepare("CREATE TABLE knowledge_relation_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
+      legacyDb.prepare("CREATE TABLE knowledge_relation_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))"),
+      legacyDb.prepare("INSERT INTO knowledge_exploration_clock VALUES (1,0)"),
+      legacyDb.prepare("INSERT INTO edge_meta VALUES ('data_revision',0,?)").bind(JSON.stringify({sha256: "a".repeat(64)})),
+      legacyDb.prepare("INSERT INTO edge_meta VALUES ('knowledge_top',0,?)").bind(JSON.stringify({source_revision: "a".repeat(64), authority_boundary: {}})),
+      legacyDb.prepare("INSERT INTO knowledge_nodes VALUES ('legacy','legacy','legacy','source-claims','event','tos.entity.event','legacy','','','{}')"),
+      legacyDb.prepare("INSERT INTO knowledge_node_payload VALUES ('legacy',0,'{}')"),
+      legacyDb.prepare("INSERT INTO knowledge_node_search_chunks VALUES ('legacy',0,'legacy')"),
+    ]);
+    await assert.rejects(() => knowledgeNodeD1(legacyDb, "legacy", 0), hasHttpStatus(503));
+  } finally {
+    await legacyMf.dispose();
+  }
+
   const bundle = await build({
     entryPoints: [fileURLToPath(new URL("../src/index.ts", import.meta.url))],
     bundle: true,
@@ -970,33 +1648,71 @@ test("D1 reconstructs oversized knowledge payloads without losing search", async
     const markerStart = 32_000 - Math.ceil(unicodeNeedle.length / 2);
     full.source_record.payload.boundary = "x".repeat(Math.max(1, markerStart - boundaryValueOffset)) + unicodeNeedle + "suffix";
     const fullJson = JSON.stringify(full);
-    const split = Math.floor(fullJson.length / 2);
-    const searchText = fullJson.toLocaleLowerCase();
-    const searchChunks: string[] = [];
-    for (let start = 0; start < searchText.length; start += 32_000 - 4_096) {
-      searchChunks.push(searchText.slice(start, start + 32_000));
-    }
-    assert(fullJson.indexOf(unicodeNeedle) < 32_000);
-    assert(fullJson.indexOf(unicodeNeedle) + unicodeNeedle.length > 32_000);
+    const markerOffset = Buffer.byteLength(fullJson.slice(0, fullJson.indexOf(unicodeNeedle)), 'utf8');
+    assert(markerOffset < 32_000);
+    assert(markerOffset + Buffer.byteLength(unicodeNeedle, 'utf8') > 32_000);
     await db.batch([
       db.prepare("CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (key, part))"),
       db.prepare("CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, summary_text TEXT, search_text TEXT, json TEXT)"),
-      db.prepare("CREATE TABLE knowledge_node_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
-      db.prepare("CREATE TABLE knowledge_node_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))"),
       db.prepare("CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)"),
-      db.prepare("CREATE TABLE knowledge_relation_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
-      db.prepare("CREATE TABLE knowledge_relation_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))"),
-      db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({ sha256: "a".repeat(64) })),
-      db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({ source_revision: "a".repeat(64), authority_boundary: {} })),
-      db.prepare("INSERT INTO knowledge_nodes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(
-        full.id, full.entity_id, full.native_id, full.source_graph, full.kind_id, full.type_id,
-        "oversized event", "", "", JSON.stringify({ ...full, source_record: undefined }),
-      ),
-      db.prepare("INSERT INTO knowledge_node_payload VALUES (?, ?, ?)").bind(full.id, 0, fullJson.slice(0, split)),
-      db.prepare("INSERT INTO knowledge_node_payload VALUES (?, ?, ?)").bind(full.id, 1, fullJson.slice(split)),
-      ...searchChunks.map((chunk, part) => db.prepare("INSERT INTO knowledge_node_search_chunks VALUES (?, ?, ?)").bind(full.id, part, chunk)),
     ]);
-    const packet = await knowledgeNodeD1(db, full.id, 0);
+    await applyKnowledgeExplorationMigration(db);
+    await db.batch([
+      db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({sha256: "a".repeat(64)})),
+      db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({
+        source_revision: "a".repeat(64),
+        authority_boundary: {source_owner: "Tree-of-Sophia", is_source: false, is_canon: false, writes_to_tree: false},
+      })),
+    ]);
+    // Use the producer's bounded SQL append path for the serving row. The
+    // native consumer reads this one complete row; payload-only legacy tables
+    // above are intentionally not used as an unsupported fallback.
+    const rowSql = execFileSync('python3', ['-B', '-c', String.raw`
+import json, sys
+sys.path.insert(0, 'access/deploy/cloudflare-worker/scripts')
+from build_runtime import append_chunkable_insert, sql_text
+payload = json.load(sys.stdin)
+columns = ('id', 'entity_id', 'native_id', 'source_graph', 'kind_id', 'type_id',
+           'title_text', 'summary_text', 'search_text', 'json')
+class Writer:
+    def __init__(self):
+        self.statements = []
+    def append(self, statement):
+        self.statements.append(statement)
+writer = Writer()
+append_chunkable_insert(
+    writer,
+    'knowledge_nodes',
+    columns,
+    tuple(sql_text(payload[column]) for column in columns),
+    selector_sql='id = ' + sql_text(payload['id']),
+    chunked_text={'json': payload['json']},
+)
+print('\n'.join(writer.statements))
+`], {
+      cwd: fileURLToPath(new URL('../../../../', import.meta.url)),
+      input: JSON.stringify({
+        id: full.id,
+        entity_id: full.entity_id,
+        native_id: full.native_id,
+        source_graph: full.source_graph,
+        kind_id: full.kind_id,
+        type_id: full.type_id,
+        title_text: 'oversized event',
+        summary_text: '',
+        search_text: '',
+        json: fullJson,
+      }),
+      encoding: 'utf8',
+      maxBuffer: 4 * 1024 * 1024,
+    });
+    const statements = rowSql.trim().split(/\n+/);
+    assert.ok(statements.length > 1, 'the bounded producer path must chunk this serving row');
+    assert.ok(statements.every(statement => Buffer.byteLength(statement, 'utf8') <= 100_000),
+      'every producer SQL statement stays within the D1 bound');
+    await db.exec(rowSql);
+    await publishNativeSearchFixture(db);
+    const packet = JSON.parse(nativePacketJson(await knowledgeNodeD1(db, full.id, 0)));
     assert.deepEqual(packet.matches, [full]);
     const search = await knowledgeSearchD1(db, {
       query: "needle-only-in-payload",
@@ -1016,6 +1732,180 @@ test("D1 reconstructs oversized knowledge payloads without losing search", async
       limit: 10,
     });
     assert.deepEqual(unicodeSearch.nodes, [full]);
+  } finally {
+    await mf.dispose();
+  }
+});
+
+test("v5 native overflow rows preserve exact packets and bounded payload search", async () => {
+  const mf = new Miniflare(convertV4MiniflareOptions({
+    modules: true,
+    script: "export default {fetch(){return new Response()}}",
+    d1Databases: ["DB"],
+  }));
+  try {
+    const db = await mf.getD1Database("DB");
+    await db.batch([
+      db.prepare("CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (key, part))"),
+      db.prepare("CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, search_text TEXT, json TEXT)"),
+      db.prepare("CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)"),
+      db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({sha256: graph.source_revision})),
+      db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({source_revision: graph.source_revision, authority_boundary: graph.authority_boundary})),
+      ...graph.nodes.map(n => db.prepare("INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)").bind(
+        n.id, n.entity_id, n.native_id, n.source_graph, n.kind_id, n.type_id,
+        n.display.title.default.toLowerCase(), JSON.stringify(n).toLowerCase(), JSON.stringify(n))),
+      ...graph.relations.map(r => db.prepare("INSERT INTO knowledge_relations VALUES (?,?,?,?,?,?,?,?,?,?)").bind(
+        r.id, r.native_id, r.source_graph, r.from_id, r.to_id, r.predicate_id, r.relation_type_id,
+        r.display.label.default.toLowerCase(), JSON.stringify(r).toLowerCase(), JSON.stringify(r))),
+    ]);
+    await applyKnowledgeExplorationMigration(db);
+    // Let the existing fixture publish all ordinary rows and their complete
+    // v9 indexes first; this case adds one v5 overflow row afterwards.
+    await publishNativeSearchFixture(db);
+
+    const nodeId = "source-claims:provenance_event:v5-oversized";
+    const entityId = "tos.event.v5-oversized";
+    const boundaryNeedle = "payload-only-boundary-needle";
+    const makeRaw = (fillerLength: number): string => [
+      '{"id":', JSON.stringify(nodeId),
+      ',"entity_id":', JSON.stringify(entityId),
+      ',"native_id":', JSON.stringify(entityId),
+      ',"source_graph":"source-claims","kind_id":"provenance-event","type_id":"tos.entity.provenance-event"',
+      ',"display":{"title":{"default":"Oversized native event"}}',
+      ',"attributes":{"unsafe_integer":9007199254740993,"negative_zero":-0.0}',
+      ',"source_record":{"payload":{"text":',
+      JSON.stringify("x".repeat(fillerLength) + boundaryNeedle + "-suffix"),
+      '}}}',
+    ].join("");
+    const searchText = (raw: string): string => execFileSync("python3", ["-B", "-c", String.raw`
+import json, sys
+sys.path.insert(0, 'access/src')
+from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S
+print(S._searchable(json.loads(sys.stdin.read())))
+`], {
+      cwd: fileURLToPath(new URL("../../../../", import.meta.url)),
+      input: raw,
+      encoding: "utf8",
+      maxBuffer: 4 * 1024 * 1024,
+    }).trim();
+    const searchInfo = (raw: string) => JSON.parse(execFileSync("python3", ["-B", "-c", String.raw`
+import hashlib, json, sys
+sys.path.insert(0, 'access/src')
+from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S
+raw = sys.stdin.read()
+item = json.loads(raw)
+text = S._searchable(item)
+id_lower, native_id_lower, identity_values, visible_values = S._rank_fields(item, relation=False)
+print(json.dumps({'text': text, 'id_lower': id_lower, 'native_id_lower': native_id_lower,
+    'identity_values': identity_values, 'visible_values': visible_values,
+    'document_chars': len(text), 'document_digest': hashlib.sha256(text.encode('utf-8')).hexdigest()}))
+`], {
+      cwd: fileURLToPath(new URL("../../../../", import.meta.url)),
+      input: raw,
+      encoding: "utf8",
+      maxBuffer: 4 * 1024 * 1024,
+    }));
+    const chunk = (value: string, size: number, overlap: number): string[] => {
+      const result: string[] = [];
+      for (let start = 0; start < value.length; start += size - overlap) {
+        result.push(value.slice(start, start + size));
+        if (start + size >= value.length) break;
+      }
+      return result;
+    };
+
+    const stride = 8192 - 256;
+    let fillerLength = 145000;
+    let raw = makeRaw(fillerLength);
+    let searchable = searchText(raw);
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const start = searchable.indexOf(boundaryNeedle);
+      assert.ok(start >= 0, "the payload-only search needle must be in the native document");
+      // Place the needle across a plain 8192-codepoint boundary.  The
+      // published fragments advance by 7936, so this makes the positive
+      // result depend on the explicitly stored 256-codepoint overlap.
+      const boundary = Math.floor(start / 8192) * 8192 + 8192;
+      const target = boundary - Math.floor(boundaryNeedle.length / 2);
+      const delta = target - start;
+      if (delta > 0) fillerLength += delta;
+      else fillerLength += 8192;
+      raw = makeRaw(fillerLength);
+      searchable = searchText(raw);
+      const adjusted = searchable.indexOf(boundaryNeedle);
+      if (adjusted >= 0 && adjusted % 8192 > 8192 - boundaryNeedle.length && adjusted % 8192 < 8192) break;
+    }
+    const searchFragments = chunk(searchable, 8192, 256);
+    assert.ok(Buffer.byteLength(raw, "utf8") > 140_000 && Buffer.byteLength(raw, "utf8") < 200_000);
+    assert.ok(searchFragments.length > 10);
+    assert.equal(searchFragments.some(fragment => fragment.includes(boundaryNeedle)), true);
+    assert.equal(Array.from({length: Math.ceil(searchable.length / 8192)}, (_, i) => searchable.slice(i * 8192, (i + 1) * 8192))
+      .some(fragment => fragment.includes(boundaryNeedle)), false,
+    "the positive match must rely on the 256-character fragment overlap");
+
+    const info = searchInfo(raw);
+    const nodePosition = graph.nodes.length;
+    const payloadChunks = chunk(raw, 8192, 0);
+    const searchRows = searchFragments.map((fragment, part) =>
+      db.prepare("INSERT INTO edge_meta VALUES (?,?,?)").bind(`knowledge_node_search:${nodeId}`, part, fragment));
+    await db.batch([
+      db.prepare("INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)").bind(
+        nodeId, entityId, entityId, "source-claims", "provenance-event", "tos.entity.provenance-event", "", "", ""),
+      db.prepare("INSERT INTO knowledge_lens_order VALUES (?,?,?,?,?)").bind("node", nodeId, nodeId.toLowerCase(), "", ""),
+      db.prepare("INSERT INTO knowledge_search_documents VALUES (?,?,?,?,?,?,?,?,?,?,?,?)").bind(
+        "nodes", nodePosition, nodeId, "source-claims", "provenance-event", "", info.id_lower,
+        info.native_id_lower, info.identity_values, info.visible_values, info.document_chars, info.document_digest),
+      db.prepare("INSERT INTO edge_meta VALUES (?,?,?)").bind(
+        `knowledge_node_digest:${nodeId}`, 0,
+        JSON.stringify({sha256: createHash("sha256").update(raw).digest("hex")})),
+      ...payloadChunks.map((value, part) => db.prepare("INSERT INTO edge_meta VALUES (?,?,?)")
+        .bind(`knowledge_node_payload:${nodeId}`, part, value)),
+      ...searchRows,
+    ]);
+    const grams = new Set(Array.from(searchable).map((_, index) => searchable.slice(index, index + 3)).filter(value => value.length === 3));
+    const gramStatements: D1PreparedStatement[] = [];
+    for (const gram of grams) {
+      gramStatements.push(db.prepare("INSERT INTO knowledge_search_grams VALUES (?,?,?,?)")
+        .bind("nodes", 3, gram, nodePosition));
+      gramStatements.push(db.prepare("INSERT INTO knowledge_search_gram_stats VALUES (?,?,?,?) ON CONFLICT(kind,n,gram) DO UPDATE SET postings=postings+1")
+        .bind("nodes", 3, gram, 1));
+    }
+    for (let at = 0; at < gramStatements.length; at += 64) await db.batch(gramStatements.slice(at, at + 64));
+    assert.equal((await db.prepare("SELECT json,search_text FROM knowledge_nodes WHERE id=?").bind(nodeId).first<{json:string;search_text:string}>()).json, "");
+
+    const inspectedRaw = nativePacketJson(await knowledgeNodeD1(db, nodeId, 0));
+    assert.ok(inspectedRaw.includes(raw), "inspection must carry the exact overflow source row");
+    const inspected = parseNativeJson(inspectedRaw);
+    const match = nativeChild(nativeField(inspected, "matches"), 0);
+    assert.equal(nativeField(match, "attributes.unsafe_integer").number?.lexeme, "9007199254740993");
+    assert.equal(nativeField(match, "attributes.negative_zero").number?.lexeme, "-0.0");
+    assert.ok(inspectedRaw.indexOf('"unsafe_integer"') < inspectedRaw.indexOf('"negative_zero"'));
+
+    const request = {query: boundaryNeedle, sources: ["source-claims"], kindIds: [], predicateIds: [], offset: 0, limit: 10};
+    const indexedRequest = {...request, limit: 10, cursor: null};
+    assert.ok(nativePacketJson(await nativeSearchD1(db, request)).includes(raw));
+    assert.ok(nativePacketJson(await nativeSearchD1Indexed(db, indexedRequest)).includes(raw));
+
+    const firstPayload = payloadChunks[0]!;
+    await db.prepare("DELETE FROM edge_meta WHERE key=?").bind(`knowledge_node_payload:${nodeId}`).run();
+    await assert.rejects(() => knowledgeNodeD1(db, nodeId, 0), hasHttpStatus(503));
+    await db.batch(payloadChunks.map((value, part) => db.prepare("INSERT INTO edge_meta VALUES (?,?,?)")
+      .bind(`knowledge_node_payload:${nodeId}`, part, value)));
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key=? AND part=0")
+      .bind(firstPayload + "corrupt", `knowledge_node_payload:${nodeId}`).run();
+    await assert.rejects(() => knowledgeNodeD1(db, nodeId, 0), hasHttpStatus(503));
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key=? AND part=0")
+      .bind(firstPayload, `knowledge_node_payload:${nodeId}`).run();
+
+    const overBudgetRaw = makeRaw(1_100_000);
+    const overBudgetChunks = chunk(overBudgetRaw, 8192, 0);
+    await db.prepare("DELETE FROM edge_meta WHERE key=?").bind(`knowledge_node_payload:${nodeId}`).run();
+    await db.batch(overBudgetChunks.map((value, part) => db.prepare("INSERT INTO edge_meta VALUES (?,?,?)")
+      .bind(`knowledge_node_payload:${nodeId}`, part, value)));
+    await assert.rejects(() => knowledgeNodeD1(db, nodeId, 0), error => error instanceof NativeBudgetExceeded || hasHttpStatus(413)(error));
+    await db.prepare("DELETE FROM edge_meta WHERE key=?").bind(`knowledge_node_payload:${nodeId}`).run();
+    await db.batch(payloadChunks.map((value, part) => db.prepare("INSERT INTO edge_meta VALUES (?,?,?)")
+      .bind(`knowledge_node_payload:${nodeId}`, part, value)));
+    assert.ok(nativePacketJson(await knowledgeNodeD1(db, "philosophy:a", 0)).includes('"id":"philosophy:a"'));
   } finally {
     await mf.dispose();
   }

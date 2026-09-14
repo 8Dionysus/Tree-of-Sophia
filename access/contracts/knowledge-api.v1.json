@@ -1,12 +1,15 @@
 {
   "schema_version": "tos_knowledge_api_v1",
-  "execution_version": "tos-lens-execution-v6",
+  "execution_version": "tos-lens-execution-v7",
   "owner": "Tree-of-Sophia/access",
   "purpose": "transport-neutral backend contract for human and agent construction of bounded read-only knowledge lenses",
   "data_contracts": {
     "knowledge_graph": "knowledge-graph.v1.schema.json",
     "lens_spec": "lens-spec.v1.schema.json",
     "lens_result": "lens-result.v1.schema.json",
+    "temporal_comparison_request": "temporal-comparison-request.v1.schema.json",
+    "temporal_comparison_result": "temporal-comparison-result.v1.schema.json",
+    "source_read": "source-read.v1.schema.json",
     "entity_type_registry_schema": "../../ToS/contracts/semantic-entity-type-registry.schema.json",
     "relation_type_registry_schema": "../../ToS/contracts/semantic-relation-type-registry.schema.json",
     "entity_type_registry": "../../ToS/doctrine/semantic-interchange/entity-types.v1.json",
@@ -28,25 +31,103 @@
       "result": "the versioned knowledge operation map plus graph, LensSpec, and LensResult JSON Schemas"
     },
     {
+      "operation_id": "tos.source.read.capabilities",
+      "http": {"method": "GET", "path": "/api/source/capabilities"},
+      "mcp_tool": "tos_source_read_capabilities",
+      "cli": "tos source capabilities",
+      "result": "selected exact-source owner epoch, supported metadata families and limits, or explicit unavailability",
+      "available_on": "Python local HTTP, CLI and native MCP; source owner is opt-in, not a Cloudflare/D1 source-read capability"
+    },
+    {
+      "operation_id": "tos.source.read.contracts",
+      "http": {"method": "GET", "path": "/api/source/contracts"},
+      "mcp_tool": "tos_source_read_contract",
+      "cli": "tos source contracts",
+      "result": "exact source target, handle, discovery and read response schemas without selecting a source owner",
+      "available_on": "Python local HTTP, CLI and native MCP"
+    },
+    {
+      "operation_id": "tos.source.handle.discover",
+      "http": {"method": "POST", "path": "/api/source/handles"},
+      "mcp_tool": "tos_source_handle_discover",
+      "cli": "tos source discover REQUEST.json",
+      "result": "one version-bound public source handle or bounded nonavailability; target or typed selector only, no paths or latest fallback",
+      "available_on": "explicitly selected Python source-owner service; no source mutation or rights grant"
+    },
+    {
+      "operation_id": "tos.source.record.read",
+      "http": {"method": "POST", "path": "/api/source/read"},
+      "mcp_tool": "tos_source_read",
+      "cli": "tos source read REQUEST.json",
+      "result": "exact public metadata or Claim for representation=record; native_public_unit requires verified unconditional public rights; separately configured native_local_unit preserves exact local conditions, license and attribution notices with spans; a handle grants neither text access, publication nor semantic admission",
+      "available_on": "explicitly selected Python source-owner service; no source mutation or rights grant"
+    },
+    {
       "operation_id": "tos.knowledge.search",
       "http": {"method": "GET", "path": "/api/knowledge/search"},
       "mcp_tool": "tos_knowledge_search",
       "cli": "tos knowledge search",
-      "result": "paginated display-complete node and relation matches"
+      "result": "paginated display-complete node and relation matches",
+      "modes": {
+        "legacy": {"schema": "tos_knowledge_search_v1", "pagination": "offset", "counts": "exact", "default": true},
+        "indexed": {"schema": "tos_knowledge_search_indexed_v2", "query_parameter": "mode=indexed", "pagination": "source-revision-bound cursor", "counts": "exact only for a kind exhausted on the first page; null on continuation pages or while that kind has more results", "short_query": "fails closed at the indexed boundary; use legacy mode explicitly"},
+        "compressed": {"schema": "tos_knowledge_search_compressed_v3", "query_parameter": "mode=compressed", "available_on": "explicitly selected tos_local_prepared_read_model_v1 in Python", "pagination": "authenticated publication-bound stateless cursor with absolute 15-minute expiry; no offset", "counts": "exact only for an initial exhausted kind with no pending carrier bodies; otherwise null", "short_query": "supported with bounded work and possibly empty continuation pages", "same_snapshot": "search header, matched addresses and full selected carriers", "default": false, "errors": {"400": "invalid request or unauthenticated/query-incompatible cursor", "409": "selected snapshot or known outer binding changed", "410": "authenticated cursor expired", "413": "declared reader/search budget cannot admit the request", "503": "local publication unavailable, corrupt or unsupported"}}
+      }
+    },
+    {
+      "operation_id": "tos.knowledge.search.capabilities",
+      "http": {"method": "GET", "path": "/api/knowledge/search/capabilities"},
+      "mcp_tool": "tos_knowledge_search_capabilities",
+      "cli": "tos knowledge search-capabilities",
+      "result": "selected engine modes; compressed readiness checks only the selected local header and search objects, never a full corpus or catalog",
+      "available_on": "Python local HTTP, CLI and native MCP; not a Cloudflare/D1 capability claim"
     },
     {
       "operation_id": "tos.knowledge.node.inspect",
       "http": {"method": "GET", "path": "/api/knowledge/nodes/{node_id}"},
       "mcp_tool": "tos_knowledge_node",
       "cli": "tos knowledge node",
-      "result": "normalized node matches and related human-readable relations"
+      "result": "normalized node matches and related human-readable relations",
+      "source_read_targets": {
+        "field": "source_read_targets",
+        "key": "exact returned normalized material id",
+        "value": {
+          "source_revision": "the packet source_revision",
+          "target": "source-read.v1.schema.json#/$defs/target"
+        },
+        "availability": "target projection only; the owner-bound SourceReadService must revalidate it before issuing a handle"
+      }
     },
     {
       "operation_id": "tos.knowledge.relation.inspect",
       "http": {"method": "GET", "path": "/api/knowledge/relations/{relation_id}"},
       "mcp_tool": "tos_knowledge_relation",
       "cli": "tos knowledge relation",
-      "result": "normalized relation matches and display-complete endpoints"
+      "result": "normalized relation matches and display-complete endpoints",
+      "source_read_targets": {
+        "field": "source_read_targets",
+        "key": "exact returned normalized material id",
+        "value": {
+          "source_revision": "the packet source_revision",
+          "target": "source-read.v1.schema.json#/$defs/target"
+        },
+        "availability": "target projection only; the owner-bound SourceReadService must revalidate it before issuing a handle"
+      }
+    },
+    {
+      "operation_id": "tos.knowledge.temporal.compare",
+      "http": {"method": "POST", "path": "/api/knowledge/temporal/compare", "content_type": "application/json"},
+      "mcp_tool": "tos_knowledge_temporal_compare",
+      "cli": "tos knowledge temporal-compare",
+      "request_schema": "temporal-comparison-request.v1.schema.json",
+      "result_schema": "temporal-comparison-result.v1.schema.json",
+      "result": "bounded comparison of two exact Claim date envelopes, with full source context and comparable/undetermined/unsupported posture",
+      "post_semantics": "structured read only; no state, inferred Claim, assessment or authored write",
+      "resolution": "two exact normalized Claim IDs and their content revisions in one required source revision; no alias resolution",
+      "errors": {"400": "invalid request", "404": "exact selected node unavailable or ambiguous", "409": "snapshot or selected content changed; select again", "503": "selected normalized carrier has invalid structural containers; repair the projection before retrying"},
+      "bounds": "at most four exact node lookups after the shared snapshot/index is prepared; cold graph construction is separate",
+      "supported_time_roles": ["historical-time"],
+      "comparison_law": "inclusive normalized envelopes; equal first, strict before/after, inclusive contains/contained-by excluding equal, otherwise overlaps (including shared boundaries). Same explicit time role and exact certainty required. No calendar conversion, relative-anchor resolution, uncertainty expansion, duration or historical-truth inference."
     },
     {
       "operation_id": "tos.knowledge.focus",
@@ -75,6 +156,23 @@
   ],
   "extensions": [
     {
+      "extension_id": "tos.knowledge.human-form-delivery.v2",
+      "schema_ref": "knowledge-graph.v1.schema.json#/$defs/humanFormSelection",
+      "recognized_versions": ["tos_human_form_selection_v1", "tos_human_form_selection_v2"],
+      "lens_carrier_version": "tos_human_form_selection_v2",
+      "source_materialization_version": "tos_human_form_materialization_v1",
+      "packet_form_source": "equal exact roles.<role>.form; inline packet form is forbidden in v2 base/delta",
+      "wire_budget_conservative_bytes": 16384,
+      "expanded_selection_budget_conservative_bytes": 524288,
+      "packet_budget_conservative_bytes": 65536,
+      "maximum_depth": 64,
+      "maximum_members": 30000,
+      "maximum_shared_limits": 512,
+      "reading_modes": ["claim-with-mandatory-context", "claim-with-shared-form-context-v2"],
+      "consumer_law": "Keep the raw versioned envelope; reconstruct complete packets before semantic consumption and apply existing exact form, subject, revision, context and admission checks. Deltas are never standalone wording or a new admission.",
+      "migration": "human-form-delivery.md"
+    },
+    {
       "extension_id": "tos.knowledge.exploration.v1",
       "availability": ["local-http", "native-mcp", "cloudflare-worker-with-migration-and-compatible-read-model"],
       "unavailable": ["one-shot-cli"],
@@ -84,8 +182,12 @@
       "mcp_tool": "tos_knowledge_explore",
       "request_schema": "exploration-request.v1.schema.json",
       "result_schema": "exploration-result.v1.schema.json",
+      "versioned_contracts": {
+        "v1": {"request": "exploration-request.v1.schema.json", "result": "exploration-result.v1.schema.json"},
+        "v2": {"request": "exploration-request.v2.schema.json", "result": "exploration-result.v2.schema.json", "origins": ["node", "relation"]}
+      },
       "state": "disposable bounded query checkpoints: local process memory or shared D1 cache; no authored writes",
-      "errors": {"400": "invalid request", "409": "snapshot changed; restart", "410": "checkpoint unavailable; restart", "413": "D1 checkpoint capacity exceeded; narrow scope/page", "503": "D1 migration/read model not prepared"}
+      "errors": {"400": "invalid request or sources exclude origin closure", "404": "unknown or ambiguous exact origin", "409": "snapshot or selected content changed; restart", "410": "checkpoint unavailable; restart", "413": "D1 checkpoint capacity exceeded; narrow scope/page", "503": "migration/read model not prepared or corrupt origin closure"}
     }
   ],
   "invariants": {
@@ -106,6 +208,7 @@
     "lens_display_selection_reports_language_fallback_without_translation": true,
     "lens_display_selection_binds_content_revision": true,
     "lens_source_form_selection_preserves_complete_context_or_returns_exact_ref": true,
+    "shared_form_delivery_is_lossless_and_decoded_before_semantic_consumption": true,
     "lens_source_form_selection_does_not_adjudicate_competing_forms": true,
     "lens_source_form_selection_does_not_reevaluate_snapshot_admission": true,
     "source_declared_assertion_context_survives_compact_delivery": true,
@@ -114,12 +217,16 @@
     "path_conditions_are_scoped_bounded_walks": true,
     "inclusion_traces_are_not_semantic_proof": true,
     "delivery_cursors_bind_query_snapshot_and_result": true,
+    "published_lens_cursors_bind_full_publication_including_epoch": true,
+    "published_lens_result_fingerprint_remains_content_scoped": true,
+    "legacy_unbound_published_lens_cursors_require_restart": true,
     "item_content_revisions_in_result_fingerprint": true,
     "focus_is_explicit_in_result": true,
     "scene_mapping_groups_only_declared_persistent_tos_identity": true,
     "scene_mapping_preserves_exact_carriers_and_relation_coverage": true,
     "compact_claim_paths_preserve_exact_expansion_and_mandatory_context": true,
     "compact_claim_paths_are_not_new_assertions": true,
+    "exact_source_read_targets_are_raw_bound": true,
     "incomplete_or_focused_claim_paths_remain_explicit": true,
     "endpoint_closure_does_not_recurse": true,
     "relation_counts_distinguish_query_matches_from_topology_eligibility": true,

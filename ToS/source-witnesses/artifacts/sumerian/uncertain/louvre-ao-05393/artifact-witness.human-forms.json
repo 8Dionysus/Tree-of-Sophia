@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/custody",
+          "record": {
+            "digest": "sha256:ca4945c405390de963aaa7eb47f90b2f34b49689181be54210fbd90a065d8b98",
+            "id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:ca4945c405390de963aaa7eb47f90b2f34b49689181be54210fbd90a065d8b98",
+            "id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:ca4945c405390de963aaa7eb47f90b2f34b49689181be54210fbd90a065d8b98",
+            "id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:ca4945c405390de963aaa7eb47f90b2f34b49689181be54210fbd90a065d8b98",
+            "id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:ca4945c405390de963aaa7eb47f90b2f34b49689181be54210fbd90a065d8b98",
+            "id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.sumerian.uncertain.louvre-ao-05393.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:1766a4c999f69ef0e3f11385a45d00851dbf76edba3f7a8e53428edf2881f2ab",
+        "id": "tos.form.artifact.sumerian.uncertain.louvre-ao-05393.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:ca4945c405390de963aaa7eb47f90b2f34b49689181be54210fbd90a065d8b98",
+        "id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:ca4945c405390de963aaa7eb47f90b2f34b49689181be54210fbd90a065d8b98",
+            "id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/path_identity/note",
+          "record": {
+            "digest": "sha256:ca4945c405390de963aaa7eb47f90b2f34b49689181be54210fbd90a065d8b98",
+            "id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.sumerian.uncertain.louvre-ao-05393.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:ca4945c405390de963aaa7eb47f90b2f34b49689181be54210fbd90a065d8b98",
+        "id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+        "version": 1
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:artifact.sumerian.uncertain.louvre-ao-05393",
+      "owner_configuration": "sha256:eefddd6bad32435788fac46087e78e3064657e4569e54acfee15c320f919ee30",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:10.273698+00:00",
+      "request_digest": "sha256:587b39caf0cf84fc7a6aa2d9116879ead7ce0d62a39e7ee4187ad683ceb6646c",
+      "results": [
+        {
+          "digest": "sha256:1766a4c999f69ef0e3f11385a45d00851dbf76edba3f7a8e53428edf2881f2ab",
+          "id": "tos.form.artifact.sumerian.uncertain.louvre-ao-05393.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:622988b12d5548e16c1104a1cddc12881c80c9033570b4b92f266c29c7115a94",
+          "id": "tos.form.artifact.sumerian.uncertain.louvre-ao-05393.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:ca4945c405390de963aaa7eb47f90b2f34b49689181be54210fbd90a065d8b98",
+        "id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness.schema.json": "sha256:1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:artifact.sumerian.uncertain.louvre-ao-05393",
+      "request_digest": "sha256:4025a31dda34c14e5c85fbe424ad9fd1e9a03ab1ae38fbc7e8fc18eb1a481d75",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:eefddd6bad32435788fac46087e78e3064657e4569e54acfee15c320f919ee30",
+      "recorded_at": "2026-09-07T21:40:10.978690+00:00",
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness.schema.json": "sha256:1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f"
+      },
+      "source": {
+        "id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+        "version": 1,
+        "digest": "sha256:ca4945c405390de963aaa7eb47f90b2f34b49689181be54210fbd90a065d8b98"
+      },
+      "previous_revision": "sha256:820a2f6c8397ecfda44c6225c20a2dcd81a6df34b64f54ef49689bb4f47456f8",
+      "results": [
+        {
+          "id": "tos.form.artifact.sumerian.uncertain.louvre-ao-05393.source-name",
+          "version": 2,
+          "digest": "sha256:4eefd1258ebe7fa7f67d04486eaecc0aeb0a953000d8f45ac42513feee1cac4f"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:ca4945c405390de963aaa7eb47f90b2f34b49689181be54210fbd90a065d8b98",
+            "id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:ca4945c405390de963aaa7eb47f90b2f34b49689181be54210fbd90a065d8b98",
+            "id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.sumerian.uncertain.louvre-ao-05393.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:ca4945c405390de963aaa7eb47f90b2f34b49689181be54210fbd90a065d8b98",
+        "id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.artifact.sumerian.uncertain.louvre-ao-05393",
+    "version": 1,
+    "digest": "sha256:ca4945c405390de963aaa7eb47f90b2f34b49689181be54210fbd90a065d8b98"
+  }
+}

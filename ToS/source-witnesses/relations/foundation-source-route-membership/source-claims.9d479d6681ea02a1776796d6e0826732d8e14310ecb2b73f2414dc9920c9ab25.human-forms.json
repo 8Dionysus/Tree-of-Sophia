@@ -1,0 +1,84 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.claim.sid-1d1ea31c7f4f442a807e36afedd6fa18",
+    "version": 1,
+    "digest": "sha256:627ce5ef5a01c57fe5a918276b9ced4abd6b6821cab4ef523abf838b4deac65d"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:627ce5ef5a01c57fe5a918276b9ced4abd6b6821cab4ef523abf838b4deac65d",
+            "id": "tos.claim.sid-1d1ea31c7f4f442a807e36afedd6fa18",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/qualifiers/statement",
+          "record": {
+            "digest": "sha256:627ce5ef5a01c57fe5a918276b9ced4abd6b6821cab4ef523abf838b4deac65d",
+            "id": "tos.claim.sid-1d1ea31c7f4f442a807e36afedd6fa18",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.sid-3a637a957a6e4d9fa8c84c0c77d33dfe.statement",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "statement",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:627ce5ef5a01c57fe5a918276b9ced4abd6b6821cab4ef523abf838b4deac65d",
+        "id": "tos.claim.sid-1d1ea31c7f4f442a807e36afedd6fa18",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation:source-route-membership-form-20260910",
+      "request_digest": "sha256:f9e344c5fe83c0ace5a1dc51b84e0230a215ef3ecfc5fa28943c6f69023e71f2",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-scoped-source-growth",
+      "owner_configuration": "sha256:4572daea164d3794f2337d0a1b12f5a0a37401c76ff46e5036691c1453dc4d84",
+      "recorded_at": "2026-09-10T00:50:11.326986+00:00",
+      "source_contracts": {
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json": "sha256:a222b13f02c867b8c2bbd0de80e1953aa418ae6b827f87d4def85282e4c78a5a",
+        "ToS/contracts/semantic-relation-type-registry.schema.json": "sha256:cf0d727b0e8b22e45ffcca7c4b9d26057b6a521538075bd96b6b15587bdc612c",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json": "sha256:4cd2ab389f953e3c022bbe195f950000d06e19105282dc25895b3eff1c4b5a6e",
+        "ToS/contracts/semantic-entity-type-registry.schema.json": "sha256:faa705830d40d65441e66b618f8934ba69245d7600835547876239a692551d19",
+        "ToS/contracts/claim-packet.schema.json": "sha256:7daa1aa9831000a6ad56a0dfab38cfbb06cfd7a6d2cdfaa1aff264f2c33999cd",
+        "ToS/contracts/knowledge-assessment.schema.json": "sha256:83163d105944db9a54bd57a8e730c3d459a00239de0df65cb63ac18c305e60be",
+        "ToS/contracts/source-claim-record.schema.json": "sha256:0c6a03c978999586c9a13c153bde5dabe7ccb4c31c732afb8cca6a536eb65bd0",
+        "ToS/contracts/corpus-record.schema.json": "sha256:baccf59bc5c6ffd1560848610ac812751d1e5182c89658814eeb2eedde4b6db1",
+        "ToS/contracts/source-structured-value.schema.json": "sha256:80f2450d6132e717df9bfa508f4571511c8e81daa5f3003a887176b69a67a4bb",
+        "ToS/contracts/scoped-member-structure.schema.json": "sha256:6c979b8df7a0b60f2f520fb2fc49d728ca75c6bd51d82ce3c2147f5fc47572c1",
+        "ToS/contracts/source-member-structure-claim.schema.json": "sha256:4964ac790268c75fda321baacb999fc6cc073fdab03f2beeea4d042dd05cb94f"
+      },
+      "source": {
+        "id": "tos.claim.sid-1d1ea31c7f4f442a807e36afedd6fa18",
+        "version": 1,
+        "digest": "sha256:627ce5ef5a01c57fe5a918276b9ced4abd6b6821cab4ef523abf838b4deac65d"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.sid-3a637a957a6e4d9fa8c84c0c77d33dfe.statement",
+          "version": 1,
+          "digest": "sha256:35d527d1d195e81c62861e2badf0ab208a0bd4c076177c9f3c443383f6f43463"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.friedrich-nietzsche.der-fall-wagner.ru-polilov-mysl-1996",
+    "version": 2,
+    "digest": "sha256:8eb7e1693e20ecf1dc776731198357218c3df18fee9c301d61d6e266ac8f1df4"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.6f726db3b12c4bf9f89d1128b8fab6acab089fcd606c79e317291f59fc335206",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.der-fall-wagner.ru-polilov-mysl-1996",
+        "version": 2,
+        "digest": "sha256:8eb7e1693e20ecf1dc776731198357218c3df18fee9c301d61d6e266ac8f1df4"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.der-fall-wagner.ru-polilov-mysl-1996",
+            "version": 2,
+            "digest": "sha256:8eb7e1693e20ecf1dc776731198357218c3df18fee9c301d61d6e266ac8f1df4"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.der-fall-wagner.ru-polilov-mysl-1996",
+            "version": 2,
+            "digest": "sha256:8eb7e1693e20ecf1dc776731198357218c3df18fee9c301d61d6e266ac8f1df4"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.der-fall-wagner.ru-polilov-mysl-1996",
+            "version": 2,
+            "digest": "sha256:8eb7e1693e20ecf1dc776731198357218c3df18fee9c301d61d6e266ac8f1df4"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.5307dc845842026c255d0c906af7db0de766fc7c83077bc22abf19636d5edb5c",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.der-fall-wagner.ru-polilov-mysl-1996",
+        "version": 2,
+        "digest": "sha256:8eb7e1693e20ecf1dc776731198357218c3df18fee9c301d61d6e266ac8f1df4"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.der-fall-wagner.ru-polilov-mysl-1996",
+            "version": 2,
+            "digest": "sha256:8eb7e1693e20ecf1dc776731198357218c3df18fee9c301d61d6e266ac8f1df4"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.der-fall-wagner.ru-polilov-mysl-1996",
+            "version": 2,
+            "digest": "sha256:8eb7e1693e20ecf1dc776731198357218c3df18fee9c301d61d6e266ac8f1df4"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.der-fall-wagner.ru-polilov-mysl-1996",
+            "version": 2,
+            "digest": "sha256:8eb7e1693e20ecf1dc776731198357218c3df18fee9c301d61d6e266ac8f1df4"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.friedrich-nietzsche.der-fall-wagner.ru-polilov-mysl-1996",
+      "request_digest": "sha256:bc11e5ead3299d2e91209314dcb952775ce5b1872baa81b69c545dc37d7832d7",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:a3e28aed0660e6499fc483610fedb86c1949581589d7e698bc4e8d4cded75403",
+      "recorded_at": "2026-09-07T03:13:27.337686+00:00",
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.der-fall-wagner.ru-polilov-mysl-1996",
+        "version": 2,
+        "digest": "sha256:8eb7e1693e20ecf1dc776731198357218c3df18fee9c301d61d6e266ac8f1df4"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.6f726db3b12c4bf9f89d1128b8fab6acab089fcd606c79e317291f59fc335206",
+          "version": 1,
+          "digest": "sha256:d4d371f4ceb64133d47ff4f0380d14633354a18f4e2a1bc176282e3ff09c2b4f"
+        },
+        {
+          "id": "tos.form.metadata.5307dc845842026c255d0c906af7db0de766fc7c83077bc22abf19636d5edb5c",
+          "version": 1,
+          "digest": "sha256:7a94dc5ad8c773b74d2015dd957f708466cac11b0a86672d9c7d369eb4a3145c"
+        }
+      ]
+    }
+  ]
+}

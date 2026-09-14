@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.local/ToS/contracts/knowledge-assessment-authority.schema.json",
+  "title": "Trusted reusable authority grant for an authenticated assessor",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "authority_id", "authority_version", "actor_id", "actor_kind", "policy", "profile_ids", "assertion_layers", "languages", "uses", "subject_prefixes", "decisions", "competence_refs", "independence_group", "can_supersede_others", "state", "valid_from", "valid_until", "issuer_ref"],
+  "properties": {
+    "schema_version": {"const": "tos_knowledge_assessment_authority_v1"},
+    "authority_id": {"type": "string", "minLength": 1},
+    "authority_version": {"type": "integer", "minimum": 1},
+    "actor_id": {"type": "string", "minLength": 1},
+    "actor_kind": {"enum": ["human", "agent", "mixed"]},
+    "policy": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+    "profile_ids": {"$ref": "#/$defs/strings"},
+    "assertion_layers": {"$ref": "#/$defs/strings"},
+    "languages": {"$ref": "#/$defs/strings"},
+    "uses": {"$ref": "#/$defs/strings"},
+    "subject_prefixes": {"$ref": "#/$defs/strings"},
+    "decisions": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["admit", "admit-with-limits", "reject", "dispute", "defer", "withdraw"]}},
+    "competence_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"}},
+    "independence_group": {"type": "string", "minLength": 1},
+    "can_supersede_others": {"type": "boolean"},
+    "state": {"enum": ["active", "revoked"]},
+    "valid_from": {"type": "string", "format": "date-time"},
+    "valid_until": {"type": "string", "format": "date-time"},
+    "issuer_ref": {"type": "string", "minLength": 1}
+  },
+  "$defs": {"strings": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}}
+}
