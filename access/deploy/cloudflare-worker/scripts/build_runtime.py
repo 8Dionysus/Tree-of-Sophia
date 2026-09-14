@@ -1372,7 +1372,8 @@ def build_read_model_sql(
             "CREATE INDEX knowledge_relations_source_type_idx ON knowledge_relations(source_graph, relation_type_id);",
             "CREATE INDEX knowledge_relations_from_idx ON knowledge_relations(from_id);",
             "CREATE INDEX knowledge_relations_to_idx ON knowledge_relations(to_id);",
-            "CREATE INDEX knowledge_search_grams_lookup_idx ON knowledge_search_grams(kind,n,gram,position);",
+            # The composite PRIMARY KEY already covers gram lookup and ordered
+            # positions. A duplicate index stores every corpus posting again.
             "CREATE INDEX knowledge_search_documents_source_kind_idx ON knowledge_search_documents(kind,source_graph,kind_id,position);",
             "CREATE INDEX knowledge_search_documents_source_predicate_idx ON knowledge_search_documents(kind,source_graph,predicate_id,position);",
             "CREATE INDEX knowledge_lens_order_sort ON knowledge_lens_order(kind,sort_key,id);",

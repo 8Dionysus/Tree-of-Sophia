@@ -74,6 +74,29 @@ class IncrementalRuntimeTests(unittest.TestCase):
                                  {k: v for k, v in expected.items() if k != 'delta'})
                 self.assertIsNone(actual['delta'])
                 self.assertEqual({p.name for p in full.parent.iterdir()}, {'read-model.sql'})
+                with closing(sqlite3.connect(':memory:')) as db:
+                    db.executescript(full.read_text())
+                    lookup_columns = ('kind', 'n', 'gram', 'position')
+                    covering = []
+                    for index in db.execute('PRAGMA index_list(knowledge_search_grams)').fetchall():
+                        quoted = "'" + index[1].replace("'", "''") + "'"
+                        columns = tuple(row[2] for row in db.execute(f'PRAGMA index_info({quoted})'))
+                        if columns == lookup_columns:
+                            covering.append(index)
+                    self.assertEqual(len(covering), 1, 'duplicate posting lookup duplicates corpus-scale storage')
+                    self.assertEqual(covering[0][3], 'pk')
+                    sample = db.execute('SELECT kind,n,gram FROM knowledge_search_grams LIMIT 1').fetchone()
+                    self.assertIsNotNone(sample)
+                    query = ('SELECT position FROM knowledge_search_grams WHERE kind=? AND n=? AND gram=? '
+                             'ORDER BY position LIMIT 16')
+                    for args in (sample, (sample[0], sample[1], '\x00absent')):
+                        plan = ' '.join(row[3] for row in db.execute('EXPLAIN QUERY PLAN ' + query, args))
+                        self.assertIn('SEARCH', plan)
+                        self.assertIn('COVERING INDEX', plan)
+                        self.assertNotIn('SCAN', plan)
+                        self.assertNotIn('TEMP B-TREE', plan)
+                    self.assertTrue(db.execute(query, sample).fetchall())
+                    self.assertFalse(db.execute(query, (sample[0], sample[1], '\x00absent')).fetchall())
                 with self.assertRaisesRegex(ValueError, 'fresh output'):
                     builder.build_read_model_sql(core, full, revision, carriers, emit_delta_baseline=False)
                 self.assertEqual(full.read_bytes(), legacy.read_bytes())

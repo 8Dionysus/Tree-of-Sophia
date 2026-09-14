@@ -479,6 +479,13 @@ V8-to-v9 requires a normal full schema bootstrap; subsequent v9 row deltas
 include changed/deleted order carriers and changed histogram metadata in the
 existing atomic compare-and-swap publication. This schema change does not
 activate a remote deployment or give D1 the Python native lens executor.
+Fresh full bootstraps use the posting table's composite primary-key index for
+gram lookup and ordered positions; they no longer build a second identical
+`(kind,n,gram,position)` index. Row bytes, posting membership, query order and
+v9 delta compatibility are unchanged. Existing databases are not altered by
+this producer correction; any removal of their redundant index and physical
+space reclamation is a separate, explicitly admitted maintenance operation.
+This removes duplicate storage, not the full-corpus D1 capacity admission gate.
 Input must remain the trusted, immutable producer file throughout the import.
 The chunker rejects observed file replacement or metadata changes between reads;
 framing alone is not SQL syntax/safety validation or a cryptographic integrity
