@@ -486,6 +486,12 @@ v9 delta compatibility are unchanged. Existing databases are not altered by
 this producer correction; any removal of their redundant index and physical
 space reclamation is a separate, explicitly admitted maintenance operation.
 This removes duplicate storage, not the full-corpus D1 capacity admission gate.
+The full producer explicitly closes acquired SQL streams and disposable row
+index/baseline connections on success, budget refusal and Python cancellation,
+even while an exception traceback remains retained. Failed `.next` SQL remains
+diagnostic and is not marked finished or published. This is resource cleanup,
+not resumable SQL generation or recovery from process termination/power loss;
+the existing grouped final-file publication and rollback boundary is unchanged.
 Input must remain the trusted, immutable producer file throughout the import.
 The chunker rejects observed file replacement or metadata changes between reads;
 framing alone is not SQL syntax/safety validation or a cryptographic integrity

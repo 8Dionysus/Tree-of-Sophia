@@ -11,6 +11,7 @@ import hashlib
 import json
 import re
 import sqlite3
+from contextlib import ExitStack
 from pathlib import Path
 from lens_auxiliary_runtime import (PRIMARY_KEYS as AUXILIARY_KEYS, publication_operations,
                                     publication_descriptor, MAX_PUBLICATION_BYTES)
@@ -703,22 +704,30 @@ class DeltaRecorder:
                 self.write(f'CREATE TABLE {stage}_keys AS SELECT {", ".join(keys)} FROM {table} WHERE 0;')
                 self.write(f'CREATE UNIQUE INDEX {stage}_keys_idx ON {stage}_keys ({", ".join(keys)});')
 
-    def __del__(self) -> None:
-        # A failed producer must leave its diagnostic .next SQL file readable,
-        # but no open descriptor or disposable SQLite sidecar.  Normal finish
-        # already performs these actions explicitly; this is only the failure
-        # path after a caller abandons the recorder.
-        try:
-            stream = getattr(self, 'stream', None)
-            if stream is not None and not stream.closed:
-                stream.close()
-            index = getattr(self, '_disk_index', None)
-            if index is not None:
-                index.close()
-                index.path.unlink(missing_ok=True)
+    def close(self) -> None:
+        """Release owned resources, retaining incomplete diagnostic SQL only.
+
+        Do not flush pending rows, mark completion or publish. Cleanup attempts
+        every acquired resource even if one close fails. A released sidecar
+        must not later be removed again after its path has been reused.
+        """
+        with ExitStack() as cleanup:
             baseline = getattr(self, '_disk_baseline', None)
             if baseline is not None:
-                baseline.close()
+                cleanup.callback(baseline.close)
+            index = getattr(self, '_disk_index', None)
+            if index is not None and not index.closed:
+                cleanup.callback(index.path.unlink, missing_ok=True)
+                cleanup.callback(index.close)
+            stream = getattr(self, 'stream', None)
+            if stream is not None and not stream.closed:
+                cleanup.callback(stream.close)
+
+    def __del__(self) -> None:
+        # Defensive compatibility for callers abandoning an unfinished object.
+        # The full producer uses explicit close, not this fallback.
+        try:
+            self.close()
         except Exception:
             pass
 

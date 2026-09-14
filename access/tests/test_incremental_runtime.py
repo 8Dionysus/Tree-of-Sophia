@@ -29,6 +29,79 @@ from incremental_runtime import (
 
 
 class IncrementalRuntimeTests(unittest.TestCase):
+    def test_partial_output_close_is_not_publication_and_does_not_remove_reused_scratch(self):
+        from build_runtime import SqlStatementWriter
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            scratch = root / 'rows.sqlite'
+            recorder = DeltaRecorder(root / 'delta.sql', 'a' * 64, 'test-schema', index_store_path=scratch)
+            writer = SqlStatementWriter(root / 'full.sql', recorder)
+            writer.append("INSERT INTO knowledge_nodes_next (id,value) VALUES ('one','partial');")
+            writer.close()
+            recorder.close()
+            self.assertTrue(writer.stream.closed and recorder.stream.closed)
+            self.assertFalse(writer.finished or recorder.finished or writer.published or recorder.published)
+            self.assertFalse(writer.target.exists() or recorder.target.exists() or scratch.exists())
+            self.assertIn('partial', writer.pending.read_text())
+            self.assertTrue(recorder.pending_path.exists())
+            scratch.write_text('new owner scratch')
+            writer.close()
+            recorder.close()
+            self.assertEqual(scratch.read_text(), 'new owner scratch')
+
+    def test_failed_full_production_closes_outputs_while_traceback_is_retained(self):
+        import build_runtime as builder
+        from test_access_contract import write_fixture
+        from tos_access.core import ToSAccessCore
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            with patch.object(builder, 'REPO_ROOT', root):
+                carriers = builder.ProducerCarrierSet.from_core(core)
+                revision = builder.data_revision(core, carriers)
+                writer_type, recorder_type = builder.SqlStatementWriter, builder.DeltaRecorder
+                real_append = writer_type.append
+                for emit_baseline in (False, True):
+                    for fault in ('auxiliary-budget', 'posting-budget', 'interrupt'):
+                        with self.subTest(emit_baseline=emit_baseline, fault=fault):
+                            target = root / f'{emit_baseline}-{fault}' / 'read-model.sql'
+                            held = []
+                            def writer(*args, **kwargs):
+                                value = writer_type(*args, **kwargs)
+                                held.append(value)
+                                return value
+                            def recorder(*args, **kwargs):
+                                value = recorder_type(*args, **kwargs)
+                                held.append(value)
+                                return value
+                            def append(value, statement):
+                                real_append(value, statement)
+                                if fault == 'interrupt' and value.count == 10:
+                                    raise KeyboardInterrupt('injected producer interruption')
+                            kwargs = {'emit_delta_baseline': emit_baseline}
+                            if fault == 'auxiliary-budget':
+                                kwargs['max_lens_auxiliary_bytes'] = 1
+                            elif fault == 'posting-budget':
+                                kwargs['max_search_postings'] = 1
+                            retained_error = None
+                            with patch.object(builder, 'SqlStatementWriter', side_effect=writer), \
+                                    patch.object(builder, 'DeltaRecorder', side_effect=recorder), \
+                                    patch.object(writer_type, 'append', append):
+                                try:
+                                    builder.build_read_model_sql(core, target, revision, carriers, **kwargs)
+                                except BaseException as error:
+                                    retained_error = error
+                            self.assertIsInstance(retained_error, KeyboardInterrupt if fault == 'interrupt' else RuntimeError)
+                            self.assertEqual(len(held), 2 if emit_baseline else 1)
+                            self.assertTrue(all(value.stream.closed for value in held), 'cleanup must not depend on traceback GC')
+                            self.assertFalse(target.exists())
+                            self.assertTrue(target.with_name(target.name + '.next').is_file())
+                            self.assertFalse(target.with_name('read-model.rows.index.sqlite').exists())
+                            self.assertFalse(target.with_name('read-model.baseline.sqlite').exists())
+                            self.assertFalse(target.with_name('read-model.rows.json').exists())
+                            self.assertFalse(target.with_name('read-model.delta.sql').exists())
+
     def test_posting_insert_shape_and_bytes_are_both_bounded_without_row_loss(self):
         import build_runtime as builder
         from incremental_runtime import INSERT, sql_value_rows, sql_value_literals

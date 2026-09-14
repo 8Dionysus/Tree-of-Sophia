@@ -11,6 +11,7 @@ import shutil
 import sqlite3
 import sys
 from collections.abc import Mapping
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -564,6 +565,10 @@ class SqlStatementWriter:
         if publish:
             self.publish()
 
+    def close(self) -> None:
+        """Release the descriptor without finishing or publishing partial SQL."""
+        self.stream.close()
+
     def publish(self) -> None:
         if not self.finished:
             raise ValueError("SQL statements must be finished before publication")
@@ -731,6 +736,22 @@ def build_read_model_sql(
     max_lens_auxiliary_bytes: int = 1024**3,
     max_lens_memberships: int = 2_000_000,
 ) -> dict[str, Any]:
+    # Retained exceptions can keep a whole failed frame alive. Close outputs
+    # explicitly on every exit, including cancellation; never rely on GC.
+    with ExitStack() as resources:
+        return _build_read_model_sql(core, target, revision, carrier_set,
+            resources=resources, max_search_postings=max_search_postings,
+            emit_delta_baseline=emit_delta_baseline,
+            max_lens_auxiliary_bytes=max_lens_auxiliary_bytes,
+            max_lens_memberships=max_lens_memberships)
+
+
+def _build_read_model_sql(
+    core: ToSAccessCore, target: Path, revision: str,
+    carrier_set: ProducerCarrierSet | None, *, resources: ExitStack,
+    max_search_postings: int, emit_delta_baseline: bool,
+    max_lens_auxiliary_bytes: int, max_lens_memberships: int,
+) -> dict[str, Any]:
     # These are offline production budgets, not serving limits or changes to
     # searchable content. A full-only bootstrap deliberately does not create
     # a baseline for future delta imports; it must use a fresh output district.
@@ -796,6 +817,8 @@ def build_read_model_sql(
         READ_MODEL_SCHEMA_VERSION,
         target.with_name('read-model.baseline.sqlite'),
     ) if emit_delta_baseline and baseline_path.is_file() else None)
+    if previous_index is not None:
+        resources.callback(previous_index.close)
     auxiliary_migration = None
     previous_top = None
     if previous_index is not None and previous_index.schema == READ_MODEL_SCHEMA_VERSION:
@@ -817,7 +840,10 @@ def build_read_model_sql(
         auxiliary_bindings={table: (previous_top or reader_top, reader_top) for table in lens_auxiliary.STORES},
         publication_top=reader_top,
     ) if emit_delta_baseline else None
+    if delta is not None:
+        resources.callback(delta.close)
     statements = SqlStatementWriter(target, delta)
+    resources.callback(statements.close)
     statements.extend((
         "PRAGMA foreign_keys=OFF;",
         "DROP TABLE IF EXISTS edge_meta_next;",
