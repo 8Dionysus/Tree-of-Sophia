@@ -233,7 +233,32 @@ def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dic
                           row_factory: Callable[[str], Iterable[dict[str, Any]]],
                           limits: PublicationLimits | None = None,
                           search_scratch_path: str | Path | None = None,
-                          search_scratch_limits: BulkBootstrapLimits | None = None) -> dict:
+                          search_scratch_limits: BulkBootstrapLimits | None = None,
+                          search_reuse=None) -> dict:
+    """Explicit new-file bootstrap; optionally retain a selected search donor.
+
+    Search reuse verifies every predecessor carrier/address in one read-only
+    snapshot, preserves its complete population/order and bounds replacements.
+    It is not an addressed normalization migration of the donor in place.
+    """
+    options = dict(source_header=source_header, catalog=catalog, row_factory=row_factory,
+                   limits=limits, search_scratch_path=search_scratch_path,
+                   search_scratch_limits=search_scratch_limits)
+    if search_reuse is None:
+        return _publish_prepared_rows(path, **options)
+    if search_scratch_path is not None or search_scratch_limits is not None:
+        raise ValueError('search reuse and full bulk search are mutually exclusive')
+    from .prepared_search_reuse import _SearchDonor
+    with _SearchDonor(search_reuse, limits or PublicationLimits()) as donor:
+        return _publish_prepared_rows(path, **options, _search_donor=donor)
+
+
+def _publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dict,
+                          row_factory: Callable[[str], Iterable[dict[str, Any]]],
+                          limits: PublicationLimits | None = None,
+                          search_scratch_path: str | Path | None = None,
+                          search_scratch_limits: BulkBootstrapLimits | None = None,
+                          _search_donor=None) -> dict:
     """Bootstrap from two repeatable passes, without retaining transformed rows.
 
     ``row_factory(kind)`` supplies a fresh iterable for ``node`` or ``relation``
@@ -268,7 +293,11 @@ def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dic
             token = position * SOURCE_ORDER_STRIDE
             if token > MAX_ADDRESS:
                 raise ValueError("source order capacity exhausted")
+            if _search_donor is not None:
+                _search_donor.observe(kind, item['id'], raw, count, token)
             digest.update((_compact([kind, item["id"], count, token, emitted_row_digest(raw)["sha256"]]) + "\n").encode("utf-8"))
+    if _search_donor is not None:
+        _search_donor.finish(count)
     descriptor = {"schema": DESCRIPTOR_SCHEMA, "mode": "bootstrap", "profile": SCHEMA,
                   "algorithm": ALGORITHM, "search_storage_version": STORAGE_VERSION, "capabilities": CAPABILITIES,
                   "header": header, "catalog_sha256": _hash(catalog), "rows_sha256": digest.hexdigest()}
@@ -311,7 +340,12 @@ def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dic
 
         search_bytes = maximum * db.execute("PRAGMA page_size").fetchone()[0]
         scratch_mutations = 0
-        if search_scratch_limits is None:
+        if _search_donor is not None:
+            search_mutations = limits.max_mutations - db.total_changes - 4 * count - 1
+            if search_mutations < 2:
+                raise ValueError('whole publication mutation budget exhausted before search reuse')
+            _search_donor.initialize(db, binding, documents(), maximum, search_mutations)
+        elif search_scratch_limits is None:
             SearchStore.initialize_transaction(db, binding=binding, documents=documents(),
                                                max_mutations=limits.max_mutations, max_bytes=search_bytes)
         else:

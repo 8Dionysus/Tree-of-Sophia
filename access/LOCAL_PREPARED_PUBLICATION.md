@@ -193,6 +193,54 @@ order, with stride `2**32`. Search uses those tokens only to break equal-lower-I
 ties, never SQL iteration order. Deleted numeric addresses are never reused;
 prepared and search high-water marks must agree.
 
+## New-file bootstrap with an explicit search donor
+
+`publish_prepared_rows(..., search_reuse=PreparedSearchReuse(old_path,
+old_binding, ...))` can avoid regenerating unchanged compressed search postings
+during an explicit normalization migration. Import `PreparedSearchReuse` from
+`tos_access.prepared_search_reuse`. It is mutually exclusive with bulk-search
+scratch arguments. It never relaxes the ordinary delta normalization guard.
+
+The donor is a caller-selected, already admitted local prepared search snapshot,
+opened read-only for one transaction. Its exact publication/search binding,
+storage/algorithm/Unicode versions, fixed search schema, bootstrap descriptor,
+data revision, catalog/lens digests, complete dense address population and every
+source carrier checksum/address/order are checked. Delta-history donors are
+not supported. Stored search text, ranking values and filters must exactly match
+the old complete row projection; display equality alone is insufficient.
+The owner's term generator checks each sealed reverse frame against the old
+source row. A bounded document/dictionary audit then compares streaming forward
+memberships with reverse-frame counts and digests, including posting counts,
+kinds, ordering, fences and orphan text/value records. Corruption is refused,
+not repaired. These are mechanical integrity checks, not source or semantic
+admission. Reuse still reads the full donor and regenerates its term sets for
+validation; it avoids rebuilding unchanged postings, not all global work.
+
+The fresh normalized row factory still runs twice and its complete emitted-row
+digest must agree. The source population and sparse source-order tokens must
+match the donor exactly. Changed complete rows become bounded search-document
+replacements, including sidecar changes, because full JSON is searchable.
+Unchanged text/postings are copied through the fixed search-v3 schema. A new
+descriptor, header, catalog, lens and cursor incarnation bind the successor;
+the donor and existing reader are untouched. Donor read bytes, copied bytes and
+rows, retained batch bytes, changed documents and whole-file/mutation bounds
+are explicit. Additional defaults bound donor queries (two million), SQLite VM
+steps (one billion, metered in blocks of at most 1000), and conservatively
+charged retained validation state (128 MiB). State charges are refusal limits,
+not measured RSS; per-row decoding/term work remains subject to the existing
+document limits. The optional `progress` callback receives phase/counter
+dictionaries before commit; callback failure aborts the successor, and its
+`search_successor_prepared` phase does not claim a committed publication.
+Any refusal or interruption removes only the new file; there is
+no hidden fallback to a full rebuild.
+
+This publishes the base read model only. Existing semantic/catalog maintenance,
+source inputs/dependencies, agent-context, compact and membership indexes are
+not copied or re-admitted under a different normalizer. Their existing owner
+bootstrap APIs must build the required successor lanes before a caller selects
+that complete profile. D1 conversion/import, consumer switch and rollback
+selection remain separate operations.
+
 ## Addressed storage delta
 
 `apply_prepared_delta(path, expected_binding=..., source_header=...,

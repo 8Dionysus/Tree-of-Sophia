@@ -13,7 +13,8 @@ from tos_access.prepared_publication import (
     PreparedChange, PublicationLimits, SCHEMA, apply_prepared_delta,
     apply_prepared_delta_transaction, publish_prepared, publish_prepared_rows,
 )
-from tos_access.compressed_search_store import SearchStore, STORAGE_VERSION
+from tos_access.compressed_search_store import SearchStore, STORAGE_VERSION, decode_postings, encode_postings
+from tos_access.prepared_search_reuse import PreparedSearchReuse
 from tos_access import prepared_publication as publication
 from tos_access.compressed_search_bootstrap import BulkBootstrapLimits
 from tos_access.published_read_metadata import _compact, published_lens_metadata, LENS_META_KEY
@@ -97,6 +98,311 @@ class PreparedPublicationTests(unittest.TestCase):
     def state(self):
         with closing(sqlite3.connect(self.path)) as db:
             return list(db.iterdump())
+
+    def test_new_file_normalization_bootstrap_reuses_search_without_changing_old_reader(self):
+        old = self.publish()
+        previous = self.state()
+        graph = copy.deepcopy(self.graph)
+        graph['source_revision'] = 'd' * 64
+        graph['normalization_binding']['processor_digest'] = 'e' * 64
+        graph['nodes'][0]['probe']['new-context'] = 'uniquecontextreplacement'
+        catalog = {**self.catalog, 'source_revision': graph['source_revision']}
+        header = {key: value for key, value in graph.items() if key not in ('nodes', 'relations')}
+        target = self.path.with_name('migrated.sqlite')
+        reference = self.path.with_name('fresh.sqlite')
+        fresh = publish_prepared(reference, graph=graph, catalog=catalog)
+        with patch.object(SearchStore, 'initialize_transaction', side_effect=AssertionError('full search rebuild')):
+            migrated = publish_prepared_rows(target, source_header=header, catalog=catalog,
+                row_factory=lambda kind: iter(graph[kind + 's']),
+                search_reuse=PreparedSearchReuse(self.path, self.binding))
+        self.assertEqual(migrated, fresh, 'logical new bootstrap is independent of search physical reuse')
+        self.assertEqual(self.state(), previous)
+        spec = lens()
+        self.assertEqual(PublishedLensService(old).execute(spec),
+                         execute_knowledge_lens(self.graph, spec))
+        new_reader = PublishedKnowledgeReadModel(target, migrated)
+        self.assertEqual(PublishedLensService(new_reader).execute(spec),
+                         PublishedLensService(PublishedKnowledgeReadModel(reference, fresh)).execute(spec))
+        for path, binding, expected in ((self.path, self.binding, []), (target, migrated, ['a'])):
+            packet = SearchStore(path, binding=binding).query_page(kind='node', query='uniquecontextreplacement',
+                page_size=10, candidate_budget=100, verification_bytes=1_000_000)
+            self.assertEqual([row['id'] for row in packet['matches']], expected)
+        with closing(sqlite3.connect(self.path)) as donor, closing(sqlite3.connect(target)) as after:
+            unchanged_before = donor.execute("SELECT * FROM search_text_chunks WHERE doc_id IN (2,3,4) ORDER BY doc_id,category,field,chunk").fetchall()
+            self.assertEqual(after.execute("SELECT * FROM search_text_chunks WHERE doc_id IN (2,3,4) ORDER BY doc_id,category,field,chunk").fetchall(), unchanged_before)
+            self.assertNotEqual(donor.execute('SELECT cursor_key FROM search_header').fetchone(),
+                                after.execute('SELECT cursor_key FROM search_header').fetchone())
+
+    def test_search_reuse_refuses_drift_budgets_and_changed_second_pass_without_partial_file(self):
+        self.publish()
+        previous = self.state()
+        header, catalog = self.header()
+        header['normalization_binding']['processor_digest'] = 'd' * 64
+        target = self.path.with_name('refused.sqlite')
+        for options in ({'max_source_bytes': 1}, {'max_copy_bytes': 1}, {'max_copy_rows': 1},
+                        {'max_batch_bytes': 1}):
+            with self.subTest(options=options), self.assertRaisesRegex(ValueError, 'budget'):
+                publish_prepared_rows(target, source_header=header, catalog=catalog,
+                    row_factory=lambda kind: iter(self.graph[kind + 's']),
+                    search_reuse=PreparedSearchReuse(self.path, self.binding, **options))
+            self.assertFalse(target.exists())
+            self.assertEqual(self.state(), previous)
+        foreign = {**self.binding, 'source_revision': 'f' * 64}
+        with self.assertRaisesRegex(ValueError, 'binding'):
+            publish_prepared_rows(target, source_header=header, catalog=catalog,
+                row_factory=lambda kind: iter(self.graph[kind + 's']),
+                search_reuse=PreparedSearchReuse(self.path, foreign))
+        with self.assertRaisesRegex(ValueError, 'address|population'):
+            publish_prepared_rows(target, source_header=header, catalog=catalog,
+                row_factory=lambda kind: iter(self.graph[kind + 's'][:1]),
+                search_reuse=PreparedSearchReuse(self.path, self.binding))
+        calls = {'node': 0, 'relation': 0}
+        def changing(kind):
+            calls[kind] += 1
+            rows = copy.deepcopy(self.graph[kind + 's'])
+            if calls[kind] == 2:
+                rows[0]['probe'] = {'changed': 'between passes'}
+            return iter(rows)
+        with self.assertRaisesRegex(ValueError, 'input changed'):
+            publish_prepared_rows(target, source_header=header, catalog=catalog, row_factory=changing,
+                search_reuse=PreparedSearchReuse(self.path, self.binding))
+        self.assertFalse(target.exists())
+        self.assertEqual(self.state(), previous)
+
+    def test_search_reuse_bounds_validation_and_progress_failure(self):
+        self.publish()
+        header, catalog = self.header()
+        target = self.path.with_name('bounded-refused.sqlite')
+        before = self.path.read_bytes()
+        common = dict(source_header=header, catalog=catalog,
+            row_factory=lambda kind: iter(self.graph[kind + 's']))
+
+        for name, options, message in (
+                ('queries', {'max_queries': 1}, 'query budget'),
+                ('state', {'max_validation_state_bytes': 1}, 'validation state budget')):
+            with self.subTest(limit=name), self.assertRaisesRegex(ValueError, message):
+                publish_prepared_rows(target, **common,
+                    search_reuse=PreparedSearchReuse(self.path, self.binding, **options))
+            self.assertFalse(target.exists())
+            self.assertEqual(self.path.read_bytes(), before)
+
+        with self.assertRaises(sqlite3.DatabaseError):
+            publish_prepared_rows(target, **common,
+                search_reuse=PreparedSearchReuse(self.path, self.binding, max_vm_steps=1))
+        self.assertFalse(target.exists())
+        self.assertEqual(self.path.read_bytes(), before)
+
+        phases = []
+        def stop_after_copy(report):
+            phases.append(report['phase'])
+            if report['phase'] == 'donor_table_copied':
+                raise RuntimeError('progress callback stop')
+
+        with self.assertRaisesRegex(RuntimeError, 'progress callback stop'):
+            publish_prepared_rows(target, **common,
+                search_reuse=PreparedSearchReuse(self.path, self.binding, progress=stop_after_copy))
+        self.assertIn('donor_table_copied', phases)
+        self.assertFalse(target.exists())
+        self.assertEqual(self.path.read_bytes(), before)
+
+    def test_search_reuse_rejects_corrupt_donor_and_cleans_interrupted_successor(self):
+        self.publish()
+        header, catalog = self.header()
+        target = self.path.with_name('interrupted.sqlite')
+        options = dict(source_header=header, catalog=catalog,
+            row_factory=lambda kind: iter(self.graph[kind + 's']),
+            search_reuse=PreparedSearchReuse(self.path, self.binding))
+        before = self.state()
+        with patch.object(SearchStore, 'apply_delta_transaction', side_effect=KeyboardInterrupt('after donor copy')):
+            with self.assertRaises(KeyboardInterrupt):
+                publish_prepared_rows(target, **options)
+        self.assertFalse(target.exists())
+        self.assertEqual(self.state(), before)
+        with closing(sqlite3.connect(self.path)) as db:
+            db.execute("UPDATE search_text_chunks SET payload=? WHERE doc_id=1 AND category='full' AND field=0 AND chunk=0", (b'wrong bytes',))
+            db.commit()
+        corrupt = self.state()
+        with self.assertRaisesRegex(ValueError, 'text differs'):
+            publish_prepared_rows(target, **options)
+        self.assertFalse(target.exists())
+        self.assertEqual(self.state(), corrupt, 'failed reuse never repairs or rewrites its donor')
+
+    def test_search_reuse_refuses_owner_state_and_forward_corruption(self):
+        self.publish()
+        header, catalog = self.header('d')
+        header['normalization_binding']['processor_digest'] = 'e' * 64
+        original = self.path.read_bytes()
+
+        def corrupt_descriptor(db):
+            raw = db.execute('SELECT descriptor FROM prepared_state WHERE singleton=1').fetchone()[0]
+            descriptor = json.loads(raw)
+            descriptor['rows_sha256'] = '0' * 64
+            db.execute('UPDATE prepared_state SET descriptor=? WHERE singleton=1', (_compact(descriptor),))
+
+        def corrupt_data_revision(db):
+            updated = db.execute(
+                "UPDATE edge_meta SET json_chunk=? WHERE key='data_revision' AND part=0",
+                (_compact({'sha256': '0' * 64}),),
+            )
+            self.assertEqual(updated.rowcount, 1)
+
+        def corrupt_filters(db):
+            updated = db.execute(
+                "UPDATE search_documents SET filters=? WHERE doc_id=1",
+                (b'{}',),
+            )
+            self.assertEqual(updated.rowcount, 1)
+
+        def corrupt_values(db):
+            updated = db.execute(
+                "UPDATE search_values SET byte_length=byte_length+1 "
+                "WHERE doc_id=1 AND category='full' AND field=0"
+            )
+            self.assertEqual(updated.rowcount, 1)
+
+        def corrupt_reverse_seal(db):
+            updated = db.execute(
+                'UPDATE search_document_terms SET digest=zeroblob(32) WHERE doc_id=1'
+            )
+            self.assertEqual(updated.rowcount, 1)
+
+        def corrupt_term_key(db):
+            row = db.execute(
+                "SELECT term_id FROM search_terms WHERE kind='node' AND plane=3 AND n=0"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            updated = db.execute(
+                'UPDATE search_terms SET term_key=? WHERE term_id=?',
+                (b'corrupt-term-key', row[0]),
+            )
+            self.assertEqual(updated.rowcount, 1)
+
+        def corrupt_block_count(db):
+            row = db.execute(
+                'SELECT term_id,lower_fence FROM search_blocks WHERE posting_count>0 LIMIT 1'
+            ).fetchone()
+            self.assertIsNotNone(row)
+            updated = db.execute(
+                'UPDATE search_blocks SET posting_count=posting_count+1 '
+                'WHERE term_id=? AND lower_fence=?',
+                row,
+            )
+            self.assertEqual(updated.rowcount, 1)
+
+        def corrupt_block_fence(db):
+            row = db.execute(
+                'SELECT term_id,lower_fence FROM search_blocks WHERE posting_count>0 LIMIT 1'
+            ).fetchone()
+            self.assertIsNotNone(row)
+            updated = db.execute(
+                'UPDATE search_blocks SET lower_fence=? '
+                'WHERE term_id=? AND lower_fence=?',
+                (b'\xff\xff-corrupt-fence', *row),
+            )
+            self.assertEqual(updated.rowcount, 1)
+
+        def corrupt_forward_missing(db):
+            row = db.execute(
+                'SELECT term_id,lower_fence,payload FROM search_blocks '
+                'WHERE posting_count>0 ORDER BY term_id,lower_fence LIMIT 1'
+            ).fetchone()
+            self.assertIsNotNone(row)
+            addresses = decode_postings(row[2])
+            self.assertTrue(addresses)
+            updated = db.execute(
+                'UPDATE search_blocks SET posting_count=?,payload=? '
+                'WHERE term_id=? AND lower_fence=?',
+                (len(addresses[:-1]), encode_postings(addresses[:-1]), row[0], row[1]),
+            )
+            self.assertEqual(updated.rowcount, 1)
+
+        def corrupt_forward_duplicate(db):
+            row = db.execute(
+                'SELECT term_id,lower_fence,payload FROM search_blocks '
+                'WHERE posting_count>0 ORDER BY term_id,lower_fence LIMIT 1'
+            ).fetchone()
+            self.assertIsNotNone(row)
+            addresses = decode_postings(row[2])
+            self.assertTrue(addresses)
+            duplicated = addresses + [addresses[-1]]
+            updated = db.execute(
+                'UPDATE search_blocks SET posting_count=?,payload=? '
+                'WHERE term_id=? AND lower_fence=?',
+                (len(duplicated), encode_postings(duplicated), row[0], row[1]),
+            )
+            self.assertEqual(updated.rowcount, 1)
+
+        def corrupt_forward_misroute(db):
+            row = db.execute(
+                "SELECT b.term_id,b.lower_fence,b.payload,t.kind "
+                "FROM search_blocks b JOIN search_terms t ON t.term_id=b.term_id "
+                "WHERE b.posting_count>0 ORDER BY b.term_id,b.lower_fence LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            addresses = decode_postings(row[2])
+            self.assertTrue(addresses)
+            wrong = db.execute(
+                'SELECT doc_id FROM search_documents WHERE kind<>? ORDER BY doc_id LIMIT 1',
+                (row[3],),
+            ).fetchone()
+            self.assertIsNotNone(wrong)
+            self.assertNotIn(wrong[0], addresses)
+            addresses[0] = wrong[0]
+            updated = db.execute(
+                'UPDATE search_blocks SET payload=? WHERE term_id=? AND lower_fence=?',
+                (encode_postings(addresses), row[0], row[1]),
+            )
+            self.assertEqual(updated.rowcount, 1)
+
+        def corrupt_schema_index(db):
+            db.execute('DROP INDEX search_blocks_nonempty')
+
+        def corrupt_posting_encoding(db):
+            term, fence, payload = db.execute(
+                'SELECT term_id,lower_fence,payload FROM search_blocks WHERE posting_count>0 LIMIT 1'
+            ).fetchone()
+            stop = next(index for index, value in enumerate(payload) if value < 128)
+            altered = payload[:stop] + bytes([payload[stop] | 128, 0]) + payload[stop + 1:]
+            self.assertEqual(decode_postings(altered), decode_postings(payload))
+            db.execute('UPDATE search_blocks SET payload=? WHERE term_id=? AND lower_fence=?',
+                       (altered, term, fence))
+
+        corruptions = (
+            ('descriptor', corrupt_descriptor),
+            ('data-revision', corrupt_data_revision),
+            ('filters', corrupt_filters),
+            ('values', corrupt_values),
+            ('reverse-seal', corrupt_reverse_seal),
+            ('term-key', corrupt_term_key),
+            ('posting-count', corrupt_block_count),
+            ('fence', corrupt_block_fence),
+            ('forward-missing', corrupt_forward_missing),
+            ('forward-duplicate', corrupt_forward_duplicate),
+            ('forward-misroute', corrupt_forward_misroute),
+            ('schema-index', corrupt_schema_index),
+            ('posting-encoding', corrupt_posting_encoding),
+        )
+        for name, corrupt in corruptions:
+            with self.subTest(corruption=name):
+                donor = self.path.with_name('corrupt-donor-' + name + '.sqlite')
+                successor = self.path.with_name('corrupt-successor-' + name + '.sqlite')
+                donor.write_bytes(original)
+                donor.chmod(self.path.stat().st_mode & 0o777)
+                with closing(sqlite3.connect(donor)) as db:
+                    corrupt(db)
+                    db.commit()
+                donor_before = donor.read_bytes()
+                with self.assertRaises(ValueError):
+                    publish_prepared_rows(
+                        successor,
+                        source_header=header,
+                        catalog=catalog,
+                        row_factory=lambda kind: iter(self.graph[kind + 's']),
+                        search_reuse=PreparedSearchReuse(donor, self.binding),
+                    )
+                self.assertFalse(successor.exists())
+                self.assertEqual(donor.read_bytes(), donor_before)
+                self.assertEqual(self.path.read_bytes(), original)
 
     def search(self, binding, query="", kind="node"):
         store = SearchStore(self.path, binding=binding)

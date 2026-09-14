@@ -459,7 +459,7 @@
       "family": "standalone_access_contract",
       "validation_lane": "standalone_access",
       "owner_surface": "access/LOCAL_PREPARED_PUBLICATION.md",
-      "protects": "one-file local prepared publication, coherent full-row catalog lens and compressed search binding, explicit sparse source order and stable addresses, addressed storage delta closure, owner-transaction rollback, stale and ABA refusal, exact compact carrier versus default JSON search framing, optional source-index preparation preserving publication identity and owner caps",
+      "protects": "one-file local prepared publication, coherent full-row catalog lens and compressed search binding, explicit sparse source order and stable addresses, addressed storage delta closure, owner-transaction rollback, stale and ABA refusal, exact compact carrier versus default JSON search framing, optional source-index preparation preserving publication identity and owner caps, explicit new-file search reuse with exact donor source/text/address population and bounded replacement, corruption refusal and interrupted-successor cleanup without changing the predecessor",
       "coverage_authority": "access/AGENTS.md standalone access validation",
       "mode": "blocking",
       "runtime_cost": "fast",
