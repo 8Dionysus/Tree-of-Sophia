@@ -103,7 +103,7 @@ else:
  with tempfile.TemporaryDirectory(prefix='tos-native-search-oracle-') as temporary:
   model=SQLiteKnowledgeSearchReadModel.build(graph,Path(temporary)/'search.sqlite',max_bytes=8*1024*1024)
   try:
-   core=SimpleNamespace(knowledge_graph=lambda:graph,_search_read_model_for_snapshot=lambda graph:model,search_read_model_max_verify_chars=16000000)
+   core=SimpleNamespace(knowledge_graph=lambda:graph,_query_store=lambda:None,_search_read_model_for_snapshot=lambda graph:model,search_read_model_max_verify_chars=16000000)
    cursor=None
    while True:
     page=ToSAccessCore.knowledge_search_indexed(core,p['query'],cursor=cursor,**options);out.append(page);cursor=page['page']['next_cursor']
