@@ -1,0 +1,29 @@
+{
+  "schema_version": "tos_registry_preparation_checkpoint_receipt_v1",
+  "status": "passed",
+  "observed_at": "2026-09-12T13:54:16.086788+00:00",
+  "manifest_ref": "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/manifest.json",
+  "manifest_sha256": "8428c1c92f28cdd5e9c3a06305b5c1c19ef42005b42ad7c3b39c756050ffa9c4",
+  "commit": "a78051d9f8a7d0aba13f377d4f4428c1d91fd884",
+  "runtime_session_id": "01a095c0-7024-7b00-a78a-cea5750809b1",
+  "checkpoint_review_ref": "session:2026-09-12T13-53-50-595752Z-tos-large-planting-20260912-checkpoint-growth-01a095c0-702",
+  "checkpoint_review_status": "historical-auto-review; not final public-delivery acceptance",
+  "passed_checks": [
+    "python3 -m py_compile ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/execution/*.py",
+    "git diff --check",
+    "scripts/acquire_registry_sources.py verify-preparation --manifest ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/manifest.json",
+    "candidate/deferred closure: 3994 selected files, 348 deferred files, 9660347 selected bytes",
+    "global dedup: 1997 new_work, 0 existing_work_new_expression, 0 already_present, 0 ambiguity",
+    "prior automatic checkpoint review retained as historical evidence; final manual review required"
+  ],
+  "scope_counts": {
+    "candidate_uids": 1997,
+    "selected_files": 3994,
+    "selected_bytes": 9660347,
+    "deferred_grouped_uids": 174,
+    "deferred_files": 348,
+    "paired_uids": 2171,
+    "paired_files": 4342
+  },
+  "authority_boundary": "Preparation checkpoint only. It admits owner acquisition execution; it does not admit source text, semantic alignment, rights expansion, canon, publication, CI, merge or deployment."
+}

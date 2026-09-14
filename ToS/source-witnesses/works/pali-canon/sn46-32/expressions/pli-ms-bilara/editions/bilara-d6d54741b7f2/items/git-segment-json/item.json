@@ -1,0 +1,52 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "item",
+  "record_id": "tos.item.pali-canon.sn46.32.pli-ms-bilara.bilara-d6d54741b7f2.git-segment-json",
+  "preferred_label": "Dutiyakusalasutta — exact local git-segment-json copy",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/source-observations.json",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/batch-scope.json",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/deferred-files.json",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/storage-route-receipt.json",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/dedup-review.json",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/manifest.json",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/evidence/bilara-pli-selected-tree.json",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/evidence/root/pli/ms/sutta/sn/sn46/sn46.32_root-pli-ms.json.opening",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-README.md",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-LICENSE.md",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_author.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_edition.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_publication.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_publication-v2.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json",
+    "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "SuttaCentral",
+      "value": "sn46.32/pli/ms",
+      "source_ref": "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/evidence/root/pli/ms/sutta/sn/sn46/sn46.32_root-pli-ms.json.opening",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/sn46-32/expressions/pli-ms-bilara/editions/bilara-d6d54741b7f2/items/git-segment-json/item.manifest.json",
+  "notes": "The Item identifies one acquired immutable digital file set from the pinned provider version. Its individual Files have content-addressed SHA-256 identities. Grouped UID carriers in AN1–11 and SN36–56 are explicitly deferred; this batch preserves each original aggregate carrier and does not split it into individual Works. Exact supplied SuttaCentral UID identifies this separately retained discourse; a title match never merges different UIDs. Complete pinned JSON is supplied digital-file coverage, not complete ancient recitation, textual correctness, historical truth or canon admission. Pali edition lineage, modern segment IDs and English translation remain distinct. Shared keys do not establish accepted semantic alignment. SN UID, vagga heading and segment numbering are preserved as supplied digital coordinates; no equivalence to printed paragraph numbering or another recension is inferred. Nikaya corpus leads remain broader than this constituent discourse; Agama parallels and other recensions are not supplied by this intake. Bounded English opening exposes supplied UID/title keys ['sn46.32']; the opening is incomplete and does not establish alignment or translation quality. Bounded Pali opening exposes supplied UID/title keys ['sn46.32']; the opening is incomplete and does not establish full-text custody or acceptance.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

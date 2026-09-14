@@ -1,0 +1,59 @@
+{
+  "schema_version": "tos_registry_boundary_repair_checkpoint_receipt_v1",
+  "status": "passed",
+  "observed_at": "2026-09-12T16:14:00Z",
+  "owner_surface": "ToS/source-witnesses/server-import",
+  "source_registry_owner": "A18/source-witnesses",
+  "repair_kind": "inherited-local-only-server-import-boundary",
+  "repair_scope": {
+    "origin_stage": "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10",
+    "manifest_ref": "ToS/source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/manifest.json",
+    "uid_scope": "pali-sn23-* through pali-sn35-* root witnesses",
+    "uid_counts_by_collection": {
+      "pali-sn23": 24,
+      "pali-sn24": 32,
+      "pali-sn25": 10,
+      "pali-sn26": 10,
+      "pali-sn27": 10,
+      "pali-sn28": 10,
+      "pali-sn29": 10,
+      "pali-sn30": 3,
+      "pali-sn31": 3,
+      "pali-sn32": 7,
+      "pali-sn33": 6,
+      "pali-sn34": 20,
+      "pali-sn35": 184
+    },
+    "uids": 329,
+    "server_import_plans": 329,
+    "provenance_events": 329,
+    "payload_transfer_authorized": false
+  },
+  "scope_distinction": {
+    "seventeenth_new_work_scope": {
+      "manifest_ref": "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/manifest.json",
+      "uid_scope": "pali-an1-11-* and pali-sn36-56-* selected individual witnesses",
+      "candidate_uids": 1997,
+      "selected_files": 3994,
+      "selected_bytes": 9660347,
+      "status": "separate-seventeenth-new-works-stage"
+    },
+    "sixteenth_boundary_repair_is_new_work": false,
+    "sixteenth_boundary_repair_is_new_expression": false
+  },
+  "commit": "e46fe1e607f2a17afcf178789248d523276c2b25",
+  "parent_source_commit": "40147b852b69fa958b72247356143b42bb67c503",
+  "review": {
+    "checkpoint_review_ref": "prior checkpoint review retained as historical evidence",
+    "checkpoint_review_status": "historical-auto-review; not final public-delivery acceptance",
+    "review_command": "manual checkpoint review is required at the final public-delivery commit; automatic approval is disabled"
+  },
+  "validation": {
+    "command": "python scripts/validate_source_witness_foundation.py",
+    "status": "passed",
+    "payload_posture": "optional; present bytes fixity-checked",
+    "durable_log_ref": "private host evidence retained outside the public repository",
+    "durable_receipt_ref": "private host evidence retained outside the public repository"
+  },
+  "authority_boundary": "This receipt records exact local server-import boundary mechanics and inherited coverage repair. It admits neither source text, rights expansion, semantic alignment, canon, publication, server transfer, CI, merge nor deployment."
+}

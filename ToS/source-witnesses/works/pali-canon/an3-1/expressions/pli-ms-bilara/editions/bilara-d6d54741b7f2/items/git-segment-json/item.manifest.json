@@ -1,0 +1,48 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.pali-canon.an3.1.pli-ms-bilara.bilara-d6d54741b7f2.git-segment-json",
+  "item_kind": "born_digital",
+  "embodiment_ref": "tos.edition.pali-canon.an3.1.pli-ms-bilara.bilara-d6d54741b7f2",
+  "storage_posture": "local_gitignored_payload",
+  "acquisition_event_ref": "tos.event.acquisition.registry-20260912.pali-an3-1-root",
+  "rights_ref": "ToS/source-witnesses/works/pali-canon/an3-1/expressions/pli-ms-bilara/editions/bilara-d6d54741b7f2/items/git-segment-json/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/pali-canon/an3-1/expressions/pli-ms-bilara/editions/bilara-d6d54741b7f2/items/git-segment-json/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/pali-canon/an3-1/expressions/pli-ms-bilara/editions/bilara-d6d54741b7f2/items/git-segment-json/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/pali-canon/an3-1/expressions/pli-ms-bilara/editions/bilara-d6d54741b7f2/items/git-segment-json/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/source-observations.json",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/batch-scope.json",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/deferred-files.json",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/storage-route-receipt.json",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/dedup-review.json",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/manifest.json",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/evidence/bilara-pli-selected-tree.json",
+    "ToS/source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/evidence/root/pli/ms/sutta/an/an3/an3.1_root-pli-ms.json.opening",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-README.md",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-LICENSE.md",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_author.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_edition.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_publication.json",
+    "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/evidence/bilara-_publication-v2.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json",
+    "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null,
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.8588f02e535b7936c603de732a14dbe86f42a1bbfb9a51785711d4596df94674",
+      "relative_path": "payload/an3.1_root-pli-ms.json",
+      "original_basename": "an3.1_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 1981,
+      "sha256": "8588f02e535b7936c603de732a14dbe86f42a1bbfb9a51785711d4596df94674",
+      "fixity_verified_at": "2026-09-12T13:57:26.676235+00:00"
+    }
+  ]
+}

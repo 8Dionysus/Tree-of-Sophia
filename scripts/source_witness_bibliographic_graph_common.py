@@ -824,7 +824,11 @@ def _event_node(indexed: dict[str, Any], *, repo_root: Path = REPO_ROOT) -> dict
         "source_line": indexed["source_line"],
         "source_sha256": indexed["source_sha256"],
         "properties": {
-            **dict(event),
+            # Keep the exact source event once.  Expanding the complete event
+            # beside ``source_event`` duplicates large topology receipts and
+            # can push one logically indivisible node past the partition
+            # record limit as more claims bind to the shared event.
+            "schema_version": event["schema_version"],
             "event_ref": event["event_id"],
             "event_type": activity["event_type"],
             "started_at": activity["started_at"],

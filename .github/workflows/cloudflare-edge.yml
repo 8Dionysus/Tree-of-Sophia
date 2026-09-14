@@ -37,10 +37,11 @@ jobs:
   contract:
     name: Source-to-edge contract
     runs-on: ubuntu-latest
-    # Full-corpus cold compilation and D1 export exceeded the 30-minute
-    # runner limit. Budget the complete build, import, parity and dry-run;
-    # every validation step remains required.
-    timeout-minutes: 60
+    # The current full-corpus run reached the bounded 90-minute budget while
+    # Build and check Worker was still running; downstream import, contract,
+    # and dry-run correctness therefore remain unverified. Give this complete
+    # build a bounded 120-minute budget; every validation step remains required.
+    timeout-minutes: 120
     defaults:
       run:
         working-directory: access/deploy/cloudflare-worker

@@ -75,6 +75,9 @@ ALLOWED_ACTIVE_CONTENT_REFERENCES = frozenset(
     {
         "first-wave",
         "first-wave-resident",
+        # Exact source title in the registry corpus; this is content-only
+        # provenance and must not admit the token in active paths or IDs.
+        "one-seeder",
         "may_seed_drafts",
         "may_seed_gold",
         "seed_claim_ref",

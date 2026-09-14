@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "manifest_sha256": "96dee6d34a6dab308719b2f022cc619dc2ef6bb1af55c608d9e8ad17aaae1f0d",
+  "commit": "30933fbdfbf0ba6467c7871a671a2a7f83dd9b22",
+  "runtime_session_id": "01a08281-293a-7ff0-927a-0fd73dfacf7d",
+  "checkpoint_review_ref": "agent-review:30933fbdf:20260910T193356Z",
+  "passed_checks": [
+    "329 exact pinned Pali target identity preflight",
+    "784 current and inherited source metadata receipts plus 756 bounded openings verified; source-visible independent review",
+    "generic verify-preparation and destination absence checks",
+    "source registry snapshot and branch anchor binding verified"
+  ]
+}

@@ -42,3 +42,15 @@ canon.
 ## Registry planting: fifteenth English stage (2026-09-09)
 
 401 exact versions. [Reading routes and evidence](../../../../../../../../source-witnesses/discovery/registry-fifteenth-planting-2026-09-09/translations/RESULTS.md).
+
+## Registry planting: sixteenth Pali stage (2026-09-10)
+
+329 exact versions. [Reading routes and evidence](../../../../../../../../source-witnesses/discovery/registry-sixteenth-planting-2026-09-10/PALI_RESULTS.md).
+
+## Registry planting: seventeenth Pali stage (2026-09-12)
+
+1997 exact versions. [Reading routes and evidence](../../../../../../../../source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/PALI_RESULTS.md).
+
+## Registry planting: seventeenth English stage (2026-09-12)
+
+1997 exact versions. [Reading routes and evidence](../../../../../../../../source-witnesses/discovery/registry-seventeenth-planting-2026-09-12/translations/PALI_RESULTS.md).
