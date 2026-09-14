@@ -298,8 +298,16 @@ The read-only operations are available through all backend adapters:
   cursor continuation (`tos_knowledge_search_indexed_v2`); short queries and
   over-budget candidate sets fail closed rather than silently falling back to a
   full scan. The projection page keeps its separate `tos.page.search` v1
-  semantics, while the browser exposes the indexed route as
-  `tos.page.knowledge-search`. An explicitly compiled query store uses its
+  semantics. `tos.page.knowledge-search` checks the selected backend's search
+  capabilities and uses an available indexed or prepared compressed engine,
+  never an implicit legacy fallback. It returns `search_mode` alongside the
+  unchanged native cursor; keep both when continuing from another page session.
+  The observatory uses the same advertised engine selection for human typing
+  and agent search, not the legacy offset route. Its ordinary search keeps at
+  most 16 previous-page cursor bindings (up to 1 MiB), without caching result
+  rows. Unknown total counts stay unknown. The explicit knowledge-search tool
+  supports continuation independently of that local navigation history.
+  An explicitly compiled query store uses its
   existing FTS5 trigram index directly, with snapshot/query-bound keyset
   cursors and candidate/verification budgets; this route never reconstructs
   the graph or creates another search index during a request. A scan-only

@@ -76,7 +76,7 @@ MODEL_CONTEXT_INIT = r"""
 
 
 @pytest.fixture(scope="session")
-def access_base_url(tmp_path_factory: pytest.TempPathFactory) -> str:
+def access_base_url(tmp_path_factory: pytest.TempPathFactory, request: pytest.FixtureRequest) -> str:
     root = tmp_path_factory.mktemp("access-e2e")
     write_fixture(root)
     projection_path = root / "ToS/derived-exports/philosophy_graph_projection.min.json"
@@ -192,7 +192,15 @@ def access_base_url(tmp_path_factory: pytest.TempPathFactory) -> str:
             "record_version": 1,
         }
         (ledger / f"{request_id}.access-request.json").write_text(json.dumps(record), encoding="utf-8")
-    server = make_server(ToSAccessCore.discover(tos_root=root), port=0)
+    core = ToSAccessCore.discover(tos_root=root)
+    if getattr(request, "param", None) == "prepared":
+        from tos_access.prepared_publication import publish_prepared
+        snapshot = core.knowledge_snapshot()
+        publication = root / "browser-prepared.sqlite"
+        binding = publish_prepared(publication, graph=snapshot["graph"], catalog=snapshot["catalog"])
+        core = ToSAccessCore.discover(tos_root=root, published_read_model_path=publication,
+                                      published_read_model_expected=binding)
+    server = make_server(core, port=0)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -397,6 +405,60 @@ def test_real_browser_cancellation_reload_and_deep_link(webmcp_page: Page) -> No
     wait_for(page, "document.getElementById('research-workspace-body')?.textContent?.includes('Survives reload')")
     assert "Survives reload" in (page.locator("#research-workspace-body").text_content() or "")
     assert "mode=philosophy" in page.url and "view=chronology" in page.url and "graph=nodes" in page.url
+
+
+@pytest.mark.parametrize("access_base_url", ["prepared"], indirect=True)
+def test_real_browser_prepared_search_preserves_engine_and_selection(webmcp_page: Page) -> None:
+    page = webmcp_page
+    first = command_value(invoke(page, "tos.page.knowledge-search", {"query": "philosophy", "limit": 1}))
+    assert first["schema"] == "tos_knowledge_search_compressed_v3"
+    assert first["search_mode"] == "compressed"
+    assert len(first["nodes"]) == 1
+    page.locator("#detail-list [data-result]").first.click()
+    selected = command_value(invoke(page, "tos.page.inspect-selection"))
+    assert selected["selection"]["id"] == first["nodes"][0]["id"]
+    assert page.locator("#detail-list").inner_text().strip()
+    with pytest.raises(playwright.Error, match="mode unavailable: indexed"):
+        invoke(page, "tos.page.knowledge-search", {"query": "philosophy", "search_mode": "indexed"})
+    assert command_value(invoke(page, "tos.page.inspect-selection"))["selection"] == selected["selection"]
+    assert first["next_cursor"]
+    second = command_value(invoke(page, "tos.page.knowledge-search", {
+        "query": "philosophy", "cursor": first["next_cursor"],
+        "search_mode": first["search_mode"], "limit": 1,
+    }))
+    assert second["schema"] == first["schema"]
+    assert second["search_mode"] == first["search_mode"]
+    assert second["source_revision"] == first["source_revision"]
+    assert not ({node["id"] for node in first["nodes"]} & {node["id"] for node in second["nodes"]})
+
+
+@pytest.mark.parametrize("access_base_url", ["prepared"], indirect=True)
+def test_observatory_prepared_human_agent_search_and_continuation(webmcp_page: Page, access_base_url: str) -> None:
+    from urllib.parse import quote
+    page = webmcp_page
+    initial = command_value(invoke(page, "tos.page.knowledge-search", {"query": "fixture", "limit": 1}))
+    page.goto(f"{access_base_url}/?focus={quote(initial['nodes'][0]['id'], safe='')}")
+    wait_for(page, "window.__TOS_E2E.names().includes('tos.page.knowledge-search')")
+    first = command_value(invoke(page, "tos.page.knowledge-search", {"query": "fixture", "limit": 1}))
+    assert first["search_mode"] == "compressed"
+    assert first["nodes"][0]["label"]
+    page.locator(".sc-search-results .sc-result").first.click()
+    wait_for(page, "window.__TOS_E2E.names().includes('tos.page.inspect-selection')")
+    assert command_value(invoke(page, "tos.page.inspect-selection"))["selection"]["id"] == first["nodes"][0]["id"]
+    assert first["next_cursor"]
+    second = command_value(invoke(page, "tos.page.knowledge-search", {
+        "query": "fixture", "limit": 1, "search_mode": first["search_mode"], "cursor": first["next_cursor"],
+    }))
+    assert second["source_revision"] == first["source_revision"]
+    assert not ({node["id"] for node in first["nodes"]} & {node["id"] for node in second["nodes"]})
+    # Ordinary human typing uses the same client, but owns its own cursor history.
+    page.locator("#sc-query").fill("fixture ")
+    page.locator(".sc-search-pager").get_by_role("button", name="Далее", exact=True).wait_for(state="visible")
+    first_page = page.locator(".sc-search-results .sc-result").all_text_contents()
+    page.locator(".sc-search-pager").get_by_role("button", name="Далее", exact=True).click()
+    page.locator(".sc-search-pager").get_by_role("button", name="Ранее", exact=True).click()
+    page.locator(".sc-search-results .sc-result").first.wait_for(state="visible")
+    assert page.locator(".sc-search-results .sc-result").all_text_contents() == first_page
 
 
 def test_real_browser_graceful_without_webmcp(access_base_url: str) -> None:

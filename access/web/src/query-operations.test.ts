@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { createToSQueryOperations } from "./query-operations";
 
+const searchCapabilities = (indexed: boolean, compressed: boolean) => ({
+  schema: "tos_knowledge_search_capabilities_v1",
+  modes: {
+    indexed: { available: indexed },
+    compressed: { available: compressed },
+  },
+});
+
 describe("ToS query operations", () => {
   it("reads the projection fingerprint used by traceable local proposals", async () => {
     let requestedUrl = "";
@@ -158,12 +166,13 @@ describe("ToS query operations", () => {
     let requestedUrl = "";
     const controller = new AbortController();
     const operations = createToSQueryOperations(async <T>(url: string, options?: RequestInit) => {
-      requestedUrl = url;
       expect(options?.signal).toBe(controller.signal);
+      if (url === "/api/knowledge/search/capabilities") return searchCapabilities(true, true) as T;
+      requestedUrl = url;
       return { schema: "tos_knowledge_search_indexed_v2" } as T;
     });
 
-    await operations.invoke("tos.knowledge.search", {
+    const result = await operations.invoke("tos.knowledge.search", {
       query: "fate",
       limit: 12,
       cursor: "next-cursor",
@@ -172,6 +181,7 @@ describe("ToS query operations", () => {
       predicate_ids: ["relates"],
     }, { signal: controller.signal });
 
+    expect(result).toMatchObject({ schema: "tos_knowledge_search_indexed_v2", search_mode: "indexed" });
     const url = new URL(requestedUrl, "http://tos.local");
     expect(url.pathname).toBe("/api/knowledge/search");
     expect(Object.fromEntries(url.searchParams)).toEqual({
@@ -183,5 +193,104 @@ describe("ToS query operations", () => {
       kind_ids: "concept",
       predicate_ids: "relates",
     });
+  });
+
+  it("selects compressed when indexed is unavailable and preserves opaque cursor, filters and page data", async () => {
+    const cursor = "opaque.cursor+/=%20 α";
+    const payload = {
+      page: { items: [{ id: "node-1", rank: 1 }], next_cursor: cursor },
+      source_revision: "source-revision",
+      filters: { sources: ["canon"], kind_ids: ["concept"] },
+    };
+    let requestedUrl = "";
+    const operations = createToSQueryOperations(async <T>(url: string) => {
+      if (url === "/api/knowledge/search/capabilities") return searchCapabilities(false, true) as T;
+      requestedUrl = url;
+      return payload as T;
+    });
+
+    const result = await operations.invoke("tos.knowledge.search", {
+      query: "fate",
+      limit: 12,
+      cursor,
+      sources: ["canon"],
+      kind_ids: ["concept"],
+      predicate_ids: ["relates"],
+    });
+
+    expect(result).toEqual({ ...payload, search_mode: "compressed" });
+    const url = new URL(requestedUrl, "http://tos.local");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      mode: "compressed",
+      query: "fate",
+      limit: "12",
+      cursor,
+      sources: "canon",
+      kind_ids: "concept",
+      predicate_ids: "relates",
+    });
+  });
+
+  it("honors an explicit advertised compressed mode even when indexed is preferred by default", async () => {
+    const requested: string[] = [];
+    const operations = createToSQueryOperations(async <T>(url: string) => {
+      requested.push(url);
+      if (url === "/api/knowledge/search/capabilities") return searchCapabilities(true, true) as T;
+      return { page: { items: [], next_cursor: null } } as T;
+    });
+
+    const result = await operations.invoke("tos.knowledge.search", { query: "fate", search_mode: "compressed" });
+
+    expect(result).toMatchObject({ search_mode: "compressed" });
+    expect(new URL(requested[1], "http://tos.local").searchParams.get("mode")).toBe("compressed");
+  });
+
+  it("refuses invalid, unavailable and engine-less selections before any search request", async () => {
+    const cases = [
+      { input: { search_mode: "legacy" }, capabilities: searchCapabilities(true, true), error: "must be indexed or compressed" },
+      { input: { search_mode: "compressed" }, capabilities: searchCapabilities(true, false), error: "mode unavailable: compressed" },
+      { input: {}, capabilities: searchCapabilities(false, false), error: "indexed and compressed engines are unavailable" },
+    ];
+
+    for (const { input, capabilities, error } of cases) {
+      const requested: string[] = [];
+      const operations = createToSQueryOperations(async <T>(url: string) => {
+        requested.push(url);
+        if (url === "/api/knowledge/search/capabilities") return capabilities as T;
+        throw new Error("search must not be called");
+      });
+
+      await expect(operations.invoke("tos.knowledge.search", input)).rejects.toThrow(error);
+      expect(requested.filter((url) => new URL(url, "http://tos.local").pathname === "/api/knowledge/search")).toHaveLength(0);
+    }
+  });
+
+  it("forwards the same abort signal to capability discovery and preserves abort errors", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const abortError = new Error("aborted");
+    const requested: string[] = [];
+    const operations = createToSQueryOperations(async <T>(url: string, options?: RequestInit) => {
+      requested.push(url);
+      expect(options?.signal).toBe(controller.signal);
+      if (options?.signal?.aborted) throw abortError;
+      return searchCapabilities(true, true) as T;
+    });
+
+    await expect(operations.invoke("tos.knowledge.search", { query: "fate" }, { signal: controller.signal })).rejects.toBe(abortError);
+    expect(requested).toEqual(["/api/knowledge/search/capabilities"]);
+  });
+
+  it("does not retry or switch engines after a selected search backend refuses", async () => {
+    const backendError = new Error("backend refused");
+    const requested: string[] = [];
+    const operations = createToSQueryOperations(async <T>(url: string) => {
+      requested.push(url);
+      if (url === "/api/knowledge/search/capabilities") return searchCapabilities(true, true) as T;
+      throw backendError;
+    });
+
+    await expect(operations.invoke("tos.knowledge.search", { query: "fate" })).rejects.toBe(backendError);
+    expect(requested).toEqual(["/api/knowledge/search/capabilities", "/api/knowledge/search?mode=indexed&query=fate&limit=40"]);
   });
 });

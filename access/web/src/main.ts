@@ -270,6 +270,7 @@ type AppState = {
   expandedCluster: Cluster | null;
   searchQuery: string;
   knowledgeSearchQuery: string;
+  knowledgeSearchMode: "indexed" | "compressed" | null;
   knowledgeSearchNextCursor: string | null;
   neighborhood: NeighborhoodPayload | null;
   pathStartNodeId: string | null;
@@ -898,6 +899,7 @@ const state: AppState = {
   expandedCluster: null,
   searchQuery: "",
   knowledgeSearchQuery: "",
+  knowledgeSearchMode: null,
   knowledgeSearchNextCursor: null,
   neighborhood: null,
   pathStartNodeId: null,
@@ -4370,25 +4372,39 @@ async function knowledgeSearch(
   requestedCursor?: string,
   signal?: AbortSignal,
   requestedLimit = 40,
+  requestedSearchMode?: string,
 ): Promise<Record<string, unknown>> {
   const requestRevision = ++searchRevision;
   const input = byId("search") as HTMLInputElement;
   const query = (requestedQuery === undefined ? input.value : requestedQuery).trim();
-  if (!query) throw new Error("query is required for indexed knowledge search");
-  const cursor = requestedCursor?.trim() || undefined;
+  if (!query) throw new Error("query is required for knowledge search");
+  const cursor = requestedCursor || undefined;
+  const continuationMode = cursor && state.knowledgeSearchQuery === query
+    ? state.knowledgeSearchMode : null;
+  if (continuationMode && requestedSearchMode && requestedSearchMode !== continuationMode) {
+    throw new Error("search mode differs from the current continuation");
+  }
+  const searchMode = requestedSearchMode || continuationMode || undefined;
   const payload = await queryOperations.invoke("tos.knowledge.search", {
     query,
     limit: requestedLimit,
+    ...(searchMode ? { search_mode: searchMode } : {}),
     ...(cursor ? { cursor } : {}),
   }, { signal });
   signal?.throwIfAborted();
   if (requestRevision !== searchRevision) throw new DOMException("superseded search request", "AbortError");
+  const selectedMode = payload.search_mode;
+  if (selectedMode !== "indexed" && selectedMode !== "compressed") throw new Error("search response has no selected engine");
+  const searchSchema = text(payload.schema);
+  const expectedSchema = selectedMode === "indexed" ? "tos_knowledge_search_indexed_v2" : "tos_knowledge_search_compressed_v3";
+  if (searchSchema !== expectedSchema) throw new Error("search response schema differs from the selected engine");
   const adapted = adaptKnowledgeSearchResults(payload);
   const pageNodes = adapted.nodes;
   const pageRelations = adapted.relations;
-  const appending = Boolean(cursor && state.knowledgeSearchQuery === query);
+  const appending = Boolean(cursor && state.knowledgeSearchQuery === query && state.knowledgeSearchMode === selectedMode);
   state.searchQuery = query;
   state.knowledgeSearchQuery = query;
+  state.knowledgeSearchMode = selectedMode;
   input.value = query;
   state.epistemicPacket = null;
   state.interpretationComparison = null;
@@ -4403,18 +4419,19 @@ async function knowledgeSearch(
   const page = payload.page && typeof payload.page === "object" && !Array.isArray(payload.page)
     ? payload.page as AnyItem
     : {};
-  state.knowledgeSearchNextCursor = text(page.next_cursor).trim() || null;
+  state.knowledgeSearchNextCursor = typeof page.next_cursor === "string" && page.next_cursor ? page.next_cursor : null;
   state.selected = {
     title: `${t("selection.knowledgeSearch")}: ${query}`,
     results: state.results.length + state.relationItems.length,
-    search_schema: text(payload.schema || "tos_knowledge_search_indexed_v2"),
+    search_schema: searchSchema,
   };
   state.inspectorOpen = true;
   renderInspector();
   syncPublicRoute();
   scrollInspectorTop();
   return {
-    schema: text(payload.schema || "tos_knowledge_search_indexed_v2"),
+    schema: searchSchema,
+    search_mode: selectedMode,
     query,
     // Return the current page to agents.  The browser keeps cumulative
     // results for its inspector, but replaying that state here would hide
@@ -4439,6 +4456,7 @@ async function search(requestedQuery?: string, signal?: AbortSignal): Promise<{ 
   input.value = query;
   state.searchQuery = query;
   state.knowledgeSearchQuery = "";
+  state.knowledgeSearchMode = null;
   state.knowledgeSearchNextCursor = null;
   if (state.relationItems.some((item) => Boolean(item.knowledge_search_kind))) state.relationItems = [];
   state.epistemicPacket = null;
@@ -4492,6 +4510,13 @@ function pageContextSnapshot(): PageContextSnapshot {
 
 function commandString(input: Record<string, unknown>, key: string, fallback = ""): string {
   return text(input[key] ?? fallback).trim();
+}
+
+function commandOpaqueString(input: Record<string, unknown>, key: string): string | undefined {
+  const value = input[key];
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "string") throw new Error(`${key} must be a string`);
+  return value || undefined;
 }
 
 function commandInteger(input: Record<string, unknown>, key: string, fallback: number, low: number, high: number): number {
@@ -4560,9 +4585,10 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
   "tos.page.search": async (input, execution) => search(commandString(input, "query"), execution.signal),
   "tos.page.knowledge-search": async (input, execution) => knowledgeSearch(
     commandString(input, "query"),
-    commandString(input, "cursor") || undefined,
+    commandOpaqueString(input, "cursor"),
     execution.signal,
     commandInteger(input, "limit", 40, 1, 40),
+    commandString(input, "search_mode") || undefined,
   ),
   "tos.page.find-source-gaps": async (input, execution) => {
     const query = commandString(input, "query");

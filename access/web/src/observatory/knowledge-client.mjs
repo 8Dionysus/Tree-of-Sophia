@@ -1,4 +1,5 @@
 import {t,uiLanguage} from './ui-i18n.mjs';
+import {chooseKnowledgeSearchMode} from '../knowledge-search';
 import {displayForm} from './display-language.mjs';
 import {contentLanguage,validateHumanForms,claimPathFor,claimPathClosure,FormContractError} from './human-forms.mjs';
 import {verifyReadableContext} from './readable-context.mjs';
@@ -341,10 +342,18 @@ export class KnowledgeClient {
       throw error;
     } finally {clearTimeout(timer);signal?.removeEventListener('abort',abort);}
   }
-  async search(query,signal,offset=0) {
-    const packet=checkRevision(await this.request('/search?'+new URLSearchParams({query,limit:6,offset}),{signal}));
-    if(packet.schema!=='tos_knowledge_search_v1'||packet.nodes?.length>6||packet.relations?.length>6)throw new ContractError(t("Неподдерживаемый ответ поиска."));
-    checkItems(packet.nodes,'node');checkItems(packet.relations,'relation');return packet;
+  async search(query,signal,{cursor=null,search_mode,source_revision,limit=6}={}) {
+    if(cursor!==null&&(typeof cursor!=='string'||cursor.length>65536)
+      ||cursor!==null&&!search_mode||!Number.isSafeInteger(limit)||limit<1||limit>6)throw new ContractError(t("Неподдерживаемый ответ поиска."));
+    const capabilities=await this.request('/search/capabilities',{signal});
+    const mode=chooseKnowledgeSearchMode(capabilities,search_mode);
+    const packet=checkRevision(await this.request('/search?'+new URLSearchParams({query,limit,mode,...(cursor!==null?{cursor}:{})}),{signal}),source_revision);
+    if(packet.schema!==(mode==='indexed'?'tos_knowledge_search_indexed_v2':'tos_knowledge_search_compressed_v3')
+      ||packet.nodes?.length>limit||packet.relations?.length>limit||packet.page?.cursor!==cursor
+      ||packet.page.limit_per_kind!==limit||typeof packet.page.has_more!=='boolean'
+      ||(packet.page.has_more?typeof packet.page.next_cursor!=='string'||!packet.page.next_cursor:packet.page.next_cursor!==null)
+      ||packet.authority_boundary?.writes_to_tree!==false)throw new ContractError(t("Неподдерживаемый ответ поиска."));
+    checkItems(packet.nodes,'node');checkItems(packet.relations,'relation');return {...packet,search_mode:mode};
   }
   async compile(spec,signal,expected=null){const owned=structuredClone(spec),packet=validateLens(await this.request('/lenses/compile',{signal,body:owned}),expected);executedSpecs.set(packet,owned);return packet;}
   async explore(query,signal,expected,previous=null){

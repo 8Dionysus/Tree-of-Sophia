@@ -122,7 +122,7 @@ describe("WebMCP page-command binding", () => {
     adapter.stop();
   });
 
-  it("keeps indexed search cursors opaque and returns the current page", async () => {
+  it("keeps search engine selection and cursors opaque across current pages", async () => {
     const current: PageContextSnapshot = {
       mode: "philosophy", view_id: "chronology", graph_mode: "nodes", selected: null,
       path_start_node_id: null, active_layers: [], active_predicates: [], deep_link: "http://tos.local/",
@@ -131,7 +131,8 @@ describe("WebMCP page-command binding", () => {
     const cursor = "cursor:" + "x".repeat(5000);
     const registry = createPageCommandRegistry(() => current, {
       "tos.page.knowledge-search": (input) => ({
-        schema: "tos_knowledge_search_indexed_v2",
+        schema: "tos_knowledge_search_compressed_v3",
+        search_mode: input.search_mode || "compressed",
         query: input.query,
         result_count: 1,
         nodes: [{ id: input.cursor ? "node:later" : "node:first", kind: "node", label: input.cursor ? "Later" : "First" }],
@@ -157,7 +158,9 @@ describe("WebMCP page-command binding", () => {
     const first = JSON.parse((await tool.execute({ query: "fate" }, { signal: new AbortController().signal }) as { content: Array<{ text: string }> }).content[0].text);
     expect(first.nodes.map((item: { id: string }) => item.id)).toEqual(["node:first"]);
     expect(first.next_cursor).toBe(cursor);
-    const second = JSON.parse((await tool.execute({ query: "fate", cursor: first.next_cursor }, { signal: new AbortController().signal }) as { content: Array<{ text: string }> }).content[0].text);
+    expect(first.search_mode).toBe("compressed");
+    const second = JSON.parse((await tool.execute({ query: "fate", cursor: first.next_cursor, search_mode: first.search_mode }, { signal: new AbortController().signal }) as { content: Array<{ text: string }> }).content[0].text);
+    expect(second.search_mode).toBe("compressed");
     expect(second.nodes.map((item: { id: string }) => item.id)).toEqual(["node:later"]);
     expect(second.next_cursor).toBeNull();
     adapter.stop();

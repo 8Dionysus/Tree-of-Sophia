@@ -88,6 +88,17 @@ createWorkspaceCopyPanel(root,scene,panels,{workspace:tools.workspace,reader,tra
 createSettingsPanel(root,scene,panels,{studio,onUserAction:userAction});
 createSceneFeedback(root,scene);
 describeControls(root);createContextHints(root);
+async function searchOnPage(input,{signal}){
+  scene.ui.cancelPending();
+  const query=String(input.query||'').trim().slice(0,256);
+  const packet=await client.search(query,signal,{cursor:input.cursor??null,search_mode:input.search_mode,limit:input.limit??6});
+  signal.throwIfAborted();scene.ensureSearch();scene.ui.cancelSearch();root.querySelector('#sc-query').value=query;
+  const results=root.querySelector('.sc-search-results');uiChildren(results,"replaceChildren");searchHits.clear();searchRevision=packet.source_revision;
+  for(const [kind,list]of [['node',packet.nodes],['relation',packet.relations]])for(const raw of list){searchHits.set(raw.id,raw);uiChildren(results,"append",scene.ui.searchRow(raw,kind,packet.source_revision));}
+  scene.invalidate();return packet;
+}
+const searchResult=raw=>({id:raw.id,label:localized(raw.display.title||raw.display.label),kind:raw.kind_id||'relation',
+  summary:localized(raw.display.summary||raw.display.statement),source_refs:raw.source_refs,from_id:raw.from_id,to_id:raw.to_id});
 const handlers={
   ...tools.handlers,
   ...evidence.handlers,
@@ -109,14 +120,14 @@ const handlers={
     signal.throwIfAborted();commit(()=>{scene.port.setGraph(packet,{selectFocus:!hit.from_id});if(hit.from_id)scene.port.selectRelation(id,{rememberView:false});});return selected();
   },
   'tos.page.search':async(input,{signal})=>{
-    scene.ui.cancelPending();
-    const query=String(input.query||'').trim().slice(0,256);
-    const packet=await client.search(query,signal);signal.throwIfAborted();
-    scene.ensureSearch();scene.ui.cancelSearch();root.querySelector('#sc-query').value=query;
-    const results=root.querySelector('.sc-search-results');uiChildren(results, "replaceChildren");searchHits.clear();searchRevision=packet.source_revision;
-    for(const [kind,list]of [['node',packet.nodes],['relation',packet.relations]])for(const raw of list){searchHits.set(raw.id,raw);uiChildren(results, "append", scene.ui.searchRow(raw,kind,packet.source_revision));}
-    scene.invalidate();return {query,result_count:packet.counts.matching_nodes+packet.counts.matching_relations,
-      results:[...searchHits.values()].map(raw=>({id:raw.id,label:localized(raw.display.title||raw.display.label),kind:raw.kind_id||'relation',summary:localized(raw.display.summary||raw.display.statement)}))};
+    const packet=await searchOnPage(input,{signal});
+    return {query:packet.query,result_count:Number.isInteger(packet.counts.matching_nodes)&&Number.isInteger(packet.counts.matching_relations)
+      ?packet.counts.matching_nodes+packet.counts.matching_relations:null,results:[...searchHits.values()].map(searchResult)};
+  },
+  'tos.page.knowledge-search':async(input,{signal})=>{
+    const packet=await searchOnPage(input,{signal});
+    return {...packet,result_count:packet.nodes.length+packet.relations.length,
+      nodes:packet.nodes.map(searchResult),relations:packet.relations.map(searchResult)};
   },
   ...navigation.handlers,
   'tos.page.clear-focus':()=>commit(()=>{scene.closeInspector(false,true);scene.overview();return {cleared:true};}),

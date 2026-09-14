@@ -19,7 +19,10 @@ export async function readInspectorMaterial({client,scene,kind,raw,language,sign
 
 export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,initialLens}={}) {
   const q=s=>root.querySelector(s),slots=new RequestSlots();
-  let searchTimer=0,retryAction=null,searchOffset=0;
+  let searchTimer=0,retryAction=null;
+  // Navigation tokens only, never cached corpus rows. Keep at most 16 prior
+  // pages (1 MiB at the supported 64 KiB cursor bound).
+  const searchHistoryLimit=16;
   let cardLanguage='ru';
   const titleNote=document.createElement('p');titleNote.className='sc-reader-language-note sc-title-language-note';titleNote.hidden=true;q('.sc-node-title').after(titleNote);
   const forms=document.createElement('div');forms.className='sc-card-forms';q('.sc-description').after(forms);
@@ -104,8 +107,8 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     uiAttribute(row,'aria-label',[ariaLabel,kindLabel,carrier].filter(Boolean).join(' · '));
     return row;
   }
-  function search(value,offset=0){
-    clearTimeout(searchTimer);slots.cancel('search');searchOffset=offset;
+  function search(value,continuation={},previous=[]){
+    clearTimeout(searchTimer);slots.cancel('search');
     const query=value.trim().slice(0,256),results=q('.sc-search-results');uiChildren(results, "replaceChildren");
     if(!query){
       uiChildren(results, "append", text('div','sc-section-label',ui("В ТЕКУЩЕЙ ОБЛАСТИ")));
@@ -116,7 +119,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     uiChildren(results, "append", text('div','sc-empty',ui("Ищу в древе…")));port.cardChanged();
     searchTimer=setTimeout(async()=>{
       try{
-        const found=await slots.run('search',signal=>client.search(query,signal,offset));
+        const found=await slots.run('search',signal=>client.search(query,signal,continuation));
         if(!found.current||q('.sc-search').hidden)return;
         const packet=found.value;uiChildren(results, "replaceChildren");root.dataset.searchQuery=query;root.dataset.searchRevision=packet.source_revision;
         for(const kind of ['node','relation']){
@@ -126,10 +129,12 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
         }
         if(!packet.nodes.length&&!packet.relations.length)uiChildren(results, "append", text('div','sc-empty',ui("По этому запросу ничего не найдено.")));
         const pager=document.createElement('div');pager.className='sc-search-pager';
-        if(offset>0)uiChildren(pager, "append", button(ui("Ранее"),()=>search(query,Math.max(0,offset-6))));
-        if(Math.max(packet.counts.matching_nodes,packet.counts.matching_relations)>offset+6)uiChildren(pager, "append", button(ui("Далее"),()=>search(query,offset+6)));
+        if(previous.length)uiChildren(pager, "append", button(ui("Ранее"),()=>search(query,previous.at(-1),previous.slice(0,-1))));
+        if(packet.page.has_more)uiChildren(pager, "append", button(ui("Далее"),()=>search(query,
+          {cursor:packet.page.next_cursor,search_mode:packet.search_mode,source_revision:packet.source_revision},
+          [...previous,{cursor:packet.page.cursor,search_mode:packet.search_mode,source_revision:packet.source_revision}].slice(-searchHistoryLimit))));
         uiChildren(results, "append", pager);port.announce(ui("Результаты поиска обновлены."));port.cardChanged();
-      }catch(error){if(q('.sc-search').hidden)return;uiChildren(results, "replaceChildren", text('div','sc-empty',error.message), button(ui("Повторить поиск"),()=>search(query,searchOffset)));port.cardChanged();}
+      }catch(error){if(q('.sc-search').hidden)return;uiChildren(results, "replaceChildren", text('div','sc-empty',error.message), button(ui("Повторить поиск"),()=>search(query,continuation,previous)));port.cardChanged();}
     },180);
   }
   function sourceDetails(raw,kind){

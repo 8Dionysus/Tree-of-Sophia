@@ -1445,9 +1445,14 @@ class HistoricalCreationTests(unittest.TestCase):
 
     @contextmanager
     def creation(self):
-        sys.path.insert(0, str(ROOT / 'tests'))
-        from test_source_witness_bibliographic_graph import SourceWitnessBibliographicGraphTest
-        fixture = SourceWitnessBibliographicGraphTest()
+        access_tests = ROOT / 'access/tests'
+        if str(access_tests) not in sys.path:
+            sys.path.insert(0, str(access_tests))
+        from source_assembly_fixture import SourceAssemblyFixture
+        fixture = SourceAssemblyFixture(
+            code_root=ROOT,
+            source_root=ROOT / 'access/tests/fixtures/source-assembly',
+        )
         with fixture.historical_fixture() as (root, history, real, old_claims, rebuild):
             rebuild()
             source = {**copy.deepcopy(history[0][1]), 'record_id': 'tos.historical-event.creation-fixture',

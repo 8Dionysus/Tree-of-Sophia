@@ -127,7 +127,7 @@ function compactSearchResult(result: Record<string, unknown>): unknown {
   const results = Array.isArray(value?.results) ? value.results as Array<Record<string, unknown>> : [];
   return {
     query: clipped(value?.query, 160),
-    result_count: Number(value?.result_count || 0),
+    result_count: value?.result_count === null ? null : Number(value?.result_count || 0),
     results: results.slice(0, 6).map((item) => ({
       id: identity(item.id),
       kind: clipped(item.semantic_kind || item.kind, 48),
@@ -161,7 +161,8 @@ function compactKnowledgeSearchResult(result: Record<string, unknown>): unknown 
     });
   const page = value?.page && typeof value.page === "object" ? value.page as Record<string, unknown> : {};
   return {
-    schema: value?.schema || "tos_knowledge_search_indexed_v2",
+    schema: value?.schema,
+    search_mode: value?.search_mode,
     query: clipped(value?.query, 160),
     result_count: Number(value?.result_count || 0),
     nodes: compactItems(value?.nodes),
@@ -448,10 +449,11 @@ function stableTools(registry: PageCommandRegistry): WebMCPTool[] {
     commandTool(registry, "tos.page.knowledge-search", {
       name: "tos.page.knowledge-search",
       title: "Search the indexed ToS knowledge carrier",
-      description: "Search normalized Tree of Sophia nodes and relations through the explicit source-revision-bound indexed carrier. This is a derived access view; projection search remains available through tos.page.search.",
+      description: "Search normalized Tree of Sophia nodes and relations through a source-revision-bound engine advertised by the selected backend. Keep returned search_mode with an opaque continuation cursor. This is a derived access view; projection search remains available through tos.page.search.",
       inputSchema: objectSchema({
         query: { type: "string", minLength: 3, maxLength: 256 },
         cursor: { type: "string", maxLength: 8192 },
+        search_mode: { type: "string", enum: ["indexed", "compressed"] },
         limit: { type: "integer", minimum: 1, maximum: 6, default: 6 },
       }, ["query"]),
       annotations: { readOnlyHint: false, untrustedContentHint: true },

@@ -56,3 +56,65 @@ installable software candidate, required CI and merge are not closed here.
 The pre-existing complete D1 candidate with a header-count defect is retained
 as diagnostic evidence, not presented as healthy. Its replacement is a
 separate exact-target storage action, not implied cleanup permission.
+
+## Subsequent full-corpus consumer checkpoint
+
+The retained source at `a3144d4bea084d38c8fd9b822b9b30072188ebbc`
+has source revision
+`46f6f4b830ab3d5b419462907f94044b53910cdee916924cf0de7265829f8fb4`.
+Its prepared snapshot was reused without re-normalizing the corpus. Python
+and Worker run the integrated software from `79cf1f15d2ad1847ef5bdf65ac6413a58b9dfc15`;
+the browser additionally includes the capability-selection change reviewed
+in this continuation. The exact successor commit is bound by checkpoint review.
+
+| Capability actually checked | Goal coverage | Remaining boundary |
+| --- | --- | --- |
+| The full prepared backend advertises compressed search, not indexed search. The page now selects an advertised engine, retains its native schema and opaque cursor, and rejects unavailable explicit modes without a legacy retry. On real freedom and letter 705 records, agent search → human selection → agent reinspection succeeds with no page errors. | G6/G9, K2: one shared searchable corpus and selected identity across human/agent adapters. | This is not the complete concept/text or historical transmission route, nor a global smoothness measurement. |
+| A persistent browser regression verifies compressed continuation, no duplicate page identities, and selection preservation after an unavailable-engine refusal. All five browser scenarios and 549 web unit tests pass; typecheck and production build pass. | G6/G7/G9: engine-aware continuation and no hidden request-time graph fallback. | These checks do not grant content access or accept historical meaning. |
+| The corrected full D1 import completes with 1,008,590 executed SQL statements. Worker health is HTTP 200, `ok: true`, with data revision `3ee4420d1a5120be42addca42e207042b26be420288f1a1e21a9d152ce5c0853`. Catalog, canonical departure, Penn reception Claim and freedom Concept have equal native JSON values to the Python backend at the same source revision. | G7/G8, K3: healthy full-corpus D1 delivery and checked native field retention. | Local processes only; not production deployment or exhaustive endpoint parity. The catalog and three inspections took 1,631/206/206/192 ms on Worker and 153/10/17/25 ms on Python with retained filesystem cache, not cold OS. |
+
+The import took about 22 minutes, with 7.6 GiB reported peak memory and
+11.1 MiB swap. Its cost is a full data-release/bootstrap cost, not a small-edit
+budget. No second prepared corpus or database copy was created for these
+consumer checks. The obsolete SQL generation may be removed only through
+the separately authorized exact-target storage route; the current SQL,
+database, prepared snapshot and durable receipts remain distinct.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `final-live-browser-r2-resource.json` | `18484dd4b3b33b07238096b0d3013f3e2fbf894159c25d24db3474f5827393b0` |
+| `final-browser-regression-resource.json` | `147eda4750ed6c69d332ac0f10f6b812d353e695c1bea5f7a500129d0c745a79` |
+| `search-mode-web-final-r2-resource.json` | `e6f9fb56af795e745ca9f0854eb30bba28e3b8b33dee38f3e3b608cede4c8183` |
+| `final-d1-native-parity-r2.json` | `2a1ffd84877e80827d98c409873d9518a743c0b4be843e6af363b462de428145` |
+
+Source/derived separation, exact identity, current access authority and
+read-only delivery remain preserved. No source interpretation, rights grant,
+canon decision or human signature is created by this change. Remaining
+completion ownership stays with the master: complete K2 routes, outstanding
+K3 measurements, exact updated software package, CI and merge are not inferred
+from this checkpoint.
+
+The same checkpoint subsequently exposed a separate legacy-offset search in
+the default observatory shell. It now shares the advertised engine selector,
+keeps native cursors and unknown counts, and offers the knowledge-search tool
+without changing scene rendering. A real full-corpus browser search for
+`freedom` returned both source carriers and philosophical relations; human
+selection and agent inspection retained the exact freedom ID. A persistent
+prepared-browser test verifies human and agent search, cursor continuation,
+and previous-page return. The other five browser cases remain passed; the new
+case passed after correcting its asynchronous test wait. All 552 web tests,
+typecheck and production build passed. Source-panel exact-record consumption
+and the full historical/text routes are still separate from these search checks.
+
+`observatory-search-build-r1-resource.json` has SHA-256
+`dc166079ba2970f8024e2dc7a0cbe58c49f1f2bb1f640b003fdda3202bafcc97`;
+`observatory-search-browser-r2-resource.json` has SHA-256
+`6bcc2fd8c3dd42ee25584653a10a7b9a023e4cda68a9347dcfe6d314d89cf0e6`.
+
+Worker CI's missing identity-proposal fixture is repaired by selecting the
+three actual mechanics test modules and replacing a root-test dependency with
+the existing shared frozen source-assembly fixture. No authored corpus is
+added to software CI. The affected Python module passes 16 tests / 112
+subtests; the exact Worker case passes. The required aggregate is unchanged:
+it still requires every software job to succeed, and the full CI run remains
+the separate landing check.

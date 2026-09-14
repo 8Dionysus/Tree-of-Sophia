@@ -10,6 +10,53 @@ const fixture={schema:'tos_lens_result_v1',source_revision:'a'.repeat(64),author
   nodes:[node('graph-a:work'),node('graph-b:work')],focus:{node_id:'graph-a:work'},
   relations:[{id:'relation:1',from_id:'graph-a:work',to_id:'graph-b:work',content_revision:'c'.repeat(64),source_refs:['ToS/fixture/relation.json'],display:{label:{ru:'Связано с'}}}]};
 const clone=()=>structuredClone(fixture);
+
+test('search selects an advertised engine and retains native cursor, schema and unknown counts',async()=>{
+  for(const mode of ['indexed','compressed']){
+    const calls=[],cursor=' opaque + / cursor ';
+    const client=new KnowledgeClient({fetcher:async(url)=>{
+      calls.push(url);const params=new URL(url,'http://fixture').searchParams;
+      const packet=url.endsWith('/capabilities')?{modes:{[mode]:{available:true}}}:
+        {schema:mode==='indexed'?'tos_knowledge_search_indexed_v2':'tos_knowledge_search_compressed_v3',
+          source_revision:fixture.source_revision,authority_boundary:fixture.authority_boundary,
+          nodes:[node('exact-node')],relations:[],counts:{matching_nodes:null,matching_relations:null},
+          page:{cursor:params.get('cursor'),limit_per_kind:6,has_more:!params.has('cursor'),next_cursor:params.has('cursor')?null:cursor}};
+      return {ok:true,json:async()=>packet};
+    }});
+    const first=await client.search('freedom');
+    const second=await client.search('freedom',undefined,{cursor:first.page.next_cursor,search_mode:first.search_mode,source_revision:first.source_revision});
+    assert.equal(first.search_mode,mode);assert.equal(second.schema,first.schema);
+    assert.equal(second.page.cursor,cursor);assert.equal(second.counts.matching_nodes,null);
+    for(const url of calls.filter(url=>!url.endsWith('/capabilities'))){const params=new URL(url,'http://fixture').searchParams;
+      assert.equal(params.get('mode'),mode);assert.equal(params.has('offset'),false);}
+  }
+});
+
+test('search refuses unavailable mode and rejected continuation without retry or fallback',async()=>{
+  const calls=[];
+  const client=new KnowledgeClient({fetcher:async(url)=>{calls.push(url);return url.endsWith('/capabilities')
+    ?{ok:true,json:async()=>({modes:{compressed:{available:true},indexed:{available:false}}})}
+    :{ok:false,status:409};}});
+  await assert.rejects(client.search('freedom',undefined,{search_mode:'indexed'}),/mode unavailable/);
+  assert.equal(calls.length,1);
+  await assert.rejects(client.search('freedom',undefined,{cursor:'cursor',search_mode:'compressed'}),RevisionError);
+  assert.equal(calls.filter(url=>!url.endsWith('/capabilities')).length,1);
+  await assert.rejects(client.search('freedom',undefined,{cursor:'unbound'}),ContractError);
+  assert.equal(calls.length,3);
+});
+
+test('search refuses mismatched snapshot and malformed native pages',async()=>{
+  for(const mutation of [p=>p.source_revision='c'.repeat(64),p=>p.page.cursor='wrong',p=>p.page.limit_per_kind=8,
+    p=>p.schema='tos_knowledge_search_v1',p=>p.page.next_cursor=null]){
+    const packet={schema:'tos_knowledge_search_compressed_v3',source_revision:fixture.source_revision,
+      authority_boundary:fixture.authority_boundary,nodes:[],relations:[],
+      page:{cursor:null,limit_per_kind:6,has_more:true,next_cursor:'next'}};
+    mutation(packet);
+    const client=new KnowledgeClient({fetcher:async(url)=>({ok:true,json:async()=>url.endsWith('/capabilities')
+      ?{modes:{compressed:{available:true}}}:packet})});
+    await assert.rejects(client.search('freedom',undefined,{source_revision:fixture.source_revision}));
+  }
+});
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return {promise,resolve,reject};};
 const dossier=()=>({schema:'tos_source_dossier_v1',object_id:'tos.work.fixture',object:{node_id:'tos.work.fixture',node_kind:'work',label:'Fixture Work',properties:{}},
   agent_summary:{technical_access:'metadata_only',rights_posture:'unknown',human_review_required:true,can_conclude_legal_openness:false,
