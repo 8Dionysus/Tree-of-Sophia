@@ -1527,7 +1527,7 @@
       "family": "generated_parity",
       "validation_lane": "graph_exports",
       "owner_surface": "ToS/contracts/tos-corpus-index.schema.json",
-      "protects": "corpus index runtime boundary, emitted layers, and source-navigation Work/Expression/Edition/Item/File/Link joins; complete canon/intake CSV row retention with exact source-byte hash and logical row ordinal, unknown/empty/missing/multiline cell distinctions, unchanged status/identity, ordinary relation-reader return, and refusal of ambiguous or unrepresentable CSV columns",
+      "protects": "corpus index runtime boundary, emitted layers, and source-navigation Work/Expression/Edition/Item/File/Link joins; complete canon/intake CSV row retention and bounded exact original-row return with file identity/digest and cell checks, logical row ordinals and byte offsets, unknown/empty/missing/multiline distinctions, unchanged status/identity, ordinary relation-reader return, and refusal of stale, oversized, ambiguous or unrepresentable CSV input",
       "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
       "mode": "blocking",
       "runtime_cost": "fast",

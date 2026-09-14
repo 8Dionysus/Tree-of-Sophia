@@ -7,6 +7,9 @@ import csv
 import hashlib
 import io
 import json
+import os
+import re
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 import subprocess
@@ -416,6 +419,78 @@ def read_edge_rows(path: Path) -> tuple[list[str], list[dict[str, str | None]], 
     if any(None in row for row in rows):
         raise csv.Error("relation CSV row has unnamed cells outside its declared columns")
     return columns, rows, hashlib.sha256(raw).hexdigest()
+
+
+def read_exact_edge_row(
+    path: Path, *, source_file_sha256: str, source_row: int,
+    source_record: dict[str, str | None], max_file_bytes: int = 8 * 1024 * 1024,
+    max_record_bytes: int = 1024 * 1024,
+) -> dict[str, Any]:
+    """Read one exact retained corpus-index CSV row, without authoring meaning.
+
+    The caller must admit the owner path and its selected index membership;
+    this helper is not a path-based public access API or a permission grant.
+    Logical row ordinals exclude the header/blank records, not quoted newlines.
+    Both original CSV bytes and every parsed cell are preserved. Existing index
+    records suffice; no second registry or current-file fallback is created.
+    """
+    if (type(source_file_sha256) is not str or re.fullmatch('[a-f0-9]{64}', source_file_sha256) is None
+            or type(source_row) is not int or source_row < 1
+            or type(source_record) is not dict
+            or any(type(k) is not str or (v is not None and type(v) is not str) for k, v in source_record.items())
+            or any(type(v) is not int or v < 1 for v in (max_file_bytes, max_record_bytes))):
+        raise ValueError('exact CSV source binding and positive budgets required')
+    signature = lambda info: (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(descriptor, 'rb') as stream:
+        before = os.fstat(stream.fileno())
+        if not stat.S_ISREG(before.st_mode):
+            raise ValueError('CSV source must be a regular owner file')
+        if before.st_size > max_file_bytes:
+            raise ValueError('CSV source file exceeds read budget')
+        raw = stream.read(max_file_bytes + 1)
+        after = os.fstat(stream.fileno())
+    if (signature(before) != signature(after)
+            or signature(after) != signature(path.stat(follow_symlinks=False))):
+        raise ValueError('CSV source changed during exact read')
+    if len(raw) > max_file_bytes:
+        raise ValueError('CSV source file exceeds read budget')
+    if hashlib.sha256(raw).hexdigest() != source_file_sha256:
+        raise ValueError('CSV source file digest differs from selected index')
+    text = raw.decode('utf-8')
+    stream = io.StringIO(text, newline='')
+    reader = csv.reader(stream, strict=True)
+    columns = next(reader, [])
+    if not columns or any(not column for column in columns) or len(set(columns)) != len(columns):
+        raise csv.Error('relation CSV requires nonempty unique column names')
+    previous = stream.tell()
+    offset = len(text[:previous].encode('utf-8'))
+    ordinal = 0
+    for cells in reader:
+        position = stream.tell()
+        record_raw = text[previous:position].encode('utf-8')
+        start, offset, previous = offset, offset + len(record_raw), position
+        if not cells:
+            continue
+        ordinal += 1
+        if len(cells) > len(columns):
+            raise csv.Error('relation CSV row has unnamed cells outside its declared columns')
+        if ordinal != source_row:
+            continue
+        if len(record_raw) > max_record_bytes:
+            raise ValueError('CSV source record exceeds read budget')
+        record = {column: cells[i] if i < len(cells) else None for i, column in enumerate(columns)}
+        if record != source_record:
+            raise ValueError('CSV source row differs from selected index record')
+        # Recheck pathname identity after parsing too. A replaced file is not
+        # silently treated as the selected source even when a descriptor lived.
+        if signature(after) != signature(path.stat(follow_symlinks=False)):
+            raise ValueError('CSV source changed during exact read')
+        return {'source_file_sha256': source_file_sha256, 'source_row': source_row,
+                'columns': columns, 'record': record, 'byte_offset': start,
+                'row_bytes': len(record_raw), 'raw_record': record_raw.decode('utf-8'),
+                'raw_record_sha256': hashlib.sha256(record_raw).hexdigest()}
+    raise ValueError('CSV source row is absent from selected file')
 
 
 def build_relations(

@@ -195,6 +195,20 @@
       "disposition": "keep"
     },
     {
+      "path": "access/deploy/cloudflare-worker/scripts/lens_auxiliary_runtime.py",
+      "family": "projection_helper",
+      "organ_lane": "shared-library",
+      "owner_surface": "access/deploy/cloudflare-worker/README.md",
+      "source_truth": ["access/src/tos_access/compact_lens_carrier.py", "access/src/tos_access/compact_lens_store.py", "access/src/tos_access/lens_membership_index.py", "access/src/tos_access/published_read_metadata.py"],
+      "reads": ["explicit predecessor/successor reader headers, exact selected source rows and installed auxiliary state", "versioned whole-row baseline publication descriptor"],
+      "writes": ["caller-owned SQL statement stream for staging, guarded publication and actual-epoch state sealing"],
+      "side_effects": "library only; does not install tables or publish without the owning full/addressed writer",
+      "validation_lane": "standalone_access",
+      "ci_inclusion": "focused-tests",
+      "test_target": "access/tests/test_prepared_delta_runtime.py",
+      "disposition": "keep"
+    },
+    {
       "path": "access/deploy/cloudflare-worker/scripts/prepared_delta_runtime.py",
       "family": "projection_helper",
       "organ_lane": "shared-library",
@@ -2954,6 +2968,7 @@
         "ToS/source_home.manifest.json",
         "ToS/**",
         "complete canonical/intake edges.csv rows and exact parsed-file bytes, preserving unknown columns and data-record ordinals without inferred meaning or admission",
+        "bounded exact CSV record return for an owner-admitted indexed row, rechecking file identity/digest and cells while preserving original multiline bytes; no public path or permission admission",
         "optional caller-selected assessed snapshot through the protected source/journal command",
         "whole-build selected source publication snapshot; source navigation verifies bound catalog manifest and exact file hashes before and after consumption"
       ],

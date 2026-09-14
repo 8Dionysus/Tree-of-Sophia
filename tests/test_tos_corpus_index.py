@@ -27,6 +27,70 @@ from tos_corpus_index_common import (  # noqa: E402
 
 
 class ToSCorpusIndexTest(unittest.TestCase):
+    def test_exact_csv_row_preserves_multiline_unicode_nulls_and_byte_offsets(self):
+        import tos_corpus_index_common as corpus
+        raw = ('edge_id,note,extra\r\n\r\n'
+               'one,"first\r\nλόγος\u2028last",\r\n'
+               '\r\ntwo,second\r\n').encode('utf-8')
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / 'edges.csv'
+            path.write_bytes(raw)
+            columns, records, digest = corpus.read_edge_rows(path)
+            for ordinal, record in enumerate(records, 1):
+                result = corpus.read_exact_edge_row(path, source_file_sha256=digest,
+                    source_row=ordinal, source_record=record)
+                self.assertEqual(result['columns'], columns)
+                self.assertEqual(result['record'], record)
+                start = result['byte_offset']
+                row_raw = raw[start:start + result['row_bytes']]
+                self.assertEqual(result['raw_record'].encode('utf-8'), row_raw)
+                self.assertTrue(row_raw.startswith(record['edge_id'].encode()))
+                self.assertEqual(result['raw_record_sha256'], hashlib.sha256(row_raw).hexdigest())
+            self.assertEqual(records[0]['note'], 'first\r\nλόγος\u2028last')
+            self.assertEqual(records[0]['extra'], '')
+            self.assertIsNone(records[1]['extra'])
+            self.assertEqual(path.read_bytes(), raw)
+
+    def test_exact_csv_row_refuses_stale_binding_wrong_row_and_budgets(self):
+        import tos_corpus_index_common as corpus
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / 'edges.csv'
+            raw = b'edge_id,note\none,original\ntwo,second\n'
+            path.write_bytes(raw)
+            _, rows, digest = corpus.read_edge_rows(path)
+            options = dict(source_file_sha256=digest, source_row=1, source_record=rows[0])
+            for change in ({'source_file_sha256': '0'*64}, {'source_row': 2}, {'source_row': 3},
+                           {'source_row': True}, {'source_record': {**rows[0], 'note': 'invented'}},
+                           {'source_record': {'edge_id': 'one', 'note': 1}},
+                           {'max_file_bytes': len(raw)-1}, {'max_record_bytes': 1}, {'max_file_bytes': False}):
+                with self.subTest(change=change), self.assertRaises(ValueError):
+                    corpus.read_exact_edge_row(path, **{**options, **change})
+            path.write_bytes(raw.replace(b'original', b'changed!'))
+            with self.assertRaisesRegex(ValueError, 'digest differs'):
+                corpus.read_exact_edge_row(path, **options)
+            linked = path.with_name('linked.csv')
+            linked.symlink_to(path)
+            with self.assertRaises(OSError):
+                corpus.read_exact_edge_row(linked, **options)
+
+    def test_exact_csv_row_refuses_source_replacement_during_parsing(self):
+        import tos_corpus_index_common as corpus
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / 'edges.csv'
+            raw = b'edge_id,note\none,original\n'
+            path.write_bytes(raw)
+            _, rows, digest = corpus.read_edge_rows(path)
+            reader = corpus.csv.reader
+            def replaced(*args, **kwargs):
+                replacement = path.with_name('replacement.csv')
+                replacement.write_bytes(raw)
+                replacement.replace(path)
+                return reader(*args, **kwargs)
+            with patch.object(corpus.csv, 'reader', side_effect=replaced):
+                with self.assertRaisesRegex(ValueError, 'changed during exact read'):
+                    corpus.read_exact_edge_row(path, source_file_sha256=digest,
+                                              source_row=1, source_record=rows[0])
+
     def test_relation_csv_projection_preserves_every_cell_and_source_binding(self):
         import tos_corpus_index_common as corpus
         from jsonschema import Draft202012Validator
@@ -115,6 +179,10 @@ class ToSCorpusIndexTest(unittest.TestCase):
 
     def test_all_authored_relation_rows_are_retained_without_accepting_intake(self):
         import tos_corpus_index_common as corpus
+        access_src = str(REPO_ROOT / 'access/src')
+        if access_src not in sys.path:
+            sys.path.insert(0, access_src)
+        from tos_access.knowledge import _normalize_relation
         paths = tuple(path for path in tracked_tos_paths() if path.name == 'edges.csv')
         self.assertTrue(paths)
         errors = []
@@ -133,6 +201,13 @@ class ToSCorpusIndexTest(unittest.TestCase):
                 self.assertEqual(edge['edge_id'], row['edge_id'])
                 self.assertEqual(edge['properties']['source_file_sha256'], pack['sha256'])
                 self.assertEqual(edge['status'], row.get('status') or ('canon' if ref.startswith('ToS/canon/') else 'unmarked'))
+                normalized = _normalize_relation({**edge, 'source_ref': ref},
+                    'canon' if ref.startswith('ToS/canon/') else 'candidate-intake', {},
+                    identity_id=f"{edge['pack_id']}:{edge['edge_id']}")
+                returned = corpus.read_exact_edge_row(path, **{field: normalized['attributes'][field]
+                    for field in ('source_file_sha256', 'source_row', 'source_record')})
+                self.assertEqual(returned['record'], row)
+                self.assertEqual(returned['source_file_sha256'], pack['sha256'])
 
     def test_text_packet_projection_is_versioned_and_visibility_bounded(self):
         path = REPO_ROOT / "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-a-source-layout-observation.json"

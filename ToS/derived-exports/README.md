@@ -56,6 +56,19 @@ confidence, or replace a Claim's evidence/assessment model. Older snapshots
 may lack this optional binding; new snapshots must travel with their matching
 corpus schema and pass source-backed parity. Ambiguous duplicate/empty headers
 and unnamed surplus cells are rejected rather than silently dropped.
+
+The owner library `scripts/tos_corpus_index_common.py` exposes
+`read_exact_edge_row(path, source_file_sha256=..., source_row=...,
+source_record=...)` for an explicitly selected index row. It verifies the
+unchanged regular file and every parsed cell, returning the original CSV record
+(including its delimiter), byte offset, row byte count and raw-record SHA-256.
+Multiline cells do not change logical row numbering. Default file/record read
+budgets are 8 MiB/1 MiB; stale hashes, wrong rows, malformed CSV and exceeded
+budgets refuse without rewriting source or index. This helper does **not**
+admit a caller path, establish selected-index membership or grant publication
+rights. A source-owner adapter must establish those boundaries before invoking
+it. It is not yet exposed as a `source_read_targets` handle or UI/MCP operation.
+
 The philosophy atlas projection turns `ToS/philosophy/atlas/` into a first
 reviewable tree/graph read model for visualization and graph switching.
 The philosophy graph view catalog turns source-owned view cards and
