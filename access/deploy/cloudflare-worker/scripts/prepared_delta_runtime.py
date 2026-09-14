@@ -209,7 +209,9 @@ def execution_profile():
             'access/deploy/cloudflare-worker/scripts/build_runtime.py',
             'access/deploy/cloudflare-worker/scripts/lens_auxiliary_runtime.py',
             'access/src/tos_access/compact_lens_carrier.py',
+            'access/src/tos_access/compact_lens_store.py',
             'access/src/tos_access/lens_membership_index.py',
+            'access/src/tos_access/published_read_model.py',
             'access/src/tos_access/knowledge.py', 'access/src/tos_access/human_form_codec.py',
             'access/src/tos_access/search_read_model.py', 'access/src/tos_access/published_read_metadata.py',
             'access/src/tos_access/portable_paths.py')

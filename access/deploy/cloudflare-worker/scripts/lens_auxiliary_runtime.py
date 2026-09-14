@@ -7,6 +7,9 @@ Reverse publication gets a new epoch, never a resurrected publication identity.
 from tos_access.compact_lens_carrier import compact_lens_carrier, SCHEMA as COMPACT_SCHEMA
 from tos_access.lens_membership_index import membership_rows, SCHEMA as MEMBERSHIP_SCHEMA
 from tos_access.published_read_metadata import _compact, published_snapshot_binding
+from tos_access.compact_lens_store import schema_statements as compact_schema
+from tos_access.lens_membership_index import schema_statements as membership_schema
+from tos_access.published_read_model import _json
 
 STORES = {
     'knowledge_compact_lens': ('knowledge_compact_lens_state', COMPACT_SCHEMA),
@@ -16,6 +19,63 @@ PRIMARY_KEYS = {'knowledge_compact_lens': ('kind', 'id'),
                 'knowledge_lens_memberships': ('kind', 'field', 'value', 'id')}
 COLUMNS = {'knowledge_compact_lens': ('kind', 'id', 'source_sha256', 'seed_sha256', 'json'),
            'knowledge_lens_memberships': ('kind', 'field', 'value', 'id', 'sort_key')}
+PUBLICATION_SCHEMA = 'tos_d1_lens_auxiliary_publication_v1'
+MAX_PUBLICATION_BYTES = 131072
+CLOCK = '(SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1)'
+
+
+def quote(text):
+    return "'" + text.replace("'", "''") + "'"
+
+
+def binding_expression(top):
+    raw = _compact(published_snapshot_binding(top, 0))
+    prefix, suffix = raw.split('"publication_epoch":0', 1)
+    return quote(prefix + '"publication_epoch":') + '||' + CLOCK + '||' + quote(suffix)
+
+
+def publication_descriptor(top):
+    published_snapshot_binding(top, 0)  # Validate the declared owner header.
+    value = {'schema': PUBLICATION_SCHEMA, 'stores': {table: schema for table, (_, schema) in STORES.items()},
+             'reader_top': top}
+    raw = _compact(value)
+    if len(raw.encode('utf-8')) > MAX_PUBLICATION_BYTES:
+        raise ValueError('auxiliary baseline publication exceeds byte budget')
+    return _json(raw)
+
+
+def baseline_publication_top(previous):
+    value = previous.get('auxiliary_publication') if isinstance(previous, dict) else previous.auxiliary_publication
+    if value is None:
+        return None  # Historical base-only baseline: explicit initial migration.
+    revision = previous['revision'] if isinstance(previous, dict) else previous.revision
+    schema = previous['schema'] if isinstance(previous, dict) else previous.schema
+    if (not isinstance(value, dict) or set(value) != {'schema', 'stores', 'reader_top'}
+            or not isinstance(value['reader_top'], dict)):
+        raise ValueError('invalid auxiliary baseline publication')
+    top = value['reader_top']
+    if value != publication_descriptor(top) or top['data_revision'] != revision or top['read_model_schema'] != schema:
+        raise ValueError('auxiliary baseline publication identity differs')
+    return top
+
+
+def staging_schema():
+    return [f'DROP TABLE IF EXISTS {table}_next;' for table in STORES] + [
+        statement.replace(table, table + '_next', 1) + ';'
+        for statement in compact_schema() + membership_schema()
+        for table in STORES if statement.startswith(f'CREATE TABLE {table}(')]
+
+
+def bootstrap_finish(top):
+    statements = [f'DROP TABLE IF EXISTS {state};' for state, _ in STORES.values()]
+    statements += [statement + ';' for statement in compact_schema() + membership_schema()
+                   if not any(statement.startswith(f'CREATE TABLE {table}(') for table in STORES)]
+    # Outside a publication trigger, the state table CHECK is the SQL guard.
+    # A missing/noninteger/unsafe clock fails the bootstrap, not a silent seal.
+    valid = f"CASE WHEN typeof({CLOCK})='integer' AND {CLOCK}>=0 AND {CLOCK}<=9007199254740991 THEN 1 ELSE -1 END"
+    statements += [f'INSERT INTO {state} VALUES(1,{quote(schema)},({binding_expression(top)}),{valid});'
+                   for state, schema in STORES.values()]
+    return statements
 
 
 def projected_rows(table, kind, identifier, raw):
@@ -69,18 +129,13 @@ def capture_change(db, capture, table, kind, identifier, old, new, before_rows, 
 def publication_operations(bindings):
     """Trusted producer inputs only; return pre-mutation guards and final seals."""
     guards, seals = [], []
-    clock = '(SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1)'
-    quote = lambda text: "'" + text.replace("'", "''") + "'"
+    clock = CLOCK
     for table, (before_top, after_top) in bindings.items():
         state, schema = STORES[table]
-        def expression(top):
-            raw = _compact(published_snapshot_binding(top, 0))
-            prefix, suffix = raw.split('"publication_epoch":0', 1)
-            return quote(prefix + '"publication_epoch":') + '||' + clock + '||' + quote(suffix)
         guards.append(f"SELECT CASE WHEN typeof({clock})!='integer' OR {clock}<0 OR {clock}>9007199254740991 "
                       f"OR NOT EXISTS(SELECT 1 FROM {state} WHERE singleton=1 AND schema={quote(schema)} "
-                      f"AND binding=({expression(before_top)}) AND valid=1) THEN RAISE(ABORT,'stale lens auxiliary publication') END;")
+                      f"AND binding=({binding_expression(before_top)}) AND valid=1) THEN RAISE(ABORT,'stale lens auxiliary publication') END;")
         seals.append(f"SELECT CASE WHEN typeof({clock})!='integer' OR {clock}<0 OR {clock}>9007199254740991 "
                      "THEN RAISE(ABORT,'invalid auxiliary successor epoch') END;")
-        seals.append(f'UPDATE {state} SET binding=({expression(after_top)}),valid=1 WHERE singleton=1;')
+        seals.append(f'UPDATE {state} SET binding=({binding_expression(after_top)}),valid=1 WHERE singleton=1;')
     return guards, seals

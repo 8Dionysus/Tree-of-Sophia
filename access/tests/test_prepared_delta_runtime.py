@@ -113,7 +113,9 @@ class PreparedD1DeltaTests(unittest.TestCase):
         self.d1.execute("UPDATE knowledge_nodes SET json='{}' WHERE id='a'")
         self.d1.commit()
         before = list(self.d1.iterdump())
-        with self.assertRaisesRegex(ValueError, 'predecessor row differs'):
+        # The full producer now includes bound stores, whose invalidation
+        # refuses this changed predecessor before addressed row capture.
+        with self.assertRaisesRegex(ValueError, 'stale lens auxiliary publication'):
             self.capture(result)
         self.assertEqual(list(self.d1.iterdump()), before)
         self.assertFalse((self.root / 'delta.sql').exists())
@@ -125,34 +127,23 @@ class PreparedD1DeltaTests(unittest.TestCase):
         return {table: self.d1.execute(f'SELECT * FROM {table} ORDER BY ' + ','.join(delta.PRIMARY_KEYS[table])).fetchall()
                 for table in delta.COLUMNS if self.d1.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone()}
 
-    def install_auxiliary(self, db):
-        from tos_access.compact_lens_store import prepare_compact_lens_store_transaction
-        from tos_access.lens_membership_index import prepare_membership_index_transaction
+    def assert_auxiliary_current(self, db=None):
+        db = self.d1 if db is None else db
         from tos_access.prepared_publication import _metadata
         top = _metadata(db, delta.TOP_KEY)
-        binding = delta.published_snapshot_binding(top, db.execute('SELECT epoch FROM knowledge_exploration_clock').fetchone()[0])
-        db.execute('BEGIN IMMEDIATE')
-        prepare_compact_lens_store_transaction(db, expected_binding=binding, expected_read_model_schema=full.READ_MODEL_SCHEMA_VERSION)
-        prepare_membership_index_transaction(db, expected_binding=binding, expected_read_model_schema=full.READ_MODEL_SCHEMA_VERSION)
-        db.commit()
-
-    def assert_auxiliary_current(self):
-        from tos_access.prepared_publication import _metadata
-        top = _metadata(self.d1, delta.TOP_KEY)
-        epoch = self.d1.execute('SELECT epoch FROM knowledge_exploration_clock').fetchone()[0]
+        epoch = db.execute('SELECT epoch FROM knowledge_exploration_clock').fetchone()[0]
         for table, (state, schema) in delta.auxiliary.STORES.items():
-            self.assertEqual(self.d1.execute(f'SELECT schema,binding,valid FROM {state}').fetchall(),
+            self.assertEqual(db.execute(f'SELECT schema,binding,valid FROM {state}').fetchall(),
                 [(schema, delta._compact(delta.published_snapshot_binding(top, epoch)), 1)])
         return epoch
 
     def test_auxiliary_addressed_publication_reverse_and_atomic_refusal(self):
-        self.install_auxiliary(self.d1)
         original, epoch = self.serving_rows(), self.assert_auxiliary_current()
         graph, result = self.change()
         receipt = self.capture(result, rollback_target=self.root / 'rollback.sql')
         self.assertEqual(receipt['maintained_auxiliary_stores'], list(delta.auxiliary.STORES))
         oracle = self.full(graph, result['catalog'], receipt['target_d1_revision'], 'aux-oracle')
-        self.install_auxiliary(oracle)
+        self.assert_auxiliary_current(oracle)
         sql = (self.root / 'delta.sql').read_text()
         publish = 'INSERT OR REPLACE INTO tos_delta_publications SELECT'
         stage, rest = sql.split(publish, 1)
@@ -189,7 +180,7 @@ class PreparedD1DeltaTests(unittest.TestCase):
         self.assertIsNotNone(self.f.db.execute("SELECT json FROM knowledge_nodes WHERE id='new'").fetchone())
 
     def test_auxiliary_stale_capture_and_intervening_invalidation_refuse(self):
-        self.install_auxiliary(self.d1)
+        self.assert_auxiliary_current()
         _, result = self.change()
         self.capture(result)
         self.d1.execute('UPDATE knowledge_lens_membership_state SET valid=0')

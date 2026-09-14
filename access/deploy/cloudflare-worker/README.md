@@ -103,10 +103,21 @@ Partial staging or a store invalidated since capture refuses atomically. The
 existing capture, retention and SQL budgets include these added rows. Missing
 stores keep the older base-only path; this route never installs tables.
 
-Initial full-builder emission and the legacy full-producer delta route are still
-unintegrated. Their changes invalidate old store bindings; a reader never repairs
-or silently re-admits them. The bounded locally tested writer/reader seam is not
-a deployed full-corpus growth capability.
+The full SQL producer now emits both stores from the exact normalized source
+rows and seals them against the actual bootstrap epoch. Its row-index companion
+includes a versioned auxiliary publication descriptor. Subsequent full-producer
+deltas maintain both stores atomically, using the same predecessor guards and
+successor seals as the addressed writer. A historical descriptor-less baseline
+returns `auxiliary_migration=\"lens-auxiliary-initial-migration-required\"` and
+`delta.available=false`: the complete SQL is an explicit initial migration
+candidate, not an applicable incremental update. Malformed or mismatched
+descriptors refuse without replacing final output files. Full bootstrap remains
+a maintenance operation with sequential swaps, not live atomic publication.
+The producer bounds encoded auxiliary row values to 1 GiB and membership rows
+to 2,000,000 by default (`max_lens_auxiliary_bytes`, `max_lens_memberships`).
+These are offline output budgets, not storage reservations or whole-import RAM
+limits. Existing row budgets remain in force. Readers never install, repair or
+silently re-admit stores; this does not establish full-corpus deployment.
 Full SQL posting/statistics INSERTs are bounded both by encoded bytes and by
 512 VALUES rows. A small encoded statement can still contain enough short rows
 to exhaust D1's statement compiler; the row cap preserves every posting while

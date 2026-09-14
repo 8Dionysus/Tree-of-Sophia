@@ -12,7 +12,8 @@ import json
 import re
 import sqlite3
 from pathlib import Path
-from lens_auxiliary_runtime import PRIMARY_KEYS as AUXILIARY_KEYS, publication_operations
+from lens_auxiliary_runtime import (PRIMARY_KEYS as AUXILIARY_KEYS, publication_operations,
+                                    publication_descriptor, MAX_PUBLICATION_BYTES)
 
 PRIMARY_KEYS = {
     'edge_meta': ('key', 'part'), 'philosophy_nodes': ('id',), 'philosophy_edges': ('id',),
@@ -357,7 +358,7 @@ class DiskRowIndex:
             (table,),
         )
 
-    def write_json(self, output: Path, schema: str, revision: str) -> None:
+    def write_json(self, output: Path, schema: str, revision: str, *, tables=PRIMARY_KEYS, auxiliary_publication=None) -> None:
         """Materialize the historical JSON row-index contract once, at EOF."""
         self.connection.commit()
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -366,8 +367,11 @@ class DiskRowIndex:
             stream.write(json.dumps(schema, ensure_ascii=False, separators=(",", ":")))
             stream.write(",\"revision\":")
             stream.write(json.dumps(revision, ensure_ascii=False, separators=(",", ":")))
+            if auxiliary_publication is not None:
+                stream.write(',"auxiliary_publication":')
+                stream.write(json.dumps(auxiliary_publication, ensure_ascii=False, separators=(',', ':')))
             stream.write(",\"rows\":{")
-            for table_index, table in enumerate(REGISTERED_KEYS):
+            for table_index, table in enumerate(tables):
                 if table_index:
                     stream.write(",")
                 stream.write(json.dumps(table, ensure_ascii=False, separators=(",", ":")))
@@ -529,6 +533,7 @@ class DiskRowBaseline:
         )
         self.schema = None
         self.revision = None
+        self.auxiliary_publication = None
         self.rows_seen = False
         self.closed = False
         self._load(expected_schema, max_value_chars)
@@ -575,6 +580,8 @@ class DiskRowBaseline:
                 self.schema = stream.value(max_chars=ROW_INDEX_MAX_HEADER_CHARS)
             elif key == "revision":
                 self.revision = stream.value(max_chars=ROW_INDEX_MAX_HEADER_CHARS)
+            elif key == 'auxiliary_publication':
+                self.auxiliary_publication = stream.value(max_chars=MAX_PUBLICATION_BYTES)
             elif key == "rows":
                 self.rows_seen = True
                 read_rows(key, stream)
@@ -646,12 +653,17 @@ class DeltaRecorder:
         *,
         index_store_path: Path | None = None,
         auxiliary_bindings: dict | None = None,
+        publication_top: dict | None = None,
     ):
         self.auxiliary_bindings = auxiliary_bindings or {}
         if not set(self.auxiliary_bindings) <= set(AUXILIARY_KEYS):
             raise ValueError('unknown auxiliary publication store')
         self.tables = {table: keys for table, keys in REGISTERED_KEYS.items()
                        if table not in AUXILIARY_KEYS or table in self.auxiliary_bindings}
+        self.auxiliary_publication = None if publication_top is None else publication_descriptor(publication_top)
+        if self.auxiliary_publication is not None and (set(self.auxiliary_bindings) != set(AUXILIARY_KEYS)
+                or publication_top['data_revision'] != revision or publication_top['read_model_schema'] != schema):
+            raise ValueError('full auxiliary publication descriptor differs from selected producer')
         self.target = target
         self.revision = revision
         self.schema = schema
@@ -835,7 +847,8 @@ class DeltaRecorder:
         self.finished = True
         if self._disk_index is not None:
             try:
-                self._disk_index.write_json(index_output, self.schema, self.revision)
+                self._disk_index.write_json(index_output, self.schema, self.revision,
+                    tables=self.tables, auxiliary_publication=self.auxiliary_publication)
             finally:
                 self._disk_index.close()
                 # The JSON row index is the durable companion.  The SQLite
@@ -850,7 +863,8 @@ class DeltaRecorder:
             self.publish()
         if self._disk_baseline is not None:
             self._disk_baseline.close()
-        return {'schema': self.schema, 'revision': self.revision, 'rows': self.index}
+        return {'schema': self.schema, 'revision': self.revision, 'rows': self.index,
+                **({'auxiliary_publication': self.auxiliary_publication} if self.auxiliary_publication is not None else {})}
 
     def publish(self) -> None:
         if not self.finished:

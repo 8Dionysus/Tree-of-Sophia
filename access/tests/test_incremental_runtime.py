@@ -19,6 +19,7 @@ from incremental_runtime import (
     DiskRowIndex,
     DeltaRecorder,
     PRIMARY_KEYS,
+    REGISTERED_KEYS,
     ROW_INDEX_MAX_KEY_CHARS,
     prepare_search_address_indexes_transaction,
     plan_search_addresses_transaction,
@@ -63,6 +64,12 @@ class IncrementalRuntimeTests(unittest.TestCase):
                     emit_delta_baseline=False,
                     max_search_postings=expected['knowledge_search_postings'])
                 self.assertEqual(full.read_bytes(), legacy.read_bytes())
+                saved = {path: path.read_bytes() for path in legacy.parent.iterdir() if path.is_file()}
+                for budget in ({'max_lens_auxiliary_bytes': 1}, {'max_lens_memberships': 1}):
+                    with self.subTest(budget=budget), self.assertRaisesRegex(RuntimeError, 'lens auxiliary production budget'):
+                        builder.build_read_model_sql(core, legacy, revision, carriers, **budget)
+                    for path, original in saved.items():
+                        self.assertEqual(path.read_bytes(), original)
                 self.assertEqual({k: v for k, v in actual.items() if k != 'delta'},
                                  {k: v for k, v in expected.items() if k != 'delta'})
                 self.assertIsNone(actual['delta'])
@@ -89,6 +96,55 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'fresh output'):
                     builder.build_read_model_sql(core, conflict, revision, carriers, emit_delta_baseline=False)
                 self.assertFalse(conflict.exists())
+
+    def test_auxiliary_baseline_requires_explicit_migration_and_valid_identity(self):
+        import copy
+        import build_runtime as builder
+        import lens_auxiliary_runtime as auxiliary
+        from test_access_contract import write_fixture
+        from tos_access.core import ToSAccessCore
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            target = root / 'runtime' / 'read-model.sql'
+            with patch.object(builder, 'REPO_ROOT', root):
+                carriers = builder.ProducerCarrierSet.from_core(core)
+                revision = builder.data_revision(core, carriers)
+                builder.build_read_model_sql(core, target, revision, carriers)
+                index = target.with_name('read-model.rows.json')
+                baseline = json.loads(index.read_text())
+                top = auxiliary.baseline_publication_top(baseline)
+                self.assertEqual(top['data_revision'], revision)
+                old = copy.deepcopy(baseline)
+                del old['auxiliary_publication']
+                for table in auxiliary.STORES:
+                    del old['rows'][table]
+                index.write_text(json.dumps(old))
+                result = builder.build_read_model_sql(core, target, revision, carriers)
+                self.assertEqual(result['auxiliary_migration'], 'lens-auxiliary-initial-migration-required')
+                self.assertFalse(result['delta']['available'])
+                self.assertEqual(json.loads(index.read_text()), baseline)
+                with closing(sqlite3.connect(':memory:')) as db:
+                    db.executescript(target.read_text())
+                    first_epoch = db.execute('SELECT epoch FROM knowledge_exploration_clock').fetchone()[0]
+                    db.executescript(target.read_text())
+                    epoch = db.execute('SELECT epoch FROM knowledge_exploration_clock').fetchone()[0]
+                    self.assertGreater(epoch, first_epoch)
+                    for table, (state, schema) in auxiliary.STORES.items():
+                        self.assertEqual(db.execute(f'SELECT schema,binding,valid FROM {state}').fetchall(),
+                            [(schema, auxiliary._compact(auxiliary.published_snapshot_binding(top, epoch)), 1)])
+                for field, invalid in (('schema', 'unknown'), ('stores', {}),
+                                       ('reader_top', {**top, 'data_revision': 'f' * 64})):
+                    broken = copy.deepcopy(baseline)
+                    broken['auxiliary_publication'][field] = invalid
+                    index.write_text(json.dumps(broken))
+                    saved = {path: path.read_bytes() for path in (target, index, target.with_name('read-model.delta.sql'))}
+                    with self.subTest(field=field), self.assertRaises(ValueError):
+                        builder.build_read_model_sql(core, target, revision, carriers)
+                    for path, raw in saved.items():
+                        self.assertEqual(path.read_bytes(), raw)
 
     def test_data_revision_binds_catalog_even_when_graph_is_identical(self):
         import copy
@@ -294,6 +350,8 @@ class IncrementalRuntimeTests(unittest.TestCase):
     def test_real_builder_search_delta_add_edit_delete_replay_and_stale_guard(self):
         import copy
         import build_runtime as builder
+        import lens_auxiliary_runtime as auxiliary
+        from tos_access.published_read_metadata import _compact, published_snapshot_binding
         from test_access_contract import write_fixture
         from tos_access.core import ToSAccessCore
 
@@ -304,13 +362,24 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 'knowledge_search_grams',
                 'knowledge_search_gram_stats',
                 'knowledge_lens_order',
+                *auxiliary.STORES,
             )
             snapshot = {}
             for table in tables:
-                order = ','.join(PRIMARY_KEYS[table])
+                order = ','.join(REGISTERED_KEYS[table])
                 snapshot[table] = database.execute(
                     f'SELECT * FROM {table} ORDER BY {order}'
                 ).fetchall()
+            top = edge_meta_packet(database, 'knowledge_reader_top')
+            epoch = database.execute('SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1').fetchone()[0]
+            for table, (state, schema) in auxiliary.STORES.items():
+                self.assertEqual(database.execute(f'SELECT schema,binding,valid FROM {state}').fetchall(),
+                                 [(schema, _compact(published_snapshot_binding(top, epoch)), 1)])
+                projected = []
+                for kind in ('node', 'relation'):
+                    for identifier, raw in database.execute(f'SELECT id,json FROM knowledge_{kind}s'):
+                        projected.extend(auxiliary.projected_rows(table, kind, identifier, raw))
+                self.assertEqual(sorted(snapshot[table]), sorted(projected))
             return snapshot
 
         def edge_meta_packet(database, key):

@@ -43,6 +43,7 @@ from incremental_runtime import (  # noqa: E402
     DeltaRecorder,
     DiskRowBaseline,
 )
+import lens_auxiliary_runtime as lens_auxiliary  # noqa: E402
 from build_stages import BuildStages, atomic_json, build_lock, fingerprint, tree_paths  # noqa: E402
 
 
@@ -729,6 +730,8 @@ def build_read_model_sql(
     *,
     max_search_postings: int = SEARCH_READ_MODEL_MAX_POSTINGS,
     emit_delta_baseline: bool = True,
+    max_lens_auxiliary_bytes: int = 1024**3,
+    max_lens_memberships: int = 2_000_000,
 ) -> dict[str, Any]:
     # These are offline production budgets, not serving limits or changes to
     # searchable content. A full-only bootstrap deliberately does not create
@@ -737,6 +740,8 @@ def build_read_model_sql(
         raise ValueError("max_search_postings must be a positive integer")
     if type(emit_delta_baseline) is not bool:
         raise ValueError("emit_delta_baseline must be a boolean")
+    if any(type(value) is not int or value < 1 for value in (max_lens_auxiliary_bytes, max_lens_memberships)):
+        raise ValueError('positive lens auxiliary production budgets required')
     if not emit_delta_baseline and any(path.exists() for path in (
         target, target.with_name('read-model.rows.json'),
         target.with_name('read-model.deployed.rows.json'),
@@ -775,6 +780,15 @@ def build_read_model_sql(
         if isinstance(layer.get("layer_id"), str)
     }
 
+    # Admit the exact lightweight reader envelope before starting either
+    # output. Its descriptor accompanies the row baseline for later deltas.
+    reader_graph = {key: knowledge.get(key) for key in
+                    ('schema', 'source_revision', 'normalization_binding', 'authority_boundary')}
+    reader_metadata = published_reader_metadata(
+        normalize_paths(reader_graph, REPO_ROOT), normalize_paths(knowledge_catalog, REPO_ROOT),
+        READ_MODEL_SCHEMA_VERSION, revision, lens_metadata=published_lens_metadata(knowledge))
+    reader_top = reader_metadata['knowledge_reader_top']
+
     target.parent.mkdir(parents=True, exist_ok=True)
     index_path = target.with_name('read-model.rows.json')
     deployed_path = target.with_name('read-model.deployed.rows.json')
@@ -784,6 +798,17 @@ def build_read_model_sql(
         READ_MODEL_SCHEMA_VERSION,
         target.with_name('read-model.baseline.sqlite'),
     ) if emit_delta_baseline and baseline_path.is_file() else None)
+    auxiliary_migration = None
+    previous_top = None
+    if previous_index is not None and previous_index.schema == READ_MODEL_SCHEMA_VERSION:
+        previous_top = lens_auxiliary.baseline_publication_top(previous_index)
+        if previous_top is None:
+            # A row-only historical baseline cannot prove installed optional
+            # stores. Emit a complete migration candidate, never unsafe SQL
+            # that assumes those serving tables already exist.
+            auxiliary_migration = 'lens-auxiliary-initial-migration-required'
+            previous_index.close()
+            previous_index = None
     index_pending = index_path.with_name(index_path.name + '.next')
     delta = DeltaRecorder(
         target.with_name('read-model.delta.sql'),
@@ -791,6 +816,8 @@ def build_read_model_sql(
         READ_MODEL_SCHEMA_VERSION,
         previous_index,
         index_store_path=target.with_name('read-model.rows.index.sqlite'),
+        auxiliary_bindings={table: (previous_top or reader_top, reader_top) for table in lens_auxiliary.STORES},
+        publication_top=reader_top,
     ) if emit_delta_baseline else None
     statements = SqlStatementWriter(target, delta)
     statements.extend((
@@ -830,6 +857,7 @@ def build_read_model_sql(
         "CREATE TABLE knowledge_search_gram_stats_next (kind TEXT NOT NULL, n INTEGER NOT NULL, gram TEXT NOT NULL, postings INTEGER NOT NULL, PRIMARY KEY (kind, n, gram));",
         "CREATE TABLE knowledge_lens_order_next (kind TEXT NOT NULL, id TEXT NOT NULL, sort_key TEXT NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, PRIMARY KEY (kind, id));",
     ))
+    statements.extend(lens_auxiliary.staging_schema())
 
     philosophy_top = {
         key: value
@@ -875,20 +903,6 @@ def build_read_model_sql(
             "matching_counts": "unknown-until-indexed-page-exhaustion",
         },
     }
-    # The reader envelope needs only the graph binding fields. Keep the
-    # producer's full graph out of this metadata copy; row JSON is emitted by
-    # the table loops below and catalog remains its own bounded projection.
-    reader_graph = {
-        key: knowledge.get(key)
-        for key in ("schema", "source_revision", "normalization_binding", "authority_boundary")
-    }
-    reader_metadata = published_reader_metadata(
-        normalize_paths(reader_graph, REPO_ROOT),
-        normalize_paths(knowledge_catalog, REPO_ROOT),
-        READ_MODEL_SCHEMA_VERSION,
-        revision,
-        lens_metadata=published_lens_metadata(knowledge),
-    )
     metadata.update(reader_metadata)
     for key, value in metadata.items():
         for part, chunk in enumerate(chunk_text(compact_json(value))):
@@ -1134,6 +1148,28 @@ def build_read_model_sql(
             chunked_text={"json": item_json},
         )
 
+    auxiliary_bytes = compact_rows = membership_rows = 0
+
+    def emit_lens_auxiliary(kind, identifier, raw):
+        nonlocal auxiliary_bytes, compact_rows, membership_rows
+        for table in lens_auxiliary.STORES:
+            rows = lens_auxiliary.projected_rows(table, kind, identifier, raw)
+            auxiliary_bytes += sum(len(compact_json(row).encode('utf-8')) for row in rows)
+            if table == 'knowledge_compact_lens':
+                compact_rows += len(rows)
+            else:
+                membership_rows += len(rows)
+            if auxiliary_bytes > max_lens_auxiliary_bytes or membership_rows > max_lens_memberships:
+                raise RuntimeError('lens auxiliary production budget exceeded')
+            if table == 'knowledge_compact_lens':
+                row = rows[0]
+                append_chunkable_insert(statements, table + '_next', lens_auxiliary.COLUMNS[table],
+                    tuple(sql_text(value) for value in row),
+                    selector_sql=f'kind={sql_text(kind)} AND id={sql_text(identifier)}', chunked_text={'json': row[-1]})
+            else:
+                append_batched_inserts(statements, table + '_next', lens_auxiliary.COLUMNS[table],
+                                       (tuple(sql_text(value) for value in row) for row in rows))
+
     knowledge_nodes = object_list(knowledge.get("nodes"))
     for item in knowledge_nodes:
         normalized = normalize_paths(item, REPO_ROOT)
@@ -1169,6 +1205,7 @@ def build_read_model_sql(
                 "json": item_json,
             },
         )
+        emit_lens_auxiliary('node', item_id, item_json)
         digest_key = published_row_digest_key("node", item_id)
         for part, chunk in enumerate(chunk_text(compact_json(emitted_row_digest(item_json)))):
             statements.append(
@@ -1215,6 +1252,7 @@ def build_read_model_sql(
                 "json": item_json,
             },
         )
+        emit_lens_auxiliary('relation', item_id, item_json)
         digest_key = published_row_digest_key("relation", item_id)
         for part, chunk in enumerate(chunk_text(compact_json(emitted_row_digest(item_json)))):
             statements.append(
@@ -1312,6 +1350,7 @@ def build_read_model_sql(
         "knowledge_search_grams",
         "knowledge_search_gram_stats",
         "knowledge_lens_order",
+        *lens_auxiliary.STORES,
     ):
         statements.append(f"DROP TABLE IF EXISTS {table};")
         statements.append(f"ALTER TABLE {table}_next RENAME TO {table};")
@@ -1349,6 +1388,7 @@ def build_read_model_sql(
     # A maintenance bootstrap replaces the metadata table and its triggers.
     # Invalidate retained execution state even if it republishes identical data.
     statements.append("UPDATE knowledge_exploration_clock SET epoch=epoch+1 WHERE singleton=1;")
+    statements.extend(lens_auxiliary.bootstrap_finish(reader_top))
     # Prepare every generated carrier before changing a final path.  The
     # publish helper then renames the SQL, delta, and row-index files together
     # with rollback if one local rename fails.
@@ -1371,6 +1411,10 @@ def build_read_model_sql(
         "knowledge_relations": len(knowledge_relations),
         "knowledge_search_postings": search_posting_count,
         "knowledge_search_schema": SEARCH_READ_MODEL_SCHEMA_VERSION,
+        "knowledge_compact_rows": compact_rows,
+        "knowledge_lens_memberships": membership_rows,
+        "knowledge_lens_auxiliary_bytes": auxiliary_bytes,
+        "auxiliary_migration": auxiliary_migration,
         "sql_statements": statements.count,
         "delta": delta.summary() if delta is not None else None,
     }
@@ -1568,6 +1612,11 @@ def build(core: ToSAccessCore, output: Path, runtime: Path, *, cache_options=Non
             "access/deploy/cloudflare-worker/scripts/build_runtime.py",
             "access/deploy/cloudflare-worker/scripts/build_stages.py",
             "access/deploy/cloudflare-worker/scripts/incremental_runtime.py",
+            "access/deploy/cloudflare-worker/scripts/lens_auxiliary_runtime.py",
+            "access/src/tos_access/compact_lens_carrier.py",
+            "access/src/tos_access/compact_lens_store.py",
+            "access/src/tos_access/lens_membership_index.py",
+            "access/src/tos_access/published_read_model.py",
             "access/src/tos_access/knowledge.py",
             "access/src/tos_access/human_form_codec.py",
             "access/src/tos_access/normalization_cache.py",

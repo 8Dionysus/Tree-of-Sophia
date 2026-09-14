@@ -14,6 +14,19 @@ TABLE = 'knowledge_compact_lens'
 STATE = 'knowledge_compact_lens_state'
 
 
+def schema_statements():
+    """Owned optional-store DDL shared by explicit local and full D1 writers."""
+    statements = [f'CREATE TABLE {TABLE}(kind TEXT NOT NULL,id TEXT NOT NULL,source_sha256 TEXT NOT NULL,'
+                  'seed_sha256 TEXT NOT NULL,json TEXT NOT NULL,PRIMARY KEY(kind,id))',
+                  f'CREATE TABLE {STATE}(singleton INTEGER PRIMARY KEY CHECK(singleton=1),'
+                  'schema TEXT NOT NULL,binding TEXT NOT NULL,valid INTEGER NOT NULL CHECK(valid IN (0,1)))']
+    for kind in ('node', 'relation'):
+        for action in ('INSERT', 'UPDATE', 'DELETE'):
+            statements.append(f'CREATE TRIGGER compact_lens_{kind}_{action.lower()} AFTER {action} ON knowledge_{kind}s '
+                              f'BEGIN UPDATE {STATE} SET valid=0 WHERE singleton=1; END')
+    return statements
+
+
 @dataclass(frozen=True)
 class CompactStoreLimits:
     max_rows: int = 200000
@@ -75,15 +88,9 @@ def prepare_compact_lens_store_transaction(db, *, expected_binding, limits=None,
         raise PublishedReadModelError('compact store publication binding differs')
     if _exists(lambda sql, args=(): db.execute(sql, args).fetchall()):
         raise ValueError('compact store already exists; explicit migration required')
-    db.execute(f'CREATE TABLE {TABLE}(kind TEXT NOT NULL,id TEXT NOT NULL,source_sha256 TEXT NOT NULL,'
-               'seed_sha256 TEXT NOT NULL,json TEXT NOT NULL,PRIMARY KEY(kind,id))')
-    db.execute(f'CREATE TABLE {STATE}(singleton INTEGER PRIMARY KEY CHECK(singleton=1),'
-               'schema TEXT NOT NULL,binding TEXT NOT NULL,valid INTEGER NOT NULL CHECK(valid IN (0,1)))')
+    for statement in schema_statements():
+        db.execute(statement)
     db.execute(f'INSERT INTO {STATE} VALUES(1,?,?,0)', (SCHEMA, _compact(expected_binding)))
-    for kind in ('node', 'relation'):
-        for action in ('INSERT', 'UPDATE', 'DELETE'):
-            db.execute(f'CREATE TRIGGER compact_lens_{kind}_{action.lower()} AFTER {action} ON knowledge_{kind}s '
-                       f'BEGIN UPDATE {STATE} SET valid=0 WHERE singleton=1; END')
     count = source_bytes = seed_bytes = 0
     for kind in ('node', 'relation'):
         for identifier, raw in db.execute(f'SELECT id,CASE WHEN length(CAST(json AS BLOB))<=? '

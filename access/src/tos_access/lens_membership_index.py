@@ -20,6 +20,21 @@ MAX_PLAN_DRIVERS = 16
 MAX_PLAN_BINDINGS = 2048
 
 
+def schema_statements():
+    """Owned optional-store DDL shared by explicit local and full D1 writers."""
+    statements = [f'CREATE TABLE {TABLE}(kind TEXT NOT NULL,field TEXT NOT NULL,value TEXT NOT NULL,'
+                  'id TEXT NOT NULL,sort_key TEXT NOT NULL,PRIMARY KEY(kind,field,value,id))',
+                  f'CREATE INDEX {ORDER_INDEX} ON {TABLE}(kind,field,value,sort_key,id)',
+                  f'CREATE INDEX knowledge_lens_memberships_row ON {TABLE}(kind,id)',
+                  f'CREATE TABLE {STATE}(singleton INTEGER PRIMARY KEY CHECK(singleton=1),schema TEXT NOT NULL,'
+                  'binding TEXT NOT NULL,valid INTEGER NOT NULL CHECK(valid IN (0,1)))']
+    for table in ('knowledge_nodes', 'knowledge_relations', TABLE):
+        for action in ('INSERT', 'UPDATE', 'DELETE'):
+            statements.append(f'CREATE TRIGGER membership_{table}_{action.lower()} AFTER {action} ON {table} '
+                              f'BEGIN UPDATE {STATE} SET valid=0 WHERE singleton=1; END')
+    return statements
+
+
 def validate_state(query, binding):
     if not query("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (STATE,)):
         return False
@@ -74,17 +89,9 @@ def prepare_membership_index_transaction(db, *, expected_binding, max_rows=20000
         raise PublishedReadModelError('membership publication binding differs')
     if db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (STATE,)).fetchone():
         raise ValueError('membership index already exists; explicit migration required')
-    db.execute(f'CREATE TABLE {TABLE}(kind TEXT NOT NULL,field TEXT NOT NULL,value TEXT NOT NULL,'
-               'id TEXT NOT NULL,sort_key TEXT NOT NULL,PRIMARY KEY(kind,field,value,id))')
-    db.execute(f'CREATE INDEX {ORDER_INDEX} ON {TABLE}(kind,field,value,sort_key,id)')
-    db.execute(f'CREATE INDEX knowledge_lens_memberships_row ON {TABLE}(kind,id)')
-    db.execute(f'CREATE TABLE {STATE}(singleton INTEGER PRIMARY KEY CHECK(singleton=1),schema TEXT NOT NULL,'
-               'binding TEXT NOT NULL,valid INTEGER NOT NULL CHECK(valid IN (0,1)))')
+    for statement in schema_statements():
+        db.execute(statement)
     db.execute(f'INSERT INTO {STATE} VALUES(1,?,?,0)', (SCHEMA, _compact(expected_binding)))
-    for table in ('knowledge_nodes', 'knowledge_relations', TABLE):
-        for action in ('INSERT', 'UPDATE', 'DELETE'):
-            db.execute(f'CREATE TRIGGER membership_{table}_{action.lower()} AFTER {action} ON {table} '
-                       f'BEGIN UPDATE {STATE} SET valid=0 WHERE singleton=1; END')
     count = source_bytes = entries = 0
     for kind in ('node', 'relation'):
         for identifier, raw in db.execute(f'SELECT id,CASE WHEN length(CAST(json AS BLOB))<=1048576 '
