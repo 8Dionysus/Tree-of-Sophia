@@ -2292,7 +2292,7 @@
       "family": "validator_behavior",
       "validation_lane": "canon_contracts",
       "owner_surface": "scripts/validate_tree_node_contracts.py",
-      "protects": "node contract validator duplicate-language behavior",
+      "protects": "node contract validator duplicate-language behavior, explicit native canonical version/name opt-in, safe version range and legacy unversioned compatibility without invented record identity",
       "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
       "mode": "blocking",
       "runtime_cost": "fast",

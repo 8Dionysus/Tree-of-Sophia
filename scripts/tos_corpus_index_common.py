@@ -21,7 +21,8 @@ from build_source_witness_catalog import (artifact_catalog_entry, artifact_displ
                                          load_artifact_record, load_link_record, canonical_json, RECORD_FILES, ADAPTED_RECORD_FILES,
                                          composite_catalog_entry, load_composite_record, composite_display_fields, COMPOSITE_SCHEMA,
                                          verify_catalog_publication)
-from source_witness_human_forms import AssessedFormSnapshot, load_metadata_forms
+from source_witness_human_forms import (AssessedFormSnapshot, load_metadata_forms,
+                                       load_canonical_forms, metadata_subject)
 from source_record_profiles import SourceRecordProfiles
 from source_object_link_read import LegacyObjectLinkReader, SOURCE_REF as LEGACY_OBJECT_LINK_REF
 
@@ -386,19 +387,27 @@ def build_nodes(
         if not isinstance(node_type, str) or not node_type:
             diagnostics.append({"level": "error", "path": path_ref, "message": "node payload is missing node_type"})
             continue
-        nodes.append(
-            {
-                "node_id": node_id,
-                "node_type": node_type,
-                "label": canonical_label(payload),
-                "owner_branch": owner_branch(path_ref),
-                "authority_layer": authority_layer(path_ref),
-                "source_path": path_ref,
-                "source_sha256": sha256(path),
-                "route_hint": route_hint_for_node(path_ref),
-                "properties": dict(payload),
-            }
-        )
+        node = {
+            "node_id": node_id,
+            "node_type": node_type,
+            "label": canonical_label(payload),
+            "owner_branch": owner_branch(path_ref),
+            "authority_layer": authority_layer(path_ref),
+            "source_path": path_ref,
+            "source_sha256": sha256(path),
+            "route_hint": route_hint_for_node(path_ref),
+            "properties": dict(payload),
+        }
+        if payload.get('schema_version') == 'tos_canonical_node_v1':
+            forms = load_canonical_forms(REPO_ROOT, path_ref, payload, access_allowed=True)
+            node['source_record_sha256'] = metadata_subject(payload).ref['digest'].removeprefix('sha256:')
+            if forms is not None:
+                form_ref, form_raw, packets = forms
+                node.update(human_forms=packets, human_forms_source_ref=form_ref,
+                            human_forms_source_sha256=hashlib.sha256(form_raw).hexdigest())
+        elif path.with_name('node.human-forms.json').exists():
+            raise ValueError('canonical forms require an explicitly versioned native node: ' + path_ref)
+        nodes.append(node)
     return nodes
 
 

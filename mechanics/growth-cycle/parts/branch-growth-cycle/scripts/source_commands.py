@@ -35,7 +35,9 @@ import source_command_contracts as contract
 ROOT = Path(__file__).resolve().parents[5]
 if str(ROOT / 'scripts') not in sys.path:
     sys.path.insert(0, str(ROOT / 'scripts'))
-from source_witness_human_forms import MAX_SET_BYTES, _validator, materialize_metadata_forms, metadata_field_catalog
+from source_witness_human_forms import (MAX_SET_BYTES, CANONICAL_NODE_SCHEMA, CANONICAL_NODE_SCHEMA_REF,
+    _validator, materialize_metadata_forms, metadata_field_catalog, canonical_field_catalog,
+    materialize_canonical_forms, _read_canonical_source)
 from source_witness_human_forms import claim_field_catalog, claim_forms_path, materialize_claim_forms
 from source_witness_human_forms import metadata_subject, CLAIM_FORM_FIELDS
 
@@ -70,6 +72,8 @@ CLAIM_FORM_CONFIG = 'tos_local_claim_form_owner_v1'
 CLAIM_DISPLAY_FORM_CONFIG = 'tos_local_claim_form_owner_v2'
 HISTORICAL_CLAIM_FORM_CONFIG = 'tos_local_historical_claim_form_owner_v1'
 CLAIM_FORM_CONFIGS = {CLAIM_FORM_CONFIG, CLAIM_DISPLAY_FORM_CONFIG, HISTORICAL_CLAIM_FORM_CONFIG}
+CANONICAL_FORM_CONFIG = 'tos_local_canonical_form_owner_v1'
+CANONICAL_FORM_CONFIGS = {CANONICAL_FORM_CONFIG}
 TEXT_UNIT_CONFIG = 'tos_local_text_unit_create_owner_v1'
 OWNER_PROFILE_CONFIG = 'tos_local_owner_profile_command_v1'
 OWNER_CLAIM_CONFIG = 'tos_local_owner_claim_command_v1'
@@ -117,6 +121,7 @@ def _builtin_configuration(config, path):
     revision = config.get('schema_version') in {REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG,
                                                *CORPUS_SELECTED_REVISION_CONFIGS}
     claim_forms = config.get('schema_version') in CLAIM_FORM_CONFIGS
+    canonical_forms = config.get('schema_version') in CANONICAL_FORM_CONFIGS
     captures_provenance = profile_creation or corpus_creation or config.get('schema_version') == 'tos_local_historical_create_owner_v2'
     _keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
                    'authority_ref', 'allowed_form_ids', 'allowed_operations', 'expires_at'}
@@ -130,7 +135,7 @@ def _builtin_configuration(config, path):
           | ({'claim_id'} if claim_forms else set())
           | ({'allowed_field_ids'} if config.get('schema_version') == CLAIM_DISPLAY_FORM_CONFIG else set())
           | ({'provenance_event_id'} if captures_provenance else set()))
-    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG, *CORPUS_SELECTED_REVISION_CONFIGS, *PROFILE_CREATION_CONFIGS, *CORPUS_CREATION_CONFIGS, *CLAIM_FORM_CONFIGS, *CREATION_CONFIGS}
+    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG, *CORPUS_SELECTED_REVISION_CONFIGS, *PROFILE_CREATION_CONFIGS, *CORPUS_CREATION_CONFIGS, *CLAIM_FORM_CONFIGS, *CANONICAL_FORM_CONFIGS, *CREATION_CONFIGS}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
@@ -172,6 +177,15 @@ def _builtin_configuration(config, path):
     root = Path(config['source_root'])
     os.close(_owned_path(root, directory=True))
     relative = Path(config['source_path'])
+    if canonical_forms:
+        if (relative.is_absolute() or relative.as_posix() != config['source_path']
+                or '..' in relative.parts or relative.parts[:2] != ('ToS', 'canon')
+                or relative.name != 'node.json' or len(relative.parts) < 4
+                or relative.name.endswith('.human-forms.json')):
+            raise PermissionError('canonical form target must be an exact ToS/canon/.../node.json source')
+        source_path = root / relative
+        _, _, _, contracts = _read_canonical_source(root, relative.as_posix())
+        return config, _digest(_canonical({'configuration': config, 'source_contracts': contracts})), source_path
     if (relative.is_absolute() or relative.as_posix() != config['source_path']
             or '..' in relative.parts or relative.parts[:2] != ('ToS', 'source-witnesses')
             or relative.is_relative_to('ToS/source-witnesses/owner-local')
@@ -383,11 +397,25 @@ def _profile_form_inputs(source_path, root, source=None):
     return _profile_input_snapshot(profiles)
 
 
-def _snapshot(source_path, root=None, claim_id=None):
+def _canonical_form_source(source_path, root):
+    """Resolve one exact versioned native canon node and its schema digest."""
+    path, raw, source, contracts = _read_canonical_source(root, source_path.relative_to(root).as_posix())
+    if path != source_path:
+        raise JournalConflict('canonical source path changed while resolving its owner')
+    return raw, source, contracts
+
+
+def _snapshot(source_path, root=None, claim_id=None, *, canonical=False):
     if claim_id is not None:
         source_raw, source, _ = _claim_form_source(source_path, root, claim_id)
         subject = Record.from_payload(source['claim_id'], source['claim_version'], source)
         target = claim_forms_path(source_path, claim_id)
+    elif canonical:
+        if root is None:
+            raise ValueError('canonical node forms require the explicit source owner')
+        source_raw, source, _ = _canonical_form_source(source_path, root)
+        subject = metadata_subject(source)
+        target = source_path.with_name('node.human-forms.json')
     elif source_path.name in {'artifact-witness.json', 'composite-witness.json', 'link.json'}:
         if root is None:
             raise ValueError('native witness forms require the explicit source owner')
@@ -397,7 +425,7 @@ def _snapshot(source_path, root=None, claim_id=None):
         source_raw = _read(source_path, MAX_COMMAND_BYTES)
         source = _json_object(source_raw)
         target = source_path.with_name(source_path.stem + '.human-forms.json')
-    if claim_id is None and source_path.name not in {'artifact-witness.json', 'composite-witness.json', 'link.json'} and (source.get('schema_version') not in {'tos_corpus_record_v1', 'tos_historical_record_v1'}
+    if claim_id is None and not canonical and source_path.name not in {'artifact-witness.json', 'composite-witness.json', 'link.json'} and (source.get('schema_version') not in {'tos_corpus_record_v1', 'tos_historical_record_v1'}
                              or source_path.name == 'composite.json'):
         if root is None:
             raise ValueError('source-command adapter does not understand this source family')
@@ -405,7 +433,7 @@ def _snapshot(source_path, root=None, claim_id=None):
     if (source.get('schema_version') == 'tos_historical_record_v1'
             and source.get('visibility') not in {'public', 'public_metadata_only'}):
         raise PermissionError('historical source visibility is outside the public-metadata adapter')
-    if claim_id is None:
+    if claim_id is None and not canonical:
         subject = metadata_subject(source)
     try:
         raw = _read(target, MAX_SET_BYTES)
@@ -487,6 +515,8 @@ def _changes(request, config):
         identifiers.add(identifier)
     if config.get('schema_version') in {*CLAIM_FORM_CONFIGS, OWNER_CLAIM_CONFIG, OWNER_CLAIM_REFERENCE_CONFIG}:
         _check_claim_form_changes(config, changes)
+    if config.get('schema_version') in CANONICAL_FORM_CONFIGS:
+        _check_canonical_form_changes(changes)
     return changes
 
 
@@ -532,6 +562,18 @@ def _check_claim_form_changes(config, changes, current_forms=(), *, historical_f
         if not any((form.get('role'), binding.get('pointer')) == CLAIM_FORM_FIELDS[field]
                    for field in allowed):
             raise PermissionError('Claim source-copy field is outside delegated scope')
+
+
+def _check_canonical_form_changes(changes, current_forms=(), *, historical_forms=()):
+    """Keep the canonical owner lane source-copy-only on create and replay."""
+    selected_ids = {change['form']['form_id'] for change in changes}
+    forms = [change['form'] for change in changes]
+    forms.extend(form for form in current_forms if form['form_id'] in selected_ids)
+    predecessors = [change.get('expected_form') for change in changes if change.get('expected_form') is not None]
+    forms.extend(form for form in historical_forms if _form_ref(form) in predecessors)
+    for form in forms:
+        if form.get('content', {}).get('kind') != 'source-copy':
+            raise PermissionError('canonical form delegation permits only exact source copies')
 
 
 def _check_claim_form_receipt_scope(config, payload, refs):
@@ -581,6 +623,12 @@ def prepare_metadata_change(source, payload, principal_id, form_id, field_id):
     """Construct a proposal from the reader's finite field catalog; grant nothing."""
     subject = metadata_subject(source)
     return _prepare_form_change(subject, metadata_field_catalog(source), payload, principal_id, form_id, field_id)
+
+
+def prepare_canonical_change(source, payload, principal_id, form_id, field_id):
+    """Prepare one source-copy form through the versioned canonical field catalog."""
+    subject = metadata_subject(source)
+    return _prepare_form_change(subject, canonical_field_catalog(source), payload, principal_id, form_id, field_id)
 
 
 def prepare_claim_change(source, payload, principal_id, form_id, field_id, *, allowed_field_ids=('claim.statement',)):
@@ -1473,20 +1521,28 @@ def _run_configured_command(owner_config, config, configuration, source_path, re
 
 
 def _run_form_command(owner_config, config, configuration, source_path, request):
+    canonical = config['schema_version'] in CANONICAL_FORM_CONFIGS
     claim_id = config['claim_id'] if config['schema_version'] in CLAIM_FORM_CONFIGS else None
-    field_catalog = claim_field_catalog if claim_id is not None else metadata_field_catalog
-    materialize = materialize_claim_forms if claim_id is not None else materialize_metadata_forms
-    prepare_change = prepare_claim_change if claim_id is not None else prepare_metadata_change
+    field_catalog = (canonical_field_catalog if canonical else
+                     claim_field_catalog if claim_id is not None else metadata_field_catalog)
+    materialize = (materialize_canonical_forms if canonical else
+                   materialize_claim_forms if claim_id is not None else materialize_metadata_forms)
+    prepare_change = (prepare_canonical_change if canonical else
+                      prepare_claim_change if claim_id is not None else prepare_metadata_change)
     operation = request.get('operation')
     command_handler(config['schema_version']).validate_request(request)
-    snapshot = _snapshot(source_path, Path(config['source_root']), claim_id)
-    source_contracts = (_claim_form_source(source_path, Path(config['source_root']), claim_id)[2]
+    source_root = Path(config['source_root'])
+    snapshot = _snapshot(source_path, source_root, claim_id, canonical=canonical)
+    source_contracts = (_claim_form_source(source_path, source_root, claim_id)[2]
                         if claim_id is not None else
-                        _native_form_source(source_path, Path(config['source_root']))[2]
+                        _canonical_form_source(source_path, source_root)[2]
+                        if canonical else
+                        _native_form_source(source_path, source_root)[2]
                         if source_path.name in {'artifact-witness.json', 'composite-witness.json'} else None)
     if source_contracts is not None and configuration != _digest(_canonical({
             'configuration': config, 'source_contracts': source_contracts})):
-        raise JournalConflict('Claim form source contracts changed before command preparation')
+        raise JournalConflict('canonical node schema contract changed before command preparation'
+                              if canonical else 'Claim form source contracts changed before command preparation')
 
     def result(snapshot, receipt=None, replayed=False):
         _, source, subject, target, raw, payload = snapshot
@@ -1517,6 +1573,9 @@ def _run_form_command(owner_config, config, configuration, source_path, request)
         if claim_id is not None:
             _check_claim_form_changes(config, [change], payload['forms'] if payload else (),
                                       historical_forms=payload.get('prior_forms', ()) if payload else ())
+        if canonical:
+            _check_canonical_form_changes([change], payload['forms'] if payload else (),
+                                          historical_forms=payload.get('prior_forms', ()) if payload else ())
         if change['operation'] not in config['allowed_operations']:
             raise PermissionError('prepared operation is not delegated')
         response = result(snapshot)
@@ -1535,18 +1594,24 @@ def _run_form_command(owner_config, config, configuration, source_path, request)
     if not isinstance(request['command_id'], str) or not 1 <= len(request['command_id']) <= 256:
         raise ValueError('command identity must contain one to 256 characters')
     request_digest = _digest(_canonical(request))
-    with _locked(Path(config['source_root']) / 'ToS/source-witnesses/historical-create'), _locked(snapshot[3]):
+    owner_lock = (source_root / 'ToS/canon/.canonical-human-forms-lock'
+                  if canonical else source_root / 'ToS/source-witnesses/historical-create')
+    with _locked(owner_lock), _locked(snapshot[3]):
         config, configuration, current_source_path = _configuration(owner_config)
         if current_source_path != source_path or config.get('claim_id') != claim_id:
             raise JournalConflict('owner source route changed before the transaction')
         if source_contracts is not None and configuration != _digest(_canonical({
                 'configuration': config, 'source_contracts': source_contracts})):
-            raise JournalConflict('Claim form source contracts changed before transaction')
+            raise JournalConflict('canonical node schema contract changed before transaction'
+                                  if canonical else 'Claim form source contracts changed before transaction')
         changes = _changes(request, config)  # Current revocation also applies to replay.
-        snapshot = _snapshot(source_path, Path(config['source_root']), claim_id)
+        snapshot = _snapshot(source_path, Path(config['source_root']), claim_id, canonical=canonical)
         source_raw, source, subject, target, raw, payload = snapshot
         if claim_id is not None:
             _check_claim_form_changes(config, changes, historical_forms=(
+                [*payload['forms'], *payload.get('prior_forms', ())] if payload else ()))
+        if canonical:
+            _check_canonical_form_changes(changes, historical_forms=(
                 [*payload['forms'], *payload.get('prior_forms', ())] if payload else ()))
         for receipt in payload.get('growth_history', []) if payload else []:
             if receipt['command_id'] == request['command_id']:
@@ -1557,6 +1622,8 @@ def _run_form_command(owner_config, config, configuration, source_path, request)
                 return result(snapshot, receipt, True)
         if claim_id is not None:
             _check_claim_form_changes(config, changes, payload['forms'] if payload else ())
+        if canonical:
+            _check_canonical_form_changes(changes, payload['forms'] if payload else ())
         if (request['expected_source'] != subject.ref or request['expected_configuration'] != configuration
                 or request['expected_revision'] != (_digest(raw) if raw is not None else None)):
             raise JournalConflict('expected source, configuration or form-set revision is stale')
@@ -1604,6 +1671,12 @@ def _builtin_handlers():
                        'ToS/contracts/claim-display-fields.schema.json'),
         preconditions=('Form writes cannot change the source record or Claim, and require exact delegated form identities.',
             'Claim v1 copies only the statement; v2 separately scopes exact known display fields and requires whole-Claim context.',))
+    canonical_forms = contract.Handler('canonical-node-forms', (CANONICAL_FORM_CONFIG,), form_ops,
+        _run_form_command, 'Human forms of existing versioned canonical ToS nodes.',
+        typed_handles=(*contract.FORM_HANDLES, CANONICAL_NODE_SCHEMA_REF),
+        profile_selection='Requires the exact native tos_canonical_node_v1 source at ToS/canon/.../node.json; legacy nodes are refused.',
+        preconditions=('Canonical form writes cannot create or revise node records, and copy only the complete native node as context.',
+                       'The canonical owner configuration is separate from legacy source-form grants.',))
     def creator(identifier, schemas, name, definition, handles, *, historical=False, selection=None, preconditions=()):
         proposal = {'record', 'forms'} | ({'claims'} if historical else set())
         return contract.Handler(identifier, tuple(schemas), (contract.describe(),
@@ -1613,7 +1686,7 @@ def _builtin_handlers():
             _create_source, definition, typed_handles=(*handles, *contract.FORM_HANDLES),
             profile_selection=selection or 'Exact source schema and typed identity are checked by the creation handler.',
             preconditions=('Requires an absent source home, initial identity/version and explicitly selected source-copy forms.', *preconditions))
-    return (forms,
+    return (forms, canonical_forms,
         creator('historical-source-create', sorted(CREATION_CONFIGS), CREATION_OPERATION,
             'Create one HistoricalEvent, HistoricalProcess or HistoricalState with its bounded initial Claims.',
             ('ToS/contracts/historical-record.schema.json', 'ToS/contracts/historical-claim.schema.json'), historical=True),

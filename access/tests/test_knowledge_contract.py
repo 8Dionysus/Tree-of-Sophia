@@ -49,17 +49,16 @@ class KnowledgeContractTests(unittest.TestCase):
             relation_type_registry=self.relation_type_registry)
         for raw in nodes:
             node = next(value for value in graph['nodes'] if value['native_id'] == raw['node_id'])
-            self.assertEqual(node['display']['title']['default'], raw['label'])
+            self.assertEqual(node['display']['title']['default'], raw['properties']['preferred_label'])
             self.assertEqual(node['display']['summary']['default'], raw['properties']['distilled_thesis'])
             self.assertEqual(node['source_record']['payload']['properties'], raw['properties'])
-            self.assertEqual(node['display']['provenance']['title'], 'identifier-fallback')
+            self.assertTrue(node['display']['provenance']['source_title_available'])
             self.assertTrue(node['display']['provenance']['source_summary_available'])
             for language in ('ru', 'en'):
                 for detail in ('compact', 'full'):
                     packet = _lens_carrier(node, detail, language=language)
-                    self.assertFalse(packet['display_selection']['fields']['title']['content_available'])
+                    self.assertTrue(packet['display_selection']['fields']['title']['content_available'])
                     self.assertTrue(packet['display_selection']['fields']['summary']['content_available'])
-            self.assertNotIn('human_forms', node['attributes'])
         placeholders = [node for node in graph['nodes'] if node['kind_id'] == 'relation-endpoint']
         self.assertTrue(placeholders)
         for node in placeholders:
@@ -69,6 +68,11 @@ class KnowledgeContractTests(unittest.TestCase):
 
         # Synthetic projection controls do not edit or admit canonical sources.
         forged = copy.deepcopy(nodes[0])
+        # Retain the legacy negative control after the real sources opt in.
+        for key in ('schema_version', 'record_version', 'preferred_label', 'variant_labels', 'field_languages'):
+            forged['properties'].pop(key, None)
+        for key in ('human_forms', 'human_forms_source_ref', 'human_forms_source_sha256', 'source_record_sha256'):
+            forged.pop(key, None)
         forged.update(label='Invented title', display={'title': {'ru': 'Выдуманное имя'}})
         result = _normalize_node(forged, 'canon')
         self.assertFalse(result['display']['provenance']['source_title_available'])
@@ -1613,13 +1617,16 @@ class KnowledgeContractTests(unittest.TestCase):
         from tos_access.knowledge import select_human_forms
         for schema, identity in [('tos_scholarly_composite_witness_v1', 'composite_id'),
                                  ('tos_artifact_source_witness_v1', 'artifact_id'),
-                                 ('tos_artifact_source_witness_v2', 'artifact_id')]:
+                                 ('tos_artifact_source_witness_v2', 'artifact_id'),
+                                 ('tos_canonical_node_v1', 'node_id')]:
             node = self.human_form_node()
             source = node['attributes']['source_record']
             source.pop('record_id')
-            identifier = 'tos.' + identity.removesuffix('_id') + '.synthetic'
+            identifier = 'tos.' + ('support' if identity == 'node_id' else identity.removesuffix('_id')) + '.synthetic'
             node['attributes']['human_forms'][0]['subject']['id'] = identifier
             source.update(schema_version=schema, **{identity: identifier})
+            if identity == 'node_id':
+                source['node_type'] = 'support'
             node['entity_id'] = source[identity]
             original = copy.deepcopy(node)
             selected = select_human_forms(node, 'fr')
@@ -1635,6 +1642,34 @@ class KnowledgeContractTests(unittest.TestCase):
                     bad['attributes']['source_record']['record_id'] = source[identity]
                 with self.subTest(schema=schema, change=change):
                     self.assertEqual(select_human_forms(bad, 'fr')['state'], 'invalid')
+            if identity == 'node_id':
+                for change in ({'node_type': 'event'}, {'node_type': ['support']}, {'node_type': {}},
+                               {'node_type': None}, {'node_id': identifier + '\n'},
+                               {'schema_version': 'tos_canonical_node_v2'}, {'record_version': True}):
+                    bad = copy.deepcopy(node)
+                    bad['attributes']['source_record'].update(change)
+                    with self.subTest(canonical_change=change):
+                        self.assertEqual(select_human_forms(bad, 'fr')['state'], 'invalid')
+
+    def test_versioned_canonical_projection_binds_record_digest_separately_from_file_bytes(self):
+        source = json.loads((self.repo_root / 'ToS/public-compatibility/support_node.example.json').read_text())
+        source.update(schema_version='tos_canonical_node_v1', record_version=1, preferred_label='Synthetic name')
+        digest = hashlib.sha256(json.dumps(source, ensure_ascii=False, sort_keys=True,
+            separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+        raw = {'node_id': source['node_id'], 'node_type': source['node_type'], 'properties': source,
+            'label': 'outer-navigation-not-source', 'source_record_sha256': digest,
+            'source_sha256': 'a' * 64, 'source_path': 'synthetic:canonical-node.json'}
+        node = _normalize_node(raw, 'canon')
+        self.assertEqual(node['display']['title']['default'], source['preferred_label'])
+        self.assertEqual(node['attributes']['source_record'], source)
+        self.assertEqual(node['attributes']['source_sha256'], digest)
+        self.assertEqual(node['attributes']['source_file_sha256'], 'a' * 64)
+        self.assertEqual(node['source_record']['payload'], raw)
+        self.assertEqual(node['source_record']['field_map']['attributes.source_record'], '/properties')
+        self.assertEqual(node['source_record']['field_map']['attributes.source_sha256'], '/source_record_sha256')
+        for incorrect in (None, 'b' * 64):
+            with self.subTest(digest=incorrect), self.assertRaisesRegex(ValueError, 'source digest differs'):
+                _normalize_node({**raw, 'source_record_sha256': incorrect}, 'canon')
 
     def test_source_form_selection_does_not_adjudicate_competing_forms(self):
         from tos_access.knowledge import select_human_forms

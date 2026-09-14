@@ -182,10 +182,20 @@ export function selectHumanForms(item: Item, language = 'auto', representation =
     tos_scholarly_composite_witness_v1: 'composite_id',
     tos_artifact_source_witness_v1: 'artifact_id',
     tos_artifact_source_witness_v2: 'artifact_id',
+    tos_canonical_node_v1: 'node_id',
   };
   const nativeIdentity = !isClaim && typeof source.schema_version === 'string' && Object.hasOwn(nativeIdentities, source.schema_version)
     ? nativeIdentities[source.schema_version] : undefined;
-  if (nativeIdentity && (Object.hasOwn(source, 'record_id') || typeof source[nativeIdentity] !== 'string'
+  const canonical = source.schema_version === 'tos_canonical_node_v1';
+  if (canonical && (Object.hasOwn(source, 'record_id')
+      || typeof source.node_type !== 'string'
+      || !['source', 'concept', 'principle', 'lineage', 'event', 'state', 'support', 'context', 'analogy', 'synthesis'].includes(String(source.node_type))
+      || typeof source.node_id !== 'string'
+      || !new RegExp('^tos\\.' + String(source.node_type) + '\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$(?![\\s\\S])').test(source.node_id)
+      || !Number.isSafeInteger(source.record_version) || Number(source.record_version) < 1)) {
+    return stop('invalid', 'forms.invalid-source-record-binding');
+  }
+  if (nativeIdentity && !canonical && (Object.hasOwn(source, 'record_id') || typeof source[nativeIdentity] !== 'string'
       || !(source[nativeIdentity] as string).startsWith('tos.' + nativeIdentity.replace(/_id$/, '') + '.'))) {
     return stop('invalid', 'forms.invalid-source-record-binding');
   }

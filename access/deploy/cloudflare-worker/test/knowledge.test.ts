@@ -1098,11 +1098,12 @@ test('form budget prioritizes requested language across roles in Python and Work
   assert.deepEqual(cases, before);
 });
 
-test('native witness forms bind unchanged identities in Python and Worker', () => {
+test('native witness and canonical forms bind unchanged identities in Python and Worker', () => {
   for (const [schema, field, prefix] of [
     ['tos_scholarly_composite_witness_v1', 'composite_id', 'tos.composite.'],
     ['tos_artifact_source_witness_v1', 'artifact_id', 'tos.artifact.'],
     ['tos_artifact_source_witness_v2', 'artifact_id', 'tos.artifact.'],
+    ['tos_canonical_node_v1', 'node_id', 'tos.support.'],
   ] as const) {
     // Synthetic envelopes test the consumer binding, not historical metadata.
     const node = realFormNode();
@@ -1114,6 +1115,7 @@ test('native witness forms bind unchanged identities in Python and Worker', () =
     delete nativeSource.record_id;
     nativeSource.schema_version = schema;
     nativeSource[field] = identifier;
+    if (field === 'node_id') nativeSource.node_type = 'support';
     replaced.entity_id = identifier;
     const badCarrier = structuredClone(replaced);
     badCarrier.entity_id = prefix + 'other';
@@ -1124,6 +1126,15 @@ test('native witness forms bind unchanged identities in Python and Worker', () =
       (changed.attributes.source_record as Record<string, unknown>).schema_version = schemaVersion;
       return changed;
     })];
+    if (field === 'node_id') {
+      for (const mutation of [{node_type: 'event'}, {node_type: ['support']}, {node_type: {}},
+        {node_type: null}, {node_id: identifier + '\n'},
+        {record_version: true}, {record_version: 0}, {record_version: 9007199254740992}]) {
+        const changed = structuredClone(replaced);
+        Object.assign(changed.attributes.source_record as Record<string, unknown>, mutation);
+        cases.push(changed);
+      }
+    }
     const python = JSON.parse(execFileSync('python3', ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));

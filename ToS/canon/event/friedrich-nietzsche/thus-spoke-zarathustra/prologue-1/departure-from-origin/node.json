@@ -1,4 +1,14 @@
 {
+  "schema_version": "tos_canonical_node_v1",
+  "record_version": 1,
+  "preferred_label": "Departure from homeland for the mountains",
+  "variant_labels": [
+    {"value": "Уход с родины в горы", "language": "ru", "script": "Cyrl", "source_ref": "ToS/review-ledger/2026-09-14-canonical-node-wording.md", "status": "unverified"}
+  ],
+  "field_languages": {
+    "preferred_label": {"language": "en", "script": "Latn"},
+    "distilled_thesis": {"language": "en", "script": "Latn"}
+  },
   "node_id": "tos.event.thus-spoke-zarathustra.prologue.departure-from-origin",
   "node_type": "event",
   "source_anchor": "Friedrich Nietzsche, Also sprach Zarathustra, Zarathustra's Vorrede 1, route-local event surface grounded through tos.source.thus-spoke-zarathustra.prologue and supported by seg.1.1.1.1",

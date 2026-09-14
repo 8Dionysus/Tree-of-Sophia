@@ -245,8 +245,17 @@
     "node": {
       "type": "object",
       "additionalProperties": false,
+      "dependentRequired": {
+        "human_forms": ["human_forms_source_ref", "human_forms_source_sha256", "source_record_sha256"],
+        "human_forms_source_ref": ["human_forms", "human_forms_source_sha256", "source_record_sha256"],
+        "human_forms_source_sha256": ["human_forms", "human_forms_source_ref", "source_record_sha256"]
+      },
       "required": ["node_id", "node_type", "label", "owner_branch", "authority_layer", "source_path", "source_sha256", "properties"],
       "properties": {
+        "source_record_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "human_forms": {"type": "array", "maxItems": 32, "items": {"type": "object"}},
+        "human_forms_source_ref": {"type": "string", "minLength": 1},
+        "human_forms_source_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
         "node_id": {
           "type": "string",
           "minLength": 1

@@ -305,6 +305,43 @@ source/journal inputs without rewriting it. A failed build leaves the prior
 reader snapshot and all source/journal history intact; it is not a reader
 switch or a public publication decision.
 
+## Native canonical nodes
+
+The separate `tos_canonical_node_v1` opt-in under
+[NODE_CONTRACT](NODE_CONTRACT.md) gives a canonical node an explicit native
+`node_id`/`record_version` binding. It does not inject a Corpus record identity,
+retype the node as bibliographic metadata or invent versions for legacy nodes.
+An adjacent `node.human-forms.json` uses the existing form-set grammar and
+retains form predecessors. First adoption of a legacy source is a reviewed
+source change with retained original bytes, not an implicit reader migration.
+
+The canonical field catalogue exposes `canonical.preferred-name`,
+`canonical.variant-name:<index>` and `canonical.thesis`. They copy the complete
+preferred/variant name or `distilled_thesis`, with roles `name` and `statement`.
+Every form retains the **entire exact native node** as mandatory context,
+including source anchor, interpretation layers, relations, qualifiers and
+wording statuses. It is not standalone. Names/statement are source copies,
+not assessed freeform translations or a declaration that the thesis is true.
+Unknown source field-language/script stay null; variant declarations concern
+their own wording only. No language is inferred from a path or node ID.
+
+The separate `tos_local_canonical_form_owner_v1` delegation allows only the
+existing `form.create`/`form.revise` operations for explicitly named form IDs
+of one exact validated canonical `node.json`. It binds the native node schema
+in preparation and currentness checks. Existing bibliographic grants do not
+gain access to the canonical subtree. The command neither creates/revises a
+node source nor grants assessment, canon or publication authority.
+
+The corpus index retains the original node unchanged in `properties` and
+attaches the derived form collection separately. Normalized readers bind it
+to the exact canonical source digest; byte fixity of the original file remains
+separate. Python and Worker use the same native identity check. Stale source or
+form references remain stale, with no fallback to ID-derived wording. This is
+an additive schema/adapter transition: older closed readers must update or
+refuse it, not silently strip the source fields or form context. Full source
+revision/history commands, assessed canonical freeform wording and full-corpus
+prepared/D1 adoption remain separate work.
+
 ## Bibliographic metadata adapter
 
 An adjacent `<record-stem>.human-forms.json` may hold a

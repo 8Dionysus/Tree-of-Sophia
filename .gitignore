@@ -12,6 +12,11 @@ dist/
 /access/deploy/cloudflare-worker/.dev.vars*
 /access/deploy/cloudflare-worker/runtime/
 
+# Runtime locks of the native canonical HumanForms writer are not corpus data.
+# Source nodes, adjacent form sets, their histories and reviews remain tracked.
+/ToS/canon/..canonical-human-forms-lock.writer.lock
+/ToS/canon/**/.node.human-forms.json.writer.lock
+
 # Local immutable corpus bytes. Catalogs, manifests, fixity, provenance,
 # rights, forensic reports, review state, and rights-safe alignments remain
 # tracked; restricted source or derivative text remains local.

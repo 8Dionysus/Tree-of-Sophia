@@ -249,11 +249,21 @@ NATIVE_IDENTITIES = {
     'tos_artifact_source_witness_v1': 'artifact_id',
     'tos_artifact_source_witness_v2': 'artifact_id',
 }
+CANONICAL_NODE_SCHEMA = 'tos_canonical_node_v1'
+CANONICAL_NODE_SCHEMA_REF = 'ToS/contracts/tos-node-contract.schema.json'
+CANONICAL_NODE_TYPES = frozenset({
+    'source', 'concept', 'principle', 'lineage', 'event', 'state', 'support',
+    'context', 'analogy', 'synthesis',
+})
+CANONICAL_IDENTITIES = {CANONICAL_NODE_SCHEMA: 'node_id'}
 
 
 def metadata_subject(source: dict) -> Record:
     """Bind the unchanged validated payload using its actual identity field."""
-    identity = NATIVE_IDENTITIES.get(source.get('schema_version'), 'record_id')
+    identity = (CANONICAL_IDENTITIES | NATIVE_IDENTITIES).get(source.get('schema_version'), 'record_id')
+    if source.get('schema_version') == CANONICAL_NODE_SCHEMA:
+        if 'record_id' in source or 'node_id' not in source or 'record_version' not in source:
+            raise ValueError('canonical node forms require native node_id and explicit record_version')
     return Record.from_payload(source[identity], source['record_version'], source)
 
 
@@ -272,12 +282,116 @@ def _field_language_validator():
     return Draft202012Validator({'$ref': schema['$id'] + '#/properties/field_languages'}, registry=registry)
 
 
+@lru_cache(maxsize=1)
+def _canonical_node_validator():
+    """Validate the native canonical node contract, including its local defs."""
+    schema = json.loads((ROOT / CANONICAL_NODE_SCHEMA_REF).read_text())
+    registry = Registry().with_resource(schema['$id'], Resource.from_contents(schema))
+    return Draft202012Validator(schema, registry=registry)
+
+
+def _canonical_validator_for_schema(schema: dict):
+    registry = Registry().with_resource(schema['$id'], Resource.from_contents(schema))
+    return Draft202012Validator(schema, registry=registry)
+
+
+def _validate_canonical_node(source: dict, *, schema: dict | None = None) -> dict:
+    """Return a validated canonical node; never version an unversioned node."""
+    if not isinstance(source, dict) or source.get('schema_version') != CANONICAL_NODE_SCHEMA:
+        raise ValueError('canonical forms require an explicit tos_canonical_node_v1 source')
+    if 'record_id' in source or 'node_id' not in source or 'record_version' not in source:
+        raise ValueError('canonical node must use native node_id and explicit record_version')
+    validator = _canonical_node_validator() if schema is None else _canonical_validator_for_schema(schema)
+    errors = sorted(validator.iter_errors(source), key=lambda error: list(error.path))
+    if errors:
+        raise ValueError('canonical node violates its exact source contract')
+    if source.get('node_type') not in CANONICAL_NODE_TYPES:
+        raise ValueError('canonical node type is outside its source contract')
+    if not source['node_id'].startswith(f"tos.{source['node_type']}."):
+        raise ValueError('canonical node_id prefix does not match native node_type')
+    return source
+
+
+def _canonical_relative_path(root: Path, source_ref: str, source: dict | None = None) -> Path:
+    """Validate the only canonical source route accepted by this adapter."""
+    if not isinstance(source_ref, str) or not source_ref:
+        raise PermissionError('canonical source path must be an explicit relative path')
+    relative = Path(source_ref)
+    if (relative.is_absolute() or relative.as_posix() != source_ref or '..' in relative.parts
+            or relative.parts[:2] != ('ToS', 'canon') or relative.name != 'node.json'
+            or len(relative.parts) < 4 or any(not part or part in {'.', '..'} for part in relative.parts)):
+        raise PermissionError('canonical source path must be ToS/canon/.../node.json')
+    if source is not None:
+        if (not isinstance(source, dict) or source.get('schema_version') != CANONICAL_NODE_SCHEMA
+                or not isinstance(source.get('node_type'), str) or not isinstance(source.get('node_id'), str)):
+            raise ValueError('canonical source path binding requires native node_id and schema')
+        if relative.parts[2] != source['node_type']:
+            raise PermissionError('canonical source path and native node_type disagree')
+        # Source nodes use the route directory prologue-1 while their native
+        # id ends in prologue; retain that bounded historical path convention.
+        slug = source['node_id'].rsplit('.', 1)[-1]
+        if relative.parent.name != slug and not (
+                source['node_type'] == 'source' and relative.parent.name.startswith(slug + '-')):
+            raise PermissionError('canonical source path and native node_id disagree')
+    root = Path(root)
+    if not root.is_absolute():
+        raise PermissionError('canonical source root must be absolute')
+    return relative
+
+
+def _reject_symlink_components(root: Path, relative: Path) -> None:
+    """Reject source and adjacent form aliases before any resolved-path read."""
+    current = root
+    for part in relative.parts:
+        current /= part
+        if current.is_symlink():
+            raise PermissionError('canonical source and form paths must not traverse symlinks')
+
+
+def _read_canonical_source(root: Path, source_ref: str, source: dict | None = None):
+    """Read and bind the native canonical file and its schema digest."""
+    root = Path(root)
+    if root.is_symlink():
+        raise PermissionError('canonical source root must not be a symlink')
+    root = root.resolve()
+    relative = _canonical_relative_path(root, source_ref, source)
+    _reject_symlink_components(root, relative)
+    source_path = root / relative
+    with source_path.open('rb') as handle:
+        source_raw = handle.read(MAX_SET_BYTES + 1)
+    if len(source_raw) > MAX_SET_BYTES:
+        raise ValueError('canonical source exceeds input budget')
+    schema_path = root / CANONICAL_NODE_SCHEMA_REF
+    _reject_symlink_components(root, Path(CANONICAL_NODE_SCHEMA_REF))
+    schema_raw = schema_path.read_bytes()
+    schema = json.loads(schema_raw)
+    actual = json.loads(source_raw)
+    if actual.get('schema_version') != schema.get('properties', {}).get('schema_version', {}).get('const'):
+        raise ValueError('canonical source schema contract does not declare its native schema')
+    _validate_canonical_node(actual, schema=schema)
+    if source is not None and actual != source:
+        raise ValueError('canonical source file content differs from the supplied source payload')
+    # The command path may have been checked before reading when a caller
+    # supplied a payload. Rebind it to the actual source bytes as well so a
+    # path/type/slug mismatch cannot pass the source=None command route.
+    bound_relative = _canonical_relative_path(root, source_ref, actual)
+    if bound_relative != relative:
+        raise PermissionError('canonical source path and native node disagree')
+    # Resolve through the same immutable subject binding used by materializers.
+    metadata_subject(actual)
+    return source_path, source_raw, actual, {CANONICAL_NODE_SCHEMA_REF: 'sha256:' + hashlib.sha256(schema_raw).hexdigest()}
+
+
 def metadata_field_catalog(source: dict, *, field_language_validator=None) -> list[dict]:
     """Semantic field selectors for this adapter; callers never guess pointers.
 
     Variant ordinals are snapshot-local, not stable name identities. An exact
     source ref must accompany prepared commands, so reordering is a conflict.
     """
+    if source.get('schema_version') == CANONICAL_NODE_SCHEMA:
+        # Canonical nodes have a separate owner route. Do not let a generic
+        # metadata consumer inherit native node fields or old grants.
+        raise ValueError('canonical nodes require the canonical form adapter')
     native = NATIVE_IDENTITIES.get(source.get('schema_version'))
     if native is not None:
         # These original schemas declare no field language. Do not infer one
@@ -320,6 +434,57 @@ def metadata_field_catalog(source: dict, *, field_language_validator=None) -> li
                            'context': [*context, *(base + key.replace('~', '~0').replace('/', '~1')
                                                   for key in variant if key != 'value')]})
     return result
+
+
+def canonical_field_catalog(source: dict) -> list[dict]:
+    """Expose only native wording fields declared by a versioned canon node.
+
+    Every wording form carries the complete node as mandatory context. The
+    adapter never turns the distilled thesis into an assessment or derives a
+    language from a neighbouring source witness.
+    """
+    source = _validate_canonical_node(source)
+    declarations = source.get('field_languages') or {}
+    if ('preferred_label' in declarations
+            and (not isinstance(source.get('preferred_label'), str) or not source['preferred_label'].strip())):
+        raise ValueError('canonical preferred-label language declaration has no wording field')
+    result = []
+    if isinstance(source.get('preferred_label'), str) and source['preferred_label'].strip():
+        declaration = declarations.get('preferred_label') or {}
+        result.append({'field_id': 'canonical.preferred-name', 'pointer': '/preferred_label', 'role': 'name',
+                       'language': declaration.get('language'), 'script': declaration.get('script'),
+                       'context': ['']})
+    for index, variant in enumerate(source.get('variant_labels', [])):
+        # The node schema has already checked these members. Re-checking the
+        # value here keeps this catalog safe when called with a test double.
+        if not isinstance(variant, dict) or not isinstance(variant.get('value'), str) or not variant['value'].strip():
+            raise ValueError('canonical variant label has no complete wording value')
+        result.append({'field_id': f'canonical.variant-name:{index}',
+                       'pointer': f'/variant_labels/{index}/value', 'role': 'name',
+                       'language': variant.get('language'), 'script': variant.get('script'),
+                       'context': ['']})
+    if not isinstance(source.get('distilled_thesis'), str) or not source['distilled_thesis'].strip():
+        raise ValueError('canonical node thesis has no complete wording value')
+    declaration = declarations.get('distilled_thesis') or {}
+    result.append({'field_id': 'canonical.thesis', 'pointer': '/distilled_thesis', 'role': 'statement',
+                   'language': declaration.get('language'), 'script': declaration.get('script'),
+                   'context': ['']})
+    return result
+
+
+def materialize_canonical_forms(source: dict, form_set: dict, *, access_allowed: bool) -> list[dict]:
+    """Render only source-copy forms bound to the exact native canon node."""
+    source = _validate_canonical_node(source)
+    subject = metadata_subject(source)
+    # Canonical wording is never supplied by a freeform/template proposal.
+    # Check retained history too so a later revision cannot launder an older
+    # non-source form into this source-owned route.
+    if isinstance(form_set, dict):
+        all_forms = [*form_set.get('forms', []), *form_set.get('prior_forms', [])]
+        if any(form.get('content', {}).get('kind') != 'source-copy' for form in all_forms):
+            raise ValueError('canonical forms permit only exact source-copy content')
+    return _materialize_forms(subject, canonical_field_catalog(source), form_set,
+                              access_allowed=access_allowed is True)
 
 
 def materialize_metadata_forms(source: dict, form_set: dict, *, access_allowed: bool) -> list[dict]:
@@ -455,6 +620,33 @@ def load_metadata_forms(repo_root: Path, source_ref: str, source: dict, *, acces
     source_path.relative_to(root / 'ToS/source-witnesses')
     path = source_path.with_name(source_path.stem + '.human-forms.json')
     return _load_forms(root, source_path, path, source, materialize_metadata_forms, access_allowed)
+
+
+def load_canonical_forms(repo_root: Path, source_ref: str, source: dict, *, access_allowed: bool):
+    """Read the adjacent canonical form set through the exact native node route.
+
+    This route deliberately does not reuse ``load_metadata_forms``: canonical
+    nodes live under ``ToS/canon/.../node.json``, require an explicit native
+    version/schema, and must match the bytes' parsed source object before any
+    human-form payload is considered.
+    """
+    root = Path(repo_root)
+    source_path, source_raw, actual, _ = _read_canonical_source(root, source_ref, source)
+    root = root.resolve()
+    relative = Path(source_ref)
+    path = source_path.with_name('node.human-forms.json')
+    _reject_symlink_components(root, relative)
+    _reject_symlink_components(root, path.relative_to(root))
+    if not path.exists():
+        return None
+    # _load_forms reads the adjacent payload with its existing bounded JSON
+    # materializer. The actual source object, not the caller's object, is used.
+    loaded = _load_forms(root, source_path, path, actual, materialize_canonical_forms, access_allowed)
+    # Preserve the source-byte check as an explicit currentness boundary even
+    # though _read_canonical_source already parsed and validated those bytes.
+    if source_path.read_bytes() != source_raw:
+        raise ValueError('canonical source changed while reading adjacent forms')
+    return loaded
 
 
 def claim_forms_path(source_path: Path, claim_id: str) -> Path:

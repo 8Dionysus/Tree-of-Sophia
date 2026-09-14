@@ -1696,6 +1696,64 @@ class HistoricalCreationTests(unittest.TestCase):
                 commands.run_local_command(owner, request)
             self.assertEqual(list(other.iterdir()), [])
 
+    def test_versioned_canonical_node_forms_use_a_separate_owner_and_full_node_context(self):
+        relative = Path('ToS/canon/event/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/departure-from-origin/node.json')
+        source = ROOT / relative
+        if json.loads(source.read_bytes()).get('schema_version') != commands.CANONICAL_NODE_SCHEMA:
+            self.skipTest('canonical fixture is not yet versioned in this checkout')
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            target = root / relative
+            target.parent.mkdir(parents=True)
+            target.write_bytes(source.read_bytes())
+            schema = root / commands.CANONICAL_NODE_SCHEMA_REF
+            schema.parent.mkdir(parents=True)
+            schema.write_bytes((ROOT / commands.CANONICAL_NODE_SCHEMA_REF).read_bytes())
+            owner_payload = {'schema_version': commands.CANONICAL_FORM_CONFIG, 'uid': os.getuid(),
+                'principal_id': 'source-command-canonical-test', 'source_root': str(root),
+                'source_path': relative.as_posix(), 'authority_ref': 'test:canonical-owner',
+                'allowed_form_ids': ['tos.form.canonical.test'], 'allowed_operations': list(commands.OPERATIONS),
+                'expires_at': '2099-01-01T00:00:00Z'}
+            owner = root / 'canonical-owner.json'
+            owner.write_text(json.dumps(owner_payload))
+            describe = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            self.assertEqual(describe['source']['id'], json.loads(target.read_bytes())['node_id'])
+            self.assertEqual(describe['source']['version'], 1)
+            self.assertEqual([field['field_id'] for field in describe['source_fields']],
+                             ['canonical.preferred-name', 'canonical.variant-name:0', 'canonical.thesis'])
+            self.assertIn(commands.CANONICAL_NODE_SCHEMA_REF, describe['source_contracts'])
+            prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare',
+                'form_id': 'tos.form.canonical.test', 'field_id': 'canonical.preferred-name'})
+            change = prepared['prepared_change']['form']
+            self.assertEqual(change['bindings']['context-0']['pointer'], '')
+            self.assertEqual(prepared['prepared_materialization']['state'], 'ready')
+            request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply', 'command_id': 'canonical-test',
+                'expected_source': prepared['source'], 'expected_revision': prepared['revision'],
+                'expected_configuration': prepared['owner_configuration'], 'changes': [prepared['prepared_change']]}
+            result = commands.run_local_command(owner, request)
+            self.assertEqual(result['materializations'][0]['state'], 'ready')
+            self.assertEqual(result['materializations'][0]['context'][0]['binding']['pointer'], '')
+            self.assertEqual(result['materializations'][0]['display_text'], json.loads(target.read_bytes())['preferred_label'])
+            self.assertFalse(result['grants_admission'])
+            self.assertEqual(target.read_bytes(), source.read_bytes())
+            from source_witness_human_forms import load_canonical_forms
+            loaded = load_canonical_forms(root, relative.as_posix(), json.loads(target.read_bytes()), access_allowed=True)
+            self.assertEqual(loaded[0], (relative.parent / 'node.human-forms.json').as_posix())
+            self.assertEqual(loaded[2][0]['state'], 'ready')
+            forged = {**json.loads(target.read_bytes()), 'preferred_label': 'caller-forged'}
+            with self.assertRaises(ValueError):
+                load_canonical_forms(root, relative.as_posix(), forged, access_allowed=True)
+            wrong_route = json.loads(target.read_bytes())
+            wrong_route['node_type'] = 'support'
+            wrong_route['node_id'] = wrong_route['node_id'].replace('tos.event.', 'tos.support.', 1)
+            target.write_text(json.dumps(wrong_route))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            legacy = {**owner_payload, 'schema_version': 'tos_local_source_command_owner_v1'}
+            owner.write_text(json.dumps(legacy))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+
 
 if __name__ == '__main__':
     unittest.main()

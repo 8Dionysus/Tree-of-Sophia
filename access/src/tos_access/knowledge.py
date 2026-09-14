@@ -816,6 +816,16 @@ def _require_assessed_carrier_parity(left: dict[str, Any], right: dict[str, Any]
 
 def _native_metadata_identity(source):
     """The existing portable native identity grammar, shared by its readers."""
+    if source.get('schema_version') == 'tos_canonical_node_v1':
+        kind = source.get('node_type')
+        if ('record_id' in source or not isinstance(kind, str) or kind not in {'source', 'concept', 'principle', 'lineage', 'event',
+                'state', 'support', 'context', 'analogy', 'synthesis'}
+                or not isinstance(source.get('node_id'), str)
+                or not re.fullmatch(r'tos\.' + str(kind) + r'\.[a-z0-9]+(?:[.-][a-z0-9]+)*', source['node_id'])
+                or type(source.get('record_version')) is not int
+                or not 1 <= source['record_version'] <= 9007199254740991):
+            raise ValueError('invalid native canonical identity')
+        return 'node_id'
     field = {
         'tos_scholarly_composite_witness_v1': 'composite_id',
         'tos_artifact_source_witness_v1': 'artifact_id',
@@ -1769,6 +1779,18 @@ def _normalize_node(
     normalized["semantics"]["type_ancestors"] = sorted(ancestors)
     if version_view is not None:
         _apply_record_version_view(normalized, version_view)
+    if source_graph == 'canon' and properties.get('schema_version') == 'tos_canonical_node_v1':
+        _native_metadata_identity(properties)
+        source_digest = hashlib.sha256(json.dumps(properties, ensure_ascii=False, sort_keys=True,
+            separators=(',', ':'), allow_nan=False).encode('utf-8')).hexdigest()
+        if item.get('source_record_sha256') != source_digest:
+            raise ValueError('canonical form source digest differs from retained node')
+        attributes.update(source_record=copy.deepcopy(properties), source_sha256=source_digest,
+                          source_file_sha256=item.get('source_sha256'))
+        normalized['source_record']['field_map'].update({
+            'attributes.source_record': '/properties',
+            'attributes.source_sha256': '/source_record_sha256',
+            'attributes.source_file_sha256': '/source_sha256'})
     _stamp_content_revision(normalized)
     return normalized
 
