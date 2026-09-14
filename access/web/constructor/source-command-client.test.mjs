@@ -1,4 +1,4 @@
-import test from 'node:test';
+import {test} from 'vitest';
 import assert from 'node:assert/strict';
 import {createHash,createHmac} from 'node:crypto';
 import {createSourceCommandClient,COMMAND_REQUEST_BYTES,COMMAND_RESPONSE_BYTES} from './source-command-client.mjs';
