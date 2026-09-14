@@ -23,6 +23,8 @@ export async function publishNativeLensFixture(db: D1Database): Promise<void> {
       'CREATE INDEX IF NOT EXISTS knowledge_nodes_native_idx ON knowledge_nodes(native_id)',
       'CREATE INDEX IF NOT EXISTS knowledge_nodes_entity_idx ON knowledge_nodes(entity_id)',
       'CREATE INDEX IF NOT EXISTS knowledge_relations_native_idx ON knowledge_relations(native_id)',
+      'CREATE INDEX IF NOT EXISTS knowledge_nodes_source_kind_idx ON knowledge_nodes(source_graph,kind_id)',
+      'CREATE INDEX IF NOT EXISTS knowledge_relations_source_predicate_idx ON knowledge_relations(source_graph,predicate_id)',
     ].map(sql => db.prepare(sql)));
     initialized.add(db);
   }
@@ -57,6 +59,23 @@ export async function publishNativeLensFixture(db: D1Database): Promise<void> {
 export async function executePublishedFixtureLens(db: D1Database, spec: unknown): Promise<Awaited<ReturnType<typeof executeKnowledgeLens>>> {
   await publishNativeLensFixture(db);
   return JSON.parse(nativePacketJson((await executeKnowledgeLensD1(db,parseNativeRequest(JSON.stringify(spec)))).packet,{maxBytes:16*1024*1024}));
+}
+
+/** Exact Python oracle for publication-bound cursors, not in-memory cursors. */
+export async function executePublishedFixturePythonLens(db: D1Database, graph: unknown, spec: unknown): Promise<Awaited<ReturnType<typeof executeKnowledgeLens>>> {
+  const rows = await db.prepare("SELECT json_chunk FROM edge_meta WHERE key='knowledge_reader_top' ORDER BY part").all<{json_chunk:string}>();
+  const clock = await db.prepare('SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1').first<{epoch:number}>();
+  if (!clock) throw new Error('published fixture clock absent');
+  return JSON.parse(execFileSync('python3',['-B','-c',String.raw`
+import sys,json
+sys.path.insert(0,'access/src')
+from tos_access.knowledge import execute_knowledge_lens
+from tos_access.published_read_metadata import published_snapshot_binding
+p=json.load(sys.stdin)
+print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'],
+    publication_binding=published_snapshot_binding(p['top'],p['epoch']))))
+`],{cwd:fileURLToPath(new URL('../../../../',import.meta.url)),encoding:'utf8',
+    input:JSON.stringify({graph,spec,top:JSON.parse(rows.results.map(row=>row.json_chunk).join('')),epoch:clock.epoch})}));
 }
 
 /** Publish the current tiny fixture with the actual Python search emitters. */

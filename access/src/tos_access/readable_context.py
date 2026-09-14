@@ -26,6 +26,13 @@ _HASH = re.compile(r'[a-f0-9]{64}')
 _EXACT_HASH = re.compile(r'sha256:[a-f0-9]{64}')
 _LANGUAGE = re.compile(r'(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)')
 _TARGETS = {'record', 'assertion', 'language-context', 'subject-assessment', 'assessment-snapshot'}
+_CANONICAL_NODE_SCHEMA = 'tos_canonical_node_v1'
+_CANONICAL_NODE_TYPES = frozenset({
+    'source', 'concept', 'principle', 'lineage', 'event', 'state', 'support',
+    'context', 'analogy', 'synthesis',
+})
+_CANONICAL_NODE_ID = re.compile(r'tos\.(?:source|concept|principle|lineage|event|state|support|context|analogy|synthesis)\.[a-z0-9]+(?:[.-][a-z0-9]+)*')
+_MAX_SAFE_INTEGER = 9_007_199_254_740_991
 # The owner vocabulary can explain these finite mechanical keys, but cannot
 # declare negation, source language, unknown qualifiers or arbitrary prose to
 # be technical merely by changing a presentation category.
@@ -188,6 +195,29 @@ def _language(record: dict | None, key: str) -> tuple[str | None, str | None]:
             script if isinstance(script, str) and re.fullmatch(r'[A-Za-z]{4}', script) else None)
 
 
+def _source_identity_version(record: dict) -> tuple[Any, Any]:
+    """Return only an identity/version pair declared by the source schema.
+
+    Canonical nodes own ``node_id``/``record_version``.  That native pair is
+    accepted only with the exact canonical marker, node-type allowlist and
+    prefix grammar; legacy or foreign ``node_id`` fields never become an
+    implicit fallback identity.
+    """
+    if record.get('schema_version') == _CANONICAL_NODE_SCHEMA:
+        if ('record_id' in record
+                or not isinstance(record.get('node_type'), str)
+                or record['node_type'] not in _CANONICAL_NODE_TYPES
+                or not isinstance(record.get('node_id'), str)
+                or _CANONICAL_NODE_ID.fullmatch(record['node_id']) is None
+                or not record['node_id'].startswith('tos.' + record['node_type'] + '.')
+                or type(record.get('record_version')) is not int
+                or not 1 <= record['record_version'] <= _MAX_SAFE_INTEGER):
+            raise ReadableContextError('invalid-context-source-record')
+        return record['node_id'], record['record_version']
+    identity = next((record[key] for key in ('record_id', 'claim_id', 'artifact_id', 'composite_id') if key in record), None)
+    return identity, record.get('claim_version' if 'claim_id' in record else 'record_version')
+
+
 class ReadableContextCompiler:
     """One build/update snapshot; no module cache or mutable request state."""
 
@@ -242,8 +272,8 @@ def build_readable_context(item: dict, registry: dict, *, digest: Callable[[Any]
     def source_record_reference(record):
         if not isinstance(record, dict):
             raise ReadableContextError('missing-context-source-record')
-        identity = next((record[key] for key in ('record_id', 'claim_id', 'artifact_id', 'composite_id') if key in record), None)
-        reference = {'id': identity, 'version': record.get('claim_version' if 'claim_id' in record else 'record_version'),
+        identity, version = _source_identity_version(record)
+        reference = {'id': identity, 'version': version,
                      'digest': 'sha256:' + hashlib.sha256(_json(record)).hexdigest()}
         if not _exact(reference):
             raise ReadableContextError('invalid-context-source-record')
@@ -408,8 +438,11 @@ def build_readable_context(item: dict, registry: dict, *, digest: Callable[[Any]
                     value = entry['value']
                     if not isinstance(value, dict):
                         raise ReadableContextError('form-context-root-is-not-record')
-                    identity = next((value[key] for key in ('record_id', 'claim_id', 'form_id', 'artifact_id', 'composite_id') if key in value), None)
-                    version = value.get('claim_version' if 'claim_id' in value else 'form_version' if 'form_id' in value else 'record_version')
+                    if value.get('schema_version') == _CANONICAL_NODE_SCHEMA:
+                        identity, version = _source_identity_version(value)
+                    else:
+                        identity = next((value[key] for key in ('record_id', 'claim_id', 'form_id', 'artifact_id', 'composite_id') if key in value), None)
+                        version = value.get('claim_version' if 'claim_id' in value else 'form_version' if 'form_id' in value else 'record_version')
                     if identity != binding['record']['id'] or type(version) is not int or version != binding['record']['version']:
                         raise ReadableContextError('form-context-record-version-mismatch')
                     records[_json(binding['record'])] = entry['value']

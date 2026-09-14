@@ -42,6 +42,22 @@ def real_freedom_graph(*, numeric_control=False):
     return graph, knowledge_catalog(graph, corpus, {}, entities, relations)
 
 
+def real_canonical_graph():
+    """The two opted-in canonical source nodes; never a whole-corpus build."""
+    from tos_corpus_index_common import build_nodes
+    paths = tuple(ROOT / f'ToS/canon/{kind}/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/{leaf}/node.json'
+                  for kind, leaf in (('support', 'zarathustra'), ('event', 'departure-from-origin')))
+    diagnostics = []
+    nodes = build_nodes(diagnostics, paths)
+    if diagnostics or len(nodes) != 2:
+        raise AssertionError('exact canonical source fixtures failed to build: ' + repr(diagnostics))
+    corpus = {'nodes': nodes}
+    entities = json.loads((ROOT / 'ToS/doctrine/semantic-interchange/entity-types.v1.json').read_text())
+    relations = json.loads((ROOT / 'ToS/doctrine/semantic-interchange/relation-types.v1.json').read_text())
+    graph = build_knowledge_graph(corpus, {}, entity_type_registry=entities, relation_type_registry=relations)
+    return graph, knowledge_catalog(graph, corpus, {}, entities, relations)
+
+
 class ReadableContextTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -53,6 +69,86 @@ class ReadableContextTests(unittest.TestCase):
         result = build_readable_context(item, registry or self.registry, digest=_stable_digest)
         Draft202012Validator(self.schema).validate(result)
         return result
+
+    def test_real_native_canonical_context_keeps_source_forms_and_no_admission(self):
+        graph, _ = real_canonical_graph()
+        nodes = [node for node in graph['nodes']
+                 if node['attributes'].get('schema_version') == 'tos_canonical_node_v1']
+        self.assertEqual(len(nodes), 2)
+        for node in nodes:
+            with self.subTest(node=node['id']):
+                before = copy.deepcopy(node)
+                sidecar = node['readable_context']
+                # Full real HumanForms exceed the unchanged presentation budget.
+                # Their exact roots remain available, never a partial ready view.
+                self.assertEqual(sidecar['state'], 'requires-exact-context')
+                self.assertEqual(sidecar['reason'], 'context-presentation-budget')
+                self.assertEqual(sidecar['exact_context_pointers'],
+                                 ['/attributes/human_forms', '/attributes/source_record'])
+                self.assertEqual(sidecar['contexts'], [])
+                self.assertEqual(sidecar, self.build(node))
+                source = node['attributes']['source_record']
+                source_hash = hashlib.sha256(json.dumps(source, ensure_ascii=False, sort_keys=True,
+                    separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+                self.assertEqual(node['attributes']['source_sha256'], source_hash)
+                direct = copy.deepcopy(node)
+                direct['attributes'].pop('human_forms')
+                direct_context = self.build(direct)
+                self.assertEqual(direct_context['state'], 'complete')
+                material = next(value for value in direct_context['exact_materials']
+                                if '/attributes/source_record' in value['origin_pointers'])
+                self.assertEqual(json.loads(material['canonical_json']), source)
+                self.assertEqual(material['digest'], 'sha256:' + source_hash)
+                self.assertFalse(sidecar['performs_semantic_assessment'])
+                self.assertFalse(sidecar['performs_translation'])
+                for form in node['attributes']['human_forms']:
+                    if form['state'] != 'ready':
+                        continue
+                    self.assertEqual(form['subject'], {'id': source['node_id'],
+                        'version': source['record_version'], 'digest': 'sha256:' + source_hash})
+                    self.assertTrue(form['context'])
+                    self.assertIsNone(form.get('admission'))
+                    # One unchanged real form fits the budget and independently
+                    # exercises native record binding inside HumanForm context.
+                    selected = self.build({'attributes': {'human_forms': [form]}})
+                    self.assertEqual(selected['state'], 'complete')
+                    self.assertTrue(any(json.loads(value['canonical_json']) == source
+                                        for value in selected['exact_materials']))
+                self.assertEqual(node, before)
+
+    def test_native_canonical_context_requires_exact_identity_and_preserves_extensions(self):
+        graph, _ = real_canonical_graph()
+        original = next(node for node in graph['nodes']
+                        if node['attributes'].get('schema_version') == 'tos_canonical_node_v1')
+        source = original['attributes']['source_record']
+        mutations = [
+            {'schema_version': 'tos_canonical_node_v999'}, {'schema_version': []},
+            {'schema_version': None}, {'node_id': source['node_id'] + '\n'},
+            {'node_type': ['support']}, {'node_type': 'foreign'},
+            {'node_id': 'tos.event.test-wrong-kind', 'node_type': 'support'},
+            {'record_version': True}, {'record_version': 0}, {'record_version': 9007199254740992},
+            {'record_id': source['node_id']},
+        ]
+        for mutation in mutations:
+            with self.subTest(mutation=mutation):
+                item = copy.deepcopy(original)
+                item['attributes']['source_record'].update(mutation)
+                item['attributes'].pop('source_sha256')
+                result = self.build(item)
+                self.assertEqual(result['state'], 'unavailable')
+                self.assertEqual(result['contexts'], [])
+                self.assertEqual(result['coverage']['returned_contexts'], 0)
+        item = copy.deepcopy(original)
+        item['attributes'].pop('human_forms')
+        item['attributes'].pop('source_sha256')
+        item['attributes']['source_record'].update(claim_id='source-declared-extension',
+                                                  unknown_extension={'negation': False})
+        result = self.build(item)
+        self.assertEqual(result['state'], 'complete')
+        entries = {entry['key']: entry for context in result['contexts'] for entry in context['entries']}
+        self.assertEqual(entries['claim_id']['value'], 'source-declared-extension')
+        self.assertEqual(entries['unknown_extension']['value'], {'negation': False})
+        self.assertEqual(entries['unknown_extension']['category'], 'unclassified')
 
     def test_real_forms_are_unchanged_and_languages_remain_source_declared(self):
         item = real_freedom()

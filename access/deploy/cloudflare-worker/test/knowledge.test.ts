@@ -9,7 +9,7 @@ import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { knowledgeSearchD1 as nativeSearchD1, knowledgeSearchD1Indexed as nativeSearchD1Indexed, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
 import {nativePacketJson} from '../src/native-lens.ts';
 
-import {executePublishedFixtureLens, publishNativeLensFixture, publishNativeSearchFixture} from './native-lens-fixture.ts';
+import {executePublishedFixtureLens, executePublishedFixturePythonLens, publishNativeLensFixture, publishNativeSearchFixture} from './native-lens-fixture.ts';
 import { executeKnowledgeLens, focusKnowledgeNode, knowledgeScene, normalizeLensSpec, selectDisplayForm, type KnowledgeGraph } from "../src/knowledge.ts";
 import { selectHumanForms, formDeliveryCost, HUMAN_FORM_SELECTION_BUDGET } from '../src/human-forms.ts';
 import { decodeHumanFormSelection } from '../../../shared/human-form-selection-codec.ts';
@@ -439,13 +439,31 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     await assert.rejects(executeKnowledgeLens(graph, absentProperty));
     await assert.rejects(executePublishedFixtureLens(db, absentProperty));
     const carriers = structuredClone(graph);
+    // In-memory continuation and published continuation intentionally bind
+    // different snapshots. Compare every other field, and verify the exact
+    // published token separately against the Python publication owner.
+    const assertPageContent = (published: Record<string, unknown>, pure: Record<string, unknown>) => {
+      const page = published.page as Record<string, unknown> | undefined;
+      if (!page) return assert.deepEqual(published, pure);
+      const memoryPage = pure.page as Record<string, unknown>;
+      assert.equal(page.next_cursor === null, memoryPage.next_cursor === null);
+      if (page.next_cursor !== null) assert.notEqual(page.next_cursor, memoryPage.next_cursor);
+      const withoutCursorTokens = (packet: Record<string, unknown>, info: Record<string, unknown>) => {
+        const lens = packet.lens as Record<string, unknown>;
+        return {...packet, page: {...info, next_cursor: null},
+          lens: {...lens, pagination: {...lens.pagination as Record<string, unknown>, cursor: null}}};
+      };
+      assert.deepEqual(withoutCursorTokens(published,page), withoutCursorTokens(pure,memoryPage));
+    };
     carriers.nodes[1]!.entity_id = carriers.nodes[0]!.entity_id;
     await db.prepare('UPDATE knowledge_nodes SET entity_id=?, json=? WHERE id=?')
       .bind(carriers.nodes[1]!.entity_id, JSON.stringify(carriers.nodes[1]), carriers.nodes[1]!.id).run();
     for (const paging of [null, {nodes: 1, relations: 1}]) {
       const spec = {...focused, pagination: paging};
       const pure = await executeKnowledgeLens(carriers, spec);
-      assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
+      const published = await executePublishedFixtureLens(db, spec);
+      assertPageContent(published, pure);
+      if (paging) assert.deepEqual(published, await executePublishedFixturePythonLens(db, carriers, spec));
       assert.deepEqual(pure, python(spec, carriers));
       const scene = pure.scene as {vertices: {node_ids: string[]}[]};
       assert.equal(scene.vertices.filter(v => v.node_ids.includes('philosophy:a'))[0]!.node_ids.length, 2);
@@ -463,11 +481,16 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     const whole = await executeKnowledgeLens(graph, focused);
     const nodeIds: string[] = [], relationIds: string[] = [];
     let cursor: string | null = null;
+    let memoryCursor: string | null = null;
     for (let iteration = 0; iteration < 5; iteration++) {
       const spec = {...focused, pagination: {nodes: 1, relations: 1, cursor}};
       const page = await executePublishedFixtureLens(db, spec);
-      assert.deepEqual(page, await executeKnowledgeLens(graph, spec));
-      assert.deepEqual(page, python(spec));
+      const memorySpec = {...spec, pagination: {...spec.pagination, cursor: memoryCursor}};
+      const memoryPage = await executeKnowledgeLens(graph, memorySpec);
+      assertPageContent(page, memoryPage);
+      assert.deepEqual(memoryPage, python(memorySpec));
+      assert.deepEqual(page, await executePublishedFixturePythonLens(db, graph, spec));
+      memoryCursor = (memoryPage.page as {next_cursor:string|null}).next_cursor;
       assert.equal(page.fingerprint, whole.fingerprint);
       const info = page.page as {primary_node_ids:string[]; next_cursor:string|null};
       nodeIds.push(...info.primary_node_ids);
@@ -649,7 +672,9 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     for (const focus of ['philosophy:a', 'philosophy:c']) for (const paging of [null, {nodes: 1, relations: 1}]) {
       const spec = {...base, detail: 'compact', language: 'en', seed: {focus_node_id: focus}, pagination: paging};
       const result = await executeKnowledgeLens(pathGraph,spec);
-      assert.deepEqual(await executePublishedFixtureLens(db,spec),result);
+      const published = await executePublishedFixtureLens(db,spec);
+      assertPageContent(published,result);
+      if (paging) assert.deepEqual(published,await executePublishedFixturePythonLens(db,pathGraph,spec));
       assert.deepEqual(result,python(spec,pathGraph));
       const view = (result.scene as {compact:{claim_paths:{claim_node_id:string;reading:{standalone:boolean}}[]}}).compact;
       assert.equal(view.claim_paths.length,

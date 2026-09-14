@@ -947,6 +947,16 @@ since ordinary JavaScript JSON numbers cannot preserve every source value.
 `complete` describes returned-context coverage, not semantic review
 or translation. Overflow yields `requires-exact-context` with exact roots;
 invalid bindings yield `unavailable`, with no partial ready context.
+Native canonical records opt in with `tos_canonical_node_v1`: their unchanged
+`node_id` and safe positive `record_version` bind both source and HumanForm
+context. The canonical type/ID grammar and no-`record_id` boundary match the
+existing form owner. Legacy or unknown `node_id`-only records do not acquire an
+inferred identity or version; unknown source fields remain visible rather than
+being treated as alternative identities. Existing snapshots require explicit
+normalization migration before they contain a changed context sidecar.
+The complete multi-form canonical context can exceed the same presentation
+budget: `requires-exact-context` then points to the unchanged source record and
+mandatory HumanForm contexts, while a bounded individual form can be complete.
 Compact lenses omit this optional sidecar because its raw roots are absent;
 selected HumanForms retain their own mandatory context. Request full detail for
 readable context and verify its vocabulary and bindings before using it.
