@@ -664,12 +664,18 @@ class DeltaRecorder:
         index_store_path: Path | None = None,
         auxiliary_bindings: dict | None = None,
         publication_top: dict | None = None,
+        expected_empty_tables: tuple[str, ...] = (),
     ):
         self.auxiliary_bindings = auxiliary_bindings or {}
         if not set(self.auxiliary_bindings) <= set(AUXILIARY_KEYS):
             raise ValueError('unknown auxiliary publication store')
         self.tables = {table: keys for table, keys in REGISTERED_KEYS.items()
                        if table not in AUXILIARY_KEYS or table in self.auxiliary_bindings}
+        if (not isinstance(expected_empty_tables, tuple)
+                or len(set(expected_empty_tables)) != len(expected_empty_tables)
+                or not set(expected_empty_tables) <= self.tables.keys()):
+            raise ValueError('empty-product preconditions require distinct registered tables')
+        self.expected_empty_tables = expected_empty_tables
         self.auxiliary_publication = None if publication_top is None else publication_descriptor(publication_top)
         if self.auxiliary_publication is not None and (set(self.auxiliary_bindings) != set(AUXILIARY_KEYS)
                 or publication_top['data_revision'] != revision or publication_top['read_model_schema'] != schema):
@@ -682,6 +688,8 @@ class DeltaRecorder:
             self.previous = self._disk_baseline if self._disk_baseline.schema == schema else None
         else:
             self.previous = previous if previous and previous.get('schema') == schema else None
+        if self.expected_empty_tables and self.previous is None:
+            raise ValueError('empty-product publication requires an exact revision baseline')
         self._disk_index = DiskRowIndex(index_store_path) if index_store_path is not None else None
         self.index: dict[str, dict[str, dict]] = ({table: {} for table in self.tables}
                                                    if self._disk_index is None else {})
@@ -876,6 +884,10 @@ class DeltaRecorder:
             self.write('CREATE TABLE IF NOT EXISTS tos_delta_publications (revision TEXT PRIMARY KEY, base_revision TEXT NOT NULL);')
             self.write(f'DROP TRIGGER IF EXISTS {publication};')
             operations = [f"SELECT CASE WHEN {current_revision} IS NOT '{base}' THEN RAISE(ABORT, 'stale delta baseline') END;"]
+            operations.extend(
+                f"SELECT CASE WHEN EXISTS(SELECT 1 FROM {table} LIMIT 1) "
+                "THEN RAISE(ABORT, 'initial product is no longer empty') END;"
+                for table in self.expected_empty_tables)
             guards, seals = publication_operations(self.auxiliary_bindings)
             operations.extend(guards)
             for table, keys in self.tables.items():

@@ -289,6 +289,42 @@ plus optional reverse SQL. SQL-side masking precedes selected text delivery.
 The caller separately admits runtime memory and storage; these byte counters
 are not claims about Python heap size or remote D1 capacity.
 
+### Initial native navigation without rebuilding knowledge
+
+`scripts/source_navigation_bootstrap_runtime.py::build_source_navigation_bootstrap_sql`
+fills only an explicitly absent native product in an already admitted
+D1/prepared pair. It reads the complete immutable `nodes`/`edges` projection
+bound by the prepared source vector, not a nearby corpus export with different
+provenance. It also requires an independently admitted immutable rights
+projection, exact expected/trusted SHA-256, and a fresh mandatory reverse SQL
+target. Both databases remain in caller-held read transactions during capture.
+
+The rights projection uses logical schema `tos_source_navigation_rights_v1`,
+one `rights` collection keyed and ordered by `rights_id`, and a
+`navigation_header` containing the full producer's original
+`tos_source_navigation_v1` header. Its counts must exactly describe the two
+retained collections and the complete rights collection. The source owner must
+verify the rights input inventory, bytes and projection before admitting this
+snapshot; passing a digest alone is not a rights assessment. Additional input
+provenance may be retained in its header and is covered by that digest.
+
+Capture verifies every selected part and emits native rows with the same row
+kernel as the full producer. Knowledge bodies, search postings and prepared
+rows do not change. The D1 revision and reader/auxiliary bindings advance in
+the existing atomic publication trigger; the lineage binds the old D1
+revision, prepared/source pair, navigation and rights roots, and executable
+implementation. The trigger rechecks that all six native tables are empty,
+so a product inserted after capture cannot be overwritten. Replay and reverse
+use the ordinary revision guards. Native `ord` is zero; consumers order by
+stable identity as in addressed maintenance.
+
+This is an explicitly bounded **initial full-product** scan, not an addressed
+update and not a second full D1 import. The caller supplies projection read
+budgets plus the existing D1 retained-row/SQL budgets and host reservation.
+Subsequent source changes use `build_prepared_delta_sql`. Neither operation
+admits source meaning, establishes global currentness, activates consumers or
+grants deployment permission. Unknown/restricted rights remain unchanged.
+
 The optional reverse package is built from the same exact selected predecessors
 before returning success. It requires the successor D1 revision, restores the
 old reader rows and metadata, and preserves new source records and prepared
