@@ -117,9 +117,15 @@ graph-only execution retains its existing content-bound continuation format.
 Staging alone leaves the previous stores readable, and partial staging or
 intervening invalidation aborts the whole publication. Capture/read/retention
 and SQL budgets include the auxiliary rows. No query or delta capture installs
-the optional tables. Initial full-builder emission and the legacy full-producer
-delta route remain unintegrated; older writers invalidate the old store binding
-instead of silently repairing it. This is not yet a complete D1 growth workflow.
+the optional tables. The full SQL producer also emits and seals both stores,
+and its full-producer deltas maintain them through the same guarded publication.
+An older baseline without the auxiliary descriptor requires an explicit initial
+migration; it does not acquire an applicable delta. See the
+[D1 producer contract](deploy/cloudflare-worker/README.md) for its independent
+output budgets and maintenance-bootstrap boundary. Older writers invalidate
+the store binding instead of silently repairing it. These implemented routes
+do not migrate an existing D1 database automatically or broaden the addressed
+prepared-pair profile beyond its declared bibliographic transition scope.
 
 For both local and native D1 readers, endpoint policy `both` retains exact pair
 probes for small selected bases; above 64 nodes it scans actual outgoing
