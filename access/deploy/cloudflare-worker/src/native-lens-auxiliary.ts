@@ -20,6 +20,13 @@ export function compactCovered(spec: NativeSpec): boolean {
   return fields.every(field=>!OMITTED.some(omitted=>field===omitted || field.startsWith(omitted+'.') || omitted.startsWith(field+'.')));
 }
 
+export async function readLensPublicationBinding(read: NativeD1Read, top: {raw: string; ref: NativeRef}) {
+  const clock=await read.query<{epoch:number; kind:string}>('SELECT epoch,typeof(epoch) AS kind FROM knowledge_exploration_clock WHERE singleton=1 LIMIT 2');
+  if (clock.length!==1 || clock[0]!.kind!=='integer' || !Number.isSafeInteger(clock[0]!.epoch) || clock[0]!.epoch<0) nativeUnavailable('lens publication epoch invalid');
+  return derived({schema:'tos_published_knowledge_snapshot_v1',publication_epoch:clock[0]!.epoch,
+    metadata_sha256:await nativeSha256(top.raw),...Object.fromEntries(['read_model_schema','source_revision','data_revision','graph_schema','normalization_binding'].map(key=>[key,nativeChild(top.ref,key)]))});
+}
+
 export async function admitAuxiliary(read: NativeD1Read, top: {raw: string; ref: NativeRef}, requested: (keyof typeof STATES)[]) {
   if (!requested.length) return {installed:requested,verify:async()=>{}};
   const names=requested.map(key=>STATES[key][0]);
@@ -27,10 +34,7 @@ export async function admitAuxiliary(read: NativeD1Read, top: {raw: string; ref:
     "SELECT name FROM sqlite_master WHERE type='table' AND name IN (SELECT value FROM json_each(?))",JSON.stringify(names));
   const installed=requested.filter(key=>found.some(row=>row.name===STATES[key][0]));
   if (!installed.length) return {installed, verify:async()=>{}};
-  const clock=await read.query<{epoch:number; kind:string}>('SELECT epoch,typeof(epoch) AS kind FROM knowledge_exploration_clock WHERE singleton=1 LIMIT 2');
-  if (clock.length!==1 || clock[0]!.kind!=='integer' || !Number.isSafeInteger(clock[0]!.epoch) || clock[0]!.epoch<0) nativeUnavailable('auxiliary publication epoch invalid');
-  const expected=nativePacketJson(derived({schema:'tos_published_knowledge_snapshot_v1',publication_epoch:clock[0]!.epoch,
-    metadata_sha256:await nativeSha256(top.raw),...Object.fromEntries(['read_model_schema','source_revision','data_revision','graph_schema','normalization_binding'].map(key=>[key,nativeChild(top.ref,key)]))}));
+  const expected=nativePacketJson(await readLensPublicationBinding(read,top));
   const verify=async (initial=false)=>{
     for (const key of installed) {
       const [table,schema]=STATES[key];

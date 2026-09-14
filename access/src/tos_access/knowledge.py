@@ -5056,11 +5056,14 @@ def _focus_payload(
 
 def execute_knowledge_lens(
     graph: dict[str, Any], spec_value: Any, *, graph_index: KnowledgeGraphIndex | None = None,
+    publication_binding: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Execute the same lens, optionally reusing an immutable snapshot's index.
 
     A missing index keeps the unindexed path; no hidden process-wide graph or
     result cache is created. Delivery forms and pagination are never cached.
+    An optional caller-admitted publication binding scopes continuation, not
+    source authority or the content fingerprint of the immutable graph result.
     """
     public_spec = normalize_lens_spec(spec_value)
     spec = _bind_query_properties(graph, public_spec)
@@ -5224,6 +5227,7 @@ def execute_knowledge_lens(
         public_spec, selected_nodes.values(), selected_relations,
         source_revision=graph.get("source_revision"),
         authority_boundary=graph.get("authority_boundary", {}),
+        publication_binding=publication_binding,
         execution_counts={"available_nodes": len(nodes), "available_relations": len(relations),
                           "matched_nodes": len(matched_node_ids), "matched_relations": len(relation_candidates),
                           "eligible_relations": eligible_relation_count,
@@ -5238,6 +5242,7 @@ def finalize_knowledge_lens(
     authority_boundary: dict[str, Any], execution_counts: dict[str, Any],
     focus_node: dict[str, Any] | None = None, inclusion: dict[str, Any] | None = None,
     traversed_relation_ids: Iterable[str] = (),
+    publication_binding: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Shape an exact bounded selection; selection/count authority stays with its executor."""
     spec = public_spec
@@ -5271,11 +5276,14 @@ def finalize_knowledge_lens(
         "relations": [[item["id"], item["content_revision"]] for item in final_relations],
         "groups": groups,
     }
+    fingerprint = _stable_digest(fingerprint_material)
+    cursor_fingerprint = None if publication_binding is None or spec['pagination'] is None else _stable_digest({
+        'schema': 'tos_published_lens_cursor_v1', 'publication': publication_binding, 'fingerprint': fingerprint})
     result = paginate_lens({
         "schema": "tos_lens_result_v1",
         "source_revision": str(source_revision or ""),
         "lens": public_spec,
-        "fingerprint": _stable_digest(fingerprint_material),
+        "fingerprint": fingerprint,
         "presentation": spec["presentation"],
         "focus": focus,
         **({'inclusion': {'nodes': inclusion,
@@ -5328,7 +5336,7 @@ def finalize_knowledge_lens(
             "is_source": False,
             "writes_to_tree": False,
         },
-    })
+    }, cursor_fingerprint=cursor_fingerprint)
     result['scene'] = knowledge_scene(result['nodes'], result['relations'],
                                       result['focus']['node_id'] if result['focus'] else None)
     return result

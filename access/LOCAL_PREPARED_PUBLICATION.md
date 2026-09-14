@@ -106,10 +106,14 @@ also maintains explicitly installed stores: it verifies the selected old seeds
 and complete membership rows, stages only changed rows and seals both stores
 inside the same revision-guarded publication trigger. Reverse publication seals
 the restored data against a new actual epoch; it does not reuse an old publication
-identity. The existing v7 lens continuation fingerprint still lacks this epoch:
-an unchanged bounded result can accept its cursor across publication/rollback.
-That reader-contract gap remains open; the writer epoch check alone does not
-prove continuation isolation.
+identity. Published lens cursors independently bind the complete admitted
+`tos_published_knowledge_snapshot_v1` (including data revision, epoch and header
+digest) together with the v7 result fingerprint. The result fingerprint remains
+content-scoped; the cursor is publication-scoped. The same snapshot can resume
+after a runtime restart, but a changed publication or an ABA rollback requires
+a fresh query even when the bounded result is identical. Legacy unbound lens
+cursors are rejected with 409/restart, not silently reinterpreted. Immutable
+graph-only execution retains its existing content-bound continuation format.
 Staging alone leaves the previous stores readable, and partial staging or
 intervening invalidation aborts the whole publication. Capture/read/retention
 and SQL budgets include the auxiliary rows. No query or delta capture installs

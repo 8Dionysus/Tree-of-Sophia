@@ -7,7 +7,7 @@ import {nativeLower, nativeUnicodeVersion, nativeSortKey, codePointCompare, Nati
 import {arrayRefs, compileNativeSpec, derived, nativeMatchesGroup, nativeChild, nativeField, nativeKeys,
   nativePacketJson, parseNativeJson, stringField, type NativeFilter, type NativeRef, type NativeSpec, type NativeGroup, type NativeLensResult} from './native-lens.ts';
 import {finalizeNativeLens} from './native-lens-result.ts';
-import {admitAuxiliary,compactCovered,compileMembership,type NativeMembershipPlan} from './native-lens-auxiliary.ts';
+import {admitAuxiliary,compactCovered,compileMembership,readLensPublicationBinding,type NativeMembershipPlan} from './native-lens-auxiliary.ts';
 
 import {NativeD1Read as Read, NativeD1Rows, nativeD1Limits as nativeLensLimits, nativeBytes as bytes, nativeSha256 as sha256, nativeUnavailable as unavailable, readNativePublication, type NativeD1Limits as Limits} from './native-d1-read.ts';
 export {nativeD1Limits as nativeLensLimits} from './native-d1-read.ts';
@@ -365,6 +365,7 @@ export async function executeNativeLensD1(db: D1Database, input: NativeRef, over
     || ['property_id','field','value_type'].some(key => typeof definition[key] !== 'string' || !definition[key]) || typeof definition.inherited !== 'boolean'
     || ['applies_to','operators'].some(key => !Array.isArray(definition[key]) || definition[key].some((value: unknown) => typeof value !== 'string' || !value)))) unavailable('native lens query property framing invalid');
   const compiled = compileNativeSpec(input, definitions as QueryProperty[]), plan = new Plan(read, metadata.ref.value as LensMetadata, compiled.spec, limits), spec = plan.spec;
+  const publicationBinding = spec.pagination ? await readLensPublicationBinding(read,top) : undefined;
   const membershipPlans={node:compileMembership('node',spec.node_query),relation:compileMembership('relation',spec.relation_query)};
   const auxiliary=await admitAuxiliary(read,top,[...(compactCovered(spec)?['compact' as const]:[]),
     ...(membershipPlans.node||membershipPlans.relation?['membership' as const]:[])]);
@@ -413,5 +414,5 @@ export async function executeNativeLensD1(db: D1Database, input: NativeRef, over
   return finalizeNativeLens(nativeField(top.ref, 'authority_boundary'), sourceRevision, spec, compiled.publicPacket, [...selected.values()], relationIds.map(id => relations.get(id)!), {
     available_nodes: plan.scopeCells('node').reduce((sum, cell) => sum + cell[3], 0), available_relations: plan.scopeCells('relation').reduce((sum, cell) => sum + cell[3], 0),
     matched_nodes: matchedNodes, matched_relations: plan.matchedRelations, eligible_relations: eligible.count, identity_expansion_limited: identityLimited,
-  }, focus, inclusion);
+  }, focus, inclusion, publicationBinding);
 }

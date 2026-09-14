@@ -111,6 +111,14 @@ Full SQL posting/statistics INSERTs are bounded both by encoded bytes and by
 512 VALUES rows. A small encoded statement can still contain enough short rows
 to exhaust D1's statement compiler; the row cap preserves every posting while
 bounding that preparation pressure. This is not a whole-import memory budget.
+
+Published Python/D1 lens cursors additionally bind the complete admitted
+publication snapshot, including data revision, epoch and emitted-header digest.
+The v7 result fingerprint itself stays content-scoped. A same-snapshot runtime
+restart preserves continuation; a changed publication or ABA rollback returns
+409 even when its selected rows are identical. Existing unbound published lens
+cursors require a fresh first page. This changes opaque cursor identity, not
+source records, human forms, non-paginated packets or graph-only continuation.
 Execution/response budget exhaustion returns 413 on lens compilation and
 stored-lens/focus GET/HEAD, matching the published Python adapter. Invalid
 compilation input remains 400; unavailable or damaged publication data is 503.

@@ -67,7 +67,8 @@ function cursorOffsets(cursor: string | null, fingerprint: string, nodes: number
   return [n, r];
 }
 export async function finalizeNativeLens(authority: NativeRef, revision: string, spec: NativeSpec, publicSpec: NativePacket,
-  selectedNodes: NativeRef[], selectedRelations: NativeRef[], execution: LensExecutionCounts, focus: NativeRef | null, inclusion: Inclusion): Promise<NativeLensResult> {
+  selectedNodes: NativeRef[], selectedRelations: NativeRef[], execution: LensExecutionCounts, focus: NativeRef | null, inclusion: Inclusion,
+  publicationBinding?: NativePacketValue): Promise<NativeLensResult> {
   const sortBudget = {bytes: 0, maxBytes: 4 * 1024 * 1024};
   const nodes = nativeSortedRows(selectedNodes, spec.composition.sort_nodes, sortBudget);
   const relations = nativeSortedRows(selectedRelations, spec.composition.sort_relations, sortBudget);
@@ -107,13 +108,15 @@ export async function finalizeNativeLens(authority: NativeRef, revision: string,
   }
   let pageNodes = nodes, pageRelations = relations, pageGroups = groups, page: unknown = null, pageInclusion = inclusion;
   if (spec.pagination) {
-    const options = spec.pagination, [nodeOffset, relationOffset] = cursorOffsets(options.cursor, fingerprint, nodes.length, relations.length);
+    const cursorFingerprint = publicationBinding === undefined ? fingerprint : await nativeDigest(nativePacketObject([
+      ['schema','tos_published_lens_cursor_v1'],['publication',publicationBinding],['fingerprint',fingerprint]]));
+    const options = spec.pagination, [nodeOffset, relationOffset] = cursorOffsets(options.cursor, cursorFingerprint, nodes.length, relations.length);
     const primary = nodes.slice(nodeOffset, nodeOffset + options.nodes); pageRelations = relations.slice(relationOffset, relationOffset + options.relations);
     const primaryIds = new Set(primary.map(ref => stringField(ref, 'id'))), ids = new Set([...primaryIds, ...pageRelations.flatMap(ref => [stringField(ref, 'from_id'), stringField(ref, 'to_id')])]);
     if (focusId !== null) ids.add(focusId);
     pageNodes = nodes.filter(ref => ids.has(stringField(ref, 'id')));
     const nextN = nodeOffset + primary.length, nextR = relationOffset + pageRelations.length, hasMore = nextN < nodes.length || nextR < relations.length;
-    const nextCursor = hasMore ? btoa(JSON.stringify({v: 1, fingerprint, n: nextN, r: nextR})).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : null;
+    const nextCursor = hasMore ? btoa(JSON.stringify({v: 1, fingerprint: cursorFingerprint, n: nextN, r: nextR})).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : null;
     const relationIds = new Set(pageRelations.map(ref => stringField(ref, 'id')));
     pageGroups = groups.flatMap(group => {
       const node_ids = group.node_ids.filter(id => ids.has(id)), relation_ids = group.relation_ids.filter(id => relationIds.has(id));

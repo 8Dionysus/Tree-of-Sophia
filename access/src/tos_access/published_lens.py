@@ -671,11 +671,11 @@ class PublishedLensService:
                 plan.memberships = memberships
             if supports_compact_lens_carrier(bound):
                 plan.payloads.compact = compact_lens_store.validate_state(read.query, self.reader.snapshot_binding)
-            return self._execute(plan, public)
+            return self._execute(plan, public, self.reader.snapshot_binding)
         return self.reader._read(operation)
 
     @staticmethod
-    def _execute(plan, public):
+    def _execute(plan, public, publication_binding):
         spec = plan.spec
         focus = plan.focus()
         candidates, proofs = plan.select_nodes(focus)
@@ -743,6 +743,7 @@ class PublishedLensService:
             raise PublishedReadModelError("prepared lens eligible/count/order closure is incomplete")
         relations = plan.payloads.load("relation", relation_ids)
         return k.finalize_knowledge_lens(public, selected.values(), [relations[identifier] for identifier in relation_ids],
+            publication_binding=publication_binding,
             source_revision=plan.top["source_revision"], authority_boundary=plan.top["authority_boundary"],
             execution_counts={"available_nodes": sum(cell[3] for cell in plan.scope_cells("node")),
                               "available_relations": sum(cell[3] for cell in plan.scope_cells("relation")),

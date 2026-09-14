@@ -747,7 +747,7 @@
       "family": "standalone_access_contract",
       "validation_lane": "standalone_access",
       "owner_surface": "access/src/tos_access/published_lens.py",
-      "protects": "exact native-v7 lens and focus packets from emitted v9 SQL, Unicode callback semantics, stateless cursor parity, snapshot and ordered-carrier integrity, source-indexed generic candidate scans, explicit bounded refusal and retained v8 inspection",
+      "protects": "exact native-v7 lens and focus packets from emitted v9 SQL, Unicode callback semantics, stateless publication-bound cursor parity and same-snapshot restart, unchanged-result epoch/ABA and legacy-cursor refusal, snapshot and ordered-carrier integrity, source-indexed generic candidate scans, explicit bounded refusal and retained v8 inspection",
       "coverage_authority": "access/AGENTS.md standalone access validation",
       "mode": "blocking",
       "runtime_cost": "fast",

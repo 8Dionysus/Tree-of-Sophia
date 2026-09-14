@@ -32,10 +32,11 @@ def normalize_pagination(value):
     return {**sizes, 'cursor': cursor}
 
 
-def paginate_lens(result):
+def paginate_lens(result, *, cursor_fingerprint=None):
     options = result['lens']['pagination']
     if options is None:
         return result
+    fingerprint = result['fingerprint'] if cursor_fingerprint is None else cursor_fingerprint
     node_offset = relation_offset = 0
     if options['cursor'] is not None:
         try:
@@ -49,7 +50,7 @@ def paginate_lens(result):
         for key in ('n', 'r'):
             if type(token[key]) is not int or not 0 <= token[key] <= 2000:
                 raise ValueError('invalid lens cursor position')
-        if token['fingerprint'] != result['fingerprint']:
+        if token['fingerprint'] != fingerprint:
             raise KnowledgeRevisionConflict('lens query or snapshot changed; restart pagination')
         node_offset, relation_offset = token['n'], token['r']
         if node_offset > len(result['nodes']) or relation_offset > len(result['relations']):
@@ -64,7 +65,7 @@ def paginate_lens(result):
     selected_nodes = [node for node in nodes if node['id'] in selected_ids]
     next_n, next_r = node_offset + len(primary), relation_offset + len(selected_relations)
     has_more = next_n < len(nodes) or next_r < len(relations)
-    token = {'v': 1, 'fingerprint': result['fingerprint'], 'n': next_n, 'r': next_r}
+    token = {'v': 1, 'fingerprint': fingerprint, 'n': next_n, 'r': next_r}
     next_cursor = base64.urlsafe_b64encode(json.dumps(token, separators=(',', ':')).encode()).decode().rstrip('=') if has_more else None
     relation_ids = {r['id'] for r in selected_relations}
     groups = []

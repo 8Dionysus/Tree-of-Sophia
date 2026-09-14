@@ -56,9 +56,11 @@ for kind,items,raws in [('node',graph['nodes'],raw_nodes),('relation',graph['rel
 base={'schema_version':'tos_lens_spec_v1','lens_id':'native-lens','sources':['philosophy'],'detail':'full','explain':True,
  'relation_query':{'enabled':False},'composition':{'sort_nodes':[{'field':'attributes.value','direction':'asc'}]}}
 cases=[]
+from tos_access.published_read_metadata import published_snapshot_binding
+publication_binding=published_snapshot_binding(metadata['knowledge_reader_top'],1)
 def add(name,spec,raw=None):
  raw=raw or compact_json(spec)
- try:expected=compact_json(execute_knowledge_lens(graph,json.loads(raw)));error=None
+ try:expected=compact_json(execute_knowledge_lens(graph,json.loads(raw),publication_binding=publication_binding));error=None
  except Exception as e:expected=None;error=type(e).__name__
  cases.append({'name':name,'rawSpec':raw,'expected':expected,'error':error})
 add('all-native-sort',base)
@@ -89,7 +91,7 @@ for page_number in range(20):
  cursor=json.loads(cases[-1]['expected'])['page']['next_cursor']
  if cursor is None:break
  paged={**paged,'pagination':{**paged['pagination'],'cursor':cursor}}
-print(json.dumps({'rawGraph':compact_json(graph),'rawNodes':raw_nodes,'rawRelations':raw_relations,'metadata':{key:compact_json(value) for key,value in metadata.items()},'cases':cases}))
+print(json.dumps({'rawGraph':compact_json(graph),'rawNodes':raw_nodes,'rawRelations':raw_relations,'metadata':{key:compact_json(value) for key,value in metadata.items()},'binding':publication_binding,'cases':cases}))
 `);
 
 function database(data = fixture, metadataPrimaryKey = true) {
@@ -419,6 +421,25 @@ test('native source strict duplicates and request/cursor last-wins remain separa
   assert.throws(()=>compileNativeSpec(parseNativeRequest('{"schema_version":"tos_lens_spec_v1","lens_id":"x","pagination":{"nodes":1.0}}'),[]),/integer/);
 });
 
+test('published lens continuation binds the full publication even for unchanged result and ABA', async () => {
+  const {db,sqlite}=database();
+  const spec=JSON.parse(fixture.cases.find(item=>item.name==='page-0').rawSpec);
+  const execute=async value=>JSON.parse(nativePacketJson((await executeKnowledgeLensD1(db,parseNativeRequest(JSON.stringify(value)))).packet));
+  try{
+    const first=await execute(spec),token=first.page.next_cursor;assert.ok(token);
+    const continuation={...spec,pagination:{...spec.pagination,cursor:token}};
+    assert.deepEqual(await execute(continuation),await execute(continuation));
+    const legacy=JSON.parse(Buffer.from(token,'base64url'));legacy.fingerprint=first.fingerprint;
+    await assert.rejects(execute({...spec,pagination:{...spec.pagination,cursor:Buffer.from(JSON.stringify(legacy)).toString('base64url')}}),/snapshot changed/);
+    for(let i=0;i<2;i++){
+      sqlite.exec('UPDATE knowledge_exploration_clock SET epoch=epoch+2');
+      await assert.rejects(execute(continuation),/snapshot changed/);
+      const current=await execute(spec);assert.equal(current.fingerprint,first.fingerprint);
+      assert.notEqual(current.page.next_cursor,token);assert.deepEqual(current.nodes,first.nodes);
+    }
+  }finally{sqlite.close();}
+});
+
 test('native fingerprint preserves the v7 float64 coercion contract, not raw-number identity', async () => {
   assert.equal(await nativeDigest(parseNativeJson('1')),await nativeDigest(parseNativeJson('1.0')));
   assert.equal(await nativeDigest(parseNativeJson('9007199254740992')),await nativeDigest(parseNativeJson('9007199254740993')));
@@ -661,7 +682,7 @@ test('actual Worker HTTP receives raw numbers, strict cursors and publication fa
     const duplicate=JSON.stringify(token).slice(0,-1)+',"n":'+token.n+'}';
     spec.pagination.cursor=Buffer.from(duplicate).toString('base64url');
     const response=await send(JSON.stringify(spec));assert.equal(response.status,200);
-    const expectedDuplicate=python("from tos_access.knowledge import execute_knowledge_lens;data=json.load(sys.stdin);print(json.dumps(json.dumps(execute_knowledge_lens(json.loads(data['graph']),data['spec']),ensure_ascii=False,separators=(',',':'))))",{graph:fixture.rawGraph,spec});
+    const expectedDuplicate=python("from tos_access.knowledge import execute_knowledge_lens;data=json.load(sys.stdin);print(json.dumps(json.dumps(execute_knowledge_lens(json.loads(data['graph']),data['spec'],publication_binding=data['binding']),ensure_ascii=False,separators=(',',':'))))",{graph:fixture.rawGraph,spec,binding:fixture.binding});
     assert.deepEqual(differences([{name:'last-wins-cursor',expected:expectedDuplicate,actual:await response.text()}])[0].diff,[]);
     updateLens(lens=>{lens.unicode_version='15.0.0';});assert.equal((await send(first.rawSpec)).status,503);
     updateLens(lens=>{lens.unexpected=true;});assert.equal((await send(first.rawSpec)).status,503);

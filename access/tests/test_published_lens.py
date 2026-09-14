@@ -81,7 +81,7 @@ class PublishedLensTests(unittest.TestCase):
         self.service = PublishedLensService(self.reader)
 
     def parity(self, spec):
-        expected = k.execute_knowledge_lens(self.graph, spec)
+        expected = k.execute_knowledge_lens(self.graph, spec, publication_binding=self.reader.snapshot_binding)
         actual = self.service.execute(spec)
         self.assertEqual(actual, expected)
         return actual
@@ -234,6 +234,32 @@ class PublishedLensTests(unittest.TestCase):
         else:
             self.fail('bounded lens pagination did not terminate')
         self.assertTrue(seen)
+
+    def test_continuation_is_publication_bound_even_when_result_is_unchanged(self):
+        from tos_access.lens_pagination import KnowledgeRevisionConflict
+        spec = lens(pagination={'nodes': 2, 'relations': 2})
+        first = self.service.execute(spec)
+        cursor = first['page']['next_cursor']
+        self.assertIsNotNone(cursor)
+        continuation = {**spec, 'pagination': {**spec['pagination'], 'cursor': cursor}}
+        # A newly constructed reader on the same admitted snapshot can resume.
+        self.assertEqual(self.service.execute(continuation),
+            PublishedLensService(PublishedKnowledgeReadModel(self.path, self.binding)).execute(continuation))
+        legacy = k.execute_knowledge_lens(self.graph, spec)['page']['next_cursor']
+        with self.assertRaises(KnowledgeRevisionConflict):
+            self.service.execute({**spec, 'pagination': {**spec['pagination'], 'cursor': legacy}})
+        for offset in (1, 3):
+            binding = {**self.binding, 'publication_epoch': self.binding['publication_epoch'] + offset}
+            with closing(sqlite3.connect(self.path)) as db:
+                db.execute('UPDATE knowledge_exploration_clock SET epoch=? WHERE singleton=1', (binding['publication_epoch'],))
+                db.commit()
+            current = PublishedLensService(PublishedKnowledgeReadModel(self.path, binding))
+            with self.assertRaises(KnowledgeRevisionConflict):
+                current.execute(continuation)
+            packet = current.execute(spec)
+            self.assertEqual(packet['fingerprint'], first['fingerprint'])
+            self.assertEqual(packet['nodes'], first['nodes'])
+            self.assertNotEqual(packet['page']['next_cursor'], cursor)
 
     def test_cold_requests_never_build_index_graph_catalog_or_digest(self):
         statements = []
