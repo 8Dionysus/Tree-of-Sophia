@@ -79,7 +79,7 @@ def prepare_source_navigation_row(
         properties_position=properties_position,
         encode=lambda value: value,
         empty_json=sql_text(""),
-        empty_properties=sql_text("{}"),
+        empty_properties=sql_text(""),
     )
 
 
@@ -260,7 +260,7 @@ def project_source_navigation_row(
         properties_position=properties_position,
         encode=_sql_value,
         empty_json="",
-        empty_properties="{}",
+        empty_properties="",
     )
     if payload_json is None:
         payload_rows: tuple[tuple[str, int, str], ...] = ()

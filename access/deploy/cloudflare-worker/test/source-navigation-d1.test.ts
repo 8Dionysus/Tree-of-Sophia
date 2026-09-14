@@ -188,3 +188,27 @@ test("D1 source routes fail closed for packet members and unknown dossier kinds"
     await mf.dispose();
   }
 });
+
+test("D1 hydrates empty selection sentinels for nodes, edges and rights", async () => {
+  const { mf, db } = await database();
+  try {
+    const navigation = baseNavigation();
+    navigation.nodes.push({ node_id: "packet-member", node_kind: "item", label: "packet", source_ref: "packet.json", identity_status: "provisional", properties: { packet_id: "dense" } });
+    navigation.counts.nodes += 1;
+    const payloads = new Set([
+      ...navigation.nodes.map(row => String(row.node_id)),
+      ...navigation.edges.map(row => String(row.edge_id)),
+      ...navigation.rights.map(row => String(row.rights_id)),
+    ]);
+    await populate(db, navigation, payloads);
+    // Exact compact-row framing emitted when a selection hint also overflows.
+    await db.prepare("UPDATE source_navigation_nodes SET properties_json = ''").run();
+    await db.prepare("UPDATE source_navigation_edges SET source_refs_json = ''").run();
+    await db.prepare("UPDATE source_navigation_rights SET scope_refs_json = ''").run();
+    assert.deepEqual(await sourceDossierD1(db, "work", 30), sourceDossier(navigation, "work", 30));
+    assert.deepEqual(await sourceDossierD1(db, "link", 30), sourceDossier(navigation, "link", 30));
+    await assert.rejects(sourceDescendD1(db, "packet-member", 1, 3), /unknown ToS source-navigation node/);
+  } finally {
+    await mf.dispose();
+  }
+});

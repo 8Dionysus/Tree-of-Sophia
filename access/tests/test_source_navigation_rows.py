@@ -146,7 +146,7 @@ class SourceNavigationRowsTests(unittest.TestCase):
             )
             self.assertEqual(projected.values[0], "tos.node.large")
             self.assertEqual(projected.values[1], 0)
-            self.assertEqual(projected.values[6], "{}")
+            self.assertEqual(projected.values[6], "")
             self.assertEqual(projected.values[7], "")
             self.assertGreater(len(projected.payload_rows), 1)
             self.assertEqual(
@@ -182,6 +182,21 @@ class SourceNavigationRowsTests(unittest.TestCase):
                 "🌳",
                 statements[-1],
             )
+
+    def test_oversized_reference_arrays_use_reader_hydration_sentinel(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            refs = ["tos.subject." + "🌳" * 600_000]
+            for kind, item, column in (
+                ("edges", {"edge_id": "edge", "from_id": "a", "to_id": "b", "source_refs": refs}, "source_refs_json"),
+                ("rights", {"rights_id": "rights", "scope_refs": refs}, "scope_refs_json"),
+            ):
+                with self.subTest(kind=kind):
+                    projected = project_source_navigation_row(kind, 0, item, root)
+                    self.assertEqual(projected.values[projected.columns.index(column)], "")
+                    self.assertEqual(projected.values[projected.columns.index("json")], "")
+                    restored = json.loads("".join(row[2] for row in projected.payload_rows))
+                    self.assertEqual(restored, item)
 
 
 if __name__ == "__main__":
