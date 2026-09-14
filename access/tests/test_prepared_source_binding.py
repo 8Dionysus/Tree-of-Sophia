@@ -64,6 +64,97 @@ class PreparedSourceBindingTests(unittest.TestCase):
     def selected(self, binding):
         return paired.read_prepared_source_inputs_transaction(self.db, expected_binding=binding)
 
+    def extension(self):
+        path = self.root_path.parent / 'authored-corpus.json'
+        write_projection(path, {'schema_version': 'test_additional_source_root_v1'},
+                         {'relations': Collection([('edge', {'original': 'unchanged'})], None)}, work_dir=path.parent)
+        graph = {**self.f.graph, 'source_revision': 'e' * 64}
+        after = paired.PreparedSourceInputs(source_revision=graph['source_revision'],
+            source_publication=self.before.value()['source_publication'],
+            dependencies=self.before.value()['dependencies'],
+            roots={**self.before.roots(), 'authored-corpus': ProjectionSnapshotView(path.read_bytes(), path)})
+        return graph, after
+
+    def extend(self, graph, after, **options):
+        return paired.bootstrap_prepared_source_root_extension_transaction(self.db,
+            expected_binding=self.f.binding, before_source_inputs=self.before, after_source_inputs=after,
+            added_root='authored-corpus', before_inputs=self.f.inputs(self.f.graph),
+            after_inputs=self.f.inputs(graph), **options)
+
+    def test_explicit_root_extension_is_atomic_and_never_rewrites_normalized_bodies(self):
+        self.attach()
+        graph, after = self.extension()
+        before_rows = {name: self.db.execute('SELECT * FROM ' + name).fetchall()
+                       for name in ('knowledge_nodes', 'knowledge_relations')}
+        old_reader = PublishedKnowledgeReadModel(self.f.path, self.f.binding)
+        self.db.execute('BEGIN IMMEDIATE')
+        with self.assertRaisesRegex(ValueError, 'requires explicit bootstrap'):
+            self.apply(graph, after)
+        result = self.extend(graph, after)
+        self.assertEqual(self.selected(result['binding']), after)
+        self.assertEqual(result['normalized_row_changes_supplied'], 0)
+        self.assertFalse(result['source_root_admission_verified'])
+        self.assertEqual(old_reader.node('a')['source_revision'], self.before.value()['source_revision'])
+        for name, rows in before_rows.items():
+            self.assertEqual(self.db.execute('SELECT * FROM ' + name).fetchall(), rows)
+        self.db.commit()
+        self.assertEqual(PublishedKnowledgeReadModel(self.f.path, result['binding']).node('a')['source_revision'], graph['source_revision'])
+        with self.assertRaises(PublishedSnapshotConflict):
+            old_reader.node('a')
+
+    def test_extension_cannot_rebind_execution_source_namespaces_or_header_semantics(self):
+        self.attach()
+        graph, after = self.extension()
+        for kind in ('dependencies', 'publication', 'old-namespace', 'old-root', 'no-new-revision', 'header', 'two-roots'):
+            value = after.value()
+            roots = after.roots()
+            changed_graph = dict(graph)
+            if kind == 'dependencies':
+                value['dependencies']['entity-registry'] = 'f' * 64
+            elif kind == 'publication':
+                value['source_publication'] = 'sha256:' + 'f' * 64
+            elif kind == 'old-namespace':
+                roots['source-catalog'] = ProjectionSnapshotView(self.root.root_bytes, self.root_path.parent / 'relocated' / self.root_path.name)
+            elif kind == 'old-root':
+                roots['source-catalog'] = roots['authored-corpus']
+            elif kind == 'no-new-revision':
+                value['source_revision'] = self.before.value()['source_revision']
+                changed_graph['source_revision'] = value['source_revision']
+            elif kind == 'header':
+                changed_graph['authority_boundary'] = {'changed': True}
+            elif kind == 'two-roots':
+                roots['another'] = roots['authored-corpus']
+            changed = paired.PreparedSourceInputs(source_revision=value['source_revision'],
+                source_publication=value['source_publication'], dependencies=value['dependencies'], roots=roots)
+            self.db.execute('BEGIN IMMEDIATE')
+            start = self.db.total_changes
+            with self.subTest(kind=kind), self.assertRaises(ValueError):
+                self.extend(changed_graph, changed)
+            self.assertEqual(start, self.db.total_changes)
+            self.db.rollback()
+
+    def test_extension_final_write_failure_rolls_back_and_retry_keeps_exact_budget(self):
+        self.attach()
+        graph, after = self.extension()
+        self.db.execute('BEGIN IMMEDIATE')
+        writes = self.extend(graph, after)['sql_mutations']
+        self.db.rollback()
+        self.db.execute('BEGIN IMMEDIATE')
+        with self.assertRaises(ValueError):
+            self.extend(graph, after, limits=replace(PublicationLimits(), max_mutations=writes - 1))
+        self.db.rollback()
+        self.db.execute("CREATE TRIGGER fail_extension BEFORE UPDATE ON prepared_source_state BEGIN SELECT RAISE(ABORT,'injected extension failure'); END")
+        self.db.execute('BEGIN IMMEDIATE')
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.extend(graph, after)
+        self.db.rollback()
+        self.db.execute('DROP TRIGGER fail_extension')
+        self.db.execute('BEGIN IMMEDIATE')
+        self.assertEqual(self.selected(self.f.binding), self.before)
+        result = self.extend(graph, after, limits=replace(PublicationLimits(), max_mutations=writes))
+        self.assertEqual(result['sql_mutations'], writes)
+        self.db.commit()
+
     def test_explicit_bootstrap_keeps_reader_binding_and_detached_native_roots(self):
         result = self.attach()
         self.assertEqual(result['binding'], self.f.binding)

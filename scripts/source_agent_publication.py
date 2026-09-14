@@ -21,7 +21,10 @@ from tos_access.prepared_source_dependencies import (
     ProgressHandlerOwner, SourceClaimDependencies, SourceDependencyLimits,
     lookup_source_dependencies_transaction, _operation, _claim, _current, _column,
 )
-from tos_access.prepared_source_publication import apply_dependency_bound_prepared_delta_transaction
+from tos_access.prepared_source_publication import (
+    apply_dependency_bound_prepared_delta_transaction,
+    bootstrap_dependency_bound_source_extension_transaction,
+)
 from tos_access.projection_mutation import (
     ProjectionChange, ProjectionSnapshotView, MutationLimits, _SnapshotMutationReader,
     _Budget as _ProjectionBudget, stage_projection_snapshot_changes, _json_bytes,
@@ -340,6 +343,48 @@ def _state(b, binding, inputs):
             or value.get('source_inputs_sha256') != inputs.digest):
         raise ValueError('context index binds another publication')
     return value
+
+
+def bootstrap_agent_source_addressing_extension_transaction(db, *, expected_binding,
+        before_source_inputs, after_source_inputs, added_root, before_inputs, after_inputs,
+        progress_owner, publication_limits=None, dependency_limits=None,
+        catalog_limits=None, semantic_limits=None):
+    """Extend addressing and rebind unchanged dependency/context indexes.
+
+    The stronger source owner must verify added-root membership against the
+    retained normalized material. This route changes no source body, execution
+    profile or context membership. A stale execution profile remains stale;
+    extension cannot make it eligible for a new source command publication.
+    Caller owns commit and full rollback, including its earlier writes.
+    """
+    _require_vector(before_source_inputs)
+    _require_vector(after_source_inputs)
+    publication_limits = publication_limits or PublicationLimits()
+    dependency_limits = dependency_limits or SourceDependencyLimits()
+    if publication_limits.max_mutations <= 1:
+        raise ValueError('source extension requires context finalizer allowance')
+    start = db.total_changes
+    with _operation(db, dependency_limits, progress_owner) as budget:
+        state = _state(budget, expected_binding, before_source_inputs)
+    result = bootstrap_dependency_bound_source_extension_transaction(db,
+        expected_binding=expected_binding, before_source_inputs=before_source_inputs,
+        after_source_inputs=after_source_inputs, added_root=added_root,
+        before_inputs=before_inputs, after_inputs=after_inputs,
+        declaration_profile_sha256=before_source_inputs.value()['dependencies']['declaration-profile'],
+        progress_owner=progress_owner, limits=replace(publication_limits, max_mutations=publication_limits.max_mutations - 1),
+        dependency_limits=dependency_limits, catalog_limits=catalog_limits, semantic_limits=semantic_limits)
+    with _operation(db, dependency_limits, progress_owner) as budget:
+        state.update(binding=result['binding'], source_inputs_sha256=after_source_inputs.digest)
+        raw = _json_bytes(state, budget.limits.max_state_bytes)
+        budget.execute('UPDATE agent_context_state SET json=?,sha256=? WHERE singleton=1', (raw.decode(), _digest(raw)))
+        if _state(budget, result['binding'], after_source_inputs) != state:
+            raise ValueError('extended Agent context selection readback differs')
+    total = db.total_changes - start
+    if total > publication_limits.max_mutations:
+        raise ValueError('source extension combined context/pairing budget exceeded; rollback required')
+    return {**result, 'sql_mutations': total, 'agent_context_selection_paired': True,
+            'agent_context_membership_changed': False,
+            'execution_profile_current': before_source_inputs.value()['dependencies'].get('agent-publication-profile') == execution_profile_sha256()}
 
 
 def _put_unique(target, key, value):

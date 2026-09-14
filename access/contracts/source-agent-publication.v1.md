@@ -136,6 +136,37 @@ The supplied publication mutation cap includes the context-binding finalizer;
 source filesystem staging is accounted separately. Unsupported or oversized
 closure fails closed without full-build fallback.
 
+## Explicit additive source addressing
+
+`bootstrap_agent_source_addressing_extension_transaction` joins the explicit
+single-root extension with unchanged reverse dependencies and Agent context
+membership. It updates only their selected binding/state, never normalized
+bodies or the retained execution-profile digest. Source membership admission
+belongs to the caller. `execution_profile_current=false` remains observable
+for an old execution profile: the extension cannot make a subsequent source
+command eligible by simply copying the current implementation hash.
+
+For authored CSV, `scripts/authored_corpus_source_read.py` supplies the stronger
+`bootstrap_authored_source_read_transaction` composition. The caller provides
+the existing corpus-index pack/row records and a fresh output namespace, not an
+arbitrary root to trust. Indexed, budgeted reads of both canon and intake
+prepared relation carriers require exact equality of CSV membership, original
+cells, logical row ordinals, source-file digests and pack-scoped graph IDs.
+Explicit node-contract relations remain a separate non-CSV carrier; a missing
+CSV identity is not silently skipped. Tracked owner files, complete included
+pack rows and actual CSV bytes are then checked by the existing raw bootstrap.
+No full graph materialization or source reimport occurs.
+
+The resulting immutable `authored-corpus` root is paired in the same caller
+transaction as the prepared lanes, dependency and context selection. Its
+receipt scopes admission to `exact-retained-authored-csv-records`, not global
+source completeness, semantic acceptance, rights or canon. Before committing,
+the caller rechecks `verify_authored_csv_sources` against the same validated
+index and retains ordinary source-owner guards. The helper also checks files
+before returning, but does not claim a filesystem/SQLite atomic commit. An
+error requires full rollback; unselected parts may remain. This offline route
+does not activate a service, alter a running reader or rebind execution policy.
+
 Receipts separate source-command commit, prepared commit, bounded descriptive
 closure and semantic report. They grant no textual/semantic acceptance,
 rights, consent, canon, global source currentness or runtime health. Focused

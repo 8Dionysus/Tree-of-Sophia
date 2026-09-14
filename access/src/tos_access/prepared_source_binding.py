@@ -201,6 +201,58 @@ def apply_source_bound_prepared_delta_transaction(db, *, expected_binding, befor
                                 for name, spec in root['collections'].items()}}
         if _json_bytes(identity(old_root), MAX_STATE_BYTES) != _json_bytes(identity(new_root), MAX_STATE_BYTES):
             raise ValueError('source projection logical identity requires explicit bootstrap')
+    return _publish_paired_selection(db, expected_binding=expected_binding,
+        before_source_inputs=before_source_inputs, after_source_inputs=after,
+        before_inputs=before_inputs, after_inputs=after_inputs, changes=changes,
+        limits=limits, catalog_limits=catalog_limits, semantic_limits=semantic_limits)
+
+
+def bootstrap_prepared_source_root_extension_transaction(db, *, expected_binding,
+        before_source_inputs, after_source_inputs, added_root, before_inputs,
+        after_inputs, limits=None, catalog_limits=None, semantic_limits=None):
+    """Explicitly pair one additional independent root, retaining all row bodies.
+
+    This is a bootstrap of additional source addressing, not an ordinary delta,
+    source-profile upgrade or admission. The caller must prove the new root's
+    membership against the unchanged prepared material and source owner. Old
+    roots, namespaces, source publication and execution/semantic dependencies
+    must remain byte-identical. No normalized row changes are accepted.
+    """
+    limits = limits or PublicationLimits()
+    if type(before_source_inputs) is not PreparedSourceInputs or type(after_source_inputs) is not PreparedSourceInputs:
+        raise ValueError('exact before/after source selection required')
+    if read_prepared_source_inputs_transaction(db, expected_binding=expected_binding, limits=limits) != before_source_inputs:
+        raise ValueError('source extension compare-and-swap predecessor differs')
+    after = PreparedSourceInputs.parse(after_source_inputs.raw)
+    old, new = before_source_inputs.value(), after.value()
+    if (type(added_root) is not str or not _NAME.fullmatch(added_root)
+            or added_root in old['roots'] or set(new['roots']) != set(old['roots']) | {added_root}
+            or any(new['roots'][name] != value for name, value in old['roots'].items())
+            or new['source_publication'] != old['source_publication']
+            or new['dependencies'] != old['dependencies']
+            or new['source_revision'] == old['source_revision']):
+        raise ValueError('source extension must add exactly one root without changing its predecessor profile')
+    if new['roots'][added_root]['namespace_path'] in {value['namespace_path'] for value in old['roots'].values()}:
+        raise ValueError('additional source root requires its own explicit namespace')
+    previous_header, successor_header = before_inputs.header, after_inputs.header
+    if (before_inputs.binding != after_inputs.binding
+            or previous_header.get('source_revision') != old['source_revision']
+            or {key: value for key, value in previous_header.items() if key != 'source_revision'}
+               != {key: value for key, value in successor_header.items() if key != 'source_revision'}):
+        raise ValueError('source extension cannot change normalized inputs or reader header semantics')
+    result = _publish_paired_selection(db, expected_binding=expected_binding,
+        before_source_inputs=before_source_inputs, after_source_inputs=after,
+        before_inputs=before_inputs, after_inputs=after_inputs, changes=(),
+        limits=limits, catalog_limits=catalog_limits, semantic_limits=semantic_limits)
+    return {**result, 'source_root_extension': added_root, 'source_root_admission_verified': False,
+            'normalized_row_changes_supplied': 0}
+
+
+def _publish_paired_selection(db, *, expected_binding, before_source_inputs,
+        after_source_inputs, before_inputs, after_inputs, changes, limits,
+        catalog_limits, semantic_limits):
+    after = after_source_inputs
+    new_value = after.value()
     if (new_value['source_revision'] != after_inputs.header.get('source_revision')
             or len(after.raw) > limits.max_metadata_bytes or limits.max_mutations < 2):
         raise ValueError('source successor revision or pairing budget differs')

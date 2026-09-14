@@ -9,7 +9,7 @@ from dataclasses import replace
 from .prepared_publication import PublicationLimits
 from .prepared_source_binding import (
     PreparedSourceInputs, apply_source_bound_prepared_delta_transaction,
-    read_prepared_source_inputs_transaction,
+    read_prepared_source_inputs_transaction, bootstrap_prepared_source_root_extension_transaction,
 )
 from .prepared_source_dependencies import (
     ProgressHandlerOwner, SourceDependencyLimits,
@@ -22,6 +22,41 @@ def apply_dependency_bound_prepared_delta_transaction(db, *, expected_binding,
         before_source_inputs, after_source_inputs, before_inputs, after_inputs,
         changes, dependency_changes, declaration_profile_sha256, progress_owner,
         limits=None, dependency_limits=None, catalog_limits=None, semantic_limits=None):
+    """Pair supplied declarations and rows; caller owns guards and full rollback."""
+    return _apply_dependency_pair(db, expected_binding=expected_binding,
+        before_source_inputs=before_source_inputs, after_source_inputs=after_source_inputs,
+        before_inputs=before_inputs, after_inputs=after_inputs, changes=changes,
+        dependency_changes=dependency_changes, declaration_profile_sha256=declaration_profile_sha256,
+        progress_owner=progress_owner, limits=limits, dependency_limits=dependency_limits,
+        catalog_limits=catalog_limits, semantic_limits=semantic_limits,
+        publisher=apply_source_bound_prepared_delta_transaction)
+
+
+def bootstrap_dependency_bound_source_extension_transaction(db, *, expected_binding,
+        before_source_inputs, after_source_inputs, added_root, before_inputs, after_inputs,
+        declaration_profile_sha256, progress_owner, limits=None, dependency_limits=None,
+        catalog_limits=None, semantic_limits=None):
+    """Pair one explicit additional root and unchanged dependency declarations.
+
+    Root membership admission and any source-owner context index remain the
+    caller's responsibility. No source or normalized/declaration row changes
+    can be supplied to this route; all errors require caller rollback.
+    """
+    def publish(connection, **options):
+        options.pop('changes')  # The internal composition below supplies ().
+        return bootstrap_prepared_source_root_extension_transaction(connection,
+            added_root=added_root, **options)
+    return _apply_dependency_pair(db, expected_binding=expected_binding,
+        before_source_inputs=before_source_inputs, after_source_inputs=after_source_inputs,
+        before_inputs=before_inputs, after_inputs=after_inputs, changes=(), dependency_changes=(),
+        declaration_profile_sha256=declaration_profile_sha256, progress_owner=progress_owner,
+        limits=limits, dependency_limits=dependency_limits, catalog_limits=catalog_limits,
+        semantic_limits=semantic_limits, publisher=publish)
+
+
+def _apply_dependency_pair(db, *, expected_binding, before_source_inputs, after_source_inputs,
+        before_inputs, after_inputs, changes, dependency_changes, declaration_profile_sha256,
+        progress_owner, limits, dependency_limits, catalog_limits, semantic_limits, publisher):
     """Stage declarations, publish all rows/roots, finalize their exact binding.
 
     ``limits.max_mutations`` covers this entire call, excluding earlier caller
@@ -60,7 +95,7 @@ def apply_dependency_bound_prepared_delta_transaction(db, *, expected_binding,
     remaining = limits.max_mutations - staged_writes - reserve
     if remaining < 2:
         raise ValueError('dependency publication finalizer reservation exceeds combined mutation budget')
-    published = apply_source_bound_prepared_delta_transaction(db,
+    published = publisher(db,
         expected_binding=expected_binding, before_source_inputs=before_source_inputs,
         after_source_inputs=after, before_inputs=before_inputs, after_inputs=after_inputs,
         changes=changes, limits=replace(limits, max_mutations=remaining),

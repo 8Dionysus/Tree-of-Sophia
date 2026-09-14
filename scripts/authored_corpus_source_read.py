@@ -11,6 +11,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
+import json
 from pathlib import Path
 import subprocess
 
@@ -134,6 +135,127 @@ the selected files and rows; exact CSV parsing is not repeated per row here.
                              'pack_count': len(packs)},
                      {'relations': Collection(rows, 'key', ('key',))}, work_dir=work_dir)
     return ProjectionSnapshotView(output.read_bytes(), output)
+
+
+def verify_authored_csv_sources(source_root, corpus_index):
+    """Recheck admitted file bytes immediately before the caller's commit.
+
+    Use the same detached, bootstrap-validated corpus index. This is a source
+    guard, not a cross-filesystem transaction or a rights/semantic assessment.
+    """
+    consumed = 0
+    for pack in corpus_index['relation_packs']:
+        path = _path(source_root, pack['pack_id'])
+        raw = _read_owned(path, min(MAX_FILE_BYTES, MAX_BOOTSTRAP_BYTES - consumed))
+        consumed += len(raw)
+        if hashlib.sha256(raw).hexdigest() != pack['sha256']:
+            raise SourceReadError('authored source changed before prepared commit')
+
+
+def _verify_prepared_csv_membership(db, corpus_index, *, limits, progress_owner):
+    """Bounded indexed coverage of both CSV owner graphs, not a whole graph load."""
+    from tos_access.prepared_source_dependencies import _operation
+    expected = {}
+    for edge in corpus_index['relation_edges']:
+        target = exact_csv_target(edge)
+        if target is None:
+            raise SourceReadError('authored corpus has no exact CSV target')
+        key = _key(target['pack_id'], target['edge_id'])
+        if key in expected:
+            raise SourceReadError('authored corpus repeats a pack/edge identity')
+        expected[key] = (target, edge['properties']['source_record'])
+    seen = set()
+    with _operation(db, limits, progress_owner) as budget:
+        for graph_id, graph, raw in budget.rows_from(
+                'SELECT id,source_graph,CASE WHEN length(CAST(json AS BLOB))<=? THEN json END '
+                'FROM knowledge_relations INDEXED BY knowledge_relations_source_predicate_idx '
+                "WHERE source_graph IN ('canon','candidate-intake')", (limits.max_row_bytes,)):
+            if type(raw) is not str:
+                raise SourceReadBudgetExceeded('prepared authored row byte budget')
+            row = json.loads(raw)
+            payload = row.get('source_record', {}).get('payload')
+            if type(payload) is not dict or row.get('id') != graph_id or row.get('source_graph') != graph:
+                raise SourceReadError('prepared authored source carrier differs')
+            properties = payload.get('properties')
+            if type(properties) is not dict:
+                raise SourceReadError('prepared authored properties are missing')
+            # The other current owner carrier is explicitly a node-contract
+            # relation. Missing CSV identity must never silently become non-CSV.
+            if ('pack_id' not in payload
+                    and properties.get('derivation') == 'authored-node-contract-relation'
+                    and not {'source_record', 'source_row', 'source_file_sha256'} & properties.keys()
+                    and str(payload.get('source_ref', '')).endswith('/node.json')):
+                continue
+            target = exact_csv_target(payload)
+            if target is None:
+                raise SourceReadError('prepared authored relation has no exact CSV identity')
+            pack, edge = target['pack_id'], target['edge_id']
+            key = _key(pack, edge)
+            owner_graph = 'canon' if pack.startswith('canon/') else 'candidate-intake'
+            if (graph != owner_graph or graph_id != graph + ':' + pack + ':' + edge
+                    or payload.get('source_ref') != 'ToS/' + pack + '/edges.csv'
+                    or key in seen or expected.get(key) != (target, properties['source_record'])):
+                raise SourceReadError('prepared CSV membership or exact retained content differs')
+            seen.add(key)
+        if seen != expected.keys():
+            raise SourceReadError('authored index does not cover exactly the prepared CSV corpus')
+        return {'prepared_csv_rows_verified': len(seen), 'prepared_source_rows_read': budget.rows,
+                'prepared_source_bytes_read': budget.read_bytes}
+
+
+def bootstrap_authored_source_read_transaction(db, *, source_root, output, corpus_index,
+        expected_binding, before_source_inputs, before_inputs, progress_owner, work_dir=None,
+        publication_limits=None, dependency_limits=None, catalog_limits=None, semantic_limits=None):
+    """Admit exact CSV addressing for the existing selected prepared corpus.
+
+    Creates an unselected immutable root, then atomically pairs it with the
+    unchanged normalized rows, dependencies and Agent context. No arbitrary
+    prebuilt root is admitted. The caller owns complete rollback on error and
+    rechecks ``verify_authored_csv_sources`` with the same index before commit.
+    Failed immutable staging may remain; nothing activates a live consumer.
+    """
+    import source_agent_publication as publication
+    from tos_access.catalog_semantics import CatalogInputs
+    from tos_access.prepared_source_dependencies import SourceDependencyLimits
+    publication._require_vector(before_source_inputs)
+    if publication.read_prepared_source_inputs_transaction(db, expected_binding=expected_binding,
+            limits=publication_limits) != before_source_inputs:
+        raise SourceReadError('authored extension source predecessor differs')
+    if 'authored-corpus' in before_source_inputs.roots():
+        raise SourceReadError('authored source addressing is already selected')
+    output = Path(output)
+    if output.exists() or output.is_symlink():
+        raise SourceReadError('authored extension requires a fresh output namespace')
+    encoded = _canonical_bytes(corpus_index)
+    if len(encoded) > MAX_BOOTSTRAP_BYTES:
+        raise SourceReadBudgetExceeded('authored corpus bootstrap input budget')
+    corpus_index = json.loads(encoded)
+    if (type(corpus_index.get('relation_edges')) is not list
+            or type(corpus_index.get('relation_packs')) is not list):
+        raise SourceReadError('authored corpus collections must be arrays')
+    if len(corpus_index['relation_edges']) > MAX_ROWS or len(corpus_index['relation_packs']) > MAX_PACKS:
+        raise SourceReadBudgetExceeded('authored corpus bootstrap row budget')
+    dependencies = dependency_limits or SourceDependencyLimits()
+    coverage = _verify_prepared_csv_membership(db, corpus_index, limits=dependencies,
+                                              progress_owner=progress_owner)
+    view = bootstrap_authored_csv_index(source_root, output, corpus_index, work_dir=work_dir)
+    previous = before_source_inputs.value()
+    after = publication.source_vector_inputs(roots={**before_source_inputs.roots(), 'authored-corpus': view},
+        dependencies=previous['dependencies'], source_publication=previous['source_publication'])
+    header = before_inputs.header
+    header['source_revision'] = after.value()['source_revision']
+    after_inputs = CatalogInputs(header, before_inputs.entity_type_registry,
+        before_inputs.relation_type_registry, before_inputs.lenses,
+        source_order_profile=before_inputs.source_order_profile)
+    result = publication.bootstrap_agent_source_addressing_extension_transaction(db,
+        expected_binding=expected_binding, before_source_inputs=before_source_inputs,
+        after_source_inputs=after, added_root='authored-corpus', before_inputs=before_inputs,
+        after_inputs=after_inputs, progress_owner=progress_owner, publication_limits=publication_limits,
+        dependency_limits=dependencies, catalog_limits=catalog_limits, semantic_limits=semantic_limits)
+    verify_authored_csv_sources(source_root, corpus_index)
+    return {**result, **coverage, 'source_root_admission_verified': True,
+            'source_root_admission_scope': 'exact-retained-authored-csv-records',
+            'authored_source_files_verified': len(corpus_index['relation_packs'])}
 
 
 class AuthoredCorpusReader:

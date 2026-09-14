@@ -36,6 +36,21 @@ The root role set, namespaces and logical collection identities cannot change
 through this route: those transitions require explicit bootstrap. The final
 source revision must match the prepared successor header.
 
+`bootstrap_prepared_source_root_extension_transaction` is a separate explicit
+additive addressing transition. It accepts exactly one new root in a fresh
+namespace, with a new source revision. All existing root bytes/namespaces,
+dependency digests, publication token, catalog inputs and header meaning remain
+unchanged. It supplies no normalized row changes. The ordinary delta route
+still rejects root-role changes. This primitive verifies storage pairing only:
+the stronger source owner must verify what the new root actually addresses.
+Its receipt explicitly retains `source_root_admission_verified=false`.
+
+`bootstrap_dependency_bound_source_extension_transaction` additionally pairs
+the unchanged reverse-dependency declarations with this same transition; it
+does not alter their membership. The selected Agent composition adds its own
+context-state finalizer under the combined mutation allowance. Any failure,
+including a finalizer failure, requires complete caller rollback.
+
 All entry points require a caller-owned transaction. On **every** exception,
 the caller must roll back the complete transaction, including its own work.
 They neither commit, roll back nor close it. Before commit the source assembler

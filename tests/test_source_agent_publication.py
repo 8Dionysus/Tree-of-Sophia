@@ -112,6 +112,44 @@ class SourceAgentPublicationTests(unittest.TestCase):
             record_id=self.helper.fixture.identity, expected_binding=self.binding,
             catalog_inputs=self.inputs, declaration_profile_sha256=self.profile, progress_owner=self.owner, **kwargs)
 
+    def test_addressing_extension_keeps_context_and_following_real_agent_correction(self):
+        from authored_corpus_source_read import bootstrap_authored_source_read_transaction
+        path = self.root / 'derived' / 'authored-addressing.json'
+        tables = ('agent_context_nodes', 'agent_context_refs', 'agent_context_heads', 'source_dependency_claims')
+        before = {name: self.db.execute('SELECT * FROM ' + name).fetchall() for name in tables}
+        self.db.execute('BEGIN IMMEDIATE')
+        result = bootstrap_authored_source_read_transaction(self.db, source_root=self.root, output=path,
+            corpus_index={'relation_packs': [], 'relation_edges': []},
+            expected_binding=self.binding, before_source_inputs=self.source, before_inputs=self.inputs,
+            progress_owner=self.owner, work_dir=self.root / 'scratch')
+        self.assertTrue(result['agent_context_selection_paired'])
+        self.assertTrue(result['execution_profile_current'])
+        self.assertTrue(result['source_root_admission_verified'])
+        self.assertEqual(result['prepared_csv_rows_verified'], 0)
+        extended = publication.read_prepared_source_inputs_transaction(self.db, expected_binding=result['binding'])
+        view = extended.roots()['authored-corpus']
+        header = self.inputs.header
+        header['source_revision'] = extended.value()['source_revision']
+        next_inputs = CatalogInputs(header, self.entities, self.relations, self.inputs.lenses,
+                                    source_order_profile=CANONICAL_ORDER)
+        for name, rows in before.items():
+            self.assertEqual(self.db.execute('SELECT * FROM ' + name).fetchall(), rows)
+        self.db.commit()
+        self.binding, self.source, self.inputs = result['binding'], extended, next_inputs
+        captured = self.capture()
+        transaction, token = self.helper.fixture.revise('Agent correction after address extension')
+        with publication.agent_correction_publication(captured, transaction_id=transaction,
+                expected_source_token=token, progress_owner=self.owner) as candidate:
+            self.db.execute('BEGIN IMMEDIATE')
+            corrected = candidate.apply_transaction(self.db)
+            candidate.commit_transaction(self.db)
+        self.assertEqual(corrected['reverse_dependent_claims'], 2)
+        self.db.execute('BEGIN')
+        retained = publication.read_prepared_source_inputs_transaction(self.db, expected_binding=corrected['binding'])
+        self.assertEqual(retained.roots()['authored-corpus'], view)
+        self.db.rollback()
+        self.assertTrue(PublishedKnowledgeReadModel(self.path, corrected['binding']).catalog())
+
     def test_real_agent_revision_publishes_all_lanes_and_preserves_old_reader_until_commit(self):
         publication_limits = publication.PublicationLimits(max_bytes=128 * 1024 * 1024)
         original_read = publication.read_prepared_source_inputs_transaction

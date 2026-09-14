@@ -182,6 +182,41 @@ class PreparedSourceDependencyTests(unittest.TestCase):
         self.assertEqual(self.lookup(**self.options(result['binding'], after))['declarations'][0]['digest'], declaration.digest)
         self.db.rollback()
 
+    def test_explicit_root_extension_keeps_reverse_dependencies_and_next_regular_delta(self):
+        declaration = self.declaration(1)
+        self.attach([declaration])
+        graph, after = self.f.extension()
+        before_rows = self.db.execute('SELECT * FROM source_dependency_claims').fetchall()
+        self.db.execute('BEGIN IMMEDIATE')
+        result = joined.bootstrap_dependency_bound_source_extension_transaction(self.db,
+            expected_binding=self.binding, before_source_inputs=self.source, after_source_inputs=after,
+            added_root='authored-corpus', before_inputs=self.f.f.inputs(self.f.f.graph),
+            after_inputs=self.f.f.inputs(graph), declaration_profile_sha256=self.profile, progress_owner=self.owner)
+        self.assertEqual(result['source_root_extension'], 'authored-corpus')
+        self.assertEqual(result['source_dependency_stage']['sql_mutations'], 1)
+        self.assertEqual(result['source_dependency_finalization']['sql_mutations'], 1)
+        self.assertEqual(self.db.execute('SELECT * FROM source_dependency_claims').fetchall(), before_rows)
+        self.db.commit()
+        self.db.execute('BEGIN')
+        self.assertEqual(self.lookup(**self.options(result['binding'], after))['declarations'][0]['digest'], declaration.digest)
+        self.db.rollback()
+        # A following ordinary source transition retains the newly selected
+        # root and consumes the exact dependency pairing, not an orphan index.
+        next_graph, changed = self.f.delta()
+        successor = fixtures.paired.PreparedSourceInputs(source_revision=next_graph['source_revision'],
+            source_publication=changed.value()['source_publication'], dependencies=changed.value()['dependencies'],
+            roots={**changed.roots(), 'authored-corpus': after.roots()['authored-corpus']})
+        self.db.execute('BEGIN IMMEDIATE')
+        following = joined.apply_dependency_bound_prepared_delta_transaction(self.db,
+            expected_binding=result['binding'], before_source_inputs=after, after_source_inputs=successor,
+            before_inputs=self.f.f.inputs(graph), after_inputs=self.f.f.inputs(next_graph),
+            changes=[PreparedChange('update', 'node', 'a', next_graph['nodes'][0])], dependency_changes=[],
+            declaration_profile_sha256=self.profile, progress_owner=self.owner)
+        self.db.commit()
+        self.db.execute('BEGIN')
+        self.assertEqual(self.lookup(**self.options(following['binding'], successor))['declarations'][0]['digest'], declaration.digest)
+        self.db.rollback()
+
     def test_bootstrap_exact_addresses_complete_declarations_and_unchanged_publication(self):
         declarations = [self.declaration(2), self.declaration(0, refs=(('unresolved', None),)), self.declaration(1)]
         result = self.attach(declarations)

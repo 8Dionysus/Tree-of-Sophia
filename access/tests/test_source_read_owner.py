@@ -61,6 +61,48 @@ def test_cli_source_selection_requires_explicit_prepared_pair():
         main(["--source-inputs", "/unselected/inputs.raw", "source", "capabilities"])
 
 
+def test_prepared_csv_membership_checks_complete_exact_rows_and_bounded_work():
+    import sqlite3
+    from dataclasses import replace
+    from authored_corpus_source_read import _verify_prepared_csv_membership
+    from tos_access.prepared_source_dependencies import SourceDependencyLimits, ProgressHandlerOwner
+    pack = 'canon/relations/fixture'
+    edge = {'pack_id': pack, 'edge_id': 'e1', 'source_ref': 'ToS/' + pack + '/edges.csv',
+            'properties': {'source_row': 1, 'source_file_sha256': 'a' * 64,
+                           'source_record': {'edge_id': 'e1', 'unknown': 'точно\nтак', 'missing': None}}}
+    graph_id = 'canon:' + pack + ':e1'
+    row = {'id': graph_id, 'source_graph': 'canon', 'source_record': {'payload': edge}}
+    corpus = {'relation_edges': [edge], 'relation_packs': []}
+    limits, owner = SourceDependencyLimits(), ProgressHandlerOwner()
+    with sqlite3.connect(':memory:') as db:
+        db.execute('CREATE TABLE knowledge_relations(id TEXT PRIMARY KEY,source_graph TEXT,predicate_id TEXT,json TEXT)')
+        db.execute('CREATE INDEX knowledge_relations_source_predicate_idx ON knowledge_relations(source_graph,predicate_id)')
+        db.execute('INSERT INTO knowledge_relations VALUES (?,?,?,?)', (graph_id, 'canon', 'test', json.dumps(row)))
+        def verify(value=corpus, cap=limits):
+            return _verify_prepared_csv_membership(db, value, limits=cap, progress_owner=owner)
+        assert verify()['prepared_csv_rows_verified'] == 1
+        with pytest.raises(SourceReadError, match='membership'):
+            verify({'relation_edges': [], 'relation_packs': []})
+        changed = copy.deepcopy(corpus)
+        changed['relation_edges'][0]['properties']['source_record']['unknown'] = 'changed'
+        with pytest.raises(SourceReadError, match='content'):
+            verify(changed)
+        extra = copy.deepcopy(corpus)
+        extra['relation_edges'].append({**edge, 'edge_id': 'e2'})
+        with pytest.raises(SourceReadError, match='exactly'):
+            verify(extra)
+        with pytest.raises(ValueError, match='budget'):
+            verify(cap=replace(limits, max_read_bytes=1))
+        with pytest.raises(SourceReadError, match='budget'):
+            verify(cap=replace(limits, max_row_bytes=1))
+        malformed = copy.deepcopy(row)
+        del malformed['source_record']['payload']['pack_id']
+        db.execute('UPDATE knowledge_relations SET json=?', (json.dumps(malformed),))
+        with pytest.raises(SourceReadError, match='identity'):
+            verify()
+        db.rollback()
+
+
 def test_authored_csv_selected_vector_exact_return_and_closed_boundaries(tmp_path):
     from test_source_catalog_projection import SourceCatalogProjectionTests
     from test_source_read import _ready_publication, _source_vector_for_catalog, _schema
@@ -343,6 +385,68 @@ def test_real_selected_owner_inspection_target_and_fresh_request_parity():
     assert observed == ["tos.agent.friedrich-nietzsche", "tos.claim.basel-print.environment-place"]
     with pytest.raises(SourceReadError, match="revisions differ"):
         SelectedSourceReadService(root, Path(ref), expected_revision="0" * 64)
+
+
+def test_real_full_prepared_csv_human_agent_return():
+    """Two short real routes on a selected full reader, without mocked inspection."""
+    prepared_ref = os.environ.get('TOS_REAL_PREPARED_DIR')
+    if not prepared_ref:
+        pytest.skip('select an independently bootstrapped full authored-source reader')
+    from tos_access.core import ToSAccessCore
+    from tos_access.http_server import make_server
+    from tos_access.mcp_server import build_server
+    root, prepared = Path(os.environ['TOS_REAL_SOURCE_ROOT']), Path(prepared_ref)
+    completed = json.loads((prepared / 'completed.json').read_text())
+    binding = json.loads((prepared / 'binding.json').read_text())
+    assert completed['status'] == 'completed' and completed['binding'] == binding
+    selected = SelectedSourceReadService(root, Path(completed['source_inputs_raw']['path']),
+                                        expected_revision=binding['source_revision'])
+    core = ToSAccessCore.discover(tos_root=root, published_read_model_path=prepared / 'snapshot.sqlite',
+        published_read_model_expected=binding, source_read_service=selected)
+    server = make_server(core, port=0)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    web = Path(__file__).resolve().parents[2] / 'access/web/src/observatory'
+    program = (
+        f"import {{KnowledgeClient}} from {json.dumps((web/'knowledge-client.mjs').as_uri())};\n"
+        f"import {{readExactSource}} from {json.dumps((web/'exact-source-read.mjs').as_uri())};\n"
+        "const p=JSON.parse(process.argv[1]);const c=new KnowledgeClient({fetcher:(path,options)=>fetch(p.url+path,options)});\n"
+        "process.stdout.write(JSON.stringify(await readExactSource(c,p.selection)));"
+    )
+    observed = []
+    try:
+        for graph, pack in (
+                ('canon', 'canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1'),
+                ('candidate-intake', 'candidate-intake/thus-spoke-zarathustra/prologue-1/mode-b')):
+            identifier = graph + ':' + pack + ':m001'
+            with patch.object(ToSAccessCore, 'knowledge_graph', side_effect=AssertionError('full graph fallback')):
+                packet = core.knowledge_relation(identifier)
+                record = packet['matches'][0]
+                target = packet['source_read_targets'][identifier]['target']
+                assert target['layer'] == 'authored_csv_record'
+                args = {'url': f'http://127.0.0.1:{server.server_port}', 'selection': {
+                    'kind': 'relation', 'id': identifier, 'source_revision': binding['source_revision'],
+                    'content_revision': record['content_revision']}}
+                human = subprocess.run(['node', '--input-type=module', '-e', program, json.dumps(args)],
+                                       text=True, capture_output=True, timeout=25)
+                assert human.returncode == 0, human.stderr
+                returned = json.loads(human.stdout)
+                assert returned['record'] == record['source_record']['payload']['properties']['source_record']
+                async def agent_read():
+                    mcp = build_server(core=core)
+                    inspected = await mcp.call_tool('tos_knowledge_relation', {'relation_id': identifier})
+                    assert inspected[1] == packet
+                    discovered = await mcp.call_tool('tos_source_handle_discover', {'target': target})
+                    return await mcp.call_tool('tos_source_read', {'handle': discovered[1]['handle'], 'representation': 'record'})
+                agent = asyncio.run(agent_read())[1]
+                assert agent['status'] == 'available' and agent['record'] == returned['record']
+                assert agent['handle'] == returned['handle']
+                observed.append({'id': identifier, 'source_ref': agent['provenance']['source_ref'],
+                    'authority_layer': agent['provenance']['authority_layer'], 'human_agent_exact_parity': True})
+    finally:
+        server.shutdown(); server.server_close(); thread.join(timeout=5)
+    print(json.dumps({'status': 'passed', 'scope': 'actual full prepared HTTP and MCP, not rendered UI',
+        'binding': binding, 'observed': observed}, ensure_ascii=False))
 
 
 def test_real_authored_csv_inspection_human_agent_return(tmp_path):
