@@ -759,13 +759,13 @@
       "whitespace_tokens": 3589
     },
     {
-      "bytes": 6085,
+      "bytes": 5397,
       "exists": true,
-      "lines": 110,
+      "lines": 99,
       "path": "README.md",
       "role": "human entrypoint and links to canonical route surfaces",
-      "sha256": "70757102598a316e61bbc8bc3875a138c87a730488f569436a93125c922b76ca",
-      "whitespace_tokens": 696
+      "sha256": "036466310d0c8e63726965a0c8dab8ec58961c3d561d24c28493177c67995120",
+      "whitespace_tokens": 604
     },
     {
       "bytes": 2096,
@@ -840,13 +840,13 @@
       "whitespace_tokens": 416
     },
     {
-      "bytes": 34458,
+      "bytes": 34922,
       "exists": true,
-      "lines": 895,
+      "lines": 903,
       "path": "docs/validation/validation_lanes.json",
       "role": "executable validation command authority",
-      "sha256": "0949f21261691a62be05b79176925d7be3e972730d35ea03fe89b51e9936fdcb",
-      "whitespace_tokens": 2518
+      "sha256": "fcfd586e6b320cccb9ff81207398c4668783fb51f844c1c407266ea51e4e6b8d",
+      "whitespace_tokens": 2552
     },
     {
       "bytes": 9588,
@@ -894,13 +894,13 @@
       "whitespace_tokens": 1837
     },
     {
-      "bytes": 246870,
+      "bytes": 268484,
       "exists": true,
-      "lines": 3772,
+      "lines": 4007,
       "path": "docs/validation/script_inventory.json",
       "role": "deterministic script coverage and side-effect inventory",
-      "sha256": "a7b6bf92963db98808568a6a19f6cebe7528d9824099edf2991cae4b97d570d2",
-      "whitespace_tokens": 14484
+      "sha256": "32aca5ae336d8e9da42377d8a1b9edd9cf2c85afca8a9cb38e59872ade097fc9",
+      "whitespace_tokens": 16049
     },
     {
       "bytes": 8155,
@@ -990,7 +990,7 @@
   "source_inventory_sha256": "582165a341a91a61cfbfedc45d6feabeecfaac8ff97cb3bc83696b3534212dfd",
   "task_routes": [
     {
-      "additional_context_tokens": 17156,
+      "additional_context_tokens": 19211,
       "completion_evidence": [
         {
           "bytes": 7461,
@@ -1002,13 +1002,13 @@
           "whitespace_tokens": 961
         },
         {
-          "bytes": 86471,
+          "bytes": 101474,
           "exists": true,
-          "lines": 1355,
+          "lines": 1574,
           "path": "ToS/source-witnesses/README.md",
           "role": "completion",
-          "sha256": "09174cd286c036478ead0a40166f01f0c6b1941e442213809c664b3f4b09350a",
-          "whitespace_tokens": 10905
+          "sha256": "9a8749493a887f33bd03973dad0581a1739e4807ade93e6d3b2290d41ce3f40f",
+          "whitespace_tokens": 12738
         },
         {
           "bytes": 719122,
@@ -1029,22 +1029,22 @@
       "inherited_context_tokens": 2552,
       "on_demand_surfaces": [
         {
-          "bytes": 86471,
+          "bytes": 101474,
           "exists": true,
-          "lines": 1355,
+          "lines": 1574,
           "path": "ToS/source-witnesses/README.md",
           "role": "on_demand",
-          "sha256": "09174cd286c036478ead0a40166f01f0c6b1941e442213809c664b3f4b09350a",
-          "whitespace_tokens": 10905
+          "sha256": "9a8749493a887f33bd03973dad0581a1739e4807ade93e6d3b2290d41ce3f40f",
+          "whitespace_tokens": 12738
         },
         {
-          "bytes": 48359,
+          "bytes": 50148,
           "exists": true,
-          "lines": 812,
+          "lines": 837,
           "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
           "role": "on_demand",
-          "sha256": "3cc1153eadbf958a2b83fe97bf222c36240e7355e89f0912b85b65a325fbe608",
-          "whitespace_tokens": 6251
+          "sha256": "fbcc0bd64d190d311b431bbc2c5cc4cdd4d188abeb9a1f30704c02cc39fb0dda",
+          "whitespace_tokens": 6473
         }
       ],
       "owner_exists": true,
@@ -1084,7 +1084,7 @@
       ]
     },
     {
-      "additional_context_tokens": 17156,
+      "additional_context_tokens": 19211,
       "completion_evidence": [
         {
           "bytes": 7461,
@@ -1096,13 +1096,13 @@
           "whitespace_tokens": 961
         },
         {
-          "bytes": 48359,
+          "bytes": 50148,
           "exists": true,
-          "lines": 812,
+          "lines": 837,
           "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
           "role": "completion",
-          "sha256": "3cc1153eadbf958a2b83fe97bf222c36240e7355e89f0912b85b65a325fbe608",
-          "whitespace_tokens": 6251
+          "sha256": "fbcc0bd64d190d311b431bbc2c5cc4cdd4d188abeb9a1f30704c02cc39fb0dda",
+          "whitespace_tokens": 6473
         },
         {
           "bytes": 719122,
@@ -1123,22 +1123,22 @@
       "inherited_context_tokens": 1806,
       "on_demand_surfaces": [
         {
-          "bytes": 48359,
+          "bytes": 50148,
           "exists": true,
-          "lines": 812,
+          "lines": 837,
           "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
           "role": "on_demand",
-          "sha256": "3cc1153eadbf958a2b83fe97bf222c36240e7355e89f0912b85b65a325fbe608",
-          "whitespace_tokens": 6251
+          "sha256": "fbcc0bd64d190d311b431bbc2c5cc4cdd4d188abeb9a1f30704c02cc39fb0dda",
+          "whitespace_tokens": 6473
         },
         {
-          "bytes": 86471,
+          "bytes": 101474,
           "exists": true,
-          "lines": 1355,
+          "lines": 1574,
           "path": "ToS/source-witnesses/README.md",
           "role": "on_demand",
-          "sha256": "09174cd286c036478ead0a40166f01f0c6b1941e442213809c664b3f4b09350a",
-          "whitespace_tokens": 10905
+          "sha256": "9a8749493a887f33bd03973dad0581a1739e4807ade93e6d3b2290d41ce3f40f",
+          "whitespace_tokens": 12738
         }
       ],
       "owner_exists": true,
@@ -1158,13 +1158,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 30088,
+          "bytes": 30092,
           "exists": true,
           "lines": 624,
           "path": "scripts/build_source_witness_catalog.py",
           "role": "validation",
-          "sha256": "c973e04fc6bf0856440a66a7ac22fab375e69c14b0815682b209afe59432be5c",
-          "whitespace_tokens": 2328
+          "sha256": "0375a333366d8e3a4aa5357dfb9170c2bc873ca360b5b5a1d05f7c7380c39410",
+          "whitespace_tokens": 2407
         },
         {
           "bytes": 719122,
@@ -1366,7 +1366,7 @@
       ]
     },
     {
-      "additional_context_tokens": 7502,
+      "additional_context_tokens": 7513,
       "completion_evidence": [
         {
           "bytes": 1787,
@@ -1423,13 +1423,13 @@
           "whitespace_tokens": 1996
         },
         {
-          "bytes": 43566,
+          "bytes": 43682,
           "exists": true,
           "lines": 395,
           "path": "ToS/contracts/CORPUS_CONTRACTS.md",
           "role": "on_demand",
-          "sha256": "1e4a9cf56d8dbda0704c7b286d5259d59ae87851a28815d5433661808e2a4ea2",
-          "whitespace_tokens": 5089
+          "sha256": "be8f33df4a2935d8d5a49e018e19abcc8f84a2edf356e415b6915ac25bf5df10",
+          "whitespace_tokens": 5100
         },
         {
           "bytes": 1285,
@@ -1609,7 +1609,7 @@
       ]
     },
     {
-      "additional_context_tokens": 2754,
+      "additional_context_tokens": 2860,
       "completion_evidence": [
         {
           "bytes": 1384,
@@ -1621,22 +1621,22 @@
           "whitespace_tokens": 185
         },
         {
-          "bytes": 44550,
+          "bytes": 73029,
           "exists": true,
-          "lines": 726,
+          "lines": 1145,
           "path": "access/README.md",
           "role": "completion",
-          "sha256": "b4df8209b2d6b10ec5047ae990fd2e52daeac6cd99769164f044e6f5ef2aa372",
-          "whitespace_tokens": 5750
+          "sha256": "0110c90ef67d681cc31ca97f9c2622f2042665b17d7eb7aef7b9495c3365751c",
+          "whitespace_tokens": 9336
         },
         {
-          "bytes": 26877,
+          "bytes": 26946,
           "exists": true,
-          "lines": 592,
+          "lines": 594,
           "path": "access/packaging/validate_standalone.py",
           "role": "completion",
-          "sha256": "3c07c4acace5584f4feae0c179ac08f926dc0428eff6e4f95c2c3330b9e8c644",
-          "whitespace_tokens": 1875
+          "sha256": "6cdaacf1b5eaf87d317984b2a7412335837fa3f41572f6451ff99b982cf95bd2",
+          "whitespace_tokens": 1877
         }
       ],
       "id": "standalone_access_product",
@@ -1647,22 +1647,22 @@
       "inherited_context_tokens": 1083,
       "on_demand_surfaces": [
         {
-          "bytes": 18134,
+          "bytes": 18814,
           "exists": true,
-          "lines": 269,
+          "lines": 279,
           "path": "access/contracts/README.md",
           "role": "on_demand",
-          "sha256": "8f6d941b9b84ff7554a06467f8b82f125b5b4b46bc4dfe556ff9235c413ce672",
-          "whitespace_tokens": 2324
+          "sha256": "440f33894a30918550d5bd1f17940bee7bb9eec8db32aeeae4b23ae42c5d79cd",
+          "whitespace_tokens": 2418
         },
         {
-          "bytes": 8207,
+          "bytes": 8431,
           "exists": true,
-          "lines": 185,
+          "lines": 191,
           "path": "access/contracts/runtime-data.v1.json",
           "role": "on_demand",
-          "sha256": "9a909695223afbe168039fdf3801d1c0ab9ddc699b15ed984ee28eed6ef4b5ec",
-          "whitespace_tokens": 408
+          "sha256": "f62e0f68c4faec737e2e266dc92f38001c831483e0d15a6c4d4389ee9f3c4c50",
+          "whitespace_tokens": 420
         },
         {
           "bytes": 362,
@@ -1691,22 +1691,22 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 26877,
+          "bytes": 26946,
           "exists": true,
-          "lines": 592,
+          "lines": 594,
           "path": "access/packaging/validate_standalone.py",
           "role": "validation",
-          "sha256": "3c07c4acace5584f4feae0c179ac08f926dc0428eff6e4f95c2c3330b9e8c644",
-          "whitespace_tokens": 1875
+          "sha256": "6cdaacf1b5eaf87d317984b2a7412335837fa3f41572f6451ff99b982cf95bd2",
+          "whitespace_tokens": 1877
         },
         {
-          "bytes": 97180,
+          "bytes": 138222,
           "exists": true,
-          "lines": 1837,
+          "lines": 2619,
           "path": "access/tests/test_access_contract.py",
           "role": "validation",
-          "sha256": "127b36905893b350acf55952ca5f84b957cd341012d348522f1f4baa9321027c",
-          "whitespace_tokens": 4852
+          "sha256": "01a0a4b5c371730c85ee4b3b6f992d480cf165b710e3aad0455ee912520b1130",
+          "whitespace_tokens": 7151
         },
         {
           "bytes": 23014,
@@ -2047,7 +2047,7 @@
       ]
     },
     {
-      "additional_context_tokens": 6103,
+      "additional_context_tokens": 6137,
       "completion_evidence": [
         {
           "bytes": 6605,
@@ -2059,13 +2059,13 @@
           "whitespace_tokens": 826
         },
         {
-          "bytes": 34458,
+          "bytes": 34922,
           "exists": true,
-          "lines": 895,
+          "lines": 903,
           "path": "docs/validation/validation_lanes.json",
           "role": "completion",
-          "sha256": "0949f21261691a62be05b79176925d7be3e972730d35ea03fe89b51e9936fdcb",
-          "whitespace_tokens": 2518
+          "sha256": "fcfd586e6b320cccb9ff81207398c4668783fb51f844c1c407266ea51e4e6b8d",
+          "whitespace_tokens": 2552
         },
         {
           "bytes": 9862,
@@ -2103,13 +2103,13 @@
           "whitespace_tokens": 274
         },
         {
-          "bytes": 34458,
+          "bytes": 34922,
           "exists": true,
-          "lines": 895,
+          "lines": 903,
           "path": "docs/validation/validation_lanes.json",
           "role": "on_demand",
-          "sha256": "0949f21261691a62be05b79176925d7be3e972730d35ea03fe89b51e9936fdcb",
-          "whitespace_tokens": 2518
+          "sha256": "fcfd586e6b320cccb9ff81207398c4668783fb51f844c1c407266ea51e4e6b8d",
+          "whitespace_tokens": 2552
         },
         {
           "bytes": 14444,
