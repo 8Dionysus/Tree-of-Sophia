@@ -1731,6 +1731,18 @@ def _normalize_node(
         } and key not in attributes:
             attributes[key] = value
     normalized_id = f"{source_graph}:{identity_id or native}"
+    if source_graph == 'canon' and 'node_id' in properties:
+        # Corpus-index properties retain the complete authored node. Its outer
+        # label can be an ID-derived navigation aid, not an authored name. Use
+        # the retained source for wording/availability, including older indexes
+        # which have no explicit marker distinguishing those two cases.
+        if properties['node_id'] != native or properties.get('node_type') != item.get('node_type'):
+            raise ValueError('canonical node projection differs from its retained source identity/type')
+        display = _node_display({**properties, 'properties': properties}, semantic_kind, refs, type_entry)
+        if not display['provenance']['source_title_available']:
+            display['title']['default'] = _string(item.get('label')) or display['title']['default']
+    else:
+        display = _node_display(item, semantic_kind, refs, type_entry)
     normalized = {
         "id": normalized_id,
         "entity_id": _semantic_entity_id(item, source_graph, native, normalized_id),
@@ -1743,7 +1755,7 @@ def _normalize_node(
             "source_kind_id": semantic_kind,
             "registry_ref": ENTITY_REGISTRY_REF,
         },
-        "display": _node_display(item, semantic_kind, refs, type_entry),
+        "display": display,
         "epistemic": _epistemic(item, "canon" if source_graph == "canon" else "derived-export"),
         "graph_layers": list(dict.fromkeys(_strings(item.get("graph_layers")))) or ([str(item["layer"])] if _string(item.get("layer")) else []),
         "view_ids": list(dict.fromkeys(_strings(item.get("view_ids")))),
@@ -3177,7 +3189,6 @@ def build_knowledge_graph(
             placeholder = _normalize_node(
                 {
                     "node_id": native,
-                    "label": _humanize(native),
                     "node_type": "relation-endpoint",
                     "source_refs": _source_refs(item),
                     "authority_layer": item.get("authority_layer"),

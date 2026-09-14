@@ -56,6 +56,14 @@ predicate labels; source-supplied prose and translations are preserved verbatim.
 Language/script keys are extensible (including `grc-Grek`, `zh-Hant` and
 private-use tags); the catalog exposes observed display fields and availability.
 Fallback preserves available source wording without pretending to translate it.
+For canonical corpus nodes, the retained authored `properties` record owns
+wording, not the outer index label: an ID-derived navigation label remains
+`identifier-fallback` with `source_title_available: false`, including when
+reading an older index. Its real `distilled_thesis` remains available separately.
+Unresolved relation endpoints likewise acquire no source name or description
+from their ID. This correction changes normalized display/provenance and requires
+an explicit prepared-reader migration; it is not an execution-only compatible
+profile update and does not activate an existing service.
 See the [language transport contract](contracts/README.md) for compatibility
 roles, fallback order and the still-distinct full Forms work.
 

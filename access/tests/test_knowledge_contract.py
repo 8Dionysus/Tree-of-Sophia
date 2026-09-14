@@ -31,6 +31,54 @@ from tos_access.knowledge import (  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def test_real_canonical_nodes_keep_id_navigation_distinct_from_source_wording(self):
+        sys.path.insert(0, str(self.repo_root / 'scripts'))
+        from tos_corpus_index_common import build_nodes
+        from tos_access.knowledge import _lens_carrier
+
+        paths = [self.repo_root / f'ToS/canon/{kind}/friedrich-nietzsche/'
+                 f'thus-spoke-zarathustra/prologue-1/{leaf}/node.json'
+                 for kind, leaf in (('support', 'zarathustra'), ('event', 'departure-from-origin'))]
+        diagnostics = []
+        nodes = build_nodes(diagnostics, tuple(paths))
+        self.assertEqual(diagnostics, [])
+        self.assertEqual(len(nodes), 2)
+        original = copy.deepcopy(nodes)
+        graph = build_knowledge_graph({'nodes': nodes}, {},
+            entity_type_registry=self.entity_type_registry,
+            relation_type_registry=self.relation_type_registry)
+        for raw in nodes:
+            node = next(value for value in graph['nodes'] if value['native_id'] == raw['node_id'])
+            self.assertEqual(node['display']['title']['default'], raw['label'])
+            self.assertEqual(node['display']['summary']['default'], raw['properties']['distilled_thesis'])
+            self.assertEqual(node['source_record']['payload']['properties'], raw['properties'])
+            self.assertEqual(node['display']['provenance']['title'], 'identifier-fallback')
+            self.assertTrue(node['display']['provenance']['source_summary_available'])
+            for language in ('ru', 'en'):
+                for detail in ('compact', 'full'):
+                    packet = _lens_carrier(node, detail, language=language)
+                    self.assertFalse(packet['display_selection']['fields']['title']['content_available'])
+                    self.assertTrue(packet['display_selection']['fields']['summary']['content_available'])
+            self.assertNotIn('human_forms', node['attributes'])
+        placeholders = [node for node in graph['nodes'] if node['kind_id'] == 'relation-endpoint']
+        self.assertTrue(placeholders)
+        for node in placeholders:
+            self.assertFalse(node['display']['provenance']['source_title_available'])
+            self.assertFalse(node['display']['provenance']['source_summary_available'])
+        self.assertEqual(nodes, original)
+
+        # Synthetic projection controls do not edit or admit canonical sources.
+        forged = copy.deepcopy(nodes[0])
+        forged.update(label='Invented title', display={'title': {'ru': 'Выдуманное имя'}})
+        result = _normalize_node(forged, 'canon')
+        self.assertFalse(result['display']['provenance']['source_title_available'])
+        self.assertIsNone(result['display']['title'].get('ru'))
+        for field in ('node_id', 'node_type'):
+            broken = copy.deepcopy(nodes[0])
+            broken['properties'][field] += '-other'
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'retained source identity/type'):
+                _normalize_node(broken, 'canon')
+
     def test_human_form_delivery_schema_keeps_versions_and_ready_states_distinct(self):
         schema = self.schemas['knowledge-graph.v1.schema.json']
         validator = Draft202012Validator({'$ref': schema['$id'] + '#/$defs/humanFormSelection'},
@@ -3661,6 +3709,10 @@ class KnowledgeContractTests(unittest.TestCase):
                 "tos.knowledge.focus",
                 "tos.lens.open",
                 "tos.lens.compile",
+                "tos.source.read.capabilities",
+                "tos.source.read.contracts",
+                "tos.source.handle.discover",
+                "tos.source.record.read",
             },
         )
         self.assertIn("creates no server state", operations["tos.lens.compile"]["post_semantics"])
