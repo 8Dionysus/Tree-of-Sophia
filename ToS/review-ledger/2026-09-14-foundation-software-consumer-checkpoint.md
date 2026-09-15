@@ -3,6 +3,32 @@
 This is a bounded integration review, not Foundation v1 acceptance, corpus
 admission, CI, merge, or deployment evidence.
 
+### Native publication race follow-through · 2026-09-15 UTC
+
+The adjacent concurrent-publication check exposed a second concrete gap: native
+Worker descent/dossier could accept an otherwise checksum-valid response across
+an A→B→A publication. The regression failed with `Missing expected rejection`
+before the fix. Both routes now use the existing revision-plus-epoch guard
+already used by search, inspection and lenses; no second clock or request-time
+migration is introduced. The guarded routes refuse the interleaved ABA case.
+Typecheck and all six native-source tests pass (58.528 s).
+Actual Penn descent and dossier still match Python exactly after this change;
+their packet hashes are unchanged. The two affected route observations were
+repeated because their execution boundary changed, not the completed corpus
+mapping, semantic review, private reads or unrelated cost checks.
+
+The human tab also searched and selected the Penn Work after publication,
+loaded 11 nodes / 12 relations, then opened its native sources panel. Work,
+expression, 1920 edition, DjVu file and item remain distinct; the displayed
+notice separates link availability from rights and says rights are unspecified.
+Both previously pinned reading items survive. This closes the G6/G7/K2 human
+selection→source panel join on the integrity-protected publication, not JGB21's
+missing exact text authority. Evidence: `native-integrity-human-source-r1.json`
+SHA-256 `d11837d73b9143b77c99b1ee034c674b5207cce5ab095f4cb28ba3be5dbbc311`;
+`published-native-navigation-comparison-r3.json`
+`7162c50aed53067c84b122824365b7c16b4abd36929b26b74fa50c33b16af90c`.
+Fresh corrected-head CI and landing remain required.
+
 ## Native navigation integrity and publication seam · 2026-09-15 UTC
 
 The union's initial exact-head CI passed, but review found a real P1: a native

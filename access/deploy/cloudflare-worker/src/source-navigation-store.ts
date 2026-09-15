@@ -1,5 +1,6 @@
 import { HttpError, stringArray, stringValue, type Item } from "./common.ts";
 import {nativeSha256} from './native-d1-read.ts';
+import {consistentRead} from './knowledge-store.ts';
 import { SourceNavigationError } from "./source-navigation.ts";
 import { metaItem } from "./store.ts";
 
@@ -312,6 +313,10 @@ export async function sourceDescendD1(
   maxDepth: number,
   limit: number,
 ): Promise<Item> {
+  return consistentRead(db, () => readSourceDescendD1(db, nodeId, maxDepth, limit));
+}
+
+async function readSourceDescendD1(db: D1Database, nodeId: string, maxDepth: number, limit: number): Promise<Item> {
   const navigation = await sourceNavigationHeader(db);
   const root = await sourceNode(db, nodeId);
   if (!root) throw new SourceNavigationError(404, `unknown ToS source-navigation node: ${nodeId}`);
@@ -371,6 +376,10 @@ export async function sourceDescendD1(
 
 /** Execute the Work/Link dossier route against indexed D1 rows. */
 export async function sourceDossierD1(db: D1Database, objectId: string, limit: number): Promise<Item> {
+  return consistentRead(db, () => readSourceDossierD1(db, objectId, limit));
+}
+
+async function readSourceDossierD1(db: D1Database, objectId: string, limit: number): Promise<Item> {
   const navigation = await sourceNavigationHeader(db);
   const selected = await sourceNode(db, objectId);
   if (!selected) throw new SourceNavigationError(404, `unknown ToS dossier object: ${objectId}`);
