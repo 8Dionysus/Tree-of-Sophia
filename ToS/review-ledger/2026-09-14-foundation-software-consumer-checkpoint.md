@@ -1,7 +1,100 @@
 # Foundation software consumer checkpoint · 2026-09-14
 
-This is a bounded integration review, not Foundation v1 acceptance, corpus
-admission, CI, merge, or deployment evidence.
+This records bounded integration observations and their final cross-gate
+review. Capability acceptance below is separate from corpus admission,
+deployment and the outstanding closeout of this final documentation delivery.
+
+## Final cross-gate review 2026-09-15 UTC
+
+The completion owner reviewed the 57 capability rows in `FOUNDATION_V1.md`
+against the original goal, their owner-linked implementations and the dated
+consumer continuations below. The ten dialogue-source rows are references,
+not ten extra capabilities. Earlier open-gate statements record their then
+current state; the following conclusions supersede those completion statuses,
+not their evidence, limits or source judgments.
+
+| Gate | Capability accepted and goal coverage | Evidence and retained limit |
+| --- | --- | --- |
+| K1 | Executable grammar, connected profiles, exact source/reader binding and independently delivered software: G1–G3, G8, G10–G11. | The matrix keeps every domain's contracts, operations, forms and positive/negative checks visible. Current 689-identity mapping and native row/header integrity bind the retained corpus; PR 234 and its pre/post-merge CI establish the tested software. Final review-note landing remains separate. |
+| K2 | Both required real research routes and shared human/agent interaction: G3–G6, G9, G11. | JGB Concept/Conceptions, argument and addressed objection now join exact local text; Penn episode, participants, environment, Work/Edition/File and reception join through the existing reader. Word, person, place, event, relation and source-return checks complement these routes. Comparison, filters, continuation, language fallback, access refusal and scene preservation were observed on real material. The private source leg stays in the owner process; positive local HTTP/MCP/UI text delivery was separately checked on the authorized project note. |
+| K3 | Addressed changes, finite work, measured growth, withdrawal and recovery: G7–G8, G11. | The cost reconciliation below covers cold/warm reading, source correction, assessment/access changes, derived deletion/restore, snapshot rollback, actual local D1 parity and synthetic growth invariants. PR 234 CI fulfills its previously pending software condition. Large initial publication is an offline job, not an interactive or constant-time claim. |
+| K4 | Existing material is mapped without silent loss or an ownerless remainder: G5, G8, G11. | Current catalog mapping preserves full fields, identities and source references; the source-enumerated audit retains its separate CSV, atlas, backlog, Item/File and bounded private denominators and owner routes. This does not claim a newly scanned global private corpus or historical-semantic acceptance of unknown/unreviewed material. |
+
+Cross-cutting acceptance includes the practical agent-assessment and scoped
+admission lifecycles linked by A01–A06: actual source-visible decisions,
+competence and grant limits, independent review roles, expiry, withdrawal and
+dependent reassessment. No mandatory human signature is imposed per record.
+The calibrated sample and correlated model family do not prove universal
+quality. Identity transitions remain the explicitly requested versioned
+merge/split proposals, not destructive automatic merging. New material and
+profiles use shared owner operations rather than record-specific readers.
+Machine and human forms retain the same source identities, qualifiers and
+uncertainty; missing prose or competence is exposed rather than fabricated.
+
+Retention verification found all 56 uniquely named JSON evidence files in the
+durable task artifact area. All 50 artifacts with documented adjacent SHA-256
+values matched exact bytes; the other six were present, not invented hashes.
+All local matrix/checkpoint links resolve. These mechanical observations
+support retrievability only; the completion owner, not the link checker,
+performed the gate review. Adequate earlier checks were reused, with no new
+full-corpus rebuild or duplicate database.
+
+The remaining completion actions are this documentation PR's required CI,
+merge and post-landing verification, and explicit managed-scratch disposition.
+Production activation, the separate corpus-storage migration and universal
+admission of the research corpus are not implied or newly authorized.
+Current live local stores must retain an explicit custodian; scratch closure
+is not deletion authority. The goal remains active until those closeout
+actions are actually recorded.
+
+## Landed software and completed private source join 2026-09-15 UTC
+
+PR [234](https://github.com/8Dionysus/Tree-of-Sophia/pull/234) merged as
+`2cc19ad72c6588b499b3cda2023cf16610a9cd00`. The tested PR head
+`7dcd2fbf42745dc587c5afbc22b4d92fcc451556` and landed commit have identical
+Git tree `cb57b9bf313e4af541734179b908c9ede12f3aea`. Both required PR CI and
+[post-merge CI](https://github.com/8Dionysus/Tree-of-Sophia/actions/runs/34952378457)
+passed Worker contracts, software/browser behavior, isolated package
+installation and aggregate Repo Validation. The verified software candidate
+contains no corpus data. Installation in CI is not a host installation or
+production deployment. The separate Cloudflare build check was unsuccessful
+on both this commit and its predecessor; no common cause or production health
+is inferred.
+
+The operator subsequently authorized the remaining bounded local source
+construction. The existing source-owner commands, without software changes,
+created a confidential TextLayer, first paragraph TextUnit, provisional
+Occurrence and two separately identified source-grounded Conception Claims.
+Original acquired bytes, licenses and prior source records were preserved.
+The exact native return and both complete Claim dependency chains passed;
+ordinary public resolution and an undelegated unit selection were refused.
+
+The public Conception versions served by the existing D1 reader were then
+compared with the private Claims' exact source prerequisites. Both full
+version/digest references agree, not merely the identity strings. Russian
+source-copy statement forms retain their complete qualified Claims, explicit
+uncertain/unreviewed state, null admission and non-standalone reading posture.
+The private continuation sends no text or private identifiers through
+HTTP/MCP/UI. The earlier real human comparison, addressed-objection interaction
+and public agent route are reused; this check completes their previously
+missing exact-source join rather than repeating the full scenario.
+
+This closes the outstanding K2 text-link capability in its authorized local
+scope. It does not admit the new interpretations, establish exact German
+wording or translation quality, or convert either criticized conception into
+the author's endorsed doctrine. The source-owner assessment route remains
+available for later scoped admission; provisional research records are not a
+new mandatory human review queue. The cross-gate reconciliation above accepts
+this capability while keeping final delivery and storage closeout separate.
+
+This public-safe technical derivative omits literary wording, private source
+addresses, identifiers/digests, grants and reconstructive storage details.
+Exact control files, immutable command receipts, source-visible review and
+consumer readbacks remain with the Foundation source custodian. Source
+traceability, distinct layers, unchanged custody, language limits and disclosure
+boundaries were manually reviewed. The technical outcome may still correlate
+with the public research route; public reproduction of the confidential
+judgment or publication of its source material is not claimed.
 
 ## Header authority integrity and conflict classification · 2026-09-15 UTC
 
