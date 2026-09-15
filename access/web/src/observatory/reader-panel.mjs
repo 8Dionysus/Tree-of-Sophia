@@ -5,6 +5,8 @@ import {renderHumanForms,renderClaimContext,renderEssentialContext} from './huma
 import './human-forms.css';
 import {READING_KEY,readReading,emptyReading,validateReading} from './reading-resume.mjs';
 import {refreshIcons} from './icons';
+import {mountTemporalComparison} from './temporal-compare.mjs';
+import {uiLanguage} from './ui-i18n.mjs';
 
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);uiText(node, text);node.className=className;return node;};
 const button=(label,action,className='')=>{const node=el('button',label,className);node.type='button';node.addEventListener('click',action);return node;};
@@ -13,7 +15,7 @@ const postureLabels={disputed:ui("Оспаривается"),rejected:ui("Отк
   contested_review_required:ui("Требует рассмотрения"),unresolved:ui("Не разрешено"),review_status_unresolved:ui("Статус рассмотрения не установлен"),
   pending_human_review:ui("Ожидает рассмотрения"),unreviewed:ui("Не рассмотрено"),'not-recorded':ui("Не указан")};
 
-export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=()=>{}}){
+export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=()=>{},onReadingRendered=()=>{}}){
   const views=new Map();let activeKey=null,returnFocus=null,notice='',wide=false;
   let storage=null,savedText=null,saveTimer=null,storageError='',writable=true,initial=emptyReading();
   const storageKey=READING_KEY+':'+location.pathname;
@@ -36,6 +38,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
   const add=button(ui("Добавить выбранное"),()=>pinSelection(),'sc-reader-add');uiChildren(panel.querySelector('.sc-reader-toolbar'), "append", add);
   const empty=el('p',ui("Оставьте здесь предмет или связь, чтобы читать, переходить к основаниям и сопоставлять с другим материалом."),'sc-reader-empty');
   const shelf=createReadingShelf({client,onChange:render});
+  const temporal=mountTemporalComparison({client,locale:uiLanguage,getReadings:()=>shelf.entries.map(entry=>entry.snapshot)});panel.append(temporal.element);
   const current=()=>{
     const selection=scene.port.selection,kind=selection.relationId?'relation':'node';
     const raw=kind==='relation'?scene.port.relation(selection.relationId):scene.port.node(selection.nodeId);
@@ -209,6 +212,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
       uiChildren(refs, "append", link);
     }
     uiChildren(view.body, "append", refs);
+    onReadingRendered(view.body,snapshot);
     const technical=el('details','','sc-reader-technical');technical.dataset.readingKey='identity';uiChildren(technical, "append", el('summary',ui("Точные сведения о материале")));
     const details=el('dl');
     for(const [label,value]of [[ui("Идентификатор"),entry.id],[ui("Снимок данных"),snapshot.sourceRevision],[ui("Версия материала"),snapshot.raw.content_revision],[ui("Слой"),doc.posture.authority_layer],[ui("Рассмотрение"),review],[ui("Канон"),doc.posture.canon_status],[ui("Уверенность, как передана источником"),doc.posture.confidence]]){
@@ -228,6 +232,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     scene.invalidate();
   }
   function render(){
+    temporal.update();
     const focused=readingFocus();
     if(!panel.hidden)wide=panel.clientWidth>=580;
     const entries=shelf.entries;
@@ -278,11 +283,18 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
   });resize.observe(panel);
   root.addEventListener('sophia-read',event=>pinSelection({...event.detail,sourceRevision:scene.port.packet?.source_revision}));
   root.addEventListener('sophia-workspace-replacing',()=>{writable=false;clearTimeout(saveTimer);shelf.suspend();});
-  window.addEventListener('pagehide',event=>{capture();persist();clearTimeout(saveTimer);if(event.persisted)shelf.suspend();else shelf.dispose();});
+  window.addEventListener('pagehide',event=>{temporal.cancel();capture();persist();clearTimeout(saveTimer);if(event.persisted)shelf.suspend();else{shelf.dispose();temporal.destroy();}});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)persist();});
   window.addEventListener('pageshow',event=>{if(event.persisted)render();});
   activeKey=initial.activeKey;shelf.restore(initial.entries);
   refreshIcons();render();
   return {exportState,flush:persist,
+    async openExact({target,form}){
+      const entry=validateReading({v:1,activeKey:null,entries:[{...target,preferred:uiLanguage(),positions:[]}]}).entries[0];
+      activeKey=readingKey(entry.kind,entry.id);show();await shelf.pinExact(entry);render();
+      const section=form?views.get(activeKey)?.body.querySelector(`[data-form-role="${form.role}"]`):null;
+      if(section){for(let ancestor=section;ancestor;ancestor=ancestor.parentElement)if(ancestor.tagName==='DETAILS')ancestor.open=true;section.scrollIntoView({block:'nearest'});}
+      focusReading();
+    },
     selectionChanged(){shelf.observeRevision(scene.port.packet?.source_revision);if(!panel.hidden)render();}};
 }

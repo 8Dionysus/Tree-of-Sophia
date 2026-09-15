@@ -29,12 +29,14 @@ import {createPageCommandRegistry} from '../page-commands';
 import {createWebMCPAdapter} from '../webmcp';
 import {focusSpec,relationSpec,compileRouteCenter,localized,DEFAULT_FOCUS} from './knowledge-client.mjs';
 import {createObservatoryData} from './data-services.mjs';
+import {mountCorpusEntry} from '../corpus-reader/host.mjs';
+import {mountResearchShelfEntry} from '../research-shelf/host.mjs';
 
 export function mountObservatory({host=document.getElementById('app'),data=createObservatoryData(),initialRoute=location.search}={}){
 if(!host)throw new Error('Observatory mount point is missing.');
 uiHTML(host, shell);
 const root=host.firstElementChild;
-let scene,tools,evidence,navigation,builder,studio,reader,travel,registry,syncing=false,lastContext='';
+let scene,tools,evidence,navigation,builder,studio,reader,travel,registry,research,syncing=false,lastContext='';
 const {client}=data;
 function selected(){
   if(tools?.auxiliarySelection)return tools.auxiliarySelection;
@@ -71,7 +73,8 @@ const panels=createPanelHost(root,scene,{onUserAction:()=>registry?.notifyStateC
 tools=createTools(root,scene,{data,selected,panels,onChange:()=>{if(!syncing)registry?.notifyStateChange();sync();}});
 evidence=createEvidencePanel(root,scene,panels,{data,selected,onUserAction:()=>registry?.notifyStateChange()});
 navigation=createNavigationPanel(root,scene,panels,{data,selected,commit,onUserAction:()=>registry?.notifyStateChange()});
-builder=createLensPanel(root,scene,panels,{data,onUserAction:()=>registry?.notifyStateChange()});
+builder=createLensPanel(root,scene,panels,{data,onUserAction:()=>registry?.notifyStateChange(),
+  onSave:({draft})=>research.save({type:'lens',title:draft.name,target:{draft}})});
 const userAction=()=>registry?.notifyStateChange();
 for(const [id,title,selector]of [['search',ui("Поиск"),'.sc-search-open'],['lenses',ui("Линзы"),'.sc-lenses-open'],['workspace',ui("Исследование"),'.sc-workspace-open'],['navigation',ui("Маршруты"),'.sc-navigation-open']]){const opener=root.querySelector(selector);panels.addTool(id,{title,opener,launch:()=>opener.click()});}
 function selectedSource(){const selection=scene.port.selection,kind=selection.relationId?'relation':'node',raw=kind==='relation'?scene.port.relation(selection.relationId):scene.port.node(selection.nodeId);return raw?{raw,kind}:null;}
@@ -81,7 +84,21 @@ for(const [id,title,icon,event]of [['builder',ui("Конструктор лин�
   uiAttribute(opener, "data-tooltip", id==='builder'?ui("Собрать собственную область по условиям."):ui("Открыть {0} выбранной звезды или связи.", [title.toLowerCase()]));
   opener.addEventListener('click',launch);panels.addTool(id,{title,opener,launch,available:()=>id==='builder'||Boolean(selectedSource())});
 }
-reader=createReaderPanel(root,scene,panels,{data,onUserAction:userAction});
+reader=createReaderPanel(root,scene,panels,{data,onUserAction:userAction,onReadingRendered:(container,snapshot)=>research?.addReadingActions(container,snapshot)});
+const corpus=mountCorpusEntry({root,client,provider:data.corpus,locale:()=>document.documentElement.lang||'ru',
+  graphNavigate:async target=>{
+    if(target.kind==='node'&&scene.port.node(target.id)){commit(()=>scene.port.selectNode(target.id));return;}
+    if(target.kind==='relation'&&scene.port.relation(target.id)){commit(()=>scene.port.selectRelation(target.id));return;}
+    const center=await compileRouteCenter(client,target.id,undefined,null);
+    commit(()=>{scene.port.setGraph(center.packet,{selectFocus:center.kind==='node'});if(center.kind==='relation')scene.port.selectRelation(target.id);});
+  }});
+research=mountResearchShelfEntry({root,client,corpus,locale:()=>document.documentElement.lang||'ru',
+  onError:error=>scene.port.announce(error.message),onMaterial:value=>reader.openExact(value),onLens:draft=>builder.open({draft}),
+  onRoute:(_target,record)=>{const url=new URL('research.html',location.href);url.searchParams.set('shelfRoute',record.id);location.assign(url);}});
+root.querySelector('[data-native-notes]')?.remove();
+const space=document.createElement('a');space.className='sc-control';space.href=new URL('research.html',location.href).href;
+space.textContent=document.documentElement.lang==='en'?'Research space':'Пространство исследования';root.querySelector('.sc-header-actions').prepend(space);
+window.addEventListener('pagehide',event=>{if(!event.persisted)research.destroy();});
 studio=createStudio(root,scene,panels,{data,initialRoute,onUserAction:userAction});
 travel=createTravelPanel(root,scene,panels,{client,onUserAction:userAction});
 createWorkspaceCopyPanel(root,scene,panels,{workspace:tools.workspace,reader,travel,studio,onUserAction:userAction});
@@ -158,5 +175,5 @@ void studio.start().then(restored=>{
   const restore=()=>{if(!scene.port.packet)return;observer.disconnect();commit(()=>{if(scene.port.node(restoreId))scene.port.selectNode(restoreId);else if(scene.port.relation(restoreId))scene.port.selectRelation(restoreId);});};
   const observer=new MutationObserver(restore);observer.observe(root,{attributes:true,attributeFilter:['data-graph-revision']});restore();
 });
-return {root,scene};
+return {root,scene,corpus,research};
 }

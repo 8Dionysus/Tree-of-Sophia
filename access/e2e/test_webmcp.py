@@ -605,6 +605,104 @@ def test_observatory_prepared_human_agent_search_and_continuation(webmcp_page: P
     assert page.locator(".sc-search-results .sc-result").all_text_contents() == first_page
 
 
+def test_built_research_entry_persists_exact_shelf_and_camera(webmcp_page: Page, access_base_url: str) -> None:
+    """Use the shipped entry and default browser storage, with a small dataset."""
+    from urllib.parse import quote
+    page = webmcp_page
+    hits = command_value(invoke(page, "tos.page.knowledge-search", {"query": "fixture", "limit": 1}))
+    material_id = hits["nodes"][0]["id"]
+    page.goto(f"{access_base_url}/static/research.html?focus={quote(material_id, safe='')}")
+    page.locator('#tree[data-ready="true"] .reading').get_by_role("button", name="Сохранить материал", exact=True).click()
+    page.locator('[data-research-shelf="true"]').click()
+    card = page.locator('.research-shelf-card').first
+    card.wait_for(state="visible")
+    record_id = card.get_attribute('data-record-id')
+    assert record_id
+    assert "работает в памяти" not in page.locator('.research-shelf').inner_text()
+    page.reload()
+    page.locator('[data-research-shelf="true"]').click()
+    page.locator(f'.research-shelf-card[data-record-id="{record_id}"]').wait_for(state="visible")
+    page.get_by_role('button', name='Закрыть полку', exact=True).click()
+    page.locator('.reading').get_by_role('button', name='Закрыть', exact=True).click()
+    page.locator('[data-live-action="motion"]').click()
+    before = page.locator('#tree').get_attribute('data-camera')
+    page.mouse.move(600, 380)
+    page.mouse.wheel(0, 220)
+    wait_for(page, f"document.querySelector('#tree').dataset.camera !== {json.dumps(before)}")
+    # View writes are deliberately debounced; this waits for the visible input
+    # gesture to be persisted, not for a mocked storage adapter.
+    page.wait_for_timeout(750)
+    pose = page.evaluate("""async () => {
+      const db = await new Promise((resolve, reject) => {
+        const request = indexedDB.open('tos-real-ui-view-v1');
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const saved = await new Promise((resolve, reject) => {
+        const tx = db.transaction('views', 'readonly');
+        const request = tx.objectStore('views').get('constructor-live');
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      db.close();return saved.presentation.pose;
+    }""")
+    assert pose['zoom'] != float(before.split(',')[2])
+    page.reload()
+    page.locator('#tree[data-ready="true"] .reading').get_by_role("button", name="Сохранить материал", exact=True).wait_for(state="visible")
+    restored_pose = page.locator('#tree').get_attribute('data-camera')
+    assert [float(part) for part in restored_pose.split(',')] == pytest.approx(
+        [pose['yaw'], pose['pitch'], pose['zoom'], *pose['pan']], abs=0.002
+    )
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.locator('.research-shelf-narrow').click()
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+    page.locator(f'.research-shelf-card[data-record-id="{record_id}"]').wait_for(state="visible")
+    page.get_by_role('button', name='Закрыть полку', exact=True).click()
+    assert page.locator('.research-shelf-narrow').evaluate('(node) => node === document.activeElement')
+
+
+def test_research_lens_preview_save_apply_and_return(webmcp_page: Page, access_base_url: str) -> None:
+    """A saved query reopens through the real host and never borrows a cursor."""
+    from urllib.parse import quote
+    page = webmcp_page
+    hits = command_value(invoke(page, "tos.page.knowledge-search", {"query": "fixture", "limit": 1}))
+    material_id = hits["nodes"][0]["id"]
+    page.goto(f"{access_base_url}/static/research.html?focus={quote(material_id, safe='')}")
+    tree = page.locator('#tree[data-ready="true"][data-loading="false"]')
+    tree.wait_for(state="visible")
+    wait_for(page, f"document.querySelector('#tree').dataset.selection === {json.dumps(material_id)}")
+    before_selection = tree.get_attribute('data-selection')
+    before_camera = tree.get_attribute('data-camera')
+    page.get_by_role('button', name='Собрать линзу', exact=True).click()
+    builder = page.locator('.lens-builder')
+    builder.get_by_label('Название линзы', exact=True).fill('Fixture saved lens')
+    builder.get_by_role('button', name='Предпросмотр', exact=True).click()
+    page.locator('.lens-builder[data-state="preview"]').wait_for(state="visible")
+    assert builder.get_by_role('button', name='Открыть область', exact=True).is_enabled()
+    assert tree.get_attribute('data-selection') == before_selection
+    assert tree.get_attribute('data-camera') == before_camera
+    builder.get_by_role('button', name='Сохранить линзу', exact=True).click()
+    builder.locator('[data-state="saved"]').wait_for(state="visible")
+    builder.get_by_role('button', name='Открыть область', exact=True).click()
+    page.locator('#tree[data-history="1"]').wait_for(state="visible")
+    page.locator('[data-live-action="back"]').click()
+    page.locator('#tree[data-history="0"][data-loading="false"]').wait_for(state="visible")
+    assert tree.get_attribute('data-selection') == before_selection
+    assert tree.get_attribute('data-camera') == before_camera
+    page.reload()
+    page.locator('#tree[data-ready="true"][data-loading="false"]').wait_for(state="visible")
+    assert tree.get_attribute('data-selection') == before_selection
+    page.get_by_role('button', name='Моя полка', exact=True).click()
+    card = page.locator('.research-shelf-card').filter(has_text='Fixture saved lens')
+    card.get_by_role('button', name='Открыть', exact=True).click()
+    page.locator('.lens-builder[data-state="ready"]').wait_for(state="visible")
+    assert builder.get_by_label('Название линзы', exact=True).input_value() == 'Fixture saved lens'
+    assert not builder.get_by_role('button', name='Открыть область', exact=True).is_enabled()
+    builder.get_by_role('button', name='Предпросмотр', exact=True).click()
+    page.locator('.lens-builder[data-state="preview"]').wait_for(state="visible")
+    assert builder.get_by_role('button', name='Открыть область', exact=True).is_enabled()
+
+
 def test_real_browser_graceful_without_webmcp(access_base_url: str) -> None:
     with short_chromium_tmp():
         with sync_playwright() as p:

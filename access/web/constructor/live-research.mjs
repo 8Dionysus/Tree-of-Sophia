@@ -1,6 +1,9 @@
-import {ExplorationSession} from '../src/observatory/exploration-session.mjs';
-import {buildExplorationSceneModel} from '../src/observatory/scene-model.mjs';
+import {ExplorationSession,inspectSceneMaterial} from '../src/observatory/exploration-session.mjs';
+import {buildExplorationSceneModel,buildSceneModel} from '../src/observatory/scene-model.mjs';
+import {RequestSlots,validateLens,RevisionError} from '../src/observatory/knowledge-client.mjs';
+import {readExactSource} from '../src/observatory/exact-source-read.mjs';
 import {StableExplorationLayout} from './live-model.mjs';
+import {validateSkyPose} from './sky-pose.mjs';
 
 // Search pages are exact, source-revision-bound packets.  Seeking through an
 // empty prefix is a convenience for the reader, never permission to drain the
@@ -49,17 +52,44 @@ export async function seekSearchPage(fetchPage,{cursor=null,window=SEARCH_SEEK_W
 // Coordinates and open cards belong to the local reader, not ToS. The session
 // alone admits exact, bounded backend pages; the sky never changes membership.
 export function createLiveResearch({session=new ExplorationSession(),sky,onChange=()=>{},language='ru'}={}){
-  const layout=new StableExplorationLayout();
-  let state={view:null,model:null,discovery:null,mode:'compact',language,loading:false,error:null,reading:null,readingError:null,comparison:[]};
+  const layout=new StableExplorationLayout(),requests=new RequestSlots(),history=[];
+  let state={view:null,model:null,areaKind:'exploration',selection:null,historyDepth:0,discovery:null,mode:'compact',language,loading:false,error:null,reading:null,readingError:null,comparison:[]};
   let generation=0,inspection=0,sourceGeneration=0,disposed=false;
   const emit=patch=>{state={...state,...patch};if(!disposed)onChange(state);};
-  function present(view,{reset=false,frame=false}={}){
-    const model=buildExplorationSceneModel(view,{mode:state.mode});
+  function present(view,{reset=false,frame=false,areaKind=state.areaKind,selection=areaKind==='exploration'?view.selection:state.selection}={}){
+    const model=(areaKind==='exploration'?buildExplorationSceneModel:buildSceneModel)(view,{mode:state.mode});
     if(reset)layout.reset();
-    const projected=layout.project(view,model,{language:state.language});
+    const projected=layout.project(view,model,{language:state.language,selection});
     sky.update(projected,projected.labels);sky.select(projected.selectedNodeId);sky.selectEdge(projected.selectedEdgeId);
     if(frame)sky.frame();
-    emit({view,model});
+    emit({view,model,areaKind,selection,historyDepth:history.length});
+  }
+  function capture(){return state.view?{view:state.view,areaKind:state.areaKind,selection:state.selection,mode:state.mode,
+    layout:layout.capture(),pose:sky.capturePose?.()??null,local:state.areaKind==='exploration'?session.captureLocal?.():null,
+    comparison:state.comparison}:null;}
+  function remember(saved){if(saved){history.push(saved);if(history.length>2)history.shift();}}
+  function cancelReadings(slot){session.cancelInspect(slot);if(slot)requests.cancel(slot);else for(const name of ['inspect','compare-left','compare-right'])requests.cancel(name);}
+  async function inspect(target,slot='inspect'){
+    if(state.areaKind==='exploration')return session.inspect(target,{language:state.language,slot});
+    const view=state.view;
+    const result=await requests.run(slot,signal=>inspectSceneMaterial(session.client,view,target,{language:state.language,signal}));
+    return result.current&&!disposed&&state.view===view?result.value:null;
+  }
+  function select(target){
+    if(!target||!['node','relation','claim-path'].includes(target.kind))throw new TypeError('Unknown exact selection kind.');
+    if(state.areaKind==='exploration')present(session.select(target));
+    else {
+      if(target.kind==='claim-path'){
+        const path=state.model.pathsById.get(target.id);if(!path)throw new Error('Unknown exact Claim path.');
+        target={kind:'claim-path',id:target.id,claimId:path.claim_node_id};
+      }else {
+        if(!state.view[target.kind==='relation'?'relations':'nodes'].some(item=>item.id===target.id))throw new Error('Unknown exact material.');
+        target={kind:target.kind,id:target.id};
+      }
+      inspection++;requests.cancel('inspect');requests.cancel('source-record');
+      present(state.view,{selection:target});
+    }
+    void read();
   }
   async function run(work,accept){
     if(disposed)return null;
@@ -77,8 +107,8 @@ export function createLiveResearch({session=new ExplorationSession(),sky,onChang
   };
   async function read(){
     if(disposed||!state.view)return null;
-    const token=++inspection,target=state.view.selection;emit({reading:null,readingError:null});
-    try{const result=await session.inspect(target,{language:state.language});
+    const token=++inspection,target=state.selection;emit({reading:null,readingError:null});
+    try{const result=await inspect(target);
       if(!disposed&&token===inspection&&result){emit({reading:result});return result;}
     }catch(error){if(!disposed&&token===inspection)emit({error,readingError:error});}return null;
   }
@@ -94,37 +124,77 @@ export function createLiveResearch({session=new ExplorationSession(),sky,onChang
     state:()=>state,
     start:()=>run(()=>session.discover(),discovery=>emit({discovery})),
     open(target,{replace=false,options={}}={}){
-      const first=!state.view;
-      return run(()=>session.open(target,{replace,options}),view=>{
-        inspection++;session.cancelInspect(replace?undefined:'inspect');
+      const first=!state.view,replacing=replace||state.areaKind==='lens',saved=replacing?capture():null;
+      return run(()=>session.open(target,{replace:replacing,options}),view=>{
+        inspection++;cancelReadings(replacing?undefined:'inspect');remember(saved);
         emit({reading:null,readingError:null,comparison:replace?[]:state.comparison});
-        present(view,{reset:replace,frame:first||replace});
+        present(view,{areaKind:'exploration',reset:replacing,frame:first||replacing});
       });
     },
-    continue:()=>run(()=>session.continue(),view=>present(view)),
+    continue:()=>state.areaKind==='exploration'?run(()=>session.continue(),view=>present(view)):Promise.resolve(null),
+    showLens(packet){
+      if(disposed)return null;
+      validateLens(packet,state.discovery?.catalog.source_revision);
+      // Validate geometry before taking ownership of the new view.
+      buildSceneModel(packet,{mode:state.mode});
+      if(!packet.nodes.length)return null;
+      const saved=capture();generation++;inspection++;sourceGeneration++;session.cancelScene();cancelReadings();requests.cancel('source-record');
+      remember(saved);emit({reading:null,readingError:null,error:null,loading:false,comparison:[]});
+      present(packet,{areaKind:'lens',reset:true,frame:true,selection:{kind:'node',id:packet.focus?.node_id??packet.nodes[0].id}});
+      return packet;
+    },
+    back(){
+      if(disposed||!history.length)return false;
+      const saved=history.at(-1);
+      if(saved.areaKind==='exploration'&&!saved.local)throw new Error('The previous reading area is no longer retained.');
+      generation++;inspection++;sourceGeneration++;session.cancelScene();cancelReadings();requests.cancel('source-record');
+      const view=saved.areaKind==='exploration'?session.restoreLocal(saved.local):saved.view;
+      layout.restore(saved.layout);history.pop();
+      emit({mode:saved.mode,reading:null,readingError:null,error:null,loading:false,comparison:saved.comparison});
+      present(view,{areaKind:saved.areaKind,selection:saved.selection});if(saved.pose)sky.restorePose?.(saved.pose);
+      void read();return true;
+    },
+    capturePresentation:()=>({layout:layout.capture(),pose:sky.capturePose?.()??null,mode:state.mode}),
+    restorePresentation(value){
+      const probe=new StableExplorationLayout();probe.restore(value.layout);
+      if(!['compact','grouped','raw'].includes(value.mode))throw new TypeError('Unknown scene mode.');
+      const pose=value.pose?validateSkyPose(value.pose):null;
+      layout.restore(value.layout);emit({mode:value.mode});if(state.view)present(state.view);if(pose)sky.restorePose?.(pose);
+    },
     selectNode(vertexId){
       if(disposed)return;
       const vertex=state.model?.verticesById.get(vertexId);if(!vertex)return;
-      present(session.select({kind:'node',id:vertex.representativeId}));void read();
+      select({kind:'node',id:vertex.representativeId});
     },
     selectEdge(edgeId){
       if(disposed)return;
       const edge=state.model?.edges.find(item=>item.id===edgeId);if(!edge)return;
-      present(session.select({kind:edge.kind==='claim-path'?'claim-path':'relation',id:edge.kind==='claim-path'?edge.id:edge.rawId}));void read();
+      select({kind:edge.kind==='claim-path'?'claim-path':'relation',id:edge.kind==='claim-path'?edge.id:edge.rawId});
     },
-    selectRaw(target){if(!disposed){present(session.select(target));void read();}},
-    selectedTarget:()=>state.view?exact(state.view.selection):null,
+    selectRaw(target){if(!disposed)select(target);},
+    selectedTarget:()=>state.view?exact(state.selection):null,
     read,
     sourceDossier,
     async sourceRecord(snapshot,options){
       if(disposed)return null;
       const token=++sourceGeneration;
-      try{const result=await session.sourceRecord(snapshot,options);return !disposed&&token===sourceGeneration?result:null;}
+      try{
+        let result;
+        if(state.areaKind==='exploration')result=await session.sourceRecord(snapshot,options);
+        else {
+          const row=state.view[snapshot.kind==='node'?'nodes':'relations'].find(item=>item.id===snapshot.raw.id);
+          if(snapshot.sourceRevision!==state.view.source_revision||row?.content_revision!==snapshot.raw.content_revision)throw new RevisionError();
+          const answer=await requests.run('source-record',signal=>readExactSource(session.client,{kind:snapshot.kind,id:row.id,
+            source_revision:state.view.source_revision,content_revision:row.content_revision},{...options,signal}));
+          result=answer.current?answer.value:null;
+        }
+        return !disposed&&token===sourceGeneration?result:null;
+      }
       catch(error){if(!disposed&&token===sourceGeneration)throw error;return null;}
     },
-    cancelSourceRecord(){sourceGeneration++;session.cancelSourceRecord?.();},
+    cancelSourceRecord(){sourceGeneration++;session.cancelSourceRecord?.();requests.cancel('source-record');},
     cancelSourceDossier(){sourceGeneration++;session.cancelSourceDossier?.();},
-    closeReading(){inspection++;session.cancelInspect('inspect');emit({reading:null,readingError:null});},
+    closeReading(){inspection++;cancelReadings('inspect');emit({reading:null,readingError:null});},
     mode(mode){
       if(disposed)return;if(!['compact','grouped','raw'].includes(mode))throw new TypeError('Unknown scene mode.');
       emit({mode});if(state.view)present(state.view);
@@ -137,13 +207,13 @@ export function createLiveResearch({session=new ExplorationSession(),sky,onChang
     async pin(){
       if(disposed||!state.view)return null;
       if(state.comparison.length>=2){emit({error:new Error('Only two exact reading cards can be compared.')});return null;}
-      const target=structuredClone(state.view.selection),revision=state.view.source_revision;
+      const target=structuredClone(state.selection),revision=state.view.source_revision;
       const slot=state.comparison.length,index=slot;
       // Reserve a slot before starting I/O; repeated clicks cannot append an
       // unbounded number of cards or race both requests into the same side.
       emit({comparison:[...state.comparison,{target,reading:null}]});
       const current=()=>!disposed&&state.view?.source_revision===revision&&state.comparison[index]?.target===target;
-      try{const reading=await session.inspect(target,{language:state.language,slot:slot?'compare-right':'compare-left'});
+      try{const reading=await inspect(target,slot?'compare-right':'compare-left');
         if(!current())return null;
         if(!reading)throw new Error('The exact comparison material is no longer available in this reading space.');
         const comparison=[...state.comparison];comparison[index]={target,reading};emit({comparison});return reading;
@@ -151,8 +221,8 @@ export function createLiveResearch({session=new ExplorationSession(),sky,onChang
         const comparison=[...state.comparison];comparison[index]={target,reading:null,error};emit({comparison,error});
       }return null;}
     },
-    clearComparison(){session.cancelInspect('compare-left');session.cancelInspect('compare-right');emit({comparison:[]});},
+    clearComparison(){cancelReadings('compare-left');cancelReadings('compare-right');emit({comparison:[]});},
     cancel(){generation++;session.cancelScene();emit({loading:false});},
-    dispose(){disposed=true;generation++;inspection++;sourceGeneration++;session.dispose();sky.dispose();},
+    dispose(){disposed=true;generation++;inspection++;sourceGeneration++;history.length=0;requests.cancelAll();session.dispose();sky.dispose();},
   };
 }

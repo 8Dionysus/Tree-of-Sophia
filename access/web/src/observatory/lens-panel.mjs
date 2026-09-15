@@ -1,8 +1,9 @@
 import {uiComputed,uiLanguage,ui,uiAttribute,uiChildren,uiHTML,uiText} from './ui-i18n.mjs';
 import {RequestSlots,localized} from './knowledge-client.mjs';
-import {constructorCatalog,initialDraft,compileDraft,previewDraft,summarizeLens,lensDelta,encodeDraft,draftForPacket,readSaved,saveDraft} from './lens-model.mjs';
+import {constructorCatalog,initialDraft,validateDraft,compileDraft,previewDraft,summarizeLens,lensDelta,encodeDraft,draftForPacket,readSaved,saveDraft} from './lens-model.mjs';
 import {lensVocabulary,vocabularyGroups} from './lens-vocabulary.mjs';
 import {createConditionEditor} from './lens-condition-editor.mjs';
+import {createLensPathEditor} from './lens-path-editor.mjs';
 import {conditionCatalog,conditionText} from './lens-conditions.mjs';
 import {refreshIcons} from './icons';
 
@@ -11,9 +12,9 @@ const button=(label,action,className='sc-builder-button')=>{const b=el('button',
 const count=(n,one,few,many)=>uiComputed(()=>`${n} ${{one,few,many}[new Intl.PluralRules(uiLanguage()).select(n)]||many}`);
 const sourceNames={'philosophy':ui("Философский атлас"),'canon':ui("Канон"),'candidate-intake':ui("Исследовательские кандидаты"),'source-navigation':ui("Произведения и источники"),'source-claims':ui("Утверждения источников"),'semantic-interchange':ui("Понятия и типы"),'repository':ui("Карта проекта")};
 
-export function createLensPanel(root,scene,panels,{data:{client},onUserAction}){
+export function createLensPanel(root,scene,panels,{data:{client},onUserAction=()=>{},onSave}={}){
   const requests=new RequestSlots();
-  let context=null,draft=null,preview=null,bookmark=null,origin=null,basePacket=null,busy=false,failure='',storageError='',applied=false,applying=false;
+  let context=null,draft=null,preview=null,bookmark=null,origin=null,basePacket=null,busy=false,saving=false,failure='',storageError='',applied=false,applying=false;
   let saved=[],returnFocus=null,generation=0,stale=false,notice='',timer=null,scheduled=false,delta=null;
   const choiceViews=new Map(),choiceUpdates=new Map();
   const panel=el('section','','sc-panel sc-builder');panel.hidden=true;uiAttribute(panel, 'aria-label', ui("Конструктор линз"));
@@ -34,6 +35,12 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction}){
       if(value.kinds.length)lines.push(ui("Типы узлов: {0}", [value.kinds.map(id=>localized(lookup?.catalog.node_kinds.find(k=>k.kind_id===id)?.display,id)).join(', ')]));
       for(const rule of value.conditions.nodes)lines.push(conditionText(rule,nodeEntries));
     }
+    if(Array.isArray(value.paths)&&value.paths.length){
+      for(const path of value.paths){
+        const check=path.quantifier==='not_exists'?ui("Такого пути нет"):ui("Есть такой путь");
+        lines.push(ui("Путь «{0}»: {1} · шагов: {2}",[path.pathId,check,path.steps.length]));
+      }
+    }
     if(value.relations){
       if(value.predicates.length)lines.push(ui("Типы связей: {0}", [value.predicates.map(id=>localized(lookup?.catalog.predicates.find(k=>k.predicate_id===id)?.display,id)).join(', ')]));
       for(const rule of value.conditions.relations)lines.push(ui("Связь: {0}", [conditionText(rule,relationEntries)]));
@@ -51,13 +58,19 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction}){
   panel.querySelector('.sc-builder-close').addEventListener('click',()=>{onUserAction();close();});
   panel.addEventListener('keydown',event=>{if(event.key==='Escape'){event.stopPropagation();event.preventDefault();onUserAction();close();}});
   function resetForArea(){origin=scene.port.packet;basePacket=origin;bookmark=origin?scene.port.captureView():null;preview=null;applied=false;draft=null;stale=false;delta=null;choiceViews.clear();}
-  async function open(){
+  async function open({draft:requestedDraft}={}){
     returnFocus=document.activeElement;
-    if(stale||!draft||scene.port.packet!==basePacket)resetForArea();
+    const hasRequestedDraft=requestedDraft!==undefined;
+    if(stale||!draft||scene.port.packet!==basePacket||hasRequestedDraft){stop();resetForArea();}
     panels.open('builder');failure='';notice='';
-    try{saved=readSaved(localStorage);storageError='';}catch(error){saved=[];storageError=error.message||ui("Локальное хранилище недоступно.");}
-    if(context&&context.catalog.source_revision===scene.port.packet?.source_revision){prepareDraft();render();return;}
-    await loadCatalog();
+    if(hasRequestedDraft){
+      try{draft=validateDraft(structuredClone(requestedDraft));}
+      catch(error){draft=null;failure=error.message||ui("Не удалось прочитать настройки линзы.");render();return false;}
+    }
+    if(onSave){saved=[];storageError='';}
+    else try{saved=readSaved(localStorage);storageError='';}catch(error){saved=[];storageError=error.message||ui("Локальное хранилище недоступно.");}
+    if(context&&context.catalog.source_revision===scene.port.packet?.source_revision){prepareDraft();render();return Boolean(draft&&!failure);}
+    await loadCatalog();return Boolean(draft&&!failure);
   }
   function prepareDraft(){
     if(!draft)draft=structuredClone(draftForPacket(scene.port.packet)||initialDraft(origin,context));
@@ -123,7 +136,7 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction}){
   }
   function render(){
     const scroll=body.scrollTop;uiChildren(body, "replaceChildren");choiceUpdates.clear();
-    if(!context){uiChildren(body, "append", el('p',busy?ui("Загружаю доступные источники и условия…"):ui("Словарь данных пока недоступен."),'sc-builder-note'));if(!busy)uiChildren(body, "append", button(ui("Повторить загрузку"),()=>void loadCatalog()));renderResult();return;}
+    if(!context||!draft){uiChildren(body, "append", el('p',busy?ui("Загружаю доступные источники и условия…"):failure||ui("Словарь данных пока недоступен."),'sc-builder-note'));if(!busy&&!failure)uiChildren(body, "append", button(ui("Повторить загрузку"),()=>void loadCatalog()));renderResult();return;}
     const nameInput=el('input');nameInput.type='text';nameInput.maxLength=64;nameInput.value=draft.name;nameInput.addEventListener('input',()=>{draft.name=nameInput.value;touch();});uiChildren(body, "append", field(ui("Название линзы"),nameInput));
     if(saved.length){const chooser=el('select');uiChildren(chooser, "append", el('option',ui("Выбрать сохранённую…")));for(const item of saved){const opt=el('option',item.name);opt.value=item.name;uiChildren(chooser, "append", opt);}chooser.addEventListener('change',()=>{const found=saved.find(s=>s.name===chooser.value);if(found){draft=structuredClone(found);touch();render();}});uiChildren(body, "append", field(ui("Мои линзы"),chooser));}
     uiChildren(body, "append", select(ui("Отправная точка"),'scope',[['area',ui("Из исходной области")],['focus',ui("От выбранной звезды")],['all',ui("По всему древу")]]));
@@ -140,6 +153,7 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction}){
       uiChildren(body, "append", choices(ui("Типы узлов"),'kinds'));
     }
     if(draft.scope!=='focus'||draft.conditions.nodes.length)uiChildren(body, "append", createConditionEditor({draft,context,kind:'nodes',onChange:touch}));
+    uiChildren(body, "append", createLensPathEditor({draft,context,onChange:touch}));
     const relations=el('input');relations.type='checkbox';relations.checked=draft.relations;relations.addEventListener('change',()=>{draft.relations=relations.checked;touch();render();});const withRelations=el('label','','sc-builder-toggle');uiChildren(withRelations, "append", relations, el('span',ui("Показывать связи и окружение")));uiChildren(body, "append", withRelations);
     if(draft.relations)uiChildren(body, "append", choices(ui("Типы связей"),'predicates'));
     if(draft.relations||draft.conditions.relations.length)uiChildren(body, "append", createConditionEditor({draft,context,kind:'relations',onChange:touch}));
@@ -151,8 +165,8 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction}){
   }
   function renderResult(){
     if(result.parentElement!==body)uiChildren(body, "append", result);
-    uiChildren(result, "replaceChildren");uiChildren(footer, "replaceChildren");uiText(status, stale?ui("Область изменилась. Откройте конструктор заново для нового вида."):failure||storageError||notice||(scheduled?ui("Обновлю пространство…"):busy?ui("Обновляю пространство…"):applied?(delta&&Object.values(delta).every(d=>d.added===0&&d.removed===0)?ui("Условия применены. Состав этой области совпал."):ui("В пространстве: {0} · {1}", [count(preview.nodes.length,ui("звезда"),ui("звезды"),ui("звёзд")), count(preview.relations.length,ui("связь"),ui("связи"),ui("связей"))])):preview&&!preview.nodes.length?ui("Ничего не найдено. Предыдущий вид сохранён."):ui("Измените условие — результат появится в пространстве.")));
-    if(context){
+    uiChildren(result, "replaceChildren");uiChildren(footer, "replaceChildren");uiText(status, stale?ui("Область изменилась. Откройте конструктор заново для нового вида."):failure||storageError||notice||(saving?ui("Сохраняю линзу…"):scheduled?ui("Обновлю пространство…"):busy?ui("Обновляю пространство…"):applied?(delta&&Object.values(delta).every(d=>d.added===0&&d.removed===0)?ui("Условия применены. Состав этой области совпал."):ui("В пространстве: {0} · {1}", [count(preview.nodes.length,ui("звезда"),ui("звезды"),ui("звёзд")), count(preview.relations.length,ui("связь"),ui("связи"),ui("связей"))])):preview&&!preview.nodes.length?ui("Ничего не найдено. Предыдущий вид сохранён."):ui("Измените условие — результат появится в пространстве.")));
+    if(context&&draft){
       const edited=el('details','','sc-query-description');uiChildren(edited, "append", el('summary',ui("Редактируемые условия")));
       const list=el('ul');for(const line of queryLines(draft))uiChildren(list, "append", el('li',line));uiChildren(edited, "append", list);uiChildren(result, "append", edited);
       const current=draftForPacket(scene.port.packet);
@@ -177,7 +191,7 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction}){
         }
       }else uiChildren(result, "append", el('p',ui("Изменения применяются автоматически; исходный вид можно вернуть.")));
       const apply=button(busy?ui("Обновляю…"):ui("Обновить пространство"),()=>void run(),'sc-builder-primary');apply.disabled=busy||stale;uiChildren(footer, "append", apply);
-      const save=button(ui("Сохранить линзу"),()=>{onUserAction();try{compileDraft(draft,context);saved=saveDraft(localStorage,draft);storageError='';failure='';notice=ui("Линза сохранена в этом браузере.");render();}catch(error){failure=error.message||ui("Не удалось сохранить линзу.");renderResult();}});save.disabled=busy||scheduled||stale;uiChildren(footer, "append", save);
+      const save=button(ui("Сохранить линзу"),()=>void saveCurrent());save.disabled=busy||saving||scheduled||stale;uiChildren(footer, "append", save);
       if(failure)uiChildren(footer, "append", button(ui("Обновить каталог"),()=>void loadCatalog(),'sc-builder-link'));
     }
     const previous=button(ui("← Предыдущий вид"),()=>{onUserAction();stop();root.querySelector('.sc-back').click();resetForArea();close();},'sc-builder-link');previous.disabled=root.dataset.history==='0';uiChildren(footer, "append", previous);
@@ -196,11 +210,23 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction}){
     }catch(error){if(token===generation){failure=error.message||ui("Не удалось собрать линзу.");preview=null;}}
     finally{if(token===generation){busy=false;renderResult();scene.invalidate();}}
   }
+  async function saveCurrent(){
+    if(!draft||!context||busy||saving||scheduled||stale)return false;
+    onUserAction();saving=true;failure='';storageError='';notice='';renderResult();
+    try{
+      compileDraft(draft,context);
+      const value=structuredClone(draft);
+      if(onSave){await onSave({draft:value});notice=ui("Линза передана в общую полку.");}
+      else {saved=saveDraft(localStorage,value);notice=ui("Линза сохранена в этом браузере.");}
+      return true;
+    }catch(error){failure=error.message||ui("Не удалось сохранить линзу.");return false;}
+    finally{saving=false;render();}
+  }
   function selectionChanged(){
     updateActiveQuery();
     if(applying||panel.hidden||scene.port.packet===basePacket)return;
     stop();preview=null;stale=true;renderResult();
   }
   panels.configure('builder',{onResume:()=>{if(!context)void loadCatalog();else renderResult();}});
-  addEventListener('pagehide',stop);refreshIcons();return {selectionChanged};
+  addEventListener('pagehide',stop);refreshIcons();return {selectionChanged,open};
 }

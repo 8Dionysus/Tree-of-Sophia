@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Проверка IndexedDB research shelf</title>
+    <style>
+      :root { color-scheme: dark; font: 16px system-ui, sans-serif; }
+      body { max-width: 56rem; margin: 2rem auto; padding: 0 1rem; background: #10151f; color: #edf2ff; }
+      pre { padding: 1rem; overflow: auto; white-space: pre-wrap; background: #1b2434; border-radius: .5rem; }
+      [data-state="failed"] { color: #ffb4ab; }
+      [data-state="passed"] { color: #b8f2c8; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Проверка IndexedDB research shelf</h1>
+      <p>Синтетическая fixture: два соединения, CAS, курсор, атомарный импорт и повторное открытие.</p>
+      <output id="research-shelf-proof" aria-live="polite">Проверка выполняется…</output>
+    </main>
+    <script type="module" src="./research-shelf-fixture.mjs"></script>
+  </body>
+</html>

@@ -7,12 +7,13 @@ const button=(text,action)=>{const node=el('button',text,'sc-builder-link');node
 const field=(text,input)=>{const label=el('label','','sc-builder-field');uiChildren(label, "append", el('span',text), input);return label;};
 const number=text=>/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(text.trim())&&Number.isFinite(Number(text))?Number(text):text;
 let listId=0;
-export function createConditionEditor({draft,context,kind,onChange}){
+export function createConditionEditor({draft,context,kind,onChange,maxConditions=MAX_CONDITIONS,note}){
   const entries=conditionCatalog(context,kind),rules=draft.conditions[kind],isNode=kind==='nodes';
   const section=el('section','','sc-conditions');uiAttribute(section, 'aria-label', isNode?ui("Условия исходных узлов"):ui("Условия связей"));
   uiChildren(section, "append", el('h4',isNode?ui("Условия исходных узлов"):ui("Условия связей")));
   const dormant=isNode?draft.scope==='focus':!draft.relations;
-  uiChildren(section, "append", el('p',dormant?(isNode?ui("Сохранены, но не действуют при выборе явного центра."):ui("Сохранены, но не действуют, пока связи выключены.")):ui("Все условия этого раздела действуют одновременно."),'sc-builder-note'));
+  const noteText=typeof note==='function'?note():note;
+  uiChildren(section, "append", el('p',dormant?(isNode?ui("Сохранены, но не действуют при выборе явного центра."):ui("Сохранены, но не действуют, пока связи выключены.")):noteText||ui("Все условия этого раздела действуют одновременно."),'sc-builder-note'));
   if(!entries.length)uiChildren(section, "append", el('p',ui("Сервер пока не объявил совместимые свойства и операции."),'sc-builder-note'));
   function renderRows(){
     section.querySelectorAll('.sc-condition,.sc-condition-add').forEach(node=>node.remove());
@@ -83,7 +84,7 @@ export function createConditionEditor({draft,context,kind,onChange}){
       choices();renderValue();uiChildren(controls, "append", search, selector);uiChildren(row, "append", controls, details, button(ui("Удалить условие {0}", [(index+1)]),()=>{rules.splice(index,1);renderRows();onChange();section.querySelector('.sc-condition-add')?.focus();}));uiChildren(section, "append", row);
     });
     const add=button(isNode?ui("＋ Условие узла"):ui("＋ Условие связи"),()=>{rules.push(defaultCondition(entries[0]));renderRows();onChange();section.querySelector('.sc-condition:last-of-type input')?.focus();});
-    add.classList.add('sc-condition-add');add.disabled=dormant||!entries.length||rules.length>=MAX_CONDITIONS;uiChildren(section, "append", add);
+    add.classList.add('sc-condition-add');add.disabled=dormant||!entries.length||rules.length>=maxConditions;uiChildren(section, "append", add);
   }
   renderRows();return section;
 }

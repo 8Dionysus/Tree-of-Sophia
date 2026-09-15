@@ -52,6 +52,7 @@ function mergeReasons(previous,current,page){
 
 export class ExplorationSceneCache {
   #limits;#generation=0;#pending=null;#accepted=null;#state=null;#nodes=new Map();#relations=new Map();
+  #localViews=new WeakMap();
   constructor({limits={}}={}){
     if(!limits||typeof limits!=='object'||Array.isArray(limits)
       ||Object.keys(limits).some(key=>!Object.hasOwn(EXPLORATION_CACHE_LIMITS,key)))throw new TypeError('Unknown scene cache limit.');
@@ -59,6 +60,21 @@ export class ExplorationSceneCache {
     for(const [key,value] of Object.entries(this.#limits))if(!Number.isSafeInteger(value)||value<1||value>EXPLORATION_CACHE_LIMITS[key])throw new TypeError('Scene cache limits can only narrow the owner bounds.');
   }
   snapshot(){return this.#state;}
+  // Opaque, process-local bookmarks. They cannot be serialized, imported or
+  // replayed through another cache. Callers bound how many areas they retain.
+  captureLocal(){
+    if(!this.#state)return null;
+    const token=Object.freeze({});
+    this.#localViews.set(token,{state:this.#state,accepted:this.#accepted,nodes:this.#nodes,relations:this.#relations});
+    return token;
+  }
+  restoreLocal(token){
+    const saved=token&&this.#localViews.get(token);
+    if(!saved)throw new ContractError('This reading area does not belong to this session.');
+    this.#generation++;this.#pending=null;
+    this.#state=saved.state;this.#accepted=saved.accepted;this.#nodes=saved.nodes;this.#relations=saved.relations;
+    return this.#state;
+  }
   // A failed/late request leaves the last good state intact. A new query may
   // reuse same-publication carriers; a different publication needs explicit
   // replacement, accepted atomically with its first valid page.

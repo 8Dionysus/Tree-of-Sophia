@@ -13,6 +13,14 @@ const node=(id='opaque:one')=>({id,kind_id:'work',content_revision:content,sourc
 const answer=(raw=node(),rev=revision,endpoints=[])=>({packet:{source_revision:rev,endpoints},match:raw});
 const target=(raw=node(),rev=revision)=>({raw,kind:'node',sourceRevision:rev,bookmark:{graph:{packet:{source_revision:rev}}}});
 const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
+test('a personal shelf address reopens exact material instead of the latest saved-reading selector',async()=>{
+  const calls=[];
+  const shelf=createReadingShelf({client:{readMaterial:async(...args)=>{calls.push(args);return answer();}}});
+  await shelf.pinExact({kind:'node',id:node().id,sourceRevision:revision,contentRevision:content,preferred:'en'});
+  assert.equal(calls[0][3],revision);assert.equal(calls[0][4],content);assert.equal(calls[0][5].language,'en');
+  assert.equal(shelf.entries[0].snapshot.sourceRevision,revision);
+  shelf.dispose();
+});
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 
 const path=packet=>packet.scene.compact.claim_paths[0];
