@@ -191,14 +191,14 @@ CI и merge проверяются отдельно; проверенный loca
 
 ### Итоговое продолжение · 2026-09-15 UTC
 
-[Новый раздел того же checkpoint](../review-ledger/2026-09-14-foundation-software-consumer-checkpoint.md#landed-software-and-completed-private-source-join--2026-09-15-utc)
+[Новый раздел того же checkpoint](../review-ledger/2026-09-14-foundation-software-consumer-checkpoint.md#landed-software-and-completed-private-source-join-2026-09-15-utc)
 фиксирует merge программной поставки и прошедшую post-merge CI, отдельно от
 production. После отдельного локального разрешения выполнено недостающее
 точное текстовое звено K2: штатные TextLayer/TextUnit/Occurrence и два Claims
 связаны с теми же точными версиями публичных трактовок. Закрытый текст не
 передавался через HTTP/MCP/UI; новые исследовательские записи сохраняют
 предварительный статус, а создание не выдано за содержательный допуск.
-Итоговая [сверка 57 строк и K1–K4](../review-ledger/2026-09-14-foundation-software-consumer-checkpoint.md#final-cross-gate-review--2026-09-15-utc)
+Итоговая [сверка 57 строк и K1–K4](../review-ledger/2026-09-14-foundation-software-consumer-checkpoint.md#final-cross-gate-review-2026-09-15-utc)
 принимает проверенные возможности в заявленных границах. Исторические отметки
 открытых gate ниже читаются вместе с этой сверкой, не как требование повторить
 достаточные проверки. Завершение всей задачи ещё требует CI и посадки итоговой

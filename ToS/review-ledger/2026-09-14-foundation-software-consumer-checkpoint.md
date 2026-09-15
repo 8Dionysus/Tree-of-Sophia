@@ -4,7 +4,7 @@ This records bounded integration observations and their final cross-gate
 review. Capability acceptance below is separate from corpus admission,
 deployment and the outstanding closeout of this final documentation delivery.
 
-## Final cross-gate review · 2026-09-15 UTC
+## Final cross-gate review 2026-09-15 UTC
 
 The completion owner reviewed the 57 capability rows in `FOUNDATION_V1.md`
 against the original goal, their owner-linked implementations and the dated
@@ -47,7 +47,7 @@ Current live local stores must retain an explicit custodian; scratch closure
 is not deletion authority. The goal remains active until those closeout
 actions are actually recorded.
 
-## Landed software and completed private source join · 2026-09-15 UTC
+## Landed software and completed private source join 2026-09-15 UTC
 
 PR [234](https://github.com/8Dionysus/Tree-of-Sophia/pull/234) merged as
 `2cc19ad72c6588b499b3cda2023cf16610a9cd00`. The tested PR head
