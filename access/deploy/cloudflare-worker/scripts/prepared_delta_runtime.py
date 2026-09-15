@@ -17,7 +17,8 @@ from incremental_runtime import DeltaRecorder, REGISTERED_KEYS as PRIMARY_KEYS, 
 from tos_access.prepared_source_binding import PreparedSourceInputs
 from tos_access.published_read_model import _json
 from tos_access.published_read_metadata import (
-    TOP_KEY, CATALOG_KEY, LENS_META_KEY, _compact, published_snapshot_binding,
+    SOURCE_NAVIGATION_HEADER_DIGEST_KEY, TOP_KEY, CATALOG_KEY, LENS_META_KEY,
+    _compact, published_snapshot_binding,
     published_reader_metadata, published_row_digest_key, emitted_row_digest, lens_order_row,
 )
 from tos_access.portable_paths import normalize_paths
@@ -547,8 +548,27 @@ def _build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_re
         _, old_chunks = capture.metadata(db, key)
         for row in old_chunks:
             before_rows.put('edge_meta', row)
-        for part, chunk in enumerate(full.chunk_text(_compact(value))):
+        serialized = _compact(value)
+        for part, chunk in enumerate(full.chunk_text(serialized)):
             after_rows.put('edge_meta', (key, part, chunk))
+        if key == 'source_navigation_top':
+            try:
+                old_digest, old_digest_chunks = capture.metadata(
+                    db, SOURCE_NAVIGATION_HEADER_DIGEST_KEY)
+            except ValueError as exc:
+                raise ValueError(
+                    'native navigation header digest requires explicit product migration'
+                ) from exc
+            if old_digest != emitted_row_digest(''.join(row[2] for row in old_chunks)):
+                raise ValueError(
+                    'native navigation header digest differs; explicit product migration required')
+            for row in old_digest_chunks:
+                before_rows.put('edge_meta', row)
+            after_rows.put(
+                'edge_meta',
+                (SOURCE_NAVIGATION_HEADER_DIGEST_KEY, 0,
+                 _compact(emitted_row_digest(serialized))),
+            )
     # A selected-row index is deliberately internal and never emitted as a
     # complete baseline companion. The existing trigger touches only these keys.
     recorders, sql_bytes = [], 0

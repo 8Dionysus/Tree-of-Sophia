@@ -47,6 +47,9 @@ class PublishedReadModelError(RuntimeError):
     """The configured prepared reader is unavailable; never fall back to a build."""
 
 
+SOURCE_NAVIGATION_HEADER_DIGEST_KEY = 'source_navigation_header_digest'
+
+
 def _compact(value: Any) -> str:
     # Match the existing edge producer's emitted JSON byte framing.
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"), allow_nan=False)

@@ -128,7 +128,15 @@ export async function consistentRead<T>(
   read: (snapshot: KnowledgeSnapshot) => Promise<T>,
 ): Promise<T> {
   const before = await knowledgeSnapshot(db);
-  const result = await read(before);
+  let result: T;
+  try { result = await read(before); }
+  catch (error) {
+    const after = await knowledgeSnapshot(db);
+    if (!sameKnowledgeSnapshot(before, after)) {
+      throw new HttpError(409, "knowledge snapshot changed during query; retry against the current revision");
+    }
+    throw error;
+  }
   const after = await knowledgeSnapshot(db);
   if (!sameKnowledgeSnapshot(before, after)) {
     throw new HttpError(409, "knowledge snapshot changed during query; retry against the current revision");

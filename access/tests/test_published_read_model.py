@@ -235,6 +235,18 @@ class PublishedReadModelTests(unittest.TestCase):
                 finally:
                     self.mutate(f'UPDATE source_navigation_{kind} SET json=? WHERE {key}=?', (original, identifier))
 
+    def test_native_navigation_header_authority_drift_and_missing_digest_refuse(self):
+        with closing(sqlite3.connect(self.path)) as db:
+            raw = db.execute("SELECT json_chunk FROM edge_meta WHERE key='source_navigation_top'").fetchone()[0]
+        forged = {**json.loads(raw), 'authority_boundary': 'forged canon authority'}
+        self.mutate("UPDATE edge_meta SET json_chunk=? WHERE key='source_navigation_top'", (json.dumps(forged),))
+        with self.assertRaisesRegex(PublishedReadModelError, 'header checksum differs'):
+            self.reader.source_dossier('tos.work.fixture', limit=300)
+        self.mutate("UPDATE edge_meta SET json_chunk=? WHERE key='source_navigation_top'", (raw,))
+        self.mutate("DELETE FROM edge_meta WHERE key='source_navigation_header_digest'")
+        with self.assertRaises(PublishedReadModelError):
+            self.reader.source_dossier('tos.work.fixture', limit=300)
+
     def test_native_navigation_missing_checksum_requires_explicit_product_migration(self):
         self.mutate('DELETE FROM edge_meta WHERE key=?',
                     (published_source_navigation_digest_key('rights', 'tos.rights.fixture'),))

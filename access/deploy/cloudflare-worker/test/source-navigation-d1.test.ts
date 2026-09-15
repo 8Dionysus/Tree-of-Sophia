@@ -57,11 +57,14 @@ function baseNavigation(): Navigation {
 async function populate(db: D1Database, navigation: Navigation, payloadIds: Set<string> = new Set()): Promise<void> {
   await db.exec(SCHEMA);
   await db.prepare('INSERT INTO edge_meta VALUES (?,0,?)').bind('data_revision',JSON.stringify({sha256:'a'.repeat(64)})).run();
-  await db.prepare("INSERT INTO edge_meta VALUES (?, 0, ?)").bind("source_navigation_top", JSON.stringify({
+  const header=JSON.stringify({
     schema_version: navigation.schema_version,
     authority_boundary: navigation.authority_boundary,
     counts: navigation.counts,
-  })).run();
+  });
+  await db.prepare("INSERT INTO edge_meta VALUES (?,0,?)").bind('source_navigation_top',header).run();
+  await db.prepare("INSERT INTO edge_meta VALUES (?,0,?)").bind('source_navigation_header_digest',
+    JSON.stringify({sha256:createHash('sha256').update(header,'utf8').digest('hex')})).run();
   async function checksum(kind:string,id:string,raw:string) {
     const hash=(text:string)=>createHash('sha256').update(text,'utf8').digest('hex');
     await db.prepare('INSERT INTO edge_meta VALUES (?,0,?)')
@@ -138,6 +141,60 @@ test('native source routes refuse an ABA publication during an otherwise valid r
         : sourceDossierD1(interleaved,'work',300), /snapshot changed during query/);
       assert.equal(changed,true);
     }
+  } finally { await mf.dispose(); }
+});
+
+test('native source routes distinguish concurrent row/checksum replacement from stable corruption', async () => {
+  for (const route of ['descent','dossier']) {
+    const {mf,db}=await database();
+    try {
+      await populate(db,baseNavigation());
+      let changed=false;
+      const interleaved=new Proxy(db,{get(target,property) {
+        if (property!=='prepare') return Reflect.get(target,property);
+        return (sql:string) => {
+          const wrap=(statement:D1PreparedStatement):D1PreparedStatement => new Proxy(statement,{get(inner,key) {
+            if (key==='bind') return (...values:unknown[])=>wrap(inner.bind(...values));
+            if (key==='first') return async () => {
+              const result=await inner.first< {json:string;node_id:string} >();
+              if (!changed && sql.includes('source_navigation_nodes') && result) {
+                changed=true;
+                const raw=JSON.stringify({...JSON.parse(result.json),research_note:'new publication'});
+                const hash=(value:string)=>createHash('sha256').update(value,'utf8').digest('hex');
+                await db.batch([
+                  db.prepare('UPDATE source_navigation_nodes SET json=? WHERE node_id=?').bind(raw,result.node_id),
+                  db.prepare('UPDATE edge_meta SET json_chunk=? WHERE key=?')
+                    .bind(JSON.stringify({sha256:hash(raw)}),`source_navigation_row_digest:nodes:${hash(result.node_id)}`),
+                  db.prepare('UPDATE knowledge_exploration_clock SET epoch=epoch+1 WHERE singleton=1'),
+                ]);
+              }
+              return result;
+            };
+            const value=Reflect.get(inner,key);
+            return typeof value==='function' ? value.bind(inner) : value;
+          }});
+          return wrap(target.prepare(sql));
+        };
+      }});
+      await assert.rejects(route==='descent' ? sourceDescendD1(interleaved,'era',8,300)
+        : sourceDossierD1(interleaved,'work',300),/snapshot changed during query/);
+      assert.equal(changed,true);
+    } finally { await mf.dispose(); }
+  }
+});
+
+test('native source header authority drift and missing header digest refuse', async () => {
+  const {mf,db}=await database();
+  try {
+    await populate(db,baseNavigation());
+    const original=await db.prepare("SELECT json_chunk FROM edge_meta WHERE key='source_navigation_top'").first<{json_chunk:string}>();
+    assert.ok(original);
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='source_navigation_top'")
+      .bind(JSON.stringify({...JSON.parse(original.json_chunk),authority_boundary:'forged canon authority'})).run();
+    await assert.rejects(sourceDossierD1(db,'work',300),/checksum differs/);
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='source_navigation_top'").bind(original.json_chunk).run();
+    await db.prepare("DELETE FROM edge_meta WHERE key='source_navigation_header_digest'").run();
+    await assert.rejects(sourceDescendD1(db,'era',8,300),/explicit product migration/);
   } finally { await mf.dispose(); }
 });
 

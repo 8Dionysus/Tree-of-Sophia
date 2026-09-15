@@ -8,6 +8,7 @@ from tos_access.projection_diff import DiffLimits, diff_projection_snapshots
 from tos_access.projection_store import canonical_bytes, _strict_json
 from tos_access.portable_paths import normalize_paths
 from tos_access.published_read_metadata import (
+    SOURCE_NAVIGATION_HEADER_DIGEST_KEY,
     emitted_row_digest,
     published_source_navigation_digest_key,
 )
@@ -88,6 +89,17 @@ def capture_transition(db, capture, before, after, before_rows, after_rows, *,
             raise ValueError('unavailable native navigation contains serving rows')
         return {'state': 'unavailable', 'changed_rows': len(changes),
                 'native_product_created': False}
+    try:
+        header_digest, _ = capture.metadata(db, SOURCE_NAVIGATION_HEADER_DIGEST_KEY)
+    except ValueError as exc:
+        raise ValueError(
+            'native navigation header digest requires explicit product migration'
+        ) from exc
+    header_raw = ''.join(row[2] for row in chunks)
+    if header_digest != emitted_row_digest(header_raw):
+        raise ValueError(
+            'native navigation header digest differs; explicit product migration required'
+        )
     if top.get('schema_version') != 'tos_source_navigation_v1':
         raise ValueError('unsupported native source-navigation product')
     # Metadata headers are already bounded by Capture. Counts certify no new
