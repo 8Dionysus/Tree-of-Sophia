@@ -48,6 +48,14 @@ typed targets. `import()` is additive and validates the complete packet before
 an atomic transaction; an existing id with different content rejects the
 whole import.
 
+Deleting a collection atomically removes that membership from its records while
+preserving the records and their other collections. Each affected record gets
+a new revision and a nondecreasing update time, so a stale editor cannot restore
+the deleted association unnoticed. The shelf generation changes once for the
+whole operation. IndexedDB visits only the collection's membership index; it
+does not load the whole shelf. A failed member update rolls back every change,
+including the collection deletion.
+
 `migrate(packet, {source})` is an explicit supplied-packet import from a real
 owner export. `source` must be `reading-resume`, `research-workspace`, or
 `workspace-copy`; the corresponding owner decoder is used before any shelf

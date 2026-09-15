@@ -1,6 +1,6 @@
 import {ui,uiAttribute,uiChildren,uiText,uiComputed,uiLanguage} from './ui-i18n.mjs';
 import {BUDGET,ContractError,RequestSlots,localized,sameJson} from './knowledge-client.mjs';
-import {constructorCatalog,initialDraft,validateDraft,compileDraft,previewDraft,draftForPacket,lensDelta} from './lens-model.mjs';
+import {createConstructorCatalogLoader,initialDraft,validateDraft,compileDraft,previewDraft,draftForPacket,lensDelta} from './lens-model.mjs';
 import {lensVocabulary,vocabularyGroups} from './lens-vocabulary.mjs';
 import {conditionCatalog,conditionText} from './lens-conditions.mjs';
 import {createConditionEditor} from './lens-condition-editor.mjs';
@@ -202,11 +202,12 @@ function localizedPacketCounts(packet){
     truncatedRelations:Number.isInteger(counts.truncated_relations)?counts.truncated_relations:0};
 }
 
-export function mountLensBuilder({host,client,locale='ru',getArea,onApply,onSave,onOpen,onClose,onError}={}){
+export function mountLensBuilder({host,client,locale='ru',getArea,getCatalog,onApply,onSave,onOpen,onClose,onError}={}){
   if(!host||typeof host.append!=='function')throw new TypeError('A lens builder host element is required.');
   if(!client||typeof client.request!=='function'||typeof client.compile!=='function')throw new TypeError('A knowledge client is required.');
   if(typeof getArea!=='function')throw new TypeError('getArea must return the current reading area.');
   const requests=new RequestSlots();
+  const catalogLoader=createConstructorCatalogLoader(client,getCatalog);
   const root=el('section','','lens-builder');root.hidden=true;root.tabIndex=-1;root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.lang=language(locale);uiAttribute(root,'aria-label',ui("Конструктор линз"));
   const header=el('header','','lens-builder-header'),heading=el('h2',ui("Собрать линзу")),subtitle=el('p',ui("Настройте область по словарю текущего снимка."),'lens-builder-subtitle'),closeButton=button(ui("Закрыть конструктор"),()=>close(),'lens-builder-close');
   heading.id=`lens-builder-title-${++builderId}`;root.setAttribute('aria-labelledby',heading.id);
@@ -265,7 +266,9 @@ export function mountLensBuilder({host,client,locale='ru',getArea,onApply,onSave
       const select=el('select');uiAttribute(select,'aria-label',ui("Область действия большой области"));
       for(const value of areaChoice.choices)uiChildren(select,'append',option(value,value==='focus'?ui("От выбранной звезды"):ui("По всему древу")));
       if(areaChoice.defaultScope)select.value=areaChoice.defaultScope;
-      select.addEventListener('change',()=>chooseLargeArea(select.value));uiChildren(choice,'append',field(ui("Режим"),select));uiChildren(areaInfo,'append',choice);
+      select.addEventListener('change',()=>chooseLargeArea(select.value));
+      const confirm=button(ui("Открыть область"),()=>chooseLargeArea(select.value),'lens-builder-primary');
+      uiChildren(choice,'append',field(ui("Режим"),select),confirm);uiChildren(areaInfo,'append',choice);
     }
   }
 
@@ -284,7 +287,7 @@ export function mountLensBuilder({host,client,locale='ru',getArea,onApply,onSave
 
   function renderBody(){
     uiChildren(body,'replaceChildren');
-    if(!context||!draft){if(!loading)uiChildren(body,'append',button(ui("Повторить загрузку"),()=>void load()));return;}
+    if(!context||!draft){if(!loading)uiChildren(body,'append',button(ui("Повторить загрузку"),()=>void load({refresh:true})));return;}
     const name=el('input');name.type='text';name.maxLength=64;name.value=draft.name;name.addEventListener('input',()=>{draft.name=name.value;touch();});uiChildren(body,'append',field(ui("Название линзы"),name));
     const scopeChoices=[];if(!areaChoice?.required||areaChoice.choices.includes('area'))scopeChoices.push(['area',ui("Из исходной области")]);scopeChoices.push(['focus',ui("От выбранной звезды")],['all',ui("По всему древу")]);
     const scope=el('select');for(const [value,label] of scopeChoices)uiChildren(scope,'append',option(value,label));scope.value=draft.scope;scope.addEventListener('change',()=>{draft.scope=scope.value;touch({rerender:true});});uiChildren(body,'append',field(ui("Отправная точка"),scope));
@@ -349,7 +352,7 @@ export function mountLensBuilder({host,client,locale='ru',getArea,onApply,onSave
       try{onError?.(problem);}catch{}
       uiChildren(body,'replaceChildren',el('p',error,'lens-builder-warning'));
       uiChildren(previewRegion,'replaceChildren');uiChildren(footer,'replaceChildren');
-      const retry=button(ui("Повторить загрузку"),()=>void load(),'lens-builder-link');uiChildren(footer,'append',retry);
+      const retry=button(ui("Повторить загрузку"),()=>void load({refresh:true}),'lens-builder-link');uiChildren(footer,'append',retry);
       const closeAction=button(ui("Закрыть"),()=>close(),'lens-builder-button');uiChildren(footer,'append',closeAction);
       uiText(status,error);
     }
@@ -357,13 +360,14 @@ export function mountLensBuilder({host,client,locale='ru',getArea,onApply,onSave
 
   function touch({rerender=false}={}){if(!draft)return;requests.cancel('preview');previewing=false;draftRevision++;previewError='';error='';if(rerender)render();else{renderPreview();renderFooter();}}
 
-  async function load(){
+  async function load({refresh=false}={}){
     if(destroyed)return false;
     const requestedDraft=pendingDraft;pendingDraft=undefined;
     requests.cancelAll();previewing=false;loading=true;error='';previewError='';context=null;area=null;draft=null;preview=null;areaChoice=null;invalidDraft=null;previewRevision=-1;areaRevision=null;render();const token=++draftRevision;
     try{
-      const loaded=currentArea();area=loaded;areaRevision=loaded?.packet?.source_revision??null;const answer=await requests.run('catalog',signal=>constructorCatalog(client,signal));
+      const loaded=currentArea();area=loaded;areaRevision=loaded?.packet?.source_revision??null;const answer=await requests.run('catalog',signal=>catalogLoader.load(signal,{refresh}));
       if(!answer.current||token!==draftRevision||!opened)return false;
+      if(!answer.value){areaProblem(ui("Словарь данных изменился. Обновите каталог и проверьте выбранные условия."));return false;}
       context=answer.value;
       if(area&&context.catalog.source_revision!==area.packet.source_revision){areaProblem(ui("Каталог и область относятся к разным версиям данных. Обновите область и загрузите каталог снова."));return false;}
       const prepared=prepareLensBuilderDraft({packet:area?.packet??null,context,selection:area?.selection??null,draft:requestedDraft});areaChoice=prepared.areaChoice;invalidDraft=null;
@@ -414,7 +418,7 @@ export function mountLensBuilder({host,client,locale='ru',getArea,onApply,onSave
     if(!opened)return false;opened=false;requests.cancelAll();loading=false;previewing=false;root.hidden=true;try{onClose?.();}catch(problem){report(problem);}if(restore){const target=returnFocus?.isConnected&&!returnFocus.closest('[hidden]')?returnFocus:null;target?.focus({preventScroll:true});}return true;
   }
 
-  function destroy(){if(destroyed)return;destroyed=true;if(opened)close({restore:false});requests.cancelAll();root.remove();}
+  function destroy(){if(destroyed)return;destroyed=true;if(opened)close({restore:false});requests.cancelAll();catalogLoader.clear();root.remove();}
   render();
   return {open,close,destroy,element:root,state:()=>({opened,loading,hasDraft:Boolean(draft),hasInvalidDraft:Boolean(invalidDraft),hasPreview:Boolean(preview),previewRevision,draftRevision,areaRevision,error,previewError,areaChoice})};
 }

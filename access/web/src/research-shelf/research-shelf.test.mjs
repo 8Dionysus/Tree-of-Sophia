@@ -76,6 +76,44 @@ test('pagination cursors bind both filter and generation',async()=>{
   await expect(store.list({limit:1,cursor:first.nextCursor})).rejects.toMatchObject({code:'invalid-cursor'});
 });
 
+test('collection deletion detaches only its memberships and invalidates stale member editors atomically',async()=>{
+  const shared=createMemoryResearchShelfState();let at='2026-09-15T12:00:00.000Z';
+  const store=createMemoryResearchShelfStore({memoryStore:shared,now:()=>at}),other=createMemoryResearchShelfStore({memoryStore:shared,now:()=>at});
+  const removed=(await store.saveCollection({id:'removed',title:'Removed'})).item;
+  await store.saveCollection({id:'kept',title:'Kept'});
+  const member=(await store.save({...input('member'),collectionIds:['removed','kept']})).item;
+  const alone=(await store.save({...input('alone'),collectionIds:['removed']})).item;
+  const unrelated=(await store.save(input('unrelated'))).item;
+  const generation=(await store.export()).generation;
+  await expect(store.removeCollection('removed',removed.revision+1)).rejects.toMatchObject({code:'conflict'});
+  expect((await store.get('member')).collectionIds).toEqual(['removed','kept']);
+  at='2026-09-15T13:00:00.000Z';
+  expect((await store.removeCollection('removed',removed.revision)).generation).toBe(generation+1);
+  expect(await store.getCollection('removed')).toBeNull();
+  expect(await store.get('member')).toEqual({...member,collectionIds:['kept'],revision:member.revision+1,updatedAt:at});
+  expect(await store.get('alone')).toEqual({...alone,collectionIds:[],revision:alone.revision+1,updatedAt:at});
+  expect(await store.get('unrelated')).toEqual(unrelated);
+  expect((await store.list({collectionId:'removed'})).items).toEqual([]);
+  expect((await store.export()).records.every(item=>!item.collectionIds.includes('removed'))).toBe(true);
+  await expect(other.save({...member,title:'Stale member edit'},{expectedRevision:member.revision})).rejects.toMatchObject({code:'conflict'});
+  await store.saveCollection({id:'removed',title:'Recreated'});
+  expect((await store.list({collectionId:'removed'})).items).toEqual([]);
+  await store.close();await other.close();
+});
+
+test('a late invalid member rolls back collection deletion and all earlier detachments',async()=>{
+  const source=createMemoryResearchShelfStore();
+  await source.saveCollection({id:'group',title:'Group'});
+  await source.save({...input('a-first'),collectionIds:['group']});
+  await source.save({...input('z-last'),collectionIds:['group']});
+  const packet=await source.export();packet.records.find(item=>item.id==='z-last').revision=Number.MAX_SAFE_INTEGER;
+  const store=createMemoryResearchShelfStore();await store.import(packet);
+  const before=await store.export();
+  await expect(store.removeCollection('group',1)).rejects.toMatchObject({code:'invalid-input'});
+  const after=await store.export();expect(after.records).toEqual(before.records);expect(after.collections).toEqual(before.collections);expect(after.generation).toBe(before.generation);
+  await source.close();await store.close();
+});
+
 test('additive import is atomic and accepts an identical re-import',async()=>{
   const local=createMemoryResearchShelfStore(),incoming=createMemoryResearchShelfStore();
   const kept=await local.save(input('kept'),{expectedRevision:null});await incoming.save(input('new'),{expectedRevision:null});

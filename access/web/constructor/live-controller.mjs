@@ -203,6 +203,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     }});
   const builder=mountLensBuilder({host:document.body,client:activeSession.client,locale:()=>language,
     getArea:()=>{const state=controller.state();return state.view?{packet:state.view,selection:state.selection}:null;},
+    getCatalog:()=>controller.state().discovery?.catalog??null,
     onOpen:()=>{root.inert=true;sky.motion(false);},onClose:()=>{root.inert=false;sky.motion(moving);},onError:report,
     onApply:async({packet})=>{if(!controller.showLens(packet))throw new Error(word('В этой области пока нет предметов для отображения.','This area has no objects to show.'));readingOpen=true;await controller.read();},
     onSave:({draft})=>research.save({type:'lens',title:draft.name,target:{draft}}),
@@ -555,7 +556,15 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       }else {showSearch();if(saved)report(new Error(word('Сохранённая область относится к другому снимку. Она остаётся в хранилище.','The saved area belongs to another snapshot. It remains in storage.')));}
     }
     resumeEnabled=true;
-  }else if(!disposed){const body=modal(t('discoveryFailed'),'connection');if(body)body.append(button(t('retry'),async()=>{
-    if(await controller.start()){root.dataset.ready='true';closeDialog();showSearch();}}));}
+  }else if(!disposed){
+    const body=modal(t('discoveryFailed'),'connection');
+    if(body){
+      const problem=el('p',controller.state().error?.message??'','body');
+      body.append(problem,button(t('retry'),async()=>{
+        if(await controller.start()){root.dataset.ready='true';closeDialog();showSearch();}
+        else problem.textContent=controller.state().error?.message??'';
+      }));
+    }
+  }
   return {controller,corpus,research,builder,dispose};
 }

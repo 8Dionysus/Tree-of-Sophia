@@ -35,6 +35,37 @@ async function run(){
     try{await first.import(packet);}catch(error){importConflict=error?.code||'unknown';}
     const afterAtomic=await first.get('atomic-new');
     await incoming.close();
+
+    const collection=(await first.saveCollection({id:'removed-group',title:'Removed group'})).item;
+    await first.saveCollection({id:'kept-group',title:'Kept group'});
+    const member=(await first.save({...record('member-a','Member A'),collectionIds:['removed-group','kept-group']})).item;
+    const alone=(await first.save({...record('member-b','Member B'),collectionIds:['removed-group']})).item;
+    const untouched=await second.get('cas'),beforeDelete=(await first.export()).generation;
+    await first.removeCollection(collection.id,collection.revision);
+    const detached=await second.get(member.id),detachedAlone=await second.get(alone.id),afterDelete=await first.export();
+    let memberConflict=null;
+    try{await second.save({...member,title:'Stale member'},{expectedRevision:member.revision});}catch(error){memberConflict=error?.code;}
+    const missingCollection=await first.getCollection(collection.id);
+    await first.saveCollection({id:collection.id,title:'Recreated group'});
+    const resurrected=(await second.list({collectionId:collection.id})).items;
+    const collectionDetach={ok:missingCollection===null&&detached.revision===member.revision+1&&detachedAlone.revision===alone.revision+1
+      &&JSON.stringify(detached.collectionIds)===JSON.stringify(['kept-group'])&&detachedAlone.collectionIds.length===0
+      &&JSON.stringify(detached.target)===JSON.stringify(member.target)&&detached.title===member.title&&detached.createdAt===member.createdAt
+      &&JSON.stringify(await first.get('cas'))===JSON.stringify(untouched)&&memberConflict==='conflict'
+      &&afterDelete.generation===beforeDelete+1&&afterDelete.records.every(item=>!item.collectionIds.includes(collection.id))&&resurrected.length===0,
+      staleMemberError:memberConflict};
+
+    const rollbackSource=createResearchShelfStore({adapter:'memory'});
+    await rollbackSource.saveCollection({id:'rollback-group',title:'Rollback group'});
+    for(const id of ['rollback-a','rollback-z'])await rollbackSource.save({...record(id,id),collectionIds:['rollback-group']});
+    const rollbackPacket=await rollbackSource.export();rollbackPacket.records.find(item=>item.id==='rollback-z').revision=Number.MAX_SAFE_INTEGER;
+    await first.import(rollbackPacket);await rollbackSource.close();
+    const beforeRollback=await first.export();let deleteError=null;
+    try{await first.removeCollection('rollback-group',1);}catch(error){deleteError=error?.code;}
+    const afterRollback=await second.export();
+    const collectionDeleteRollback={ok:deleteError==='invalid-input'&&beforeRollback.generation===afterRollback.generation
+      &&JSON.stringify(beforeRollback.records)===JSON.stringify(afterRollback.records)
+      &&JSON.stringify(beforeRollback.collections)===JSON.stringify(afterRollback.collections),error:deleteError};
     await first.close();await second.close();
     reopened=createResearchShelfStore({dbName,indexedDB:window.indexedDB});
     const reopenedStatus=await reopened.ready();
@@ -44,6 +75,8 @@ async function run(){
       twoConnectionCas:{ok:casConflict==='conflict'&&changed.item.revision===2,error:casConflict},
       cursorInvalidation:{ok:cursorConflict==='invalid-cursor',error:cursorConflict},
       atomicImport:{ok:importConflict==='conflict'&&afterAtomic===null,error:importConflict},
+      collectionDetach,
+      collectionDeleteRollback,
       reopen:{ok:reopenedStatus.adapter==='indexeddb'&&reopenedCas?.title==='CAS second edit',adapter:reopenedStatus.adapter,recordCount:reopenedPage.items.length},
     }};
     if(Object.values(proof.tests).some(test=>!test.ok))throw Object.assign(new Error('A browser proof assertion failed.'),{proof});

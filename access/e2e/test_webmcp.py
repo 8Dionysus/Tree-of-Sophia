@@ -762,6 +762,28 @@ def test_built_research_entry_persists_exact_shelf_and_camera(webmcp_page: Page,
     page.get_by_role('button', name='Закрыть полку', exact=True).click()
     assert page.locator('.research-shelf-narrow').evaluate('(node) => node === document.activeElement')
 
+
+def test_research_catalog_limit_explains_failed_connection_and_can_retry(
+    webmcp_page: Page, access_base_url: str
+) -> None:
+    page = webmcp_page
+    unavailable = {'value': True}
+    def catalog_response(route):
+        if unavailable['value']:
+            route.fulfill(status=413, content_type='application/json', body='{}')
+        else:
+            route.continue_()
+    page.route('**/api/knowledge/catalog', catalog_response)
+    page.goto(access_base_url + '/static/research.html', wait_until='domcontentloaded')
+    connection = page.locator('dialog[open][data-kind="connection"]')
+    connection.get_by_text('Словарь данных слишком велик для загрузки. Обратитесь к оператору сервиса.', exact=True).wait_for(state='visible')
+    assert 'Выберите более узкий центр' not in connection.inner_text()
+    unavailable['value'] = False
+    connection.get_by_role('button', name='Повторить подключение', exact=True).click()
+    page.locator('#tree[data-ready="true"]').wait_for(state='visible')
+    page.locator('dialog[data-kind="connection"]').wait_for(state='hidden')
+
+
 def test_observatory_research_and_saved_route_links_use_packaged_entry(
     webmcp_page: Page, access_base_url: str
 ) -> None:
@@ -809,18 +831,30 @@ def test_observatory_research_and_saved_route_links_use_packaged_entry(
 
 def test_research_lens_preview_save_apply_and_return(webmcp_page: Page, access_base_url: str) -> None:
     """A saved query reopens through the real host and never borrows a cursor."""
-    from urllib.parse import quote
+    from urllib.parse import quote, urlparse
     page = webmcp_page
     hits = command_value(invoke(page, "tos.page.knowledge-search", {"query": "fixture", "limit": 1}))
     material_id = hits["nodes"][0]["id"]
+    discovery_requests = []
+    page.on('request', lambda request: discovery_requests.append(urlparse(request.url).path)
+            if urlparse(request.url).path in ('/api/knowledge/catalog', '/api/knowledge/contracts') else None)
     page.goto(f"{access_base_url}/static/research.html?focus={quote(material_id, safe='')}")
     tree = page.locator('#tree[data-ready="true"][data-loading="false"]')
     tree.wait_for(state="visible")
     wait_for(page, f"document.querySelector('#tree').dataset.selection === {json.dumps(material_id)}")
     before_selection = tree.get_attribute('data-selection')
     before_camera = tree.get_attribute('data-camera')
+    assert discovery_requests == ['/api/knowledge/catalog']
     page.get_by_role('button', name='Собрать линзу', exact=True).click()
     builder = page.locator('.lens-builder')
+    page.locator('.lens-builder[data-state="ready"]').wait_for(state='visible')
+    # Every ordinary reopening uses the same immutable session vocabulary and
+    # validated schema. A page reload below must establish a new binding.
+    for _ in range(2):
+        builder.locator('.lens-builder-header .lens-builder-close').click()
+        page.get_by_role('button', name='Собрать линзу', exact=True).click()
+        page.locator('.lens-builder[data-state="ready"]').wait_for(state='visible')
+    assert discovery_requests == ['/api/knowledge/catalog', '/api/knowledge/contracts']
     builder.get_by_label('Название линзы', exact=True).fill('Fixture saved lens')
     builder.get_by_role('button', name='Предпросмотр', exact=True).click()
     page.locator('.lens-builder[data-state="preview"]').wait_for(state="visible")
@@ -842,6 +876,7 @@ def test_research_lens_preview_save_apply_and_return(webmcp_page: Page, access_b
     card = page.locator('.research-shelf-card').filter(has_text='Fixture saved lens')
     card.get_by_role('button', name='Открыть', exact=True).click()
     page.locator('.lens-builder[data-state="ready"]').wait_for(state="visible")
+    assert discovery_requests == ['/api/knowledge/catalog', '/api/knowledge/contracts'] * 2
     assert builder.get_by_label('Название линзы', exact=True).input_value() == 'Fixture saved lens'
     assert not builder.get_by_role('button', name='Открыть область', exact=True).is_enabled()
     builder.get_by_role('button', name='Предпросмотр', exact=True).click()
@@ -965,6 +1000,102 @@ def test_corpus_note_exit_recovers_exact_draft():
         except subprocess.TimeoutExpired:
             server.kill()
             server.wait(timeout=5)
+
+
+@pytest.fixture(scope='session')
+def reader_fixture_base_url():
+    with socket.socket() as probe:
+        probe.bind(('127.0.0.1', 0))
+        port = probe.getsockname()[1]
+    web = REPO_ROOT / 'access/web'
+    server = subprocess.Popen(
+        [str(web / 'node_modules/.bin/vite'), '--host', '127.0.0.1', '--port', str(port), '--strictPort'],
+        cwd=web, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    base_url = f'http://127.0.0.1:{port}'
+    try:
+        deadline = time.monotonic() + 15
+        while True:
+            try:
+                with urllib.request.urlopen(base_url + '/static/fixtures/research-shelf.html', timeout=1) as response:
+                    assert response.status == 200
+                break
+            except (OSError, AssertionError):
+                if server.poll() is not None or time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.1)
+        yield base_url
+    finally:
+        server.terminate()
+        try:
+            server.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            server.kill()
+            server.wait(timeout=5)
+
+
+def test_research_shelf_collection_delete_is_atomic(reader_fixture_base_url):
+    """Real IDB: two-connection CAS and rollback of a partially visited collection."""
+    with short_chromium_tmp(), sync_playwright() as p:
+        options = {'headless': True, 'args': ['--no-sandbox']}
+        if CHROMIUM:
+            options['executable_path'] = CHROMIUM
+        browser = p.chromium.launch(**options)
+        page = browser.new_page(locale='ru-RU')
+        page.goto(reader_fixture_base_url + '/static/fixtures/research-shelf.html', wait_until='domcontentloaded')
+        proof = page.locator('#research-shelf-proof[data-state]')
+        proof.wait_for(state='visible')
+        value = json.loads(proof.inner_text())
+        assert proof.get_attribute('data-state') == 'passed', value
+        assert value['tests']['collectionDetach']['ok'], value
+        assert value['tests']['collectionDeleteRollback']['ok'], value
+        assert all(test['ok'] for test in value['tests'].values()), value
+        browser.close()
+
+
+def test_lens_large_relation_area_requires_scope_confirmation(reader_fixture_base_url):
+    """A sole all-tree option stays explicit and can actually be confirmed."""
+    with short_chromium_tmp(), sync_playwright() as p:
+        options = {'headless': True, 'args': ['--no-sandbox']}
+        if CHROMIUM:
+            options['executable_path'] = CHROMIUM
+        browser = p.chromium.launch(**options)
+        page = browser.new_page(locale='ru-RU')
+        page.route('**/lens-scope-check', lambda route: route.fulfill(
+            status=200, content_type='text/html',
+            body='<html lang="ru"><body><main id="scope-check"></main></body></html>',
+        ))
+        page.goto(reader_fixture_base_url + '/lens-scope-check')
+        page.evaluate("""async () => {
+          const {mountLensBuilder}=await import('/static/src/observatory/lens-builder.mjs');
+          const {lensContext,boundary}=await import('/static/fixtures/lens-scenarios.mjs');
+          const context=lensContext(),nodes=Array.from({length:41},(_,i)=>({id:'fixture:'+i}));
+          const selection={kind:'relation',id:'fixture:relation'};
+          const packet={schema:'tos_browser_exploration_view_v1',source_revision:context.catalog.source_revision,
+            authority_boundary:boundary,nodes,relations:[{id:selection.id,from_id:nodes[0].id,to_id:nodes[1].id}],selection};
+          window.scopeCheck={packet,compiles:0};
+          window.scopeCheck.builder=mountLensBuilder({host:document.querySelector('#scope-check'),
+            getArea:()=>({packet,selection}),client:{
+              request:async path=>path==='/catalog'?context.catalog:{schema:'tos_knowledge_contract_bundle_v1',
+                authority_boundary:boundary,contracts:{lens_spec:context.schema}},
+              compile:async()=>{window.scopeCheck.compiles++;throw Error('Preview must stay explicit');}
+            }});
+          await window.scopeCheck.builder.open();
+        }""")
+        builder = page.locator('#scope-check .lens-builder')
+        choice = builder.locator('.lens-builder-area-choice')
+        assert choice.locator('option').count() == 1
+        assert choice.locator('select').input_value() == 'all'
+        assert page.evaluate('scopeCheck.builder.state().areaChoice.required')
+        assert builder.get_by_role('button', name='Предпросмотр', exact=True).is_disabled()
+        choice.get_by_role('button', name='Открыть область', exact=True).click()
+        choice.wait_for(state='hidden')
+        assert not page.evaluate('scopeCheck.builder.state().areaChoice.required')
+        assert page.evaluate('scopeCheck.compiles') == 0
+        assert page.evaluate('scopeCheck.packet.nodes.length') == 41
+        assert builder.get_by_role('button', name='Предпросмотр', exact=True).is_enabled()
+        assert builder.get_by_role('button', name='Сохранить линзу', exact=True).is_enabled()
+        browser.close()
 
 
 def test_reader_positions_survive_pagehide_before_debounce():

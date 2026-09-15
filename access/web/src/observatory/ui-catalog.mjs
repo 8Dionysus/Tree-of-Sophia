@@ -662,6 +662,10 @@ export const UI_CATALOG={
     "en": "The area is too large. Choose a narrower focus.",
     "es": "El área es demasiado grande. Elige un centro más acotado."
   },
+  "Словарь данных слишком велик для загрузки. Обратитесь к оператору сервиса.": {
+    "en": "The data vocabulary is too large to load. Contact the service operator.",
+    "es": "El vocabulario de datos es demasiado grande para cargarlo. Contacta con el operador del servicio."
+  },
   "Этот способ просмотра пока не доступен.": {
     "en": "This view is not available yet.",
     "es": "Esta vista aún no está disponible."

@@ -10,6 +10,13 @@ export const SAVED_LENSES_KEY='tos-observatory-lenses-v1';
 const bad=message=>{throw new ContractError(message);};
 const strings=(value,max,length=1024)=>Array.isArray(value)&&value.length<=max&&new Set(value).size===value.length&&value.every(v=>typeof v==='string'&&v.length>0&&v.length<=length);
 const drafts=new WeakMap();
+const freezeDeep=value=>{
+  if(value&&typeof value==='object'){
+    for(const child of Object.values(value))freezeDeep(child);
+    if(!Object.isFrozen(value))Object.freeze(value);
+  }
+  return value;
+};
 export const draftForPacket=packet=>drafts.get(packet)||null;
 
 export function validateDraft(value){
@@ -40,8 +47,10 @@ export function validateDraft(value){
 export function encodeDraft(draft){const text=JSON.stringify(validateDraft(draft));if(text.length>12000||new URLSearchParams({lens:text}).toString().length>40000)bad(t("Описание линзы слишком велико для ссылки. Сузьте исходную область или сократите значения условий."));return text;}
 export function decodeDraft(text){if(typeof text!=='string'||text.length>12000)bad(t("Ссылка на линзу слишком велика."));try{return validateDraft(JSON.parse(text));}catch(error){if(error instanceof ContractError)throw error;bad(t("Не удалось прочитать настройки линзы."));}}
 
-export async function constructorCatalog(client,signal){
-  const [catalog,bundle]=await Promise.all([client.request('/catalog',{signal}),client.request('/contracts',{signal})]);
+export async function constructorCatalog(client,signal,{catalog: suppliedCatalog=null}={}){
+  const catalogRequest=suppliedCatalog===null||suppliedCatalog===undefined
+    ?client.request('/catalog',{signal}):Promise.resolve(suppliedCatalog);
+  const [catalog,bundle]=await Promise.all([catalogRequest,client.request('/contracts',{signal})]);
   checkRevision(catalog);
   const caps=catalog.capabilities,schema=bundle?.contracts?.lens_spec;
   if(catalog.schema!=='tos_knowledge_catalog_v1'||catalog.authority_boundary?.is_source!==false
@@ -62,6 +71,54 @@ export async function constructorCatalog(client,signal){
     ||!Number.isInteger(schema.properties.traversal?.properties?.depth?.maximum)
     ||caps.inclusion?.authority!=='query-execution-not-semantic-proof')bad(t("Сервер пока не предоставляет совместимый конструктор линз."));
   return {catalog,schema};
+}
+
+// The live exploration session already owns an immutable catalog binding. A
+// lens builder may reuse its validated context for that exact object, while a
+// replacement, missing binding, failed validation, or ignored cancellation
+// must never make an old context look current.
+export function createConstructorCatalogLoader(client,getCatalog=()=>null){
+  const readCatalog=typeof getCatalog==='function'?()=>getCatalog()??null:()=>null;
+  const unset=Symbol('no bound catalog');
+  let boundCatalog=unset,cachedContext=null,epoch=0,generation=0;
+  const abortError=signal=>signal?.reason??(typeof DOMException==='function'
+    ?new DOMException('The operation was aborted.','AbortError')
+    :Object.assign(new Error('The operation was aborted.'),{name:'AbortError'}));
+  const checkActive=(signal,turn,turnEpoch)=>{
+    if(signal?.aborted)throw abortError(signal);
+    return turn===generation&&turnEpoch===epoch;
+  };
+  const syncBinding=catalog=>{
+    if(boundCatalog!==unset&&Object.is(boundCatalog,catalog))return;
+    boundCatalog=catalog;cachedContext=null;generation++;
+  };
+  return {
+    async load(signal,{refresh=false}={}){
+      const catalog=readCatalog();syncBinding(catalog);
+      const turnEpoch=epoch,turn=++generation;
+      if(!checkActive(signal,turn,turnEpoch))return null;
+      const reusableCatalog=catalog!==null&&typeof catalog==='object'&&Object.isFrozen(catalog);
+      if(!refresh&&cachedContext&&reusableCatalog&&cachedContext.catalog===catalog)return cachedContext;
+      cachedContext=null;
+      let context;
+      try{context=await constructorCatalog(client,signal,{catalog});}
+      catch(error){
+        if(signal?.aborted)throw abortError(signal);
+        if(turn!==generation||turnEpoch!==epoch)return null;
+        throw error;
+      }
+      if(!checkActive(signal,turn,turnEpoch))return null;
+      const currentCatalog=readCatalog();
+      if(!Object.is(currentCatalog,catalog)){
+        syncBinding(currentCatalog);
+        return null;
+      }
+      if(reusableCatalog){freezeDeep(context.schema);Object.freeze(context);cachedContext=context;}
+      else cachedContext=null;
+      return context;
+    },
+    clear(){epoch++;generation++;cachedContext=null;}
+  };
 }
 export function initialDraft(packet,context){
   return {v:2,name:t("Моя линза"),scope:packet?.nodes?.length?'area':'all',sources:[...context.catalog.capabilities.sources],

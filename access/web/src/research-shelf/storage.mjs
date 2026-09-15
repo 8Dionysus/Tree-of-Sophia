@@ -82,6 +82,12 @@ function compareIncoming(state,packet){
     if(existing&&!sameShelfValue(existing,incoming))fail('conflict','An imported collection conflicts with an existing collection.',{id:incoming.id,kind:'collection'});
   }
 }
+function detachCollection(record,id,at){
+  // A membership change must invalidate stale editors, while a clock moving
+  // backwards must not make an otherwise valid imported record invalid.
+  return validateShelfRecord({...record,collectionIds:record.collectionIds.filter(value=>value!==id),
+    revision:record.revision+1,updatedAt:Date.parse(at)<Date.parse(record.updatedAt)?record.updatedAt:at});
+}
 /**
  * Memory adapter used by tests and as the explicit degraded-mode fallback.
  * The adapter contract is asynchronous even though its implementation is not.
@@ -125,7 +131,14 @@ export function createMemoryResearchShelfAdapter({memoryStore,state,now=timestam
     },
     async deleteCollection(id,expected){
       expectedRevision(expected,'collection');if(expected===null||expected===undefined)fail('invalid-input','Deleting a collection requires its current revision.');
-      return mutate((draft,current)=>{const old=current.collections.get(id);if(!old)fail('not-found','The collection was not found.',{id});if(old.revision!==expected)fail('conflict','The collection changed in another context.',{id,expectedRevision:expected,actualRecordRevision:old.revision});draft.collections.delete(id);draft.generation=current.generation+1;return {id,generation:draft.generation};});
+      return mutate((draft,current)=>{
+        const old=current.collections.get(id);
+        if(!old)fail('not-found','The collection was not found.',{id});
+        if(old.revision!==expected)fail('conflict','The collection changed in another context.',{id,expectedRevision:expected,actualRecordRevision:old.revision});
+        const at=now();
+        for(const [recordId,record] of current.records)if(record.collectionIds.includes(id))draft.records.set(recordId,detachCollection(record,id,at));
+        draft.collections.delete(id);draft.generation=current.generation+1;return {id,generation:draft.generation};
+      });
     },
     async exportPacket(){return read(stateValue=>makeShelfExport({generation:stateValue.generation,records:[...stateValue.records.values()],collections:[...stateValue.collections.values()]}));},
     async importPacket(packet,expected){
@@ -243,8 +256,31 @@ function idbSaveCollection(db,collection,expected){
     metaRequest.onerror=()=>abort(mapStorageError(metaRequest.error));collectionRequest.onerror=()=>abort(mapStorageError(collectionRequest.error));metaRequest.onsuccess=()=>{meta=metaRequest.result;finish();};collectionRequest.onsuccess=()=>{old=collectionRequest.result===undefined?null:collectionRequest.result;finish();};
   });
 }
-function idbDeleteCollection(db,id,expected){
-  return transactionPromise(db,[RESEARCH_SHELF_STORES.meta,RESEARCH_SHELF_STORES.collections],'readwrite',(tx,set,abort)=>{const metaRequest=tx.objectStore(RESEARCH_SHELF_STORES.meta).get(META_KEY),collectionRequest=tx.objectStore(RESEARCH_SHELF_STORES.collections).get(id);let meta,old;const finish=()=>{if(meta===undefined||old===undefined)return;try{const generation=metaFrom(meta).generation;if(!old)fail('not-found','The collection was not found.',{id});if(old.revision!==expected)fail('conflict','The collection changed in another context.',{id,expectedRevision:expected,actualRecordRevision:old.revision});tx.objectStore(RESEARCH_SHELF_STORES.collections).delete(id);tx.objectStore(RESEARCH_SHELF_STORES.meta).put({key:META_KEY,generation:generation+1});set({id,generation:generation+1});}catch(error){abort(error);}};metaRequest.onerror=()=>abort(mapStorageError(metaRequest.error));collectionRequest.onerror=()=>abort(mapStorageError(collectionRequest.error));metaRequest.onsuccess=()=>{meta=metaRequest.result;finish();};collectionRequest.onsuccess=()=>{old=collectionRequest.result===undefined?null:collectionRequest.result;finish();};});
+function idbDeleteCollection(db,id,expected,now){
+  return transactionPromise(db,[RESEARCH_SHELF_STORES.meta,RESEARCH_SHELF_STORES.collections,RESEARCH_SHELF_STORES.records],'readwrite',(tx,set,abort)=>{
+    const metaStore=tx.objectStore(RESEARCH_SHELF_STORES.meta),collections=tx.objectStore(RESEARCH_SHELF_STORES.collections),records=tx.objectStore(RESEARCH_SHELF_STORES.records);
+    const metaRequest=metaStore.get(META_KEY),collectionRequest=collections.get(id);let meta,old;
+    const finish=()=>{
+      if(meta===undefined||old===undefined)return;
+      try{
+        const generation=metaFrom(meta).generation;
+        if(!old)fail('not-found','The collection was not found.',{id});
+        if(old.revision!==expected)fail('conflict','The collection changed in another context.',{id,expectedRevision:expected,actualRecordRevision:old.revision});
+        const at=now(),members=records.index('byCollection').openCursor(IDBKeyRange.only(id));
+        members.onerror=()=>abort(mapStorageError(members.error));
+        members.onsuccess=()=>{
+          try{
+            const cursor=members.result;
+            if(!cursor){collections.delete(id);metaStore.put({key:META_KEY,generation:generation+1});set({id,generation:generation+1});return;}
+            const update=cursor.update(detachCollection(cursor.value,id,at));
+            update.onerror=()=>abort(mapStorageError(update.error));cursor.continue();
+          }catch(error){abort(error);}
+        };
+      }catch(error){abort(error);}
+    };
+    metaRequest.onerror=()=>abort(mapStorageError(metaRequest.error));collectionRequest.onerror=()=>abort(mapStorageError(collectionRequest.error));
+    metaRequest.onsuccess=()=>{meta=metaRequest.result;finish();};collectionRequest.onsuccess=()=>{old=collectionRequest.result===undefined?null:collectionRequest.result;finish();};
+  });
 }
 function idbExport(db){
   return transactionPromise(db,[RESEARCH_SHELF_STORES.meta,RESEARCH_SHELF_STORES.records,RESEARCH_SHELF_STORES.collections],'readonly',(tx,set,abort)=>{const metaRequest=tx.objectStore(RESEARCH_SHELF_STORES.meta).get(META_KEY),recordsRequest=tx.objectStore(RESEARCH_SHELF_STORES.records).getAll(),collectionsRequest=tx.objectStore(RESEARCH_SHELF_STORES.collections).getAll();let meta,records,collections;const finish=()=>{if(meta===undefined||records===undefined||collections===undefined)return;set(makeShelfExport({generation:metaFrom(meta).generation,records,collections}));};for(const request of [metaRequest,recordsRequest,collectionsRequest])request.onerror=()=>abort(mapStorageError(request.error));metaRequest.onsuccess=()=>{meta=metaRequest.result;finish();};recordsRequest.onsuccess=()=>{records=recordsRequest.result;finish();};collectionsRequest.onsuccess=()=>{collections=collectionsRequest.result;finish();};});
@@ -316,7 +352,7 @@ function idbImport(db,packet,expected){
 }
 
 /** An IndexedDB adapter with the same async seam as the memory adapter. */
-export function createIndexedDBResearchShelfAdapter({indexedDB=globalThis.indexedDB,dbName=DEFAULT_DB_NAME}={}){
+export function createIndexedDBResearchShelfAdapter({indexedDB=globalThis.indexedDB,dbName=DEFAULT_DB_NAME,now=timestamp}={}){
   if(!indexedDB||typeof indexedDB.open!=='function')fail('storage-unavailable','IndexedDB is unavailable.');
   if(typeof dbName!=='string'||!dbName.trim()||dbName.length>256)fail('invalid-input','The shelf database name is invalid.');
   const dbPromise=openDatabase(indexedDB,dbName),status={adapter:'indexeddb',persistent:true,warning:null,closed:false};
@@ -330,7 +366,7 @@ export function createIndexedDBResearchShelfAdapter({indexedDB=globalThis.indexe
     async getCollection(id){return ready().then(db=>idbGet(db,RESEARCH_SHELF_STORES.collections,id));},
     async listCollections(){return ready().then(db=>idbListCollections(db));},
     async saveCollection(collection,expected){expectedRevision(expected,'collection');return ready().then(db=>idbSaveCollection(db,validateCollection(collection),expected));},
-    async deleteCollection(id,expected){expectedRevision(expected,'collection');if(expected===null||expected===undefined)fail('invalid-input','Deleting a collection requires its current revision.');return ready().then(db=>idbDeleteCollection(db,id,expected));},
+    async deleteCollection(id,expected){expectedRevision(expected,'collection');if(expected===null||expected===undefined)fail('invalid-input','Deleting a collection requires its current revision.');return ready().then(db=>idbDeleteCollection(db,id,expected,now));},
     async exportPacket(){return ready().then(db=>idbExport(db));},
     async importPacket(packet,expected){expectedGeneration(expected);const parsed=validateShelfExport(packet);return ready().then(db=>idbImport(db,parsed,expected));},
     async close(){if(status.closed)return;status.closed=true;const db=await dbPromise.catch(()=>null);db?.close();},
@@ -350,25 +386,25 @@ function suppliedAdapter(value){
 export function createResearchShelfStore(options={}){
   if(!object(options))fail('invalid-input','Research shelf options must be an object.');
   const dbName=options.dbName??DEFAULT_DB_NAME;
+  const clock=typeof options.now==='function'?options.now:timestamp;
   let backendPromise;
   const supplied=options.storage??(typeof options.adapter==='object'?options.adapter:null);
   if(supplied)backendPromise=Promise.resolve(suppliedAdapter(supplied));
   else if(options.adapter==='memory'||options.adapter==='ephemeral'||options.indexedDB===null)
-    backendPromise=Promise.resolve(createMemoryResearchShelfAdapter({memoryStore:options.memoryStore,state:options.state,now:options.now,warning:'memory-only'}));
+    backendPromise=Promise.resolve(createMemoryResearchShelfAdapter({memoryStore:options.memoryStore,state:options.state,now:clock,warning:'memory-only'}));
   else if((Object.hasOwn(options,'indexedDB')?options.indexedDB:globalThis.indexedDB)===undefined)
-    backendPromise=Promise.resolve(createMemoryResearchShelfAdapter({memoryStore:options.memoryStore,state:options.state,now:options.now,warning:'storage-unavailable'}));
+    backendPromise=Promise.resolve(createMemoryResearchShelfAdapter({memoryStore:options.memoryStore,state:options.state,now:clock,warning:'storage-unavailable'}));
   else{
     const availableIndexedDB=Object.hasOwn(options,'indexedDB')?options.indexedDB:globalThis.indexedDB;
     let candidate;
-    try{candidate=createIndexedDBResearchShelfAdapter({indexedDB:availableIndexedDB,dbName});}
-    catch(error){candidate=null;backendPromise=Promise.resolve(createMemoryResearchShelfAdapter({memoryStore:options.memoryStore,state:options.state,now:options.now,warning:error?.code||'storage-unavailable'}));}
-    if(candidate)backendPromise=candidate.ready().then(()=>candidate).catch(error=>createMemoryResearchShelfAdapter({memoryStore:options.memoryStore,state:options.state,now:options.now,warning:error?.code||'storage-unavailable'}));
+    try{candidate=createIndexedDBResearchShelfAdapter({indexedDB:availableIndexedDB,dbName,now:clock});}
+    catch(error){candidate=null;backendPromise=Promise.resolve(createMemoryResearchShelfAdapter({memoryStore:options.memoryStore,state:options.state,now:clock,warning:error?.code||'storage-unavailable'}));}
+    if(candidate)backendPromise=candidate.ready().then(()=>candidate).catch(error=>createMemoryResearchShelfAdapter({memoryStore:options.memoryStore,state:options.state,now:clock,warning:error?.code||'storage-unavailable'}));
   }
   let backend=null,closed=false;
   const status={adapter:'pending',persistent:false,warning:null,dbName,closed:false};
   const ready=async()=>{if(closed)fail('closed','The research shelf is closed.');const value=await backendPromise;if(closed)fail('closed','The research shelf is closed.');if(!backend){backend=value;status.adapter=value.kind??'custom';status.persistent=value.persistent===true;status.warning=value.warning??null;}return value;};
   const call=(method,...args)=>ready().then(value=>value[method](...args));
-  const clock=typeof options.now==='function'?options.now:timestamp;
   const api={
     status:()=>({...status,closed}),
     async ready(){await ready();return {...status,closed};},

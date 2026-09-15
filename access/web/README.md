@@ -247,6 +247,10 @@ CSP is required.
   to 40 nodes, 80 relations and depth 3. Changes compile after a 400ms pause
   and update the scene directly, retaining camera pose and established star
   positions. The status shows applied counts or explains an unchanged result.
+  The research entry's lens builder reuses the immutable catalog already bound
+  to the live exploration session. It fetches `/contracts` once per binding and
+  again on explicit retry, preserving the existing source revision checks. See the bounded
+  [catalog delivery note](src/observatory/CATALOG-DELIVERY.md).
   Closing, changing conditions or changing the area invalidates pending work. Empty results and failures keep the graph.
   The original-view action restores its scene and camera bookmark.
   Up to 12 definitions are saved under a separate browser-local storage key,
