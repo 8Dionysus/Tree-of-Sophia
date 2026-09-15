@@ -3,6 +3,91 @@
 This is a bounded integration review, not Foundation v1 acceptance, corpus
 admission, CI, merge, or deployment evidence.
 
+## Current catalog and owner-separated completion · 2026-09-15 UTC
+
+The source owner's `render_outputs` / `check_outputs` reports no stale catalog
+companions: 312 objects and 377 Claims, 689 identities. A subsequent complete
+enumeration compared each exact public source record against the selected
+prepared reader's indexed subject carriers with the existing
+`observe_record` comparison. All fields and source-return references match:
+659 direct mappings, 30 native adapters, 411 bound source files. Source
+membership, bytes and the prepared publication were rechecked at the end.
+The observation took 13.461 s / 318,328 KiB peak process RSS, without graph
+construction, a database copy or source writes. It binds source revision
+`61e5059bcff97b455f04e4aab92d6edb6a5bc5b33a37e059ec3d80e6f2acba26`
+and prepared data revision
+`85030b1fb6d05c841cc443e8faa24f33a3b0834fda637c82738f24640437ab2e`.
+This refreshes the public catalog part of K4, not private/uncatalogued
+inventories, semantic assessment, historical versions or form quality. The
+addressed check enumerates exact/entity/native indexed subjects; it is not
+a full scan for conflicting identities hidden only in extension attributes.
+
+The corpus migration owner has preserved the earlier Foundation input
+`0f017572666e23f3d383f5dbce30e76ef6b21842`. The exact successor handoff through
+`303aef986bc8431f47b66f753f70acdbf23219c9` contains 21 changed tracked ToS files,
+897,620 successor bytes and no deletions. Before/after Git blobs and SHA-256
+values identify every member without copying the corpus. Penn environment,
+three Claims, forms and creation evidence remain distinct from catalog
+companions; the latter must not overwrite the recipient's union catalog.
+The recipient acknowledged this as **queued, not admitted**. Its mass snapshot
+and fresh remote restore are separate owner work, not this local D1 result.
+
+K1 follows the current software/corpus/integration release separation. Exact
+source-batch admission and snapshot binding still matter; a general KAG or
+documentation reseal is not a dependency of every software change. New review
+bytes after the handoff retain their own next delta; this note does not claim
+to be included in an earlier immutable packet.
+
+Existing real lifecycle measurements were inspected and reused, not rerun:
+
+| Capability and original goal scope | Existing measured result | Evidence boundary |
+| --- | --- | --- |
+| G6/G7 source correction with stable identity/history | Collection `record.revise` apply/replay 0.61/0.29 s, about 39/38 MiB | [Exact source review](2026-09-09-native-corpus-descriptive-revision-review.md); not a full-corpus latency curve. |
+| G4/G7 assessment withdrawal and dependent recovery | Layer withdrawal 1.13 s; renewed Layer/Unit 0.99/1.09 s, 42–43 MiB | [Real quality lifecycle](2026-09-09-real-native-quality-assessment-review.md); source-visible decisions and command time are distinct from model cost. |
+| G3/G6/G7 current local access | Renewed project-note human/native-MCP cycle 5.21 s; old expired selections and an outside unit refused | The existing renewal receipt verifies that only mandate/times changed; no material, license or transport expansion. Timing is the positive read cycle, not the act of granting authority. |
+| G7/G8 deletion and restoration in the derived publication | Withdrawal stage/commit 572/247 ms, 174 statements; restore 633/224 ms, 187 statements | Actual local Worker, human/native-MCP presence agreement and stale cursors; this removes serving records, not source history or source files. |
+| G7/G8 full local reader rollback/recovery | Reverse 3.165 s / 39,714 statements; forward 0.763 s / 62,316 statements | Exact source record and reading-note hashes unchanged; retained local D1 evidence, not production activation. |
+
+These close the named bounded lifecycle observations, not a blanket K3
+acceptance. Read-growth tests separately protect 5,000-to-10,000 unrelated
+rows/high degree; compressed mutation tests protect block locality and exact
+mutation-budget refusal. Synthetic growth checks are not historical events
+or measurements of source judgment. Remaining K3 review must reconcile these
+costs and full-store publication measurements;
+it must not demand destructive source deletion to prove derived deletion.
+
+An additional permanent compressed-store invariant uses 511 and 1,022
+synthetic documents and the same insert/update/delete sequence. Exact query
+streams agree with the reference after each step. Doubling the unrelated tail
+does not increase logical mutations (764/210/692) or affected posting blocks
+(339/80/339); payload bytes remain bounded by affected blocks times the codec
+block limit. The targeted test passed in 3.187 s. This is a bounded mechanism
+test alongside the real full-store publications, not a wall-time complexity
+proof or a historical source claim.
+
+Evidence SHA-256: `prepared-catalog-mapping-current-r1.json`
+`338ceaccbb9065ca21c7a148b926f07c40c372fc0b8454639863c3f28b80b332`;
+`foundation-source-delta-handoff-r2.json`
+`e47bfc8ea3a226d3f37ae67f74a7ac039c687c1d899d68444215fec79460fcb6`;
+`delta-batch-real-worker-r1.json`
+`0db3adc12328af385465940c486833b4b4b4148a3a86c6da7b5d452ee8742d66`;
+`full-d1-recovery-r2.json`
+`feb0d1125660c5f20f6690b12a9582d273abdfcd88ac5be8b33a2149e071dddc`.
+
+The old catch-up capture receipt's aggregate pairing flag was too broad.
+Only successor prepared/source pairing is mechanically verified; predecessor
+roots, dependencies and publication token remain externally admitted.
+`d1-catchup-pairing-qualification-r1.json` (SHA-256
+`29210c82f510cb7c7b4051a3f8efa16993178962171376e07eac920b9c8aa554`)
+narrows that historical claim without changing its bytes or reapplying SQL.
+The corrected receipt code has separate flags and both delta/catch-up tests.
+
+Manual boundary review: source traceability, stable identities, authored versus
+derived separation and source/assessment/rights authority remain intact.
+No new textual judgment, canon decision, private publication or abstraction
+was introduced. Remaining K1 is exact owner admission and software landing;
+K2 still needs its complete exact-text route and outstanding interaction seams.
+
 ## Historical carrier/episode and bounded title search · 2026-09-15 UTC
 
 The current D1 scene now connects the already checked Penn source segments in

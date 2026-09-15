@@ -138,9 +138,12 @@ RU/EN формами. Прежняя отметка пяти неизвестн�
 **Закрытие** v1 контролируют четыре сквозных gate, а не новый бесконечный список
 типов или требование оценить всю философию:
 
-- **K1 — итоговая целостность:** source/catalog/graph/resource index/KAG и
-  documentation/agent companions одного union; affected/full проверки,
-  необходимые integration checks и CI. Regeneration не принимает содержание.
+- **K1 — итоговая целостность:** точные source/catalog/data-snapshot и
+  software companions с проверенными связями ревизий; affected/full проверки
+  по владельцу и CI. По [release route](../../docs/RELEASING.md) корпус,
+  программа и внешние интеграции выпускаются раздельно: KAG/stats проверяются
+  при выпуске соответствующей интеграции, а не требуют общей пересборки для
+  каждого software commit. Regeneration не принимает содержание.
 - **K2 — настоящее потребление:** оба обязательных реальных маршрута человеком
   и агентом, хотя бы один вне Заратустры; concept/word/Occurrence/person/work/
   event/place/Claim/relation focus, раскрытие, фильтры, сравнение, источник,

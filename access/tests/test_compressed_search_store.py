@@ -13,7 +13,7 @@ import unittest
 from unittest.mock import patch
 
 from tos_access.compressed_search_store import (
-    BLOCK_SIZE, MAX_ADDRESS, MAX_HEADER_BYTES, MIN_METADATA_BYTES, MIN_RESPONSE_BYTES,
+    BLOCK_SIZE, MAX_ADDRESS, MAX_BLOCK_BYTES, MAX_HEADER_BYTES, MIN_METADATA_BYTES, MIN_RESPONSE_BYTES,
     PreparedSearchDocument, SearchChange, SearchStore,
     SearchInvalidRequest, SearchStaleBinding, SearchCursorError,
     SearchCursorExpired, SearchUnavailable, SearchBudgetExceeded,
@@ -310,6 +310,81 @@ class CompressedSearchStoreTests(unittest.TestCase):
         self.assertEqual(self.drain(final)[0], self.reference(items, ""))
         self.assertLess(removed["blocks_written"], len(blocks_before) // 2)
         print("COMPRESSED_SEARCH_FIXTURE " + json.dumps({"initial": before, "insert": delta, "delete": removed, "changed_blocks": changed, "initial_blocks": len(blocks_before)}, sort_keys=True))
+
+    def test_local_delta_cost_does_not_grow_with_doubled_unrelated_population(self):
+        observations = {}
+
+        def blocks(db):
+            return {(term, fence): (count, payload) for term, fence, count, payload in db.execute(
+                "SELECT term_id,lower_fence,posting_count,payload FROM search_blocks")}
+
+        def stream(db, binding, query):
+            db.execute("BEGIN")
+            try:
+                cursor, matches = None, []
+                for _ in range(100):
+                    page = SearchStore.query_transaction(db, binding=binding, kind="node", query=query,
+                        cursor=cursor, page_size=100, candidate_budget=4096,
+                        verification_bytes=8 * 1024 * 1024)
+                    matches.extend(page["matches"])
+                    if not page["has_more"]:
+                        return matches
+                    cursor = page["next_cursor"]
+                self.fail("local delta oracle stream did not terminate")
+            finally:
+                db.rollback()
+
+        # 511 and 1022 are just below two and four posting blocks. The same
+        # addresses stay in the local second-block neighborhood; only the
+        # unrelated tail is doubled. Logical writer counters, not wall time,
+        # are the invariant so SQLite B-tree height may change naturally.
+        for size in (511, 1022):
+            items = [self.item(f"m{i:04d}", "same") for i in range(size)]
+            inserted_item = self.item("m0255.5", "local inserted")
+            updated_item = self.item("m0255", "local updated")
+            inserted_id = size + 1
+            documents = [PreparedSearchDocument.from_item(i + 1, "node", item, (i + 1) * 1024)
+                         for i, item in enumerate(items)]
+            inserted = PreparedSearchDocument.from_item(inserted_id, "node", inserted_item, 255 * 1024 + 512)
+            updated = PreparedSearchDocument.from_item(256, "node", updated_item, 256 * 1024)
+            changes = (
+                (SearchChange("insert", inserted_id, inserted), lambda: items.append(inserted_item)),
+                (SearchChange("update", 256, updated), lambda: items.__setitem__(255, updated_item)),
+                (SearchChange("delete", inserted_id), lambda: items.pop()),
+            )
+            binding = self.binding
+            reports = []
+            with closing(sqlite3.connect(":memory:")) as db:
+                db.execute("BEGIN IMMEDIATE")
+                SearchStore.initialize_transaction(db, binding=binding, documents=documents,
+                    max_mutations=2_000_000, max_bytes=64 * 1024 * 1024)
+                db.commit()
+                for step, (change, update_oracle) in enumerate(changes, 1):
+                    before = blocks(db)
+                    next_binding = {"source_revision": f"local-delta-{size}-{step}"}
+                    db.execute("BEGIN IMMEDIATE")
+                    report = SearchStore.apply_delta_transaction(db, expected_binding=binding,
+                        new_binding=next_binding, changes=[change], max_mutations=100_000)
+                    db.commit()
+                    after = blocks(db)
+                    changed = sum(before.get(key) != after.get(key)
+                                  for key in before.keys() | after.keys())
+                    self.assertEqual(changed, report["blocks_written"])
+                    self.assertGreater(report["mutations"], 0)
+                    self.assertLessEqual(report["payload_bytes_written"],
+                                         report["blocks_written"] * MAX_BLOCK_BYTES)
+                    update_oracle()
+                    for query in ("", "same", "local"):
+                        self.assertEqual(stream(db, next_binding, query), self.reference(items, query),
+                                         (size, step, query))
+                    reports.append({key: report[key] for key in ("mutations", "blocks_written", "payload_bytes_written")})
+                    binding = next_binding
+            observations[size] = reports
+
+        for small, doubled in zip(observations[511], observations[1022]):
+            self.assertEqual((small["mutations"], small["blocks_written"]),
+                             (doubled["mutations"], doubled["blocks_written"]))
+        print("COMPRESSED_SEARCH_LOCAL_DELTA " + json.dumps(observations, sort_keys=True))
 
     def test_same_lower_id_source_order_and_relocation(self):
         items = [self.item("AB"), self.item("ab"), self.item("B")]
