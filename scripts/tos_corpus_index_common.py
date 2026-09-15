@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+from contextlib import ExitStack
 import hashlib
 import io
 import json
@@ -759,13 +760,15 @@ def build_source_navigation(diagnostics: list[dict[str, str]], *,
     dictionary; it must bind the same live participating publication.
     """
     snapshot = PublicationSnapshot(REPO_ROOT)
-    result = _build_source_navigation(diagnostics, assessed_forms=assessed_forms, publication=snapshot,
-                                      catalog_snapshot=catalog_snapshot, storage=storage)
+    with ExitStack() as read_scope:
+        result = _build_source_navigation(diagnostics, assessed_forms=assessed_forms, publication=snapshot,
+                                          catalog_snapshot=catalog_snapshot, storage=storage,
+                                          read_scope=read_scope)
     snapshot.verify_current()
     return result
 
 
-def _build_source_navigation(diagnostics, *, assessed_forms, publication, catalog_snapshot=None, storage=None):
+def _build_source_navigation(diagnostics, *, assessed_forms, publication, catalog_snapshot=None, storage=None, read_scope):
     """Join authored topology and source records into a read-only descent graph."""
 
     nodes = storage.mapping() if storage is not None else {}
@@ -884,6 +887,7 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication, catalo
         from metadata_version_reader import MetadataVersionReader
         metadata_reader = (MetadataVersionReader(REPO_ROOT) if catalog_snapshot is None
                            else MetadataVersionReader(REPO_ROOT, catalog_snapshot=catalog_snapshot))
+        read_scope.enter_context(metadata_reader.batch_read())
         catalog_manifest_raw = catalog_manifest_path.read_bytes()
         catalog_manifest = json.loads(catalog_manifest_raw)
         artifact_validators = {}

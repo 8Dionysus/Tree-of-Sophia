@@ -9,6 +9,7 @@ native payload resolver, or a historical HumanForm materializer.
 from __future__ import annotations
 
 import copy
+from contextlib import contextmanager
 import errno
 import os
 from pathlib import Path
@@ -111,6 +112,7 @@ class MetadataVersionReader:
                 raise TypeError('an explicit SourceCatalogSnapshot is required')
         self._catalog_snapshot = catalog_snapshot
         self._snapshot = _Snapshot()
+        self._batch_read = False
         self._contracts = {}
         self._profiles = None
         self._catalogs = {}
@@ -125,7 +127,27 @@ class MetadataVersionReader:
 
     def verify_current(self):
         self._verify_publication()
-        self._snapshot.verify()
+        if not self._batch_read:
+            self._snapshot.verify()
+
+    @contextmanager
+    def batch_read(self):
+        """Hold provisional results until one final observation check succeeds.
+
+        Builders must not expose results inside this scope. Individual file
+        reads retain their path/digest checks, and every operation still checks
+        publication currentness. Rechecking all accumulated paths is deferred
+        until scope exit, avoiding quadratic work across a large projection.
+        """
+        if self._batch_read:
+            raise RuntimeError('metadata batch reads cannot nest')
+        self.verify_current()
+        self._batch_read = True
+        try:
+            yield self
+        finally:
+            self._batch_read = False
+        self.verify_current()
 
     @property
     def accounting(self):
