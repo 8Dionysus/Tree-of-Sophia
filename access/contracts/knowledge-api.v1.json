@@ -80,7 +80,7 @@
       "mcp_tool": "tos_knowledge_search_capabilities",
       "cli": "tos knowledge search-capabilities",
       "result": "selected engine modes; compressed readiness checks only the selected local header and search objects, never a full corpus or catalog",
-      "available_on": "Python local HTTP, CLI and native MCP; not a Cloudflare/D1 capability claim"
+      "available_on": "Python local HTTP, CLI and native MCP; Cloudflare/D1 HTTP advertises its validated indexed-search engine"
     },
     {
       "operation_id": "tos.knowledge.node.inspect",

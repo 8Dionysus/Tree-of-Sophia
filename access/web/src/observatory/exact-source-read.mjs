@@ -17,7 +17,7 @@ const byteSize=value=>new TextEncoder().encode(JSON.stringify(value)).byteLength
 // Discovery only advertises transport choices. Each exact read still checks
 // the selected record, current rights and (for local text) owner conditions.
 async function sourceReadCapabilities(client,revision,signal){
-  const packet=await client.request('/api/source/capabilities',{signal,maxResponseBytes:65536});
+  const packet=await client.request('/api/source/capabilities',{signal,maxResponseBytes:Math.min(65536,client.maxResponseBytes??65536)});
   requireContract(object(packet)&&packet.schema_version==='tos_source_read_capabilities_v1'
     &&typeof packet.available==='boolean');
   if(!packet.available)return packet;

@@ -351,3 +351,41 @@ with the master. G16 stays open. The storage owner separately removed the
 already imported SQL export; source inputs, prepared snapshot, live D1 and
 addressed forward/reverse SQL remain. Recovery of that disposable full export
 is regeneration, not undelete; byte-identical regeneration was not tested.
+
+### Paired local source return
+
+The reviewed catalog transition subsequently committed on the retained prepared
+database: 224 SQL changes, 3.427 seconds, 177.3 MiB peak memory and zero swap.
+No normalized row bodies, normalization binding, context membership or source
+bytes changed. Source revision is `d3ce2a61cb1f6b43a458cce84d88a90d10c84251d488d93f024339314d028b01`;
+prepared data revision is `cb01ff7611388ea1b7b2e544d75685c904621c66154fab867df10c46d0f66129`,
+epoch 2. The old selection is rejected after commit. The first attempted
+transaction rolled back on normalization-profile drift; the successful attempt
+explicitly selected the retained publisher owning that unchanged normalization
+profile. Current source-owner reader code remains separately selected.
+`catalog-reader-profile-publication-r2.json` has SHA-256
+`4001ee23979733d90ddf9f679ac3f6af06ec87371cabfa9c95a4b954e2917ee1`.
+
+On this real full prepared corpus, native MCP and the current production browser
+client over HTTP return identical exact record, handle and local native unit for
+the authored note (5.210 seconds for the combined route). The actual browser
+then follows selection → Sources → original record → local text and displays
+`corpus`, both complete notices and the prohibition on external publication.
+The browser used existing built assets; the current source client was checked
+separately. This closes the positive local source-return seam of G6/G7/K2, not
+the remaining historical routes or a new smoothness benchmark. D1 remains
+independently selected at its earlier revision; no cross-backend switch or
+currentness claim is made.
+
+Receipts: `renewed-note-human-mcp-cycle-r1.json`, SHA-256
+`1f24be34ab7761f354ba4a6905d710fcfe2b4983fbf65f34f8c5518d31c549c9`;
+`renewed-note-browser-observation-r1.json`, SHA-256
+`ff31a6e3466cd8d109f373da4793acfc0b686325ab21cf5efb62f761340b2ed7`.
+
+Successor review also caught two delivery details: capability preflight now
+honors a client response budget below 64 KiB, and the packaged operation map
+advertises the implemented D1 indexed-search discovery route. The smaller-budget
+test covers both representation discovery and a complete exact record read.
+These changes do not widen a caller's resource limits or add source-reading
+authority to D1. Required CI `34930035706` passed at `0e7c0ce371`; the two later
+review fixes require their own successor CI before landing.

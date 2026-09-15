@@ -56,7 +56,7 @@ test('source capability revision and contract or authority mutations fail closed
   }
 });
 
-test('source capability discovery forwards the caller signal and fixed 64 KiB response budget',async()=>{
+test('source capability discovery forwards the caller signal and caps response work at 64 KiB',async()=>{
   const controller=new AbortController();let seen=null;
   const client={request:async(path,options)=>{seen={path,options};return capabilities();}};
   await exactSourceRepresentations(client,R,controller.signal);
@@ -64,15 +64,22 @@ test('source capability discovery forwards the caller signal and fixed 64 KiB re
   assert.equal(seen.options.maxResponseBytes,65536);
 });
 
-function harness(data=fixture(),decorate=packet=>new Response(JSON.stringify(packet))){
+function harness(data=fixture(),decorate=packet=>new Response(JSON.stringify(packet)),options={}){
   const calls=[];
-  const client=new KnowledgeClient({fetcher:async(path,options)=>{
+  const client=new KnowledgeClient({...options,fetcher:async(path,options)=>{
     calls.push({path,body:options.body?JSON.parse(options.body):null,signal:options.signal});
     return decorate(path.startsWith('/api/knowledge/')?data.inspection:path.endsWith('/capabilities')?data.capabilities:path.endsWith('/handles')?data.discovery:
       JSON.parse(options.body).representation!=='record'?data.unitRead:data.read,path);
   }});
   return {client,calls,data};
 }
+
+test('source preflight and exact reading honor a smaller selected client response budget',async()=>{
+  const {client,calls}=harness(fixture(),undefined,{maxResponseBytes:8192});
+  assert.deepEqual(await exactSourceRepresentations(client,R),['native_public_unit','native_local_unit']);
+  assert.equal((await readExactSource(client,selection)).status,'available');
+  assert.equal(calls.length,5);
+});
 
 test('exact card inspection supplies the only source target; four bounded read-only requests preserve original wording',async()=>{
   const {client,calls,data}=harness();
