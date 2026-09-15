@@ -388,6 +388,16 @@ exact counts/offsets and empty/short-query behavior; its explicit carrier-first
 scan plus primary-key source lookups is still a global scan. Indexed keeps the
 rarest 3-gram, 50000 candidate and 16000000 verification-character limits, and
 now checks the bounded posting/document/stat closure before rank evaluation.
+When matching postings exceed the text-verification budget, indexed search
+verifies an ordered candidate prefix per request. Rank metadata is charged
+inside the same character budget before JSON evaluation; native text is joined
+only after the prefix is materialized. A continuation may advance beyond a
+verified prefix containing no full-string matches. Consumers must continue
+from `page.next_cursor`, not interpret an empty page as exhaustion. The cursor
+retains the same global rank/ID/position and snapshot boundaries. An individual
+document or rank-metadata set that cannot fit still returns 413; caps are not
+raised. `work.rank_chars` and `work.verified_chars` describe bounded logical
+character spans, not total repeated SQL character visits or physical disk IO.
 No request introduces DDL, rebuilds a carrier or falls back to a static graph.
 
 Query stripping/lowercase and lengths use Python Unicode semantics. Legacy

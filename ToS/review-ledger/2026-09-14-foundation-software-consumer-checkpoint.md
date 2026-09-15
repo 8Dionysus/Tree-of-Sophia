@@ -3,6 +3,65 @@
 This is a bounded integration review, not Foundation v1 acceptance, corpus
 admission, CI, merge, or deployment evidence.
 
+## Ordinary word search and bounded verification · 2026-09-15 UTC
+
+The real `Wille` query exposed a second search boundary: rare-gram intersection
+alone cannot make a common word's full candidate text fit in one request.
+The Worker now verifies a rank-ordered candidate prefix within the unchanged
+16-million-character budget, including rank metadata. A materialized prefix
+precedes native text joins; continuation advances through verified candidates,
+including a prefix with no complete-string match. Global rank/ID/position,
+publication binding and exhausted-kind behavior are retained. An individually
+oversized next document remains an explicit refusal, not a silently skipped
+match. No index, schema, source, grant or D1 data was changed.
+
+Actual human search now shows `Wille` as a lexeme and the separate `Wille` /
+`Willen` spellings. Selecting the lexeme loads 7 nodes / 6 relations. Agent
+inspection returns the same exact ID and source path. The human relations tab
+exposes the separate `lexical_sense_of` Claim linking the contextual Sense,
+not a direct assertion that a philosophical conception is a dictionary meaning.
+Its bounded JGB19 proposal, uncertain/unreviewed status, source-reading basis
+and absence of exact token/paradigm authority remain visible. Two WebMCP search
+pages each return 6 nodes / 6 relations without repeated node IDs; both retain
+source revision `61e5059bcff97b455f04e4aab92d6edb6a5bc5b33a37e059ec3d80e6f2acba26`.
+The first HTTP node window covers 91 candidates / 15,563,210 document characters
+plus 90,426 rank characters; the relation side covers 147 / 1,755,003 plus
+162,032 rank characters. These are bounded logical spans, not total repeated
+SQL visits or physical IO measurements.
+
+This closes the observed ordinary-word search failure and checks the
+G6/G9 human/agent lexical-identity/context/continuation seam plus G7 bounded
+verification. It is not a complete corpus-search oracle, semantic admission,
+a new latency percentile, or completion of K2. Whole-goal acceptance and
+exact-head software landing remain separate.
+Type checking and all 23 native-search tests pass (28.455 s), including real
+D1 isolate restart, Python packet parity, stale/ABA cursor refusal and the
+new wide-prefix regressions. The latter use three real in-memory synthetic
+source/search carriers, not missing-native placeholders, and compare complete
+per-kind result streams across empty progress pages. Window boundary IDs
+also retain the existing 1 MiB SQL-side delivery mask.
+
+Evidence: `wille-indexed-human-agent-r1.json`, SHA-256
+`e97011057ca3b9ee08f76c9a3208edbedca699bf102f871eac76fac2b77047be`.
+
+The next human constructor check found a harness omission, not a catalog
+failure: the local Worker configuration had no `ASSETS` binding, so
+`/api/knowledge/contracts` returned 500 while the native catalog returned
+200 / 3,409,965 bytes. Only the two normal contract assets were exported
+from the selected local Python owner's routes, compared against all 16 exact
+current source files, then attached to the existing Worker configuration.
+They total 676,739 bytes; no production configuration, data or database copy
+was changed. `local-contract-assets-r1/receipt.json` records each source/asset
+digest. The repaired contract route returns the 12-contract bundle.
+
+The actual constructor then discovers `Тип сущности` / `равно` and the
+`tos.entity.lexeme` value. Applying it to the seven-carrier Wille area yields
+2 carriers / 1 relation with an explicit delta of −5/−5; an empty intermediate
+condition preserves the previous view rather than claiming a result. Returning
+to the original view restores its focus and selected Sense-to-lexeme Claim
+relation. This verifies G6/G9 condition discovery, bounded filtering and view
+return on real data. Counts describe carriers, not two different lexemes.
+
 ## Current catalog and owner-separated completion · 2026-09-15 UTC
 
 The source owner's `render_outputs` / `check_outputs` reports no stale catalog
@@ -31,6 +90,12 @@ three Claims, forms and creation evidence remain distinct from catalog
 companions; the latter must not overwrite the recipient's union catalog.
 The recipient acknowledged this as **queued, not admitted**. Its mass snapshot
 and fresh remote restore are separate owner work, not this local D1 result.
+The recipient subsequently confirmed that this frozen, not-yet-activated
+corpus migration is **not a Foundation K1 gate**. The actual Foundation source
+additions are already in current Git `main`; the pending union differs in ToS
+only by this checkpoint and the coverage map. Current Git source and our
+verified prepared/D1 bindings remain the active Foundation path. The queued
+successor does not imply a common currentness claim for its separate snapshot.
 
 K1 follows the current software/corpus/integration release separation. Exact
 source-batch admission and snapshot binding still matter; a general KAG or
@@ -85,7 +150,7 @@ The corrected receipt code has separate flags and both delta/catch-up tests.
 Manual boundary review: source traceability, stable identities, authored versus
 derived separation and source/assessment/rights authority remain intact.
 No new textual judgment, canon decision, private publication or abstraction
-was introduced. Remaining K1 is exact owner admission and software landing;
+was introduced. Remaining K1 is exact source/software union and software landing;
 K2 still needs its complete exact-text route and outstanding interaction seams.
 
 ## Historical carrier/episode and bounded title search · 2026-09-15 UTC
