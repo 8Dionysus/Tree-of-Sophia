@@ -20,6 +20,7 @@ from source_navigation_rows import chunk_text, project_rows
 from test_access_contract import write_fixture
 from tos_access.core import ToSAccessCore
 from tos_access.knowledge import inspect_knowledge_node, inspect_knowledge_relation
+from tos_access.published_read_metadata import published_source_navigation_digest_key
 from tos_access.published_read_model import (
     CATALOG_KEY, TOP_KEY, PublishedKnowledgeReadModel, PublishedReadBudgetExceeded,
     PublishedReadLimits, PublishedReadModelError, PublishedSnapshotConflict,
@@ -185,6 +186,12 @@ class PublishedReadModelTests(unittest.TestCase):
                 'unknown_null': None,
             })
             raw = builder.compact_json(value)
+            # This fixture intentionally publishes a new complete row. Its
+            # integrity companion must move with it; the drift tests below do
+            # not update the companion when mutating persisted contents.
+            db.execute('UPDATE edge_meta SET json_chunk=? WHERE key=? AND part=0',
+                       (builder.compact_json(emitted_row_digest(raw)),
+                        published_source_navigation_digest_key('nodes', 'tos.work.fixture')))
             db.execute(
                 'UPDATE source_navigation_nodes SET json=? WHERE node_id=?',
                 ('', 'tos.work.fixture'),
@@ -208,6 +215,31 @@ class PublishedReadModelTests(unittest.TestCase):
         self.assertIs(node['unknown_false'], False)
         self.assertEqual(node['unknown_zero'], 0)
         self.assertIsNone(node['unknown_null'])
+
+    def test_native_navigation_full_row_drift_is_not_hidden_by_unchanged_mirrors(self):
+        cases = [('nodes', 'node_id', 'tos.work.fixture', {'research_note': 'altered'}),
+                 ('edges', 'edge_id', 'sn1a', {'research_note': 'altered'}),
+                 ('rights', 'rights_id', 'tos.rights.fixture',
+                  {'assessment_status': 'licensed', 'redistribution_posture': 'authorized', 'review_status': 'accepted'})]
+        for kind, key, identifier, delta in cases:
+            with self.subTest(kind=kind):
+                with closing(sqlite3.connect(self.path)) as db:
+                    original = db.execute(f'SELECT json FROM source_navigation_{kind} WHERE {key}=?',
+                                          (identifier,)).fetchone()[0]
+                    changed = builder.compact_json({**json.loads(original), **delta})
+                    db.execute(f'UPDATE source_navigation_{kind} SET json=? WHERE {key}=?', (changed, identifier))
+                    db.commit()
+                try:
+                    with self.assertRaisesRegex(PublishedReadModelError, 'checksum differs'):
+                        self.reader.source_dossier('tos.work.fixture', limit=300)
+                finally:
+                    self.mutate(f'UPDATE source_navigation_{kind} SET json=? WHERE {key}=?', (original, identifier))
+
+    def test_native_navigation_missing_checksum_requires_explicit_product_migration(self):
+        self.mutate('DELETE FROM edge_meta WHERE key=?',
+                    (published_source_navigation_digest_key('rights', 'tos.rights.fixture'),))
+        with self.assertRaises(PublishedReadModelError):
+            self.reader.source_dossier('tos.work.fixture', limit=300)
 
     def test_native_navigation_stale_index_does_not_hide_new_environment_edge(self):
         node_id = 'tos.environment.native-fixture'

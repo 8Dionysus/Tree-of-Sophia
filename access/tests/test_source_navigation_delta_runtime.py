@@ -129,6 +129,22 @@ class SourceNavigationDeltaTests(unittest.TestCase):
         self.d1.executescript(publish + rest)
         self.d1.executescript((self.root / 'delta.sql').read_text())  # Same delta replay.
         oracle = self.full(graph, result['catalog'], receipt['target_d1_revision'], 'oracle', raw)
+        # The full emitter retains input key order while immutable delta inputs
+        # are canonicalized. Compare semantic rows below, but independently
+        # require each physical checksum to match its own exact emitted bytes.
+        for db in (self.d1, oracle):
+            checksums = {}
+            for kind in ('nodes', 'edges', 'rights'):
+                table = 'source_navigation_' + kind
+                key = navigation.projection.COLUMNS[table][0]
+                for identifier, encoded in db.execute(f'SELECT {key},json FROM {table}'):
+                    self.assertTrue(encoded)  # This fixture is entirely inline.
+                    digest_key = navigation.published_source_navigation_digest_key(kind, identifier)
+                    checksums[digest_key] = navigation.emitted_row_digest(encoded)
+            actual_checksums = {key: json.loads(encoded) for key, part, encoded in db.execute(
+                "SELECT * FROM edge_meta WHERE key GLOB 'source_navigation_row_digest:*'")
+                if part == 0}
+            self.assertEqual(actual_checksums, checksums)
         for table, columns in delta.COLUMNS.items():
             # Legacy positional ord is not consumed by native navigation;
             # all owned JSON, selection fields, payloads and other lanes match.
@@ -136,6 +152,9 @@ class SourceNavigationDeltaTests(unittest.TestCase):
             order = ','.join(delta.PRIMARY_KEYS[table])
             actual = self.d1.execute(f'SELECT {selected} FROM {table} ORDER BY {order}').fetchall()
             expected = oracle.execute(f'SELECT {selected} FROM {table} ORDER BY {order}').fetchall()
+            if table == 'edge_meta':
+                actual = [row for row in actual if not row[0].startswith('source_navigation_row_digest:')]
+                expected = [row for row in expected if not row[0].startswith('source_navigation_row_digest:')]
             def semantic(rows):
                 return [[json.dumps(json.loads(value), sort_keys=True, ensure_ascii=False)
                          if table in ('source_navigation_nodes', 'source_navigation_edges',
@@ -168,6 +187,22 @@ class SourceNavigationDeltaTests(unittest.TestCase):
         _, _, result = self.prepare()
         with self.assertRaises((ValueError, RuntimeError)):
             self.capture(result, limits=delta.PreparedD1DeltaLimits(max_changes=1))
+        self.assertFalse((self.root / 'delta.sql').exists())
+
+    def test_missing_or_orphan_digest_refuses_before_sql(self):
+        _, _, result = self.prepare()
+        key = navigation.published_source_navigation_digest_key('nodes', 'person')
+        row = self.d1.execute('SELECT * FROM edge_meta WHERE key=?', (key,)).fetchone()
+        self.d1.execute('DELETE FROM edge_meta WHERE key=?', (key,))
+        self.d1.commit()
+        with self.assertRaisesRegex(ValueError, 'digest requires explicit product migration'):
+            self.capture(result)
+        self.d1.execute('INSERT INTO edge_meta VALUES (?,?,?)', row)
+        orphan = navigation.published_source_navigation_digest_key('nodes', 'new')
+        self.d1.execute('INSERT INTO edge_meta VALUES (?,0,?)', (orphan, '{}'))
+        self.d1.commit()
+        with self.assertRaisesRegex(ValueError, 'orphan digest'):
+            self.capture(result)
         self.assertFalse((self.root / 'delta.sql').exists())
 
     def test_unavailable_header_with_live_rows_is_not_optional(self):

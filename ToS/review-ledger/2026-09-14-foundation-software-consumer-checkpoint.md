@@ -3,6 +3,67 @@
 This is a bounded integration review, not Foundation v1 acceptance, corpus
 admission, CI, merge, or deployment evidence.
 
+## Native navigation integrity and publication seam · 2026-09-15 UTC
+
+The union's initial exact-head CI passed, but review found a real P1: a native
+navigation record's full JSON, including rights judgment fields, could drift
+while its indexed selection columns stayed unchanged. Both Python and Worker
+now require producer-emitted SHA-256 companions for every node, edge and rights
+row, checking exact inline or hydrated UTF-8 JSON before use. Missing companions
+refuse and require explicit product migration; readers never attest their own
+unverified persisted input. The full, initial-product and addressed-delta
+producers maintain the same contract. Delta capture rejects missing, wrong and
+orphan predecessor companions and retains exact predecessor framing for reversal.
+Checksums detect carrier drift, not a malicious publisher controlling both
+content and checksums; source, rights and publication authority remain separate.
+
+The bounded migration independently compared all 27,114 native nodes, 39,766
+edges and 127 rights rows with the admitted immutable navigation and rights
+snapshots. It emitted only checksums and publication metadata: no corpus,
+normalized knowledge, native row or prepared-source rewrite, and no database
+copy. Capture took 18.186 s, with 344.3 MiB peak and zero swap; both SQL directions
+total 26,880,029 bytes, under a reserved 128 MiB write envelope. Forward and
+reverse SQL are retained in managed scratch; durable receipts are outside it.
+
+The exact task-owned Worker was stopped for one local SQLite transaction and
+relaunched. A wrapper postcheck incorrectly expected the old epoch and reported
+failure after the import had committed. Readback established the actual result:
+67,007 checksums, unchanged source and normalization identity, new publication
+`af09d41589cf74648742e32eeed1b3eb893ad3e5645dfaed68a39ec20df35209`,
+and epoch 5→7 from the existing data-revision delete/insert triggers. This is
+intentional invalidation of disposable query state, not a source change. The
+old snapshot binding refuses; the current catalog and both auxiliary lens-store
+bindings are valid. No second import or manufactured success receipt was used.
+
+On real Penn material, source descent still returns 2 nodes / 1 edge and the
+work dossier retains its scoped rights. Python and Worker packets are exactly
+equal: descent 2.414 / 72.726 ms, dossier 6.176 / 181.085 ms, respectively.
+These are bounded observations, not latency percentiles or production claims.
+This closes the G6/G7/K1 native-read integrity and publication/auxiliary-store
+join. Remaining software gate: reviewed corrected exact-head CI and landing;
+remaining K2 exact JGB21 text authority/coverage is not closed by this fix.
+
+Verification: Python native-reader 8 tests, Worker native-source 5 tests and
+typecheck passed. The producer/bootstrap/delta suite passed 19/20 initially;
+the remaining oracle incorrectly compared physical hashes across semantically
+equal JSON with different key order. It now independently verifies each
+emitter's exact hashes before comparing semantic rows, and its targeted rerun
+passed. The suite includes migration staging/replay/exact reversal and refusal
+to sign a rights row differing from its immutable source. A bounded independent
+Luna producer review found no remaining deterministic defect; source and
+security judgment remain with the master.
+
+Durable evidence: `native-integrity-capture-r1.json` SHA-256
+`7bddcfae04af93df42c7c521e6539ea09ec1eed6d0ed9c10fedacb0d8bfa0841`;
+`published-native-navigation-comparison-r2.json`
+`56495fd7f01d2812c715e73d5709d04a20707f379fc738e7be5dd7720c742d1a`;
+`native-integrity-publication-readback-r1.json`
+`34053bacf4244736037c37ee58f8c9efcab13d867de2a0c5e15ecb2058259ff3`.
+This checkpoint does not grant rights, publish source payloads, or accept the
+whole Foundation goal. A checksum-less retained product needs this explicitly
+source-paired migration or an already planned compatible full production; a
+software merge does not silently upgrade or admit another owner's snapshot.
+
 ## Two-Conception reading and cost reconciliation · 2026-09-15 UTC
 
 The actual D1-backed human reader now holds the JGB19 experienced-commanding

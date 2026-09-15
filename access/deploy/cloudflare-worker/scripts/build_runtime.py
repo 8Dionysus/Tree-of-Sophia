@@ -53,6 +53,7 @@ from source_navigation_rows import (  # noqa: E402
     compact_json,
     prepare_source_navigation_row,
     project_source_navigation_row,
+    source_navigation_digest_row,
     source_navigation_selection_properties,
     sql_text,
 )
@@ -1397,6 +1398,14 @@ def _build_read_model_sql(
                     selector_sql=f"{projected.id_column} = {sql_text(projected.item_id)}",
                     chunked_text=dict(projected.chunked_text),
                 )
+            digest_key, digest_part, digest_json = source_navigation_digest_row(projected)
+            statements.append(
+                sql_insert(
+                    "edge_meta_next",
+                    ("key", "part", "json_chunk"),
+                    (sql_text(digest_key), str(digest_part), sql_text(digest_json)),
+                )
+            )
             source_navigation_counts[collection] += 1
 
     auxiliary_bytes = compact_rows = membership_rows = 0

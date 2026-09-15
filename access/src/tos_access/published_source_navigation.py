@@ -4,6 +4,7 @@ Consumes the existing D1 product, not normalized knowledge attributes or a
 legacy corpus index. Missing native storage is an explicit unsupported read.
 """
 from .published_read_model import PublishedReadModelError, PublishedReadBudgetExceeded, _compact, _json
+from .published_read_metadata import emitted_row_digest, published_source_navigation_digest_key
 
 _SPECS = {
     'nodes': ('node_id', ('node_kind', 'source_ref', 'label', 'identity_status'), 'properties_json', 'node'),
@@ -52,6 +53,10 @@ class NativeNavigationView:
                     raise PublishedReadBudgetExceeded('native navigation payload chunk exceeds its byte budget')
                 raw = ''.join(r['json_chunk'] for r in chunks)
             raw = self.read.text(raw, maximum)
+            _, expected = self.read.metadata(published_source_navigation_digest_key(kind, row[key]), 128)
+            if (not isinstance(expected, dict) or set(expected) != {'sha256'}
+                    or expected != emitted_row_digest(raw)):
+                raise PublishedReadModelError('emitted source-navigation row checksum differs')
             value = _json(raw)
             if (not isinstance(value, dict) or not isinstance(value.get(key), str)
                     or not value[key] or value[key] != row[key]
