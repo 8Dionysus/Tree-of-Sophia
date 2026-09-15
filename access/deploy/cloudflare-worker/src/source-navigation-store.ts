@@ -1,8 +1,7 @@
 import { HttpError, stringArray, stringValue, type Item } from "./common.ts";
-import {nativeSha256} from './native-d1-read.ts';
+import {NativeD1Read, nativeD1Limits, nativeSha256} from './native-d1-read.ts';
 import {consistentRead} from './knowledge-store.ts';
 import { SourceNavigationError } from "./source-navigation.ts";
-import { metaItem } from "./store.ts";
 
 /*
  * Source navigation is stored as a row projection in D1.  The JSON payload
@@ -95,6 +94,11 @@ async function parseHydrated<T extends SourceJsonRow>(db: D1Database, row: T, ta
   const kind = kinds[table];
   if (!kind || !id) throw new HttpError(503,'invalid source-navigation checksum identity');
   const key = `source_navigation_row_digest:${kind}:${await nativeSha256(id)}`;
+  await requireSourceDigest(db,key,raw);
+  return parseRow(row, raw);
+}
+
+async function requireSourceDigest(db:D1Database,key:string,raw:string):Promise<void> {
   const checksum = await db.prepare(`SELECT part,
     CASE WHEN typeof(json_chunk)='text' AND length(CAST(json_chunk AS BLOB))<=128 THEN json_chunk ELSE NULL END AS json_chunk
     FROM edge_meta WHERE key=? ORDER BY part LIMIT 2`).bind(key).all<{part:number;json_chunk:string|null}>();
@@ -107,7 +111,6 @@ async function parseHydrated<T extends SourceJsonRow>(db: D1Database, row: T, ta
   if (!expected || typeof expected!=='object' || Array.isArray(expected)
     || Object.keys(expected).join(',')!=='sha256' || (expected as {sha256:unknown}).sha256!==await nativeSha256(raw))
     throw new HttpError(503,'emitted source-navigation row checksum differs');
-  return parseRow(row, raw);
 }
 
 function sortedById(items: Item[], key: string): Item[] {
@@ -123,19 +126,9 @@ function pageSize(limit: number): number {
 }
 
 async function sourceNavigationHeader(db: D1Database): Promise<Item> {
-  // `source_navigation_top` is the D1 metadata key.  The second spelling is
-  // accepted for compiled snapshots that use the portable query-store name;
-  // neither path loads the navigation collections.
-  let header: Item;
-  try {
-    header = await metaItem(db, "source_navigation_top");
-  } catch (firstError) {
-    try {
-      header = await metaItem(db, "source_navigation_header");
-    } catch {
-      throw firstError;
-    }
-  }
+  const {raw} = await new NativeD1Read(db,nativeD1Limits).metadata('source_navigation_top');
+  await requireSourceDigest(db,'source_navigation_header_digest',raw);
+  const header = parseRow({json:raw});
   if (header.schema_version !== "tos_source_navigation_v1") {
     throw new Error("ToS source-navigation metadata has an unsupported schema_version");
   }

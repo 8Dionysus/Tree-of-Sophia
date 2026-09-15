@@ -3,6 +3,56 @@
 This is a bounded integration review, not Foundation v1 acceptance, corpus
 admission, CI, merge, or deployment evidence.
 
+## Header authority integrity and conflict classification · 2026-09-15 UTC
+
+Exact-head CI for `ed197a303cc6df4fa6b3237ed22f956708bfc788` passed all three
+required jobs. Merge nevertheless remained withheld for two review findings.
+The first identified the authority-bearing navigation header outside row
+checksums. The second identified the error path of a concurrent publication:
+an old row paired with a new checksum must report a snapshot conflict, not
+stable corruption. These are distinct from the earlier successful-read ABA test.
+
+Python and Worker now verify the exact emitted `source_navigation_top` bytes
+against `source_navigation_header_digest` before exposing authority fields.
+The full and initial producers emit it; a maintained delta verifies the old
+header companion, updates it atomically and preserves exact rollback framing.
+Unchanged or unavailable native products are not rewritten merely because an
+unrelated knowledge delta exists. The existing shared Worker publication guard
+also checks the epoch/revision after an operation throws, converting a real
+concurrent publication to conflict while retaining the original stable error.
+Tests replace an actual row and its checksum between reads; both native routes
+refuse the mixed publication. Stable authority-header tampering and absent
+header companions also refuse.
+
+The local continuation compared only the header and counts with the independently
+admitted immutable navigation/rights inputs. It did not reopen source parts or
+repeat the already sufficient 67,007-row audit. Three metadata rows changed;
+forward plus reverse SQL total 50,642 bytes, capture 0.320 s / 51.3 MiB / zero
+swap, and import 0.025 s. Source, prepared store, native rows and their existing
+checksums were not rewritten. The publication is now
+`eb7fb1a71f9d1a5600012fa812316df011ad26d7e855db80848ac8e6b1bfe286`,
+epoch 9; old binding refuses and both auxiliary lens bindings are current.
+After relaunch, actual Penn descent/dossier packets still equal Python and have
+unchanged packet hashes. This closes the G6/G7/K1 authority-header/read-error
+publication seams, not new rights, semantic admission or the open K2 JGB21 text.
+
+Typecheck and all eight Worker native-source tests pass (59.365 s), as do nine
+Python native-reader tests and nine native-delta tests. Bootstrap/integrity's
+ten cases pass across the suite and one targeted rerun: the new forged-header
+fixture initially violated compact JSON framing before reaching its intended
+policy check; correcting only serialization retains the forged authority and
+verifies policy refusal, zero repeated row audit, and exact reverse publication.
+Current corrected source still requires its own review/CI/landing.
+
+Durable evidence: `native-header-integrity-capture-r1.json` SHA-256
+`37f80c4fddd2f473e7cc1aef778ed2e49109e3fadddf61d438c0106e34ab5da5`;
+`native-header-integrity-apply-r1.json`
+`fc2e70a54999205605c527341ce25a469c10969b1d80f582b2dd77855962121f`;
+`published-native-navigation-comparison-r4.json`
+`d8cd4d2dfba91d85641790dddde83a0abedc15e1cfacf238d825c3956ef796cc`;
+`native-header-integrity-publication-readback-r1.json`
+`9e3c486ddbecd6027888a842ae081b20841548a1cce65c8ae9809e2d0b194236`.
+
 ### Native publication race follow-through · 2026-09-15 UTC
 
 The adjacent concurrent-publication check exposed a second concrete gap: native

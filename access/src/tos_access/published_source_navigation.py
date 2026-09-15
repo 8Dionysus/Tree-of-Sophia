@@ -4,7 +4,7 @@ Consumes the existing D1 product, not normalized knowledge attributes or a
 legacy corpus index. Missing native storage is an explicit unsupported read.
 """
 from .published_read_model import PublishedReadModelError, PublishedReadBudgetExceeded, _compact, _json
-from .published_read_metadata import emitted_row_digest, published_source_navigation_digest_key
+from .published_read_metadata import emitted_row_digest, published_source_navigation_digest_key, SOURCE_NAVIGATION_HEADER_DIGEST_KEY
 
 _SPECS = {
     'nodes': ('node_id', ('node_kind', 'source_ref', 'label', 'identity_status'), 'properties_json', 'node'),
@@ -19,7 +19,10 @@ _LINKS = ('described_by', 'metadata_at', 'downloadable_at', 'rights_statement_at
 class NativeNavigationView:
     def __init__(self, read):
         self.read = read
-        _, self.header = read.metadata('source_navigation_top')
+        raw_header, self.header = read.metadata('source_navigation_top')
+        _, expected_header = read.metadata(SOURCE_NAVIGATION_HEADER_DIGEST_KEY, 128)
+        if expected_header != emitted_row_digest(raw_header):
+            raise PublishedReadModelError('emitted source-navigation header checksum differs')
         if (not isinstance(self.header, dict)
                 or self.header.get('schema_version') != 'tos_source_navigation_v1'):
             raise PublishedReadModelError('selected publication has no supported native source-navigation product')

@@ -11,6 +11,7 @@ from incremental_runtime import DeltaRecorder, _search_address_revision
 from tos_access.projection_mutation import (
     ProjectionSnapshotView, MutationLimits, _SnapshotMutationReader, _Budget,
 )
+from tos_access.published_read_metadata import emitted_row_digest, SOURCE_NAVIGATION_HEADER_DIGEST_KEY
 
 SCHEMA = 'tos_native_navigation_d1_bootstrap_v1'
 RIGHTS_SCHEMA = 'tos_source_navigation_rights_v1'
@@ -19,13 +20,15 @@ RIGHTS_SCHEMA = 'tos_source_navigation_rights_v1'
 def build_source_navigation_integrity_sql(db, target, *, expected_d1_revision,
         expected_source_revision, navigation_view, expected_navigation_sha256,
         rights_view, expected_rights_sha256, rollback_target, limits=None,
-        projection_limits=None):
+        projection_limits=None, header_only=False):
     """Add checksum companions only after exact comparison with admitted sources.
 
     Caller-owned source/rights admission is explicit and independent of the
     database. This is a bounded, one-time native-product migration, not a
     checksum computed from unverified persisted rows. Knowledge rows and
     native contents are not rewritten. The caller holds the read transaction.
+    ``header_only`` adds only the independently compared header companion to
+    an existing row-integrity product; it neither repeats nor claims a row audit.
     """
     limits = limits or delta.PreparedD1DeltaLimits()
     projection_limits = projection_limits or MutationLimits()
@@ -47,9 +50,11 @@ def build_source_navigation_integrity_sql(db, target, *, expected_d1_revision,
             or old_top.get('data_revision') != expected_d1_revision
             or old_top.get('read_model_schema') != delta.full.READ_MODEL_SCHEMA_VERSION):
         raise ValueError('selected source/publication binding differs')
-    if db.execute("SELECT 1 FROM edge_meta WHERE key GLOB 'source_navigation_row_digest:*' LIMIT 1").fetchone():
+    if not header_only and db.execute("SELECT 1 FROM edge_meta WHERE key GLOB 'source_navigation_row_digest:*' LIMIT 1").fetchone():
         raise ValueError('integrity product already present; no blind checksum refresh')
-    top = capture.metadata(db, 'source_navigation_top')[0]
+    if db.execute('SELECT 1 FROM edge_meta WHERE key=? LIMIT 1', (SOURCE_NAVIGATION_HEADER_DIGEST_KEY,)).fetchone():
+        raise ValueError('header integrity already present; no blind checksum refresh')
+    top, header_chunks = capture.metadata(db, 'source_navigation_top')
     if top.get('schema_version') != 'tos_source_navigation_v1':
         raise ValueError('complete existing native navigation required')
     budget = _Budget(projection_limits)
@@ -71,10 +76,15 @@ def build_source_navigation_integrity_sql(db, target, *, expected_d1_revision,
               for name in ('nodes', 'edges', 'rights')}
     if top.get('counts') != counts or sum(counts.values()) > limits.max_rows:
         raise ValueError('complete native inventory differs or exceeds migration budget')
+    if header_only and db.execute("SELECT count(*) FROM edge_meta WHERE key GLOB 'source_navigation_row_digest:*'").fetchone()[0] != sum(counts.values()):
+        raise ValueError('header-only migration requires existing row companion inventory')
     accounting = [0, 0]
     previous, successor = (delta.Rows(limits, accounting) for _ in range(2))
     checked = {}
-    for name in ('nodes', 'edges', 'rights'):
+    # Header-only continuation does not repeat or claim a row audit. Its new
+    # authority-bearing header is compared with independently admitted inputs;
+    # existing row companions are left unchanged and readers verify each use.
+    for name in (() if header_only else ('nodes', 'edges', 'rights')):
         reader = readers['rights' if name == 'rights' else 'navigation']
         table = 'source_navigation_' + name
         payload_table = {'nodes': 'source_navigation_node_payload', 'edges': 'source_navigation_edge_payload',
@@ -104,7 +114,9 @@ def build_source_navigation_integrity_sql(db, target, *, expected_d1_revision,
                 or db.execute(f'SELECT count(*) FROM {payload_table}').fetchone()[0] != payload_count):
             raise ValueError('native product has missing/orphan source rows')
         checked[name] = count
-    lineage = {'schema': 'tos_native_navigation_integrity_migration_v1',
+    successor.put('edge_meta', (SOURCE_NAVIGATION_HEADER_DIGEST_KEY, 0,
+        delta._compact(emitted_row_digest(''.join(row[2] for row in header_chunks)))))
+    lineage = {'schema': 'tos_native_navigation_integrity_migration_v1', 'header_only': header_only,
         'base_d1_revision': expected_d1_revision, 'source_revision': expected_source_revision,
         'source_navigation_sha256': expected_navigation_sha256, 'rights_sha256': expected_rights_sha256,
         'implementation_sha256': implementation, 'migration_implementation_sha256': own_digest}
@@ -142,6 +154,7 @@ def build_source_navigation_integrity_sql(db, target, *, expected_d1_revision,
         for recorder in reversed(recorders):
             recorder.publish()
         return {**lineage, 'target_d1_revision': revision, 'verified_source_rows': checked,
+                'verified_header_counts': counts,
                 'delta': recorders[0].summary(), 'rollback': recorders[1].summary(),
                 'native_rows_changed': 0, 'normalized_rows_changed': 0,
                 'source_rights_admission_verified_by_helper': False,
@@ -255,6 +268,11 @@ def build_source_navigation_bootstrap_sql(db, prepared_db, target, *,
     metadata = delta.published_reader_metadata(source_header, catalog,
         delta.full.READ_MODEL_SCHEMA_VERSION, revision, lens_metadata=lens)
     metadata.update(data_revision={'sha256': revision}, source_navigation_top=header)
+    if db.execute('SELECT 1 FROM edge_meta WHERE key=? LIMIT 1', (SOURCE_NAVIGATION_HEADER_DIGEST_KEY,)).fetchone():
+        for row in capture.metadata(db, SOURCE_NAVIGATION_HEADER_DIGEST_KEY)[1]:
+            previous.put('edge_meta', row)
+    successor.put('edge_meta', (SOURCE_NAVIGATION_HEADER_DIGEST_KEY, 0,
+        delta._compact(emitted_row_digest(delta._compact(header)))))
     for key, value in metadata.items():
         for row in capture.metadata(db, key)[1]:
             previous.put('edge_meta', row)

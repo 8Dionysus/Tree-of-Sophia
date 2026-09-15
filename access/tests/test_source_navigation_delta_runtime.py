@@ -145,6 +145,15 @@ class SourceNavigationDeltaTests(unittest.TestCase):
                 "SELECT * FROM edge_meta WHERE key GLOB 'source_navigation_row_digest:*'")
                 if part == 0}
             self.assertEqual(actual_checksums, checksums)
+            header_raw = ''.join(row[0] for row in db.execute(
+                "SELECT json_chunk FROM edge_meta WHERE key='source_navigation_top' ORDER BY part",
+            ))
+            header_digest = db.execute(
+                "SELECT json_chunk FROM edge_meta WHERE key=? AND part=0",
+                (navigation.SOURCE_NAVIGATION_HEADER_DIGEST_KEY,),
+            ).fetchone()
+            self.assertIsNotNone(header_digest)
+            self.assertEqual(json.loads(header_digest[0]), navigation.emitted_row_digest(header_raw))
         for table, columns in delta.COLUMNS.items():
             # Legacy positional ord is not consumed by native navigation;
             # all owned JSON, selection fields, payloads and other lanes match.
@@ -153,8 +162,12 @@ class SourceNavigationDeltaTests(unittest.TestCase):
             actual = self.d1.execute(f'SELECT {selected} FROM {table} ORDER BY {order}').fetchall()
             expected = oracle.execute(f'SELECT {selected} FROM {table} ORDER BY {order}').fetchall()
             if table == 'edge_meta':
-                actual = [row for row in actual if not row[0].startswith('source_navigation_row_digest:')]
-                expected = [row for row in expected if not row[0].startswith('source_navigation_row_digest:')]
+                excluded = lambda row: (
+                    row[0].startswith('source_navigation_row_digest:')
+                    or row[0] == navigation.SOURCE_NAVIGATION_HEADER_DIGEST_KEY
+                )
+                actual = [row for row in actual if not excluded(row)]
+                expected = [row for row in expected if not excluded(row)]
             def semantic(rows):
                 return [[json.dumps(json.loads(value), sort_keys=True, ensure_ascii=False)
                          if table in ('source_navigation_nodes', 'source_navigation_edges',
@@ -172,6 +185,15 @@ class SourceNavigationDeltaTests(unittest.TestCase):
         receipt = self.capture(result)
         self.assertEqual(receipt['source_navigation_product']['state'], 'unavailable')
         self.d1.executescript((self.root / 'delta.sql').read_text())
+        top = self.d1.execute(
+            "SELECT json_chunk FROM edge_meta WHERE key='source_navigation_top' ORDER BY part"
+        ).fetchone()[0]
+        self.assertEqual(top, '{}')
+        header_digest = self.d1.execute(
+            "SELECT json_chunk FROM edge_meta WHERE key=? AND part=0",
+            (navigation.SOURCE_NAVIGATION_HEADER_DIGEST_KEY,),
+        ).fetchone()
+        self.assertEqual(json.loads(header_digest[0]), navigation.emitted_row_digest(top))
         for table in navigation.projection.COLUMNS:
             self.assertIsNone(self.d1.execute(f'SELECT 1 FROM {table} LIMIT 1').fetchone())
 
@@ -187,6 +209,26 @@ class SourceNavigationDeltaTests(unittest.TestCase):
         _, _, result = self.prepare()
         with self.assertRaises((ValueError, RuntimeError)):
             self.capture(result, limits=delta.PreparedD1DeltaLimits(max_changes=1))
+        self.assertFalse((self.root / 'delta.sql').exists())
+
+    def test_missing_or_wrong_header_digest_refuses_before_sql(self):
+        _, _, result = self.prepare()
+        key = navigation.SOURCE_NAVIGATION_HEADER_DIGEST_KEY
+        row = self.d1.execute(
+            'SELECT * FROM edge_meta WHERE key=?', (key,)
+        ).fetchone()
+        self.d1.execute('DELETE FROM edge_meta WHERE key=?', (key,))
+        self.d1.commit()
+        with self.assertRaisesRegex(ValueError, 'header digest'):
+            self.capture(result)
+        self.d1.execute('INSERT INTO edge_meta VALUES (?,?,?)', row)
+        self.d1.commit()
+        self.d1.execute(
+            'UPDATE edge_meta SET json_chunk=? WHERE key=? AND part=0', ('{}', key)
+        )
+        self.d1.commit()
+        with self.assertRaisesRegex(ValueError, 'header digest'):
+            self.capture(result)
         self.assertFalse((self.root / 'delta.sql').exists())
 
     def test_missing_or_orphan_digest_refuses_before_sql(self):
