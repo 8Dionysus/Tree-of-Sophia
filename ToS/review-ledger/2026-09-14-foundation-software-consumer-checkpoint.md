@@ -1,7 +1,57 @@
 # Foundation software consumer checkpoint · 2026-09-14
 
 This is a bounded integration review, not Foundation v1 acceptance, corpus
-admission, CI, merge, or deployment evidence.
+admission or deployment evidence. The dated landing observation below records
+its exact software/CI boundary separately from whole-goal acceptance.
+
+## Landed software and completed private source join · 2026-09-15 UTC
+
+PR [234](https://github.com/8Dionysus/Tree-of-Sophia/pull/234) merged as
+`2cc19ad72c6588b499b3cda2023cf16610a9cd00`. The tested PR head
+`7dcd2fbf42745dc587c5afbc22b4d92fcc451556` and landed commit have identical
+Git tree `cb57b9bf313e4af541734179b908c9ede12f3aea`. Both required PR CI and
+[post-merge CI](https://github.com/8Dionysus/Tree-of-Sophia/actions/runs/34952378457)
+passed Worker contracts, software/browser behavior, isolated package
+installation and aggregate Repo Validation. The verified software candidate
+contains no corpus data. Installation in CI is not a host installation or
+production deployment. The separate Cloudflare build check was unsuccessful
+on both this commit and its predecessor; no common cause or production health
+is inferred.
+
+The operator subsequently authorized the remaining bounded local source
+construction. The existing source-owner commands, without software changes,
+created a confidential TextLayer, first paragraph TextUnit, provisional
+Occurrence and two separately identified source-grounded Conception Claims.
+Original acquired bytes, licenses and prior source records were preserved.
+The exact native return and both complete Claim dependency chains passed;
+ordinary public resolution and an undelegated unit selection were refused.
+
+The public Conception versions served by the existing D1 reader were then
+compared with the private Claims' exact source prerequisites. Both full
+version/digest references agree, not merely the identity strings. Russian
+source-copy statement forms retain their complete qualified Claims, explicit
+uncertain/unreviewed state, null admission and non-standalone reading posture.
+The private continuation sends no text or private identifiers through
+HTTP/MCP/UI. The earlier real human comparison, addressed-objection interaction
+and public agent route are reused; this check completes their previously
+missing exact-source join rather than repeating the full scenario.
+
+This closes the outstanding K2 text-link capability in its authorized local
+scope. It does not admit the new interpretations, establish exact German
+wording or translation quality, or convert either criticized conception into
+the author's endorsed doctrine. The source-owner assessment route remains
+available for later scoped admission; provisional research records are not a
+new mandatory human review queue. Whole-goal acceptance still requires the
+final cross-gate reconciliation and source-facing closeout.
+
+This public-safe technical derivative omits literary wording, private source
+addresses, identifiers/digests, grants and reconstructive storage details.
+Exact control files, immutable command receipts, source-visible review and
+consumer readbacks remain with the Foundation source custodian. Source
+traceability, distinct layers, unchanged custody, language limits and disclosure
+boundaries were manually reviewed. The technical outcome may still correlate
+with the public research route; public reproduction of the confidential
+judgment or publication of its source material is not claimed.
 
 ## Header authority integrity and conflict classification · 2026-09-15 UTC
 
