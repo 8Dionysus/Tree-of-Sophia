@@ -852,7 +852,7 @@ test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Pyth
       schema: string;
       default_mode: string;
       explicit_mode_required: boolean;
-      modes: Record<string, { available: boolean; min_normalized_query_code_points?: number }>;
+      modes: Record<string, { available: boolean; min_normalized_query_code_points?: number; source_revision?: string }>;
     };
     assert.deepEqual(
       {
@@ -877,6 +877,7 @@ test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Pyth
     );
 
     const first = await knowledgeSearchD1Indexed(db, {query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1});
+    assert.equal(capabilities.modes.indexed?.source_revision, first.source_revision);
     assert.deepEqual((first.nodes as {id:string}[]).map(item => item.id), ["philosophy:a"]);
     assert.deepEqual((first.relations as {id:string}[]).map(item => item.id), ["philosophy:e"]);
     assert.equal((first.counts as {matching_nodes:number|null}).matching_nodes, null);

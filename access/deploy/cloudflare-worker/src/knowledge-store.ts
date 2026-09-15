@@ -189,7 +189,7 @@ export async function knowledgeSearchCapabilitiesD1(db: D1Database): Promise<Ite
       writes_to_tree: false,
       modes: {
         legacy: {available: true, schema: 'tos_knowledge_search_v1', verification: 'engine-selection-only', pagination: 'offset'},
-        indexed: {available: true, schema: 'tos_knowledge_search_indexed_v2', verification: 'engine-selection-only', pagination: 'cursor', min_normalized_query_code_points: SEARCH_NGRAM_SIZE},
+        indexed: {available: true, schema: 'tos_knowledge_search_indexed_v2', source_revision: delivery.top.source_revision, verification: 'engine-selection-only', pagination: 'cursor', min_normalized_query_code_points: SEARCH_NGRAM_SIZE},
         compressed: {available: false, schema: 'tos_knowledge_search_compressed_v3', reason: 'not-supported-by-d1-adapter', writes_to_tree: false},
       },
     };
