@@ -480,6 +480,14 @@ export function createCorpusNotebook({indexedDB=globalThis.indexedDB,dbName=DEFA
       });
       return {id:idValue,revision:result.revision};
     },
+    async getNote(noteId){
+      if(!nonEmptyString(noteId,512))fail('invalid-input','The note id must be a non-empty string.');
+      return read(stateOrTx=>{
+        if(stateOrTx instanceof Object&&stateOrTx.notes instanceof Map){const item=stateOrTx.notes.get(noteId);return item?outputNote(item):null;}
+        return new Promise((resolve,reject)=>{const request=stateOrTx.objectStore(STORE_NOTES).get(noteId);
+          request.onerror=()=>reject(mapStorageError(request.error));request.onsuccess=()=>resolve(request.result?outputNote(request.result):null);});
+      });
+    },
     async listNotes(options={}){
       if(!object(options))fail('invalid-input','The list options must be an object.');
       const {documentId,limit=50,cursor=null}=options;

@@ -1,4 +1,5 @@
 import './reader.css';
+import {createNoteDraftJournal} from './note-draft.mjs';
 import {
   READER_LIMITS,
   createCorpusReaderModel,
@@ -164,11 +165,17 @@ export function mountCorpusReader({
   let settingsOpen = false;
   let libraryOpen = window.matchMedia('(min-width: 851px)').matches;
   let inspectorOpen = false;
+  let destroyWork = null;
+  const draftJournal = createNoteDraftJournal({notebook});
+  const recovery = Promise.resolve().then(()=>draftJournal.recover()).then(recovered=>{
+    if(recovered)announce(uiLocale()==='en'?'An unfinished note was recovered as a separate note.':'Несохранённый черновик восстановлен отдельной заметкой.');
+  }).catch(error=>announce(error.message));
 
   const model = createCorpusReaderModel({
     provider,
     notebook,
     locale: uiLocale(),
+    beforeNotebookReady: recovery,
     onChange: state => {
       if (!opened || disposed) return;
       const stamp = JSON.stringify([state.document?.id, state.activeVersionId, state.referenceStatus, state.referenceStates, state.error?.message,
@@ -202,6 +209,7 @@ export function mountCorpusReader({
 
   function announce(message) {
     lastMessage = message || '';
+    if(disposed||!root)return;
     const status = root.querySelector('.cr-status');
     if (status) { status.textContent = lastMessage; status.hidden = !lastMessage; }
   }
@@ -280,12 +288,17 @@ export function mountCorpusReader({
 
   async function flushNote() {
     clearTimeout(noteTimer);
-    if (noteFlushPromise) { const saved=await noteFlushPromise; if(!saved)return false; }
+    while (noteFlushPromise) { const saved=await noteFlushPromise; if(!saved)return false; }
     if (!noteDirty || !draft || !selected?.reference) return true;
     const target=selected.reference, value=draft.text, key=referenceKey(target), quote=selected.quote || '';
     const task=(async()=>{
       try {
         if(value.trim())await model.saveNote(target,value,quote);else await model.deleteNote(target);
+        if(notebook?.status?.().persistent){
+          // A failed cleanup retains a recovery copy; it does not undo the
+          // notebook transaction that has already committed successfully.
+          try{draftJournal.acknowledge({reference:target,text:value});}catch{}
+        }
         if(draft?.key===key&&draft.text===value){draft=null;noteDirty=false;}
         if(!disposed){announce(notebookSaveLabel());updateFooter();}
         return true;
@@ -723,7 +736,12 @@ export function mountCorpusReader({
     tools.append(button(t('copy'), copySelected, 'cr-copy')); body.append(tools);
     const label = element('label', 'cr-note-label', `${t('addNote')} · ${selected.unit?.label || selected.reference.unitId || ''}`);
     noteEditor = element('textarea', 'cr-note-editor'); noteEditor.rows = 7; noteEditor.maxLength = READER_LIMITS.note; noteEditor.placeholder = t('notePlaceholder'); noteEditor.value = draft?.key===referenceKey(selected.reference)?draft.text:selectedNote?.text || '';
-    noteEditor.addEventListener('input', () => { draft={key:referenceKey(selected.reference),text:noteEditor.value};noteDirty = true; clearTimeout(noteTimer); noteTimer = setTimeout(flushNote, 450); updateFooter(); }); label.append(noteEditor); body.append(label);
+    noteEditor.addEventListener('input', () => {
+      draft={key:referenceKey(selected.reference),text:noteEditor.value};noteDirty = true;
+      try{draftJournal.capture({reference:selected.reference,text:draft.text,quote:selected.quote||'',originalNoteId:selectedRecord()?.id??null});}
+      catch(error){announce(error.message);}
+      clearTimeout(noteTimer);noteTimer=setTimeout(flushNote,450);updateFooter();
+    }); label.append(noteEditor); body.append(label);
     const actions = element('div', 'cr-note-actions');
     actions.append(button(t('save'), async () => {
       if (await flushNote()) { announce(notebookSaveLabel()); renderInspector(); updateFooter(); }
@@ -912,8 +930,10 @@ export function mountCorpusReader({
   root.addEventListener('keydown', keydown);
   root.addEventListener('click', event => { if (event.target === root) close(); });
   document.addEventListener('selectionchange', onSelectionChange);
-  const beforeUnload=event=>{if(noteDirty||noteFlushPromise){event.preventDefault();event.returnValue='';}};
+  const beforeUnload=event=>{if(noteDirty||noteFlushPromise){void flushNote();event.preventDefault();event.returnValue='';}};
+  const visibilityChanged=()=>{if(document.visibilityState==='hidden')void flushNote();};
   window.addEventListener('beforeunload',beforeUnload);
+  document.addEventListener('visibilitychange',visibilityChanged);
 
   return {
     get element() { return root; },
@@ -944,7 +964,14 @@ export function mountCorpusReader({
       return loadInitial(initial).then(() => this);
     },
     close,
-    destroy() { if(disposed)return;disposed=true;opened=false;clearTimeout(noteTimer);catalogCancel?.();searchCancel?.();for(const timer of paneSaveTimers.values())clearTimeout(timer);paneSaveTimers.clear();document.removeEventListener('selectionchange', onSelectionChange);window.removeEventListener('beforeunload',beforeUnload);model.destroy();root.remove();root=null; },
+    destroy() {
+      if(destroyWork)return destroyWork;
+      const saving=flushNote();disposed=true;opened=false;clearTimeout(noteTimer);catalogCancel?.();searchCancel?.();
+      for(const timer of paneSaveTimers.values())clearTimeout(timer);paneSaveTimers.clear();
+      document.removeEventListener('selectionchange',onSelectionChange);document.removeEventListener('visibilitychange',visibilityChanged);
+      window.removeEventListener('beforeunload',beforeUnload);root.remove();root=null;
+      destroyWork=Promise.resolve(saving).finally(()=>model.destroy());return destroyWork;
+    },
     isOpen: () => opened,
     state: () => model.snapshot(),
   };

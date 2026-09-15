@@ -56,6 +56,9 @@ const second = createCorpusNotebook({adapter: 'memory', memoryStore});
 
 ## Operations
 
+`getNote(id)` reads one exact record or returns `null`. Recovery uses this
+bounded lookup to distinguish a committed write from a lost acknowledgement.
+
 `putNote({id?, reference, quote?, text?, kind, expectedRevision?, expectedRecordRevision?})` validates
 the exact reference with `model.mjs`, derives the document filter from
 `reference.target.workId`, and returns `{item, revision}`. The item has an
@@ -124,6 +127,28 @@ the export and is not trusted as the current browser revision.
 
 `close()` closes the database. All later operations fail with `code ===
 "closed"`; calling it again is harmless.
+
+## Pending editor draft and document exit
+
+The corpus editor keeps one nonempty draft in a notebook-scoped `sessionStorage`
+slot, at most 64 KiB of encoded JSON. It contains the exact reference, personal
+text and bounded quotation. This small synchronous recovery slot covers reload
+or navigation before the 450 ms IndexedDB autosave completes. It is cleared
+only after a durable write, and an older completion cannot clear a newer draft.
+Notebook records, history and text caches remain in their existing stores.
+
+Before notebook hydration, a pending draft is recovered as a separate note.
+An already committed matching note or matching recovery ID prevents a duplicate;
+recovery never overwrites a newer edit in another tab or revives its deleted
+record. Failed recovery preserves the slot and reports the failure. Memory-only
+fallback does not clear it or claim durability. Session storage itself lasts
+for the browser tab; it is not a guarantee against closing the tab or browser
+before a write has committed.
+
+Visibility loss and `beforeunload` initiate a flush. Reader destruction returns
+the pending flush promise, and the owning host waits before closing IndexedDB.
+The unload warning remains while a draft or write is pending. Recovery handles
+the case where the browser cannot finish asynchronous exit work.
 
 ## Error surface
 

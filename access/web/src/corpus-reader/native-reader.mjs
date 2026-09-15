@@ -2,6 +2,7 @@ import {createNativeReference,validateNativeReference,NATIVE_REFERENCE_SCHEMA,na
 import {referenceDocumentId,referenceVersionId} from './model.mjs';
 import {readingSlot} from './notebook.mjs';
 import {readNativeSelection,readNativeReference} from './native-source.mjs';
+import {scheduleExpiry} from './expiry.mjs';
 import './native-reader.css';
 
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);node.textContent=text;node.className=className;return node;};
@@ -41,7 +42,7 @@ export function mountNativeReader({host=document.body,client,notebook,locale=()=
   const notes=el('section','','nr-notes');notes.hidden=true;
   sidebar.append(selectedLabel,quote,input,noteActions,notes);layout.append(article,sidebar);root.append(header,status,layout);host.append(root);
   let result=null,reference=null,selectedQuote='',note=null,dirty=false,saving=null,opened=false,destroyed=false;
-  let request=null,generation=0,notesGeneration=0,restoreFocus=null,expiryTimer=null,positionTimer=null,positionWork=Promise.resolve();
+  let request=null,generation=0,notesGeneration=0,restoreFocus=null,cancelExpiry=()=>{},positionTimer=null,positionWork=Promise.resolve();
   let expired=false,lastAddress=null;
   const announce=text=>{status.textContent=text;};
   const unavailable=error=>error?.status==='stale'?word('Текст или его точная привязка изменились. Заметка и старая ссылка сохранены.','The text or its exact binding changed. Your note and original reference were retained.'):
@@ -100,7 +101,7 @@ export function mountNativeReader({host=document.body,client,notebook,locale=()=
     const selection=getSelection();selection.removeAllRanges();selection.addRange(range);
   }
   function renderText(){
-    clearTimeout(expiryTimer);expired=false;article.replaceChildren();
+    cancelExpiry();expired=false;article.replaceChildren();
     const unit=result.native_unit;
     if(unit.spans.length>128)throw new Error(word('Единица превышает предел числа фрагментов.','This unit exceeds the span-count limit.'));
     title.textContent=word('Текст источника','Source text');
@@ -115,7 +116,7 @@ export function mountNativeReader({host=document.body,client,notebook,locale=()=
       for(const notice of unit.local_conditions.notices){const text=el('pre',notice.text);text.dir='auto';conditions.append(el('h4',notice.role),text);}
       article.append(conditions);
       const expire=()=>{expired=true;article.replaceChildren(el('p',word('Срок условий чтения истёк. Откройте источник повторно для проверки.','The reading conditions expired. Reopen the source to recheck access.')));result=null;controls();};
-      const delay=Date.parse(unit.local_conditions.expires_at)-Date.now();if(delay<=0)expire();else expiryTimer=setTimeout(expire,Math.min(delay,2147483647));
+      cancelExpiry=scheduleExpiry(unit.local_conditions.expires_at,expire);
     }
     const exact=el('details','','nr-exact');exact.append(el('summary',word('Источник и точная версия','Source and exact version')),
       el('pre',JSON.stringify({record:result?.record_ref,summary:unit.summary,packet:unit.packet,text_access:result?.text_access},null,2)));article.append(exact);
@@ -124,7 +125,7 @@ export function mountNativeReader({host=document.body,client,notebook,locale=()=
   async function open(address={}){
     if(destroyed||!(await saveDraft()))return false;
     await persistPosition();request?.abort();const ticket=++generation;request=new AbortController();reveal();lastAddress=address;
-    clearTimeout(expiryTimer);result=null;expired=false;article.replaceChildren();announce(word('Читаю источник…','Reading the source…'));
+    cancelExpiry();result=null;expired=false;article.replaceChildren();announce(word('Читаю источник…','Reading the source…'));
     if(address.reference){setReference(address.reference,{text:address.note?.quote??'',saved:address.note??null});}else{reference=null;note=null;selectedQuote='';input.value='';dirty=false;controls();}
     try{
       if(address.reference){const resolved=await readNativeReference(client,address.reference,{signal:request.signal});if(ticket!==generation)return false;result=resolved.result;}
@@ -134,7 +135,8 @@ export function mountNativeReader({host=document.body,client,notebook,locale=()=
       const selectedSpan=result.native_unit.spans.find(span=>span.anchor_ref===reference.target.span.anchorRef);
       selectedQuote=nativeSelectedText(reference,selectedSpan.text);
       renderText();controls();updateLocation();
-      const remembered=await notebook.loadReading(readingSlot(reference));if(ticket!==generation)return false;
+      if(expired||!result)return false;
+      const remembered=await notebook.loadReading(readingSlot(reference));if(ticket!==generation||expired||!result)return false;
       scroller().scrollTop=address.note?0:remembered?.offset??0;article.focus({preventScroll:true});selectedDOM(reference);
       if(address.note||!remembered)article.querySelector(`[data-native-span="${result.native_unit.spans.indexOf(selectedSpan)}"]`)?.scrollIntoView({block:'center'});
       announce(word('Выделение относится к исходным символам. Заметки хранятся отдельно от текста.','Selections address the original characters. Notes are stored separately from source text.'));
@@ -160,7 +162,7 @@ export function mountNativeReader({host=document.body,client,notebook,locale=()=
     }catch(error){announce(unavailable(error));}
   }
   async function close(){
-    if(!(await saveDraft()))return false;await persistPosition();generation++;request?.abort();opened=false;root.hidden=true;clearTimeout(expiryTimer);
+    if(!(await saveDraft()))return false;await persistPosition();generation++;request?.abort();opened=false;root.hidden=true;cancelExpiry();
     if(location.hash.startsWith(HASH)){const url=new URL(location.href);url.hash='';history.replaceState(history.state,'',url);}
     result=null;reference=null;selectedQuote='';note=null;input.value='';article.replaceChildren();controls();
     onClose?.();restoreFocus?.isConnected&&restoreFocus.focus({preventScroll:true});return true;
@@ -193,6 +195,6 @@ export function mountNativeReader({host=document.body,client,notebook,locale=()=
     void open({reference:validateNativeReference(JSON.parse(decodeURIComponent(location.hash.slice(HASH.length))))});}catch(error){reveal();announce(unavailable(error));}};
   window.addEventListener('hashchange',restore);restore();controls();
   return {root,open,close,async openNotes(){if(!(await saveDraft()))return;reveal();if(!result)announce(word('Записи хранятся отдельно от доступности источников.','Saved notes remain independent of source availability.'));await showNotes();},
-    destroy(){destroyed=true;generation++;notesGeneration++;request?.abort();clearTimeout(expiryTimer);clearTimeout(positionTimer);root.remove();window.removeEventListener('hashchange',restore);window.removeEventListener('beforeunload',beforeUnload);},
+    destroy(){destroyed=true;generation++;notesGeneration++;request?.abort();cancelExpiry();clearTimeout(positionTimer);root.remove();window.removeEventListener('hashchange',restore);window.removeEventListener('beforeunload',beforeUnload);},
     flush:saveDraft};
 }

@@ -6,8 +6,12 @@ import hashlib
 import json
 import os
 import shutil
+import socket
+import subprocess
 import tempfile
 import threading
+import time
+import urllib.request
 from pathlib import Path
 
 import pytest
@@ -725,3 +729,97 @@ def test_real_browser_graceful_without_webmcp(access_base_url: str) -> None:
             assert "Tree of Sophia" in page.locator("body").inner_text()
             context.close()
             browser.close()
+
+
+def test_corpus_note_exit_recovers_exact_draft():
+    """Real IDB: teardown flushes, and an interrupted write survives reload."""
+    with socket.socket() as probe:
+        probe.bind(('127.0.0.1', 0))
+        port = probe.getsockname()[1]
+    web = REPO_ROOT / 'access/web'
+    server = subprocess.Popen(
+        [str(web / 'node_modules/.bin/vite'), '--host', '127.0.0.1',
+         '--port', str(port), '--strictPort'], cwd=web,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    url = f'http://127.0.0.1:{port}/static/fixtures/corpus-reader.html'
+    read_notes = """async () => {
+      const db=await new Promise((resolve,reject)=>{
+        const request=indexedDB.open('tos-corpus-reader-fixture-v1');
+        request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+      });
+      try{return await new Promise((resolve,reject)=>{
+        const request=db.transaction('notes','readonly').objectStore('notes').getAll();
+        request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+      });}finally{db.close();}
+    }"""
+    try:
+        deadline = time.monotonic() + 15
+        while True:
+            try:
+                with urllib.request.urlopen(url, timeout=1) as response:
+                    assert response.status == 200
+                break
+            except (OSError, AssertionError):
+                if server.poll() is not None or time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.1)
+        with short_chromium_tmp(), sync_playwright() as p:
+            options = {'headless': True, 'args': ['--no-sandbox']}
+            if CHROMIUM:
+                options['executable_path'] = CHROMIUM
+            browser = p.chromium.launch(**options)
+            for interrupted in (False, True):
+                context = browser.new_context(locale='ru-RU')
+                page = context.new_page()
+                page.on('dialog', lambda dialog: dialog.accept())
+                page.goto(url, wait_until='domcontentloaded')
+                page.wait_for_selector('#tree[data-fixture-ready="true"]')
+                page.locator('[data-corpus-open]').click()
+                page.locator('.cr-unit:not(.cr-heading) .cr-unit-marker').first.click()
+                page.locator('.cr-note-editor').wait_for()
+                unit_id = page.locator('.cr-unit:not(.cr-heading)').first.get_attribute('data-unit-id')
+                text = 'Незавершённая заметка 😀 α — ' + str(interrupted)
+                # One JS task guarantees exit before the 450 ms debounce.
+                if interrupted:
+                    with page.expect_navigation(wait_until='domcontentloaded'):
+                        page.evaluate("""text => {
+                          const transaction=IDBDatabase.prototype.transaction;
+                          IDBDatabase.prototype.transaction=function(names,mode,...rest){
+                            if(mode==='readwrite')throw new DOMException('Interrupted test write','AbortError');
+                            return transaction.call(this,names,mode,...rest);
+                          };
+                          const editor=document.querySelector('.cr-note-editor');
+                          editor.value=text;editor.dispatchEvent(new Event('input',{bubbles:true}));
+                          location.reload();
+                        }""", text)
+                else:
+                    page.evaluate("""text => {
+                      const editor=document.querySelector('.cr-note-editor');
+                      editor.value=text;editor.dispatchEvent(new Event('input',{bubbles:true}));
+                      window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:false}));
+                    }""", text)
+                page.wait_for_function(
+                    'async text => (await (' + read_notes + ')()).some(note=>note.text===text)',
+                    arg=text, timeout=15_000,
+                )
+                notes = page.evaluate(read_notes)
+                assert len(notes) == 1
+                assert notes[0]['reference']['unitId'] == unit_id
+                if interrupted:
+                    assert notes[0]['id'].startswith('recovered-')
+                    page.reload(wait_until='domcontentloaded')
+                    page.wait_for_selector('#tree[data-fixture-ready="true"]')
+                    assert len(page.evaluate(read_notes)) == 1
+                    assert page.evaluate(
+                        "sessionStorage.getItem('tos.corpus.note-draft.v1:tos-corpus-reader-fixture-v1')"
+                    ) is None
+                context.close()
+            browser.close()
+    finally:
+        server.terminate()
+        try:
+            server.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            server.kill()
+            server.wait(timeout=5)

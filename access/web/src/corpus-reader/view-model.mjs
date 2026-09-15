@@ -402,7 +402,7 @@ function changedReference(reference, version, document = {}) {
   return Boolean(expectedRevision && currentRevision && expectedRevision !== currentRevision);
 }
 
-export function createCorpusReaderModel({provider, notebook = null, locale = 'ru', onChange = () => {}} = {}) {
+export function createCorpusReaderModel({provider, notebook = null, locale = 'ru', onChange = () => {}, beforeNotebookReady} = {}) {
   if (typeof onChange !== 'function') throw new Error('invalid-onChange');
   const state = {
     catalog: {items: [], query: '', nextCursor: null, total: null, busy: false, error: null},
@@ -860,6 +860,7 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
   }
   async function hydrateNotebook() {
     try {
+      if(beforeNotebookReady)await beforeNotebookReady;
       if (typeof notebook?.listNotes === 'function') {
         const values = [];
         let cursor = null;

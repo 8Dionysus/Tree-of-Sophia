@@ -61,8 +61,13 @@ export function mountCorpusEntry({root,provider=createUnavailableProvider(),note
     notesOpen.onclick=async()=>{await reader.close();if(reader.isOpen())return;await native.openNotes();};toolbar.append(notesOpen);}
   const restore=()=>{if(!route)return;try{const address=decodeReadingRoute(location.hash);if(address)void open(address);}catch(error){report(error);}};
   window.addEventListener('hashchange',restore);
-  let destroyed=false;
-  const destroy=()=>{if(destroyed)return;destroyed=true;contents.destroy();reader.destroy();native?.destroy();opener.remove();notesOpen?.remove();narrow?.remove();root.removeEventListener('click',updateLabel);root.removeEventListener('sophia-read-text',readEvent);root.removeEventListener('sophia-read-native',nativeEvent);window.removeEventListener('hashchange',restore);window.removeEventListener('pagehide',pageHide);if(ownsNotebook)notebook.close();};
+  let destroyed=false,destroyWork=null;
+  const destroy=()=>{
+    if(destroyed)return destroyWork;destroyed=true;contents.destroy();
+    const saving=[reader.destroy(),native?.flush()];
+    opener.remove();notesOpen?.remove();narrow?.remove();root.removeEventListener('click',updateLabel);root.removeEventListener('sophia-read-text',readEvent);root.removeEventListener('sophia-read-native',nativeEvent);window.removeEventListener('hashchange',restore);window.removeEventListener('pagehide',pageHide);
+    destroyWork=Promise.allSettled(saving).then(async()=>{native?.destroy();if(ownsNotebook)await notebook.close();});return destroyWork;
+  };
   const pageHide=event=>{if(!event.persisted)destroy();};
   window.addEventListener('pagehide',pageHide);restore();
   return {reader,native,notebook,opener,open,destroy};
