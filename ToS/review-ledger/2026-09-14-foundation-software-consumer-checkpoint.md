@@ -3,6 +3,51 @@
 This is a bounded integration review, not Foundation v1 acceptance, corpus
 admission, CI, merge, or deployment evidence.
 
+## Penn source-creation continuation · 2026-09-15 UTC
+
+Committed creation evidence and a current write delegation now have distinct
+checks in the initial metadata/identity-Claim publication routes. Exact receipt
+bytes, original configuration, principal, authority, source path and pre-expiry
+creation instant remain bound. Natural expiry does not invalidate an already
+created package; new source commands still reject expired delegation. Changed
+scope, tampered/future receipts and post-stage revocation refuse. This does not
+renew grants or admit source content.
+
+On the retained full prepared store, the existing Penn research-environment
+package added 3 nodes/2 relations in 24.588 s and 48,441 SQL mutations. Its three
+existing participant/environment Claims then added 5 nodes/15 relations in
+61.158 s and 215,858 mutations, with 751.6 MiB peak memory and no swap. The first
+Claim attempts did not commit: the task harness first obscured a budget refusal
+with an invalid rollback method, then exposed the 100,000-mutation search-index
+limit. Contract-correct rollback retained the predecessor; the successful run
+used an explicit 500,000-mutation bound. No database copy, source command,
+automatic admission or D1 write occurred. These are measured offline costs,
+not accepted small-edit latency budgets or global K3 completion.
+
+At source revision `61e5059bcff97b455f04e4aab92d6edb6a5bc5b33a37e059ec3d80e6f2acba26`,
+native MCP reads nine exact related records and traverses from environment back
+to its Claim. HTTP and the production web source client return identical Claim
+and environment records. Actual browser selection -> Sources -> original record
+preserves identity, uncertainty, unreviewed status, single-source limits and the
+distinction between publication year and unknown collation date. The scene also
+retains the reception process, environment and evidence neighbors. Existing
+built assets were reused; this is not a global smoothness measurement.
+
+This closes the checked G3/G5/G6/G9 historical-environment consumer seam, not all
+K2. Local D1 catch-up, other K3 mutation classes, final CI/merge and whole-goal
+acceptance remain separate. Checklist: yes for source traceability, identity,
+qualified historical context, language authority, uncertainty and authored versus
+derived boundaries; not applicable for canon, consent, calibration, counterpart
+or new assessment admission. Completion ownership remains with the master.
+
+Durable local evidence (basename, SHA-256):
+
+- `penn-metadata-publication-r1.json`: `a95822554dbabfbc1e49e62ec79c020e824470b69c893d82cf4821c3874d0b6a`.
+- `penn-claims-publication-r3.json`: `b1e98de8a088161172b6cf478ce00dac59084ca41fdc0e009fd3387bfa61bc24`.
+- `penn-context-agent-r1.json`: `a0b44461f26386335768f8a82bcecce5293070d6211f45421c19bfa0c49ef63e`.
+- `penn-context-paired-r1.json`: `310df0066ee61ffe9f43365c9b4016f16970b6bd34acf94642cc1cd935f5fff4`.
+- `penn-context-browser-r1.json`: `44148850218b6c8e867709e6679ab382fa25eb14fe20519153a9ecfb9d95b8da`.
+
 Reviewed worktree: `codex/tos-foundation-final-20260914`, with first parent
 `7f59dc9147690f767e332a41dcd1503c996bbed0` and incoming parent
 `36de25a5018aa277f64cec547e6dd9941358e697`. The observations below were made
