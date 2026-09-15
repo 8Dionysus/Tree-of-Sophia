@@ -16,6 +16,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "deploy/cloudflare-worker/scripts"))
 import build_runtime as builder
+from source_navigation_rows import chunk_text, project_rows
 from test_access_contract import write_fixture
 from tos_access.core import ToSAccessCore
 from tos_access.knowledge import inspect_knowledge_node, inspect_knowledge_relation
@@ -85,6 +86,168 @@ class PublishedReadModelTests(unittest.TestCase):
         with closing(sqlite3.connect(self.path)) as db:
             db.execute(sql, args)
             db.commit()
+
+    def test_native_navigation_matches_legacy_without_loading_stale_index(self):
+        legacy = ToSAccessCore.discover(self.root)
+        selected = ToSAccessCore.discover(self.root, published_read_model_path=self.path,
+                                         published_read_model_expected=self.binding)
+        cases = [('source_descend', 'tos.work.fixture'),
+                 ('source_dossier', 'tos.work.fixture'),
+                 ('source_dossier', 'tos.link.fixture.download')]
+        expected = [getattr(legacy, method)(identifier) for method, identifier in cases]
+        with patch.object(ToSAccessCore, 'index', side_effect=AssertionError('stale corpus index')):
+            for (method, identifier), packet in zip(cases, expected):
+                with self.subTest(method=method, identifier=identifier):
+                    self.assertEqual(getattr(selected, method)(identifier), packet)
+
+    def test_native_navigation_missing_product_and_mirror_drift_fail_closed(self):
+        self.mutate("UPDATE source_navigation_nodes SET label='stale' WHERE node_id=?",
+                    ('tos.work.fixture',))
+        with self.assertRaises(PublishedReadModelError):
+            self.reader.source_descend('tos.work.fixture', max_depth=8, limit=300)
+        self.mutate("DELETE FROM edge_meta WHERE key='source_navigation_top'")
+        with self.assertRaises(PublishedReadModelError):
+            self.reader.source_dossier('tos.work.fixture', limit=300)
+
+    def test_native_navigation_payload_framing_and_budget(self):
+        with closing(sqlite3.connect(self.path)) as db:
+            raw = db.execute('SELECT json FROM source_navigation_nodes WHERE node_id=?',
+                             ('tos.work.fixture',)).fetchone()[0]
+            expected = self.reader.source_descend('tos.work.fixture', max_depth=8, limit=300)
+            db.execute("UPDATE source_navigation_nodes SET json='' WHERE node_id=?", ('tos.work.fixture',))
+            db.executemany('INSERT INTO source_navigation_node_payload VALUES(?,?,?)',
+                           [('tos.work.fixture', part, raw[start:start + 200])
+                            for part, start in enumerate(range(0, len(raw), 200))])
+            db.commit()
+        self.assertEqual(self.reader.source_descend('tos.work.fixture', max_depth=8, limit=300), expected)
+        limited = PublishedKnowledgeReadModel(self.path, self.binding,
+                                              limits=PublishedReadLimits(max_rows=4))
+        with self.assertRaises(PublishedReadBudgetExceeded):
+            limited.source_descend('tos.work.fixture', max_depth=8, limit=300)
+        self.mutate('DELETE FROM source_navigation_node_payload WHERE id=? AND part=0', ('tos.work.fixture',))
+        with self.assertRaises(PublishedReadModelError):
+            self.reader.source_descend('tos.work.fixture', max_depth=8, limit=300)
+
+    def test_native_navigation_bad_hints_unknown_ids_and_unsupported_dossier_kind_fail_closed(self):
+        with closing(sqlite3.connect(self.path)) as db:
+            properties = db.execute(
+                'SELECT properties_json FROM source_navigation_nodes WHERE node_id=?',
+                ('tos.work.fixture',),
+            ).fetchone()[0]
+            db.execute(
+                'UPDATE source_navigation_nodes SET properties_json=? WHERE node_id=?',
+                ('{"access_status":"stale"}', 'tos.work.fixture'),
+            )
+            db.commit()
+        with self.assertRaisesRegex(PublishedReadModelError, 'property hint'):
+            self.reader.source_descend('tos.work.fixture', max_depth=8, limit=300)
+        self.mutate(
+            'UPDATE source_navigation_nodes SET properties_json=? WHERE node_id=?',
+            (properties, 'tos.work.fixture'),
+        )
+
+        with closing(sqlite3.connect(self.path)) as db:
+            source_refs = db.execute(
+                'SELECT source_refs_json FROM source_navigation_edges WHERE edge_id=?',
+                ('sn1a',),
+            ).fetchone()[0]
+            db.execute(
+                'UPDATE source_navigation_edges SET source_refs_json=? WHERE edge_id=?',
+                ('["stale-source-ref"]', 'sn1a'),
+            )
+            db.commit()
+        with self.assertRaisesRegex(PublishedReadModelError, 'reference hint'):
+            self.reader.source_descend('tos.work.fixture', max_depth=8, limit=300)
+        self.mutate(
+            'UPDATE source_navigation_edges SET source_refs_json=? WHERE edge_id=?',
+            (source_refs, 'sn1a'),
+        )
+
+        with self.assertRaises(KeyError):
+            self.reader.source_descend('tos.native-navigation.missing', max_depth=8, limit=300)
+        with self.assertRaises(KeyError):
+            self.reader.source_dossier('tos.native-navigation.missing', limit=300)
+        with self.assertRaises(ValueError):
+            self.reader.source_dossier('philosophy.eras.fixture', limit=300)
+
+    def test_native_navigation_chunked_unknown_fields_preserve_exact_values(self):
+        big_integer = 1234567890123456789012345678901234567890
+        with closing(sqlite3.connect(self.path)) as db:
+            raw = db.execute(
+                'SELECT json FROM source_navigation_nodes WHERE node_id=?',
+                ('tos.work.fixture',),
+            ).fetchone()[0]
+            value = json.loads(raw)
+            value.update({
+                'unknown_big_integer': big_integer,
+                'unknown_false': False,
+                'unknown_zero': 0,
+                'unknown_null': None,
+            })
+            raw = builder.compact_json(value)
+            db.execute(
+                'UPDATE source_navigation_nodes SET json=? WHERE node_id=?',
+                ('', 'tos.work.fixture'),
+            )
+            db.execute(
+                'DELETE FROM source_navigation_node_payload WHERE id=?',
+                ('tos.work.fixture',),
+            )
+            db.executemany(
+                'INSERT INTO source_navigation_node_payload VALUES(?,?,?)',
+                [
+                    ('tos.work.fixture', part, chunk)
+                    for part, chunk in enumerate(chunk_text(raw, size=80))
+                ],
+            )
+            db.commit()
+
+        packet = self.reader.source_descend('tos.work.fixture', max_depth=8, limit=300)
+        node = next(item for item in packet['nodes'] if item['node_id'] == 'tos.work.fixture')
+        self.assertEqual(node['unknown_big_integer'], big_integer)
+        self.assertIs(node['unknown_false'], False)
+        self.assertEqual(node['unknown_zero'], 0)
+        self.assertIsNone(node['unknown_null'])
+
+    def test_native_navigation_stale_index_does_not_hide_new_environment_edge(self):
+        node_id = 'tos.environment.native-fixture'
+        edge_id = 'sn-native-environment'
+        stale = ToSAccessCore.discover(self.root).source_navigation(bibliographic_only=True)
+        self.assertNotIn(node_id, {node['node_id'] for node in stale['nodes']})
+        self.assertNotIn(edge_id, {edge['edge_id'] for edge in stale['edges']})
+
+        native_node = {
+            'node_id': node_id,
+            'node_kind': 'environment',
+            'label': 'Native fixture environment',
+            'source_ref': 'ToS/access/fixtures/native-environment.json',
+            'identity_status': 'not_applicable',
+            'properties': {},
+        }
+        native_edge = {
+            'edge_id': edge_id,
+            'from_id': node_id,
+            'predicate_id': 'grounds',
+            'to_id': 'tos.work.fixture',
+            'edge_kind': 'authored_source_planting',
+            'review_status': 'unreviewed',
+            'source_refs': ['ToS/access/fixtures/native-environment-edge.json'],
+        }
+        with closing(sqlite3.connect(self.path)) as db:
+            for kind, ordinal, item in (('nodes', 100, native_node), ('edges', 100, native_edge)):
+                for table, rows in project_rows(kind, ordinal, item, self.root).items():
+                    for row in rows:
+                        db.execute(
+                            f"INSERT INTO {table} VALUES ({','.join('?' for _ in row)})",
+                            row,
+                        )
+            db.commit()
+
+        packet = self.reader.source_descend(node_id, max_depth=1, limit=300)
+        self.assertEqual(packet['counts'], {'nodes': 2, 'edges': 1})
+        self.assertEqual([node['node_id'] for node in packet['nodes']],
+                         [node_id, 'tos.work.fixture'])
+        self.assertEqual([edge['edge_id'] for edge in packet['edges']], [edge_id])
 
     def test_full_packet_parity_and_restart_without_graph_or_catalog_read(self):
         original = type(self.reader)._connect

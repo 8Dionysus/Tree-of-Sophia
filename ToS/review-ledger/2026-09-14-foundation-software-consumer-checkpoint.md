@@ -3,6 +3,49 @@
 This is a bounded integration review, not Foundation v1 acceptance, corpus
 admission, CI, merge, or deployment evidence.
 
+## Published native navigation reader · 2026-09-15 UTC
+
+Python now reads the selected SQLite publication's native source-navigation
+product instead of silently consulting the legacy corpus index. Shared pure
+query functions preserve the existing downward walk, bibliographic lineage,
+tree ancestry, Links, scoped rights and fail-closed agent summary. Native
+selection validates full JSON against indexed fields, including overflow
+payload framing, under the published reader's row/byte/SQLite-work budgets
+and post-transaction currentness check. No second database was created.
+
+On the already-running local D1 publication, Python and Worker return equal
+complete JSON packets for Penn collation environment descent (2 nodes / 1
+edge) and the Jastrow/Clay book dossier. A first Python observation took
+38.981 / 76.126 ms; the later paired check took 5.066 / 10.569 ms in Python
+and 154.411 / 109.208 ms through Worker HTTP. These are retained-cache bounded
+cases, not cold-OS measurements or corpus-wide endpoint parity. The selected
+source/data revisions are the same D1 revisions recorded below.
+
+Capability now working: the existing native source product can be consumed
+by Python and Worker through the same source-navigation operations, including
+new material absent from a stale static index. This closes that G6/G7/G8
+consumer seam. It does not add rights or accept a historical inference.
+Remaining limit: the separate prepared-normalization SQLite format currently
+has no complete native navigation product (especially its header and rights).
+That selection must report an unavailable product, not manufacture a dossier
+from normalized attributes or silently read the old index. The running Python
+prepared service has not been switched to D1 or restarted by this check.
+Complete K2 routes, remaining K3 measurements and whole-goal acceptance remain
+with the master.
+
+Reproduction: durable local `check_published_native_navigation.py` accepts an
+explicit database, expected source/data revisions, loopback peer and bounded
+public case IDs. Receipt `published-native-navigation-comparison-r1.json`
+SHA-256 `521e4b976ae36ee7fa8892365d9bcde225966613491b1ad30742d4239649e969`.
+Existing source/query-store regression checks and all 20 published-reader
+tests passed before additional malformed-native-product tests. No source
+grant, corpus payload, publication epoch, or service state changed.
+
+Delivery update: PR 228 passed all three required software/Worker/aggregate
+checks and was squash-merged as `620e2a59daf27476f92382c5c885a9fb7cc30a17`.
+PR 229's subsequent main synchronization has identical tree bytes to its
+already-reviewed predecessor; its exact new-head CI is separate and pending.
+
 ## D1 catch-up and existing exact-source seam · 2026-09-15 UTC
 
 The lagging local D1 reader now shares prepared source revision
