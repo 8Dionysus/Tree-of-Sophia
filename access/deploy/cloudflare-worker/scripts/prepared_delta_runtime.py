@@ -13,7 +13,7 @@ from pathlib import Path
 import build_runtime as full
 import lens_auxiliary_runtime as auxiliary
 import source_navigation_delta_runtime as navigation
-from incremental_runtime import DeltaRecorder, REGISTERED_KEYS as PRIMARY_KEYS, plan_search_addresses_transaction, _search_address_revision
+from incremental_runtime import DeltaRecorder, REGISTERED_KEYS as PRIMARY_KEYS, plan_search_addresses_transaction, _search_address_revision, _search_address_indexes
 from tos_access.prepared_source_binding import PreparedSourceInputs
 from tos_access.published_read_model import _json
 from tos_access.published_read_metadata import (
@@ -49,6 +49,7 @@ class PreparedD1DeltaLimits:
     max_retained_bytes: int = 128 * 1024**2
     max_sql_bytes: int = 128 * 1024**2
     max_postings: int = 100_000
+    max_manifest_rows: int = 400_000
 
     def __post_init__(self):
         if any(type(n) is not int or n < 1 for n in vars(self).values()):
@@ -234,6 +235,111 @@ def execution_profile():
 
 def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_revision,
                             before_binding, after_binding, limits=None, rollback_target=None):
+    """Capture one exact committed prepared parent/successor; never apply SQL."""
+    return _build_prepared_delta_sql(db, before_db, after_db, target,
+        expected_d1_revision=expected_d1_revision, before_binding=before_binding,
+        after_binding=after_binding, limits=limits, rollback_target=rollback_target)
+
+
+def build_prepared_catchup_sql(db, after_db, target, *, expected_d1_revision,
+                             before_source_inputs, after_binding, limits=None, rollback_target=None):
+    """Explicit offline manifest reconciliation, not an addressed single delta.
+
+    The caller admits the live D1/source pair and the selected prepared successor.
+    Both read transactions stay held. Enumerates bounded digest manifests, then
+    reuses the ordinary row/search/navigation/auxiliary delta and reverse guards.
+    No old prepared database, normalized full graph or caller-supplied ID list.
+    """
+    if not isinstance(before_source_inputs, PreparedSourceInputs):
+        raise TypeError('exact admitted D1 predecessor source inputs required')
+    return _build_prepared_delta_sql(db, db, after_db, target,
+        expected_d1_revision=expected_d1_revision, before_binding=None,
+        before_source_inputs=before_source_inputs, after_binding=after_binding,
+        limits=limits, rollback_target=rollback_target)
+
+
+def _manifest_changes(db, after_db, capture, limits):
+    """Merge two exact digest streams; retain only bounded changed identities."""
+    observed, frames = [0], {}
+
+    def rows(connection, kind):
+        prefix = 'knowledge_' + kind + '_digest:'
+        count = 0
+        for key, part, raw, exists in connection.execute(
+                'SELECT key,part,CASE WHEN length(CAST(json_chunk AS BLOB))<=128 THEN json_chunk END,'
+                f'EXISTS(SELECT 1 FROM knowledge_{kind}s WHERE id=substr(key,?)) '
+                'FROM edge_meta WHERE key>=? AND key<? ORDER BY key,part LIMIT ?',
+                (len(prefix) + 1, prefix, prefix[:-1] + ';', limits.max_manifest_rows + 1)):
+            count += 1
+            observed[0] += 1
+            if observed[0] > limits.max_manifest_rows:
+                raise ValueError('digest manifest row budget exceeded')
+            if part != 0 or not exists or not isinstance(raw, str):
+                raise ValueError('invalid or orphan digest manifest row')
+            capture.take(_compact([key, part, raw]))
+            value = _json(raw)
+            if (not isinstance(value, dict) or set(value) != {'sha256'}
+                    or not isinstance(value['sha256'], str) or len(value['sha256']) != 64
+                    or any(c not in '0123456789abcdef' for c in value['sha256'])
+                    or _compact(value) != raw):
+                raise ValueError('invalid digest manifest framing')
+            yield key[len(prefix):], value['sha256']
+        if connection.execute(f'SELECT count(*) FROM knowledge_{kind}s').fetchone()[0] != count:
+            raise ValueError('digest manifest does not cover every native row')
+
+    def put(kind, identity, old, new):
+        frames[kind, identity] = ['insert' if old is None else 'delete' if new is None else 'update',
+                                  kind, identity, None, None, new]
+        if len(frames) > limits.max_changes:
+            raise ValueError('reconciliation change budget exceeded')
+
+    for kind in ('node', 'relation'):
+        left, right = rows(db, kind), rows(after_db, kind)
+        a, b = next(left, None), next(right, None)
+        while a is not None or b is not None:
+            if b is None or a is not None and a[0] < b[0]:
+                put(kind, a[0], a[1], None)
+                a = next(left, None)
+            elif a is None or b[0] < a[0]:
+                put(kind, b[0], None, b[1])
+                b = next(right, None)
+            else:
+                if a[1] != b[1]:
+                    put(kind, a[0], a[1], b[1])
+                a, b = next(left, None), next(right, None)
+    # Equal JSON can still change tie ordering. Inspect complete old tie groups;
+    # new/deleted members already select their group through the manifest diff.
+    ties = db.execute('SELECT kind,id_lower FROM knowledge_search_documents '
+        'GROUP BY kind,id_lower HAVING count(*)>1 LIMIT ?', (limits.max_changes + 1,)).fetchall()
+    if len(ties) > limits.max_changes:
+        raise ValueError('reconciliation search tie budget exceeded')
+    for plural, lower in ties:
+        kind = {'nodes': 'node', 'relations': 'relation'}.get(plural)
+        if kind is None:
+            raise ValueError('invalid search document kind')
+        previous = db.execute('SELECT id FROM knowledge_search_documents WHERE kind=? AND id_lower=? '
+            'ORDER BY position LIMIT ?', (plural, lower, limits.max_changes + 1)).fetchall()
+        if len(previous) > limits.max_changes:
+            raise ValueError('reconciliation search tie member budget exceeded')
+        capture.take(_compact(previous))
+        surviving = []
+        for (identity,) in previous:
+            order = after_db.execute('SELECT source_order FROM prepared_documents WHERE kind=? AND id=?',
+                                     (kind, identity)).fetchone()
+            if order is not None:
+                surviving.append((order[0], identity))
+        if [identity for _, identity in surviving] != [identity for _, identity in sorted(surviving)]:
+            for _, identity in surviving:
+                item = capture.item(after_db, kind, identity)
+                if item is None:
+                    raise ValueError('prepared search order has no native row')
+                put(kind, identity, True, emitted_row_digest(_compact(item))['sha256'])
+    return list(frames.values()), observed[0]
+
+
+def _build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_revision,
+                             before_binding, after_binding, limits=None, rollback_target=None,
+                             before_source_inputs=None):
     """Capture one committed source-paired transition; emit, never apply, SQL.
 
     A trusted initial D1/prepared pair is an explicit caller prerequisite. Exact
@@ -250,11 +356,30 @@ def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_rev
     if len(set(all_paths)) != len(all_paths) or any(p.exists() for p in all_paths):
         raise ValueError('distinct fresh delta SQL targets required')
     _search_address_revision(db, expected_d1_revision)
+    _search_address_indexes(db)
     profile = execution_profile()
     capture = Capture(limits)
-    before_top, before_descriptor, before_source = capture.local(before_db, before_binding)
     _, after_descriptor, after_source = capture.local(after_db, after_binding)
-    if (after_descriptor.get('mode') != 'delta-history'
+    reconcile = before_source_inputs is not None
+    if reconcile:
+        if not db.in_transaction:
+            raise ValueError('caller-owned D1 snapshot required')
+        before_top = capture.metadata(db, TOP_KEY)[0]
+        old_header = capture.metadata(db, 'knowledge_top')[0]
+        before_source = before_source_inputs
+        if (before_top.get('source_revision') != before_source.value()['source_revision']
+                or old_header.get('source_revision') != before_top['source_revision']):
+            raise ValueError('D1 predecessor source selection differs')
+        old_catalog = capture.metadata(db, CATALOG_KEY)[0]
+        old_lens = capture.metadata(db, LENS_META_KEY)[0]
+        expected_top = published_reader_metadata(old_header, old_catalog, full.READ_MODEL_SCHEMA_VERSION,
+            expected_d1_revision, lens_metadata=old_lens)[TOP_KEY]
+        if before_top != expected_top:
+            raise ValueError('D1 predecessor header/catalog/lens binding differs')
+    else:
+        before_top, before_descriptor, before_source = capture.local(before_db, before_binding)
+        old_header = before_descriptor['header']
+    if not reconcile and (after_descriptor.get('mode') != 'delta-history'
             or after_descriptor.get('parent_data_revision') != before_binding['data_revision']):
         raise ValueError('one exact committed prepared transition required')
     a, b = before_source.value(), after_source.value()
@@ -265,7 +390,7 @@ def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_rev
             or {k: v for k, v in a['dependencies'].items() if k not in publication_profiles}
                != {k: v for k, v in b['dependencies'].items() if k not in publication_profiles}):
         raise ValueError('nonparticipating source scope changed; broader D1 migration required')
-    old_header, header = before_descriptor['header'], after_descriptor['header']
+    header = after_descriptor['header']
     if {k: v for k, v in old_header.items() if k not in ('source_revision', 'counts')} != {
             k: v for k, v in header.items() if k not in ('source_revision', 'counts')}:
         raise ValueError('prepared header profile changed; explicit migration required')
@@ -276,11 +401,16 @@ def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_rev
             or {k: v for k, v in d1_top.items() if k not in ignored}
                != {k: v for k, v in before_top.items() if k not in ignored}):
         raise ValueError('D1 and admitted prepared predecessor headers differ')
-    for key in (CATALOG_KEY, LENS_META_KEY):
-        if capture.metadata(db, key)[0] != capture.metadata(before_db, key)[0]:
-            raise ValueError('D1 and prepared predecessor metadata differ: ' + key)
-    frames = after_descriptor.get('changes')
-    if not isinstance(frames, list) or not 1 <= len(frames) <= limits.max_changes:
+    if not reconcile:
+        for key in (CATALOG_KEY, LENS_META_KEY):
+            if capture.metadata(db, key)[0] != capture.metadata(before_db, key)[0]:
+                raise ValueError('D1 and prepared predecessor metadata differ: ' + key)
+    manifest_rows = 0
+    if reconcile:
+        frames, manifest_rows = _manifest_changes(db, after_db, capture, limits)
+    else:
+        frames = after_descriptor.get('changes')
+    if not isinstance(frames, list) or not (0 if reconcile else 1) <= len(frames) <= limits.max_changes:
         raise ValueError('prepared transition change budget exceeded')
     selected, original, successors = {}, {}, {}
     for frame in frames:
@@ -399,6 +529,10 @@ def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_rev
     lineage = {'schema': SCHEMA, 'implementation_sha256': profile, 'base_d1_revision': expected_d1_revision,
                'before_prepared_binding': before_binding, 'after_prepared_binding': after_binding,
                'before_source_inputs_sha256': before_source.digest, 'after_source_inputs_sha256': after_source.digest}
+    if reconcile:
+        lineage.update(schema='tos_prepared_source_d1_manifest_reconciliation_v1',
+                       before_d1_source_revision=before_top['source_revision'])
+        del lineage['before_prepared_binding']
     revision = _sha(_compact(lineage))
     catalog = capture.metadata(after_db, CATALOG_KEY)[0]
     lens = capture.metadata(after_db, LENS_META_KEY)[0]
@@ -458,4 +592,6 @@ def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_rev
             'prepared_source_pairing_verified': True, 'global_source_currentness_verified': False,
             'maintained_auxiliary_stores': installed_auxiliary,
             'source_navigation_product': native_product,
+            'digest_manifest_rows_scanned': manifest_rows,
+            'whole_manifest_reconciliation': reconcile,
             'd1_applied': False, 'consumer_switched': False, 'semantic_acceptance': False}
