@@ -11,6 +11,35 @@ from tos_access.portable_paths import normalize_paths
 import source_navigation_rows as projection
 
 
+def _capture_payload(db, capture, table, identifier):
+    """Seek one addressed payload within the caller's byte and row budgets."""
+    columns = ','.join(projection.COLUMNS[table])
+    payload, retained_bytes = [], 0
+    while True:
+        tail = f'FROM {table} WHERE id=?'
+        args = (identifier,)
+        if payload:
+            tail += ' AND part>?'
+            args += (payload[-1][1],)
+        tail += ' ORDER BY part LIMIT 1'
+        remaining = min(capture.limits.max_row_bytes,
+                        capture.limits.max_metadata_bytes - retained_bytes,
+                        capture.limits.max_read_bytes - capture.read_bytes)
+        if len(payload) >= capture.limits.max_rows or remaining <= 0:
+            if db.execute('SELECT 1 ' + tail, args).fetchone() is not None:
+                raise ValueError('native navigation payload capture budget exceeded')
+            break
+        before_bytes = capture.read_bytes
+        row = capture.one(db, f'json_array({columns})', tail, args, maximum=remaining)
+        if row is None:
+            break
+        if type(row[1]) is not int or row[1] != len(payload):
+            raise ValueError('native navigation predecessor payload framing differs')
+        retained_bytes += capture.read_bytes - before_bytes
+        payload.append(row)
+    return payload
+
+
 def capture_transition(db, capture, before, after, before_rows, after_rows, *,
                        repo_root, max_changes):
     if before.snapshot_digest == after.snapshot_digest:
@@ -74,13 +103,7 @@ def capture_transition(db, capture, before, after, before_rows, after_rows, *,
         old, new = change['before'], change['after']
         if old['present'] != (actual is not None):
             raise ValueError('native navigation predecessor identity differs')
-        columns = ','.join(projection.COLUMNS[payload_table])
-        payload = capture.one(db, 'json_group_array(json(row))',
-            f'FROM (SELECT json_array({columns}) AS row FROM {payload_table} '
-            'WHERE id=? ORDER BY part LIMIT 257)', (identifier,),
-            maximum=capture.limits.max_metadata_bytes)
-        if len(payload) > 256 or [row[1] for row in payload] != list(range(len(payload))):
-            raise ValueError('native navigation predecessor payload framing differs')
+        payload = _capture_payload(db, capture, payload_table, identifier)
         old_value = None
         if actual is not None:
             encoded = actual[projection.COLUMNS[table].index('json')]
@@ -111,7 +134,7 @@ def capture_transition(db, capture, before, after, before_rows, after_rows, *,
         if expected != ([] if actual is None else [actual]):
             raise ValueError('native navigation predecessor serving row differs')
         expected_payload = previous.get(payload_table, [])
-        if payload != [list(row) for row in expected_payload] or len(payload) > 256:
+        if payload != [list(row) for row in expected_payload]:
             raise ValueError('native navigation predecessor payload differs')
         for rows, destination in ((previous, before_rows), (successor, after_rows)):
             for selected_table, tuples in rows.items():

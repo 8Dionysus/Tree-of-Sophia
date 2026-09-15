@@ -179,16 +179,50 @@ class SourceNavigationDeltaTests(unittest.TestCase):
         self.assertFalse((self.root / 'delta.sql').exists())
 
     def test_overflow_payload_survives_update_and_exact_reverse(self):
-        self.raw['nodes'][0]['properties']['oversized'] = '🙂' * 530_000
+        self.raw['nodes'][0]['properties']['oversized'] = '🙂' * 2_060_000
         _, _, result = self.prepare()
         before = self.d1.execute('SELECT * FROM source_navigation_node_payload ORDER BY id,part').fetchall()
-        self.assertGreater(len(before), 1)
+        self.assertGreater(len(before), 256)
         self.capture(result)
         self.d1.executescript((self.root / 'delta.sql').read_text())
         current = self.d1.execute("SELECT json_chunk FROM source_navigation_node_payload WHERE id='person' ORDER BY part").fetchall()
         self.assertEqual(json.loads(''.join(row[0] for row in current))['label'], 'Исправлено')
         self.d1.executescript((self.root / 'rollback.sql').read_text())
         self.assertEqual(self.d1.execute('SELECT * FROM source_navigation_node_payload ORDER BY id,part').fetchall(), before)
+
+
+class PayloadCaptureBudgetTests(unittest.TestCase):
+    def test_configured_limits_and_exact_boundary(self):
+        with sqlite3.connect(':memory:') as db:
+            db.execute('CREATE TABLE source_navigation_node_payload '
+                       '(id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY(id,part))')
+            rows = [('selected', 0, '🙂'), ('selected', 1, 'ab')]
+            db.executemany('INSERT INTO source_navigation_node_payload VALUES (?,?,?)', rows)
+            sizes = [len(json.dumps(row, ensure_ascii=False, separators=(',', ':')).encode())
+                     for row in rows]
+            exact = dict(max_rows=2, max_row_bytes=max(sizes),
+                         max_metadata_bytes=sum(sizes), max_read_bytes=sum(sizes))
+            # Unrelated payloads never consume the selected identity's budget.
+            db.execute("INSERT INTO source_navigation_node_payload VALUES ('other',0,'ignored')")
+            capture = delta.Capture(delta.PreparedD1DeltaLimits(**exact))
+            self.assertEqual(navigation._capture_payload(db, capture,
+                'source_navigation_node_payload', 'selected'), [list(row) for row in rows])
+            self.assertEqual(capture.read_bytes, sum(sizes))
+            for field in exact:
+                with self.subTest(budget=field), self.assertRaises(ValueError):
+                    capture = delta.Capture(delta.PreparedD1DeltaLimits(
+                        **{**exact, field: exact[field] - 1}))
+                    navigation._capture_payload(db, capture, 'source_navigation_node_payload', 'selected')
+            for part in (-1, 2):
+                with self.subTest(part=part), self.assertRaisesRegex(ValueError, 'framing'):
+                    db.execute('UPDATE source_navigation_node_payload SET part=? '
+                               "WHERE id='selected' AND part=0", (part,))
+                    try:
+                        navigation._capture_payload(db, delta.Capture(delta.PreparedD1DeltaLimits()),
+                            'source_navigation_node_payload', 'selected')
+                    finally:
+                        db.execute('UPDATE source_navigation_node_payload SET part=0 '
+                                   "WHERE id='selected' AND part=?", (part,))
 
 
 if __name__ == '__main__':
