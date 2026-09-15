@@ -65,11 +65,12 @@ def main() -> int:
             reader = check_partitioned_payload(TOS_CORPUS_INDEX_PATH, expected_payload)
             require_no_error_diagnostics(expected_payload, "rebuilt ToS corpus index")
             require_declared_authority_layers(expected_payload)
-            # Closure parity binds every current row to this validated source
-            # rebuild; the metadata header carries current counts/boundaries.
+            # Exact decoded parity includes diagnostic order and duplicates.
+            # Thus the full rebuilt-payload checks above also cover committed
+            # diagnostics and authority layers. Diagnostics are a collection,
+            # not metadata; do not treat their absence from this header as a
+            # separate clean-diagnostics verdict.
             current_payload = reader.metadata()
-        require_no_error_diagnostics(current_payload, "committed ToS corpus index")
-        require_declared_authority_layers(current_payload)
     else:
         expected_payload = build_payload()
         current_text = TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8")

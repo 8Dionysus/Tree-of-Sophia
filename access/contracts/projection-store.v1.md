@@ -5,10 +5,9 @@
 [`ToS/contracts/partitioned-projection.schema.json`](../../ToS/contracts/partitioned-projection.schema.json).
 Logical record schemas and authored sources retain their stronger authority.
 
-This adoption includes the portable module, schema, and synthetic tests only.
-It does **not** switch this checkout's corpus/bibliographic files to manifests,
-adopt the partitioned compiler/query store, change source builders or adapters,
-rebuild exports, or activate a source-to-prepared transition.
+The portable utility is used by the explicit corpus snapshot compiler.
+Software validation uses synthetic fixtures; changing this utility does not
+automatically rebuild or activate a corpus snapshot or prepared store.
 
 ## Storage and explicit operations
 
@@ -17,6 +16,21 @@ format limits. Arrays have explicit stable key and ordering fields; mappings
 have string keys. Scoped identities use an ordered list of key fields encoded
 as a compact JSON string array. Hash partition placement is independent of
 source order; full materialization restores the declared ordering.
+
+An empty `key_field` list with empty `order_fields` represents an ordered
+sequence without logical record identities. Its physical keys are canonical
+20-digit zero-padded decimal positions. Values, order and duplicate occurrences
+are retained exactly; no fields are injected into logical records. The corpus
+compiler uses this for diagnostics so their volume does not enlarge the root.
+Streaming iteration remains in partition order; materialization and disk-backed
+compiler loading restore positional order. Readers reject positions outside
+the declared collection count. Older readers that reject the empty key list
+fail closed and must be upgraded before reading such a projection. Release-pair
+preparation checks the verified software archive for the explicit positional
+reader capability when the selected corpus uses it; unchanged query-store ABI
+alone is insufficient. Bounded
+record mutation refuses positional edits and requires complete publication;
+inserting a sequence member can shift later positions.
 
 A SHA-256 radix tree selects independently compressed JSONL leaves. Each
 descriptor binds kind, hash prefix, exact content-addressed relative path,
@@ -81,7 +95,7 @@ store/schema/tests exactly from source-owner commit
 `78e628f00932cbebecbc3fc0e6f4433cb119a7ff`. Subsequent narrow store/parser
 hardening and focused tests reject nonfinite float overflow and missing, null,
 or empty logical schema versions, and bound existing-output equality reads;
-the schema itself is unchanged.
+the positional-sequence extension subsequently adds the empty-key-list contract.
 The diff module/tests/contract remain exact files from reviewed helper commit
 `395caa2f818ca99395155af31924c658b34724fb`. This isolated composition does not
 adopt those commits' unrelated source builders, compiler, or runtime changes.

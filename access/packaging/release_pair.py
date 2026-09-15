@@ -43,6 +43,36 @@ def _reader_abi(software_archive: Path) -> tuple[str, str]:
     return values['SCHEMA'], values['COMPILER_VERSION']
 
 
+def _check_corpus_projection_compatibility(software_archive: Path, data_root: Path) -> None:
+    # Query-store ABI alone does not describe optional projection carriers.
+    # The corpus root is digest-verified by verify_data_snapshot before this call.
+    path = data_root / 'data/ToS/derived-exports/tos_corpus_index.min.json'
+    if not path.exists():
+        return
+    with path.open('rb') as stream:
+        raw = stream.read(256 * 1024 + 1)
+    if len(raw) > 256 * 1024:
+        return  # Legacy full JSON has no positional collection descriptor.
+    root = json.loads(raw)
+    if (root.get('schema_version') != 'tos_partitioned_projection_v1'
+            or not any(spec.get('key_field') == []
+                       for spec in root.get('collections', {}).values())):
+        return
+    with zipfile.ZipFile(software_archive) as archive:
+        try:
+            source = archive.read('access/src/tos_access/projection_store.py')
+        except KeyError as error:
+            raise ValueError('software reader lacks positional projection support') from error
+    declarations = [statement.value.value for statement in ast.parse(source).body
+                    if isinstance(statement, ast.Assign)
+                    and isinstance(statement.value, ast.Constant)
+                    and any(isinstance(target, ast.Name)
+                            and target.id == 'SUPPORTS_POSITIONAL_SEQUENCES'
+                            for target in statement.targets)]
+    if len(declarations) != 1 or declarations[0] is not True:
+        raise ValueError('software reader lacks positional projection support')
+
+
 def prepare_pair(software_archive: Path, data_root: Path) -> dict:
     software_archive, data_root = Path(software_archive).absolute(), Path(data_root).absolute()
     if (software_archive.is_symlink() or data_root.is_symlink()
@@ -52,6 +82,7 @@ def prepare_pair(software_archive: Path, data_root: Path) -> dict:
     if software['source_dirty'] is not False:
         raise ValueError('release pair needs a clean source-bound software archive')
     data = verify_data_snapshot(data_root, require_compatible=False)
+    _check_corpus_projection_compatibility(software_archive, data_root)
     schema, version = _reader_abi(software_archive)
     if data['compiler']['schema'] != schema or data['compiler']['compiler_version'] != version:
         raise ValueError('software reader and data snapshot are incompatible')

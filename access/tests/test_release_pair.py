@@ -8,6 +8,7 @@ import sys
 import tempfile
 import threading
 import unittest
+import zipfile
 
 
 TESTS_ROOT = Path(__file__).resolve().parent
@@ -21,7 +22,7 @@ for path in (TESTS_ROOT, SRC_ROOT, PACKAGING_ROOT):
 from build_data_snapshot import build_data_snapshot  # noqa: E402
 from build_software_bundle import build_software_bundle  # noqa: E402
 from fixture_support import write_fixture  # noqa: E402
-from release_pair import _reader_abi, prepare_pair, verify_pair  # noqa: E402
+from release_pair import _reader_abi, _check_corpus_projection_compatibility, prepare_pair, verify_pair  # noqa: E402
 import test_data_snapshot as _data_snapshot_tests  # noqa: E402
 import test_software_bundle as _software_bundle_tests  # noqa: E402
 from tos_access.release_state import ReleaseStateError, ReleaseStore  # noqa: E402
@@ -31,6 +32,32 @@ from validate_software_bundle import verify_archive  # noqa: E402
 
 class ReleasePairTests(unittest.TestCase):
     CORPUS_REVISIONS = ("a" * 64, "b" * 64, "c" * 64)
+
+    def test_positional_corpus_requires_explicit_reader_capability(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            projection = root / 'data/ToS/derived-exports/tos_corpus_index.min.json'
+            projection.parent.mkdir(parents=True)
+            projection.write_text(json.dumps({'schema_version': 'tos_partitioned_projection_v1',
+                'collections': {'diagnostics': {'key_field': []}}}))
+            archive = root / 'software.zip'
+            for declaration in ('', 'SUPPORTS_POSITIONAL_SEQUENCES = False',
+                                'SUPPORTS_POSITIONAL_SEQUENCES = 1',
+                                'SUPPORTS_POSITIONAL_SEQUENCES = True\nSUPPORTS_POSITIONAL_SEQUENCES = True'):
+                with self.subTest(declaration=declaration):
+                    with zipfile.ZipFile(archive, 'w') as package:
+                        package.writestr('access/src/tos_access/projection_store.py', declaration)
+                    with self.assertRaisesRegex(ValueError, 'lacks positional'):
+                        _check_corpus_projection_compatibility(archive, root)
+            with zipfile.ZipFile(archive, 'w') as package:
+                package.writestr('access/src/tos_access/projection_store.py',
+                                 'SUPPORTS_POSITIONAL_SEQUENCES = True')
+            _check_corpus_projection_compatibility(archive, root)
+            projection.write_text(json.dumps({'schema_version': 'tos_partitioned_projection_v1',
+                'collections': {'nodes': {'key_field': 'id'}}}))
+            with zipfile.ZipFile(archive, 'w') as package:
+                package.writestr('access/src/tos_access/projection_store.py', '')
+            _check_corpus_projection_compatibility(archive, root)
 
     @staticmethod
     def _sha256(path: Path) -> str:

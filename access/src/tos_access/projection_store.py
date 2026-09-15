@@ -24,6 +24,7 @@ from typing import Any
 
 
 FORMAT = "tos_partitioned_projection_v1"
+SUPPORTS_POSITIONAL_SEQUENCES = True
 INDEX_FORMAT = "tos_projection_partition_index_v1"
 MAX_ROOT_BYTES = 256 * 1024
 MAX_INDEX_BYTES = 128 * 1024
@@ -126,7 +127,9 @@ class Collection:
     """One logical array (or mapping), with a stable per-record identity.
 
     Array enumeration order is named explicitly and is independent of hash
-    partition placement. Mapping rows are (key, value) pairs.
+    partition placement. Mapping rows are (key, value) pairs. An empty key
+    field list denotes a positional sequence: values and duplicate occurrences
+    are preserved without inventing identities inside the logical records.
     """
     rows: Iterable
     key_field: str | tuple[str, ...] | list[str] | None
@@ -135,7 +138,7 @@ class Collection:
 
 def _valid_key_field(field):
     return (field is None or isinstance(field, str) and bool(field)
-            or isinstance(field, (list, tuple)) and bool(field)
+            or isinstance(field, (list, tuple))
             and all(isinstance(item, str) and item for item in field))
 
 
@@ -165,8 +168,10 @@ def write_projection(path: Path, header: dict[str, Any], collections: Mapping[st
                      work_dir: Path | None = None, prune: bool = False) -> dict[str, Any]:
     """Stage records on disk, emit a radix tree, then atomically publish root.
 
-    Partition placement uses the stable key hash, never an array ordinal.
-    Adding a record changes its leaf and ancestor indexes only. A leaf splits
+    Partition placement uses the key hash. Identity-free sequences use an
+    explicit positional key; inserting into them may rewrite later parts.
+    For identity-keyed arrays, adding a record changes its leaf and ancestor
+    indexes only. A leaf splits
     when its decoded bytes exceed the target; every individual row must also
     fit the hard part limit. No whole-projection JSON string is constructed.
     """
@@ -185,6 +190,8 @@ def write_projection(path: Path, header: dict[str, Any], collections: Mapping[st
         if (not isinstance(spec.order_fields, (tuple, list))
                 or any(not isinstance(field, str) or not field for field in spec.order_fields)):
             raise ProjectionStoreError("invalid collection ordering")
+        if spec.key_field in ([], ()) and spec.order_fields:
+            raise ProjectionStoreError("positional sequence cannot declare record ordering")
         if not _COLLECTION.fullmatch(name):
             raise ProjectionStoreError(f"invalid collection name: {name}")
     # Detect overlapping collection names and header members before any output.
@@ -206,8 +213,12 @@ def write_projection(path: Path, header: dict[str, Any], collections: Mapping[st
             for name, spec in collections.items():
                 if not _valid_key_field(spec.key_field):
                     raise ProjectionStoreError("invalid key field")
-                for row in spec.rows:
-                    if spec.key_field is None:
+                for position, row in enumerate(spec.rows):
+                    if spec.key_field in ([], ()):
+                        if position >= 10 ** 20:
+                            raise ProjectionStoreError("sequence position exceeds key bound")
+                        key, value = f"{position:020d}", row
+                    elif spec.key_field is None:
                         key, value = row
                     else:
                         if not isinstance(row, dict):
@@ -332,6 +343,8 @@ class ProjectionReader:
             if (not isinstance(spec['order_fields'], list)
                     or any(not isinstance(v, str) or not v for v in spec['order_fields'])):
                 raise ProjectionStoreError("invalid collection ordering")
+            if spec["key_field"] == [] and spec["order_fields"]:
+                raise ProjectionStoreError("positional sequence cannot declare record ordering")
             _set_collection(header_check, name, None)
             self._descriptor(spec["root"], "")
         self.snapshot_digest = _digest(self._root_bytes)
@@ -440,7 +453,11 @@ class ProjectionReader:
                 raise ProjectionStoreError("duplicate, unsorted, or misplaced partition key")
             previous = key
             value = record["value"]
-            if spec["key_field"] is not None and (
+            if spec["key_field"] == []:
+                if (len(key) != 20 or not key.isascii() or not key.isdigit()
+                        or int(key) >= spec["root"]["count"]):
+                    raise ProjectionStoreError("invalid sequence position")
+            elif spec["key_field"] is not None and (
                     not isinstance(value, dict) or _record_key(value, spec["key_field"]) != key):
                 raise ProjectionStoreError("partition key differs from record identity")
             count += 1
@@ -510,7 +527,9 @@ class ProjectionReader:
         """Explicit whole-document export; never used by an ordinary query."""
         result = self.metadata()
         for name, spec in self.manifest["collections"].items():
-            if spec["key_field"] is None:
+            if spec["key_field"] == []:
+                value = [row for _, row in sorted(self.iter_items(name))]
+            elif spec["key_field"] is None:
                 value = dict(sorted(self.iter_items(name)))
             else:
                 fields = spec["order_fields"] or (spec["key_field"] if isinstance(spec["key_field"], list) else [spec["key_field"]])

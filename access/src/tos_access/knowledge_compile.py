@@ -59,7 +59,11 @@ def _load(path, storage, *, allow_legacy, legacy_bound=4 * 1024 * 1024):
         parts = name.split('/')
         for part in parts[:-1]:
             target = target.setdefault(part, {})
-        if spec['key_field'] is None:
+        if spec['key_field'] == []:
+            positioned = storage.sequence(reader.iter_items(name))
+            positioned.sort(key=lambda item: item[0])
+            target[parts[-1]] = storage.sequence(item[1] for item in positioned)
+        elif spec['key_field'] is None:
             target[parts[-1]] = storage.mapping(reader.iter_items(name))
         else:
             rows = storage.sequence(reader.iter_collection(name))

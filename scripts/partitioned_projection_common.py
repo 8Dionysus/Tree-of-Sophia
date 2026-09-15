@@ -21,6 +21,7 @@ PROJECTION_PART_ROOTS = (
     "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.parts",
 )
 CORPUS_COLLECTIONS = {
+    "diagnostics": ((), ()),
     "nodes": ("node_id", ("source_path",)),
     "resources": ("path", ("path",)),
     "manifests": ("path", ("path",)),
@@ -46,7 +47,8 @@ PHILOSOPHY_COLLECTIONS = {
 
 def collection_policy(payload):
     if payload["schema_version"] == "tos_corpus_index_v1":
-        return CORPUS_COLLECTIONS
+        return {name: spec for name, spec in CORPUS_COLLECTIONS.items()
+                if name != "diagnostics" or name in payload}
     if payload["schema_version"] == "tos_source_witness_bibliographic_graph_v1":
         return BIBLIOGRAPHIC_COLLECTIONS
     if payload["schema_version"] == "tos_philosophy_graph_projection_v2":
@@ -144,7 +146,11 @@ def disk_payload(reader, storage):
     """Explicit complete validation/export view whose collections stay on disk."""
     result = reader.metadata()
     for name, spec in reader.manifest["collections"].items():
-        if spec["key_field"] is None:
+        if spec["key_field"] == []:
+            positioned = storage.sequence(reader.iter_items(name))
+            positioned.sort(key=lambda item: item[0])
+            value = storage.sequence(item[1] for item in positioned)
+        elif spec["key_field"] is None:
             value = storage.mapping(reader.iter_items(name))
         else:
             value = storage.sequence(reader.iter_collection(name))

@@ -245,6 +245,22 @@ class ToSCorpusIndexTest(unittest.TestCase):
             with self.subTest(input_paths=input_paths):
                 self.assertEqual(_nearest_branch_parents(input_paths), expected if input_paths else {})
 
+    def test_partitioned_validator_rejects_diagnostics_outside_header(self) -> None:
+        import validate_tos_corpus_index as validator
+        from partitioned_projection_common import write_partitioned_payload, ProjectionReader
+        payload = {'schema_version': 'tos_corpus_index_v1',
+            'diagnostics': [{'level': 'error', 'path': 'ToS/example', 'message': 'unresolved reference'}],
+            'nodes': [], 'resources': [], 'manifests': [], 'relation_packs': [], 'relation_edges': [],
+            'source_navigation': {'nodes': [], 'edges': [], 'rights': []}}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'corpus.json'
+            write_partitioned_payload(path, payload)
+            self.assertNotIn('diagnostics', ProjectionReader(path).metadata())
+            with patch.object(validator, 'TOS_CORPUS_INDEX_PATH', path), \
+                    patch.object(validator, 'build_payload', return_value=payload):
+                with self.assertRaisesRegex(SystemExit, 'contains error diagnostics.*unresolved reference'):
+                    validator.main()
+
     def test_validator_rejects_noncanonical_encoding_with_one_rebuild(self) -> None:
         import validate_tos_corpus_index as validator
 

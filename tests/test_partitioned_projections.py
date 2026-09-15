@@ -17,9 +17,23 @@ from partitioned_projection_common import (
     ProjectionReader, build_storage, check_partitioned_payload, disk_payload,
     json_chunks, write_partitioned_payload, schema_validator, DiskSequence,
 )
+from tos_access.projection_store import MAX_ROOT_BYTES
 import source_witness_bibliographic_graph_common as graph
 import tos_corpus_index_common as corpus
 from tests import test_source_witness_bibliographic_graph as graph_tests
+
+
+def _corpus_payload(diagnostics):
+    return {
+        "schema_version": "tos_corpus_index_v1",
+        "diagnostics": diagnostics,
+        "manifests": [],
+        "nodes": [],
+        "resources": [],
+        "relation_packs": [],
+        "relation_edges": [],
+        "source_navigation": {"nodes": [], "edges": [], "rights": []},
+    }
 
 
 class PartitionedSourceProjectionTests(unittest.TestCase):
@@ -110,6 +124,40 @@ class PartitionedSourceProjectionTests(unittest.TestCase):
                 schema["items"] = False
                 self.assertEqual(errors(schema_validator(schema), staged),
                                  errors(Draft202012Validator(schema), rows))
+
+    def test_large_diagnostics_are_partitioned_and_all_readers_preserve_sequence(self):
+        repeated = "x" * 100_000
+        diagnostics = [
+            {"level": "warning", "message": repeated},
+            {"level": "warning", "message": "y" * 100_000},
+            {"level": "warning", "message": repeated},
+        ]
+        payload = _corpus_payload(diagnostics)
+        logical_bytes = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
+        self.assertGreater(len(logical_bytes), MAX_ROOT_BYTES)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "ToS/derived-exports/tos_corpus_index.min.json"
+            write_partitioned_payload(path, payload)
+            self.assertLessEqual(path.stat().st_size, MAX_ROOT_BYTES)
+            reader = ProjectionReader(path)
+            self.assertNotIn("diagnostics", reader.metadata())
+            self.assertEqual(reader.manifest["collections"]["diagnostics"]["key_field"], [])
+            expected_items = {
+                f"{index:020d}": row for index, row in enumerate(diagnostics)
+            }
+            # Partition traversal is hash placement order; it must preserve
+            # the exact key/value association while materializers restore
+            # positional order.
+            self.assertEqual(dict(reader.iter_items("diagnostics")), expected_items)
+            self.assertEqual(reader.materialize(), payload)
+            with build_storage() as storage:
+                disk = disk_payload(reader, storage)
+                self.assertEqual(json.loads("".join(json_chunks(disk))), payload)
+            from tos_access.knowledge_compile import _load
+            with build_storage() as storage:
+                loaded, loaded_reader = _load(path, storage, allow_legacy=False)
+                self.assertIsNotNone(loaded_reader)
+                self.assertEqual(json.loads("".join(json_chunks(loaded))), payload)
 
     def test_staged_source_claims_reject_source_change_before_completion(self):
         with self.fixture() as (root, _history, _real, _claims, rebuild):
