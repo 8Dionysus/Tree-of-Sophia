@@ -103,6 +103,40 @@ Partial staging or a store invalidated since capture refuses atomically. The
 existing capture, retention and SQL budgets include these added rows. Missing
 stores keep the older base-only path; this route never installs tables.
 
+Ordinary capture can hold predecessor and successor WAL read transactions on
+the **same prepared file**; it does not require a full file copy. Keep the old
+read transaction open through the committed source transition and SQL capture,
+then close it so WAL pages can be reclaimed.
+
+For a lagging local D1 reader after those old read transactions have closed,
+`build_prepared_catchup_sql` is a separate, explicitly selected offline
+reconciliation route. The caller admits the exact D1/source-input predecessor
+and current prepared successor and holds both SQLite read transactions. It
+streams their digest manifests (default combined limit 400,000 rows), checks
+native-row coverage and framing, and retains at most the declared changed-row
+budget. Equal row bytes with changed search tie ordering are also included.
+It needs no second prepared database and does not normalize or import a full
+graph. This manifest scan is not an addressed per-edit latency claim or an
+automatic fallback when ordinary delta capture fails.
+
+Predecessor source revision, reader/catalog/lens binding, unchanged normalizer
+and nonparticipating source scopes remain required. Changed native navigation,
+search postings and address ties, row digests, lens and auxiliary stores use
+the same forward/reverse capture and atomic publication guards as the ordinary
+delta. Missing/orphan/malformed digest entries, incompatible profiles, stale
+stores and exceeded scan/retention/SQL budgets refuse before final output.
+The receipt distinguishes manifest reconciliation from an exact one-parent
+transition and reports rows scanned. Only the successor prepared/source pairing
+is mechanically verified on this route. Predecessor source admission is an
+external prerequisite: matching its source revision does not authenticate the
+caller-supplied roots, dependencies or publication token. The aggregate and
+predecessor pairing flags are therefore false, while successor verification
+and external predecessor admission are separately explicit. Ordinary delta
+capture still verifies both selected prepared bindings. It does not fabricate an old prepared
+binding, grant source admission, apply SQL or authorize deployment. Digest
+comparison relies on the admitted producer manifests; it is not a complete
+forensic rehash of every stored JSON body against a malicious database owner.
+
 The full SQL producer now emits both stores from the exact normalized source
 rows and seals them against the actual bootstrap epoch. Its row-index companion
 includes a versioned auxiliary publication descriptor. Subsequent full-producer
