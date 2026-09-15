@@ -5,7 +5,13 @@ import {decodeDraft,constructorCatalog,previewDraft} from './lens-model.mjs';
 import {formIdentity,formLanguages,validateHumanForms,claimPathFor,resolveClaimReading} from './human-forms.mjs';
 import {renderHumanForms,renderEssentialContext} from './human-forms-view.mjs';
 import {essentialContext} from './record-context.mjs';
+import {readableContextFor} from './readable-context.mjs';
 import {formLabel,formLanguageNote} from './reader-model.mjs';
+
+export function renderInspectorForms(raw){
+  const readableContext=readableContextFor(raw);
+  return [renderHumanForms(raw,{readableContext}),renderEssentialContext(essentialContext(raw),readableContext)];
+}
 
 export async function readInspectorMaterial({client,scene,kind,raw,language,signal}){
   const path=kind==='node'?claimPathFor(scene,raw.id):null;
@@ -176,7 +182,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     uiText(q('.sc-description'), description?.text||ui("Описание пока не зафиксировано."));q('.sc-description').lang=description?.lang||'';
     descriptionNote.hidden=Boolean(selection)||!description||!description.fallback&&Boolean(description.lang);
     uiText(descriptionNote,descriptionNote.hidden?'':formLanguageNote(description));
-    q('.sc-description').hidden=Boolean(selection);forms.replaceChildren(renderHumanForms(raw),renderEssentialContext(essentialContext(raw)));
+    q('.sc-description').hidden=Boolean(selection);forms.replaceChildren(...renderInspectorForms(raw));
     const languages=[...new Set(['ru','en','es',...formLanguages(raw),cardLanguage])];
     language.replaceChildren(...languages.map(value=>{const option=document.createElement('option');option.value=value;uiText(option,formLabel(value));return option;}));language.value=cardLanguage;
     uiAttribute(q('.sc-inspector'), 'aria-label', kind==='node'?ui("Выбранный узел"):ui("Выбранное отношение"));
