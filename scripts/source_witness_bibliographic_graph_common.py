@@ -711,7 +711,9 @@ def _event_node(indexed: dict[str, Any], *, repo_root: Path = REPO_ROOT, read_js
         "source_line": indexed["source_line"],
         "source_sha256": indexed["source_sha256"],
         "properties": {
-            **dict(event),
+            # Growing input/output collections live once in the exact source event.
+            # Duplicating them here can make a valid event exceed the shard bound.
+            **{key: value for key, value in event.items() if key not in {"inputs", "outputs"}},
             "event_ref": event["event_id"],
             "event_type": activity["event_type"],
             "started_at": activity["started_at"],
@@ -1586,6 +1588,8 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication, storage=None
     )
 
     nodes = storage.mapping() if storage is not None else {}
+    last_event_ref, last_event_node = None, None
+    projected_event_ids: set[str] = set()
     edges = storage.sequence() if storage is not None else []
     traces = storage.sequence() if storage is not None else []
     review_counts: Counter[str] = Counter()
@@ -1649,15 +1653,24 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication, storage=None
                 input_digests[forms_ref] = hashlib.sha256(forms_raw).hexdigest()
 
         event_ref = str(claim["provenance_event_ref"])
-        indexed_event = events.get(event_ref)
-        if indexed_event is None:
-            raise BibliographicGraphBuildError(
-                f"{claim_id}: provenance event {event_ref!r} does not resolve"
-            )
-        if indexed_event['payload'].get('schema_version') == 'tos_provenance_event_v2':
-            schema_ref = 'ToS/contracts/provenance-event-v2.schema.json'
-            input_digests[schema_ref] = file_digest(repo_root / schema_ref)
-        event_node = _event_node(indexed_event, repo_root=repo_root)
+        # The scanned event catalog is immutable during this build. Retain only
+        # the last resolved event, so adjacent claims do not deserialize the same
+        # large event repeatedly; memory does not grow with the event population.
+        if event_ref != last_event_ref:
+            indexed_event = events.get(event_ref)
+            if indexed_event is None:
+                raise BibliographicGraphBuildError(
+                    f"{claim_id}: provenance event {event_ref!r} does not resolve"
+                )
+            if indexed_event['payload'].get('schema_version') == 'tos_provenance_event_v2':
+                schema_ref = 'ToS/contracts/provenance-event-v2.schema.json'
+                input_digests[schema_ref] = file_digest(repo_root / schema_ref)
+            last_event_node = _event_node(indexed_event, repo_root=repo_root)
+            last_event_ref = event_ref
+        event_node = last_event_node
+        if event_ref not in projected_event_ids:
+            _add_node(nodes, event_node)
+            projected_event_ids.add(event_ref)
 
         maker = claim["maker"]
         if not isinstance(maker, dict):
@@ -1728,7 +1741,9 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication, storage=None
             legacy_object_link_context=legacy_object_link_context,
         ))
         for node in projection.nodes:
-            _add_node(nodes, node)
+            # This exact catalog-derived event was already inserted above.
+            if node is not event_node:
+                _add_node(nodes, node)
         edges.extend(projection.edges)
         traces.append(projection.trace)
         review_counts[str(claim["review_status"])] += 1
