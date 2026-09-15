@@ -126,7 +126,13 @@ the same forward/reverse capture and atomic publication guards as the ordinary
 delta. Missing/orphan/malformed digest entries, incompatible profiles, stale
 stores and exceeded scan/retention/SQL budgets refuse before final output.
 The receipt distinguishes manifest reconciliation from an exact one-parent
-transition and reports rows scanned. It does not fabricate an old prepared
+transition and reports rows scanned. Only the successor prepared/source pairing
+is mechanically verified on this route. Predecessor source admission is an
+external prerequisite: matching its source revision does not authenticate the
+caller-supplied roots, dependencies or publication token. The aggregate and
+predecessor pairing flags are therefore false, while successor verification
+and external predecessor admission are separately explicit. Ordinary delta
+capture still verifies both selected prepared bindings. It does not fabricate an old prepared
 binding, grant source admission, apply SQL or authorize deployment. Digest
 comparison relies on the admitted producer manifests; it is not a complete
 forensic rehash of every stored JSON body against a malicious database owner.

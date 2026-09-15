@@ -108,7 +108,10 @@ class PreparedD1CatchupTests(unittest.TestCase):
             receipt = self.catchup(result, rollback_target=self.root / "rollback.sql")
 
         self.assertTrue(receipt["whole_manifest_reconciliation"])
-        self.assertTrue(receipt["prepared_source_pairing_verified"])
+        self.assertFalse(receipt["prepared_source_pairing_verified"])
+        self.assertTrue(receipt["successor_prepared_source_pairing_verified"])
+        self.assertFalse(receipt["predecessor_prepared_source_pairing_verified"])
+        self.assertTrue(receipt["predecessor_source_admission_external"])
         self.assertFalse(receipt["d1_applied"])
         oracle = self.full(graph, result["catalog"], receipt["target_d1_revision"], "catchup-oracle")
 
