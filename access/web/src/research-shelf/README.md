@@ -61,6 +61,15 @@ the additive import counts. The supplied packet is detached and never read
 from or removed from `localStorage` or another implicit namespace. There is no
 synthetic shelf export v0 migration.
 
+Retained material and lens records have no owner-supplied shelf creation time.
+When `migrate()` has no `now` override, both record timestamps use the stable
+`MIGRATION_RECORD_TIMESTAMP` value `1970-01-01T00:00:00.000Z`. It marks unknown
+local chronology for the imported record; it is not the material's production
+time or the owner export's preparation time. The generated shelf packet may
+still carry the current preparation time in `exportedAt`, which does not take
+part in record equality. An explicit `now` remains the timestamp override, and
+`workspace-copy.exportedAt` is never used as a record timestamp.
+
 ## Contextual mount
 
 ```js

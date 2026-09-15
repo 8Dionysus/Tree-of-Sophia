@@ -12,6 +12,12 @@ export const SHELF_SCHEMA='tos.research_shelf.v1';
 export const SHELF_VERSION=1;
 export const SHELF_EXPORT_SCHEMA='tos.research_shelf.export.v1';
 export const DEFAULT_DB_NAME='tos-research-shelf-v1';
+/**
+ * Creation/update time for imported material and lens records whose owner
+ * packet has no shelf-record chronology. This is unknown local chronology,
+ * not the time the source material or export wrapper was produced.
+ */
+export const MIGRATION_RECORD_TIMESTAMP='1970-01-01T00:00:00.000Z';
 export const DEFAULT_PAGE_SIZE=24;
 export const MAX_PAGE_SIZE=100;
 export const MAX_RECORDS=200_000;
@@ -364,9 +370,10 @@ function migrationOptions(options={}){
   return {source:options.source,lenses:options.lenses,now:options.now};
 }
 
-function suppliedTime(now){
-  const value=now===undefined?canonicalTimestamp():now();
-  return timestamp(value,'migration timestamp');
+function migrationTimes(now){
+  if(now===undefined)return {recordAt:MIGRATION_RECORD_TIMESTAMP,exportedAt:canonicalTimestamp()};
+  const value=timestamp(now(),'migration timestamp');
+  return {recordAt:value,exportedAt:value};
 }
 
 // Deterministic local identity keeps re-imports additive and idempotent while
@@ -462,7 +469,7 @@ function carryResearchWorkspace(records,retained,skipped,workspace,source,at,len
  * machine-readable reason.
  */
 export function importSuppliedResearchPacket(value,options={}){
-  const checked=migrationOptions(options),source=checked.source,at=suppliedTime(checked.now);
+  const checked=migrationOptions(options),source=checked.source,times=migrationTimes(checked.now),at=times.recordAt;
   const records=[],retained=[],skipped=[];
   if(source===SUPPLIED_PACKET_SOURCES.READING_RESUME){
     carryReading(records,retained,skipped,checkedReadingPacket(value),source,at);
@@ -477,7 +484,7 @@ export function importSuppliedResearchPacket(value,options={}){
     if(copyPacket.resume)skip(skipped,source,'resume',null,'legacy-graph-pose');
     carryResearchWorkspace(records,retained,skipped,copyPacket.research,source,at);
   }
-  return {source,packet:makeShelfExport({generation:0,records,collections:[],exportedAt:at}),retained,skipped};
+  return {source,packet:makeShelfExport({generation:0,records,collections:[],exportedAt:times.exportedAt}),retained,skipped};
 }
 
 export function validateMigrationOptions(options={}){return migrationOptions(options);}

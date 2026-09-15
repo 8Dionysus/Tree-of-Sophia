@@ -94,9 +94,9 @@ const corpus=mountCorpusEntry({root,client,provider:data.corpus,locale:()=>docum
   }});
 research=mountResearchShelfEntry({root,client,corpus,locale:()=>document.documentElement.lang||'ru',
   onError:error=>scene.port.announce(error.message),onMaterial:value=>reader.openExact(value),onLens:draft=>builder.open({draft}),
-  onRoute:(_target,record)=>{const url=new URL('research.html',location.href);url.searchParams.set('shelfRoute',record.id);location.assign(url);}});
+  onRoute:(_target,record)=>{const url=new URL('/static/research.html',location.href);url.searchParams.set('shelfRoute',record.id);location.assign(url);}});
 root.querySelector('[data-native-notes]')?.remove();
-const space=document.createElement('a');space.className='sc-control';space.href=new URL('research.html',location.href).href;
+const space=document.createElement('a');space.className='sc-control';space.href=new URL('/static/research.html',location.href).href;
 space.textContent=document.documentElement.lang==='en'?'Research space':'Пространство исследования';root.querySelector('.sc-header-actions').prepend(space);
 window.addEventListener('pagehide',event=>{if(!event.persisted)research.destroy();});
 studio=createStudio(root,scene,panels,{data,initialRoute,onUserAction:userAction});

@@ -762,6 +762,50 @@ def test_built_research_entry_persists_exact_shelf_and_camera(webmcp_page: Page,
     page.get_by_role('button', name='Закрыть полку', exact=True).click()
     assert page.locator('.research-shelf-narrow').evaluate('(node) => node === document.activeElement')
 
+def test_observatory_research_and_saved_route_links_use_packaged_entry(
+    webmcp_page: Page, access_base_url: str
+) -> None:
+    """Both ordinary entry links must use the installed HTTP static route."""
+    from urllib.parse import parse_qs, quote, urlparse
+    page = webmcp_page
+    hits = command_value(invoke(page, "tos.page.knowledge-search", {"query": "fixture", "limit": 1}))
+    material_id = hits["nodes"][0]["id"]
+    observatory_url = f"{access_base_url}/?focus={quote(material_id, safe='')}"
+    page.goto(observatory_url, wait_until='domcontentloaded')
+    page.locator('#sophia-gestures[data-data-state="ready"]').wait_for(state='visible')
+    with page.expect_navigation(wait_until='domcontentloaded') as entry:
+        page.get_by_role('link', name='Пространство исследования', exact=True).click()
+    assert entry.value.status == 200
+    assert urlparse(entry.value.url).path == '/static/research.html'
+    page.locator('#tree[data-ready="true"]').wait_for(state='visible')
+
+    # Save an actual bounded area through the constructor, then reopen its
+    # IndexedDB shelf entry from Observatory at the ordinary packaged root.
+    page.goto(f"{access_base_url}/static/research.html?focus={quote(material_id, safe='')}")
+    page.locator('#tree[data-ready="true"] .reading [data-source-record-id]').wait_for(state='attached')
+    page.locator('[data-live-action="scope"]').click()
+    page.get_by_role('button', name='Сохранить эту область', exact=True).click()
+    page.get_by_text('Область сохранена на вашей полке.', exact=True).wait_for(state='visible')
+    page.locator('dialog[data-kind="scope"]').get_by_role('button', name='Закрыть', exact=True).click()
+    page.locator('[data-research-shelf="true"]').click()
+    card = page.locator('.research-shelf-card').first
+    card.wait_for(state='visible')
+    record_id = card.get_attribute('data-record-id')
+    assert record_id
+    page.get_by_role('button', name='Закрыть полку', exact=True).click()
+
+    page.goto(observatory_url, wait_until='domcontentloaded')
+    page.locator('#sophia-gestures[data-data-state="ready"]').wait_for(state='visible')
+    page.locator('[data-research-shelf="true"]').click()
+    stored = page.locator(f'.research-shelf-card[data-record-id="{record_id}"]')
+    with page.expect_navigation(wait_until='domcontentloaded') as route:
+        stored.get_by_role('button', name='Открыть', exact=True).click()
+    assert route.value.status == 200
+    assert urlparse(route.value.url).path == '/static/research.html'
+    assert parse_qs(urlparse(route.value.url).query)['shelfRoute'] == [record_id]
+    page.locator('#tree[data-ready="true"] .reading [data-source-record-id]').wait_for(state='attached')
+    assert page.locator('#tree').get_attribute('data-selection') == material_id
+
 
 def test_research_lens_preview_save_apply_and_return(webmcp_page: Page, access_base_url: str) -> None:
     """A saved query reopens through the real host and never borrows a cursor."""

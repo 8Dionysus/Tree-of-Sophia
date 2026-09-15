@@ -1,4 +1,4 @@
-import {expect,test} from 'vitest';
+import {expect,test,vi} from 'vitest';
 import {createReference} from '../corpus-reader/model.mjs';
 import {NATIVE_REFERENCE_SCHEMA} from '../corpus-reader/native-reference.mjs';
 import {createResearchWorkspace} from '../research-workspace.ts';
@@ -8,7 +8,7 @@ import {DEFAULT_INTERFACE} from '../observatory/interface-model.mjs';
 import {emptyReading} from '../observatory/reading-resume.mjs';
 import {
   EXPLORATION_DIRECTIONS,EXPLORATION_PROFILES,SUPPLIED_PACKET_SOURCES,
-  importSuppliedResearchPacket,migrateResearchShelfExport,validateMaterialTarget,validateShelfExport,validateTarget,
+  MIGRATION_RECORD_TIMESTAMP,importSuppliedResearchPacket,migrateResearchShelfExport,validateMaterialTarget,validateShelfExport,validateTarget,
 } from './model.mjs';
 import {createMemoryResearchShelfState,createMemoryResearchShelfStore,createResearchShelfStore} from './storage.mjs';
 
@@ -122,6 +122,51 @@ test('workspace-copy import uses the real copy decoder for saved lenses and skip
   expect(packet).toEqual(before);expect(migrated.packet.records).toHaveLength(1);expect(migrated.packet.records[0]).toMatchObject({type:'lens',title:'Shelf lens'});
   expect(migrated.skipped).toEqual(expect.arrayContaining([expect.objectContaining({section:'notes',reason:'non-portable-note'})]));
   expect(JSON.stringify(migrated)).not.toContain('private session note');
+});
+
+test('default migration time is stable across all supplied packet formats while wrapper export time remains current',async()=>{
+  const reading={v:1,activeKey:readingKey('node',material().id),entries:[{kind:'node',id:material().id,sourceRevision:revision,contentRevision:content,
+    preferred:'default',positions:[],claimReference}]};
+  const workspace=createResearchWorkspace({persistence:false});
+  const workspacePacket=JSON.parse(workspace.exportPacket());
+  const copyPacket={schema:COPY_SCHEMA,v:1,exportedAt:'2026-09-15T12:00:00.000Z',history:{v:1,entries:[],cursor:-1},places:[],lenses:[lens],resume:null,
+    preferences:structuredClone(DEFAULT_INTERFACE),reading,research:workspacePacket};
+  const cases=[
+    {source:SUPPLIED_PACKET_SOURCES.READING_RESUME,packet:reading},
+    {source:SUPPLIED_PACKET_SOURCES.RESEARCH_WORKSPACE,packet:workspacePacket,lenses:[lens]},
+    {source:SUPPLIED_PACKET_SOURCES.WORKSPACE_COPY,packet:copyPacket},
+  ];
+  vi.useFakeTimers();
+  try{
+    for(const candidate of cases){
+      const options={source:candidate.source,...(candidate.lenses===undefined?{}:{lenses:candidate.lenses})};
+      vi.setSystemTime(new Date('2026-09-15T12:00:00.000Z'));
+      const first=importSuppliedResearchPacket(candidate.packet,options);
+      vi.setSystemTime(new Date('2026-09-15T13:00:00.000Z'));
+      const secondPacket=candidate.source===SUPPLIED_PACKET_SOURCES.WORKSPACE_COPY
+        ? {...candidate.packet,exportedAt:'2026-09-15T13:00:00.000Z'}:candidate.packet;
+      const second=importSuppliedResearchPacket(secondPacket,options);
+      expect(first.packet.records).toEqual(second.packet.records);
+      expect(first.packet.records.length).toBeGreaterThan(0);
+      for(const record of first.packet.records)
+        expect(record).toMatchObject({createdAt:MIGRATION_RECORD_TIMESTAMP,updatedAt:MIGRATION_RECORD_TIMESTAMP});
+      expect(first.packet.exportedAt).not.toBe(second.packet.exportedAt);
+
+      const store=createMemoryResearchShelfStore();
+      const imported=await store.migrate(candidate.packet,options);
+      expect(imported.counts.records).toBe(first.packet.records.length);
+      vi.setSystemTime(new Date('2026-09-15T14:00:00.000Z'));
+      const repeated=await store.migrate(secondPacket,options);
+      expect(repeated.counts).toEqual({records:0,collections:0});
+
+      const current=await store.get(first.packet.records[0].id);
+      const edited=await store.update(current.id,{title:'User edit'},{expectedRevision:current.revision});
+      expect(edited.item.revision).toBe(current.revision+1);
+      expect(edited.item).toMatchObject({createdAt:MIGRATION_RECORD_TIMESTAMP,updatedAt:'2026-09-15T14:00:00.000Z'});
+      await expect(store.migrate(secondPacket,options)).rejects.toMatchObject({code:'conflict',id:current.id,kind:'record'});
+      await store.close();
+    }
+  }finally{vi.useRealTimers();}
 });
 
 test('explicit memory mode and unavailable IndexedDB advertise their persistence boundary',async()=>{
