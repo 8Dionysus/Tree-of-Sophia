@@ -162,7 +162,10 @@ export function mountNativeReader({host=document.body,client,notebook,locale=()=
     }catch(error){announce(unavailable(error));}
   }
   async function close(){
-    if(!(await saveDraft()))return false;await persistPosition();generation++;request?.abort();opened=false;root.hidden=true;cancelExpiry();
+    if(destroyed)return true;
+    if(!(await saveDraft())||destroyed)return false;await persistPosition();
+    if(destroyed)return true;
+    generation++;request?.abort();opened=false;root.hidden=true;cancelExpiry();
     if(location.hash.startsWith(HASH)){const url=new URL(location.href);url.hash='';history.replaceState(history.state,'',url);}
     result=null;reference=null;selectedQuote='';note=null;input.value='';article.replaceChildren();controls();
     onClose?.();restoreFocus?.isConnected&&restoreFocus.focus({preventScroll:true});return true;
@@ -196,5 +199,13 @@ export function mountNativeReader({host=document.body,client,notebook,locale=()=
   window.addEventListener('hashchange',restore);restore();controls();
   return {root,open,close,async openNotes(){if(!(await saveDraft()))return;reveal();if(!result)announce(word('Записи хранятся отдельно от доступности источников.','Saved notes remain independent of source availability.'));await showNotes();},
     destroy(){destroyed=true;generation++;notesGeneration++;request?.abort();cancelExpiry();clearTimeout(positionTimer);root.remove();window.removeEventListener('hashchange',restore);window.removeEventListener('beforeunload',beforeUnload);},
-    flush:saveDraft};
+    async flush(){
+      // Host pagehide waits for this before native.destroy() removes the
+      // scroller. A note failure must not discard an independently captured
+      // reading position.
+      const position=persistPosition();
+      let notes=true;
+      try{notes=await saveDraft();}finally{await position;}
+      return notes;
+    }};
 }

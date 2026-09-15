@@ -68,7 +68,9 @@ export function mountCorpusEntry({root,provider=createUnavailableProvider(),note
     opener.remove();notesOpen?.remove();narrow?.remove();root.removeEventListener('click',updateLabel);root.removeEventListener('sophia-read-text',readEvent);root.removeEventListener('sophia-read-native',nativeEvent);window.removeEventListener('hashchange',restore);window.removeEventListener('pagehide',pageHide);
     destroyWork=Promise.allSettled(saving).then(async()=>{native?.destroy();if(ownsNotebook)await notebook.close();});return destroyWork;
   };
-  const pageHide=event=>{if(!event.persisted)destroy();};
+  // pagehide cannot be awaited by the browser; destroy performs the best
+  // effort synchronously and keeps owned resources until its flushes settle.
+  const pageHide=event=>{if(!event.persisted)void destroy();};
   window.addEventListener('pagehide',pageHide);restore();
   return {reader,native,notebook,opener,open,destroy};
 }

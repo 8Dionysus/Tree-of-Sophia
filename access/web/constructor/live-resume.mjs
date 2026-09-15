@@ -2,6 +2,8 @@ import {validateTarget,validateMaterialTarget} from '../src/research-shelf/model
 import {draftForPacket} from '../src/observatory/lens-model.mjs';
 import {StableExplorationLayout} from './live-model.mjs';
 import {validateSkyPose} from './sky-pose.mjs';
+import {claimMaterialReference} from '../src/observatory/knowledge-client.mjs';
+import {claimPathFor} from '../src/observatory/human-forms.mjs';
 
 export const LIVE_RESUME_SCHEMA='tos.live.resume.v1';
 const clone=value=>structuredClone(value);
@@ -31,6 +33,10 @@ export function makeLiveResume(state,presentation){
   const id=state.selection.kind==='claim-path'?state.selection.claimId:state.selection.id;
   const raw=state.view[kind==='node'?'nodes':'relations'].find(item=>item.id===id);if(!raw)return null;
   const selection={kind,id,sourceRevision:state.view.source_revision,contentRevision:raw.content_revision};
+  if(state.selection.kind==='claim-path'){
+    const path=claimPathFor(state.view,id);if(!path||path.id!==state.selection.id)return null;
+    selection.claimReference=claimMaterialReference(state.view,path);
+  }
   let area;
   if(state.areaKind==='lens'){
     const draft=draftForPacket(state.view);if(!draft)return null;
@@ -42,6 +48,25 @@ export function makeLiveResume(state,presentation){
       sourceRevision:state.view.source_revision},options:{profile,direction,max_depth,sources,predicate_ids}}};
   }
   return validateLiveResume({schema:LIVE_RESUME_SCHEMA,sourceRevision:state.view.source_revision,area,selection,presentation});
+}
+
+// Requerying an area supplies the path again. Saved selectors cannot recreate
+// missing wording or turn a compound Claim reading into a plain node reading.
+export function resolveLiveResumeSelection(value,view){
+  const saved=validateMaterialTarget(value);
+  if(!view||view.source_revision!==saved.sourceRevision)return null;
+  const raw=view[saved.kind==='node'?'nodes':'relations'].find(item=>item.id===saved.id);
+  if(!raw||raw.content_revision!==saved.contentRevision)return null;
+  if(!saved.claimReference)return {kind:saved.kind,id:saved.id};
+  const path=claimPathFor(view,saved.id);if(!path)return null;
+  const current=claimMaterialReference(view,path),expected=saved.claimReference;
+  const sameIds=(a,b)=>a.length===b.length&&a.every(id=>b.includes(id));
+  if(current.pathId!==expected.pathId||current.relationType!==expected.relationType
+    ||JSON.stringify(current.nodeIds)!==JSON.stringify(expected.nodeIds)
+    ||JSON.stringify(current.relationIds)!==JSON.stringify(expected.relationIds)
+    ||!sameIds(current.detailRelationIds,expected.detailRelationIds)
+    ||!sameIds(current.closureNodeIds,expected.closureNodeIds))return null;
+  return {kind:'claim-path',id:current.pathId,claimId:current.claimId};
 }
 
 export function createLiveResumeStore({indexedDB=globalThis.indexedDB,dbName='tos-real-ui-view-v1',profile='constructor-live'}={}){

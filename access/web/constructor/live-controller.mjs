@@ -13,7 +13,7 @@ import {inclusionSummary} from './inclusion-summary.mjs';
 import {mountCorpusEntry} from '../src/corpus-reader/host.mjs';
 import {exactSourceRepresentations} from '../src/observatory/exact-source-read.mjs';
 import {mountTemporalComparison} from '../src/observatory/temporal-compare.mjs';
-import {createLiveResumeStore,makeLiveResume} from './live-resume.mjs';
+import {createLiveResumeStore,makeLiveResume,resolveLiveResumeSelection} from './live-resume.mjs';
 import {mountResearchShelfEntry} from '../src/research-shelf/host.mjs';
 import {mountLensBuilder} from '../src/observatory/lens-builder.mjs';
 import {constructorCatalog,previewDraft} from '../src/observatory/lens-model.mjs';
@@ -71,7 +71,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   let options={},searchPage=null,searchQuery='',searchSeek=null,searchGeneration=0,surfaceGeneration=0,renderedReading=null,renderedReadingError=null,renderedComparison=null;
   const t=key=>copy[language][key];setUiLanguage(language);
   const word=(ru,en)=>language==='ru'?ru:en;
-  const viewStore=createLiveResumeStore();let resumeTimer=null,resumeWriting=Promise.resolve(),resumeEnabled=false,lastResumeKey='';
+  const viewStore=createLiveResumeStore();let resumeTimer=null,resumeWriting=Promise.resolve(),resumeEnabled=false,lastResumeKey='',unresolvedResume=null;
   root.dataset.mode='live';root.dataset.ready='false';
   root.innerHTML=`<canvas class="tree-sky" aria-hidden="true"></canvas><div class="tree-clusters"></div><div class="edge-labels"></div><div class="tree-stars"></div>
     <header class="header"><div class="brand"><span class="brand-mark">✧</span><div><b data-live-copy="brand"></b><small data-live-copy="subtitle"></small></div></div>
@@ -402,9 +402,23 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     clearTimeout(resumeTimer);
     try{
       const value=makeLiveResume(controller.state(),controller.capturePresentation());if(!value)return resumeWriting;
+      if(unresolvedResume){
+        if(unresolvedResume.sourceRevision===value.sourceRevision&&unresolvedResume.area===JSON.stringify(value.area)
+          &&unresolvedResume.selection===JSON.stringify(controller.state().selection))return resumeWriting;
+        unresolvedResume=null;
+      }
       const key=JSON.stringify(value);if(key===lastResumeKey)return resumeWriting;
       resumeWriting=resumeWriting.catch(()=>{}).then(()=>viewStore.save(value)).then(()=>{lastResumeKey=key;}).catch(report);return resumeWriting;
     }catch(error){report(error);return Promise.resolve();}
+  }
+  function restoreResumeSelection(saved){
+    const target=resolveLiveResumeSelection(saved.selection,controller.state().view);
+    if(target){unresolvedResume=null;controller.selectRaw(target);return true;}
+    unresolvedResume={sourceRevision:saved.sourceRevision,area:JSON.stringify(saved.area),selection:JSON.stringify(controller.state().selection)};
+    readingOpen=false;controller.closeReading();
+    report(new Error(word('Сохранённый точный выбор отсутствует в этой области или изменился. Прежняя запись сохранена; выберите доступный материал, чтобы продолжить.',
+      'The saved exact selection is absent from this area or has changed. Its record is preserved; select an available material to continue.')));
+    return false;
   }
   function showScope(){
     const state=controller.state(),body=modal(word('Область исследования','Research area'),'scope');if(!body)return;
@@ -512,7 +526,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       if(matching)options=saved.area.target.options;
       const opened=await open({kind,id});
       if(opened&&matching){controller.restorePresentation(saved.presentation);
-        if(controller.state().view[saved.selection.kind==='node'?'nodes':'relations'].some(item=>item.id===saved.selection.id))controller.selectRaw(saved.selection);}
+        restoreResumeSelection(saved);}
     }else {
       let saved=null;try{saved=await viewStore.load();}catch(error){report(error);}
       if(saved&&saved.area.type==='route'&&saved.sourceRevision===discovery.catalog.source_revision){
@@ -520,15 +534,14 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
         const origin=saved.area.target.origin;
         const opened=await open({kind:origin.kind,id:origin.id,content_revision:origin.contentRevision},true);
         if(opened){controller.restorePresentation(saved.presentation);
-          if(controller.state().view[saved.selection.kind==='node'?'nodes':'relations'].some(item=>item.id===saved.selection.id))controller.selectRaw(saved.selection);
-          report(new Error(word('Область восстановлена по сохранённому запросу. Продолжение можно раскрыть снова.','The area was restored from its saved query. Further pages can be expanded again.')));
+          if(restoreResumeSelection(saved))report(new Error(word('Область восстановлена по сохранённому запросу. Продолжение можно раскрыть снова.','The area was restored from its saved query. Further pages can be expanded again.')));
         }
       }else if(saved?.area.type==='lens'&&saved.sourceRevision===discovery.catalog.source_revision){
         try{const context=await constructorCatalog(activeSession.client);const packet=await previewDraft(activeSession.client,saved.area.target.draft,context);
           if(packet.source_revision!==saved.sourceRevision)throw new RevisionError();
           if(!controller.showLens(packet))throw new Error(word('В сохранённой линзе сейчас нет предметов.','The saved lens has no objects now.'));
           controller.restorePresentation(saved.presentation);readingOpen=true;
-          if(packet[saved.selection.kind==='node'?'nodes':'relations'].some(item=>item.id===saved.selection.id))controller.selectRaw(saved.selection);await controller.read();
+          if(restoreResumeSelection(saved))await controller.read();
         }catch(error){report(error);showSearch();}
       }else {showSearch();if(saved)report(new Error(word('Сохранённая область относится к другому снимку. Она остаётся в хранилище.','The saved area belongs to another snapshot. It remains in storage.')));}
     }

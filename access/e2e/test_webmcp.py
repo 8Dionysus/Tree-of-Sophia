@@ -374,6 +374,38 @@ def wait_for(page: Page, expression: str, timeout: float = 30.0) -> None:
     raise AssertionError(f"browser condition timed out: {expression}")
 
 
+def idb_readings(page: Page, db_name: str) -> list[dict]:
+    return page.evaluate(
+        """async dbName => {
+          const db = await new Promise((resolve, reject) => {
+            const request = indexedDB.open(dbName);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+          try {
+            return await new Promise((resolve, reject) => {
+              const request = db.transaction('readings', 'readonly').objectStore('readings').getAll();
+              request.onsuccess = () => resolve(request.result);
+              request.onerror = () => reject(request.error);
+            });
+          } finally {
+            db.close();
+          }
+        }""",
+        db_name,
+    )
+
+
+def wait_for_idb_reading(page: Page, db_name: str, predicate, timeout: float = 15.0) -> list[dict]:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        readings = idb_readings(page, db_name)
+        if any(predicate(item) for item in readings):
+            return readings
+        page.wait_for_timeout(100)
+    raise AssertionError(f"IndexedDB reading did not settle for {db_name}")
+
+
 def first_edge_and_node(page: Page) -> tuple[str, str]:
     payload = page.evaluate("""async () => {
       const response = await fetch('/api/philosophy/views/chronology?limit=1000');
@@ -815,6 +847,130 @@ def test_corpus_note_exit_recovers_exact_draft():
                         "sessionStorage.getItem('tos.corpus.note-draft.v1:tos-corpus-reader-fixture-v1')"
                     ) is None
                 context.close()
+            browser.close()
+    finally:
+        server.terminate()
+        try:
+            server.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            server.kill()
+            server.wait(timeout=5)
+
+
+def test_reader_positions_survive_pagehide_before_debounce():
+    """A pagehide flush captures corpus and native positions before teardown."""
+    with socket.socket() as probe:
+        probe.bind(('127.0.0.1', 0))
+        port = probe.getsockname()[1]
+    web = REPO_ROOT / 'access/web'
+    server = subprocess.Popen(
+        [str(web / 'node_modules/.bin/vite'), '--host', '127.0.0.1',
+         '--port', str(port), '--strictPort'], cwd=web,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    corpus_url = f'http://127.0.0.1:{port}/static/fixtures/corpus-reader.html'
+    native_url = f'http://127.0.0.1:{port}/static/fixtures/native-reader.html'
+    corpus_db = 'tos-corpus-reader-fixture-v1'
+    native_db = 'tos-native-reader-validation-v1'
+    try:
+        deadline = time.monotonic() + 15
+        while True:
+            try:
+                with urllib.request.urlopen(corpus_url, timeout=1) as response:
+                    assert response.status == 200
+                break
+            except (OSError, AssertionError):
+                if server.poll() is not None or time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.1)
+        with short_chromium_tmp(), sync_playwright() as p:
+            options = {'headless': True, 'args': ['--no-sandbox']}
+            if CHROMIUM:
+                options['executable_path'] = CHROMIUM
+            browser = p.chromium.launch(**options)
+            context = browser.new_context(locale='ru-RU')
+
+            corpus = context.new_page()
+            corpus.goto(corpus_url, wait_until='domcontentloaded')
+            corpus.wait_for_selector('#tree[data-fixture-ready="true"]')
+            corpus.locator('[data-corpus-open]').click()
+            corpus.locator('.cr-pane').wait_for()
+            # Scroll and pagehide share one browser task, so the 550 ms
+            # debounce cannot run between the observed position and teardown.
+            corpus_position = corpus.evaluate("""() => {
+              const pane = document.querySelector('.cr-pane');
+              const maximum = pane.scrollHeight - pane.clientHeight;
+              const requested = Math.min(maximum, Math.max(640, Math.floor(maximum * .45)));
+              pane.scrollTop = requested;
+              pane.dispatchEvent(new Event('scroll'));
+              const paneRect = pane.getBoundingClientRect();
+              const row = [...pane.querySelectorAll('.cr-unit')].find(item =>
+                item.getBoundingClientRect().bottom > paneRect.top + 18);
+              window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: false}));
+              history.replaceState(history.state, '', location.pathname + location.search);
+              return {top: pane.scrollTop, unitId: row?.dataset.unitId, versionId: pane.dataset.versionId};
+            }""")
+            assert corpus_position['top'] > 0
+            assert corpus_position['unitId']
+            corpus_readings = wait_for_idb_reading(
+                corpus, corpus_db,
+                lambda item: item.get('reference', {}).get('unitId') == corpus_position['unitId'],
+            )
+            corpus_saved = next(
+                item for item in corpus_readings
+                if item.get('reference', {}).get('unitId') == corpus_position['unitId']
+            )
+            assert corpus_saved['versionId'] == corpus_position['versionId']
+            assert corpus_saved['reference']['target']['workId']
+
+            # Reopen without the old route hash. The exact persisted unit is
+            # used as the resume address and is brought to the pane start.
+            corpus.reload(wait_until='domcontentloaded')
+            corpus.wait_for_selector('#tree[data-fixture-ready="true"]')
+            corpus.locator('[data-corpus-open]').click()
+            corpus.locator('.cr-pane').wait_for()
+            corpus.wait_for_function(
+                """unitId => {
+                  const pane = document.querySelector('.cr-pane');
+                  const row = pane && pane.querySelector(`.cr-unit[data-unit-id="${CSS.escape(unitId)}"]`);
+                  if (!row || !pane) return false;
+                  const paneRect = pane.getBoundingClientRect();
+                  const rowRect = row.getBoundingClientRect();
+                  return rowRect.bottom > paneRect.top + 18 && rowRect.top <= paneRect.top + 28;
+                }""", arg=corpus_position['unitId'],
+            )
+
+            native = context.new_page()
+            native.goto(native_url, wait_until='domcontentloaded')
+            native.get_by_role('button', name='Открыть текст', exact=True).click()
+            native.locator('.native-reader:not([hidden])').wait_for()
+            native.locator('.nr-article').wait_for()
+            # The native 350 ms debounce also must not run between scroll and
+            # the synthetic pagehide that asks the reader to flush.
+            native_position = native.evaluate("""() => {
+              const article = document.querySelector('.nr-article');
+              article.scrollTop = Math.min(420, article.scrollHeight - article.clientHeight);
+              article.dispatchEvent(new Event('scroll'));
+              window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: false}));
+              return {top: article.scrollTop};
+            }""")
+            assert native_position['top'] > 0
+            native_readings = wait_for_idb_reading(
+                native, native_db,
+                lambda item: item.get('offset') == native_position['top'],
+            )
+            native_saved = next(item for item in native_readings if item.get('offset') == native_position['top'])
+            assert native_saved['reference']['schemaVersion'] == 'tos.corpus.reader.native-reference.v1'
+
+            native.evaluate("history.replaceState(history.state, '', location.pathname + location.search)")
+            native.reload(wait_until='domcontentloaded')
+            native.get_by_role('button', name='Открыть текст', exact=True).click()
+            native.locator('.native-reader[data-native-state="available"]').wait_for()
+            native.wait_for_function(
+                """expected => Math.abs(document.querySelector('.nr-article').scrollTop - expected) < 1""",
+                arg=native_position['top'],
+            )
+            context.close()
             browser.close()
     finally:
         server.terminate()

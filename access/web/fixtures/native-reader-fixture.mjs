@@ -50,3 +50,7 @@ add('Обновить корпус',()=>{revision=revision===R?H:R;output.textCo
 add('Сменить сегментацию',()=>{version++;output.textContent='Native segmentation changed.';});
 add('Ограничить доступ',()=>{restricted=!restricted;output.textContent='Restricted: '+restricted;});
 add('Локальные условия',()=>{local=!local;output.textContent='Local reading: '+local;});
+// Keep this standalone fixture on the same best-effort pagehide flush route as
+// the real host, so the browser regression can exercise the native position
+// write without introducing a second lifecycle implementation.
+window.addEventListener('pagehide',event=>{if(!event.persisted)void reader.flush();});

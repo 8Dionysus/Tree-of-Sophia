@@ -150,6 +150,7 @@ export function mountCorpusReader({
   let comparison = new Map();
   let panePositions = new Map();
   let paneSaveTimers = new Map();
+  let paneSaveWork = Promise.resolve();
   let selected = null;
   let noteEditor = null;
   let noteDirty = false;
@@ -186,7 +187,7 @@ export function mountCorpusReader({
         Object.entries(state.searches).map(([key,page])=>[key,page.query,page.scope,page.nextCursor,page.items?.map(item=>[item.unitId,item.start,item.end])])]);
       if (stamp === lastDataStamp || noteDirty || noteFlushPromise) { updateFooter(); return; }
       lastDataStamp = stamp;
-      render();
+      render(state);
     },
   });
 
@@ -248,17 +249,23 @@ export function mountCorpusReader({
   }
 
   function capturePanePositions() {
-    const writes=[];
+    if (disposed || !root) return paneSaveWork;
+    const writes=[],document=modelState().document;
     for (const [index, pane] of [...root.querySelectorAll('.cr-pane')].entries()) {
       remember(panePositions,pane.dataset.versionId, pane.scrollTop);
-      const row = [...pane.querySelectorAll('.cr-unit')].find(item => item.getBoundingClientRect().bottom > pane.getBoundingClientRect().top + 18);
+      const visibleStart=pane.getBoundingClientRect().top + 18;
+      const row = [...pane.querySelectorAll('.cr-unit')].find(item => item.getBoundingClientRect().bottom > visibleStart);
       if (row?.__readerUnit) {
-        const version = activeVersion(pane.dataset.versionId);
-        const reference = unitReference(row.__readerUnit, version, activeDocument(), {});
-        if (reference) writes.push(Promise.resolve(model.savePosition(reference,0,index===0?'primary':'secondary')).catch(()=>{if(!disposed)announce(t('saveError'));}));
+        const version = document?.versions?.find(item=>item.id===pane.dataset.versionId);
+        const reference = unitReference(row.__readerUnit, version, document, {});
+        if (reference) writes.push(() => Promise.resolve(model.savePosition(reference,0,index===0?'primary':'secondary')).catch(()=>{if(!disposed)announce(t('saveError'));}));
       }
     }
-    return Promise.all(writes);
+    // Scroll callbacks can already have queued a write when pagehide arrives.
+    // Keep captures in order so a late earlier callback cannot overwrite the
+    // position observed by the final DOM snapshot.
+    paneSaveWork = paneSaveWork.catch(()=>{}).then(() => Promise.all(writes.map(write => write())));
+    return paneSaveWork;
   }
 
   function restorePanePositions() {
@@ -491,27 +498,33 @@ export function mountCorpusReader({
   }
 
   async function openDocument(documentId) {
-    if(!(await flushNote()))return null;
+    if(!(await flushNote()) || disposed)return null;
     if(window.innerWidth<=850)libraryOpen=false;
     await capturePanePositions();
+    if(disposed)return null;
     selected = null;
     searchQuery = '';
     searchResult = {items: []};
     const result = await model.open({documentId});
+    if(disposed)return null;
     await ensureVisiblePanes();
+    if(disposed)return null;
     render();
     return result;
   }
 
   async function openVersion(documentId, versionId) {
-    if(!(await flushNote()))return null;
+    if(!(await flushNote()) || disposed)return null;
     if(window.innerWidth<=850){libraryOpen=false;inspectorOpen=false;}
     await capturePanePositions();
+    if(disposed)return null;
     selected = null;
     searchQuery = '';
     searchResult = {items: []};
     const result = await model.open({documentId, versionId});
+    if(disposed)return null;
     await ensureVisiblePanes();
+    if(disposed)return null;
     render();
     return result;
   }
@@ -849,12 +862,12 @@ export function mountCorpusReader({
     return footer;
   }
 
-  function render() {
+  function render(snapshot) {
     if (!opened || disposed) return;
     // Share one detached snapshot within this synchronous render. Event and
     // async callbacks still read fresh state after the render has returned.
     const previous = renderSnapshot;
-    renderSnapshot = model.snapshot();
+    renderSnapshot = snapshot ?? model.snapshot();
     try { renderContents(); } finally { renderSnapshot = previous; }
   }
 
@@ -920,7 +933,10 @@ export function mountCorpusReader({
   async function close({notify = true} = {}) {
     if (!opened || disposed) return true;
     if(!(await flushNote()))return false;
-    await capturePanePositions(); opened=false; root.hidden=true; delete root.dataset.open;model.cancel();
+    if(disposed || !root)return true;
+    await capturePanePositions();
+    if(disposed || !root)return true;
+    opened=false; root.hidden=true; delete root.dataset.open;model.cancel();
     if(notify)onClose?.();
     const focus=opener;opener=null;
     if(focus?.isConnected&&!focus.closest('[hidden]')&&focus.offsetParent!==null)focus.focus?.({preventScroll:true});
@@ -956,14 +972,18 @@ export function mountCorpusReader({
     async open(args = {}) {
       if(disposed)return this;
       await model.ready?.();
-      if(!(await flushNote()))return this;
+      if(disposed || !(await flushNote()) || disposed || !root)return this;
       if(opened)await capturePanePositions();
+      if(disposed || !root)return this;
+      const wasOpened=opened;
       opener = document.activeElement;
       opened = true; root.hidden = false; root.dataset.open = 'true';
       if (args.mode === 'parallel' || args.mode === 'single') mode = args.mode;
       if (args.reference || args.unitId) selected = null;
-      render();
       const hasTarget = Boolean(args.documentId || args.versionId || args.reference || args.unitId || args.revision);
+      // Keep the last usable window during a new request. Rebuilding the same
+      // old panes here forces layout before the incoming window is rendered.
+      if(!wasOpened || !hasTarget)render();
       const current = modelState(); const remembered = model.notebookState().active;
       if (!hasTarget && current.document) return Promise.resolve(this);
       const rememberedReferenceValue = remembered
@@ -982,11 +1002,16 @@ export function mountCorpusReader({
     close,
     destroy() {
       if(destroyWork)return destroyWork;
-      const saving=flushNote();disposed=true;opened=false;clearTimeout(noteTimer);catalogCancel?.();searchCancel?.();
+      clearTimeout(noteTimer);
       for(const timer of paneSaveTimers.values())clearTimeout(timer);paneSaveTimers.clear();
+      // pagehide is best effort: capture while the panes still exist, then
+      // retain the DOM and notebook until both note and position writes settle.
+      const positionSaving=opened?capturePanePositions():Promise.resolve();
+      const saving=Promise.allSettled([flushNote(),positionSaving]);
+      disposed=true;opened=false;catalogCancel?.();searchCancel?.();
       document.removeEventListener('selectionchange',onSelectionChange);document.removeEventListener('visibilitychange',visibilityChanged);
-      window.removeEventListener('beforeunload',beforeUnload);root.remove();root=null;
-      destroyWork=Promise.resolve(saving).finally(()=>model.destroy());return destroyWork;
+      window.removeEventListener('beforeunload',beforeUnload);
+      destroyWork=saving.finally(()=>{root?.remove();root=null;model.destroy();});return destroyWork;
     },
     isOpen: () => opened,
     state: () => model.snapshot(),
