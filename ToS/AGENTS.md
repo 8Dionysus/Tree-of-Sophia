@@ -80,7 +80,7 @@ Keep these boundaries visible:
 | Surface | Owner |
 | --- | --- |
 | identity, anchor, text-unit, sign, assertion, and translation law | `doctrine/` |
-| tracked catalogs, bibliographic records, physical artifacts, scholarly composites, payload route, fixity, provenance, rights, source-near text | `source-witnesses/` |
+| source corpus, generated catalogs, bibliographic records, physical artifacts, scholarly composites, payload route, fixity, provenance, rights, source-near text | `source-witnesses/` |
 | machine-checkable record shapes | `contracts/` |
 | extraction/OCR/LLM/embedding/graph experiment mechanics | `abyss-stack` |
 | host models, caches, runtimes, reservations, and large temporary data | `/etc/abyss-machine` and `/srv/abyss-machine` owner routes |

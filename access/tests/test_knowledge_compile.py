@@ -25,6 +25,14 @@ class KnowledgeCompileTests(unittest.TestCase):
         write_fixture(root)
         return {name: json.loads((root / path).read_text()) for name, path in INPUTS.items()}
 
+    @staticmethod
+    def scratch_paths(output, suffix):
+        return sorted(output.parent.glob(f'{output.name}.*{suffix}'))
+
+    def assert_no_scratch(self, output):
+        self.assertFalse(self.scratch_paths(output, '.building'))
+        self.assertFalse(self.scratch_paths(output, '.intermediates'))
+
     def partition(self, root, inputs, owners=('corpus', 'philosophy', 'bibliographic')):
         for owner in owners:
             header = copy.deepcopy(inputs[owner])
@@ -45,8 +53,27 @@ class KnowledgeCompileTests(unittest.TestCase):
             inputs = self.fixture(root)
             expected = k.build_knowledge_graph(inputs['corpus'], inputs['philosophy'], inputs['bibliographic'], inputs['entities'], inputs['predicates'])
             self.partition(root, inputs)
-            with patch('tos_access.projection_store.load_projection', side_effect=AssertionError('full reconstruction forbidden')):
-                result = compile_knowledge_store(root)
+            output = root / 'ToS/derived-exports/runtime/knowledge.sqlite3'
+            observed = {}
+
+            def capture_storage(connection):
+                observed['storage_path'] = Path(
+                    connection.execute('PRAGMA database_list').fetchone()[2]
+                ).resolve()
+                return DiskCollections(connection)
+
+            def progress(phase):
+                if phase == 'normalize-and-validate':
+                    observed['building'] = self.scratch_paths(output, '.building')
+                    observed['intermediates'] = self.scratch_paths(output, '.intermediates')
+
+            with patch('tos_access.knowledge_compile.DiskCollections', side_effect=capture_storage):
+                with patch('tos_access.projection_store.load_projection', side_effect=AssertionError('full reconstruction forbidden')):
+                    result = compile_knowledge_store(root, output, progress=progress)
+            self.assertEqual(len(observed['building']), 1)
+            self.assertEqual(len(observed['intermediates']), 1)
+            self.assertNotEqual(observed['storage_path'], observed['building'][0].resolve())
+            self.assertEqual(observed['storage_path'], observed['intermediates'][0].resolve())
             store = QueryStore(result['output'])
             self.assertEqual(list(store.rows('knowledge_nodes')), expected['nodes'])
             self.assertEqual(list(store.rows('knowledge_relations')), expected['relations'])
@@ -56,6 +83,7 @@ class KnowledgeCompileTests(unittest.TestCase):
             self.assertEqual(store.count('source_nodes'), len(inputs['corpus']['source_navigation']['nodes']))
             with closing(sqlite3.connect(result['output'])) as db:
                 self.assertEqual(db.execute("SELECT count(*) FROM sqlite_master WHERE name LIKE '_build_%'").fetchone()[0], 0)
+            self.assert_no_scratch(output)
 
     def test_mixed_partitioned_and_legacy_source_roots_fail_closed(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -108,12 +136,13 @@ class KnowledgeCompileTests(unittest.TestCase):
             self.fixture(root)
             output = root / 'store.sqlite3'
             compile_knowledge_store(root, output, allow_legacy=True)
+            self.assert_no_scratch(output)
             before = output.read_bytes()
             with patch.object(k, 'build_knowledge_graph', side_effect=ValueError('owner invariant rejected')):
                 with self.assertRaisesRegex(ValueError, 'owner invariant rejected'):
                     compile_knowledge_store(root, output, allow_legacy=True)
             self.assertEqual(output.read_bytes(), before)
-            self.assertFalse(list(root.glob('*.building')))
+            self.assert_no_scratch(output)
 
     def test_changed_input_during_compile_is_not_published(self):
         with tempfile.TemporaryDirectory() as directory:

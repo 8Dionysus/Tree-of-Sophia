@@ -40,6 +40,7 @@ AUTHORITY_BOUNDARY = (
     "clearance, translation, semantics, or canon authority"
 )
 TEI_NS = "http://www.tei-c.org/ns/1.0"
+OSIS_NS = "http://www.bibletechnologies.net/2003/OSIS/namespace"
 MAX_PLAIN_UTF8_BYTES = 131072
 
 
@@ -657,6 +658,196 @@ def _tei_inventory(
     }
 
 
+def _exact_fingerprint(text: str, *, normalization: str) -> dict[str, Any]:
+    """Fingerprint decoded character data without NFC or whitespace changes."""
+    try:
+        encoded = text.encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise InventoryBuildError("source string contains an unpaired Unicode surrogate") from exc
+    return {"algorithm": "sha256", "normalization": normalization,
+        "sha256": _sha256_bytes(encoded), "character_count": len(text)}
+
+
+
+def _osis_inventory(
+    payload_path: Path,
+    *,
+    file_id: str,
+    file_sha256: str,
+    media_type: str,
+) -> dict[str, Any]:
+    """Enumerate OSHB-style contained OSIS chapters and verses, not milestones.
+
+    OSIS identifiers are structural locators. Character-data fingerprints keep
+    parser-returned Unicode and whitespace; XML syntax/entity spelling remains
+    covered separately by the unchanged file-byte digest.
+    """
+    try:
+        root = ET.parse(payload_path).getroot()
+    except (OSError, ET.ParseError) as exc:
+        raise InventoryBuildError(f"OSIS XML is not well formed: {exc}") from exc
+    ns = f"{{{OSIS_NS}}}"
+    if root.tag != ns + "osis" or len(root.findall(ns + "osisText")) != 1:
+        raise InventoryBuildError("OSIS profile requires one namespaced osis/osisText root")
+    resources: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    chapter_count = 0
+    verse_count = 0
+    word_count = 0
+
+    def walk(element: ET.Element, chapter: dict[str, Any] | None = None,
+             inside_verse: bool = False) -> None:
+        nonlocal chapter_count, verse_count, word_count
+        if element.tag in {ns + "chapter", ns + "verse"}:
+            kind = _local_name(element.tag)
+            identifier = element.get("osisID", "")
+            pattern = r"[1-4]?[A-Za-z]+\.[0-9]+" + (r"\.[0-9]+[a-z]?" if kind == "verse" else "")
+            if not re.fullmatch(pattern, identifier):
+                raise InventoryBuildError(f"OSIS {kind} requires one structured osisID")
+            if element.get("sID") is not None or element.get("eID") is not None:
+                raise InventoryBuildError("OSIS milestone chapters/verses are outside the contained-element profile")
+            if identifier in seen_ids:
+                raise InventoryBuildError("OSIS chapter/verse identifiers are duplicated")
+            seen_ids.add(identifier)
+            if kind == "chapter":
+                if chapter is not None or inside_verse:
+                    raise InventoryBuildError("OSIS chapter is unexpectedly nested")
+                chapter_count += 1
+                resource = {"resource_id": f"osis-chapter-{chapter_count:04d}",
+                    "resource_kind": "osis_chapter", "structural_role": "chapter",
+                    "locator": {"osis_id": identifier, "chapter_index": chapter_count,
+                        "container_order": len(resources) + 1}, "verse_count": 0, "word_count": 0}
+                resources.append(resource)
+                for child in element:
+                    walk(child, resource)
+                if resource["verse_count"] == 0:
+                    raise InventoryBuildError("OSIS chapter yielded no contained verses")
+                return
+            if chapter is None or inside_verse:
+                raise InventoryBuildError("OSIS verse must belong to one containing chapter")
+            if identifier.rsplit(".", 1)[0] != chapter["locator"]["osis_id"]:
+                raise InventoryBuildError("OSIS verse identifier differs from its containing chapter")
+            verse_count += 1
+            words = sum(1 for _ in element.iter(ns + "w"))
+            word_count += words
+            chapter["verse_count"] += 1
+            chapter["word_count"] += words
+            resources.append({"resource_id": f"osis-verse-{verse_count:05d}",
+                "resource_kind": "osis_verse", "structural_role": "verse",
+                "locator": {"osis_id": identifier, "chapter_index": chapter["locator"]["chapter_index"],
+                    "verse_index": verse_count, "container_order": len(resources) + 1,
+                    "parent_resource_id": chapter["resource_id"]}, "word_count": words,
+                "content_fingerprint": _exact_fingerprint("".join(element.itertext()),
+                    normalization="xml-character-data-preserved")})
+            for child in element:
+                walk(child, chapter, True)
+            return
+        for child in element:
+            walk(child, chapter, inside_verse)
+
+    walk(root.find(ns + "osisText"))
+    if not chapter_count or not verse_count:
+        raise InventoryBuildError("OSIS payload yielded no contained chapter/verse resources")
+    return {"file_id": file_id, "file_sha256": file_sha256, "media_type": media_type,
+        "profile": "osis_structure_v1", "summary": {"resource_count": len(resources),
+            "chapter_count": chapter_count, "verse_count": verse_count, "word_count": word_count},
+        "resources": resources}
+
+
+
+def _json_inventory(
+    payload_path: Path,
+    *,
+    file_id: str,
+    file_sha256: str,
+    media_type: str,
+) -> dict[str, Any]:
+    """Enumerate top-level members without emitting source keys or values.
+
+    Object/array counts include their containers; string counts cover values,
+    with object keys counted separately. JSON escape decoding is not Unicode
+    normalization. Member order is the observed source order, not a semantic
+    JSON ordering claim. Original spelling remains bound by file fixity.
+    """
+    class NumberValue:
+        # Enumeration needs the JSON type, not a binary float or bounded integer.
+        # The original numeric spelling remains covered by the file digest.
+        pass
+
+    def unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise InventoryBuildError("duplicate JSON object key")
+            result[key] = value
+        return result
+
+    def reject_constant(_value: str) -> None:
+        raise InventoryBuildError("non-standard JSON numeric constant")
+
+    try:
+        value = json.loads(payload_path.read_bytes(), object_pairs_hook=unique_pairs,
+            parse_constant=reject_constant, parse_int=lambda _: NumberValue(),
+            parse_float=lambda _: NumberValue())
+    except (OSError, ValueError, RecursionError) as exc:
+        raise InventoryBuildError(f"JSON payload is not well formed: {type(exc).__name__}") from exc
+    if not isinstance(value, (dict, list)):
+        raise InventoryBuildError("JSON member profile requires an object or array root")
+
+    def value_type(item: Any) -> str:
+        if isinstance(item, dict):
+            return "object"
+        if isinstance(item, list):
+            return "array"
+        if isinstance(item, str):
+            return "string"
+        if isinstance(item, bool):
+            return "boolean"
+        if item is None:
+            return "null"
+        if isinstance(item, NumberValue):
+            return "number"
+        raise InventoryBuildError("unsupported decoded JSON value type")
+
+    def counts(item: Any) -> dict[str, int]:
+        total = {kind + "_count": 0 for kind in ("object", "array", "string", "number", "boolean", "null", "object_key")}
+        stack = [item]
+        while stack:
+            current = stack.pop()
+            kind = value_type(current)
+            total[kind + "_count"] += 1
+            if kind == "object":
+                total["object_key_count"] += len(current)
+                for key in current:
+                    _exact_fingerprint(key, normalization="unicode-codepoints-preserved")
+                stack.extend(current.values())
+            elif kind == "array":
+                stack.extend(current)
+            elif kind == "string":
+                _exact_fingerprint(current, normalization="unicode-codepoints-preserved")
+        return total
+
+    root_type = value_type(value)
+    total_counts = counts(value)
+    resources: list[dict[str, Any]] = [{"resource_id": "json-root", "resource_kind": "json_container",
+        "structural_role": "container_metadata", "locator": {"json_value_type": root_type}}]
+    members = value.items() if isinstance(value, dict) else ((None, item) for item in value)
+    for index, (key, item) in enumerate(members, 1):
+        resource = {"resource_id": f"json-member-{index:05d}", "resource_kind": "json_member",
+            "structural_role": "member", "locator": {"json_member_index": index,
+                "json_value_type": value_type(item), "parent_resource_id": "json-root"},
+            "json_value_counts": counts(item)}
+        if key is not None:
+            resource["label_fingerprint"] = _exact_fingerprint(key, normalization="unicode-codepoints-preserved")
+        if isinstance(item, str):
+            resource["content_fingerprint"] = _exact_fingerprint(item, normalization="unicode-codepoints-preserved")
+        resources.append(resource)
+    return {"file_id": file_id, "file_sha256": file_sha256, "media_type": media_type,
+        "profile": "json_members_v1", "summary": {"resource_count": len(resources),
+            "top_level_member_count": len(value), "json_value_counts": total_counts}, "resources": resources}
+
+
+
 def _djvu_xml_inventory(
     payload_path: Path,
     *,
@@ -1002,6 +1193,43 @@ def _abbyy_xml_inventory(
     }
 
 
+def _plain_text_inventory(
+    payload_path: Path,
+    *,
+    file_id: str,
+    file_sha256: str,
+    media_type: str,
+) -> dict[str, Any]:
+    """Record one opaque UTF-8 text file without copying source text."""
+    try:
+        # Decode exact bytes so universal-newline handling cannot change the
+        # codepoint fingerprint while the manifest still binds raw-byte fixity.
+        text = payload_path.read_bytes().decode("utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise InventoryBuildError(f"plain-text payload is not valid UTF-8: {exc}") from exc
+    resource = {
+        "resource_id": "plain-text-file",
+        "resource_kind": "plain_text_file",
+        "locator": {"container_order": 1},
+        "structural_role": "member",
+        "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": _sha256_bytes(text.encode("utf-8")),
+            "character_count": len(text),
+        },
+    }
+    return {
+        "file_id": file_id,
+        "file_sha256": file_sha256,
+        "media_type": media_type,
+        "profile": "plain_text_v1",
+        "summary": {"resource_count": 1},
+        "resources": [resource],
+    }
+
+
+
 def _plain_utf8_inventory(payload_path: Path, *, file_id: str, file_sha256: str, media_type: str) -> dict[str, Any]:
     """Enumerate one inert exact UTF-8 file, not rendered Markdown or units."""
     with payload_path.open('rb') as stream:
@@ -1033,16 +1261,31 @@ def _plain_utf8_inventory(payload_path: Path, *, file_id: str, file_sha256: str,
 
 
 def build_file_inventory(
-    payload_path: Path, payload_entry: dict[str, Any]
+    payload_path: Path,
+    payload_entry: dict[str, Any],
+    *,
+    plain_text_profile: str = "plain_utf8_file_v1",
 ) -> dict[str, Any]:
     media_type = payload_entry["media_type"]
+    if plain_text_profile not in {"plain_utf8_file_v1", "plain_text_v1"}:
+        raise InventoryBuildError(f"unknown plain text profile: {plain_text_profile}")
+    if plain_text_profile == "plain_text_v1" and media_type != "text/plain":
+        raise InventoryBuildError("plain_text_v1 is only supported for text/plain")
     kwargs = {
         "file_id": payload_entry["file_id"],
         "file_sha256": payload_entry["sha256"],
         "media_type": media_type,
     }
-    if media_type in {'text/plain', 'text/markdown'}:
+    if media_type == "application/json":
+        return _json_inventory(payload_path, **kwargs)
+    if media_type == "text/plain":
+        if plain_text_profile == "plain_text_v1":
+            return _plain_text_inventory(payload_path, **kwargs)
         return _plain_utf8_inventory(payload_path, **kwargs)
+    if media_type == "text/markdown":
+        return _plain_utf8_inventory(payload_path, **kwargs)
+    if media_type == "application/osis+xml":
+        return _osis_inventory(payload_path, **kwargs)
     if media_type == "application/pdf":
         return _pdf_inventory(payload_path, **kwargs)
     if media_type == "application/epub+zip":
@@ -1063,11 +1306,20 @@ def build_file_inventory(
         "relative_path"
     ].endswith("_scandata.xml"):
         return _scandata_inventory(payload_path, **kwargs)
+    if media_type in {"application/xml", "text/xml"}:
+        try:
+            with payload_path.open("rb") as source:
+                root_tag = next(ET.iterparse(source, events=("start",)))[1].tag
+        except (OSError, ET.ParseError, StopIteration) as exc:
+            raise InventoryBuildError(f"XML payload is not well formed: {exc}") from exc
+        if root_tag == f"{{{OSIS_NS}}}osis":
+            return _osis_inventory(payload_path, **kwargs)
     if media_type in {"application/tei+xml", "application/xml", "text/xml"}:
         return _tei_inventory(payload_path, **kwargs)
     raise InventoryBuildError(
         f"no resource-inventory profile for media type {media_type}: {payload_path}"
     )
+
 
 
 def _default_event_ref(item_id: str, event_date: str) -> str:
@@ -1124,6 +1376,7 @@ def build_inventory(
     manifest_path: Path,
     payload_source_root: Path,
     event_date: str,
+    plain_text_profile: str = "plain_utf8_file_v1",
 ) -> dict[str, Any] | None:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     relative_item_dir = manifest_path.parent.relative_to(repo_root / SOURCE_ROOT)
@@ -1134,7 +1387,11 @@ def build_inventory(
         if not payload_path.is_file():
             return None
         _verify_payload_fixity(payload_path, payload_entry)
-        file_inventories.append(build_file_inventory(payload_path, payload_entry))
+        file_inventories.append(
+            build_file_inventory(
+                payload_path, payload_entry, plain_text_profile=plain_text_profile
+            )
+        )
 
     output_path = manifest_path.parent / INVENTORY_NAME
     event_ref = _default_event_ref(manifest["item_id"], event_date)
@@ -1201,6 +1458,11 @@ def main() -> int:
         default="2026-07-28",
         help="Date suffix for new provenance event refs (YYYY-MM-DD).",
     )
+    parser.add_argument(
+        "--plain-text-profile",
+        choices=("plain_utf8_file_v1", "plain_text_v1"),
+        default="plain_utf8_file_v1",
+    )
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
 
@@ -1222,6 +1484,7 @@ def main() -> int:
             manifest_path=manifest_path,
             payload_source_root=payload_source_root,
             event_date=args.event_date,
+            plain_text_profile=args.plain_text_profile,
         )
         output_path = manifest_path.parent / INVENTORY_NAME
         if payload is None:

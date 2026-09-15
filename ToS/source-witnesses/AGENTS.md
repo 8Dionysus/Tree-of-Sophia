@@ -18,7 +18,7 @@ evidence.
 | role | primary witness and source-facing evidence surface |
 | input | acquired item, primary-language text, translation, collection membership, source-page metadata, or provenance/rights evidence |
 | output | addressable reviewable witness surface with explicit identity, fixity, source, and rights posture |
-| owner | `ToS/source-witnesses/AGENTS.md`, nearest object/claim record, and generated tracked catalog |
+| owner | `ToS/source-witnesses/AGENTS.md` and nearest exact object/claim source; generated catalogs provide navigation |
 | next route | source witness -> `ToS/philosophy/` branch or `ToS/candidate-intake/` pass -> `ToS/canon/` review |
 | tools | manual corpus gate, source route docs, witness manifests |
 | check | route validator when the witness feeds a current public or export surface |
@@ -47,7 +47,7 @@ evidence.
   lines, translations, and provider pages separate. Page-visible source lists
   do not become completeness claims, and absence from one representation does
   not erase a stronger exact membership relation.
-- Treat paths as navigation and tracked IDs as identity. Never merge two
+- Treat paths as navigation and stable ToS IDs as identity. Never merge two
   objects only because their paths, titles, translators, or sampled text look
   similar.
 - Treat authored claim packets and provenance events as relation authority.
@@ -82,8 +82,13 @@ evidence.
   item-manifest `embodiment_ref`. Read support does not grant standalone Claim
   writes or retroactive changes to a legacy batch. Never infer textual
   equivalence from this bibliographic topology.
-- Keep only item `payload/` content gitignored. Track manifest, SHA-256,
-  provenance, rights, forensic report, and catalog entry.
+- Keep curated authored sources and contracts in Git. Bulk imported records,
+  claims, manifests, fixity, provenance, rights and review evidence belong to
+  explicit immutable corpus revisions after exact preservation and verified
+  restore. Their source authority is unchanged by the storage location.
+  Build catalogs and projections into the selected data artifact. Preserve
+  permanent local payload custody and each actual private R2 permission;
+  neither a corpus admission nor an upload grants publication rights.
 - Preserve original bytes. OCR, correction, normalization, segmentation, and
   translation are new versioned layers and must cite the input digest.
 - Use structural + quote + digest + visual-region anchors; offsets alone are
