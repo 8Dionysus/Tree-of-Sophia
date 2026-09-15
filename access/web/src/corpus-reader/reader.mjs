@@ -166,6 +166,7 @@ export function mountCorpusReader({
   let libraryOpen = window.matchMedia('(min-width: 851px)').matches;
   let inspectorOpen = false;
   let destroyWork = null;
+  let renderSnapshot = null;
   const draftJournal = createNoteDraftJournal({notebook});
   const recovery = Promise.resolve().then(()=>draftJournal.recover()).then(recovered=>{
     if(recovered)announce(uiLocale()==='en'?'An unfinished note was recovered as a separate note.':'Несохранённый черновик восстановлен отдельной заметкой.');
@@ -190,20 +191,27 @@ export function mountCorpusReader({
   });
 
   const t = key => WORDING[uiLocale()][key] || key;
-  const modelState = () => model.snapshot();
+  const modelState = () => renderSnapshot ?? model.snapshot();
   const activeDocument = () => modelState().document;
   const activeVersion = versionId => activeDocument()?.versions?.find(item => item.id === versionId) || null;
   const stateKey = (documentId, versionId) => `${documentId}\u0000${versionId}`;
-  const currentIdentity = (versionId = modelState().activeVersionId) => {
-    const document = activeDocument();
-    const version = activeVersion(versionId);
+  const currentIdentity = versionId => {
+    const state = modelState();
+    const document = state.document;
+    const version = document?.versions?.find(item => item.id === (versionId === undefined ? state.activeVersionId : versionId));
     return {documentId: document?.id || '', versionId: version?.id || '', sourceRevision: version?.sourceRevision ?? null, contentRevision: version?.contentRevision ?? null};
   };
-  const currentWindow = versionId => modelState().windows[stateKey(activeDocument()?.id, versionId)] || null;
+  const currentWindow = versionId => {
+    const state = modelState();
+    return state.windows[stateKey(state.document?.id, versionId)] || null;
+  };
   const currentRef = () => {
     if (selected?.reference) return selected.reference;
-    const versionId = modelState().activeVersionId; const unit = currentWindow(versionId)?.units?.[0];
-    return unit ? unitReference(unit, activeVersion(versionId), activeDocument(), {}) : null;
+    const state = modelState();
+    const versionId = state.activeVersionId;
+    const unit = state.windows[stateKey(state.document?.id, versionId)]?.units?.[0];
+    const version = state.document?.versions?.find(item => item.id === versionId);
+    return unit ? unitReference(unit, version, state.document, {}) : null;
   };
   const catalogItems = () => modelState().catalog.items || [];
 
@@ -843,6 +851,14 @@ export function mountCorpusReader({
 
   function render() {
     if (!opened || disposed) return;
+    // Share one detached snapshot within this synchronous render. Event and
+    // async callbacks still read fresh state after the render has returned.
+    const previous = renderSnapshot;
+    renderSnapshot = model.snapshot();
+    try { renderContents(); } finally { renderSnapshot = previous; }
+  }
+
+  function renderContents() {
     const focused=document.activeElement;const focusClass=['cr-library-search','cr-search-input','cr-search-scope','cr-note-editor'].find(name=>focused?.classList?.contains(name));
     const selectionStart=focused?.selectionStart,selectionEnd=focused?.selectionEnd;
     for(const pane of root.querySelectorAll('.cr-pane')){if(pane.dataset.windowStart===currentWindow(pane.dataset.versionId)?.units?.[0]?.id)remember(panePositions,pane.dataset.versionId,pane.scrollTop);else panePositions.delete(pane.dataset.versionId);}
