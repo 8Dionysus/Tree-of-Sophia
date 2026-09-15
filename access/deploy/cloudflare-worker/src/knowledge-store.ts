@@ -394,7 +394,7 @@ type IndexedPage = {
   rows: NativeRef[];
   nextCursor: string | null;
   hasMore: boolean;
-  work: { candidate_rows: number; verified_chars: number; sql_pages: number; selection_rows_read?: number };
+  work: { candidate_rows: number; verified_chars: number; rank_chars?: number; sql_pages: number; selection_rows_read?: number };
 };
 
 type IndexedFilters = {
@@ -555,6 +555,9 @@ async function indexedKindPage(
     ? [...indexedRankBindings(needle), cursorRank, ...indexedRankBindings(needle), cursorRank, cursorId, cursorId, cursorPosition]
     : [];
   const preflightSql = `SELECT COUNT(*) AS candidate_rows, COALESCE(SUM(s.document_chars), 0) AS verified_chars,
+    COALESCE(SUM(length(s.id)+length(s.id_lower)+length(s.native_id_lower)+length(s.identity_values)+length(s.visible_values)),0) AS rank_chars,
+    COALESCE(SUM(CASE WHEN typeof(s.id)='text' AND typeof(s.id_lower)='text' AND typeof(s.native_id_lower)='text'
+      AND typeof(s.identity_values)='text' AND typeof(s.visible_values)='text' THEN 0 ELSE 1 END),0) AS invalid_rank_metadata,
     COALESCE(SUM(CASE WHEN typeof(s.document_chars)='integer' AND s.document_chars>=0 THEN 0 ELSE 1 END),0) AS invalid_budgets
     FROM knowledge_search_grams g
     CROSS JOIN knowledge_search_documents s ON s.kind=g.kind AND s.position=g.position
@@ -562,18 +565,22 @@ async function indexedKindPage(
   let preflight;
   try {
     // This is deliberately a carrier-only budget gate. Do not evaluate the
-    // rank expression/continuation (which walks JSON rank fields) until the
-    // total candidate-document budget is known to be bounded.
+    // rank expression/continuation (which walks JSON rank fields) until its
+    // metadata budget is known to be bounded. Text is verified in a prefix.
     preflight = await db.prepare(preflightSql).bind(...filterBindings)
-      .all<{ candidate_rows: number; verified_chars: number; invalid_budgets:number }>();
+      .all<{ candidate_rows: number; verified_chars: number; rank_chars:number; invalid_budgets:number; invalid_rank_metadata:number }>();
   } catch (error) {
     throw new HttpError(503, `indexed knowledge search read model is unavailable: ${String(error)}`);
   }
   const aggregate = preflight.results[0];
-  const candidateRows = aggregate?.candidate_rows ?? 0;
-  const verifiedChars = aggregate?.verified_chars ?? 0;
+  let candidateRows = aggregate?.candidate_rows ?? 0;
+  let verifiedChars = aggregate?.verified_chars ?? 0;
+  const rankChars = aggregate?.rank_chars ?? 0;
   if (
     aggregate?.invalid_budgets!==0
+    || aggregate?.invalid_rank_metadata!==0
+    || !Number.isSafeInteger(rankChars)
+    || rankChars < 0
     || !Number.isSafeInteger(candidateRows)
     || candidateRows < 0
     || !Number.isSafeInteger(verifiedChars)
@@ -583,8 +590,8 @@ async function indexedKindPage(
   }
   const preflightRowsRead = indexedRowsRead(preflight.meta?.rows_read);
   if(candidateRows>SEARCH_MAX_CANDIDATES)throw new HttpError(413,'indexed knowledge search candidate budget exceeded');
-  if (verifiedChars > SEARCH_MAX_VERIFY_CHARS) {
-    throw new HttpError(413, "indexed knowledge search verification budget exceeded; narrow the query or use the legacy route");
+  if (rankChars >= SEARCH_MAX_VERIFY_CHARS) {
+    throw new HttpError(413, "indexed knowledge search rank metadata budget exceeded; narrow the query");
   }
   if (candidateRows === 0) {
     return {
@@ -599,7 +606,49 @@ async function indexedKindPage(
       },
     };
   }
-  const sql = `SELECT CASE WHEN typeof(s.id)='text' AND length(CAST(s.id AS BLOB))<=1048576 THEN s.id ELSE NULL END AS id,
+  // A numeric/metadata-only ordered window bounds text IO before joining the
+  // native carriers. Its last verified candidate is a progress cursor even
+  // when no candidate in this window contains the complete query string.
+  type VerificationWindow = {id:string;id_lower:string;position:number;search_rank:number;prefix_chars:number;prefix_rows:number;remaining_rows:number};
+  let windowLast: VerificationWindow|null = null;
+  let windowHasMore = false;
+  let windowRowsRead: number|undefined = 0;
+  if (verifiedChars + rankChars > SEARCH_MAX_VERIFY_CHARS) {
+    const windowSql = `WITH ranked AS MATERIALIZED (
+      SELECT s.id,s.id_lower,s.position,s.document_chars,${rankExpression} AS search_rank
+      FROM knowledge_search_grams g CROSS JOIN knowledge_search_documents s ON s.kind=g.kind AND s.position=g.position
+      WHERE ${filterSql.join(' AND ')}${continuationSql}
+    ), bounded_window AS (
+      SELECT *,SUM(document_chars) OVER (ORDER BY search_rank,id_lower,position ROWS UNBOUNDED PRECEDING) AS prefix_chars,
+        ROW_NUMBER() OVER (ORDER BY search_rank,id_lower,position) AS prefix_rows FROM ranked
+    ) SELECT CASE WHEN length(CAST(last.id AS BLOB))<=1048576 THEN last.id ELSE NULL END AS id,
+      CASE WHEN length(CAST(last.id_lower AS BLOB))<=1048576 THEN last.id_lower ELSE NULL END AS id_lower,
+      last.position,last.search_rank,last.prefix_chars,last.prefix_rows,total.remaining_rows
+      FROM (SELECT COUNT(*) AS remaining_rows FROM ranked) total
+      LEFT JOIN (SELECT id,id_lower,position,search_rank,prefix_chars,prefix_rows FROM bounded_window
+        WHERE prefix_chars<=? ORDER BY search_rank DESC,id_lower DESC,position DESC LIMIT 1) last ON 1=1`;
+    const window = await db.prepare(windowSql).bind(...indexedRankBindings(needle),...filterBindings,
+      ...continuationBindings,SEARCH_MAX_VERIFY_CHARS-rankChars).all<VerificationWindow>();
+    windowLast = window.results[0] ?? null;
+    windowRowsRead = indexedRowsRead(window.meta?.rows_read);
+    if (windowLast?.remaining_rows===0) {
+      return {rows:[],nextCursor:null,hasMore:false,work:{candidate_rows:0,verified_chars:0,rank_chars:rankChars,
+        sql_pages:grams.length+postingSelections.length+2,
+        ...(preflightRowsRead===undefined||windowRowsRead===undefined?{}:{selection_rows_read:preflightRowsRead+windowRowsRead})}};
+    }
+    if (!windowLast || windowLast.prefix_rows===null) throw new HttpError(413,'indexed knowledge search first remaining document exceeds verification budget');
+    if (windowLast.id===null || windowLast.id_lower===null) throw new HttpError(413,'indexed knowledge search window identity exceeds delivery budget');
+    if (typeof windowLast.id!=='string'||windowLast.id_lower!==nativeLower(windowLast.id)
+        || ![windowLast.position,windowLast.search_rank,windowLast.prefix_chars,windowLast.prefix_rows,windowLast.remaining_rows].every(Number.isSafeInteger)
+        || windowLast.position<0||windowLast.search_rank<0||windowLast.search_rank>3
+        || windowLast.prefix_chars<0||windowLast.prefix_rows<1||windowLast.remaining_rows<windowLast.prefix_rows) {
+      throw new HttpError(503,'indexed knowledge search verification window is invalid');
+    }
+    candidateRows=windowLast.prefix_rows;
+    verifiedChars=windowLast.prefix_chars;
+    windowHasMore=windowLast.prefix_rows<windowLast.remaining_rows;
+  }
+  let sql = `SELECT CASE WHEN typeof(s.id)='text' AND length(CAST(s.id AS BLOB))<=1048576 THEN s.id ELSE NULL END AS id,
     CASE WHEN typeof(s.id_lower)='text' AND length(CAST(s.id_lower AS BLOB))<=1048576 THEN s.id_lower ELSE NULL END AS id_lower,
     CASE WHEN typeof(s.position)='integer' THEN s.position ELSE NULL END AS position, ${rankExpression} AS search_rank
     FROM knowledge_search_grams g
@@ -607,7 +656,22 @@ async function indexedKindPage(
     CROSS JOIN ${baseTable} b ON b.id=s.id
     WHERE ${filterSql.join(" AND ")} AND ${knowledgeTextMatch(kind === 'nodes' ? 'node' : 'relation', 'b')}${continuationSql}
     ORDER BY search_rank, s.id_lower, s.position LIMIT ?`;
-  const bindings: unknown[] = [...indexedRankBindings(needle), ...filterBindings, needle, needle, ...continuationBindings, options.limit + 1];
+  let bindings: unknown[] = [...indexedRankBindings(needle), ...filterBindings, needle, needle, ...continuationBindings, options.limit + 1];
+  if (windowLast) {
+    // MATERIALIZED is the IO boundary: optimizer predicate reordering must not
+    // evaluate full search text for candidates outside the verified prefix.
+    sql=`WITH selected_candidates AS MATERIALIZED (
+      SELECT s.id,s.id_lower,s.position,${rankExpression} AS search_rank
+      FROM knowledge_search_grams g CROSS JOIN knowledge_search_documents s ON s.kind=g.kind AND s.position=g.position
+      WHERE ${filterSql.join(' AND ')}${continuationSql}
+        AND (${rankExpression}<? OR (${rankExpression}=? AND (s.id_lower<? OR (s.id_lower=? AND s.position<=?))))
+    ) SELECT c.id,c.id_lower,c.position,c.search_rank FROM selected_candidates c
+      CROSS JOIN ${baseTable} b ON b.id=c.id WHERE ${knowledgeTextMatch(kind==='nodes'?'node':'relation','b')}
+      ORDER BY c.search_rank,c.id_lower,c.position LIMIT ?`;
+    bindings=[...indexedRankBindings(needle),...filterBindings,...continuationBindings,
+      ...indexedRankBindings(needle),windowLast.search_rank,...indexedRankBindings(needle),windowLast.search_rank,
+      windowLast.id_lower,windowLast.id_lower,windowLast.position,needle,needle,options.limit+1];
+  }
   let result;
   try {
     result = await delivery.select(sql,bindings);
@@ -618,15 +682,16 @@ async function indexedKindPage(
   const selectedRows = result.results.slice(0, options.limit);
   if(result.results.some(row=>typeof row.id!=='string'||typeof row.id_lower!=='string'||row.id_lower!==nativeLower(row.id)||!Number.isSafeInteger(row.position)||row.position<0||!Number.isSafeInteger(row.search_rank)||row.search_rank<0||row.search_rank>3))throw new HttpError(503,'indexed knowledge search selected rank carrier is invalid');
   const rowsValue = await delivery.items(kind,selectedRows);
-  const hasMore = result.results.length > options.limit;
-  const last = selectedRows[selectedRows.length - 1];
+  const moreMatches = result.results.length > options.limit;
+  const hasMore = moreMatches || windowHasMore;
+  const last = moreMatches ? selectedRows[selectedRows.length - 1] : windowHasMore ? windowLast : null;
   const nextCursor = hasMore && last
     ? indexedCursorEncode({ schema: SEARCH_CURSOR_SCHEMA, source_revision: sourceRevision, snapshot_epoch: snapshotEpoch, kind, query: needle, filters, rank: last.search_rank, id: last.id_lower, position: last.position })
     : null;
   const resultRowsRead = indexedRowsRead(result.meta?.rows_read);
-  const rowsRead = preflightRowsRead === undefined || resultRowsRead === undefined
+  const rowsRead = preflightRowsRead === undefined || resultRowsRead === undefined || windowRowsRead === undefined
     ? undefined
-    : preflightRowsRead + resultRowsRead;
+    : preflightRowsRead + resultRowsRead + windowRowsRead;
   return {
     rows: rowsValue,
     nextCursor,
@@ -634,7 +699,8 @@ async function indexedKindPage(
     work: {
       candidate_rows: candidateRows,
       verified_chars: verifiedChars,
-      sql_pages: grams.length + postingSelections.length + 2,
+      rank_chars: rankChars,
+      sql_pages: grams.length + postingSelections.length + 2 + Number(windowLast!==null),
       // This excludes independent gram-stat/posting-closure, metadata, and consistency
       // reads; it is not a total query-cost counter.
       ...(rowsRead === undefined ? {} : { selection_rows_read: rowsRead }),
