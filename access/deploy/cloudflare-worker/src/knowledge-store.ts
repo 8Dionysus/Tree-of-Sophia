@@ -123,7 +123,7 @@ function sameKnowledgeSnapshot(left: KnowledgeSnapshot, right: KnowledgeSnapshot
   return left.epoch === right.epoch && left.revision === right.revision;
 }
 
-async function consistentRead<T>(
+export async function consistentRead<T>(
   db: D1Database,
   read: (snapshot: KnowledgeSnapshot) => Promise<T>,
 ): Promise<T> {

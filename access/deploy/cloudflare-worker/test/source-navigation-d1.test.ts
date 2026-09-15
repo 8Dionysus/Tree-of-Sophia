@@ -17,6 +17,8 @@ type Navigation = {
 
 const SCHEMA = `
 CREATE TABLE edge_meta(key TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY(key, part));
+CREATE TABLE knowledge_exploration_clock(singleton INTEGER PRIMARY KEY, epoch INTEGER NOT NULL);
+INSERT INTO knowledge_exploration_clock VALUES(1,0);
 CREATE TABLE source_navigation_nodes(node_id TEXT PRIMARY KEY, ord INTEGER NOT NULL, node_kind TEXT NOT NULL, source_ref TEXT NOT NULL, label TEXT NOT NULL, identity_status TEXT NOT NULL, properties_json TEXT NOT NULL, json TEXT NOT NULL);
 CREATE TABLE source_navigation_node_payload(id TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY(id, part));
 CREATE TABLE source_navigation_edges(edge_id TEXT PRIMARY KEY, ord INTEGER NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, edge_kind TEXT NOT NULL, predicate_id TEXT NOT NULL, review_status TEXT NOT NULL, source_refs_json TEXT NOT NULL, json TEXT NOT NULL);
@@ -54,6 +56,7 @@ function baseNavigation(): Navigation {
 
 async function populate(db: D1Database, navigation: Navigation, payloadIds: Set<string> = new Set()): Promise<void> {
   await db.exec(SCHEMA);
+  await db.prepare('INSERT INTO edge_meta VALUES (?,0,?)').bind('data_revision',JSON.stringify({sha256:'a'.repeat(64)})).run();
   await db.prepare("INSERT INTO edge_meta VALUES (?, 0, ?)").bind("source_navigation_top", JSON.stringify({
     schema_version: navigation.schema_version,
     authority_boundary: navigation.authority_boundary,
@@ -100,6 +103,43 @@ async function database(): Promise<{ mf: Miniflare; db: D1Database }> {
   }));
   return { mf, db: await mf.getD1Database("DB") };
 }
+
+test('native source routes refuse an ABA publication during an otherwise valid row read', async () => {
+  const {mf,db}=await database();
+  try {
+    await populate(db,baseNavigation());
+    for (const route of ['descent','dossier']) {
+      let changed=false;
+      const interleaved=new Proxy(db, {get(target,property) {
+        if (property!=='prepare') return Reflect.get(target,property);
+        return (sql:string) => {
+          const wrap=(statement:D1PreparedStatement):D1PreparedStatement => new Proxy(statement,{get(inner,key) {
+            if (key==='bind') return (...values:unknown[])=>wrap(inner.bind(...values));
+            if (key==='all') return async () => {
+              const result=await inner.all();
+              if (!changed && sql.includes('source_navigation_nodes')) {
+                changed=true;
+                // A -> B -> A keeps revision bytes but invalidates the epoch.
+                await db.batch([
+                  db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").bind(JSON.stringify({sha256:'b'.repeat(64)})),
+                  db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").bind(JSON.stringify({sha256:'a'.repeat(64)})),
+                  db.prepare('UPDATE knowledge_exploration_clock SET epoch=epoch+2 WHERE singleton=1'),
+                ]);
+              }
+              return result;
+            };
+            const value=Reflect.get(inner,key);
+            return typeof value==='function' ? value.bind(inner) : value;
+          }});
+          return wrap(target.prepare(sql));
+        };
+      }});
+      await assert.rejects(route==='descent' ? sourceDescendD1(interleaved,'era',8,300)
+        : sourceDossierD1(interleaved,'work',300), /snapshot changed during query/);
+      assert.equal(changed,true);
+    }
+  } finally { await mf.dispose(); }
+});
 
 function tracedDatabase(db: D1Database, limits: number[]): D1Database {
   return {
