@@ -3,6 +3,56 @@
 This is a bounded integration review, not Foundation v1 acceptance, corpus
 admission, CI, merge, or deployment evidence.
 
+## Historical carrier/episode and bounded title search · 2026-09-15 UTC
+
+The current D1 scene now connects the already checked Penn source segments in
+an actual human/agent interaction: open the modern book, inspect its 1920
+Yale edition and DjVu File dossier, select the rediscovery-carrier Claim,
+inspect that same Claim through WebMCP, expand its neighborhood, and select
+the 1914 access episode. The title, uncertain/unreviewed statement, source
+path, and Jastrow attribution survive these transitions. The modern book,
+1920 edition, later digital carrier, physical tablet and episode remain
+different objects. Shared book evidence does not establish a causal link;
+prior access history remains unknown. The source-record/participant/context
+checks from earlier bounded segments were reused, not rerun as one large
+scenario. Nested context is still sometimes structured JSON, not accepted
+complete human prose.
+
+Two temporary 15-second requestAnimationFrame probes observed the visible
+scene and a book-to-Claim selection: 1,193 / 1,380 callbacks, p95 intervals
+16.8 / 16.7 ms, maxima 25.1 / 25.0 ms, zero intervals over 50 ms. Probes were
+removed. These are bounded callback observations, not GPU-present latency,
+all-scene smoothness or a timed claim about every subsequent route action.
+The existing spatial composition was visually inspected without redesign.
+
+The real query `An Old Babylonian Version` initially failed the unchanged
+16-million-character verification gate: the rarest trigram selected 166
+node candidates with 16,787,765 document characters. Indexed metadata-only
+diagnosis showed that three rare trigrams select 39 candidates / 1,656,122
+characters. The general Worker planner now intersects up to three postings
+using covering-index membership seeks before text verification. Every used
+posting closure is checked, and their summed closure count remains within
+the existing 50,000-candidate budget. Exact full-text matching, ordering,
+snapshot-bound cursors and the character cap remain unchanged; there is no
+title-specific exception, new index, database rebuild or legacy fallback.
+
+The same real request now returns HTTP 200 (272,640 bytes, 1,533.62 ms),
+including the book. WebMCP search then human selection retains that exact
+Work identity; a second cursor page has no repeated node/relation IDs from
+the first page and does not clear the selected book. Unknown totals remain
+unknown. The result closes this G6/G7/G9 search availability/continuation
+seam and the bounded G5/G6/K2 carrier-to-episode human/agent join, not all K2
+or global K3 performance acceptance.
+
+Durable local evidence: `penn-carrier-episode-ui-seam-r1.json` SHA-256
+`6e44928608ab5e183eb7571ea92cfb1dfb0c424f542aff83d2b3feb4ae8fe4e5`;
+`penn-title-intersection-runtime-r1.json` SHA-256
+`52cce1158f60784b2065fc1440db42a280ccafe7984619eb9ba35872bbc88ff8`.
+Remaining completion work includes complete concept/exact-text and other
+K2 interaction coverage, outstanding K3 mutation/growth dimensions, source
+companion sealing and exact-head CI/merge. PR 229 is now merged as
+`e7b09be2cbfd237b8d8f70c97c795ffefa2903a0`; later PRs remain separate.
+
 ## Published native navigation reader · 2026-09-15 UTC
 
 Python now reads the selected SQLite publication's native source-navigation

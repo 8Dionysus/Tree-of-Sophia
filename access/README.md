@@ -334,6 +334,13 @@ The read-only operations are available through all backend adapters:
   the graph or creates another search index during a request. A scan-only
   compiled store reports indexed search unavailable while retaining the
   explicitly separate legacy search route.
+  The D1 indexed planner intersects up to three rare query trigrams before
+  the document-verification gate. Every used posting has a checked closure;
+  their combined closure count stays within the existing 50,000-candidate
+  budget. Additional membership tests use exact covering-index seeks. The
+  16,000,000-character verification cap, exact text match, ranking and
+  snapshot-bound continuation are unchanged. This reduces false-positive
+  candidates without treating a trigram hit as an actual text match.
 - `GET /api/knowledge/focus/{node_id}` resolves an exact normalized ID, a
   stable entity ID, or one unambiguous native ID and returns a bounded radial neighborhood with an
   explicit `focus` object. Ambiguous native IDs fail closed so the caller can

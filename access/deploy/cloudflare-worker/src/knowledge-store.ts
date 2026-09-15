@@ -20,6 +20,7 @@ const KNOWLEDGE_SOURCES = new Set(["philosophy", "canon", "candidate-intake", "s
 const SEARCH_NGRAM_SIZE = 3;
 const SEARCH_MAX_CANDIDATES = 50_000;
 const SEARCH_MAX_VERIFY_CHARS = 16_000_000;
+const SEARCH_MAX_INTERSECTION_GRAMS = 3;
 const SEARCH_CURSOR_SCHEMA = "tos_knowledge_search_indexed_cursor_v3";
 
 // A data_revision digest is not a publication identity: an import can move
@@ -496,21 +497,45 @@ async function indexedKindPage(
   if (selected.postings > SEARCH_MAX_CANDIDATES) {
     throw new HttpError(413, "indexed knowledge search candidate budget exceeded; narrow the query or use the legacy route");
   }
-  // Validate only this bounded posting window, including the zero-stat path.
-  // Missing metadata cannot masquerade as an empty successful search.
-  const posting=await db.prepare(`SELECT count(*) AS total,coalesce(sum(CASE WHEN document_position IS NULL THEN 1 ELSE 0 END),0) AS missing
+  // Intersect a bounded number of rare postings before visiting document
+  // bodies. A rare substring alone can still select wide unrelated records.
+  // Stable sort preserves the original query-order tie choice. The total
+  // posting closure read stays inside the existing candidate budget, rather
+  // than multiplying that budget by the number of intersected grams.
+  const postingSelections = [selected];
+  let closurePostings = selected.postings;
+  if (selected.postings > 0) {
+    for (const candidate of [...stats].sort((left, right) => left.postings - right.postings)) {
+      if (candidate.gram === selected.gram) continue;
+      if (postingSelections.length >= SEARCH_MAX_INTERSECTION_GRAMS
+          || closurePostings + candidate.postings > SEARCH_MAX_CANDIDATES) break;
+      postingSelections.push(candidate);
+      closurePostings += candidate.postings;
+    }
+  }
+  // Validate every posting used for exclusion, including the zero-stat path.
+  // A missing secondary posting must not silently remove a genuine match.
+  for (const selection of postingSelections) {
+    const posting=await db.prepare(`SELECT count(*) AS total,coalesce(sum(CASE WHEN document_position IS NULL THEN 1 ELSE 0 END),0) AS missing
     FROM (SELECT s.position AS document_position FROM knowledge_search_grams g
       LEFT JOIN knowledge_search_documents s ON s.kind=g.kind AND s.position=g.position
-      WHERE g.kind=? AND g.n=? AND g.gram=? LIMIT ?)`).bind(kind,SEARCH_NGRAM_SIZE,selected.gram,SEARCH_MAX_CANDIDATES+1)
+      WHERE g.kind=? AND g.n=? AND g.gram=? LIMIT ?)`).bind(kind,SEARCH_NGRAM_SIZE,selection.gram,selection.postings+1)
     .first<{total:number;missing:number}>();
-  if(!posting||!Number.isSafeInteger(posting.total)||!Number.isSafeInteger(posting.missing))throw new HttpError(503,'indexed knowledge search posting metadata is invalid');
-  if(posting.total>SEARCH_MAX_CANDIDATES)throw new HttpError(413,'indexed knowledge search candidate budget exceeded');
-  if(posting.total!==selected.postings||posting.missing!==0)throw new HttpError(503,'indexed knowledge search posting closure is incomplete');
+    if(!posting||!Number.isSafeInteger(posting.total)||!Number.isSafeInteger(posting.missing))throw new HttpError(503,'indexed knowledge search posting metadata is invalid');
+    if(posting.total>SEARCH_MAX_CANDIDATES)throw new HttpError(413,'indexed knowledge search candidate budget exceeded');
+    if(posting.total!==selection.postings||posting.missing!==0)throw new HttpError(503,'indexed knowledge search posting closure is incomplete');
+  }
   if(selected.postings===0)return {rows:[],nextCursor:null,hasMore:false,work:{candidate_rows:0,verified_chars:0,sql_pages:grams.length+1}};
   const rankExpression = indexedRankExpression("s");
   const baseTable = kind === "nodes" ? "knowledge_nodes" : "knowledge_relations";
   const filterSql: string[] = ["g.kind = ?", "g.n = ?", "g.gram = ?"];
   const filterBindings: unknown[] = [kind, SEARCH_NGRAM_SIZE, selected.gram];
+  for (const selection of postingSelections.slice(1)) {
+    filterSql.push(`EXISTS (SELECT 1 FROM knowledge_search_grams intersection
+      WHERE intersection.kind=g.kind AND intersection.n=g.n
+        AND intersection.gram=? AND intersection.position=g.position)`);
+    filterBindings.push(selection.gram);
+  }
   if (filters.sources.length) {
     filterSql.push(`s.source_graph IN (SELECT value FROM json_each(?))`);
     filterBindings.push(JSON.stringify(filters.sources));
@@ -569,7 +594,7 @@ async function indexedKindPage(
       work: {
         candidate_rows: 0,
         verified_chars: 0,
-        sql_pages: grams.length + 2,
+        sql_pages: grams.length + postingSelections.length + 1,
         ...(preflightRowsRead === undefined ? {} : { selection_rows_read: preflightRowsRead }),
       },
     };
@@ -609,7 +634,7 @@ async function indexedKindPage(
     work: {
       candidate_rows: candidateRows,
       verified_chars: verifiedChars,
-      sql_pages: grams.length + 3,
+      sql_pages: grams.length + postingSelections.length + 2,
       // This excludes independent gram-stat/posting-closure, metadata, and consistency
       // reads; it is not a total query-cost counter.
       ...(rowsRead === undefined ? {} : { selection_rows_read: rowsRead }),
