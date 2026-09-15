@@ -111,7 +111,17 @@ def _configuration(path):
     return _builtin_configuration(config, path)
 
 
-def _builtin_configuration(config, path):
+def _builtin_configuration(config, path, *, _creation_recorded_at=None):
+    # Only the read-only committed-creation inspector supplies a historical
+    # instant. All command dispatch retains the current delegation check.
+    now = datetime.now(timezone.utc)
+    evaluation_time = now
+    if _creation_recorded_at is not None:
+        if config.get('schema_version') not in {PROFILE_CONFIG, CORPUS_CONFIG, CORPUS_COLLECTION_CONFIG}:
+            raise PermissionError('historical inspection is limited to standalone metadata creation')
+        evaluation_time = _instant(_creation_recorded_at)
+        if evaluation_time > now:
+            raise PermissionError('creation receipt is dated in the future')
     creation = config.get('schema_version') in CREATION_CONFIGS
     profile_creation = config.get('schema_version') in PROFILE_CREATION_CONFIGS
     sign_promotion = config.get('schema_version') == SIGN_CONFIG
@@ -139,7 +149,7 @@ def _builtin_configuration(config, path):
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
-            or _instant(config['expires_at']) <= datetime.now(timezone.utc)):
+            or _instant(config['expires_at']) <= evaluation_time):
         raise PermissionError('source-command delegation is invalid or expired')
     operations = (('record.revise', 'record.recover') if config['schema_version'] in CORPUS_SELECTED_REVISION_CONFIGS
                   else ('sign.promote',) if sign_promotion else ('source.create',) if profile_creation or corpus_creation
@@ -237,6 +247,53 @@ def _builtin_configuration(config, path):
         if inputs is not None:
             return config, _digest(_canonical({'configuration': config, **inputs})), root / relative
     return config, _digest(_canonical(config)), root / relative
+
+
+def inspect_committed_creation_owner(owner_config, receipt):
+    """Inspect exact historical standalone creation evidence, never a live grant.
+
+    The caller binds the receipt bytes and verifies the complete committed
+    package under its source lock. Natural expiry does not erase provenance;
+    a changed configuration, receipt mismatch or creation after expiry fails.
+    This function is not reachable through source command dispatch.
+    """
+    config = _json_object(_read(Path(owner_config), MAX_COMMAND_BYTES))
+    claim = config.get('schema_version') == CLAIM_CONFIG
+    schema = 'tos_local_claim_create_receipt_v1' if claim else 'tos_local_source_create_receipt_v1'
+    if (not isinstance(receipt, dict)
+            or receipt.get('schema_version') != schema
+            or not isinstance(receipt.get('recorded_at'), str)):
+        raise PermissionError('exact committed creation receipt required')
+    if claim:
+        import source_claim_commands
+        config, digest, path = source_claim_commands.configuration(config,
+            _creation_recorded_at=receipt['recorded_at'])
+    else:
+        config, digest, path = _builtin_configuration(config, Path(owner_config),
+            _creation_recorded_at=receipt['recorded_at'])
+    if (receipt.get('owner_configuration') != digest
+            or receipt.get('principal_id') != config['principal_id']
+            or receipt.get('authority_ref') != config['authority_ref']
+            or receipt.get('source_path') != config['source_path']
+            or receipt.get('grants_admission') is not False):
+        raise PermissionError('committed creation authority evidence differs')
+    return config, digest, path
+
+
+def inspect_selected_creation_owner(owner_config, expected_receipt_sha256):
+    """Read only one hash-selected committed receipt under protected owner paths."""
+    config = _json_object(_read(Path(owner_config), MAX_COMMAND_BYTES))
+    root = Path(config['source_root'])
+    relative = Path(config['source_path'])
+    if (not root.is_absolute() or '..' in root.parts or relative.is_absolute()
+            or '..' in relative.parts or relative.parts[:2] != ('ToS', 'source-witnesses')
+            or relative.suffix not in {'.json', '.jsonl'}):
+        raise PermissionError('exact protected source metadata receipt required')
+    raw = _read((root / relative).with_name('source-create-receipt.json'), MAX_COMMAND_BYTES)
+    expected = expected_receipt_sha256.removeprefix('sha256:')
+    if not re.fullmatch(r'[a-f0-9]{64}', expected) or hashlib.sha256(raw).hexdigest() != expected:
+        raise JournalConflict('selected creation receipt bytes differ')
+    return inspect_committed_creation_owner(owner_config, _json_object(raw))
 
 
 def _configured_corpus_profile(config):

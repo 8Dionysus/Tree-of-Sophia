@@ -16,10 +16,18 @@ reader and registry admission; this is not runtime schema invention.
 
 ## Addressed operation
 
-`metadata_catalog_addition` takes the current protected creation configuration,
+`metadata_catalog_addition` takes the unchanged protected creation configuration,
 an explicitly admitted catalog predecessor and exact request/receipt digests.
-It verifies current authority and unchanged initial output bytes under the
-source writer lock. It stages the new metadata row and its captured provenance
+It verifies historical creation scope at the receipt's recorded instant and
+unchanged initial output bytes under the source writer lock. Natural expiry of
+that write delegation does not invalidate already committed metadata. The
+receipt must predate expiry, must not be future-dated, and must match the exact
+configuration, principal, authority and source path. Changing or revoking the
+configuration still refuses this selected route. New source commands continue
+to require a current grant; the read-only evidence inspector is not a command
+or renewed authority. The caller separately owns derived publication and
+consumer selection, just as for full snapshot construction.
+It stages the new metadata row and its captured provenance
 slot in immutable catalog parts. It does not scan source directories, rebuild
 the whole catalog or select that candidate for a consumer. Existing source
 metadata publication tokens are retained; no fictitious revision transaction
@@ -63,7 +71,7 @@ Inside the context manager, call `BEGIN IMMEDIATE`, `apply_transaction`, and
 `rollback_transaction`. An explicit rollback is a valid terminal outcome, not
 an obligation to commit a rehearsal; the closed candidate cannot be reused.
 The source lock and current source guards remain held
-through commit. Source/authority drift, a caller DML/DDL change after apply,
+through commit. Source/creation-evidence drift, a caller DML/DDL change after apply,
 stale paired inputs, unsupported scope or exhausted work budgets refuse the
 transition. Roll back the complete SQLite transaction on failure. The source
 command remains committed and inspectable; unselected immutable parts may

@@ -48,7 +48,8 @@ class MetadataCatalogAddition:
                  expected_request_digest, limits, mutation_limits, target_part_bytes):
         self.active = True
         self.owner_config = Path(owner_config)
-        self.config, self.configuration, self.path = source._configuration(self.owner_config)
+        self.expected_receipt_sha256 = expected_receipt_sha256
+        self.config, self.configuration, self.path = source.inspect_selected_creation_owner(self.owner_config, expected_receipt_sha256)
         if self.config['schema_version'] not in ALLOWED_CONFIGS:
             raise PermissionError('initial metadata addition requires the explicit profile/corpus owner lane')
         self.before = before
@@ -253,7 +254,7 @@ class MetadataCatalogAddition:
     def verify_current(self):
         if not self.active:
             raise catalog.SourceCatalogError('metadata addition source scope is closed')
-        config, digest, path = source._configuration(self.owner_config)
+        config, digest, path = source.inspect_selected_creation_owner(self.owner_config, self.expected_receipt_sha256)
         if config != self.config or digest != self.configuration or path != self.path:
             raise PermissionError('metadata addition delegation changed')
         self.publication.verify_current()
@@ -283,7 +284,7 @@ def metadata_catalog_addition(owner_config, before, *, expected_receipt_sha256,
         raise TypeError('an explicit source catalog predecessor is required')
     limits = limits or catalog.CatalogLimits(max_records=1, max_claims=0, max_source_slots=2)
     mutation_limits = mutation_limits or MutationLimits()
-    config, _, _ = source._configuration(Path(owner_config))
+    config, _, _ = source.inspect_selected_creation_owner(Path(owner_config), expected_receipt_sha256)
     if config['schema_version'] not in ALLOWED_CONFIGS:
         raise PermissionError('metadata addition requires an explicit profile/corpus owner lane')
     with source._locked(Path(config['source_root']) / 'ToS/source-witnesses/historical-create'):
