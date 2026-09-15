@@ -3,18 +3,35 @@ import {ExplorationSceneCache} from './exploration-cache.mjs';
 import {validateHumanForms,claimPathFor} from './human-forms.mjs';
 import {readingSnapshot} from './reader-model.mjs';
 import {nativeStrip,nativeLower} from '../../../shared/native-unicode.ts';
+import {chooseKnowledgeSearchMode} from '../knowledge-search.ts';
 import {readExactSource} from './exact-source-read.mjs';
 
 const hash=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 const strings=value=>Array.isArray(value)&&value.every(item=>typeof item==='string'&&item.length>0);
 const readonly=value=>value?.writes_to_tree===false&&value?.is_source===false&&value?.is_canon===false;
+const searchSchemas=Object.freeze({indexed:'tos_knowledge_search_indexed_v2',compressed:'tos_knowledge_search_compressed_v3'});
 function immutable(value){
   if(value&&typeof value==='object'&&!Object.isFrozen(value)){
     Object.values(value).forEach(immutable);Object.freeze(value);
   }return value;
 }
 function requireContract(value){if(!value)throw new ContractError('The backend did not provide the required exploration contract.');}
+function selectSearchMode(search,query){
+  try{return chooseKnowledgeSearchMode(search,undefined,query);}
+  catch(error){throw new ContractError(error?.message||'The backend did not provide a usable knowledge search engine.');}
+}
+function searchDescriptor(search,mode){
+  const descriptor=search?.modes?.[mode];
+  requireContract(object(descriptor)&&descriptor.available===true&&descriptor.schema===searchSchemas[mode]);
+  return descriptor;
+}
+function selectedSearch(search,sourceRevision,query){
+  const mode=selectSearchMode(search,query);
+  const descriptor=searchDescriptor(search,mode);
+  if(sourceRevision!==undefined&&descriptor.source_revision!==undefined)checkRevision(descriptor,sourceRevision);
+  return {mode,descriptor};
+}
 
 export function bindExplorationDiscovery(catalog,exploration,search){
   checkRevision(catalog);
@@ -28,11 +45,7 @@ export function bindExplorationDiscovery(catalog,exploration,search){
     &&exploration.result_versions?.includes('tos_exploration_result_v2')
     &&['node','relation'].every(kind=>exploration.v2_origin_kinds?.includes(kind))
     &&search?.schema==='tos_knowledge_search_capabilities_v1'&&search.writes_to_tree===false);
-  const searchMode=search.modes?.compressed?.available===true?'compressed':search.modes?.indexed?.available===true?'indexed':null;
-  requireContract(searchMode!==null);
-  const schema=search.modes[searchMode].schema;
-  requireContract(schema===(searchMode==='compressed'?'tos_knowledge_search_compressed_v3':'tos_knowledge_search_indexed_v2'));
-  if(search.modes[searchMode].source_revision!==undefined)checkRevision(search.modes[searchMode],catalog.source_revision);
+  const {mode:searchMode,descriptor}=selectedSearch(search,catalog.source_revision),schema=descriptor.schema;
   if(exploration.source_revision!==undefined)checkRevision(exploration,catalog.source_revision);
   return immutable(structuredClone({catalog,exploration,search,searchMode,searchSchema:schema}));
 }
@@ -61,8 +74,9 @@ export function explorationRequest(discovery,target,options={}){
 }
 
 export function validateExplorationSearch(packet,discovery,query,cursor=null){
+  const {mode:searchMode,descriptor}=selectedSearch(discovery.search,discovery.catalog.source_revision,query);
   checkRevision(packet,discovery.catalog.source_revision);
-  requireContract(packet.schema===discovery.searchSchema&&packet.query===(discovery.searchMode==='compressed'?nativeStrip(query):query)
+  requireContract(packet.schema===descriptor.schema&&packet.query===(searchMode==='compressed'?nativeStrip(query):query)
     &&readonly(packet.authority_boundary)&&packet.page?.cursor===cursor
     &&packet.page.limit_per_kind===6&&typeof packet.page.has_more==='boolean'
     &&(packet.page.has_more?typeof packet.page.next_cursor==='string'&&packet.page.next_cursor.length>0:packet.page.next_cursor===null));
@@ -104,7 +118,8 @@ export class ExplorationSession {
       &&(cursor===null||typeof cursor==='string'&&cursor.length<=65536));
     const discovery=this.#discovery;
     const result=await this.#slots.run('search',async signal=>{
-      const params=new URLSearchParams({mode:discovery.searchMode,query,limit:'6',...(cursor?{cursor}:{})});
+      const {mode:searchMode}=selectedSearch(discovery.search,discovery.catalog.source_revision,query);
+      const params=new URLSearchParams({mode:searchMode,query,limit:'6',...(cursor?{cursor}:{})});
       return validateExplorationSearch(await this.#client.request('/search?'+params,{signal}),discovery,query,cursor);
     });
     return result.current&&!this.#disposed?immutable(structuredClone(result.value)):null;
