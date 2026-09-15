@@ -1,4 +1,5 @@
 import { SophiaGpuCanvas } from '../src/observatory/gpu-canvas.js';
+import {validateSkyPose} from './sky-pose.mjs';
 
 // Spatial view over a session-local graph; preserves the observatory atmosphere.
 export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}}) {
@@ -94,7 +95,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         el.addEventListener('pointerenter',()=>{hover=item.id;kick()});el.addEventListener('pointerleave',()=>{hover=null;kick()});
         el.addEventListener('focus',()=>{hover=item.id;kick()});el.addEventListener('blur',()=>{hover=null;kick()});
       }
-      n.target=[...item.position];n.kind=item.kind;n.color=item.color;n.prominent=!!item.prominent;n.major=item.major??['work','concept','dossier','figure'].includes(item.kind);n.label.textContent=labels[item.id]??item.title??item.id;n.el.setAttribute('aria-label',item.accessibilityLabel??n.label.textContent);return n;
+      n.target=[...item.position];n.kind=item.kind;n.color=item.color;n.prominent=!!item.prominent;n.major=item.major??['work','concept','dossier','figure'].includes(item.kind);n.label.textContent=labels[item.id]??item.title??item.id;n.el.setAttribute('aria-label',item.accessibilityLabel??n.label.textContent);
+      if(item.hover)n.el.title=item.hover;else n.el.removeAttribute('title');
+      if(item.ownerType)n.el.dataset.ownerType=item.ownerType;else delete n.el.dataset.ownerType;
+      return n;
     });old.forEach(n=>n.el.remove());
     const oldClusters=new Map(clusters.map(c=>[c.id,c]));
     clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
@@ -271,6 +275,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const ro=new ResizeObserver(resize);ro.observe(root);paintNebula();resize();
   return {
     update:refresh,
+    capturePose(){return validateSkyPose({v:1,yaw:tyaw,pitch:tpitch,zoom:tzoom,pan:[tpan.x,tpan.y],center:[...targetCenter],fit:targetFit});},
+    restorePose(value){const pose=validateSkyPose(value);yaw=tyaw=pose.yaw;pitch=tpitch=pose.pitch;zoom=tzoom=pose.zoom;
+      pan={x:pose.pan[0],y:pose.pan[1]};tpan={...pan};center=[...pose.center];targetCenter=[...pose.center];fitScale=targetFit=pose.fit;kick();},
     select(id){selectedId=id;kick()},
     selectEdge(id){selectedEdgeId=id;kick()},
     link(id){linkFrom=id;kick()},

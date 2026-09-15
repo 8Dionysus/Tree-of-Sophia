@@ -3,13 +3,22 @@ import '../src/observatory/human-forms.css';
 import {mountConstructorSky} from './sky.mjs';
 import {createLiveResearch,seekSearchPage,SEARCH_SEEK_WINDOW} from './live-research.mjs';
 import {ExplorationSession} from '../src/observatory/exploration-session.mjs';
-import {isSourceDossierRef,SOURCE_DOSSIER_LIMIT} from '../src/observatory/knowledge-client.mjs';
-import {liveLabel,liveEdgeLabel,livePredicateLabel} from './live-model.mjs';
+import {isSourceDossierRef,SOURCE_DOSSIER_LIMIT,specForPacket,localized} from '../src/observatory/knowledge-client.mjs';
+import {liveLabel,liveEdgeLabel,livePredicateLabel,liveTypeColor} from './live-model.mjs';
 import {readingDocument} from '../src/observatory/reader-model.mjs';
 import {renderHumanForms,renderClaimContext,renderEssentialContext} from '../src/observatory/human-forms-view.mjs';
 import {setUiLanguage} from '../src/observatory/ui-i18n.mjs';
 import {mountSourceCommandPanel} from './source-command-panel.mjs';
 import {inclusionSummary} from './inclusion-summary.mjs';
+import {mountCorpusEntry} from '../src/corpus-reader/host.mjs';
+import {exactSourceRepresentations} from '../src/observatory/exact-source-read.mjs';
+import {mountTemporalComparison} from '../src/observatory/temporal-compare.mjs';
+import {createLiveResumeStore,makeLiveResume,resolveLiveResumeSelection} from './live-resume.mjs';
+import {mountResearchShelfEntry} from '../src/research-shelf/host.mjs';
+import {mountLensBuilder} from '../src/observatory/lens-builder.mjs';
+import {constructorCatalog,previewDraft} from '../src/observatory/lens-model.mjs';
+import {validateRouteTarget} from '../src/research-shelf/model.mjs';
+import {RevisionError} from '../src/observatory/knowledge-client.mjs';
 
 const copy={ru:{brand:'ДРЕВО СОФИИ',subtitle:'Исследование исходного знания',search:'Найти предмет или связь',close:'Закрыть',
   view:'ПРЕДСТАВЛЕНИЕ',compact:'Смысловые связи',grouped:'Предметы и записи',raw:'Все носители',conditions:'Условия раскрытия',
@@ -57,8 +66,12 @@ const detail=(title,value)=>{const node=el('details');node.append(el('summary',t
 export async function mountLiveResearch(root,{session,skyFactory=mountConstructorSky,url=new URL(location.href)}={}){
   const activeSession=session??new ExplorationSession();
   let language=url.searchParams.get('lang')==='en'?'en':'ru',controller,readingOpen=false,disposed=false;
+  let research=null,moving=!matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let routedView=null;
   let options={},searchPage=null,searchQuery='',searchSeek=null,searchGeneration=0,surfaceGeneration=0,renderedReading=null,renderedReadingError=null,renderedComparison=null;
   const t=key=>copy[language][key];setUiLanguage(language);
+  const word=(ru,en)=>language==='ru'?ru:en;
+  const viewStore=createLiveResumeStore();let resumeTimer=null,resumeWriting=Promise.resolve(),resumeEnabled=false,lastResumeKey='',unresolvedResume=null;
   root.dataset.mode='live';root.dataset.ready='false';
   root.innerHTML=`<canvas class="tree-sky" aria-hidden="true"></canvas><div class="tree-clusters"></div><div class="edge-labels"></div><div class="tree-stars"></div>
     <header class="header"><div class="brand"><span class="brand-mark">✧</span><div><b data-live-copy="brand"></b><small data-live-copy="subtitle"></small></div></div>
@@ -73,11 +86,11 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       <p class="muted live-search-status" role="status"></p><div class="material-list"></div><button class="text-button live-more" data-live-copy="more" hidden></button></aside>
     <div class="empty-space"><h1 data-live-copy="empty"></h1><p data-live-copy="emptyText"></p><button class="primary" data-live-action="search" data-live-copy="searchGo"></button></div>
     <div class="relation-bar"><button class="primary" data-live-action="continue" data-live-copy="continue" disabled></button><button class="text-button" data-live-action="cancel" data-live-copy="cancel" hidden></button></div>
-    <footer class="footer"><span class="posture-button" data-live-copy="readonly"></span><span class="space-count"></span><div class="footer-tools">
+    <footer class="footer"><button class="text-button live-back" data-live-action="back" hidden></button><button class="posture-button" data-live-action="scope" data-live-copy="readonly"></button><span class="space-count"></span><div class="footer-tools">
     <button class="icon" data-live-action="overview" data-live-title="overview">⤢</button><button class="icon" data-live-action="motion" data-live-title="motion">✧</button><button class="icon" data-live-action="cinema" data-live-title="cinema">◌</button></div></footer>
     <button class="show-panels" data-live-action="cinema" data-live-copy="show" hidden></button><p class="notice" role="status" hidden></p><dialog class="dialog"></dialog>`;
   const reading=root.querySelector('.reading'),drawer=root.querySelector('.materials-panel'),dialog=root.querySelector('dialog'),notice=root.querySelector('.notice');
-  let sourceCommandCleanup=null;
+  let sourceCommandCleanup=null,temporalComparison=null;
   let sourceCommandBeforeUnload=false;
   const sourceCommandBeforeUnloadHandler=event=>{
     if(!sourceCommandPending())return;
@@ -138,7 +151,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   const sky=skyFactory(root,{onSelect:id=>{readingOpen=true;attempt(()=>controller.selectNode(id));},
     onEdgeSelect:id=>{readingOpen=true;attempt(()=>controller.selectEdge(id));},onMove:(id,position)=>attempt(()=>controller.move(id,position))});
   function selectedLabel(state){
-    if(!state.view)return t('empty');const target=state.view.selection;
+    if(!state.view)return t('empty');const target=state.selection;
     if(target.kind==='claim-path'){const edge=state.model.edges.find(item=>item.id===target.id);return edge?liveEdgeLabel(state.view,edge,language).text:t('selected');}
     const raw=state.view[target.kind==='node'?'nodes':'relations'].find(item=>item.id===target.id);return liveLabel(raw,language).text;
   }
@@ -151,16 +164,24 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     root.querySelector('.empty-space').hidden=Boolean(state.view);
     root.querySelector('.view-heading h1').textContent=state.view?selectedLabel(state):'';
     root.querySelector('.view-heading p').textContent=state.loading?t('loading'):state.view?t('readonly'):'';
-    const more=root.querySelector('[data-live-action="continue"]');more.disabled=state.loading||!state.view?.continuation.next_cursor;
-    more.textContent=state.view&&!state.view.continuation.next_cursor?t('complete'):t('continue');
+    const more=root.querySelector('[data-live-action="continue"]');more.disabled=state.loading||!state.view?.continuation?.next_cursor;
+    more.hidden=state.areaKind==='lens';more.textContent=state.view&&!state.view.continuation?.next_cursor?t('complete'):t('continue');
     root.querySelector('[data-live-action="cancel"]').hidden=!state.loading;
-    root.querySelector('.space-count').textContent=state.view?`${state.view.nodes.length} / 200 · ${state.view.relations.length} / 600`:'';
+    root.querySelector('.space-count').textContent=state.view?word(`${state.model.vertices.length} объектов · ${state.model.edges.length} связей`,`${state.model.vertices.length} objects · ${state.model.edges.length} relations`):'';
+    const back=root.querySelector('.live-back');back.hidden=!state.historyDepth;back.textContent=word('← Предыдущая область','← Previous area');back.disabled=state.loading;
     const rail=root.querySelector('.lens-list');rail.replaceChildren();
     for(const mode of ['compact','grouped','raw']){const item=button(t(mode),()=>attempt(()=>controller.mode(mode)),'lens');
       item.dataset.liveProjection=mode;item.setAttribute('aria-pressed',String(state.mode===mode));rail.append(item);}
     root.dataset.visibleNodes=String(state.model?.vertices.length??0);root.dataset.visibleEdges=String(state.model?.edges.length??0);
     root.dataset.sourceRevision=state.view?.source_revision??'';root.dataset.snapshotRevision=state.view?.snapshot_revision??'';
-    root.dataset.selection=state.view?.selection.id??'';root.dataset.loading=String(state.loading);
+    root.dataset.selection=state.selection?.id??'';root.dataset.loading=String(state.loading);root.dataset.history=String(state.historyDepth);
+    if(state.view&&state.view!==routedView){
+      const route=new URL(location.href);route.searchParams.delete('shelfRoute');
+      const origin=state.areaKind==='exploration'?state.view.contexts.at(-1)?.query?.origin:null;
+      if(origin){route.searchParams.set('focus',origin.id);route.searchParams.set('kind',origin.kind);}
+      else{route.searchParams.delete('focus');route.searchParams.delete('kind');}
+      history.replaceState(history.state,'',route);routedView=state.view;
+    }
     reading.hidden=!readingOpen;root.dataset.reading=String(readingOpen);
     if(readingOpen&&(renderedReading!==state.reading||renderedReadingError!==state.readingError)){
       renderedReading=state.reading;renderedReadingError=state.readingError;renderReading(state);
@@ -168,18 +189,50 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     if(state.error)report(state.error);
     if(dialog.open&&dialog.dataset.kind==='comparison'&&renderedComparison!==state.comparison)renderComparison(state);
     sky.refresh();
+    scheduleResume();
   }
   controller=createLiveResearch({session:activeSession,sky,language,onChange:reflect});
+  const corpus=mountCorpusEntry({root,client:activeSession.client,locale:()=>language,onError:report,
+    onReadingChange:active=>sky.motion(active?false:moving),
+    graphNavigate:async target=>{
+      const state=controller.state();
+      if(state.view?.[target.kind==='node'?'nodes':'relations'].some(item=>item.id===target.id)){
+        readingOpen=true;controller.selectRaw(target);return;
+      }
+      const result=await open(target);if(!result&&controller.state().error)throw controller.state().error;
+    }});
+  const builder=mountLensBuilder({host:document.body,client:activeSession.client,locale:()=>language,
+    getArea:()=>{const state=controller.state();return state.view?{packet:state.view,selection:state.selection}:null;},
+    getCatalog:()=>controller.state().discovery?.catalog??null,
+    onOpen:()=>{root.inert=true;sky.motion(false);},onClose:()=>{root.inert=false;sky.motion(moving);},onError:report,
+    onApply:async({packet})=>{if(!controller.showLens(packet))throw new Error(word('В этой области пока нет предметов для отображения.','This area has no objects to show.'));readingOpen=true;await controller.read();},
+    onSave:({draft})=>research.save({type:'lens',title:draft.name,target:{draft}}),
+  });
+  research=mountResearchShelfEntry({root,client:activeSession.client,corpus,locale:()=>language,onError:report,
+    onViewChange:active=>sky.motion(active?false:moving),onLens:draft=>builder.open({draft}),onRoute:openSavedRoute,
+    onMaterial:({snapshot,target,form})=>{
+      const body=modal(word('Материал с вашей полки','Material from your shelf'),'shelf-material');if(!body)return;
+      appendReading(body,snapshot);
+      body.append(button(word('Открыть в пространстве','Open in space'),()=>open({kind:target.kind,id:target.id,content_revision:target.contentRevision})));
+      const section=form?body.querySelector(`[data-form-role="${form.role}"]`):null;
+      if(section){for(let ancestor=section;ancestor;ancestor=ancestor.parentElement)if(ancestor.tagName==='DETAILS')ancestor.open=true;section.scrollIntoView({block:'nearest'});}
+    },
+  });
+  // The shared shelf also pages notebook notes; one primary personal entry is
+  // enough here. The native reader retains its own contextual notes action.
+  root.querySelector('[data-native-notes]')?.remove();
+  const lensOpen=button(word('Собрать линзу','Build a lens'),()=>void builder.open(),'live-lens-open');root.querySelector('.main-tools').prepend(lensOpen);
+  const narrowLens=button('◈',()=>void builder.open(),'live-lens-narrow');narrowLens.setAttribute('aria-label',word('Собрать линзу','Build a lens'));root.querySelector('.header').append(narrowLens);
   const transport=()=>controller.state().discovery;
   function modal(title,kind){
     if(sourceCommandPending()){sourceCommandCloseWarning();return null;}
     controller.cancelSourceRecord?.();controller.cancelSourceDossier?.();
-    disposeSourceCommandPanel();surfaceGeneration++;
+    disposeSourceCommandPanel();temporalComparison?.destroy();temporalComparison=null;surfaceGeneration++;
     dialog.replaceChildren();dialog.dataset.kind=kind;dialog.classList.toggle('wide',['comparison','source-dossier'].includes(kind));
     const top=el('div','','dialog-top'),close=button('×',closeDialog,'icon');close.setAttribute('aria-label',t('close'));
     top.append(el('h2',title),close);const body=el('div','','dialog-content');dialog.append(top,body);if(!dialog.open)dialog.showModal();return body;
   }
-  dialog.addEventListener('close',()=>{surfaceGeneration++;controller.cancelSourceDossier?.();controller.cancelSourceRecord?.();disposeSourceCommandPanel();});
+  dialog.addEventListener('close',()=>{surfaceGeneration++;controller.cancelSourceDossier?.();controller.cancelSourceRecord?.();temporalComparison?.destroy();temporalComparison=null;disposeSourceCommandPanel();});
   dialog.addEventListener('cancel',event=>{if(sourceCommandPending()){event.preventDefault();sourceCommandCloseWarning();}});
   const sourceDossierRefs=snapshot=>[...new Set([snapshot?.raw?.source_dossier_ref,...(snapshot?.endpoints??[]).map(item=>item?.source_dossier_ref)])]
     .filter(isSourceDossierRef);
@@ -221,9 +274,12 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     }catch(error){if(!disposed&&surface===surfaceGeneration){body.replaceChildren(el('p',error?.message??String(error),'body'));}}
   }
   async function openSourceRecord(snapshot,representation='record'){
-    const native=representation!=='record',local=representation==='native_local_unit';
-    const title=native?(language==='ru'?'Точный текст фрагмента':'Exact fragment text'):t('sourceRecord');
-    const body=modal(title,'source-record');if(!body)return;
+    if(representation!=='record'){
+      closeDialog();root.dataset.corpusReading='true';
+      return corpus.native.open({selection:{kind:snapshot.kind,id:snapshot.raw.id,source_revision:snapshot.sourceRevision,
+        content_revision:snapshot.raw.content_revision},representation});
+    }
+    const body=modal(t('sourceRecord'),'source-record');if(!body)return;
     const surface=surfaceGeneration;body.append(el('p',t('loading'),'body'));
     try{
       const result=await controller.sourceRecord(snapshot,{representation});
@@ -232,45 +288,12 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       if(!result){body.append(el('p',t('sourceRecordUnavailable'),'body'));return;}
       body.dataset.sourceReadStatus=result.status;
       if(result.status!=='available'){
-        if(native&&result.status==='access-restricted'){
-          body.append(el('p',local?(language==='ru'
-            ?'Локальное чтение не разрешено этой настройкой: проверьте её срок, точный фрагмент и условия источника.'
-            :'This local selection does not authorize reading: check its expiry, exact fragment and source conditions.'):(language==='ru'
-            ?'Точный текст пока не выдан: условия публичного чтения не подтверждены этим маршрутом. Доступность метаданных не означает разрешение читать текст.'
-            :'Exact text was not delivered: this route has not verified its public reading conditions. Available metadata does not grant text access.'),'body'));
-          return;
-        }
         const label={missing:'sourceRecordMissing','access-restricted':'sourceRecordRestricted',corrupt:'sourceRecordCorrupt','over-budget':'sourceRecordBudget'}[result.status]??'sourceRecordUnavailable';
         body.append(el('p',t(label),'body'));return;
       }
-      if(native){
-        const unit=result.native_unit;
-        if(!unit){body.append(el('p',t('sourceRecordUnavailable'),'body'));return;}
-        body.append(el('p',language==='ru'
-          ?'Точные исходные символы выбранной единицы. Раздельные фрагменты не склеиваются; проверка текста не принимает его интерпретацию.'
-          :'Exact source characters of the selected unit. Separate spans are not joined; text verification does not accept an interpretation.','body'));
-        for(const span of unit.spans){const text=el('pre',span.text,'body');text.style.whiteSpace='pre-wrap';text.lang=unit.summary.language;body.append(text);}
-        if(local){
-          body.append(el('p',language==='ru'?'Локальное чтение с условиями; внешняя публикация не разрешена.':'Local reading with conditions; external publication is not authorized.','body'));
-          const conditions=document.createElement('details');
-          conditions.append(el('summary',language==='ru'?'Условия локального чтения':'Local reading conditions'),el('p',unit.local_conditions.condition_review,'body'));
-          body.append(conditions);
-          for(const notice of unit.local_conditions.notices){
-            const section=document.createElement('details');
-            const label=language==='ru'?{license:'Лицензия',attribution:'Атрибуция',notice:'Уведомление'}[notice.role]:{license:'License',attribution:'Attribution',notice:'Notice'}[notice.role];
-            section.append(el('summary',`${label} · ${notice.ref}`));
-            const text=el('pre',notice.text,'body');text.style.whiteSpace='pre-wrap';section.append(text);body.append(section);
-          }
-        }
-        body.append(detail(t('sourceIdentity'),{record_ref:result.record_ref,summary:unit.summary,packet:unit.packet}),
-          detail(t('sourceRights'),result.text_access),detail(t('technical'),unit));return;
-      }
       body.append(el('p',t('sourceRecordNote'),'body'));
-      if(result.record.native_text_binding)body.append(button(
-        language==='ru'?'Открыть точный текст фрагмента':'Open exact fragment text',
-        ()=>void openSourceRecord(snapshot,'native_public_unit'),'source-link'),button(
-        language==='ru'?'Читать по локальным условиям':'Read under local conditions',
-        ()=>void openSourceRecord(snapshot,'native_local_unit'),'source-link'));
+      const nativeActions=result.record.native_text_binding?el('div','','source-native-actions'):null;
+      if(nativeActions)body.append(nativeActions);
       if(typeof result.record.preferred_label==='string')body.append(el('h3',result.record.preferred_label,'minor-title'));
       const sourceNote=result.layer==='authored_csv_record'?result.record.note:result.record.notes;
       if(typeof sourceNote==='string'&&sourceNote.trim()){
@@ -282,6 +305,20 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       body.append(detail(t('sourceIdentity'),{source_revision:result.source_revision,content_revision:result.content_revision,
         ...(result.layer==='authored_csv_record'?{target:result.handle.target}:{record_ref:result.record_ref})}),
         detail(t('sourceRights'),result.access),detail(t('technical'),result.record),detail(t('sourceRefs'),result.provenance));
+      if(nativeActions){
+        // The exact record is already available. Discovering optional text
+        // actions must neither delay its display nor replace it on failure.
+        try{
+          const choices=await exactSourceRepresentations(activeSession.client,snapshot.sourceRevision);
+          if(disposed||surface!==surfaceGeneration)return;
+          for(const mode of choices)nativeActions.append(button(mode==='native_local_unit'
+            ?word('Читать по локальным условиям','Read under local conditions')
+            :word('Открыть точный текст фрагмента','Open exact fragment text'),()=>void openSourceRecord(snapshot,mode),'source-link'));
+        }catch{
+          if(disposed||surface!==surfaceGeneration)return;
+          nativeActions.append(el('p',word('Способы чтения текста сейчас недоступны.','Text reading options are currently unavailable.'),'muted'));
+        }
+      }
     }catch(error){if(!disposed&&surface===surfaceGeneration)body.replaceChildren(el('p',error?.message??t('sourceRecordUnavailable'),'body'));}
   }
   function openSourceCommands(){
@@ -314,6 +351,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     }
     if(!dossierRefs.length&&doc.sourceRefs.some(ref=>!/^https?:\/\//i.test(ref)))sources.append(el('p',t('sourceNoDossier'),'muted'));
     container.append(sources,detail(t('technical'),{source_revision:snapshot.sourceRevision,record:snapshot.raw}));
+    research?.addReadingActions(container,snapshot);
   }
   function renderReading(state){
     reading.replaceChildren();const top=el('div','','reading-top');top.append(el('span',t('selected'),'eyebrow'),button('×',()=>{
@@ -327,8 +365,9 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       button(t('newSpace'),()=>open(controller.selectedTarget(),true)),button(t('pin'),()=>void controller.pin()),
       button(t('sourceChanges'),openSourceCommands,'source-link'));reading.append(actions);
     appendReading(reading,state.reading);
-    const target=state.view.selection,ids=target.kind==='claim-path'?[target.claimId]:[target.id],kind=target.kind==='relation'?'relations':'nodes';
-    const reasons=state.view.contexts.flatMap(context=>ids.flatMap(id=>(context.inclusion[kind][id]??[]).map(reason=>({origin:context.origin,query:context.query,...reason}))));
+    const target=state.selection,ids=target.kind==='claim-path'?[target.claimId]:[target.id],kind=target.kind==='relation'?'relations':'nodes';
+    const reasons=state.areaKind==='lens'?ids.filter(id=>state.view.inclusion?.[kind]?.[id]).map(id=>({query:specForPacket(state.view),reason:state.view.inclusion[kind][id]})):
+      state.view.contexts.flatMap(context=>ids.flatMap(id=>(context.inclusion[kind][id]??[]).map(reason=>({origin:context.origin,query:context.query,...reason}))));
     const explanation=el('details');explanation.append(el('summary',t('reasons')));
     explanation.append(el('p',language==='ru'?'Это объяснение выполнения запроса, а не доказательство смысловой связи или истинности.':'This explains query execution, not proof of a semantic relationship or truth.','body'));
     for(const reason of reasons){
@@ -356,6 +395,64 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       if(surface===surfaceGeneration){drawer.hidden=true;closeDialog();}
       readingOpen=true;renderedReading=undefined;reflect(controller.state());await controller.read();
     }
+    return result;
+  }
+  async function openSavedRoute(value){
+    const target=validateRouteTarget(value);
+    if(target.origin.sourceRevision!==controller.state().discovery?.catalog.source_revision)throw new RevisionError();
+    options=target.options;
+    const result=await open({kind:target.origin.kind,id:target.origin.id,content_revision:target.origin.contentRevision},true);
+    if(!result)throw controller.state().error??new Error(word('Не удалось открыть сохранённый маршрут.','The saved route could not be opened.'));
+    return result;
+  }
+  function scheduleResume(){
+    if(!resumeEnabled||disposed)return;clearTimeout(resumeTimer);resumeTimer=setTimeout(()=>void saveResume(),500);
+  }
+  function saveResume(){
+    clearTimeout(resumeTimer);
+    try{
+      const value=makeLiveResume(controller.state(),controller.capturePresentation());if(!value)return resumeWriting;
+      if(unresolvedResume){
+        if(unresolvedResume.sourceRevision===value.sourceRevision&&unresolvedResume.area===JSON.stringify(value.area)
+          &&unresolvedResume.selection===JSON.stringify(controller.state().selection))return resumeWriting;
+        unresolvedResume=null;
+      }
+      const key=JSON.stringify(value);if(key===lastResumeKey)return resumeWriting;
+      resumeWriting=resumeWriting.catch(()=>{}).then(()=>viewStore.save(value)).then(()=>{lastResumeKey=key;}).catch(report);return resumeWriting;
+    }catch(error){report(error);return Promise.resolve();}
+  }
+  function restoreResumeSelection(saved){
+    const target=resolveLiveResumeSelection(saved.selection,controller.state().view);
+    if(target){unresolvedResume=null;controller.selectRaw(target);return true;}
+    unresolvedResume={sourceRevision:saved.sourceRevision,area:JSON.stringify(saved.area),selection:JSON.stringify(controller.state().selection)};
+    readingOpen=false;controller.closeReading();
+    report(new Error(word('Сохранённый точный выбор отсутствует в этой области или изменился. Прежняя запись сохранена; выберите доступный материал, чтобы продолжить.',
+      'The saved exact selection is absent from this area or has changed. Its record is preserved; select an available material to continue.')));
+    return false;
+  }
+  function showScope(){
+    const state=controller.state(),body=modal(word('Область исследования','Research area'),'scope');if(!body)return;
+    if(!state.view){body.append(el('p',t('emptyText')));return;}
+    body.append(el('p',word(`Видно ${state.model.vertices.length} объектов и ${state.model.edges.length} связей.`,
+      `${state.model.vertices.length} objects and ${state.model.edges.length} relations are visible.`),'body'));
+    body.append(el('p',word(`Удержано исходных записей: ${state.view.nodes.length}; связей: ${state.view.relations.length}. Это ограниченная область исследования.`,
+      `Retained source records: ${state.view.nodes.length}; relations: ${state.view.relations.length}. This is a bounded research area.`),'body'));
+    if(state.areaKind==='lens')body.append(detail(word('Охват запроса','Query coverage'),state.view.counts));
+    else body.append(el('p',state.view.continuation.next_cursor?word('Есть продолжение раскрытия.','More expansion is available.'):word('Этот запрос завершён в своих границах.','This query has finished within its scope.'),'body'));
+    const types=new Map();
+    for(const vertex of state.model.vertices){const raw=state.model.rawNodesById.get(vertex.representativeId),id=raw.type_id??raw.kind_id??null;
+      if(types.has(id)){types.get(id).count++;continue;}
+      const entry=state.discovery?.catalog.node_kinds?.find(item=>item.kind_id===raw.kind_id||item.type_id===raw.type_id);
+      const label=localized(entry?.display,word('Тип не назван','Type unnamed'),language);
+      types.set(id,{label,count:1,color:liveTypeColor(raw)});
+    }
+    body.append(el('h3',word('Типы в поле','Types in this field'),'minor-title'));
+    for(const {label,count,color} of types.values()){const row=el('p',`${label} · ${count}`,'live-legend-item');row.style.setProperty('--type-color',color);body.append(row);}
+    body.append(el('p',word('Цвет различает объявленные типы. Расположение — ваше представление области.','Color distinguishes declared types. Position is your view of the area.'),'muted'));
+    const saved=makeLiveResume(state,controller.capturePresentation());
+    if(saved)body.append(button(word('Сохранить эту область','Save this area'),async()=>{
+      try{await research.save({type:saved.area.type,title:selectedLabel(state),target:saved.area.target});report(new Error(word('Область сохранена на вашей полке.','The area is saved on your shelf.')));}catch(error){report(error);}
+    }));
   }
   const format=(key,values)=>String(t(key)).replace(/\{(\d+)\}/g,(_,index)=>String(values[Number(index)]??''));
   async function search(cursor=null){
@@ -405,11 +502,13 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     renderedComparison=state.comparison;const body=modal(t('compare'),'comparison');if(!body)return;const grid=el('div','','comparison-grid');body.append(grid);
     if(!state.comparison.length)body.append(el('p',t('noPins'),'body'));
     for(const item of state.comparison){const card=el('section');grid.append(card);if(item.reading)appendReading(card,item.reading);else card.append(el('p',item.error?.message??t('loading'),'body'));}
+    temporalComparison=mountTemporalComparison({client:activeSession.client,locale:()=>language,getReadings:()=>controller.state().comparison.map(item=>item.reading)});
+    body.append(temporalComparison.element);
     body.append(button(t('clear'),()=>controller.clearComparison()));
   }
-  let moving=!matchMedia('(prefers-reduced-motion: reduce)').matches;
   const actions={search:showSearch,'close-search':()=>{searchGeneration++;activeSession.cancelSearch();searchSeek=null;drawer.hidden=true;sky.refresh();},
-    conditions:showConditions,compare:()=>renderComparison(controller.state()),continue:()=>void controller.continue(),cancel:()=>controller.cancel(),
+    conditions:showConditions,compare:()=>renderComparison(controller.state()),continue:()=>void controller.continue(),cancel:()=>controller.cancel(),scope:showScope,
+    back:()=>{readingOpen=true;controller.back();reflect(controller.state());},
     overview:()=>sky.frame(),motion:()=>{moving=!moving;sky.motion(moving);root.querySelector('[data-live-action="motion"]').setAttribute('aria-pressed',String(moving));},
     cinema:()=>{const hidden=root.dataset.cinema!=='true';root.dataset.cinema=String(hidden);root.querySelector('.show-panels').hidden=!hidden;sky.refresh();}};
   const click=event=>{const action=event.target.closest('[data-live-action]')?.dataset.liveAction;if(action)attempt(actions[action]);
@@ -418,17 +517,54 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   root.querySelector('.live-search-form').onsubmit=event=>{event.preventDefault();void search();};
   root.querySelector('.search').oninput=()=>{searchGeneration++;activeSession.cancelSearch();searchPage=null;searchSeek=null;renderSearch();};
   root.querySelector('.live-more').onclick=()=>{if(searchPage&&searchQuery===root.querySelector('.search').value)void search(searchPage.page.next_cursor);};
-  const keydown=event=>{if(event.target.closest('input,textarea,select,[contenteditable]'))return;
+  const keydown=event=>{if(root.inert||event.defaultPrevented||event.target.closest('input,textarea,select,[contenteditable]'))return;
     if(event.key==='/'){event.preventDefault();showSearch();}if(event.key==='Escape'){actions['close-search']();readingOpen=false;controller.closeReading();}
     if(event.key==='o'&&!dialog.open)sky.frame();};
   document.addEventListener('keydown',keydown);
-  const dispose=()=>{disposed=true;searchGeneration++;disposeSourceCommandPanel();controller.dispose();root.removeEventListener('click',click);document.removeEventListener('keydown',keydown);};
-  window.addEventListener('pagehide',dispose,{once:true});
+  root.addEventListener('pointerup',scheduleResume);root.addEventListener('wheel',scheduleResume,{passive:true});
+  const visibility=()=>{if(document.visibilityState==='hidden'&&resumeEnabled)void saveResume();};document.addEventListener('visibilitychange',visibility);
+  const dispose=()=>{if(disposed)return;if(resumeEnabled)void saveResume().finally(()=>viewStore.close());else viewStore.close();disposed=true;clearTimeout(resumeTimer);searchGeneration++;disposeSourceCommandPanel();research.destroy();builder.destroy();corpus.destroy();controller.dispose();root.removeEventListener('click',click);root.removeEventListener('pointerup',scheduleResume);root.removeEventListener('wheel',scheduleResume);document.removeEventListener('keydown',keydown);document.removeEventListener('visibilitychange',visibility);};
+  window.addEventListener('pagehide',event=>{if(!event.persisted)dispose();});
   reflect(controller.state());
   const discovery=await controller.start();if(discovery){root.dataset.ready='true';
-    const id=url.searchParams.get('focus'),kind=url.searchParams.get('kind')??'node';
-    if(id&&['node','relation'].includes(kind))await open({kind,id});else showSearch();
-  }else if(!disposed){const body=modal(t('discoveryFailed'),'connection');if(body)body.append(button(t('retry'),async()=>{
-    if(await controller.start()){root.dataset.ready='true';closeDialog();showSearch();}}));}
-  return {controller,dispose};
+    const id=url.searchParams.get('focus'),kind=url.searchParams.get('kind')??'node',shelfRoute=url.searchParams.get('shelfRoute');
+    if(shelfRoute){try{const record=await research.shelf.store.get(shelfRoute);if(record?.type!=='route')throw new Error(word('Сохранённый маршрут не найден.','The saved route was not found.'));await openSavedRoute(record.target);}catch(error){report(error);showSearch();}}
+    else if(id&&['node','relation'].includes(kind)){
+      let saved=null;try{saved=await viewStore.load();}catch(error){report(error);}
+      const matching=saved?.sourceRevision===discovery.catalog.source_revision&&saved.area.type==='route'
+        &&saved.area.target.origin.kind===kind&&saved.area.target.origin.id===id;
+      if(matching)options=saved.area.target.options;
+      const opened=await open({kind,id});
+      if(opened&&matching){controller.restorePresentation(saved.presentation);
+        restoreResumeSelection(saved);}
+    }else {
+      let saved=null;try{saved=await viewStore.load();}catch(error){report(error);}
+      if(saved&&saved.area.type==='route'&&saved.sourceRevision===discovery.catalog.source_revision){
+        options=saved.area.target.options;
+        const origin=saved.area.target.origin;
+        const opened=await open({kind:origin.kind,id:origin.id,content_revision:origin.contentRevision},true);
+        if(opened){controller.restorePresentation(saved.presentation);
+          if(restoreResumeSelection(saved))report(new Error(word('Область восстановлена по сохранённому запросу. Продолжение можно раскрыть снова.','The area was restored from its saved query. Further pages can be expanded again.')));
+        }
+      }else if(saved?.area.type==='lens'&&saved.sourceRevision===discovery.catalog.source_revision){
+        try{const context=await constructorCatalog(activeSession.client);const packet=await previewDraft(activeSession.client,saved.area.target.draft,context);
+          if(packet.source_revision!==saved.sourceRevision)throw new RevisionError();
+          if(!controller.showLens(packet))throw new Error(word('В сохранённой линзе сейчас нет предметов.','The saved lens has no objects now.'));
+          controller.restorePresentation(saved.presentation);readingOpen=true;
+          if(restoreResumeSelection(saved))await controller.read();
+        }catch(error){report(error);showSearch();}
+      }else {showSearch();if(saved)report(new Error(word('Сохранённая область относится к другому снимку. Она остаётся в хранилище.','The saved area belongs to another snapshot. It remains in storage.')));}
+    }
+    resumeEnabled=true;
+  }else if(!disposed){
+    const body=modal(t('discoveryFailed'),'connection');
+    if(body){
+      const problem=el('p',controller.state().error?.message??'','body');
+      body.append(problem,button(t('retry'),async()=>{
+        if(await controller.start()){root.dataset.ready='true';closeDialog();showSearch();}
+        else problem.textContent=controller.state().error?.message??'';
+      }));
+    }
+  }
+  return {controller,corpus,research,builder,dispose};
 }

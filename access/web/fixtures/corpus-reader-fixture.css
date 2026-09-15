@@ -1,0 +1,9 @@
+.corpus-fixture-controls{position:fixed;z-index:2000;bottom:0;left:0;right:0;display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;padding:.45rem .8rem;background:#111b28ed;color:#d8e2ed;border-top:1px solid #4a677d;font:11px/1.4 system-ui}
+.corpus-fixture-controls button,.corpus-fixture-controls select{color:inherit;background:#263749;border:1px solid #637891;border-radius:4px;font:inherit;padding:.3rem .5rem}
+.corpus-fixture-controls output{display:block;flex-basis:100%;max-height:4.5rem;overflow:auto;overflow-wrap:anywhere}
+.corpus-fixture-controls output:empty{display:none}
+.corpus-fixture-controls output[data-state=failed]{color:#ffb1a4}
+.corpus-fixture-controls output[data-state=passed]{color:#b3dcac}
+.corpus-reader{bottom:90px}
+#tree .footer{bottom:95px}
+@media(max-width:650px){.corpus-fixture-controls{font-size:10px}.corpus-reader{bottom:150px}#tree .footer{bottom:155px}}

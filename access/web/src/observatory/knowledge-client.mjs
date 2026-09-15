@@ -310,6 +310,9 @@ export class KnowledgeClient {
   async request(path,{signal,body,maxResponseBytes=this.maxResponseBytes}={}) {
     validateResponseLimit(maxResponseBytes);
     if(maxResponseBytes>this.maxResponseBytes)throw new RangeError('A request cannot widen the client response budget.');
+    const limitMessage=()=>['/catalog','/contracts'].includes(path.split('?')[0])
+      ?t("Словарь данных слишком велик для загрузки. Обратитесь к оператору сервиса.")
+      :t("Область слишком велика. Выберите более узкий центр.");
     const controller=new AbortController();let timedOut=false;
     const abort=()=>controller.abort(signal.reason);
     if(signal?.aborted)abort();else signal?.addEventListener('abort',abort,{once:true});
@@ -328,7 +331,7 @@ export class KnowledgeClient {
     if(!response.ok) {
       cancelResponseBody(response);
       if(response.status===409)throw new RevisionError();
-      throw new RequestError(response.status,({400:t("Запрос не удалось исполнить."),403:t("Доступ к материалу ограничен."),404:t("Объект больше не доступен."),410:t("Срок сохранённого обхода истёк."),413:t("Область слишком велика. Выберите более узкий центр."),503:t("Этот способ просмотра пока не доступен.")})[response.status]||t("Не удалось получить данные. Попробуйте ещё раз."));
+      throw new RequestError(response.status,({400:t("Запрос не удалось исполнить."),403:t("Доступ к материалу ограничен."),404:t("Объект больше не доступен."),410:t("Срок сохранённого обхода истёк."),413:limitMessage(),503:t("Этот способ просмотра пока не доступен.")})[response.status]||t("Не удалось получить данные. Попробуйте ещё раз."));
     }
     const packet=await readBoundedJSON(response,maxResponseBytes,controller.signal);
     if(!packet||typeof packet!=='object'||Array.isArray(packet))throw new ContractError(t("Неверный ответ сервера."));
@@ -336,7 +339,7 @@ export class KnowledgeClient {
     } catch(error) {
       if(timedOut)throw new RequestError(504,t("Сервер отвечает дольше обычного. Попробуйте ещё раз."));
       if(controller.signal.aborted)throw error;
-      if(error instanceof ResponseLimitError)throw new RequestError(413,t("Область слишком велика. Выберите более узкий центр."));
+      if(error instanceof ResponseLimitError)throw new RequestError(413,limitMessage());
       if(!controller.signal.aborted&&(error instanceof TypeError||error?.name==='NetworkError'))throw new RequestError(0,t("Нет связи с данными. Проверьте соединение и повторите запрос."));
       if(error instanceof SyntaxError)throw new ContractError(t("Сервер вернул нечитаемый ответ. Повторите запрос."));
       throw error;

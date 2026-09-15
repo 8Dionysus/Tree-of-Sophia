@@ -102,6 +102,10 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
     const exact=el('section','','sc-exact-source');
     const isCurrent=()=>!panel.hidden&&active==='sources'&&rawSource===source&&scene.port.packet?.source_revision===sourceRevision;
     async function openExact(representation='record',output=exact){
+      if(representation!=='record'){
+        if(isCurrent())root.dispatchEvent(new CustomEvent('sophia-read-native',{detail:{selection:{kind,id:source.id,source_revision:sourceRevision,content_revision:source.content_revision},representation}}));
+        return;
+      }
       output.dataset.sourceReadStatus='loading';
       uiChildren(output,"replaceChildren",el('p',ui("Читаю точную исходную запись…"),'sc-muted'));
       try{
@@ -114,15 +118,7 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
           uiChildren(output,"append",el('p',ui("Запрошенное представление не выдано. Статус: {0}. Причина: {1}.",[read.status,read.reason]),'sc-muted'));scene.invalidate();return;
         }
         const detail=(title,value)=>{const section=el('details');uiChildren(section,"append",el('summary',title),el('pre',JSON.stringify(value,null,2),'sc-source-text'));return section;};
-        if(representation!=='record'){
-          uiChildren(output,"append",el('p',ui("Точные символы исходной единицы; это не принятие интерпретации.")));
-          for(const span of read.native_unit.spans){const text=el('pre',span.text,'sc-source-text');text.lang=read.native_unit.summary.language;text.style.whiteSpace='pre-wrap';uiChildren(output,"append",text);}
-          if(read.native_unit.local_conditions){
-            uiChildren(output,"append",el('p',ui("Только локальное чтение на указанных условиях; внешняя публикация не разрешена.")));
-            for(const notice of read.native_unit.local_conditions.notices){const text=el('pre',notice.text,'sc-source-text');text.style.whiteSpace='pre-wrap';uiChildren(output,"append",el('h4',notice.role),text);}
-          }
-          uiChildren(output,"append",detail(ui("Происхождение и статус"),{source_revision:read.source_revision,record_ref:read.record_ref,text_access:read.text_access,summary:read.native_unit.summary,local_conditions:read.native_unit.local_conditions}));
-        }else{
+        {
           uiChildren(exact,"append",el('p',ui("Точная публичная запись источника; её чтение не даёт допуска содержанию или прав на текст носителя.")));
           if(typeof read.record.preferred_label==='string')uiChildren(exact,"append",el('h4',read.record.preferred_label));
           const notes=read.layer==='authored_csv_record'?read.record.note:read.record.notes;

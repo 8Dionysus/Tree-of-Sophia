@@ -1,5 +1,7 @@
 // Authored interface text only. Content-language variants remain server-owned.
 export const UI_CATALOG={
+  "Исходных записей: {0}; связей: {1}": {"en":"Source records: {0}; relations: {1}","es":"Registros de origen: {0}; relaciones: {1}"},
+  "Изменение исходных записей: +{0} / −{1}; связей: +{2} / −{3}.": {"en":"Source record change: +{0} / −{1}; relations: +{2} / −{3}.","es":"Cambio de registros de origen: +{0} / −{1}; relaciones: +{2} / −{3}."},
   "Читаю точную исходную запись…": {"en":"Reading the exact source record…","es":"Leyendo el registro fuente exacto…"},
   "Запрошенное представление не выдано. Статус: {0}. Причина: {1}.": {"en":"Requested representation not delivered. Status: {0}. Reason: {1}.","es":"No se entregó la representación solicitada. Estado: {0}. Motivo: {1}."},
   "Открыть точный текст на локальных условиях": {"en":"Open exact text under local conditions","es":"Abrir el texto exacto bajo condiciones locales"},
@@ -659,6 +661,10 @@ export const UI_CATALOG={
   "Область слишком велика. Выберите более узкий центр.": {
     "en": "The area is too large. Choose a narrower focus.",
     "es": "El área es demasiado grande. Elige un centro más acotado."
+  },
+  "Словарь данных слишком велик для загрузки. Обратитесь к оператору сервиса.": {
+    "en": "The data vocabulary is too large to load. Contact the service operator.",
+    "es": "El vocabulario de datos es demasiado grande para cargarlo. Contacta con el operador del servicio."
   },
   "Этот способ просмотра пока не доступен.": {
     "en": "This view is not available yet.",
@@ -3512,6 +3518,10 @@ export const UI_CATALOG={
     "en": "Brief context",
     "es": "Contexto breve"
   },
+  "История": {
+    "en": "History",
+    "es": "Historia"
+  },
   "Формулировка": {
     "en": "Statement",
     "es": "Enunciado"
@@ -3595,6 +3605,18 @@ export const UI_CATALOG={
   "Показать полную форму": {
     "en": "Show the complete form",
     "es": "Mostrar la forma completa"
+  },
+  "Дополнительные представления": {
+    "en": "Additional representations",
+    "es": "Representaciones adicionales"
+  },
+  "Основания и история": {
+    "en": "Grounds and history",
+    "es": "Fundamentos e historia"
+  },
+  "Точные сведения и диагностика": {
+    "en": "Exact details and diagnostics",
+    "es": "Datos exactos y diagnóstico"
   },
   "Показан полный пакет по точной ссылке. Предел доставки не меняет состояние формы и не означает её семантического принятия.": {
     "en": "The complete packet is shown from its exact reference. The delivery limit does not change the form state or imply semantic acceptance.",
@@ -3731,5 +3753,348 @@ export const UI_CATALOG={
   "Обновляю формы…": {
     "en": "Refreshing forms…",
     "es": "Actualizando las formas…"
+  },
+  "В каталоге нет подходящих типов.": {
+    "en": "The catalog has no matching types.",
+    "es": "El catálogo no tiene tipos coincidentes."
+  },
+  "В любую сторону": {
+    "en": "Either direction",
+    "es": "En cualquier dirección"
+  },
+  "В одной группе шага можно сохранить до {0} условий.": {
+    "en": "A step group can keep up to {0} conditions.",
+    "es": "Un grupo de paso puede conservar hasta {0} condiciones."
+  },
+  "Все условия": {
+    "en": "All conditions",
+    "es": "Todas las condiciones"
+  },
+  "Есть такой путь": {
+    "en": "Such a path exists",
+    "es": "Existe ese camino"
+  },
+  "Запрос шага имеет неподдерживаемые параметры.": {
+    "en": "The step query has unsupported parameters.",
+    "es": "La consulta del paso tiene parámetros no compatibles."
+  },
+  "Запрос шага не соответствует схеме.": {
+    "en": "The step query does not match the schema.",
+    "es": "La consulta del paso no coincide con el esquema."
+  },
+  "Идентификатор условия пути {0}": {
+    "en": "Path condition identifier {0}",
+    "es": "Identificador de la condición de camino {0}"
+  },
+  "Идентификаторы условий пути должны быть уникальными и безопасными.": {
+    "en": "Path condition identifiers must be unique and safe.",
+    "es": "Los identificadores de condiciones de camino deben ser únicos y seguros."
+  },
+  "Имя условия": {
+    "en": "Condition name",
+    "es": "Nombre de la condición"
+  },
+  "Каждое условие проверяется от узлов, выбранных основной линзой. Шаги остаются в выбранных источниках; not_exists означает отсутствие только в этой области источников.": {
+    "en": "Each condition starts at nodes selected by the main lens. Steps stay within the selected sources; not_exists means absence only in that source scope.",
+    "es": "Cada condición parte de los nodos seleccionados por la lente principal. Los pasos permanecen en las fuentes elegidas; not_exists significa ausencia solo en ese ámbito."
+  },
+  "Каталог объявляет неподдерживаемые границы условий пути.": {
+    "en": "The catalog advertises unsupported path condition bounds.",
+    "es": "El catálogo anuncia límites no compatibles para las condiciones de camino."
+  },
+  "Квантификатор пути больше не поддерживается.": {
+    "en": "The path quantifier is no longer supported.",
+    "es": "El cuantificador del camino ya no es compatible."
+  },
+  "Конечный узел": {
+    "en": "End node",
+    "es": "Nodo final"
+  },
+  "Любое условие": {
+    "en": "Any condition",
+    "es": "Cualquier condición"
+  },
+  "Можно добавить до {0} условий пути.": {
+    "en": "You can add up to {0} path conditions.",
+    "es": "Puedes añadir hasta {0} condiciones de camino."
+  },
+  "Можно добавить до {0} условий в каждый раздел.": {
+    "en": "You can add up to {0} conditions in each section.",
+    "es": "Puedes añadir hasta {0} condiciones en cada sección."
+  },
+  "Найти в каталоге…": {
+    "en": "Find in catalog…",
+    "es": "Buscar en el catálogo…"
+  },
+  "Найти тип: {0}": {
+    "en": "Find type: {0}",
+    "es": "Buscar tipo: {0}"
+  },
+  "Направление шага больше не поддерживается.": {
+    "en": "The step direction is no longer supported.",
+    "es": "La dirección del paso ya no es compatible."
+  },
+  "По направлению →": {
+    "en": "With the direction →",
+    "es": "En la dirección →"
+  },
+  "Проверка": {
+    "en": "Check",
+    "es": "Comprobación"
+  },
+  "Против направления ←": {
+    "en": "Against the direction ←",
+    "es": "Contra la dirección ←"
+  },
+  "Пути к условиям": {
+    "en": "Paths for conditions",
+    "es": "Caminos para condiciones"
+  },
+  "Пути не добавлены. Основной запрос сохраняет прежнюю семантику.": {
+    "en": "No paths added. The main query keeps its previous semantics.",
+    "es": "No se añadieron caminos. La consulta principal conserva su semántica anterior."
+  },
+  "Путь должен содержать от 1 до {0} шагов.": {
+    "en": "A path must contain between 1 and {0} steps.",
+    "es": "Un camino debe contener entre 1 y {0} pasos."
+  },
+  "Связь шага": {
+    "en": "Step relation",
+    "es": "Relación del paso"
+  },
+  "Сервер допускает меньше условий пути.": {
+    "en": "The server allows fewer path conditions.",
+    "es": "El servidor permite menos condiciones de camino."
+  },
+  "Сервер допускает меньше шагов в условии пути.": {
+    "en": "The server allows fewer steps in a path condition.",
+    "es": "El servidor permite menos pasos en una condición de camino."
+  },
+  "Сервер не объявляет операцию выбора типов для условий пути.": {
+    "en": "The server does not advertise type selection for path conditions.",
+    "es": "El servidor no anuncia selección de tipos para condiciones de camino."
+  },
+  "Сервер не поддерживает это направление шага.": {
+    "en": "The server does not support this step direction.",
+    "es": "El servidor no admite esta dirección del paso."
+  },
+  "Сервер не поддерживает это сочетание условий шага.": {
+    "en": "The server does not support this step condition combination.",
+    "es": "El servidor no admite esta combinación de condiciones del paso."
+  },
+  "Сервер не поддерживает этот квантификатор пути.": {
+    "en": "The server does not support this path quantifier.",
+    "es": "El servidor no admite este cuantificador del camino."
+  },
+  "Словарь типов шага изменился. Обновите каталог.": {
+    "en": "The step type catalog changed. Refresh the catalog.",
+    "es": "Cambió el catálogo de tipos del paso. Actualiza el catálogo."
+  },
+  "Сочетание условий": {
+    "en": "Condition combination",
+    "es": "Combinación de condiciones"
+  },
+  "Сочетание условий для шага задаётся настройкой выше.": {
+    "en": "The condition combination for this step is set above.",
+    "es": "La combinación de condiciones de este paso se define arriba."
+  },
+  "Схема линз не объявляет границы условий пути.": {
+    "en": "The lens schema does not advertise path condition bounds.",
+    "es": "El esquema de lentes no anuncia límites para condiciones de camino."
+  },
+  "Схема линз не объявляет совместимые условия пути.": {
+    "en": "The lens schema does not advertise compatible path conditions.",
+    "es": "El esquema de lentes no anuncia condiciones de camino compatibles."
+  },
+  "Схема линз пока не объявила path_query. Основной запрос сохраняет прежнюю семантику.": {
+    "en": "The lens schema has not advertised path_query yet. The main query keeps its previous semantics.",
+    "es": "El esquema de lentes aún no ha anunciado path_query. La consulta principal conserva su semántica anterior."
+  },
+  "Такого пути нет": {
+    "en": "No such path",
+    "es": "No existe ese camino"
+  },
+  "Типы конечных узлов": {
+    "en": "End node types",
+    "es": "Tipos de nodos finales"
+  },
+  "Типы отношений": {
+    "en": "Relation types",
+    "es": "Tipos de relaciones"
+  },
+  "Типы шага неполны или превышают допустимый размер.": {
+    "en": "Step types are incomplete or exceed the allowed size.",
+    "es": "Los tipos del paso están incompletos o superan el tamaño permitido."
+  },
+  "Удалить условие": {
+    "en": "Remove condition",
+    "es": "Eliminar condición"
+  },
+  "Удалить шаг": {
+    "en": "Remove step",
+    "es": "Eliminar paso"
+  },
+  "Условие включено": {
+    "en": "Condition enabled",
+    "es": "Condición activada"
+  },
+  "Условие пути {0}": {
+    "en": "Path condition {0}",
+    "es": "Condición de camino {0}"
+  },
+  "Условие пути имеет неподдерживаемую форму.": {
+    "en": "The path condition has an unsupported shape.",
+    "es": "La condición de camino tiene una forma no compatible."
+  },
+  "Условие пути не соответствует схеме.": {
+    "en": "The path condition does not match the schema.",
+    "es": "La condición de camino no coincide con el esquema."
+  },
+  "Условие сохранено, но выключено": {
+    "en": "Condition saved but disabled",
+    "es": "Condición guardada pero desactivada"
+  },
+  "Условие шага имеет неподдерживаемую форму.": {
+    "en": "The step condition has an unsupported shape.",
+    "es": "La condición del paso tiene una forma no compatible."
+  },
+  "Условие шага имеет неподдерживаемые параметры.": {
+    "en": "The step condition has unsupported parameters.",
+    "es": "La condición del paso tiene parámetros no compatibles."
+  },
+  "Условия пути имеют неподдерживаемую форму.": {
+    "en": "The path conditions have an unsupported shape.",
+    "es": "Las condiciones de camino tienen una forma no compatible."
+  },
+  "Условия пути превышают границу схемы.": {
+    "en": "The path conditions exceed the schema bound.",
+    "es": "Las condiciones de camino superan el límite del esquema."
+  },
+  "Условия пути": {
+    "en": "Path conditions",
+    "es": "Condiciones de camino"
+  },
+  "Условия связей шага": {
+    "en": "Step relation conditions",
+    "es": "Condiciones de relación del paso"
+  },
+  "Условия узлов шага": {
+    "en": "Step node conditions",
+    "es": "Condiciones de nodo del paso"
+  },
+  "Условия шага превышают границу схемы.": {
+    "en": "The step conditions exceed the schema bound.",
+    "es": "Las condiciones del paso superan el límite del esquema."
+  },
+  "Фильтр шага не соответствует схеме.": {
+    "en": "The step filter does not match the schema.",
+    "es": "El filtro del paso no coincide con el esquema."
+  },
+  "Шаг {0} из {1}": {
+    "en": "Step {0} of {1}",
+    "es": "Paso {0} de {1}"
+  },
+  "Шаг пути имеет неподдерживаемую форму.": {
+    "en": "The path step has an unsupported shape.",
+    "es": "El paso del camino tiene una forma no compatible."
+  },
+  "Шаг пути не соответствует схеме.": {
+    "en": "The path step does not match the schema.",
+    "es": "El paso del camino no coincide con el esquema."
+  },
+  "＋ Добавить условие пути": {
+    "en": "＋ Add path condition",
+    "es": "＋ Añadir condición de camino"
+  },
+  "＋ Добавить шаг": {
+    "en": "＋ Add step",
+    "es": "＋ Añadir paso"
   }
+  ,"Область не соответствует контракту конструктора линз.": {"en":"The area does not match the lens builder contract.","es":"El área no coincide con el contrato del constructor de lentes."}
+  ,"Выбор области не соответствует контракту конструктора линз.": {"en":"The area selection does not match the lens builder contract.","es":"La selección del área no coincide con el contrato del constructor de lentes."}
+  ,"Для пути области не указан Claim.": {"en":"The area path has no Claim.","es":"La ruta del área no tiene Claim."}
+  ,"Для конструктора нужны область и каталог.": {"en":"The builder needs an area and a catalog.","es":"El constructor necesita un área y un catálogo."}
+  ,"не выбраны": {"en":"none selected","es":"ninguna seleccionada"}
+  ,"Путь «{0}»: {1} · шагов: {2}": {"en":"Path “{0}”: {1} · steps: {2}","es":"Ruta «{0}»: {1} · pasos: {2}"}
+  ,"Настройте область по словарю текущего снимка.": {"en":"Configure an area from the current snapshot vocabulary.","es":"Configura un área con el vocabulario de la instantánea actual."}
+  ,"Загружаю область…": {"en":"Loading area…","es":"Cargando área…"}
+  ,"Область недоступна.": {"en":"The area is unavailable.","es":"El área no está disponible."}
+  ,"Линза": {"en":"Lens","es":"Lente"}
+  ,"Исследовательская область": {"en":"Exploration area","es":"Área de exploración"}
+  ,"Источники области: {0}": {"en":"Area sources: {0}","es":"Fuentes del área: {0}"}
+  ,"Версия области: {0}": {"en":"Area revision: {0}","es":"Revisión del área: {0}"}
+  ,"Область больше локального бюджета: показаны счётчики без обрезки packet (узлы: {0}, связи: {1}).": {"en":"The area exceeds the local budget: counts are shown without truncating the packet (nodes: {0}, relations: {1}).","es":"El área supera el presupuesto local: se muestran los conteos sin truncar el paquete (nodos: {0}, relaciones: {1})."}
+  ,"Каталог и область относятся к разным версиям данных. Обновите область перед preview или сохранением.": {"en":"The catalog and area use different data revisions. Refresh the area before preview or save.","es":"El catálogo y el área usan revisiones de datos distintas. Actualiza el área antes de previsualizar o guardar."}
+  ,"Большая область: выберите область действия": {"en":"Large area: choose the scope","es":"Área grande: elige el ámbito"}
+  ,"Импортированный draft содержит {0} идентификаторов узлов, а schema допускает не более {1}. Они не обрезаны; выберите focus/all явно.": {"en":"The imported draft contains {0} node IDs, while the schema allows at most {1}. They were not truncated; choose focus/all explicitly.","es":"El borrador importado contiene {0} identificadores de nodo y el esquema permite como máximo {1}. No se truncaron; elige focus/all explícitamente."}
+  ,"Исходная область содержит {0} узлов. Выберите focus/all; идентификаторы исходного packet не обрезаются.": {"en":"The source area contains {0} nodes. Choose focus/all; IDs from the source packet are not truncated.","es":"El área de origen contiene {0} nodos. Elige focus/all; los identificadores del paquete de origen no se truncan."}
+  ,"Область действия большой области": {"en":"Large area scope","es":"Ámbito del área grande"}
+  ,"focus · выбранная звезда": {"en":"focus · selected node","es":"focus · nodo seleccionado"}
+  ,"all · весь выбранный scope": {"en":"all · entire selected scope","es":"all · todo el ámbito seleccionado"}
+  ,"Режим": {"en":"Mode","es":"Modo"}
+  ,"Для focus не выбрана звезда в текущей области.": {"en":"No node is selected for focus in the current area.","es":"No hay un nodo seleccionado para focus en el área actual."}
+  ,"Центр: {0}": {"en":"Center: {0}","es":"Centro: {0}"}
+  ,"не выбран": {"en":"not selected","es":"no seleccionado"}
+  ,"Условия ниже выбирают связи вокруг явного центра.": {"en":"The conditions below select relations around the explicit center.","es":"Las condiciones siguientes seleccionan relaciones alrededor del centro explícito."}
+  ,"Словарь и schema определяют доступные поля. Preview не изменяет текущее пространство.": {"en":"The vocabulary and schema define available fields. Preview does not change the current space.","es":"El vocabulario y el esquema definen los campos disponibles. La previsualización no cambia el espacio actual."}
+  ,"Измените условия — затем запустите preview.": {"en":"Change the conditions, then run preview.","es":"Cambia las condiciones y luego ejecuta la previsualización."}
+  ,"Текущий draft": {"en":"Current draft","es":"Borrador actual"}
+  ,"Источники draft: {0}": {"en":"Draft sources: {0}","es":"Fuentes del borrador: {0}"}
+  ,"Preview выполняется только после явного действия и не меняет сцену.": {"en":"Preview runs only after an explicit action and does not change the scene.","es":"La previsualización solo se ejecuta tras una acción explícita y no cambia la escena."}
+  ,"Условиями выбрано: {0}.": {"en":"Selected by conditions: {0}.","es":"Seleccionado por condiciones: {0}."}
+  ,"Результат ограничен: узлы {0}, связи {1}.": {"en":"Result limited: nodes {0}, relations {1}.","es":"Resultado limitado: nodos {0}, relaciones {1}."}
+  ,"Источники preview: {0} · версия: {1}": {"en":"Preview sources: {0} · revision: {1}","es":"Fuentes de la previsualización: {0} · revisión: {1}"}
+  ,"В этом scope совпадений нет. Это не означает глобального отсутствия в древе.": {"en":"There are no matches in this scope. This does not mean global absence from the tree.","es":"No hay coincidencias en este ámbito. Esto no significa ausencia global en el árbol."}
+  ,"Preview относится к предыдущей версии draft. Запустите preview снова после правки.": {"en":"Preview belongs to the previous draft revision. Run preview again after editing.","es":"La previsualización pertenece a la revisión anterior del borrador. Ejecútala de nuevo después de editar."}
+  ,"Считаю…": {"en":"Computing…","es":"Calculando…"}
+  ,"Предпросмотр": {"en":"Preview","es":"Previsualización"}
+  ,"Открыть область": {"en":"Open area","es":"Abrir área"}
+  ,"Закрыть": {"en":"Close","es":"Cerrar"}
+  ,"Каталог и область относятся к разным версиям данных. Обновите область.": {"en":"The catalog and area use different data revisions. Refresh the area.","es":"El catálogo y el área usan revisiones de datos distintas. Actualiza el área."}
+  ,"Выполняю preview…": {"en":"Running preview…","es":"Ejecutando la previsualización…"}
+  ,"Draft изменён. Старый preview сохранён, но его нельзя открыть.": {"en":"The draft changed. The old preview remains, but it cannot be opened.","es":"El borrador cambió. La previsualización anterior permanece, pero no se puede abrir."}
+  ,"Preview готов; текущее пространство не менялось.": {"en":"Preview is ready; the current space was not changed.","es":"La previsualización está lista; el espacio actual no cambió."}
+  ,"Измените условия и запустите preview.": {"en":"Change the conditions and run preview.","es":"Cambia las condiciones y ejecuta la previsualización."}
+  ,"Каталог и область относятся к разным версиям данных. Обновите область и загрузите каталог снова.": {"en":"The catalog and area use different data revisions. Refresh the area and load the catalog again.","es":"El catálogo y el área usan revisiones de datos distintas. Actualiza el área y carga el catálogo de nuevo."}
+  ,"Область изменилась. Обновите builder перед preview.": {"en":"The area changed. Refresh the builder before preview.","es":"El área cambió. Actualiza el constructor antes de previsualizar."}
+  ,"Область изменилась. Обновите builder перед открытием.": {"en":"The area changed. Refresh the builder before opening.","es":"El área cambió. Actualiza el constructor antes de abrir."}
+  ,"Область изменилась. Обновите builder перед сохранением.": {"en":"The area changed. Refresh the builder before saving.","es":"El área cambió. Actualiza el constructor antes de guardar."}
+  ,"Черновик линзы передан на сохранение.": {"en":"The lens draft was handed off for saving.","es":"El borrador de la lente se entregó para guardarlo."}
+  ,"Preview вернул другую версию данных.": {"en":"Preview returned a different data revision.","es":"La previsualización devolvió una revisión de datos distinta."}
+  ,"Для конструктора нужен каталог.": {"en":"The builder needs a catalog.","es":"El constructor necesita un catálogo."}
+  ,"Текущая область не выбрана. Настройки можно собрать по выбранным источникам.": {"en":"No current area is selected. You can configure settings from the selected sources.","es":"No hay un área actual seleccionada. Puedes configurar los ajustes con las fuentes elegidas."}
+  ,"Область больше обычного размера; счётчики показаны полностью.": {"en":"This area is larger than usual; all counts are shown.","es":"Esta área es más grande de lo habitual; se muestran todos los conteos."}
+  ,"Технические сведения": {"en":"Technical details","es":"Detalles técnicos"}
+  ,"Границы конструктора: узлы {0}, связи {1}. Исходный packet не обрезается.": {"en":"Builder bounds: {0} nodes, {1} relations. The source packet is not truncated.","es":"Límites del constructor: {0} nodos, {1} relaciones. El paquete de origen no se trunca."}
+  ,"Каталог и область относятся к разным версиям данных. Обновите область перед просмотром или сохранением.": {"en":"The catalog and area use different data revisions. Refresh the area before viewing or saving.","es":"El catálogo y el área usan revisiones de datos distintas. Actualiza el área antes de ver o guardar."}
+  ,"Выберите «От выбранной звезды» или «По всему древу»; исходные идентификаторы сохранены.": {"en":"Choose “From the selected star” or “Across the tree”; the original identifiers are preserved.","es":"Elige «Desde la estrella seleccionada» o «Por todo el árbol»; se conservan los identificadores originales."}
+  ,"Исходная область содержит {0} узлов. Выберите способ отбора.": {"en":"The source area contains {0} nodes. Choose how to select them.","es":"El área de origen contiene {0} nodos. Elige cómo seleccionarlos."}
+  ,"Импортировано идентификаторов узлов: {0}. Схема допускает не более {1}; исходные значения не обрезаются.": {"en":"Imported node identifiers: {0}. The schema allows at most {1}; original values are not truncated.","es":"Identificadores de nodo importados: {0}. El esquema permite como máximo {1}; los valores originales no se truncan."}
+  ,"Исходные идентификаторы packet не обрезаются; для области больше {0} узлов требуется явный выбор способа отбора.": {"en":"Source packet identifiers are not truncated; an area over {0} nodes requires an explicit selection mode.","es":"Los identificadores del paquete de origen no se truncan; un área de más de {0} nodos requiere un modo de selección explícito."}
+  ,"Для режима «От выбранной звезды» нужна выбранная звезда в текущей области.": {"en":"“From the selected star” needs a selected star in the current area.","es":"«Desde la estrella seleccionada» necesita una estrella seleccionada en el área actual."}
+  ,"Словарь данных задаёт доступные поля. Просмотр не изменяет текущее пространство.": {"en":"The data vocabulary defines the available fields. Viewing does not change the current space.","es":"El vocabulario de datos define los campos disponibles. La vista no cambia el espacio actual."}
+  ,"Доступные поля и ограничения берутся из каталога и схемы; просмотр не меняет сцену.": {"en":"Available fields and limits come from the catalog and schema; viewing does not change the scene.","es":"Los campos y límites disponibles provienen del catálogo y el esquema; la vista no cambia la escena."}
+  ,"Измените условия, затем запросите просмотр.": {"en":"Change the conditions, then request a view.","es":"Cambia las condiciones y luego solicita una vista."}
+  ,"Настройки линзы": {"en":"Lens settings","es":"Ajustes de la lente"}
+  ,"Измените условия и запросите просмотр.": {"en":"Change the conditions and request a view.","es":"Cambia las condiciones y solicita una vista."}
+  ,"Источники настроек: {0}": {"en":"Setting sources: {0}","es":"Fuentes de los ajustes: {0}"}
+  ,"Просмотр выполняется только после явного действия и не меняет сцену.": {"en":"Viewing runs only after an explicit action and does not change the scene.","es":"La vista solo se ejecuta tras una acción explícita y no cambia la escena."}
+  ,"Источники результата: {0} · версия: {1}": {"en":"Result sources: {0} · revision: {1}","es":"Fuentes del resultado: {0} · revisión: {1}"}
+  ,"В выбранной области совпадений нет. Это не означает глобального отсутствия в древе.": {"en":"There are no matches in the selected area. This does not mean global absence from the tree.","es":"No hay coincidencias en el área seleccionada. Esto no significa ausencia global en el árbol."}
+  ,"Прежняя область сохранена; пустой результат нельзя открыть в текущем пространстве.": {"en":"The previous area is preserved; an empty result cannot be opened in the current space.","es":"Se conserva el área anterior; no se puede abrir un resultado vacío en el espacio actual."}
+  ,"Текущее пространство не изменено; пустой результат нельзя открыть.": {"en":"The current space was not changed; an empty result cannot be opened.","es":"El espacio actual no cambió; no se puede abrir un resultado vacío."}
+  ,"Результат относится к прежним настройкам. Запросите просмотр снова после правки.": {"en":"The result belongs to the previous settings. Request a new view after editing.","es":"El resultado corresponde a los ajustes anteriores. Solicita una nueva vista después de editar."}
+  ,"Получаю результат…": {"en":"Getting result…","es":"Obteniendo el resultado…"}
+  ,"Настройки изменены. Старый результат сохранён, но его нельзя открыть.": {"en":"The settings changed. The previous result is preserved but cannot be opened.","es":"Los ajustes cambiaron. Se conserva el resultado anterior, pero no se puede abrir."}
+  ,"Результат готов; текущее пространство не менялось.": {"en":"The result is ready; the current space was not changed.","es":"El resultado está listo; el espacio actual no cambió."}
+  ,"Результат относится к другой версии данных.": {"en":"The result belongs to a different data revision.","es":"El resultado corresponde a una revisión de datos distinta."}
+  ,"Область изменилась. Откройте конструктор заново перед просмотром.": {"en":"The area changed. Reopen the builder before viewing.","es":"El área cambió. Vuelve a abrir el constructor antes de ver."}
+  ,"Область изменилась. Откройте конструктор заново перед открытием.": {"en":"The area changed. Reopen the builder before opening it.","es":"El área cambió. Vuelve a abrir el constructor antes de abrirla."}
+  ,"Область изменилась. Откройте конструктор заново перед сохранением.": {"en":"The area changed. Reopen the builder before saving.","es":"El área cambió. Vuelve a abrir el constructor antes de guardar."}
+  ,"Настройки линзы переданы на сохранение.": {"en":"The lens settings were handed off for saving.","es":"Los ajustes de la lente se entregaron para guardarlos."}
+  ,"Сохраняю линзу…": {"en":"Saving lens…","es":"Guardando la lente…"}
+  ,"Линза передана в общую полку.": {"en":"The lens was handed off to the shared shelf.","es":"La lente se entregó a la estantería compartida."}
+  ,"Каждое условие начинается от узлов, найденных основной линзой.": {"en":"Each condition starts from nodes found by the main lens.","es":"Cada condición comienza en los nodos encontrados por la lente principal."}
+  ,"Проверка пути недоступна в текущем каталоге; основной запрос работает как прежде.": {"en":"Path checking is unavailable in the current catalog; the main query works as before.","es":"La comprobación de rutas no está disponible en el catálogo actual; la consulta principal funciona como antes."}
+  ,"Шаги остаются в выбранных источниках; not_exists означает отсутствие только в этой области источников.": {"en":"Steps stay within the selected sources; not_exists means absence only in that source area.","es":"Los pasos permanecen en las fuentes seleccionadas; not_exists significa ausencia solo en esa área de fuentes."}
 };

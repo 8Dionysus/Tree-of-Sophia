@@ -6,8 +6,12 @@ import hashlib
 import json
 import os
 import shutil
+import socket
+import subprocess
 import tempfile
 import threading
+import time
+import urllib.request
 from pathlib import Path
 
 import pytest
@@ -47,9 +51,10 @@ class _E2EMetadataOwner:
     infer a path or expose native text.
     """
 
-    def __init__(self, record: dict, source_revision: str):
+    def __init__(self, record: dict, source_revision: str, source_ref: Path = SOURCE_RECORD_RELATIVE):
         self.record = copy.deepcopy(record)
         self.source_revision = source_revision
+        self.source_ref = source_ref
 
     def source_read_binding(self) -> dict:
         return {
@@ -92,7 +97,7 @@ class _E2EMetadataOwner:
                     "record_key": self.record["record_id"],
                     "row_sha256": "d" * 64,
                 },
-                "source": {"source_ref": SOURCE_RECORD_RELATIVE.as_posix()},
+                "source": {"source_ref": self.source_ref.as_posix()},
             },
             "descriptor": {
                 "adapter": "native-corpus",
@@ -158,13 +163,33 @@ def access_base_url(tmp_path_factory: pytest.TempPathFactory, request: pytest.Fi
     projection_bytes = projection_path.read_bytes()
     projection = json.loads(projection_bytes)
     source_record = None
-    if getattr(request, "param", None) == "source":
-        source_record = json.loads(SOURCE_RECORD_PATH.read_text(encoding="utf-8"))
+    source_ref = SOURCE_RECORD_RELATIVE
+    source_mode = getattr(request, "param", None)
+    if source_mode in ("source", "source-native-metadata"):
+        if source_mode == "source":
+            source_record = json.loads(SOURCE_RECORD_PATH.read_text(encoding="utf-8"))
+        else:
+            # Synthetic metadata only: the binding prompts optional transport
+            # discovery, while this owner never delivers native wording.
+            source_ref = Path("ToS/synthetic/native-metadata.json")
+            source_record = {
+                "record_type": "text-unit", "record_id": "tos.text-unit.browser-fixture",
+                "record_version": 1, "preferred_label": "Synthetic native metadata",
+                "notes": "Available exact metadata remains readable.",
+                "native_text_binding": {
+                    "unit_id": "tos.text-unit.browser-fixture", "unit_version": 1,
+                    "segmentation_id": "tos.text-segmentation.browser-fixture", "segmentation_version": 1,
+                    "packet_id": "tos.source-text-unit-packet.browser-fixture", "packet_version": 1,
+                    "packet_sha256": "d" * 64,
+                    "text_layer": {"layer_id": "tos.text-layer.browser-fixture", "layer_version": 1, "record_sha256": "e" * 64},
+                    "ordered_anchor_refs": ["tos.anchor.browser-fixture"],
+                },
+            }
         for node in projection.get("nodes", []):
             if node.get("node_id") == "a":
                 properties = node.setdefault("properties", {})
                 properties["source_record"] = copy.deepcopy(source_record)
-                node["source_ref"] = SOURCE_RECORD_RELATIVE.as_posix()
+                node["source_ref"] = source_ref.as_posix()
                 break
         else:
             raise AssertionError("synthetic source fixture node a is missing")
@@ -286,7 +311,7 @@ def access_base_url(tmp_path_factory: pytest.TempPathFactory, request: pytest.Fi
         # The graph projection owns the selected snapshot revision.  Pin the
         # fixture reader to that revision before exposing the HTTP route.
         source_revision = core.knowledge_graph()["source_revision"]
-        owner = _E2EMetadataOwner(source_record, source_revision)
+        owner = _E2EMetadataOwner(source_record, source_revision, source_ref)
         source_read_service = SourceReadService(
             SourceOwnerBinding.from_owner_readers(metadata_reader=owner),
             metadata_record_types={source_record["record_type"]},
@@ -368,6 +393,38 @@ def wait_for(page: Page, expression: str, timeout: float = 30.0) -> None:
             return
         page.wait_for_timeout(100)
     raise AssertionError(f"browser condition timed out: {expression}")
+
+
+def idb_readings(page: Page, db_name: str) -> list[dict]:
+    return page.evaluate(
+        """async dbName => {
+          const db = await new Promise((resolve, reject) => {
+            const request = indexedDB.open(dbName);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+          try {
+            return await new Promise((resolve, reject) => {
+              const request = db.transaction('readings', 'readonly').objectStore('readings').getAll();
+              request.onsuccess = () => resolve(request.result);
+              request.onerror = () => reject(request.error);
+            });
+          } finally {
+            db.close();
+          }
+        }""",
+        db_name,
+    )
+
+
+def wait_for_idb_reading(page: Page, db_name: str, predicate, timeout: float = 15.0) -> list[dict]:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        readings = idb_readings(page, db_name)
+        if any(predicate(item) for item in readings):
+            return readings
+        page.wait_for_timeout(100)
+    raise AssertionError(f"IndexedDB reading did not settle for {db_name}")
 
 
 def first_edge_and_node(page: Page) -> tuple[str, str]:
@@ -530,6 +587,51 @@ def test_real_browser_sources_panel_reads_frozen_metadata_record(
     assert SOURCE_RECORD_RELATIVE.as_posix() in exact_text
 
 
+
+@pytest.mark.parametrize("access_base_url", ["source-native-metadata"], indirect=True)
+@pytest.mark.parametrize("discovery_failure", ["network", "malformed"])
+def test_source_metadata_remains_when_native_discovery_fails(
+    webmcp_page: Page, access_base_url: str, discovery_failure: str
+) -> None:
+    from urllib.parse import quote
+    page = webmcp_page
+    _, node_id = first_edge_and_node(page)
+    page.goto(f"{access_base_url}/static/research.html?focus={quote('philosophy:' + node_id, safe='')}")
+    page.locator('#tree[data-ready="true"] .reading [data-source-record-id]').wait_for(state="attached")
+    page.locator('.reading details').filter(has=page.locator('[data-source-record-id]')).locator('summary').click()
+    pending = []
+    capability_calls = 0
+
+    def capabilities(route):
+        nonlocal capability_calls
+        capability_calls += 1
+        if capability_calls == 1:
+            route.continue_()  # The exact metadata read still checks its owner.
+        else:
+            pending.append(route)  # Hold optional discovery while inspecting metadata.
+
+    page.route("**/api/source/capabilities", capabilities)
+    page.locator('.reading [data-source-record-id]').click()
+    record = page.locator('dialog[data-kind="source-record"] .dialog-content')
+    record.get_by_role('heading', name='Synthetic native metadata', exact=True).wait_for(state="visible")
+    assert "Available exact metadata remains readable." in record.inner_text()
+    assert len(pending) == 1
+    assert record.get_attribute('data-source-read-status') == 'available'
+    if discovery_failure == 'network':
+        pending[0].abort('failed')
+    else:
+        pending[0].fulfill(status=200, content_type='application/json', body='{')
+    record.get_by_text('Способы чтения текста сейчас недоступны.', exact=True).wait_for(state="visible")
+    assert record.get_attribute('data-source-read-status') == 'available'
+    assert record.get_by_role('heading', name='Synthetic native metadata', exact=True).is_visible()
+    assert "Available exact metadata remains readable." in record.inner_text()
+    assert record.locator('.source-native-actions button').count() == 0
+    for summary in record.locator('details > summary').all():
+        summary.click()
+    assert 'tos.text-unit.browser-fixture' in record.inner_text()
+    assert 'ToS/synthetic/native-metadata.json' in record.inner_text()
+
+
 def test_real_browser_cancellation_reload_and_deep_link(webmcp_page: Page) -> None:
     page = webmcp_page
     edge_id, node_id = first_edge_and_node(page)
@@ -605,6 +707,183 @@ def test_observatory_prepared_human_agent_search_and_continuation(webmcp_page: P
     assert page.locator(".sc-search-results .sc-result").all_text_contents() == first_page
 
 
+def test_built_research_entry_persists_exact_shelf_and_camera(webmcp_page: Page, access_base_url: str) -> None:
+    """Use the shipped entry and default browser storage, with a small dataset."""
+    from urllib.parse import quote
+    page = webmcp_page
+    hits = command_value(invoke(page, "tos.page.knowledge-search", {"query": "fixture", "limit": 1}))
+    material_id = hits["nodes"][0]["id"]
+    page.goto(f"{access_base_url}/static/research.html?focus={quote(material_id, safe='')}")
+    page.locator('#tree[data-ready="true"] .reading').get_by_role("button", name="Сохранить материал", exact=True).click()
+    page.locator('[data-research-shelf="true"]').click()
+    card = page.locator('.research-shelf-card').first
+    card.wait_for(state="visible")
+    record_id = card.get_attribute('data-record-id')
+    assert record_id
+    assert "работает в памяти" not in page.locator('.research-shelf').inner_text()
+    page.reload()
+    page.locator('[data-research-shelf="true"]').click()
+    page.locator(f'.research-shelf-card[data-record-id="{record_id}"]').wait_for(state="visible")
+    page.get_by_role('button', name='Закрыть полку', exact=True).click()
+    page.locator('.reading').get_by_role('button', name='Закрыть', exact=True).click()
+    page.locator('[data-live-action="motion"]').click()
+    before = page.locator('#tree').get_attribute('data-camera')
+    page.mouse.move(600, 380)
+    page.mouse.wheel(0, 220)
+    wait_for(page, f"document.querySelector('#tree').dataset.camera !== {json.dumps(before)}")
+    # View writes are deliberately debounced; this waits for the visible input
+    # gesture to be persisted, not for a mocked storage adapter.
+    page.wait_for_timeout(750)
+    pose = page.evaluate("""async () => {
+      const db = await new Promise((resolve, reject) => {
+        const request = indexedDB.open('tos-real-ui-view-v1');
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const saved = await new Promise((resolve, reject) => {
+        const tx = db.transaction('views', 'readonly');
+        const request = tx.objectStore('views').get('constructor-live');
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      db.close();return saved.presentation.pose;
+    }""")
+    assert pose['zoom'] != float(before.split(',')[2])
+    page.reload()
+    page.locator('#tree[data-ready="true"] .reading').get_by_role("button", name="Сохранить материал", exact=True).wait_for(state="visible")
+    restored_pose = page.locator('#tree').get_attribute('data-camera')
+    assert [float(part) for part in restored_pose.split(',')] == pytest.approx(
+        [pose['yaw'], pose['pitch'], pose['zoom'], *pose['pan']], abs=0.002
+    )
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.locator('.research-shelf-narrow').click()
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+    page.locator(f'.research-shelf-card[data-record-id="{record_id}"]').wait_for(state="visible")
+    page.get_by_role('button', name='Закрыть полку', exact=True).click()
+    assert page.locator('.research-shelf-narrow').evaluate('(node) => node === document.activeElement')
+
+
+def test_research_catalog_limit_explains_failed_connection_and_can_retry(
+    webmcp_page: Page, access_base_url: str
+) -> None:
+    page = webmcp_page
+    unavailable = {'value': True}
+    def catalog_response(route):
+        if unavailable['value']:
+            route.fulfill(status=413, content_type='application/json', body='{}')
+        else:
+            route.continue_()
+    page.route('**/api/knowledge/catalog', catalog_response)
+    page.goto(access_base_url + '/static/research.html', wait_until='domcontentloaded')
+    connection = page.locator('dialog[open][data-kind="connection"]')
+    connection.get_by_text('Словарь данных слишком велик для загрузки. Обратитесь к оператору сервиса.', exact=True).wait_for(state='visible')
+    assert 'Выберите более узкий центр' not in connection.inner_text()
+    unavailable['value'] = False
+    connection.get_by_role('button', name='Повторить подключение', exact=True).click()
+    page.locator('#tree[data-ready="true"]').wait_for(state='visible')
+    page.locator('dialog[data-kind="connection"]').wait_for(state='hidden')
+
+
+def test_observatory_research_and_saved_route_links_use_packaged_entry(
+    webmcp_page: Page, access_base_url: str
+) -> None:
+    """Both ordinary entry links must use the installed HTTP static route."""
+    from urllib.parse import parse_qs, quote, urlparse
+    page = webmcp_page
+    hits = command_value(invoke(page, "tos.page.knowledge-search", {"query": "fixture", "limit": 1}))
+    material_id = hits["nodes"][0]["id"]
+    observatory_url = f"{access_base_url}/?focus={quote(material_id, safe='')}"
+    page.goto(observatory_url, wait_until='domcontentloaded')
+    page.locator('#sophia-gestures[data-data-state="ready"]').wait_for(state='visible')
+    with page.expect_navigation(wait_until='domcontentloaded') as entry:
+        page.get_by_role('link', name='Пространство исследования', exact=True).click()
+    assert entry.value.status == 200
+    assert urlparse(entry.value.url).path == '/static/research.html'
+    page.locator('#tree[data-ready="true"]').wait_for(state='visible')
+
+    # Save an actual bounded area through the constructor, then reopen its
+    # IndexedDB shelf entry from Observatory at the ordinary packaged root.
+    page.goto(f"{access_base_url}/static/research.html?focus={quote(material_id, safe='')}")
+    page.locator('#tree[data-ready="true"] .reading [data-source-record-id]').wait_for(state='attached')
+    page.locator('[data-live-action="scope"]').click()
+    page.get_by_role('button', name='Сохранить эту область', exact=True).click()
+    page.get_by_text('Область сохранена на вашей полке.', exact=True).wait_for(state='visible')
+    page.locator('dialog[data-kind="scope"]').get_by_role('button', name='Закрыть', exact=True).click()
+    page.locator('[data-research-shelf="true"]').click()
+    card = page.locator('.research-shelf-card').first
+    card.wait_for(state='visible')
+    record_id = card.get_attribute('data-record-id')
+    assert record_id
+    page.get_by_role('button', name='Закрыть полку', exact=True).click()
+
+    page.goto(observatory_url, wait_until='domcontentloaded')
+    page.locator('#sophia-gestures[data-data-state="ready"]').wait_for(state='visible')
+    page.locator('[data-research-shelf="true"]').click()
+    stored = page.locator(f'.research-shelf-card[data-record-id="{record_id}"]')
+    with page.expect_navigation(wait_until='domcontentloaded') as route:
+        stored.get_by_role('button', name='Открыть', exact=True).click()
+    assert route.value.status == 200
+    assert urlparse(route.value.url).path == '/static/research.html'
+    assert parse_qs(urlparse(route.value.url).query)['shelfRoute'] == [record_id]
+    page.locator('#tree[data-ready="true"] .reading [data-source-record-id]').wait_for(state='attached')
+    assert page.locator('#tree').get_attribute('data-selection') == material_id
+
+
+def test_research_lens_preview_save_apply_and_return(webmcp_page: Page, access_base_url: str) -> None:
+    """A saved query reopens through the real host and never borrows a cursor."""
+    from urllib.parse import quote, urlparse
+    page = webmcp_page
+    hits = command_value(invoke(page, "tos.page.knowledge-search", {"query": "fixture", "limit": 1}))
+    material_id = hits["nodes"][0]["id"]
+    discovery_requests = []
+    page.on('request', lambda request: discovery_requests.append(urlparse(request.url).path)
+            if urlparse(request.url).path in ('/api/knowledge/catalog', '/api/knowledge/contracts') else None)
+    page.goto(f"{access_base_url}/static/research.html?focus={quote(material_id, safe='')}")
+    tree = page.locator('#tree[data-ready="true"][data-loading="false"]')
+    tree.wait_for(state="visible")
+    wait_for(page, f"document.querySelector('#tree').dataset.selection === {json.dumps(material_id)}")
+    before_selection = tree.get_attribute('data-selection')
+    before_camera = tree.get_attribute('data-camera')
+    assert discovery_requests == ['/api/knowledge/catalog']
+    page.get_by_role('button', name='Собрать линзу', exact=True).click()
+    builder = page.locator('.lens-builder')
+    page.locator('.lens-builder[data-state="ready"]').wait_for(state='visible')
+    # Every ordinary reopening uses the same immutable session vocabulary and
+    # validated schema. A page reload below must establish a new binding.
+    for _ in range(2):
+        builder.locator('.lens-builder-header .lens-builder-close').click()
+        page.get_by_role('button', name='Собрать линзу', exact=True).click()
+        page.locator('.lens-builder[data-state="ready"]').wait_for(state='visible')
+    assert discovery_requests == ['/api/knowledge/catalog', '/api/knowledge/contracts']
+    builder.get_by_label('Название линзы', exact=True).fill('Fixture saved lens')
+    builder.get_by_role('button', name='Предпросмотр', exact=True).click()
+    page.locator('.lens-builder[data-state="preview"]').wait_for(state="visible")
+    assert builder.get_by_role('button', name='Открыть область', exact=True).is_enabled()
+    assert tree.get_attribute('data-selection') == before_selection
+    assert tree.get_attribute('data-camera') == before_camera
+    builder.get_by_role('button', name='Сохранить линзу', exact=True).click()
+    builder.locator('[data-state="saved"]').wait_for(state="visible")
+    builder.get_by_role('button', name='Открыть область', exact=True).click()
+    page.locator('#tree[data-history="1"]').wait_for(state="visible")
+    page.locator('[data-live-action="back"]').click()
+    page.locator('#tree[data-history="0"][data-loading="false"]').wait_for(state="visible")
+    assert tree.get_attribute('data-selection') == before_selection
+    assert tree.get_attribute('data-camera') == before_camera
+    page.reload()
+    page.locator('#tree[data-ready="true"][data-loading="false"]').wait_for(state="visible")
+    assert tree.get_attribute('data-selection') == before_selection
+    page.get_by_role('button', name='Моя полка', exact=True).click()
+    card = page.locator('.research-shelf-card').filter(has_text='Fixture saved lens')
+    card.get_by_role('button', name='Открыть', exact=True).click()
+    page.locator('.lens-builder[data-state="ready"]').wait_for(state="visible")
+    assert discovery_requests == ['/api/knowledge/catalog', '/api/knowledge/contracts'] * 2
+    assert builder.get_by_label('Название линзы', exact=True).input_value() == 'Fixture saved lens'
+    assert not builder.get_by_role('button', name='Открыть область', exact=True).is_enabled()
+    builder.get_by_role('button', name='Предпросмотр', exact=True).click()
+    page.locator('.lens-builder[data-state="preview"]').wait_for(state="visible")
+    assert builder.get_by_role('button', name='Открыть область', exact=True).is_enabled()
+
+
 def test_real_browser_graceful_without_webmcp(access_base_url: str) -> None:
     with short_chromium_tmp():
         with sync_playwright() as p:
@@ -627,3 +906,317 @@ def test_real_browser_graceful_without_webmcp(access_base_url: str) -> None:
             assert "Tree of Sophia" in page.locator("body").inner_text()
             context.close()
             browser.close()
+
+
+def test_corpus_note_exit_recovers_exact_draft():
+    """Real IDB: teardown flushes, and an interrupted write survives reload."""
+    with socket.socket() as probe:
+        probe.bind(('127.0.0.1', 0))
+        port = probe.getsockname()[1]
+    web = REPO_ROOT / 'access/web'
+    server = subprocess.Popen(
+        [str(web / 'node_modules/.bin/vite'), '--host', '127.0.0.1',
+         '--port', str(port), '--strictPort'], cwd=web,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    url = f'http://127.0.0.1:{port}/static/fixtures/corpus-reader.html'
+    read_notes = """async () => {
+      const db=await new Promise((resolve,reject)=>{
+        const request=indexedDB.open('tos-corpus-reader-fixture-v1');
+        request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+      });
+      try{return await new Promise((resolve,reject)=>{
+        const request=db.transaction('notes','readonly').objectStore('notes').getAll();
+        request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+      });}finally{db.close();}
+    }"""
+    try:
+        deadline = time.monotonic() + 15
+        while True:
+            try:
+                with urllib.request.urlopen(url, timeout=1) as response:
+                    assert response.status == 200
+                break
+            except (OSError, AssertionError):
+                if server.poll() is not None or time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.1)
+        with short_chromium_tmp(), sync_playwright() as p:
+            options = {'headless': True, 'args': ['--no-sandbox']}
+            if CHROMIUM:
+                options['executable_path'] = CHROMIUM
+            browser = p.chromium.launch(**options)
+            for interrupted in (False, True):
+                context = browser.new_context(locale='ru-RU')
+                page = context.new_page()
+                page.on('dialog', lambda dialog: dialog.accept())
+                page.goto(url, wait_until='domcontentloaded')
+                page.wait_for_selector('#tree[data-fixture-ready="true"]')
+                page.locator('[data-corpus-open]').click()
+                page.locator('.cr-unit:not(.cr-heading) .cr-unit-marker').first.click()
+                page.locator('.cr-note-editor').wait_for()
+                unit_id = page.locator('.cr-unit:not(.cr-heading)').first.get_attribute('data-unit-id')
+                text = 'Незавершённая заметка 😀 α — ' + str(interrupted)
+                # One JS task guarantees exit before the 450 ms debounce.
+                if interrupted:
+                    with page.expect_navigation(wait_until='domcontentloaded'):
+                        page.evaluate("""text => {
+                          const transaction=IDBDatabase.prototype.transaction;
+                          IDBDatabase.prototype.transaction=function(names,mode,...rest){
+                            if(mode==='readwrite')throw new DOMException('Interrupted test write','AbortError');
+                            return transaction.call(this,names,mode,...rest);
+                          };
+                          const editor=document.querySelector('.cr-note-editor');
+                          editor.value=text;editor.dispatchEvent(new Event('input',{bubbles:true}));
+                          location.reload();
+                        }""", text)
+                else:
+                    page.evaluate("""text => {
+                      const editor=document.querySelector('.cr-note-editor');
+                      editor.value=text;editor.dispatchEvent(new Event('input',{bubbles:true}));
+                      window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:false}));
+                    }""", text)
+                page.wait_for_function(
+                    'async text => (await (' + read_notes + ')()).some(note=>note.text===text)',
+                    arg=text, timeout=15_000,
+                )
+                notes = page.evaluate(read_notes)
+                assert len(notes) == 1
+                assert notes[0]['reference']['unitId'] == unit_id
+                if interrupted:
+                    assert notes[0]['id'].startswith('recovered-')
+                    page.reload(wait_until='domcontentloaded')
+                    page.wait_for_selector('#tree[data-fixture-ready="true"]')
+                    assert len(page.evaluate(read_notes)) == 1
+                    assert page.evaluate(
+                        "sessionStorage.getItem('tos.corpus.note-draft.v1:tos-corpus-reader-fixture-v1')"
+                    ) is None
+                context.close()
+            browser.close()
+    finally:
+        server.terminate()
+        try:
+            server.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            server.kill()
+            server.wait(timeout=5)
+
+
+@pytest.fixture(scope='session')
+def reader_fixture_base_url():
+    with socket.socket() as probe:
+        probe.bind(('127.0.0.1', 0))
+        port = probe.getsockname()[1]
+    web = REPO_ROOT / 'access/web'
+    server = subprocess.Popen(
+        [str(web / 'node_modules/.bin/vite'), '--host', '127.0.0.1', '--port', str(port), '--strictPort'],
+        cwd=web, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    base_url = f'http://127.0.0.1:{port}'
+    try:
+        deadline = time.monotonic() + 15
+        while True:
+            try:
+                with urllib.request.urlopen(base_url + '/static/fixtures/research-shelf.html', timeout=1) as response:
+                    assert response.status == 200
+                break
+            except (OSError, AssertionError):
+                if server.poll() is not None or time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.1)
+        yield base_url
+    finally:
+        server.terminate()
+        try:
+            server.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            server.kill()
+            server.wait(timeout=5)
+
+
+def test_research_shelf_collection_delete_is_atomic(reader_fixture_base_url):
+    """Real IDB: two-connection CAS and rollback of a partially visited collection."""
+    with short_chromium_tmp(), sync_playwright() as p:
+        options = {'headless': True, 'args': ['--no-sandbox']}
+        if CHROMIUM:
+            options['executable_path'] = CHROMIUM
+        browser = p.chromium.launch(**options)
+        page = browser.new_page(locale='ru-RU')
+        page.goto(reader_fixture_base_url + '/static/fixtures/research-shelf.html', wait_until='domcontentloaded')
+        proof = page.locator('#research-shelf-proof[data-state]')
+        proof.wait_for(state='visible')
+        value = json.loads(proof.inner_text())
+        assert proof.get_attribute('data-state') == 'passed', value
+        assert value['tests']['collectionDetach']['ok'], value
+        assert value['tests']['collectionDeleteRollback']['ok'], value
+        assert all(test['ok'] for test in value['tests'].values()), value
+        browser.close()
+
+
+def test_lens_large_relation_area_requires_scope_confirmation(reader_fixture_base_url):
+    """A sole all-tree option stays explicit and can actually be confirmed."""
+    with short_chromium_tmp(), sync_playwright() as p:
+        options = {'headless': True, 'args': ['--no-sandbox']}
+        if CHROMIUM:
+            options['executable_path'] = CHROMIUM
+        browser = p.chromium.launch(**options)
+        page = browser.new_page(locale='ru-RU')
+        page.route('**/lens-scope-check', lambda route: route.fulfill(
+            status=200, content_type='text/html',
+            body='<html lang="ru"><body><main id="scope-check"></main></body></html>',
+        ))
+        page.goto(reader_fixture_base_url + '/lens-scope-check')
+        page.evaluate("""async () => {
+          const {mountLensBuilder}=await import('/static/src/observatory/lens-builder.mjs');
+          const {lensContext,boundary}=await import('/static/fixtures/lens-scenarios.mjs');
+          const context=lensContext(),nodes=Array.from({length:41},(_,i)=>({id:'fixture:'+i}));
+          const selection={kind:'relation',id:'fixture:relation'};
+          const packet={schema:'tos_browser_exploration_view_v1',source_revision:context.catalog.source_revision,
+            authority_boundary:boundary,nodes,relations:[{id:selection.id,from_id:nodes[0].id,to_id:nodes[1].id}],selection};
+          window.scopeCheck={packet,compiles:0};
+          window.scopeCheck.builder=mountLensBuilder({host:document.querySelector('#scope-check'),
+            getArea:()=>({packet,selection}),client:{
+              request:async path=>path==='/catalog'?context.catalog:{schema:'tos_knowledge_contract_bundle_v1',
+                authority_boundary:boundary,contracts:{lens_spec:context.schema}},
+              compile:async()=>{window.scopeCheck.compiles++;throw Error('Preview must stay explicit');}
+            }});
+          await window.scopeCheck.builder.open();
+        }""")
+        builder = page.locator('#scope-check .lens-builder')
+        choice = builder.locator('.lens-builder-area-choice')
+        assert choice.locator('option').count() == 1
+        assert choice.locator('select').input_value() == 'all'
+        assert page.evaluate('scopeCheck.builder.state().areaChoice.required')
+        assert builder.get_by_role('button', name='Предпросмотр', exact=True).is_disabled()
+        choice.get_by_role('button', name='Открыть область', exact=True).click()
+        choice.wait_for(state='hidden')
+        assert not page.evaluate('scopeCheck.builder.state().areaChoice.required')
+        assert page.evaluate('scopeCheck.compiles') == 0
+        assert page.evaluate('scopeCheck.packet.nodes.length') == 41
+        assert builder.get_by_role('button', name='Предпросмотр', exact=True).is_enabled()
+        assert builder.get_by_role('button', name='Сохранить линзу', exact=True).is_enabled()
+        browser.close()
+
+
+def test_reader_positions_survive_pagehide_before_debounce():
+    """A pagehide flush captures corpus and native positions before teardown."""
+    with socket.socket() as probe:
+        probe.bind(('127.0.0.1', 0))
+        port = probe.getsockname()[1]
+    web = REPO_ROOT / 'access/web'
+    server = subprocess.Popen(
+        [str(web / 'node_modules/.bin/vite'), '--host', '127.0.0.1',
+         '--port', str(port), '--strictPort'], cwd=web,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    corpus_url = f'http://127.0.0.1:{port}/static/fixtures/corpus-reader.html'
+    native_url = f'http://127.0.0.1:{port}/static/fixtures/native-reader.html'
+    corpus_db = 'tos-corpus-reader-fixture-v1'
+    native_db = 'tos-native-reader-validation-v1'
+    try:
+        deadline = time.monotonic() + 15
+        while True:
+            try:
+                with urllib.request.urlopen(corpus_url, timeout=1) as response:
+                    assert response.status == 200
+                break
+            except (OSError, AssertionError):
+                if server.poll() is not None or time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.1)
+        with short_chromium_tmp(), sync_playwright() as p:
+            options = {'headless': True, 'args': ['--no-sandbox']}
+            if CHROMIUM:
+                options['executable_path'] = CHROMIUM
+            browser = p.chromium.launch(**options)
+            context = browser.new_context(locale='ru-RU')
+
+            corpus = context.new_page()
+            corpus.goto(corpus_url, wait_until='domcontentloaded')
+            corpus.wait_for_selector('#tree[data-fixture-ready="true"]')
+            corpus.locator('[data-corpus-open]').click()
+            corpus.locator('.cr-pane').wait_for()
+            # Scroll and pagehide share one browser task, so the 550 ms
+            # debounce cannot run between the observed position and teardown.
+            corpus_position = corpus.evaluate("""() => {
+              const pane = document.querySelector('.cr-pane');
+              const maximum = pane.scrollHeight - pane.clientHeight;
+              const requested = Math.min(maximum, Math.max(640, Math.floor(maximum * .45)));
+              pane.scrollTop = requested;
+              pane.dispatchEvent(new Event('scroll'));
+              const paneRect = pane.getBoundingClientRect();
+              const row = [...pane.querySelectorAll('.cr-unit')].find(item =>
+                item.getBoundingClientRect().bottom > paneRect.top + 18);
+              window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: false}));
+              history.replaceState(history.state, '', location.pathname + location.search);
+              return {top: pane.scrollTop, unitId: row?.dataset.unitId, versionId: pane.dataset.versionId};
+            }""")
+            assert corpus_position['top'] > 0
+            assert corpus_position['unitId']
+            corpus_readings = wait_for_idb_reading(
+                corpus, corpus_db,
+                lambda item: item.get('reference', {}).get('unitId') == corpus_position['unitId'],
+            )
+            corpus_saved = next(
+                item for item in corpus_readings
+                if item.get('reference', {}).get('unitId') == corpus_position['unitId']
+            )
+            assert corpus_saved['versionId'] == corpus_position['versionId']
+            assert corpus_saved['reference']['target']['workId']
+
+            # Reopen without the old route hash. The exact persisted unit is
+            # used as the resume address and is brought to the pane start.
+            corpus.reload(wait_until='domcontentloaded')
+            corpus.wait_for_selector('#tree[data-fixture-ready="true"]')
+            corpus.locator('[data-corpus-open]').click()
+            corpus.locator('.cr-pane').wait_for()
+            corpus.wait_for_function(
+                """unitId => {
+                  const pane = document.querySelector('.cr-pane');
+                  const row = pane && pane.querySelector(`.cr-unit[data-unit-id="${CSS.escape(unitId)}"]`);
+                  if (!row || !pane) return false;
+                  const paneRect = pane.getBoundingClientRect();
+                  const rowRect = row.getBoundingClientRect();
+                  return rowRect.bottom > paneRect.top + 18 && rowRect.top <= paneRect.top + 28;
+                }""", arg=corpus_position['unitId'],
+            )
+
+            native = context.new_page()
+            native.goto(native_url, wait_until='domcontentloaded')
+            native.get_by_role('button', name='Открыть текст', exact=True).click()
+            native.locator('.native-reader:not([hidden])').wait_for()
+            native.locator('.nr-article').wait_for()
+            # The native 350 ms debounce also must not run between scroll and
+            # the synthetic pagehide that asks the reader to flush.
+            native_position = native.evaluate("""() => {
+              const article = document.querySelector('.nr-article');
+              article.scrollTop = Math.min(420, article.scrollHeight - article.clientHeight);
+              article.dispatchEvent(new Event('scroll'));
+              window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: false}));
+              return {top: article.scrollTop};
+            }""")
+            assert native_position['top'] > 0
+            native_readings = wait_for_idb_reading(
+                native, native_db,
+                lambda item: item.get('offset') == native_position['top'],
+            )
+            native_saved = next(item for item in native_readings if item.get('offset') == native_position['top'])
+            assert native_saved['reference']['schemaVersion'] == 'tos.corpus.reader.native-reference.v1'
+
+            native.evaluate("history.replaceState(history.state, '', location.pathname + location.search)")
+            native.reload(wait_until='domcontentloaded')
+            native.get_by_role('button', name='Открыть текст', exact=True).click()
+            native.locator('.native-reader[data-native-state="available"]').wait_for()
+            native.wait_for_function(
+                """expected => Math.abs(document.querySelector('.nr-article').scrollTop - expected) < 1""",
+                arg=native_position['top'],
+            )
+            context.close()
+            browser.close()
+    finally:
+        server.terminate()
+        try:
+            server.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            server.kill()
+            server.wait(timeout=5)

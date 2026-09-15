@@ -92,14 +92,40 @@ export function validateExplorationSearch(packet,discovery,query,cursor=null){
   return packet;
 }
 
+// Both bounded scene contracts use the same exact material reader. The view
+// is already admitted by its own consumer; no Exploration/Lens relabelling.
+export async function inspectSceneMaterial(client,view,target,{language='ru',signal}={}){
+  requireContract(view&&object(target)&&['node','relation','claim-path'].includes(target.kind));
+  const kind=target.kind==='relation'?'relation':'node';
+  const path=target.kind==='claim-path'?view.scene?.compact?.claim_paths.find(item=>item.id===target.id):
+    kind==='node'?claimPathFor(view,target.id):null;
+  const id=path?.claim_node_id??target.id,raw=view[kind==='node'?'nodes':'relations'].find(item=>item.id===id);
+  requireContract(raw&&(target.kind!=='claim-path'||path));
+  const versions=materialVersions(view);
+  const material=path?await client.readClaimReference(claimMaterialReference(view,path),signal,
+    {language,expected:view.source_revision,versions}):
+    await client.readMaterial(kind,id,signal,view.source_revision,raw.content_revision,{language,relation:kind==='relation'?raw:null});
+  for(const name of ['nodes','relations']){
+    requireContract(Array.isArray(material.packet[name]));
+    for(const item of material.packet[name])if(item.content_revision!==versions[name][item.id])throw new RevisionError();
+  }
+  return readingSnapshot(material,kind);
+}
+
 // A single bounded browser session. Discovery/search/card requests never mutate
 // the scene. Only a current, fully validated page enters its immutable cache.
 // This adapter has no source command or mutation endpoint.
 export class ExplorationSession {
   #client;#cache;#slots=new RequestSlots();#discovery=null;#sceneRequest=null;#ticket=null;#disposed=false;#selectionEpoch=0;
   constructor({client=new KnowledgeClient(),cache=new ExplorationSceneCache()}={}){this.#client=client;this.#cache=cache;}
+  get client(){return this.#client;}
   discovery(){return this.#discovery;}
   snapshot(){return this.#cache.snapshot();}
+  captureLocal(){return this.#cache.captureLocal();}
+  restoreLocal(token){
+    this.cancelScene();this.cancelInspect();this.cancelSourceRecord();
+    const view=this.#cache.restoreLocal(token);this.#changedSelection();return view;
+  }
   async discover(){
     if(this.#disposed)return null;
     const result=await this.#slots.run('discovery',async signal=>{
@@ -206,17 +232,7 @@ export class ExplorationSession {
     const id=path?.claim_node_id??target.id,raw=view[kind==='node'?'nodes':'relations'].find(item=>item.id===id);
     requireContract(raw&&['node','relation','claim-path'].includes(target.kind)&&(target.kind!=='claim-path'||path));
     const result=await this.#slots.run(slot,async signal=>{
-      const material=path?await this.#client.readClaimReference(claimMaterialReference(view,path),signal,
-        {language,expected:view.source_revision,versions:materialVersions(view)}):
-        await this.#client.readMaterial(kind,id,signal,view.source_revision,raw.content_revision,{language,relation:kind==='relation'?raw:null});
-      // Full inspection has a source revision, not the exploration's snapshot
-      // token. Verify every returned carrier against the retained exact closure.
-      const versions=materialVersions(view);
-      for(const name of ['nodes','relations']){
-        requireContract(Array.isArray(material.packet[name]));
-        for(const item of material.packet[name])if(item.content_revision!==versions[name][item.id])throw new RevisionError();
-      }
-      return readingSnapshot(material,kind);
+      return inspectSceneMaterial(this.#client,view,target,{language,signal});
     });
     if(!result.current||this.#disposed||this.snapshot()?.source_revision!==view.source_revision
       ||this.snapshot()?.snapshot_revision!==view.snapshot_revision||(slot==='inspect'&&selectionEpoch!==this.#selectionEpoch))return null;

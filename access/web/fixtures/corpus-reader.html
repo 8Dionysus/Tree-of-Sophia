@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Читалка ToS — проверка масштаба</title></head>
+<body>
+<main id="tree"></main>
+<aside class="corpus-fixture-controls" aria-label="Проверочные условия">
+  <strong>Искусственный корпус · 10 000 произведений · 100 000 единиц в версии</strong>
+  <label>Сеть <select id="corpus-network"><option value="0">Обычная</option><option value="700">700 мс</option><option value="2500">2,5 с</option><option value="offline">Нет сети</option></select></label>
+  <button id="corpus-revision">Изменить версию текста</button>
+  <button id="corpus-check-storage">Проверить IndexedDB</button>
+  <button id="corpus-check-scale">100 переходов</button>
+  <button id="corpus-measure">Показать измерения</button>
+  <output id="corpus-metrics" aria-live="polite"></output>
+</aside>
+<script type="module" src="./corpus-reader-fixture.mjs"></script>
+</body></html>

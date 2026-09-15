@@ -1,12 +1,22 @@
 import {t} from './ui-i18n.mjs';
 import {BUDGET,ContractError,checkRevision,validateLens} from './knowledge-client.mjs';
 import {validateConditions,compileConditions} from './lens-conditions.mjs';
+import {compilePathQuery,validatePathDraft,pathDraftFromSpec} from './lens-path-editor.mjs';
+
+export {compilePathQuery,validatePathDraft,pathDraftFromSpec};
 
 export const CUSTOM_LENS='observatory-custom';
 export const SAVED_LENSES_KEY='tos-observatory-lenses-v1';
 const bad=message=>{throw new ContractError(message);};
 const strings=(value,max,length=1024)=>Array.isArray(value)&&value.length<=max&&new Set(value).size===value.length&&value.every(v=>typeof v==='string'&&v.length>0&&v.length<=length);
 const drafts=new WeakMap();
+const freezeDeep=value=>{
+  if(value&&typeof value==='object'){
+    for(const child of Object.values(value))freezeDeep(child);
+    if(!Object.isFrozen(value))Object.freeze(value);
+  }
+  return value;
+};
 export const draftForPacket=packet=>drafts.get(packet)||null;
 
 export function validateDraft(value){
@@ -23,17 +33,24 @@ export function validateDraft(value){
   // Keep only owned fields when reading an untrusted link or local definition.
   // A v2 carrier prevents older clients from silently dropping new conditions.
   // v1 definitions migrate only when they contain no unrecognized conditions.
-  if(value.v===1&&value.conditions!==undefined)bad(t("Версия сохранённой линзы не соответствует её условиям."));
+  if(value.v===1&&(value.conditions!==undefined||value.paths!==undefined&&(!Array.isArray(value.paths)||value.paths.length)))bad(t("Версия сохранённой линзы не соответствует её условиям."));
   const conditions=validateConditions(value.v===1?{nodes:[],relations:[]}:value.conditions);
-  return {v:2,name:value.name.trim(),scope:value.scope,sources:[...value.sources],nodeIds:[...value.nodeIds],focusId:value.focusId,
+  const paths=validatePathDraft(value.v===1?[]:value.paths);
+  const result={v:2,name:value.name.trim(),scope:value.scope,sources:[...value.sources],nodeIds:[...value.nodeIds],focusId:value.focusId,
     query:value.query,kinds:[...value.kinds],predicates:[...value.predicates],depth:value.depth,direction:value.direction,
     profile:value.profile,limit:value.limit,relations:value.relations,conditions};
+  // Preserve the old compact carrier byte-for-byte when it predates paths;
+  // new drafts and explicit empty path lists still carry the field.
+  if(Object.hasOwn(value,'paths'))result.paths=paths;
+  return result;
 }
 export function encodeDraft(draft){const text=JSON.stringify(validateDraft(draft));if(text.length>12000||new URLSearchParams({lens:text}).toString().length>40000)bad(t("Описание линзы слишком велико для ссылки. Сузьте исходную область или сократите значения условий."));return text;}
 export function decodeDraft(text){if(typeof text!=='string'||text.length>12000)bad(t("Ссылка на линзу слишком велика."));try{return validateDraft(JSON.parse(text));}catch(error){if(error instanceof ContractError)throw error;bad(t("Не удалось прочитать настройки линзы."));}}
 
-export async function constructorCatalog(client,signal){
-  const [catalog,bundle]=await Promise.all([client.request('/catalog',{signal}),client.request('/contracts',{signal})]);
+export async function constructorCatalog(client,signal,{catalog: suppliedCatalog=null}={}){
+  const catalogRequest=suppliedCatalog===null||suppliedCatalog===undefined
+    ?client.request('/catalog',{signal}):Promise.resolve(suppliedCatalog);
+  const [catalog,bundle]=await Promise.all([catalogRequest,client.request('/contracts',{signal})]);
   checkRevision(catalog);
   const caps=catalog.capabilities,schema=bundle?.contracts?.lens_spec;
   if(catalog.schema!=='tos_knowledge_catalog_v1'||catalog.authority_boundary?.is_source!==false
@@ -55,10 +72,58 @@ export async function constructorCatalog(client,signal){
     ||caps.inclusion?.authority!=='query-execution-not-semantic-proof')bad(t("Сервер пока не предоставляет совместимый конструктор линз."));
   return {catalog,schema};
 }
+
+// The live exploration session already owns an immutable catalog binding. A
+// lens builder may reuse its validated context for that exact object, while a
+// replacement, missing binding, failed validation, or ignored cancellation
+// must never make an old context look current.
+export function createConstructorCatalogLoader(client,getCatalog=()=>null){
+  const readCatalog=typeof getCatalog==='function'?()=>getCatalog()??null:()=>null;
+  const unset=Symbol('no bound catalog');
+  let boundCatalog=unset,cachedContext=null,epoch=0,generation=0;
+  const abortError=signal=>signal?.reason??(typeof DOMException==='function'
+    ?new DOMException('The operation was aborted.','AbortError')
+    :Object.assign(new Error('The operation was aborted.'),{name:'AbortError'}));
+  const checkActive=(signal,turn,turnEpoch)=>{
+    if(signal?.aborted)throw abortError(signal);
+    return turn===generation&&turnEpoch===epoch;
+  };
+  const syncBinding=catalog=>{
+    if(boundCatalog!==unset&&Object.is(boundCatalog,catalog))return;
+    boundCatalog=catalog;cachedContext=null;generation++;
+  };
+  return {
+    async load(signal,{refresh=false}={}){
+      const catalog=readCatalog();syncBinding(catalog);
+      const turnEpoch=epoch,turn=++generation;
+      if(!checkActive(signal,turn,turnEpoch))return null;
+      const reusableCatalog=catalog!==null&&typeof catalog==='object'&&Object.isFrozen(catalog);
+      if(!refresh&&cachedContext&&reusableCatalog&&cachedContext.catalog===catalog)return cachedContext;
+      cachedContext=null;
+      let context;
+      try{context=await constructorCatalog(client,signal,{catalog});}
+      catch(error){
+        if(signal?.aborted)throw abortError(signal);
+        if(turn!==generation||turnEpoch!==epoch)return null;
+        throw error;
+      }
+      if(!checkActive(signal,turn,turnEpoch))return null;
+      const currentCatalog=readCatalog();
+      if(!Object.is(currentCatalog,catalog)){
+        syncBinding(currentCatalog);
+        return null;
+      }
+      if(reusableCatalog){freezeDeep(context.schema);Object.freeze(context);cachedContext=context;}
+      else cachedContext=null;
+      return context;
+    },
+    clear(){epoch++;generation++;cachedContext=null;}
+  };
+}
 export function initialDraft(packet,context){
   return {v:2,name:t("Моя линза"),scope:packet?.nodes?.length?'area':'all',sources:[...context.catalog.capabilities.sources],
     nodeIds:(packet?.nodes||[]).map(n=>n.id),focusId:packet?.focus?.node_id||null,query:'',kinds:[],predicates:[],
-    depth:0,direction:'either',profile:'all',limit:BUDGET.nodes,relations:true,conditions:{nodes:[],relations:[]}};
+    depth:0,direction:'either',profile:'all',limit:BUDGET.nodes,relations:true,conditions:{nodes:[],relations:[]},paths:[]};
 }
 export function compileDraft(value,{catalog,schema}){
   const draft=validateDraft(value),caps=catalog.capabilities;
@@ -67,12 +132,14 @@ export function compileDraft(value,{catalog,schema}){
     ||!listed(draft.predicates,catalog.predicates.map(p=>p.predicate_id)))bad(t("Словарь данных изменился. Обновите каталог и проверьте выбранные условия."));
   const limit=Math.min(BUDGET.nodes,caps.maximums.nodes,schema.properties.limits.properties.nodes.maximum);
   if(draft.limit>limit||draft.depth>Math.min(caps.maximums.traversal_depth,schema.properties.traversal.properties.depth.maximum))bad(t("Сервер не поддерживает выбранный размер области."));
+  const pathQuery=compilePathQuery(draft.paths,{catalog,schema});
   const spec={schema_version:'tos_lens_spec_v1',lens_id:CUSTOM_LENS,title:draft.name,language:'ru',detail:'compact',explain:true,
     sources:draft.sources,seed:draft.scope==='focus'?{focus_node_id:draft.focusId}:{text_query:draft.query,...(draft.scope==='area'?{node_ids:draft.nodeIds}:{})},
     node_query:{enabled:draft.scope!=='focus',filters:draft.kinds.length?[{field:'kind_id',op:'in',value:draft.kinds}]:[]},
     relation_query:{enabled:draft.relations,filters:draft.predicates.length?[{field:'predicate_id',op:'in',value:draft.predicates}]:[]},
     traversal:{depth:draft.depth,direction:draft.direction,profile:draft.profile},composition:{endpoint_policy:'both'},
     limits:{nodes:draft.limit,relations:draft.relations?Math.min(BUDGET.relations,caps.maximums.relations,schema.properties.limits.properties.relations.maximum):0,groups:Math.min(8,caps.maximums.groups,schema.properties.limits.properties.groups.maximum)}};
+  if(schema.properties.path_query)spec.path_query=pathQuery;
   // Dormant conditions remain in the local definition and visibly inactive.
   if(draft.scope!=='focus')spec.node_query.filters.push(...compileConditions(draft.conditions.nodes,{catalog,schema},'nodes'));
   if(draft.relations)spec.relation_query.filters.push(...compileConditions(draft.conditions.relations,{catalog,schema},'relations'));
