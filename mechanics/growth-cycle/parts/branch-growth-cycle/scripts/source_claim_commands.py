@@ -23,7 +23,15 @@ PACKAGE_FILES = {SOURCE_CLAIM_BASENAME, 'source-create-request.json', 'source-cr
                  'source-create-provenance.jsonl', 'source-create-receipt.json'}
 
 
-def configuration(config):
+def configuration(config, *, _creation_recorded_at=None):
+    now = datetime.now(timezone.utc)
+    evaluation_time = now
+    if _creation_recorded_at is not None:
+        if config.get('schema_version') != source.CLAIM_CONFIG:
+            raise PermissionError('historical inspection is limited to initial identity-only Claims')
+        evaluation_time = source._instant(_creation_recorded_at)
+        if evaluation_time > now:
+            raise PermissionError('creation receipt is dated in the future')
     values_allowed = config['schema_version'] in {
         source.CLAIM_VALUE_CONFIG, source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG, document_catalogue.CREATE_CONFIG, *identity_proposals.CREATE_CONFIGS}
     source._keys(config, {'schema_version', 'uid', 'principal_id', 'maker_type', 'source_root',
@@ -36,7 +44,7 @@ def configuration(config):
             or config['uid'] != os.getuid() or config['maker_type'] not in {'human', 'software', 'model'}
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
-            or source._instant(config['expires_at']) <= datetime.now(timezone.utc)):
+            or source._instant(config['expires_at']) <= evaluation_time):
         raise PermissionError('claim creation delegation is invalid or expired')
     for key, maximum in (('allowed_operations', 1), ('allowed_claim_ids', 32),
                          ('allowed_subject_refs', 128), ('allowed_object_refs', 128),

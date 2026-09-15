@@ -25,7 +25,8 @@ class ClaimCatalogAddition:
                  expected_request_digest, limits, mutation_limits, target_part_bytes):
         self.active = True
         self.owner_config = Path(owner_config)
-        self.config, self.configuration, self.path = source._configuration(self.owner_config)
+        self.expected_receipt_sha256 = expected_receipt_sha256
+        self.config, self.configuration, self.path = source.inspect_selected_creation_owner(self.owner_config, expected_receipt_sha256)
         if self.config['schema_version'] != source.CLAIM_CONFIG:
             raise PermissionError('initial identity-only Claim creation delegation required')
         self.root = Path(self.config['source_root'])
@@ -177,7 +178,7 @@ class ClaimCatalogAddition:
     def verify_current(self):
         if not self.active:
             raise catalog.SourceCatalogError('Claim addition source scope is closed')
-        config, digest, path = source._configuration(self.owner_config)
+        config, digest, path = source.inspect_selected_creation_owner(self.owner_config, self.expected_receipt_sha256)
         if config != self.config or digest != self.configuration or path != self.path:
             raise PermissionError('Claim addition delegation changed')
         self.publication.verify_current()
@@ -202,7 +203,7 @@ def claim_catalog_addition(owner_config, before, *, expected_receipt_sha256,
     """
     if not isinstance(before, catalog.SourceCatalogSnapshot):
         raise TypeError('explicit source catalog predecessor required')
-    config, _, _ = source._configuration(Path(owner_config))
+    config, _, _ = source.inspect_selected_creation_owner(Path(owner_config), expected_receipt_sha256)
     with source._locked(Path(config['source_root']) / 'ToS/source-witnesses/historical-create'):
         addition = ClaimCatalogAddition(owner_config, before,
             expected_receipt_sha256=expected_receipt_sha256, expected_request_digest=expected_request_digest,

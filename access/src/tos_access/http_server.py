@@ -27,6 +27,13 @@ from .source_read import SourceReadBudgetExceeded, SourceReadError
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
 MAX_LENS_REQUEST_BYTES = 64 * 1024
 MAX_SOURCE_REQUEST_BYTES = 64 * 1024
+_HEALTH_DISPLAY_COVERAGE_CHECKS = (
+    ("node_titles", "nodes", "knowledge graph node title coverage is incomplete"),
+    ("node_summaries", "nodes", "knowledge graph node summary coverage is incomplete"),
+    ("relation_labels", "relations", "knowledge graph relation label coverage is incomplete"),
+    ("relation_statements", "relations", "knowledge graph relation statement coverage is incomplete"),
+    ("relation_explanations", "relations", "knowledge graph relation explanation coverage is incomplete"),
+)
 
 INDEX_TEMPLATE = """<!doctype html>
 <html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -59,6 +66,18 @@ def _boolean(query: dict[str, list[str]], key: str, default: bool = False) -> bo
     if raw in {"0", "false", "no", "off"}:
         return False
     raise ValueError(f"{key} must be a boolean")
+
+
+def _health_counts_summary(counts: dict[str, Any], coverage: dict[str, Any]) -> dict[str, Any]:
+    """Return only the aggregate counts needed by the readiness packet."""
+    return {
+        "nodes": counts.get("nodes"),
+        "relations": counts.get("relations"),
+        "display_coverage": {
+            coverage_key: coverage.get(coverage_key)
+            for coverage_key, _, _ in _HEALTH_DISPLAY_COVERAGE_CHECKS
+        },
+    }
 
 
 def _boot_payload(core: ToSAccessCore) -> dict[str, Any]:
@@ -215,19 +234,13 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                         counts = knowledge.get("counts", {})
                         coverage = counts.get("display_coverage", {}) if isinstance(counts, dict) else {}
                         knowledge_schema = str(knowledge.get("schema") or "")
-                        knowledge_counts = counts if isinstance(counts, dict) else {}
                         if catalog.get("schema") != "tos_knowledge_catalog_v1":
                             errors.append("knowledge catalog schema is not current")
-                        if coverage.get("node_titles") != counts.get("nodes"):
-                            errors.append("knowledge graph node title coverage is incomplete")
-                        if coverage.get("node_summaries") != counts.get("nodes"):
-                            errors.append("knowledge graph node summary coverage is incomplete")
-                        if coverage.get("relation_labels") != counts.get("relations"):
-                            errors.append("knowledge graph relation label coverage is incomplete")
-                        if coverage.get("relation_statements") != counts.get("relations"):
-                            errors.append("knowledge graph relation statement coverage is incomplete")
-                        if coverage.get("relation_explanations") != counts.get("relations"):
-                            errors.append("knowledge graph relation explanation coverage is incomplete")
+                        for coverage_key, count_key, error in _HEALTH_DISPLAY_COVERAGE_CHECKS:
+                            if coverage.get(coverage_key) != counts.get(count_key):
+                                errors.append(error)
+                        if isinstance(counts, dict):
+                            knowledge_counts = _health_counts_summary(counts, coverage)
                     except (KeyError, OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
                         errors.append(f"knowledge graph invalid: {exc}")
                     health = {

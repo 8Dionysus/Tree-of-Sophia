@@ -225,6 +225,95 @@ const graph: KnowledgeGraph = {
   authority_boundary: { source_owner: 'Tree-of-Sophia', is_source: false, is_canon: false, writes_to_tree: false },
 };
 
+test("health packet compacts diagnostics and rejects incomplete coverage", async () => {
+  const bundle = await build({
+    entryPoints: [fileURLToPath(new URL('../src/index.ts', import.meta.url))],
+    bundle: true,
+    write: false,
+    format: 'esm',
+    platform: 'browser',
+    target: 'es2022',
+  });
+  const mf = new Miniflare(convertV4MiniflareOptions({
+    modules: true,
+    script: bundle.outputFiles[0]!.text,
+    d1Databases: ['DB'],
+  }));
+  try {
+    const db = await mf.getD1Database('DB');
+    const counts = {
+      nodes: 3,
+      relations: 2,
+      display_coverage: {
+        node_titles: 3,
+        node_summaries: 3,
+        relation_labels: 2,
+        relation_statements: 2,
+        relation_explanations: 2,
+      },
+      sources: { 'dynamic-owner-key': 3 },
+      semantic_validation: {
+        gaps: [{ sentinel: 'must-not-escape' }],
+        violations: [{ sentinel: 'must-not-escape' }],
+      },
+    };
+    await db.batch([
+      db.prepare('CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY(key, part))'),
+      db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({ sha256: 'a'.repeat(64) })),
+      db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({
+        schema: 'tos_knowledge_graph_v1', counts, authority_boundary: {},
+      })),
+    ]);
+
+    const response = await mf.dispatchFetch('https://tos.test/health');
+    assert.equal(response.status, 200);
+    const health = await response.json() as { knowledge_counts: unknown };
+    assert.deepEqual(health.knowledge_counts, {
+      nodes: 3,
+      relations: 2,
+      display_coverage: {
+        node_titles: 3,
+        node_summaries: 3,
+        relation_labels: 2,
+        relation_statements: 2,
+        relation_explanations: 2,
+      },
+    });
+
+    const sourceCapabilitiesResponse = await mf.dispatchFetch('https://tos.test/api/source/capabilities');
+    assert.equal(sourceCapabilitiesResponse.status, 200);
+    const sourceCapabilities = await sourceCapabilitiesResponse.json() as {
+      available: boolean;
+      source_epoch: unknown;
+      authority: Record<string, unknown>;
+    };
+    assert.equal(sourceCapabilities.available, false);
+    assert.equal(sourceCapabilities.source_epoch, null);
+    assert.deepEqual(sourceCapabilities.authority, {
+      is_source: false,
+      writes_to_source: false,
+      grants_current_use: false,
+      native_text_payload: false,
+      note: 'D1 exposes derived source navigation, not an explicitly selected source-owner reader.',
+    });
+
+    const incompleteCounts = {
+      ...counts,
+      display_coverage: { ...counts.display_coverage, relation_explanations: 1 },
+    };
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_top'")
+      .bind(JSON.stringify({ schema: 'tos_knowledge_graph_v1', counts: incompleteCounts, authority_boundary: {} }))
+      .run();
+    const incompleteResponse = await mf.dispatchFetch('https://tos.test/health');
+    assert.equal(incompleteResponse.status, 503);
+    const unhealthy = await incompleteResponse.json() as { ok: boolean; errors: string[] };
+    assert.equal(unhealthy.ok, false);
+    assert.deepEqual(unhealthy.errors, ['Cloudflare read model is not ready']);
+  } finally {
+    await mf.dispose();
+  }
+});
+
 test("knowledge reads require the publication clock and reject invalid or ABA snapshots", async () => {
   const mf = new Miniflare(convertV4MiniflareOptions({modules: true,
     script: 'export default {fetch(){return new Response()}}', d1Databases: ['DB']}));
@@ -750,8 +839,45 @@ test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Pyth
     ]);
     await applyKnowledgeExplorationMigration(db);
 
+    const beforePublication = await mf.dispatchFetch('https://tos.test/api/knowledge/search/capabilities');
+    assert.equal(beforePublication.status, 503);
+    assert.notEqual(beforePublication.status, 404);
+    assert.notEqual(beforePublication.status, 500);
+    await beforePublication.arrayBuffer();
+
     await publishNativeSearchFixture(db);
+    const capabilitiesResponse = await mf.dispatchFetch('https://tos.test/api/knowledge/search/capabilities');
+    assert.equal(capabilitiesResponse.status, 200);
+    const capabilities = await capabilitiesResponse.json() as {
+      schema: string;
+      default_mode: string;
+      explicit_mode_required: boolean;
+      modes: Record<string, { available: boolean; min_normalized_query_code_points?: number; source_revision?: string }>;
+    };
+    assert.deepEqual(
+      {
+        schema: capabilities.schema,
+        default_mode: capabilities.default_mode,
+        explicit_mode_required: capabilities.explicit_mode_required,
+        modes: {
+          legacy: capabilities.modes.legacy?.available,
+          indexed: {
+            available: capabilities.modes.indexed?.available,
+            min_normalized_query_code_points: capabilities.modes.indexed?.min_normalized_query_code_points,
+          },
+          compressed: capabilities.modes.compressed?.available,
+        },
+      },
+      {
+        schema: 'tos_knowledge_search_capabilities_v1',
+        default_mode: 'legacy',
+        explicit_mode_required: false,
+        modes: { legacy: true, indexed: { available: true, min_normalized_query_code_points: 3 }, compressed: false },
+      },
+    );
+
     const first = await knowledgeSearchD1Indexed(db, {query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1});
+    assert.equal(capabilities.modes.indexed?.source_revision, first.source_revision);
     assert.deepEqual((first.nodes as {id:string}[]).map(item => item.id), ["philosophy:a"]);
     assert.deepEqual((first.relations as {id:string}[]).map(item => item.id), ["philosophy:e"]);
     assert.equal((first.counts as {matching_nodes:number|null}).matching_nodes, null);
@@ -919,6 +1045,13 @@ test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Pyth
       }),
       hasHttpStatus(413),
     );
+
+    await db.prepare('DROP TABLE knowledge_search_gram_stats').run();
+    const missingStats = await mf.dispatchFetch('https://tos.test/api/knowledge/search/capabilities');
+    assert.equal(missingStats.status, 503);
+    assert.notEqual(missingStats.status, 404);
+    assert.notEqual(missingStats.status, 500);
+    await missingStats.arrayBuffer();
   } finally {
     await mf.dispose();
   }

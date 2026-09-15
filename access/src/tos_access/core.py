@@ -1744,6 +1744,7 @@ class ToSAccessCore:
 
     def knowledge_search_capabilities(self) -> dict[str, Any]:
         """Describe selected engines; do not materialize a compatibility graph."""
+        from .search_read_model import SEARCH_NGRAM_SIZE
         legacy = self._prepared_reader is None
         store = self._query_store() if legacy else None
         indexed = legacy and (store is None or store.metadata.get('search_accelerator', {}).get('mode') == 'fts5-trigram')
@@ -1758,7 +1759,8 @@ class ToSAccessCore:
                     "legacy": {"available": legacy, "schema": "tos_knowledge_search_v1",
                                "verification": "engine-selection-only", "pagination": "offset"},
                     "indexed": {"available": indexed, "schema": "tos_knowledge_search_indexed_v2",
-                                "verification": "engine-selection-only", "pagination": "cursor"},
+                                "verification": "engine-selection-only", "pagination": "cursor",
+                                "min_normalized_query_code_points": SEARCH_NGRAM_SIZE},
                     "compressed": compressed}}
 
     def knowledge_search_compressed(

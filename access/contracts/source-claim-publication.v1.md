@@ -15,6 +15,15 @@ writer lock for its scope. It inherits the exact initial identity-relation
 and public metadata evidence boundary of `source_claim_catalog.py`. The source
 command has already committed and is never replayed by this publisher.
 
+The unchanged creation configuration is evidence of its scope at the exact
+receipt's recorded instant, not a grant to execute another command now. As in
+the [metadata publication route](source-metadata-publication.v1.md), natural
+expiry does not invalidate the committed source package. Receipt hash, original
+configuration/principal/authority/path, pre-expiry creation time and complete
+current package are checked; future-dated evidence or a changed/revoked
+configuration refuses. Writable command dispatch still checks current time.
+Derived publication and consumer activation remain separately caller-owned.
+
 The predecessor must have the admitted independent source-root vector,
 canonical prepared row order, WAL, catalog/semantic/search/lens maintenance,
 complete source dependency declarations and existing context index. No

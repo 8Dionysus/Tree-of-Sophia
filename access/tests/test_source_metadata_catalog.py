@@ -1,5 +1,6 @@
 """Focused detached-catalog checks for one initial metadata package."""
 import copy
+from datetime import datetime, timezone
 import hashlib
 import os
 from pathlib import Path
@@ -75,12 +76,17 @@ class SourceMetadataCatalogTests(unittest.TestCase):
             expected_revision=None,
             expected_source=None,
         )
+        self.creation_request = copy.deepcopy(request)
         created = commands.run_local_command(self.owner, request)
         receipt = (self.root / self.relative).with_name('source-create-receipt.json')
         self.expected = {
             'expected_receipt_sha256': hashlib.sha256(receipt.read_bytes()).hexdigest(),
             'expected_request_digest': created['receipt']['request_digest'],
         }
+
+    def receipt(self):
+        path = (self.root / self.relative).with_name('source-create-receipt.json')
+        return commands._json_object(path.read_bytes())
 
     def stage(self, before=None, **kwargs):
         return addition.metadata_catalog_addition(
@@ -140,6 +146,45 @@ class SourceMetadataCatalogTests(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 operation.verify_current()
         self.owner.write_bytes(canonical_bytes(self.config))
+
+    def test_natural_expiry_does_not_block_committed_stage_but_blocks_source_create(self):
+        owner_bytes = self.owner.read_bytes()
+        receipt_path = (self.root / self.relative).with_name('source-create-receipt.json')
+        receipt_bytes = receipt_path.read_bytes()
+        with patch.object(commands, 'datetime') as clock:
+            clock.now.return_value = datetime(2100, 1, 1, tzinfo=timezone.utc)
+            with self.assertRaisesRegex(PermissionError, 'expired'):
+                commands.run_local_command(self.owner, self.creation_request)
+            with self.stage() as operation:
+                operation.verify_current()
+        self.assertEqual(self.owner.read_bytes(), owner_bytes)
+        self.assertEqual(receipt_path.read_bytes(), receipt_bytes)
+
+    def test_committed_creation_rejects_expired_future_or_mismatched_receipts(self):
+        receipt = self.receipt()
+        with patch.object(commands, 'datetime') as clock:
+            clock.now.return_value = datetime(2101, 1, 1, tzinfo=timezone.utc)
+            after_expiry = copy.deepcopy(receipt)
+            after_expiry['recorded_at'] = '2099-01-02T00:00:00Z'
+            with self.assertRaisesRegex(PermissionError, 'expired'):
+                commands.inspect_committed_creation_owner(self.owner, after_expiry)
+
+            clock.now.return_value = datetime(2090, 1, 1, tzinfo=timezone.utc)
+            future = copy.deepcopy(receipt)
+            future['recorded_at'] = '2090-01-01T00:00:01Z'
+            with self.assertRaisesRegex(PermissionError, 'future'):
+                commands.inspect_committed_creation_owner(self.owner, future)
+
+            clock.now.return_value = datetime(2100, 1, 1, tzinfo=timezone.utc)
+            bad_configuration = copy.deepcopy(receipt)
+            bad_configuration['owner_configuration'] = 'sha256:' + '0' * 64
+            with self.assertRaisesRegex(PermissionError, 'authority evidence differs'):
+                commands.inspect_committed_creation_owner(self.owner, bad_configuration)
+
+            bad_principal = copy.deepcopy(receipt)
+            bad_principal['principal_id'] = 'software:other'
+            with self.assertRaisesRegex(PermissionError, 'authority evidence differs'):
+                commands.inspect_committed_creation_owner(self.owner, bad_principal)
 
 
 if __name__ == '__main__':

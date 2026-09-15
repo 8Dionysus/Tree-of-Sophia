@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { createToSQueryOperations } from "./query-operations";
 
-const searchCapabilities = (indexed: boolean, compressed: boolean) => ({
+const searchCapabilities = (indexed: boolean, compressed: boolean, indexedMinimum = 1, compressedMinimum = 1) => ({
   schema: "tos_knowledge_search_capabilities_v1",
   modes: {
-    indexed: { available: indexed },
-    compressed: { available: compressed },
+    indexed: { available: indexed, min_normalized_query_code_points: indexedMinimum },
+    compressed: { available: compressed, min_normalized_query_code_points: compressedMinimum },
   },
 });
 
@@ -229,6 +229,67 @@ describe("ToS query operations", () => {
       kind_ids: "concept",
       predicate_ids: "relates",
     });
+  });
+
+  it("refuses a short query before the only indexed engine receives a search request", async () => {
+    const requested: string[] = [];
+    const operations = createToSQueryOperations(async <T>(url: string) => {
+      requested.push(url);
+      if (url === "/api/knowledge/search/capabilities") return searchCapabilities(true, false, 3) as T;
+      throw new Error("search must not be called");
+    });
+
+    await expect(operations.invoke("tos.knowledge.search", { query: "道" })).rejects.toThrow(
+      "shorter than the minimum supported by the available engines",
+    );
+    expect(requested).toEqual(["/api/knowledge/search/capabilities"]);
+  });
+
+  it("selects compressed when indexed cannot serve a short query", async () => {
+    const requested: string[] = [];
+    const operations = createToSQueryOperations(async <T>(url: string) => {
+      requested.push(url);
+      if (url === "/api/knowledge/search/capabilities") return searchCapabilities(true, true, 3) as T;
+      return { schema: "tos_knowledge_search_compressed_v3" } as T;
+    });
+
+    const result = await operations.invoke("tos.knowledge.search", { query: "道" });
+    expect(result).toMatchObject({ schema: "tos_knowledge_search_compressed_v3", search_mode: "compressed" });
+    expect(new URL(requested[1]!, "http://tos.local").searchParams.get("mode")).toBe("compressed");
+  });
+
+  it("rejects an explicit indexed mode below its minimum without falling back", async () => {
+    const requested: string[] = [];
+    const operations = createToSQueryOperations(async <T>(url: string) => {
+      requested.push(url);
+      if (url === "/api/knowledge/search/capabilities") return searchCapabilities(true, true, 3) as T;
+      throw new Error("search must not be called");
+    });
+
+    await expect(operations.invoke("tos.knowledge.search", { query: "道", search_mode: "indexed" })).rejects.toThrow(
+      "knowledge search mode indexed requires at least 3 normalized query characters",
+    );
+    expect(requested).toEqual(["/api/knowledge/search/capabilities"]);
+  });
+
+  it("counts native-lowered, edge-stripped Unicode code points for query minimums", async () => {
+    const requested: string[] = [];
+    let capabilityCalls = 0;
+    const operations = createToSQueryOperations(async <T>(url: string) => {
+      requested.push(url);
+      if (url === "/api/knowledge/search/capabilities") {
+        capabilityCalls += 1;
+        return (capabilityCalls === 1 ? searchCapabilities(true, false, 2) : searchCapabilities(true, false, 3)) as T;
+      }
+      return { schema: "tos_knowledge_search_indexed_v2" } as T;
+    });
+
+    const lowerExpanded = await operations.invoke("tos.knowledge.search", { query: "  İ  " });
+    expect(lowerExpanded).toMatchObject({ schema: "tos_knowledge_search_indexed_v2", search_mode: "indexed" });
+    await expect(operations.invoke("tos.knowledge.search", { query: "😀a" })).rejects.toThrow(
+      "shorter than the minimum supported by the available engines",
+    );
+    expect(requested.filter((url) => new URL(url, "http://tos.local").pathname === "/api/knowledge/search")).toHaveLength(1);
   });
 
   it("honors an explicit advertised compressed mode even when indexed is preferred by default", async () => {
