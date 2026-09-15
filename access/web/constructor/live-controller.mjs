@@ -291,13 +291,8 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
         body.append(el('p',t(label),'body'));return;
       }
       body.append(el('p',t('sourceRecordNote'),'body'));
-      if(result.record.native_text_binding){
-        const choices=await exactSourceRepresentations(activeSession.client,snapshot.sourceRevision);
-        if(disposed||surface!==surfaceGeneration)return;
-        for(const mode of choices)body.append(button(mode==='native_local_unit'
-          ?(language==='ru'?'Читать по локальным условиям':'Read under local conditions')
-          :(language==='ru'?'Открыть точный текст фрагмента':'Open exact fragment text'),()=>void openSourceRecord(snapshot,mode),'source-link'));
-      }
+      const nativeActions=result.record.native_text_binding?el('div','','source-native-actions'):null;
+      if(nativeActions)body.append(nativeActions);
       if(typeof result.record.preferred_label==='string')body.append(el('h3',result.record.preferred_label,'minor-title'));
       const sourceNote=result.layer==='authored_csv_record'?result.record.note:result.record.notes;
       if(typeof sourceNote==='string'&&sourceNote.trim()){
@@ -309,6 +304,20 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       body.append(detail(t('sourceIdentity'),{source_revision:result.source_revision,content_revision:result.content_revision,
         ...(result.layer==='authored_csv_record'?{target:result.handle.target}:{record_ref:result.record_ref})}),
         detail(t('sourceRights'),result.access),detail(t('technical'),result.record),detail(t('sourceRefs'),result.provenance));
+      if(nativeActions){
+        // The exact record is already available. Discovering optional text
+        // actions must neither delay its display nor replace it on failure.
+        try{
+          const choices=await exactSourceRepresentations(activeSession.client,snapshot.sourceRevision);
+          if(disposed||surface!==surfaceGeneration)return;
+          for(const mode of choices)nativeActions.append(button(mode==='native_local_unit'
+            ?word('Читать по локальным условиям','Read under local conditions')
+            :word('Открыть точный текст фрагмента','Open exact fragment text'),()=>void openSourceRecord(snapshot,mode),'source-link'));
+        }catch{
+          if(disposed||surface!==surfaceGeneration)return;
+          nativeActions.append(el('p',word('Способы чтения текста сейчас недоступны.','Text reading options are currently unavailable.'),'muted'));
+        }
+      }
     }catch(error){if(!disposed&&surface===surfaceGeneration)body.replaceChildren(el('p',error?.message??t('sourceRecordUnavailable'),'body'));}
   }
   function openSourceCommands(){

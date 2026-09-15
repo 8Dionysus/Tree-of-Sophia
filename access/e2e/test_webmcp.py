@@ -51,9 +51,10 @@ class _E2EMetadataOwner:
     infer a path or expose native text.
     """
 
-    def __init__(self, record: dict, source_revision: str):
+    def __init__(self, record: dict, source_revision: str, source_ref: Path = SOURCE_RECORD_RELATIVE):
         self.record = copy.deepcopy(record)
         self.source_revision = source_revision
+        self.source_ref = source_ref
 
     def source_read_binding(self) -> dict:
         return {
@@ -96,7 +97,7 @@ class _E2EMetadataOwner:
                     "record_key": self.record["record_id"],
                     "row_sha256": "d" * 64,
                 },
-                "source": {"source_ref": SOURCE_RECORD_RELATIVE.as_posix()},
+                "source": {"source_ref": self.source_ref.as_posix()},
             },
             "descriptor": {
                 "adapter": "native-corpus",
@@ -162,13 +163,33 @@ def access_base_url(tmp_path_factory: pytest.TempPathFactory, request: pytest.Fi
     projection_bytes = projection_path.read_bytes()
     projection = json.loads(projection_bytes)
     source_record = None
-    if getattr(request, "param", None) == "source":
-        source_record = json.loads(SOURCE_RECORD_PATH.read_text(encoding="utf-8"))
+    source_ref = SOURCE_RECORD_RELATIVE
+    source_mode = getattr(request, "param", None)
+    if source_mode in ("source", "source-native-metadata"):
+        if source_mode == "source":
+            source_record = json.loads(SOURCE_RECORD_PATH.read_text(encoding="utf-8"))
+        else:
+            # Synthetic metadata only: the binding prompts optional transport
+            # discovery, while this owner never delivers native wording.
+            source_ref = Path("ToS/synthetic/native-metadata.json")
+            source_record = {
+                "record_type": "text-unit", "record_id": "tos.text-unit.browser-fixture",
+                "record_version": 1, "preferred_label": "Synthetic native metadata",
+                "notes": "Available exact metadata remains readable.",
+                "native_text_binding": {
+                    "unit_id": "tos.text-unit.browser-fixture", "unit_version": 1,
+                    "segmentation_id": "tos.text-segmentation.browser-fixture", "segmentation_version": 1,
+                    "packet_id": "tos.source-text-unit-packet.browser-fixture", "packet_version": 1,
+                    "packet_sha256": "d" * 64,
+                    "text_layer": {"layer_id": "tos.text-layer.browser-fixture", "layer_version": 1, "record_sha256": "e" * 64},
+                    "ordered_anchor_refs": ["tos.anchor.browser-fixture"],
+                },
+            }
         for node in projection.get("nodes", []):
             if node.get("node_id") == "a":
                 properties = node.setdefault("properties", {})
                 properties["source_record"] = copy.deepcopy(source_record)
-                node["source_ref"] = SOURCE_RECORD_RELATIVE.as_posix()
+                node["source_ref"] = source_ref.as_posix()
                 break
         else:
             raise AssertionError("synthetic source fixture node a is missing")
@@ -290,7 +311,7 @@ def access_base_url(tmp_path_factory: pytest.TempPathFactory, request: pytest.Fi
         # The graph projection owns the selected snapshot revision.  Pin the
         # fixture reader to that revision before exposing the HTTP route.
         source_revision = core.knowledge_graph()["source_revision"]
-        owner = _E2EMetadataOwner(source_record, source_revision)
+        owner = _E2EMetadataOwner(source_record, source_revision, source_ref)
         source_read_service = SourceReadService(
             SourceOwnerBinding.from_owner_readers(metadata_reader=owner),
             metadata_record_types={source_record["record_type"]},
@@ -564,6 +585,51 @@ def test_real_browser_sources_panel_reads_frozen_metadata_record(
     assert source_record["preferred_label"] in exact_text
     assert f'"record_version": {source_record["record_version"]}' in exact_text
     assert SOURCE_RECORD_RELATIVE.as_posix() in exact_text
+
+
+
+@pytest.mark.parametrize("access_base_url", ["source-native-metadata"], indirect=True)
+@pytest.mark.parametrize("discovery_failure", ["network", "malformed"])
+def test_source_metadata_remains_when_native_discovery_fails(
+    webmcp_page: Page, access_base_url: str, discovery_failure: str
+) -> None:
+    from urllib.parse import quote
+    page = webmcp_page
+    _, node_id = first_edge_and_node(page)
+    page.goto(f"{access_base_url}/static/research.html?focus={quote('philosophy:' + node_id, safe='')}")
+    page.locator('#tree[data-ready="true"] .reading [data-source-record-id]').wait_for(state="attached")
+    page.locator('.reading details').filter(has=page.locator('[data-source-record-id]')).locator('summary').click()
+    pending = []
+    capability_calls = 0
+
+    def capabilities(route):
+        nonlocal capability_calls
+        capability_calls += 1
+        if capability_calls == 1:
+            route.continue_()  # The exact metadata read still checks its owner.
+        else:
+            pending.append(route)  # Hold optional discovery while inspecting metadata.
+
+    page.route("**/api/source/capabilities", capabilities)
+    page.locator('.reading [data-source-record-id]').click()
+    record = page.locator('dialog[data-kind="source-record"] .dialog-content')
+    record.get_by_role('heading', name='Synthetic native metadata', exact=True).wait_for(state="visible")
+    assert "Available exact metadata remains readable." in record.inner_text()
+    assert len(pending) == 1
+    assert record.get_attribute('data-source-read-status') == 'available'
+    if discovery_failure == 'network':
+        pending[0].abort('failed')
+    else:
+        pending[0].fulfill(status=200, content_type='application/json', body='{')
+    record.get_by_text('Способы чтения текста сейчас недоступны.', exact=True).wait_for(state="visible")
+    assert record.get_attribute('data-source-read-status') == 'available'
+    assert record.get_by_role('heading', name='Synthetic native metadata', exact=True).is_visible()
+    assert "Available exact metadata remains readable." in record.inner_text()
+    assert record.locator('.source-native-actions button').count() == 0
+    for summary in record.locator('details > summary').all():
+        summary.click()
+    assert 'tos.text-unit.browser-fixture' in record.inner_text()
+    assert 'ToS/synthetic/native-metadata.json' in record.inner_text()
 
 
 def test_real_browser_cancellation_reload_and_deep_link(webmcp_page: Page) -> None:
