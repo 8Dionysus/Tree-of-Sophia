@@ -15,8 +15,8 @@ function discoveryFixture(mode='compressed'){
     request_versions:['tos_exploration_request_v2'],result_versions:['tos_exploration_result_v2'],v2_origin_kinds:['node','relation'],
     limits:{depth:10,page_nodes:100,page_relations:100}};
   const search={schema:'tos_knowledge_search_capabilities_v1',writes_to_tree:false,modes:{
-    indexed:{available:mode==='indexed',schema:'tos_knowledge_search_indexed_v2'},
-    compressed:{available:mode==='compressed',schema:'tos_knowledge_search_compressed_v3',source_revision:R}}};
+    indexed:{available:mode==='indexed',min_normalized_query_code_points:3,schema:'tos_knowledge_search_indexed_v2'},
+    compressed:{available:mode==='compressed',min_normalized_query_code_points:1,schema:'tos_knowledge_search_compressed_v3',source_revision:R}}};
   return {catalog,exploration,search};
 }
 function discovery(mode){const {catalog,exploration,search}=discoveryFixture(mode);return bindExplorationDiscovery(catalog,exploration,search);}
@@ -48,7 +48,7 @@ test('discovery binds actual catalog predicate IDs and explicit indexed/compress
     assert.equal(explorationRequest(bound,pageFixture().query.origin,{predicate_ids:['source-claims:related']}).predicate_ids[0],'source-claims:related');
   }
   const fixture=discoveryFixture();fixture.search.modes.indexed.available=true;
-  assert.equal(bindExplorationDiscovery(fixture.catalog,fixture.exploration,fixture.search).searchMode,'compressed');
+  assert.equal(bindExplorationDiscovery(fixture.catalog,fixture.exploration,fixture.search).searchMode,'indexed');
   for(const mutate of [f=>f.catalog.authority_boundary={...boundary,is_source:true},f=>f.exploration.request_versions=['tos_exploration_request_v1'],
     f=>f.exploration.v2_origin_kinds=['node'],f=>f.search.modes.compressed.available=false,
     f=>f.search.modes.compressed.schema='unknown',f=>f.catalog.predicates=[{id:'not-the-producer-field'}]]){
@@ -130,6 +130,22 @@ test('search preserves native mode-specific query echo and exact returned identi
   }
   const p=searchPacket('compressed','Kant');p.source_revision='f'.repeat(64);
   assert.throws(()=>validateExplorationSearch(p,discovery(),'Kant'),RevisionError);
+});
+
+test('search uses the shared capability selector before requesting a short query',async()=>{
+  const onlyIndexed=harness({mode:'indexed'});await onlyIndexed.session.discover();
+  await assert.rejects(onlyIndexed.session.search('道'),/shorter than the minimum supported/);
+  assert.equal(onlyIndexed.sent.filter(item=>item.relative==='/search').length,0);
+
+  const fallback=harness({mode:'indexed'});fallback.fixtures.search.modes.compressed.available=true;
+  await fallback.session.discover();
+  let requested;
+  fallback.client.request=async path=>{
+    requested=path;return searchPacket('compressed','道');
+  };
+  const result=await fallback.session.search('道');
+  assert.equal(result.schema,'tos_knowledge_search_compressed_v3');
+  assert.equal(new URL(requested,'https://example.invalid').searchParams.get('mode'),'compressed');
 });
 
 test('search cancellation suppresses stale results without discarding an accepted scene',async()=>{

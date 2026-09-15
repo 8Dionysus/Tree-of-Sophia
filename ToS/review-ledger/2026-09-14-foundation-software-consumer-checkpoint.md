@@ -248,3 +248,144 @@ browser build (`source-import-parity-r1-resource.json`, 6.530 seconds,
 658.8 MiB peak, zero swap). Browser asset hashes are unchanged. This closes
 the observed direct-runtime import defect, not the still-pending new CI run
 or the broader Foundation acceptance.
+
+## Native D1 navigation and advertised search · 2026-09-15
+
+PR #226 landed as `7f610a78d3743258cbae7df9e020f4888078479a` after
+successful required CI run `34926570346`. This is software landing, not a
+production deployment or a publication of newer authored corpus records.
+
+The retained full D1 now includes its native navigation product. An addressed
+bootstrap installed 27,112 nodes, 39,765 edges and 127 rights records, preserving
+the normalized corpus and source revision `46f6f4b8…`. Data revision changed
+from `3ee4420d…` to `73b8ba6b23c56983d97a5487a105f0637e55bf5793754ef5cb936027007a0d23`.
+The official atomic local SQL importer executed 1,244 statements in 4.056 s;
+the resource launch reported 627.1 MiB peak memory and zero swap. Read-only
+full product readback checked every native row against the exact retained
+navigation and rights inputs in 8.838 s, with 60.5 MiB peak memory and zero
+swap. No database copy or corpus normalization was performed. Exact reverse
+SQL is retained; it was not applied to the real full D1. Small-fixture reverse
+tests are separate evidence, not proof of a real full-database rollback.
+
+| Capability actually checked | Goal coverage | Remaining boundary |
+| --- | --- | --- |
+| Native D1 navigation/rights product matches its complete retained inputs and serves the real JGB Work dossier in the default Sources panel. | G7/G8, K3: addressed derived publication and source-preserving readback. | Retained inputs are not current-main corpus publication; bootstrap cost is not a small-edit growth budget. |
+| Worker search capability discovery now validates publication and schema without reading corpus rows. Human Jenseits search and native WebMCP search use indexed mode, then human Work selection and fresh agent inspection retain the same ID and source path. The scene loads 40 nodes / 39 relations. | G6/G9, K1: shared human/agent discovery, selection and source-dossier access. | Worker exact source handles/read are still absent: opening the original record fails while the dossier remains available. Exact text and the complete K2 routes remain open. |
+| Python and Worker health responses retain aggregate node/relation counts and the five validated display coverage counters, excluding diagnostic/catalog-sized details. Incomplete coverage still fails readiness. | G7: bounded readiness delivery without changing source diagnostics. | Health does not prove source semantics, permissions, corpus currentness or every query operation. |
+
+The live browser observation uses the dirty runtime-capabilities successor of
+the merge above; it records exact hashes of changed runtime files. Its receipt
+is `d1-browser-search-dossier-r3.json`, SHA-256
+`d8b9ec54ab7fea3103c451a437a24e18b6bf00c3290a2618ea5169be94114be3`.
+Native publication receipts are `native-bootstrap-apply-r2-resource.json`
+(`ba7313576a3718cf1b7cb397dbaeb52d1b111a6d4c7539c4fa94bab5c4632127`)
+and `native-bootstrap-readback-r2-resource.json`
+(`0efc2f68b0b4c169d13a05fc69ad758c88abf08272811bf74b7e5ef561ef87d4`).
+All are durable local task artifacts, not public runtime receipts.
+
+The existing indexed HTTP fixture now checks capability discovery before
+publication, after publication, and after removal of its fixture-only gram
+statistics table: 503, 200, 503. Its real indexed/cursor cycle remains intact.
+That test, the Worker health HTTP test, TypeScript checks and the three focused
+Python health cases pass. Previously sufficient corpus/search checks were not
+rerun. Exact successor CI and software artifact remain the next landing gate.
+
+Review: source traces, native values, identity, uncertainty and authored/derived
+separation remain preserved; yes. These adapters neither grant rights nor
+accept Claims, signatures, interpretations or canon. No source assessment or
+translation admission is made; not applicable. The master retains open exact
+source delivery, K2/K3 completion and final Foundation acceptance. Scratch G16
+remains open; no destructive cleanup was performed.
+
+## Search eligibility and explicit source-owner boundary · 2026-09-15
+
+The successor review identified an indexed-search boundary: its trigram engine
+requires three normalized Unicode code points. Both Python and D1 now advertise
+that minimum, and the shared browser selector applies the same native lower/strip
+rules before submitting a search. Automatic selection may choose an available
+compressed engine for a shorter query; an explicitly requested indexed engine
+is refused, never silently substituted. Three focused web files pass 52 tests,
+including no-search-request and Unicode boundary cases; web type checking and
+the focused Worker indexed-search and health tests also pass.
+
+The prior browser failure above is now classified more precisely. The source
+read contract assigns exact owner reads to the explicitly selected Python
+adapter, not D1. D1 serves derived navigation and now advertises source-reader
+unavailability. The Sources client checks that capability before asking for a
+handle. On the retained JGB Work, the real human action now returns
+`unsupported / source-owner-reader-not-configured` while preserving the
+selection and dossier. Native WebMCP's short `道` request is refused by engine
+eligibility rather than sent into an incompatible backend. These observations
+close the G6/G9 and K1 discovery/selection boundary defects, not exact source
+delivery through D1 or completion of K2.
+
+The operator renewed only the two existing local-reading scopes. New selections
+preserve every material and transport restriction; old expired selections are
+still rejected. Current software reads the exact private English JGB19 unit
+in its owner process (5,186 UTF-8 bytes, complete notices), and the exact
+project-authored note unit (6 bytes, two notices). A different unit is refused;
+source bytes are unchanged. JGB19 remains unavailable through HTTP/MCP and
+does not supply the missing German source anchors. Receipts are
+`jgb19-private-return-r3.json` (SHA-256
+`8ab60fa952d9d575f2e395b43a3da1b62dee101d882b962ca6376171f137d811`)
+and `renewed-local-reading-r1.json` (SHA-256
+`f359fc1eff5aedfef101285591656bee5998f6e6bd1d5a24df11939ffcb35bb7`).
+This verifies the renewed local access portion of G3/G6, not public rights or
+full source-reading acceptance.
+
+The retained Python catalog still pins an older execution profile. A reviewed
+header-only candidate replaces only the `projection_diff.py` binding: complete
+AST reconstruction verifies the unchanged legacy program after removal of the
+new snapshot-only entry points. Its source collections, publication token and
+all other profiles are unchanged; no parts or database copies were written.
+Current source-owner code can read the note through that candidate. The
+prepared database and running consumer have not yet adopted it; that paired
+transition remains the next integration step. Review and staging evidence are
+`catalog-reader-profile-review-r1.json` and
+`catalog-reader-profile-staging-r1.json`, not a general compatibility grant.
+
+Review: source traces, language authority, rights, explicit unavailable states,
+and authored/derived separation are preserved. No source or canon admission is
+made. K2, the remaining K3 publication/growth checks, and final acceptance remain
+with the master. G16 stays open. The storage owner separately removed the
+already imported SQL export; source inputs, prepared snapshot, live D1 and
+addressed forward/reverse SQL remain. Recovery of that disposable full export
+is regeneration, not undelete; byte-identical regeneration was not tested.
+
+### Paired local source return
+
+The reviewed catalog transition subsequently committed on the retained prepared
+database: 224 SQL changes, 3.427 seconds, 177.3 MiB peak memory and zero swap.
+No normalized row bodies, normalization binding, context membership or source
+bytes changed. Source revision is `d3ce2a61cb1f6b43a458cce84d88a90d10c84251d488d93f024339314d028b01`;
+prepared data revision is `cb01ff7611388ea1b7b2e544d75685c904621c66154fab867df10c46d0f66129`,
+epoch 2. The old selection is rejected after commit. The first attempted
+transaction rolled back on normalization-profile drift; the successful attempt
+explicitly selected the retained publisher owning that unchanged normalization
+profile. Current source-owner reader code remains separately selected.
+`catalog-reader-profile-publication-r2.json` has SHA-256
+`4001ee23979733d90ddf9f679ac3f6af06ec87371cabfa9c95a4b954e2917ee1`.
+
+On this real full prepared corpus, native MCP and the current production browser
+client over HTTP return identical exact record, handle and local native unit for
+the authored note (5.210 seconds for the combined route). The actual browser
+then follows selection → Sources → original record → local text and displays
+`corpus`, both complete notices and the prohibition on external publication.
+The browser used existing built assets; the current source client was checked
+separately. This closes the positive local source-return seam of G6/G7/K2, not
+the remaining historical routes or a new smoothness benchmark. D1 remains
+independently selected at its earlier revision; no cross-backend switch or
+currentness claim is made.
+
+Receipts: `renewed-note-human-mcp-cycle-r1.json`, SHA-256
+`1f24be34ab7761f354ba4a6905d710fcfe2b4983fbf65f34f8c5518d31c549c9`;
+`renewed-note-browser-observation-r1.json`, SHA-256
+`ff31a6e3466cd8d109f373da4793acfc0b686325ab21cf5efb62f761340b2ed7`.
+
+Successor review also caught two delivery details: capability preflight now
+honors a client response budget below 64 KiB, and the packaged operation map
+advertises the implemented D1 indexed-search discovery route. The smaller-budget
+test covers both representation discovery and a complete exact record read.
+These changes do not widen a caller's resource limits or add source-reading
+authority to D1. Required CI `34930035706` passed at `0e7c0ce371`; the two later
+review fixes require their own successor CI before landing.

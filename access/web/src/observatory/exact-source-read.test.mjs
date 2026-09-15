@@ -25,7 +25,7 @@ function fixture(){
   const inspection={schema:'tos_knowledge_node_packet_v1',source_revision:R,
     matches:[{id:selection.id,content_revision:C,display:{title:{en:'An agent'}},source_refs:['ToS/fixture.json']}],
     source_read_targets:{[selection.id]:{source_revision:R,target}}};
-  return {inspection,discovery,read};
+  return {inspection,capabilities:capabilities(),discovery,read};
 }
 
 test('source capabilities preserve advertised native public/local choices while filtering future representations',async()=>{
@@ -56,7 +56,7 @@ test('source capability revision and contract or authority mutations fail closed
   }
 });
 
-test('source capability discovery forwards the caller signal and fixed 64 KiB response budget',async()=>{
+test('source capability discovery forwards the caller signal and caps response work at 64 KiB',async()=>{
   const controller=new AbortController();let seen=null;
   const client={request:async(path,options)=>{seen={path,options};return capabilities();}};
   await exactSourceRepresentations(client,R,controller.signal);
@@ -64,24 +64,31 @@ test('source capability discovery forwards the caller signal and fixed 64 KiB re
   assert.equal(seen.options.maxResponseBytes,65536);
 });
 
-function harness(data=fixture(),decorate=packet=>new Response(JSON.stringify(packet))){
+function harness(data=fixture(),decorate=packet=>new Response(JSON.stringify(packet)),options={}){
   const calls=[];
-  const client=new KnowledgeClient({fetcher:async(path,options)=>{
+  const client=new KnowledgeClient({...options,fetcher:async(path,options)=>{
     calls.push({path,body:options.body?JSON.parse(options.body):null,signal:options.signal});
-    return decorate(path.startsWith('/api/knowledge/')?data.inspection:path.endsWith('/handles')?data.discovery:
+    return decorate(path.startsWith('/api/knowledge/')?data.inspection:path.endsWith('/capabilities')?data.capabilities:path.endsWith('/handles')?data.discovery:
       JSON.parse(options.body).representation!=='record'?data.unitRead:data.read,path);
   }});
   return {client,calls,data};
 }
 
-test('exact card inspection supplies the only source target; three bounded read-only requests preserve original wording',async()=>{
+test('source preflight and exact reading honor a smaller selected client response budget',async()=>{
+  const {client,calls}=harness(fixture(),undefined,{maxResponseBytes:8192});
+  assert.deepEqual(await exactSourceRepresentations(client,R),['native_public_unit','native_local_unit']);
+  assert.equal((await readExactSource(client,selection)).status,'available');
+  assert.equal(calls.length,5);
+});
+
+test('exact card inspection supplies the only source target; four bounded read-only requests preserve original wording',async()=>{
   const {client,calls,data}=harness();
   const result=await readExactSource(client,selection);
   assert.equal(result.status,'available');assert.deepEqual(result.record,data.read.record);
   assert.deepEqual(calls.map(row=>row.path),[
-    '/api/knowledge/nodes/'+encodeURIComponent(selection.id)+'?relation_limit=0','/api/source/handles','/api/source/read']);
-  assert.deepEqual(calls[1].body,{target:data.discovery.target});
-  assert.deepEqual(calls[2].body,{handle:data.discovery.handle,representation:'record'});
+    '/api/knowledge/nodes/'+encodeURIComponent(selection.id)+'?relation_limit=0','/api/source/capabilities','/api/source/handles','/api/source/read']);
+  assert.deepEqual(calls[2].body,{target:data.discovery.target});
+  assert.deepEqual(calls[3].body,{handle:data.discovery.handle,representation:'record'});
   assert.deepEqual(result.selection,selection);assert.equal(result.access.rights_revalidated,false);
 });
 
@@ -126,7 +133,7 @@ test('native text is a separate gated request; bind exact IDs, span offsets and 
     text_access:{scope:'public-native-unit',recorded_rights_verified:true,conditional_rights:false,grants_current_use:false}};
   const options={representation:'native_public_unit'},h=harness(data);
   assert.equal((await readExactSource(h.client,selection,options)).native_unit.spans[0].text,text);
-  assert.equal(h.calls.length,4);assert.deepEqual(h.calls[3].body,{handle:data.discovery.handle,representation:'native_public_unit'});
+  assert.equal(h.calls.length,5);assert.deepEqual(h.calls[4].body,{handle:data.discovery.handle,representation:'native_public_unit'});
   for(const mutate of [d=>d.unitRead.native_unit.spans[0].text='café',d=>d.unitRead.native_unit.summary.unit_id='tos.text-unit.foreign',
     d=>d.unitRead.native_unit.spans[0].exact_sha256='0'.repeat(64),d=>d.unitRead.text_access.conditional_rights=true]){
     const wrong=structuredClone(data);mutate(wrong);
@@ -162,6 +169,18 @@ test('missing source target never guesses from graph ID, native ID or local refe
   assert.equal(result.status,'unsupported');assert.equal(result.record,null);assert.equal(calls.length,1);
 });
 
+test('unavailable source owner preserves the selected source context and never posts a handle',async()=>{
+  const data=fixture();
+  data.capabilities=capabilities({available:false,representations:[],authority:{is_source:false,writes_to_source:false,grants_current_use:false,native_text_payload:false}});
+  data.capabilities.source_epoch=null;
+  const {client,calls}=harness(data);
+  const result=await readExactSource(client,selection);
+  assert.deepEqual(result,{status:'unsupported',reason:'source-owner-reader-not-configured',selection,record:null});
+  assert.deepEqual(calls.map(row=>row.path),[
+    '/api/knowledge/nodes/'+encodeURIComponent(selection.id)+'?relation_limit=0','/api/source/capabilities']);
+  assert.equal(calls.some(row=>row.path.endsWith('/handles')||row.path.endsWith('/read')),false);
+});
+
 test('native witness identities are exact without fabricated record fields',async()=>{
   for(const [schema,kind,field] of [['tos_artifact_source_witness_v1','artifact','artifact_id'],
     ['tos_artifact_source_witness_v2','artifact','artifact_id'],['tos_scholarly_composite_witness_v1','composite','composite_id']]){
@@ -191,7 +210,7 @@ test('nonavailable owner result stops at discovery without another request',asyn
   for(const status of ['missing','corrupt','access-restricted','over-budget','unsupported']){
     const data=fixture();data.discovery={...data.discovery,status,reason:'owner-unavailable',handle:null};
     const {client,calls}=harness(data);const result=await readExactSource(client,selection);
-    assert.equal(result.status,status);assert.equal(result.record,null);assert.equal(calls.length,2);
+    assert.equal(result.status,status);assert.equal(result.record,null);assert.equal(calls.length,3);
   }
 });
 

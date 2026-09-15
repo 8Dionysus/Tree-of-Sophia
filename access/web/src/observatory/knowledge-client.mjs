@@ -346,7 +346,7 @@ export class KnowledgeClient {
     if(cursor!==null&&(typeof cursor!=='string'||cursor.length>65536)
       ||cursor!==null&&!search_mode||!Number.isSafeInteger(limit)||limit<1||limit>6)throw new ContractError(t("Неподдерживаемый ответ поиска."));
     const capabilities=await this.request('/search/capabilities',{signal});
-    const mode=chooseKnowledgeSearchMode(capabilities,search_mode);
+    const mode=chooseKnowledgeSearchMode(capabilities,search_mode,query);
     const packet=checkRevision(await this.request('/search?'+new URLSearchParams({query,limit,mode,...(cursor!==null?{cursor}:{})}),{signal}),source_revision);
     if(packet.schema!==(mode==='indexed'?'tos_knowledge_search_indexed_v2':'tos_knowledge_search_compressed_v3')
       ||packet.nodes?.length>limit||packet.relations?.length>limit||packet.page?.cursor!==cursor

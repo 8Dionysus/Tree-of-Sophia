@@ -1049,6 +1049,9 @@ export async function buildHealth(db: D1Database): Promise<Item> {
   if (Object.entries(expectedCoverage).some(([key, value]) => typeof value !== "number" || coverage[key] !== value)) {
     throw new Error("knowledge read model display coverage is incomplete");
   }
+  const healthCoverage = Object.fromEntries(
+    Object.keys(expectedCoverage).map((key) => [key, coverage[key]]),
+  );
   return {
     service: "tree-of-sophia-access",
     ok: true,
@@ -1057,6 +1060,10 @@ export async function buildHealth(db: D1Database): Promise<Item> {
     runtime: "cloudflare-worker",
     data_revision: revision.sha256,
     knowledge_schema: knowledge.schema,
-    knowledge_counts: counts,
+    knowledge_counts: {
+      nodes: counts.nodes,
+      relations: counts.relations,
+      display_coverage: healthCoverage,
+    },
   };
 }
