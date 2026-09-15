@@ -10,6 +10,9 @@ const fixture={schema:'tos_lens_result_v1',source_revision:'a'.repeat(64),author
   nodes:[node('graph-a:work'),node('graph-b:work')],focus:{node_id:'graph-a:work'},
   relations:[{id:'relation:1',from_id:'graph-a:work',to_id:'graph-b:work',content_revision:'c'.repeat(64),source_refs:['ToS/fixture/relation.json'],display:{label:{ru:'Связано с'}}}]};
 const clone=()=>structuredClone(fixture);
+const emptySearchPacket=mode=>({schema:mode==='indexed'?'tos_knowledge_search_indexed_v2':'tos_knowledge_search_compressed_v3',
+  source_revision:fixture.source_revision,authority_boundary:fixture.authority_boundary,nodes:[],relations:[],counts:{matching_nodes:null,matching_relations:null},
+  page:{cursor:null,limit_per_kind:6,has_more:false,next_cursor:null}});
 
 test('search selects an advertised engine and retains native cursor, schema and unknown counts',async()=>{
   for(const mode of ['indexed','compressed']){
@@ -43,6 +46,57 @@ test('search refuses unavailable mode and rejected continuation without retry or
   assert.equal(calls.filter(url=>!url.endsWith('/capabilities')).length,1);
   await assert.rejects(client.search('freedom',undefined,{cursor:'unbound'}),ContractError);
   assert.equal(calls.length,3);
+});
+
+test('search selects a compatible engine and rejects an explicit short indexed mode before /search',async()=>{
+  const onlyIndexedCalls=[];
+  const onlyIndexed=new KnowledgeClient({fetcher:async(url)=>{
+    onlyIndexedCalls.push(url);
+    if(url.endsWith('/capabilities'))return {ok:true,json:async()=>({modes:{indexed:{available:true,min_normalized_query_code_points:3},compressed:{available:false}}})};
+    throw new Error('search must not be called');
+  }});
+  await assert.rejects(onlyIndexed.search('道'),/shorter than the minimum supported/);
+  assert.equal(onlyIndexedCalls.filter(url=>!url.endsWith('/capabilities')).length,0);
+
+  const fallbackCalls=[];
+  const fallback=new KnowledgeClient({fetcher:async(url)=>{
+    fallbackCalls.push(url);
+    if(url.endsWith('/capabilities'))return {ok:true,json:async()=>({modes:{indexed:{available:true,min_normalized_query_code_points:3},compressed:{available:true}}})};
+    return {ok:true,json:async()=>emptySearchPacket('compressed')};
+  }});
+  const selected=await fallback.search('道');
+  assert.equal(selected.search_mode,'compressed');
+  assert.equal(new URL(fallbackCalls[1],'http://fixture').searchParams.get('mode'),'compressed');
+
+  const explicitCalls=[];
+  const explicit=new KnowledgeClient({fetcher:async(url)=>{
+    explicitCalls.push(url);
+    if(url.endsWith('/capabilities'))return {ok:true,json:async()=>({modes:{indexed:{available:true,min_normalized_query_code_points:3},compressed:{available:true}}})};
+    throw new Error('explicit indexed search must not be called');
+  }});
+  await assert.rejects(explicit.search('道',undefined,{search_mode:'indexed'}),/mode indexed requires at least 3 normalized/);
+  assert.equal(explicitCalls.filter(url=>!url.endsWith('/capabilities')).length,0);
+});
+
+test('search query minimum counts native-lowered and edge-stripped Unicode code points',async()=>{
+  const acceptedCalls=[];
+  const accepted=new KnowledgeClient({fetcher:async(url)=>{
+    acceptedCalls.push(url);
+    if(url.endsWith('/capabilities'))return {ok:true,json:async()=>({modes:{indexed:{available:true,min_normalized_query_code_points:2},compressed:{available:false}}})};
+    return {ok:true,json:async()=>emptySearchPacket('indexed')};
+  }});
+  const acceptedPacket=await accepted.search('  İ  ');
+  assert.equal(acceptedPacket.search_mode,'indexed');
+  assert.equal(new URL(acceptedCalls[1],'http://fixture').searchParams.get('query'),'  İ  ');
+
+  const codePointCalls=[];
+  const codePoint=new KnowledgeClient({fetcher:async(url)=>{
+    codePointCalls.push(url);
+    if(url.endsWith('/capabilities'))return {ok:true,json:async()=>({modes:{indexed:{available:true,min_normalized_query_code_points:3},compressed:{available:false}}})};
+    throw new Error('UTF-16 length must not authorize indexed search');
+  }});
+  await assert.rejects(codePoint.search('😀a'),/shorter than the minimum supported/);
+  assert.equal(codePointCalls.filter(url=>!url.endsWith('/capabilities')).length,0);
 });
 
 test('search refuses mismatched snapshot and malformed native pages',async()=>{

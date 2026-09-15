@@ -280,6 +280,23 @@ test("health packet compacts diagnostics and rejects incomplete coverage", async
       },
     });
 
+    const sourceCapabilitiesResponse = await mf.dispatchFetch('https://tos.test/api/source/capabilities');
+    assert.equal(sourceCapabilitiesResponse.status, 200);
+    const sourceCapabilities = await sourceCapabilitiesResponse.json() as {
+      available: boolean;
+      source_epoch: unknown;
+      authority: Record<string, unknown>;
+    };
+    assert.equal(sourceCapabilities.available, false);
+    assert.equal(sourceCapabilities.source_epoch, null);
+    assert.deepEqual(sourceCapabilities.authority, {
+      is_source: false,
+      writes_to_source: false,
+      grants_current_use: false,
+      native_text_payload: false,
+      note: 'D1 exposes derived source navigation, not an explicitly selected source-owner reader.',
+    });
+
     const incompleteCounts = {
       ...counts,
       display_coverage: { ...counts.display_coverage, relation_explanations: 1 },
@@ -835,7 +852,7 @@ test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Pyth
       schema: string;
       default_mode: string;
       explicit_mode_required: boolean;
-      modes: Record<string, { available: boolean }>;
+      modes: Record<string, { available: boolean; min_normalized_query_code_points?: number }>;
     };
     assert.deepEqual(
       {
@@ -844,7 +861,10 @@ test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Pyth
         explicit_mode_required: capabilities.explicit_mode_required,
         modes: {
           legacy: capabilities.modes.legacy?.available,
-          indexed: capabilities.modes.indexed?.available,
+          indexed: {
+            available: capabilities.modes.indexed?.available,
+            min_normalized_query_code_points: capabilities.modes.indexed?.min_normalized_query_code_points,
+          },
           compressed: capabilities.modes.compressed?.available,
         },
       },
@@ -852,7 +872,7 @@ test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Pyth
         schema: 'tos_knowledge_search_capabilities_v1',
         default_mode: 'legacy',
         explicit_mode_required: false,
-        modes: { legacy: true, indexed: true, compressed: false },
+        modes: { legacy: true, indexed: { available: true, min_normalized_query_code_points: 3 }, compressed: false },
       },
     );
 

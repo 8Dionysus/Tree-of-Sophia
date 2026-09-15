@@ -154,6 +154,15 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   const method = request.method;
 
   if (path === "/api/knowledge/search/capabilities") return jsonResponse(await knowledgeSearchCapabilitiesD1(env.DB), 200, method);
+  if (path === "/api/source/capabilities") return jsonResponse({
+    schema_version: 'tos_source_read_capabilities_v1', available: false,
+    issuer: 'Tree-of-Sophia/source-witnesses',
+    layers: {metadata_record: [], claim_record: false, source_slot: false, authored_csv_record: false},
+    source_epoch: null, representations: [],
+    authority: {is_source: false, writes_to_source: false, grants_current_use: false, native_text_payload: false,
+      note: 'D1 exposes derived source navigation, not an explicitly selected source-owner reader.'},
+    status: 'unsupported', reason: 'source-owner-reader-not-configured',
+  }, 200, method);
   if (path === "/api/knowledge/explore/capabilities") return jsonResponse(await explorationCapabilitiesD1(env.DB), 200, method);
   if (path === "/api/knowledge/explore/contracts") {
     const contracts = await staticItem(env, request, "knowledge/exploration-contracts.json");

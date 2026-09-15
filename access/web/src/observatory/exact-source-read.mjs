@@ -16,14 +16,20 @@ const byteSize=value=>new TextEncoder().encode(JSON.stringify(value)).byteLength
 
 // Discovery only advertises transport choices. Each exact read still checks
 // the selected record, current rights and (for local text) owner conditions.
-export async function exactSourceRepresentations(client,revision,signal){
+async function sourceReadCapabilities(client,revision,signal){
   const packet=await client.request('/api/source/capabilities',{signal,maxResponseBytes:65536});
   requireContract(object(packet)&&packet.schema_version==='tos_source_read_capabilities_v1'
     &&typeof packet.available==='boolean');
-  if(!packet.available)return [];
+  if(!packet.available)return packet;
   if(packet.source_epoch?.source_revision!==revision)throw new RevisionError();
-  requireContract(packet.authority?.writes_to_source===false&&packet.authority?.grants_current_use===false
-    &&Array.isArray(packet.representations)&&packet.representations.every(value=>typeof value==='string'));
+  requireContract(packet.authority?.writes_to_source===false&&packet.authority?.grants_current_use===false);
+  return packet;
+}
+
+export async function exactSourceRepresentations(client,revision,signal){
+  const packet=await sourceReadCapabilities(client,revision,signal);
+  if(!packet.available)return [];
+  requireContract(Array.isArray(packet.representations)&&packet.representations.every(value=>typeof value==='string'));
   return packet.representations.filter(value=>['native_public_unit','native_local_unit'].includes(value));
 }
 
@@ -113,6 +119,8 @@ export async function readExactSource(client,selection,{signal,timeoutMs=SOURCE_
     requireContract(keys(selected,['source_revision','target']));
     if(selected.source_revision!==expected.source_revision)throw new RevisionError();
     const target=structuredClone(validateExactSourceTarget(selected.target));
+    const capabilities=await withAbort(sourceReadCapabilities(client,expected.source_revision,controller.signal),controller.signal);
+    if(!capabilities.available)return {status:'unsupported',reason:'source-owner-reader-not-configured',selection:expected,record:null};
     const options={signal:controller.signal,maxResponseBytes:Math.min(SOURCE_READ_RESPONSE_BYTES,client.maxResponseBytes??SOURCE_READ_RESPONSE_BYTES)};
     const discovered=await withAbort(client.request('/api/source/handles',{...options,body:{target}}),controller.signal);
     controller.signal.throwIfAborted();

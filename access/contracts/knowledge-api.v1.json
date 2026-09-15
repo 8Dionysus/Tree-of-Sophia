@@ -36,7 +36,7 @@
       "mcp_tool": "tos_source_read_capabilities",
       "cli": "tos source capabilities",
       "result": "selected exact-source owner epoch, supported metadata families and limits, or explicit unavailability",
-      "available_on": "Python local HTTP, CLI and native MCP; source owner is opt-in, not a Cloudflare/D1 source-read capability"
+      "available_on": "Python local HTTP, CLI and native MCP; source owner is opt-in. Cloudflare/D1 advertises explicit unavailability, not a source-read capability"
     },
     {
       "operation_id": "tos.source.read.contracts",

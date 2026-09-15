@@ -296,3 +296,58 @@ accept Claims, signatures, interpretations or canon. No source assessment or
 translation admission is made; not applicable. The master retains open exact
 source delivery, K2/K3 completion and final Foundation acceptance. Scratch G16
 remains open; no destructive cleanup was performed.
+
+## Search eligibility and explicit source-owner boundary · 2026-09-15
+
+The successor review identified an indexed-search boundary: its trigram engine
+requires three normalized Unicode code points. Both Python and D1 now advertise
+that minimum, and the shared browser selector applies the same native lower/strip
+rules before submitting a search. Automatic selection may choose an available
+compressed engine for a shorter query; an explicitly requested indexed engine
+is refused, never silently substituted. Three focused web files pass 52 tests,
+including no-search-request and Unicode boundary cases; web type checking and
+the focused Worker indexed-search and health tests also pass.
+
+The prior browser failure above is now classified more precisely. The source
+read contract assigns exact owner reads to the explicitly selected Python
+adapter, not D1. D1 serves derived navigation and now advertises source-reader
+unavailability. The Sources client checks that capability before asking for a
+handle. On the retained JGB Work, the real human action now returns
+`unsupported / source-owner-reader-not-configured` while preserving the
+selection and dossier. Native WebMCP's short `道` request is refused by engine
+eligibility rather than sent into an incompatible backend. These observations
+close the G6/G9 and K1 discovery/selection boundary defects, not exact source
+delivery through D1 or completion of K2.
+
+The operator renewed only the two existing local-reading scopes. New selections
+preserve every material and transport restriction; old expired selections are
+still rejected. Current software reads the exact private English JGB19 unit
+in its owner process (5,186 UTF-8 bytes, complete notices), and the exact
+project-authored note unit (6 bytes, two notices). A different unit is refused;
+source bytes are unchanged. JGB19 remains unavailable through HTTP/MCP and
+does not supply the missing German source anchors. Receipts are
+`jgb19-private-return-r3.json` (SHA-256
+`8ab60fa952d9d575f2e395b43a3da1b62dee101d882b962ca6376171f137d811`)
+and `renewed-local-reading-r1.json` (SHA-256
+`f359fc1eff5aedfef101285591656bee5998f6e6bd1d5a24df11939ffcb35bb7`).
+This verifies the renewed local access portion of G3/G6, not public rights or
+full source-reading acceptance.
+
+The retained Python catalog still pins an older execution profile. A reviewed
+header-only candidate replaces only the `projection_diff.py` binding: complete
+AST reconstruction verifies the unchanged legacy program after removal of the
+new snapshot-only entry points. Its source collections, publication token and
+all other profiles are unchanged; no parts or database copies were written.
+Current source-owner code can read the note through that candidate. The
+prepared database and running consumer have not yet adopted it; that paired
+transition remains the next integration step. Review and staging evidence are
+`catalog-reader-profile-review-r1.json` and
+`catalog-reader-profile-staging-r1.json`, not a general compatibility grant.
+
+Review: source traces, language authority, rights, explicit unavailable states,
+and authored/derived separation are preserved. No source or canon admission is
+made. K2, the remaining K3 publication/growth checks, and final acceptance remain
+with the master. G16 stays open. The storage owner separately removed the
+already imported SQL export; source inputs, prepared snapshot, live D1 and
+addressed forward/reverse SQL remain. Recovery of that disposable full export
+is regeneration, not undelete; byte-identical regeneration was not tested.

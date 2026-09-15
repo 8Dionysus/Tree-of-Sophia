@@ -107,7 +107,7 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
           throw new Error(`knowledge search mode must be indexed or compressed: ${String(requestedMode)}`);
         }
         const capabilities = await fetchJson<unknown>("/api/knowledge/search/capabilities", request);
-        const searchMode = chooseKnowledgeSearchMode(capabilities, requestedMode);
+        const searchMode = chooseKnowledgeSearchMode(capabilities, requestedMode, query);
         const cursor = optionalOpaqueString(input.cursor);
         const payload = await fetchJson<ToSQueryResult>(`/api/knowledge/search${params({
           mode: searchMode,
