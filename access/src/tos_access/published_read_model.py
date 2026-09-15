@@ -283,6 +283,29 @@ class PublishedKnowledgeReadModel:
                 raise PublishedReadBudgetExceeded("prepared inspection exceeds its SQLite work budget") from error
             raise PublishedReadModelError("configured prepared read model is unavailable or invalid") from error
 
+    def source_descend(self, node_id: str, *, max_depth: int, limit: int) -> dict[str, Any]:
+        """Read native source navigation from this publication, never a legacy index."""
+        from .published_source_navigation import NativeNavigationView
+        from .source_navigation_query import source_descend_query
+
+        def operation(read, top):
+            view = NativeNavigationView(read)
+            return source_descend_query(view.header, view, view.edges('outgoing'),
+                                        node_id, max_depth=max_depth, limit=limit)
+        return self._read(operation)
+
+    def source_dossier(self, object_id: str, *, limit: int) -> dict[str, Any]:
+        """Keep dossier semantics shared with the source query core."""
+        from .published_source_navigation import NativeNavigationView
+        from .source_navigation_query import source_dossier_query
+
+        def operation(read, top):
+            view = NativeNavigationView(read)
+            return source_dossier_query(view.header, view, view.edges('incoming'),
+                                        view.edges('outgoing', semantic=True), view.rights,
+                                        object_id, limit=limit)
+        return self._read(operation)
+
     def catalog(self) -> dict[str, Any]:
         def operation(read, top):
             raw, catalog = read.metadata(CATALOG_KEY)

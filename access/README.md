@@ -29,8 +29,9 @@ The software-only artifact and verification route live in
 [RELEASING](../docs/RELEASING.md); `data_included: false` distinguishes it from
 older combined bundles. Browser build outputs are no longer Git companions.
 
-The backend exposes two source-navigation operations over the same corpus
-index. `tos.source.descend` / `GET /api/source/navigation/{node_id}` walks from
+The backend exposes two source-navigation operations over the selected native
+navigation product (or the corpus index in the legacy carrier mode).
+`tos.source.descend` / `GET /api/source/navigation/{node_id}` walks from
 an era, region, tradition, planting, or source object toward bibliographic
 objects and Links. `tos.dossier.inspect` /
 `GET /api/source/dossiers/{object_id}` returns a compact Work, Expression,
@@ -39,6 +40,16 @@ the connected Work/Expression/Edition/Item/File chain, observed Links, scoped
 rights records, gaps, source refs, and a fail-closed `agent_summary`. A
 downloadable URL is reported as technical access only; legal openness requires
 an accepted human rights review.
+
+An explicitly pinned published SQLite reader uses that publication's native
+`source_navigation_*` tables and seek indexes for both operations. It shares
+the legacy traversal/dossier semantics, holds the selected snapshot through
+the whole operation, verifies full payloads against selection columns, and
+applies row, byte and SQLite-work budgets. Missing native navigation is an
+explicit unavailable-product error, not permission to read another corpus
+index. In particular, normalized knowledge rows alone do not provide the
+complete native header and scoped rights required by a source dossier; a
+prepared normalization product without those companions cannot serve one.
 
 ## Backend-defined knowledge construction
 
@@ -323,6 +334,13 @@ The read-only operations are available through all backend adapters:
   the graph or creates another search index during a request. A scan-only
   compiled store reports indexed search unavailable while retaining the
   explicitly separate legacy search route.
+  The D1 indexed planner intersects up to three rare query trigrams before
+  the document-verification gate. Every used posting has a checked closure;
+  their combined closure count stays within the existing 50,000-candidate
+  budget. Additional membership tests use exact covering-index seeks. The
+  16,000,000-character verification cap, exact text match, ranking and
+  snapshot-bound continuation are unchanged. This reduces false-positive
+  candidates without treating a trigram hit as an actual text match.
 - `GET /api/knowledge/focus/{node_id}` resolves an exact normalized ID, a
   stable entity ID, or one unambiguous native ID and returns a bounded radial neighborhood with an
   explicit `focus` object. Ambiguous native IDs fail closed so the caller can
