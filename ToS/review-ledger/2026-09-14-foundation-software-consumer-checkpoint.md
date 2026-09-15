@@ -3,6 +3,77 @@
 This is a bounded integration review, not Foundation v1 acceptance, corpus
 admission, CI, merge, or deployment evidence.
 
+## Two-Conception reading and cost reconciliation · 2026-09-15 UTC
+
+The actual D1-backed human reader now holds the JGB19 experienced-commanding
+and JGB21 metaphysical-self-origination Conceptions side by side in the existing
+generic reading shelf. Their Russian substantive names resolve through search;
+selection loads 8/7 and 10/9 node/relation carriers respectively. Each retains
+its own source-bound description, provisional identity and non-admission
+notice. The descriptions distinguish experienced agency from a target of
+criticism, without attributing the latter as Nietzsche's endorsed doctrine.
+Selecting English on the second card leaves the first Russian, uses the second
+card's exact English name and explicitly reports the absent English description
+with its available Russian fallback. A screenshot verifies the contextual
+two-column shelf over the existing graph; the pinned first item survives the
+second focus. This is comparison by reading, not an automatic semantic verdict
+that the items are equivalent or competing.
+
+This closes the G5/G6/G9 comparison/language-selection interaction seam.
+Known structured scope, unclassified fields and absent form roles remain
+visible as such, not fabricated prose or accepted content. The earlier exact
+agent/source checks and JGB19 private owner-process text return are reused
+separately. This observation neither extracts JGB21 nor transmits a private
+TextUnit through HTTP/MCP/UI. The exact-text portion of the JGB21 argument
+branch remains open; the existing JGB19 unit is not substituted for that text.
+Evidence: `jgb-conceptions-reader-comparison-r1.json`, SHA-256
+`5783e40592740df84a4ca3ac25d07f7bca0e54e2946dda1de4317a0c41575bb3`.
+
+The K3 review separates foreground reading from explicitly launched background
+publication. Existing observations are sufficient for the bounded v1 cost
+claim below; repeated full builds or destructive source deletion would not
+strengthen it.
+
+| Work class | Measured evidence already retained | Accepted boundary and residual risk |
+| --- | --- | --- |
+| Prepared catalog/search/focus/explore/inspect | Fresh-process / repeated core calls: 102.039/86.494, 29.875/11.414, 55.232/28.263, 44.229/23.389, 5.585/6.015 ms; process setup separately 314–459 ms, peak 100.3 MiB, zero swap. | Process-cold, not cold OS cache, HTTP or paint. Real packets and 42,674/62,693 retained node/relation carriers, not a tiny graph. No p95 service promise follows from one pair. |
+| Local D1 human/agent reads | Earlier full-store catalog 1,631 ms; exact inspections 192–206 ms. Scoped freedom focus first/repeat 685/606 ms; stored-route lens 6,916/6,062 ms, with exact Python parity. | Accept bounded synchronous reads under the existing 60 s client cancellation ceiling, not a claim that 60 s is desirable latency. Simple observed routes are sub-two-second; complex 1.36 MB route output is slower and remains cancellable. No production/network latency claim. |
+| Source correction, assessment/access change, derived deletion and recovery | Exact source/assessment timings and actual withdrawal/restore in the preceding lifecycle table; native positive note read 5.21 s, expired/outside scope refused. | Source history is preserved; derived absence, permission refusal and judgment withdrawal are different operations. No fabricated timing of model reasoning or grant issuance. |
+| Addressed background publication | Penn metadata addition 24.588 s; three-Claim batch 61.158 s / 751.6 MiB / zero swap; D1 catch-up 5.172 s; compact reader-header transition 3.427 s. | These are explicit jobs, not UI keystroke response budgets. The 100,000-mutation refusal preceded an explicitly bounded 500,000-mutation run; no hidden full rebuild or unlimited retry. |
+| Initial full publication | Prepared build 1,409.173 s / 5,260,079,104 bytes; D1 import 1,320.399 s / 1,008,590 SQL statements. Peak wrapper costs about 6.5/7.6 GiB, with observed swap. | Heavy offline initialization, not a small-change path. Its RAM/disk cost requires the host's reservation and resource route, not parallel duplicate corpus copies. It is not a foreground performance claim. |
+| Growth and bounded work | Existing 5,000→10,000 unrelated-row/high-degree query checks, plus 511→1,022 compressed insertion/update/deletion oracle and block-locality checks. | Deterministic row/byte/VM/mutation bounds survive these growth cases. No assertion of universal constant-time SQLite IO or model assessment. |
+
+The enforced budgets are part of the readers, not only this report: prepared
+row/metadata/response limits of 1/8/16 MiB, 4,096 returned rows and 200,000 VM
+steps; compressed page candidate/verification limits of 256/65,536 with bounded
+metadata and body delivery; D1 indexed verification of 16 million characters;
+and finite lens/exploration candidate, decode, cache and retained-state limits.
+Compact and exact inspection have separate budgets; oversized, malformed,
+stale and insufficient-budget requests refuse rather than truncate truth or
+silently fall back to corpus construction. TTL, bounded caches, cancellation,
+same-snapshot restart and stale-cursor refusal are independently tested.
+These limits protect request work and retained storage, not total physical IO
+or an unlimited corpus's total size. Larger future workloads must revise an
+explicit budget and rerun its affected boundary checks.
+
+K3's required bounded observations are now reconciled, including the real
+local/D1 seam and failure/recovery. Their acceptance is conditional on the
+reviewed software passing exact-head CI; it does not close the remaining K2
+text branch or K1 landing. The first union CI found one failing Worker test
+while 355 passed: its old over-budget fixture also corrupted rank JSON and
+therefore received a publication-error 503 before the requested-window 413.
+The test now changes only document length, leaving rank metadata intact;
+the exact 413 assertion is retained. Its targeted real-Miniflare run passed
+in 26.94 s. Separate malformed-carrier tests retain fail-closed coverage.
+The failed remote run is not counted as success; corrected exact-head CI
+must pass before landing.
+Cost evidence: `k3-retained-prepared-warm-benchmark-r2.json` SHA-256
+`7e897be37d41d1dbde3fb71234bf11d19a206501fcb9fc904cd04b2d4c10ad75`;
+`d1-scoped-lens-live-r3.json`
+`710c0b9e7286ab1b76e85a3b5956b4a1668b764b5a6210ae373675a53935537d`;
+`lens-cursor-real-seam-r1.json`
+`5acf8a5f99cb0c7a41d6c84524ff58b1504425a03d32db6ccb27a2af816dcdae`.
+
 ## Ordinary word search and bounded verification · 2026-09-15 UTC
 
 The real `Wille` query exposed a second search boundary: rare-gram intersection
