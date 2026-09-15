@@ -28,6 +28,7 @@ from tos_access.projection_mutation import ProjectionSnapshotView
 from tos_access.projection_store import (
     Collection,
     ProjectionStoreError,
+    canonical_bytes,
     write_projection,
 )
 
@@ -202,7 +203,7 @@ class SourceNavigationBootstrapTests(unittest.TestCase):
             )
             for db, destination in ((self.d1, actual), (oracle, expected)):
                 destination[table] = [tuple(
-                    delta._compact(json.loads(value)) if column in json_columns and value != "" else value
+                    canonical_bytes(json.loads(value)).decode() if column in json_columns and value != "" else value
                     for column, value in zip(columns, row))
                     for row in self._ordered_rows(db, table, columns)]
         return actual, expected
