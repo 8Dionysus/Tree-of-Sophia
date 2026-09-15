@@ -5,15 +5,19 @@ cache or a host-managed AI runtime.
 
 ## Current operator route
 
-The operator-selected local corpus root is:
+The operator-selected local payload root remains:
 
 ```text
 /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/
 ```
 
-Only the bytes beneath an item's `payload/` directory are ignored by Git.
-Identity records, manifests, fixity, provenance, rights posture, forensic
-reports, anchors, reviews, and the generated navigation catalog remain tracked.
+Curated authored records, contracts, doctrine and canon remain in Git. Bulk
+imported records, claims, manifests, fixity, provenance, rights, reviews and
+unique preparation evidence move into exact immutable corpus objects with
+verified restore and historical locators. Their permanent local root is
+`/srv/abyss-machine/artifacts/tos-corpus/`; permitted private R2 backups use a
+separate metadata namespace. Generated catalogs, projections and query stores
+are data artifacts built from an accepted corpus revision.
 
 `local_only` governs access to the source bytes; it does not erase their
 research role. A local item may remain the exact witness behind extraction,
@@ -32,8 +36,11 @@ claim, or separately permitted derivative refers back to it.
 ## Host-policy interpretation
 
 `abyss-machine` owns host caches, model downloads, runtimes, benchmark output,
-and other regenerable machine artifacts under `/srv/abyss-machine/`. It does
-not take ownership of project source evidence inside `/srv/AbyssOS/`.
+and other regenerable machine artifacts under `/srv/abyss-machine/`. Capacity
+management does not transfer ToS source authority. Immutable corpus objects
+and preservation archives are source evidence even beneath `artifacts/`, and
+must not be treated as disposable caches. Deletion requires their owner's
+explicit disposition and the applicable preservation/restore evidence.
 
 The host storage preflight can therefore classify this project target as
 protected or unknown to host automation even when capacity is sufficient. That

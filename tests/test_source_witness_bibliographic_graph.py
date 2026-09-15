@@ -424,7 +424,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         if str(REPO_ROOT / 'access/src') not in sys.path:
             sys.path.insert(0, str(REPO_ROOT / 'access/src'))
         from tos_access.knowledge import _claim_navigation_time_endpoint
-        payload = json.loads(GRAPH_PATH.read_text())
+        payload = json.loads((REPO_ROOT / 'access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json').read_text())
         raw = next(node for node in payload['nodes']
                    if node['node_id'] == 'claim:tos.claim.jenseits-1886-commission.date')
         claim = copy.deepcopy(raw['properties']['source_claim'])
@@ -2896,10 +2896,10 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 SourceRecordProfiles(root).validate('sign', {**source, 'record_id': native[0]['entity_id']})
 
     def historical_fixture(self):
-        return SourceAssemblyFixture(code_root=REPO_ROOT, source_root=REPO_ROOT).historical_fixture()
+        return SourceAssemblyFixture(code_root=REPO_ROOT, source_root=REPO_ROOT / 'access/tests/fixtures/source-assembly').historical_fixture()
 
     def historical_knowledge(self, root, projection):
-        return SourceAssemblyFixture(code_root=REPO_ROOT, source_root=REPO_ROOT).historical_knowledge(root, projection)
+        return SourceAssemblyFixture(code_root=REPO_ROOT, source_root=REPO_ROOT / 'access/tests/fixtures/source-assembly').historical_knowledge(root, projection)
 
     def test_native_metadata_forms_survive_both_carriers_and_stale_source_is_not_hidden(self):
         """Source -> navigation -> shared reader must not drop native forms."""

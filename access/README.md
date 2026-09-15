@@ -1073,11 +1073,11 @@ repository, source payload, compiled query store or AbyssOS runtime dependency.
 Verification installs a wheel in an isolated environment outside the checkout.
 Select a compatible dataset separately with `TOS_DATA_ROOT` before reading it.
 
-`build_standalone_bundle.py` and the older `validate_standalone.py --bundle`
-remain explicit combined software/data tools during migration. Their compiled
-input integrity checks remain active when those tools are selected. They are
-not invoked by Repo Validation or ordinary software packaging. The same-run
-Product Shell query-store handoff is no longer part of software CI.
+Build the dataset separately with `access/packaging/build_data_snapshot.py` and
+prepare its compatible software/data pair with `access/packaging/release_pair.py`.
+The previous combined packager has been removed. Set `TOS_DATA_ROOT` for explicit
+dataset reading or `TOS_RELEASE_ROOT` for a managed pair with rollback and
+withdrawal checks. Dataset selection does not install or deploy software.
 
 The full local Tree may additionally expose a source-bound Zarathustra word
 analysis capability. It resolves a German, Russian, or English query to one

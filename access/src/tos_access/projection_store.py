@@ -35,8 +35,20 @@ _HEX = re.compile(r"[0-9a-f]{64}\Z")
 _COLLECTION = re.compile(r"[a-z][a-z0-9_]*(?:/[a-z][a-z0-9_]*)*\Z")
 
 
+def _check_selected_data(path: Path):
+    # Lazy import avoids making offline projection writers depend on release state.
+    from .data_access import check_data_path
+    check_data_path(path)
+
+
 class ProjectionStoreError(ValueError):
     """A projection part, manifest, identity, or declared bound is invalid."""
+
+
+def row_order(row, fields):
+    """Keep nonnegative integer ordinals in numeric order on disk and in memory."""
+    return tuple(f"0:{len(str(value)):020d}:{value}" if type(value) is int and value >= 0 else f"1:{value}"
+                 for value in (row.get(field, "") for field in fields))
 
 
 def canonical_bytes(value: Any) -> bytes:
@@ -287,6 +299,7 @@ class ProjectionReader:
 
     def __init__(self, path: Path, *, cache_bytes: int = DEFAULT_CACHE_BYTES):
         self.path = Path(path).absolute()
+        _check_selected_data(self.path)
         if self.path.is_symlink() or not self.path.is_file():
             raise ProjectionStoreError("projection root must be a regular file")
         if self.path.stat().st_size > MAX_ROOT_BYTES:
@@ -357,6 +370,7 @@ class ProjectionReader:
 
     def _load(self, descriptor: dict, prefix: str) -> bytes:
         path = self._descriptor(descriptor, prefix)
+        _check_selected_data(path)
         cache_key = (descriptor["sha256"], descriptor["kind"], descriptor["size_bytes"],
                      descriptor["decoded_bytes"], descriptor["decoded_sha256"])
         if cache_key in self._cache:
@@ -501,11 +515,12 @@ class ProjectionReader:
             else:
                 fields = spec["order_fields"] or (spec["key_field"] if isinstance(spec["key_field"], list) else [spec["key_field"]])
                 value = sorted((row for _, row in self.iter_items(name)),
-                               key=lambda row: tuple(str(row.get(field, "")) for field in fields))
+                               key=lambda row: row_order(row, fields))
             _set_collection(result, name, value)
         return result
 
     def require_current(self) -> None:
+        _check_selected_data(self.path)
         if self.path.is_symlink():
             raise ProjectionStoreError("projection snapshot changed during operation")
         with self.path.open("rb") as stream:
@@ -517,6 +532,7 @@ class ProjectionReader:
 def is_partitioned(path: Path) -> bool:
     """Small-root probe; a legacy monolith is never read just for detection."""
     path = Path(path)
+    _check_selected_data(path)
     if not path.is_file() or path.stat().st_size > MAX_ROOT_BYTES:
         return False
     with path.open("rb") as stream:

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
+"""Render the bounded ToS KAG source-return capsule.
+
+The caller supplies an explicit staged source root.  This module only reads
+that root and returns deterministic payload data; CorpusStore selection,
+export publication, and downstream consumer validation belong to their
+respective owner commands.
+"""
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
-SOURCE_NODE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "source_node.example.json"
-CONCEPT_NODE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "concept_node.example.json"
-TINY_ENTRY_ROUTE_PATH = REPO_ROOT / "ToS" / "zarathustra" / "public-entry" / "TINY_ENTRY_ROUTE.md"
-CAPSULE_PATH = REPO_ROOT / "ToS" / "zarathustra" / "prologue-1" / "TRILINGUAL_ENTRY.md"
-OUTPUT_PATH = REPO_ROOT / "ToS" / "derived-exports" / "kag_export.json"
-MIN_OUTPUT_PATH = REPO_ROOT / "ToS" / "derived-exports" / "kag_export.min.json"
 
 PRIMARY_QUESTION = (
     "What source-owned tiny export keeps the current Zarathustra prologue route "
@@ -44,8 +44,10 @@ def encode_json(payload: object, *, compact: bool) -> str:
     return json.dumps(payload, ensure_ascii=True, indent=2) + "\n"
 
 
-def build_kag_export_payload() -> dict[str, object]:
-    source_payload = read_json(SOURCE_NODE_PATH)
+def build_kag_export_payload(source_root: Path) -> dict[str, object]:
+    """Render a payload from the explicit staged ``Tree-of-Sophia`` root."""
+    source_path = source_root / "ToS" / "public-compatibility" / "source_node.example.json"
+    source_payload = read_json(source_path)
     if not isinstance(source_payload, dict):
         raise RuntimeError("ToS/public-compatibility/source_node.example.json must be a JSON object")
 
@@ -112,22 +114,3 @@ def build_kag_export_payload() -> dict[str, object]:
         "provenance_note": PROVENANCE_NOTE,
         "non_identity_boundary": NON_IDENTITY_BOUNDARY,
     }
-
-
-def write_outputs() -> list[Path]:
-    payload = build_kag_export_payload()
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(encode_json(payload, compact=False), encoding="utf-8")
-    MIN_OUTPUT_PATH.write_text(encode_json(payload, compact=True), encoding="utf-8")
-    return [OUTPUT_PATH, MIN_OUTPUT_PATH]
-
-
-def main() -> int:
-    written = write_outputs()
-    for path in written:
-        print(f"[ok] wrote {path.relative_to(REPO_ROOT).as_posix()}")
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

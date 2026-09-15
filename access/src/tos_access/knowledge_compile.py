@@ -24,7 +24,7 @@ if __package__ != 'tos_access':
 
 from .disk_collections import DiskCollections, DiskSequence, DiskMap, canonical_digest, retained_json as compact
 from . import knowledge as k
-from .projection_store import ProjectionReader, FORMAT, is_partitioned
+from .projection_store import ProjectionReader, FORMAT, is_partitioned, row_order
 from .query_store import SCHEMA, DEFAULT_RELATIVE_PATH, COMPILER_VERSION
 from .exploration import EXECUTION_VERSION
 
@@ -67,7 +67,7 @@ def _load(path, storage, *, allow_legacy, legacy_bound=4 * 1024 * 1024):
                 spec['key_field'] if isinstance(spec['key_field'], list)
                 else [spec['key_field']]
             )
-            rows.sort(key=lambda row: tuple(str(row.get(field, '')) for field in fields))
+            rows.sort(key=lambda row: row_order(row, fields))
             target[parts[-1]] = rows
     return result, reader
 

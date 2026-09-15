@@ -4,8 +4,12 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from tos_corpus_index_common import TOS_CORPUS_INDEX_PATH, build_payload, render_payload, validate_payload_schema
+from partitioned_projection_common import (
+    build_storage, check_partitioned_payload, DiskSequence, is_partitioned,
+)
 
 
 def error_diagnostics(payload: dict[str, object]) -> list[dict[str, object]]:
@@ -44,7 +48,7 @@ def require_declared_authority_layers(payload: dict[str, object]) -> None:
         "resources",
     ):
         collection = payload.get(collection_name, [])
-        if not isinstance(collection, list):
+        if not isinstance(collection, (list, DiskSequence)):
             continue
         for item in collection:
             if isinstance(item, dict) and isinstance(item.get("authority_layer"), str):
@@ -55,16 +59,27 @@ def require_declared_authority_layers(payload: dict[str, object]) -> None:
 
 
 def main() -> int:
-    expected_payload = build_payload()
-    current_text = TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8")
-    current_payload = json.loads(current_text)
-    validate_payload_schema(current_payload)
-    require_no_error_diagnostics(expected_payload, "rebuilt ToS corpus index")
-    require_no_error_diagnostics(current_payload, "committed ToS corpus index")
-    require_declared_authority_layers(current_payload)
-    if current_text != render_payload(expected_payload):
-        raise SystemExit("ToS/derived-exports/tos_corpus_index.min.json does not match the canonical rebuild")
-
+    if isinstance(TOS_CORPUS_INDEX_PATH, Path) and is_partitioned(TOS_CORPUS_INDEX_PATH):
+        with build_storage() as storage:
+            expected_payload = build_payload(storage=storage)
+            reader = check_partitioned_payload(TOS_CORPUS_INDEX_PATH, expected_payload)
+            require_no_error_diagnostics(expected_payload, "rebuilt ToS corpus index")
+            require_declared_authority_layers(expected_payload)
+            # Closure parity binds every current row to this validated source
+            # rebuild; the metadata header carries current counts/boundaries.
+            current_payload = reader.metadata()
+        require_no_error_diagnostics(current_payload, "committed ToS corpus index")
+        require_declared_authority_layers(current_payload)
+    else:
+        expected_payload = build_payload()
+        current_text = TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8")
+        current_payload = json.loads(current_text)
+        validate_payload_schema(current_payload)
+        require_no_error_diagnostics(expected_payload, "rebuilt ToS corpus index")
+        require_no_error_diagnostics(current_payload, "committed ToS corpus index")
+        require_declared_authority_layers(current_payload)
+        if current_text != render_payload(expected_payload):
+            raise SystemExit("ToS/derived-exports/tos_corpus_index.min.json does not match the canonical rebuild")
     counts = current_payload.get("counts", {})
     if counts.get("branches", 0) < 10:
         raise SystemExit("ToS corpus index must include the full source-home branch set")

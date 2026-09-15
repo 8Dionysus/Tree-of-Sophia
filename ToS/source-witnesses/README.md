@@ -10,6 +10,14 @@ recorded in [`LOCAL_STORAGE_BOUNDARY.md`](LOCAL_STORAGE_BOUNDARY.md).
 It does not own semantic canon, laboratory runtimes, or generated graph/index
 stores.
 
+Curated authored records remain Git-backed. Bulk imports use immutable corpus
+revisions in permanent local storage, with permitted private R2 backups.
+Catalogs and projections are built into a separate data snapshot. The same
+stable IDs, exact source bytes, provenance, rights and review posture survive
+the move; generated navigation does not become source authority. Use the
+[corpus and data release route](../../docs/RELEASING.md#data-and-corpus-operations)
+for admission, compilation and explicit reader selection.
+
 ## Speaking topology
 
 ```text

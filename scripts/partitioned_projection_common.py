@@ -13,7 +13,7 @@ _ACCESS = Path(__file__).resolve().parents[1] / "access/src"
 if str(_ACCESS) not in sys.path:
     sys.path.insert(0, str(_ACCESS))
 from tos_access.disk_collections import DiskCollections, DiskMap, DiskSequence, canonical_digest, json_chunks
-from tos_access.projection_store import Collection, ProjectionReader, ProjectionStoreError, write_projection, is_partitioned, load_projection
+from tos_access.projection_store import Collection, ProjectionReader, ProjectionStoreError, write_projection, is_partitioned, load_projection, row_order
 
 
 PROJECTION_PART_ROOTS = (
@@ -36,6 +36,12 @@ BIBLIOGRAPHIC_COLLECTIONS = {
     "claim_traces": ("claim_ref", ("claim_ref",)),
     "input_digests": (None, ()),
 }
+PHILOSOPHY_COLLECTIONS = {
+    "nodes": ("node_id", ("node_id",)),
+    "edges": ("edge_id", ("edge_id",)),
+    "clusters": ("cluster_id", ("cluster_id",)),
+    "views": ("view_id", ("order", "view_id")),
+}
 
 
 def collection_policy(payload):
@@ -43,6 +49,8 @@ def collection_policy(payload):
         return CORPUS_COLLECTIONS
     if payload["schema_version"] == "tos_source_witness_bibliographic_graph_v1":
         return BIBLIOGRAPHIC_COLLECTIONS
+    if payload["schema_version"] == "tos_philosophy_graph_projection_v2":
+        return PHILOSOPHY_COLLECTIONS
     raise ProjectionStoreError("no owner collection policy for this logical schema")
 
 
@@ -141,7 +149,7 @@ def disk_payload(reader, storage):
         else:
             value = storage.sequence(reader.iter_collection(name))
             fields = spec["order_fields"] or (spec["key_field"] if isinstance(spec["key_field"], list) else [spec["key_field"]])
-            value.sort(key=lambda row: tuple(str(row.get(field, "")) for field in fields))
+            value.sort(key=lambda row: row_order(row, fields))
         owner = result
         parts = name.split("/")
         for part in parts[:-1]:

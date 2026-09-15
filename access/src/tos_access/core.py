@@ -31,10 +31,8 @@ from .knowledge import (
     search_knowledge_graph,
 )
 from .search_read_model import (
-    SEARCH_READ_MODEL_DEFAULT_BYTES,
     SEARCH_READ_MODEL_MAX_POSTINGS,
     SEARCH_READ_MODEL_MAX_VERIFY_CHARS,
-    SEARCH_READ_MODEL_PAGE_SIZE,
     SearchReadModelError,
     SearchReadModelPage,
     SearchReadModelSnapshotError,
@@ -51,6 +49,7 @@ from .source_read_owner import SelectedSourceReadService
 from .query_store import QueryStore, QueryStoreRequired, DEFAULT_RELATIVE_PATH
 from .projection_store import load_projection
 from .locations import data_root, program_path
+from .data_access import DataGuard, DataAccessUnavailable, check_data_path, guard_public_data_methods
 
 
 INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
@@ -164,6 +163,7 @@ def _unavailable_word_analysis_capability(reason: str) -> dict[str, Any]:
 
 def _read_json_file(path: Path) -> dict[str, Any]:
     """Read a selected carrier without registering or evicting process caches."""
+    check_data_path(path)
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise RuntimeError(f"ToS corpus index is not a JSON object: {path}")
@@ -189,6 +189,7 @@ def _read_json_version(
     a source-state change replaces that entry atomically.  The state key keeps
     same-size/same-mtime rewrites honest through inode and ctime changes.
     """
+    check_data_path(Path(path_text))
     state = (mtime_ns, size, inode, ctime_ns)
     with _json_version_cache_lock:
         cached = _json_version_cache.get(path_text)
@@ -206,6 +207,7 @@ def _read_json_version(
 
 
 def _read_json(path: Path) -> dict[str, Any]:
+    check_data_path(path)
     stat = path.stat()
     return _read_json_version(
         path.resolve().as_posix(), stat.st_mtime_ns, stat.st_size, stat.st_ino, stat.st_ctime_ns
@@ -487,6 +489,7 @@ def _projection_nodes_edges(payload: dict[str, Any]) -> tuple[list[dict[str, Any
     return nodes, edges
 
 
+@guard_public_data_methods
 @dataclass(slots=True)
 class ToSAccessCore:
     tos_root: Path
@@ -505,6 +508,7 @@ class ToSAccessCore:
     published_read_model_expected: dict[str, Any] | None = None
     published_exploration_checkpoint_path: Path | None = None
     source_read_service: SourceReadService | SelectedSourceReadService | None = None
+    _data_guard: DataGuard | None = field(default=None, init=False, repr=False, compare=False)
     _prepared_reader: PublishedKnowledgeReadModel | None = field(default=None, init=False, repr=False, compare=False)
     _prepared_lens: PublishedLensService | None = field(default=None, init=False, repr=False, compare=False)
     _exploration: ExplorationService = field(init=False, repr=False, compare=False)
@@ -544,6 +548,19 @@ class ToSAccessCore:
     _query_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
 
     def __post_init__(self):
+        self._data_guard = DataGuard.for_data_root(self.tos_root)
+        if self._data_guard is not None:
+            # A selected release cannot borrow another source tree through a
+            # per-adapter path override. Optional absent subjects stay absent.
+            for selected in (self.index_path, self.philosophy_graph_projection_path,
+                    self.bibliographic_graph_path, self.entity_type_registry_path,
+                    self.relation_type_registry_path, self.philosophy_post_planting_audit_path,
+                    self.evidence_projection_path):
+                selected = Path(selected).absolute()
+                if not selected.is_relative_to(self._data_guard.data_root):
+                    raise DataAccessUnavailable('data override leaves the selected release')
+                if selected.exists() or selected.is_symlink():
+                    self._data_guard.check_path(selected)
         if (self.published_read_model_path is None) != (self.published_read_model_expected is None):
             raise ValueError("prepared reader requires both a path and an exact expected snapshot binding")
         if self.published_exploration_checkpoint_path is not None and self.published_read_model_path is None:
@@ -554,6 +571,8 @@ class ToSAccessCore:
             path = Path(self.published_read_model_path).expanduser()
             if not path.is_absolute():
                 path = self.tos_root / path
+            if self._data_guard is not None:
+                self._data_guard.check_path(path)
             self._prepared_reader = PublishedKnowledgeReadModel(path, self.published_read_model_expected)
             self._prepared_lens = PublishedLensService(self._prepared_reader)
         if self.search_read_model_path is None:
@@ -582,6 +601,8 @@ class ToSAccessCore:
         path = Path(configured).expanduser() if configured else self.tos_root / DEFAULT_RELATIVE_PATH
         if not path.is_absolute():
             path = self.tos_root / path
+        if self._data_guard is not None:
+            self._data_guard.check_path(path)
         inputs = {
             INDEX_RELATIVE_PATH.as_posix(): self.index_path,
             PHILOSOPHY_PROJECTION_RELATIVE_PATH.as_posix(): self.philosophy_graph_projection_path,
@@ -1856,7 +1877,8 @@ class ToSAccessCore:
                 raise SearchReadModelError("invalid indexed knowledge search cursor")
 
         model = store if store is not None else self._search_read_model_for_snapshot(graph)
-        empty_page = lambda: SearchReadModelPage((), 0, 0, False, None, ordering_scope="global-rank")
+        def empty_page():
+            return SearchReadModelPage((), 0, 0, False, None, ordering_scope="global-rank")
         node_page = (
             empty_page()
             if node_exhausted
@@ -2104,8 +2126,7 @@ class ToSAccessCore:
         if normalized_language not in {"de", "ru", "en"}:
             raise ValueError(f"unsupported word-analysis language: {normalized_language}")
         bounded_rank = _bounded_int(rank, 1, 1, 100)
-        provider_candidate = self.tos_root / WORD_ANALYSIS_PROVIDER_RELATIVE_PATH
-        root = self.tos_root.resolve()
+        provider_candidate = program_path(WORD_ANALYSIS_PROVIDER_RELATIVE_PATH)
         authority = {
             "source_owner": "Tree-of-Sophia",
             "access_plane_is_source": False,
@@ -2119,8 +2140,6 @@ class ToSAccessCore:
                 "local source-bound word-analysis provider is not installed"
             )
         provider_path = provider_candidate.resolve()
-        if root not in provider_path.parents:
-            raise RuntimeError("local word-analysis provider escapes the configured ToS root")
         stat = provider_path.stat()
         module_name = f"tos_local_word_analysis_{stat.st_mtime_ns}_{stat.st_size}"
         spec = importlib.util.spec_from_file_location(module_name, provider_path)
