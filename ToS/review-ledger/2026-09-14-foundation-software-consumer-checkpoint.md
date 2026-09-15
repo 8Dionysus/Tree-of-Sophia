@@ -3,6 +3,70 @@
 This is a bounded integration review, not Foundation v1 acceptance, corpus
 admission, CI, merge, or deployment evidence.
 
+## D1 catch-up and existing exact-source seam · 2026-09-15 UTC
+
+The lagging local D1 reader now shares prepared source revision
+`61e5059bcff97b455f04e4aab92d6edb6a5bc5b33a37e059ec3d80e6f2acba26`.
+Explicit offline reconciliation scanned 210,759 admitted digest-manifest rows
+in 13.252 s, retained 25 changed normalized rows, and emitted bounded forward
+and reverse SQL. Atomic local application took 5.172 s / 574 statements;
+all 25 changed native JSON bodies equal the prepared successor. Peak apply
+memory was 409.8 MiB with no swap. No second prepared database or full graph
+normalization was used. Ordinary per-edit capture still uses two held WAL
+read transactions on the same prepared file; this offline scan is not its
+latency budget or an automatic fallback.
+
+Worker health confirms data revision
+`027f508161807217223234ef62d54c0b63356e154634f4b797995e36292ecaf5` and
+42,682 nodes / 62,710 relations. Its indexed discovery carries the shared
+source revision. Python retains its own prepared-format data revision, not
+the D1 revision; distinct representation identities are expected. Work
+navigation/dossier and incoming Penn environment exploration agree on bounded
+IDs and topology. Python exact owner-read verifies the environment and three
+Claims. D1 explicitly reports that source-owner handle/read is unsupported;
+it does not pretend that derived JSON is an owner-record response. A direct
+environment descent returns 200 on D1 but 404 on Python: this separate legacy
+navigation seam remains under access-owner diagnosis, not full endpoint parity.
+
+Actual human D1 interaction opens the environment, its inverse relation and
+the Claim. WebMCP then identifies that exact selected Claim with unreviewed
+and derived-export posture. Publication year remains distinct from unknown
+collation date. This surfaced an ordinary-inspector defect: the validated
+readable-context companion was passed to the reader panel but omitted from
+the card. The card now passes the same verified companion to both form and
+record-context renderers. Real source labels such as identification status
+and provisional identification appear without a UI-owned taxonomy. Unknown
+context entries and nested source objects remain explicit; this is not a
+claim of complete prose coverage or global interaction smoothness.
+
+The exact JGB19 connection already existed and was not recreated. An existing
+private Claim binds the same public commanding-affect Conception version and
+digest to an English Expression, with an exact Occurrence and native TextUnit
+in its five-record source closure. The currently renewed local selection
+returns that source in the owner process; no private request crosses HTTP/MCP.
+This checked seam took 1.686 s, with no extraction, source mutation, new grant
+or semantic admission. The old creation configuration supplies addresses only,
+not current write authority. This evidence does not establish an exact German
+JGB21 unit or a public/private browser bridge.
+
+Goal closure at this checkpoint: G7/G8 addressed local derived publication
+and checked retention; G5/G6/G9 human/agent selected-identity and context
+continuity; G3/G6 and part of K2 exact existing JGB19 source connection.
+Remaining: direct Python environment descent, complete K2 routes, remaining
+K3 mutation/growth measurements, UI acceptance, exact-head CI/merge and final
+whole-goal review. Seven catch-up fixture tests, six existing prepared delta
+tests and the same-file WAL test pass. Inspector/context regressions pass
+52 existing and four new cases; typecheck passes. Existing replay/reverse
+coverage was reused, not relabeled as a new real reverse application.
+
+Durable local evidence (basename, SHA-256):
+
+- `d1-catchup-capture-r2.json`: `b6daa4e972a6cd3d698c0436ec7a9ea7932a6f2e95634609671c2f37c41fad51`.
+- `d1-catchup-apply-r1.json`: `5ec2c8bc2464eebfc83f1e62e8e5c2b3ef9a440cede58f1dd75af0f280b45c3d`.
+- `d1-catchup-consumer-evidence-r1.json`: `92ca0bf6f6244b40380ebf9e942642ebfea694de1cbf1020b1f4fada16d2a349`.
+- `d1-penn-browser-seam-r1.json`: `cf007ba1980f900b2f347f36f565a5130b9a95fca1eb5bdf4c13eec8fd779b57`.
+- `jgb19-private-public-seam-r1.json`: `77680f8ce0d039d0a396657281c099a5417734ae09a5cd8413365f329581bdad`.
+
 ## Penn source-creation continuation · 2026-09-15 UTC
 
 Committed creation evidence and a current write delegation now have distinct
