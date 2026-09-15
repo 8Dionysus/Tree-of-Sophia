@@ -9,6 +9,10 @@ from typing import Any, Callable, Literal, Mapping
 
 from incremental_runtime import MAX_D1_SQL_ROW_VALUE_BYTES
 from tos_access.portable_paths import normalize_paths
+from tos_access.published_read_metadata import (
+    emitted_row_digest,
+    published_source_navigation_digest_key,
+)
 
 
 SQL_CHUNK_BYTES = 32_000
@@ -286,6 +290,32 @@ def project_source_navigation_row(
     )
 
 
+def source_navigation_digest_row(
+    projected: SourceNavigationRow,
+) -> tuple[str, int, str]:
+    """Return the bounded edge-meta checksum for one emitted navigation row.
+
+    The digest is over the exact JSON bytes emitted by the producer.  For a
+    bounded inline row those bytes remain in the serving row; for a payload
+    row they are the ordered concatenation of its lossless chunks.  Do not
+    parse and re-serialize here: the checksum protects the physical carrier.
+    """
+    json_position = projected.columns.index("json")
+    if projected.payload_rows:
+        item_json = "".join(
+            chunk for _item_id, _part, chunk in projected.payload_rows
+        )
+    else:
+        item_json = projected.values[json_position]
+    if not isinstance(item_json, str) or not item_json:
+        raise ValueError("source-navigation emitted JSON is missing")
+    return (
+        published_source_navigation_digest_key(projected.kind, projected.item_id),
+        0,
+        compact_json(emitted_row_digest(item_json)),
+    )
+
+
 def project_rows(
     collection: SourceNavigationKind,
     ordinal: int,
@@ -309,4 +339,8 @@ def project_rows(
             (item_id, part, chunk)
             for item_id, part, chunk in projection.payload_rows
         ]
+    # ``edge_meta`` is a global metadata carrier, deliberately kept outside
+    # ``COLUMNS`` so navigation-product absence checks do not treat it as a
+    # serving table.
+    result["edge_meta"] = [source_navigation_digest_row(projection)]
     return result

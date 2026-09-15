@@ -16,6 +16,142 @@ SCHEMA = 'tos_native_navigation_d1_bootstrap_v1'
 RIGHTS_SCHEMA = 'tos_source_navigation_rights_v1'
 
 
+def build_source_navigation_integrity_sql(db, target, *, expected_d1_revision,
+        expected_source_revision, navigation_view, expected_navigation_sha256,
+        rights_view, expected_rights_sha256, rollback_target, limits=None,
+        projection_limits=None):
+    """Add checksum companions only after exact comparison with admitted sources.
+
+    Caller-owned source/rights admission is explicit and independent of the
+    database. This is a bounded, one-time native-product migration, not a
+    checksum computed from unverified persisted rows. Knowledge rows and
+    native contents are not rewritten. The caller holds the read transaction.
+    """
+    limits = limits or delta.PreparedD1DeltaLimits()
+    projection_limits = projection_limits or MutationLimits()
+    paths = [Path(target), Path(rollback_target)]
+    resolved = [p.resolve() for path in paths for p in (path, path.with_name(path.name + '.next'))]
+    if len(set(resolved)) != 4 or any(path.exists() for path in resolved):
+        raise ValueError('distinct fresh integrity forward/reverse targets required')
+    if not db.in_transaction:
+        raise ValueError('caller-held native publication snapshot required')
+    implementation = delta.execution_profile()
+    own_digest = _own_digest()
+    for view, digest in ((navigation_view, expected_navigation_sha256), (rights_view, expected_rights_sha256)):
+        if not isinstance(view, ProjectionSnapshotView) or view.snapshot_digest != digest:
+            raise ValueError('independently admitted immutable source snapshot required')
+    _search_address_revision(db, expected_d1_revision)
+    capture = delta.Capture(limits)
+    old_top = capture.metadata(db, delta.TOP_KEY)[0]
+    if (old_top.get('source_revision') != expected_source_revision
+            or old_top.get('data_revision') != expected_d1_revision
+            or old_top.get('read_model_schema') != delta.full.READ_MODEL_SCHEMA_VERSION):
+        raise ValueError('selected source/publication binding differs')
+    if db.execute("SELECT 1 FROM edge_meta WHERE key GLOB 'source_navigation_row_digest:*' LIMIT 1").fetchone():
+        raise ValueError('integrity product already present; no blind checksum refresh')
+    top = capture.metadata(db, 'source_navigation_top')[0]
+    if top.get('schema_version') != 'tos_source_navigation_v1':
+        raise ValueError('complete existing native navigation required')
+    budget = _Budget(projection_limits)
+    readers = {
+        'navigation': _SnapshotMutationReader(navigation_view, expected_navigation_sha256, budget),
+        'rights': _SnapshotMutationReader(rights_view, expected_rights_sha256, budget),
+    }
+    nav_root, rights_root = readers['navigation'].manifest, readers['rights'].manifest
+    if (nav_root['logical_schema'] not in ('tos_source_navigation_v1', 'tos_agent_source_navigation_rows_v1')
+            or set(nav_root['collections']) != {'nodes', 'edges'}
+            or rights_root['logical_schema'] != RIGHTS_SCHEMA
+            or set(rights_root['collections']) != {'rights'}):
+        raise ValueError('explicit complete native navigation and rights inputs required')
+    admitted_header = rights_view.metadata().get('navigation_header')
+    policy = lambda value: {key: item for key, item in value.items() if key != 'counts'}
+    if not isinstance(admitted_header, dict) or policy(admitted_header) != policy(top):
+        raise ValueError('native navigation header policy differs from admitted rights input')
+    counts = {name: readers['rights' if name == 'rights' else 'navigation'].manifest['collections'][name]['root']['count']
+              for name in ('nodes', 'edges', 'rights')}
+    if top.get('counts') != counts or sum(counts.values()) > limits.max_rows:
+        raise ValueError('complete native inventory differs or exceeds migration budget')
+    accounting = [0, 0]
+    previous, successor = (delta.Rows(limits, accounting) for _ in range(2))
+    checked = {}
+    for name in ('nodes', 'edges', 'rights'):
+        reader = readers['rights' if name == 'rights' else 'navigation']
+        table = 'source_navigation_' + name
+        payload_table = {'nodes': 'source_navigation_node_payload', 'edges': 'source_navigation_edge_payload',
+                         'rights': 'source_navigation_rights_payload'}[name]
+        columns = delta.navigation.projection.COLUMNS[table]
+        key = columns[0]
+        spec = reader.manifest['collections'][name]
+        if spec['key_field'] != key or spec['order_fields'] != [key]:
+            raise ValueError('native input identity/order differs')
+        count = payload_count = 0
+        for identifier, value in reader.iter_items(name):
+            actual = capture.tuple(db, table, (identifier,))
+            if actual is None or delta.normalize_paths(value, delta.full.REPO_ROOT) != value:
+                raise ValueError('native identity missing or source needs path migration')
+            projected = delta.navigation.projection.project_rows(name, actual[columns.index('ord')], value,
+                                                                 repo_root=delta.full.REPO_ROOT)
+            if actual != projected[table][0]:
+                raise ValueError('native full source row or selection differs from admitted input')
+            payload = delta.navigation._capture_payload(db, capture, payload_table, identifier)
+            if payload != [list(row) for row in projected.get(payload_table, [])]:
+                raise ValueError('native source payload differs from admitted input')
+            for row in projected['edge_meta']:
+                successor.put('edge_meta', row)
+            count += 1
+            payload_count += len(payload)
+        if (count != counts[name] or db.execute(f'SELECT count(*) FROM {table}').fetchone()[0] != count
+                or db.execute(f'SELECT count(*) FROM {payload_table}').fetchone()[0] != payload_count):
+            raise ValueError('native product has missing/orphan source rows')
+        checked[name] = count
+    lineage = {'schema': 'tos_native_navigation_integrity_migration_v1',
+        'base_d1_revision': expected_d1_revision, 'source_revision': expected_source_revision,
+        'source_navigation_sha256': expected_navigation_sha256, 'rights_sha256': expected_rights_sha256,
+        'implementation_sha256': implementation, 'migration_implementation_sha256': own_digest}
+    revision = delta._sha(delta._compact(lineage))
+    next_top = {**old_top, 'data_revision': revision}
+    for key, value in ((delta.TOP_KEY, next_top), ('data_revision', {'sha256': revision})):
+        for row in capture.metadata(db, key)[1]:
+            previous.put('edge_meta', row)
+        for part, chunk in enumerate(delta.full.chunk_text(delta._compact(value))):
+            successor.put('edge_meta', (key, part, chunk))
+    installed = delta.auxiliary.admit(db, capture, old_top)
+    recorders, sql_bytes = [], 0
+    try:
+        for index, (path, before, after, base, destination) in enumerate((
+                (paths[0], previous, successor, expected_d1_revision, revision),
+                (paths[1], successor, previous, revision, expected_d1_revision))):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            tops = (old_top, next_top) if index == 0 else (next_top, old_top)
+            recorder = DeltaRecorder(path, destination, delta.full.READ_MODEL_SCHEMA_VERSION,
+                before.index(base), auxiliary_bindings={table: tops for table in installed})
+            recorders.append(recorder)
+            for table, rows in after.data.items():
+                for values in rows.values():
+                    for statement in after.statements(table, values):
+                        recorder.observe(statement)
+                    if sql_bytes + recorder.stream.tell() > limits.max_sql_bytes:
+                        raise ValueError('native integrity SQL budget exceeded')
+            recorder.finish(publish=False)
+            sql_bytes += recorder.pending_path.stat().st_size
+            if sql_bytes > limits.max_sql_bytes:
+                raise ValueError('native integrity SQL budget exceeded')
+        _search_address_revision(db, expected_d1_revision)
+        if delta.execution_profile() != implementation or _own_digest() != own_digest:
+            raise ValueError('migration implementation changed during capture')
+        for recorder in reversed(recorders):
+            recorder.publish()
+        return {**lineage, 'target_d1_revision': revision, 'verified_source_rows': checked,
+                'delta': recorders[0].summary(), 'rollback': recorders[1].summary(),
+                'native_rows_changed': 0, 'normalized_rows_changed': 0,
+                'source_rights_admission_verified_by_helper': False,
+                'capture_read_bytes': capture.read_bytes, 'projection_reads': budget.usage,
+                'retained_bytes': accounting[0], 'sql_bytes': sql_bytes}
+    finally:
+        for recorder in recorders:
+            recorder.close()
+
+
 def _own_digest():
     with Path(__file__).open('rb') as stream:
         raw = stream.read(1_048_577)

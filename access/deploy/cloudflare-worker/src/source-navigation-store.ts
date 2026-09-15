@@ -1,4 +1,5 @@
-import { stringArray, stringValue, type Item } from "./common.ts";
+import { HttpError, stringArray, stringValue, type Item } from "./common.ts";
+import {nativeSha256} from './native-d1-read.ts';
 import { SourceNavigationError } from "./source-navigation.ts";
 import { metaItem } from "./store.ts";
 
@@ -86,7 +87,26 @@ async function payloadFor(
 }
 
 async function parseHydrated<T extends SourceJsonRow>(db: D1Database, row: T, table: string, id: string): Promise<Item> {
-  return parseRow(row, row.json === "" ? await payloadFor(db, table, id) : undefined);
+  const raw = row.json === "" ? await payloadFor(db, table, id) : row.json;
+  const kinds: Record<string,string> = {
+    [SOURCE_NODE_PAYLOAD_TABLE]:'nodes', [SOURCE_EDGE_PAYLOAD_TABLE]:'edges', [SOURCE_RIGHT_PAYLOAD_TABLE]:'rights',
+  };
+  const kind = kinds[table];
+  if (!kind || !id) throw new HttpError(503,'invalid source-navigation checksum identity');
+  const key = `source_navigation_row_digest:${kind}:${await nativeSha256(id)}`;
+  const checksum = await db.prepare(`SELECT part,
+    CASE WHEN typeof(json_chunk)='text' AND length(CAST(json_chunk AS BLOB))<=128 THEN json_chunk ELSE NULL END AS json_chunk
+    FROM edge_meta WHERE key=? ORDER BY part LIMIT 2`).bind(key).all<{part:number;json_chunk:string|null}>();
+  const first=checksum.results[0];
+  if (checksum.results.length!==1 || !first || first.part!==0 || first.json_chunk===null)
+    throw new HttpError(503,'source-navigation checksum unavailable; explicit product migration required');
+  let expected: unknown;
+  try { expected=JSON.parse(first.json_chunk); }
+  catch { throw new HttpError(503,'invalid source-navigation checksum'); }
+  if (!expected || typeof expected!=='object' || Array.isArray(expected)
+    || Object.keys(expected).join(',')!=='sha256' || (expected as {sha256:unknown}).sha256!==await nativeSha256(raw))
+    throw new HttpError(503,'emitted source-navigation row checksum differs');
+  return parseRow(row, raw);
 }
 
 function sortedById(items: Item[], key: string): Item[] {

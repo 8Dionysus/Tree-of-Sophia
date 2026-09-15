@@ -63,6 +63,14 @@ def published_row_digest_key(kind: str, identifier: str) -> str:
     return f"knowledge_{kind}_digest:{identifier}"
 
 
+def published_source_navigation_digest_key(kind: str, identifier: str) -> str:
+    """Bounded key for an emitted native-navigation row, not rights admission."""
+    if kind not in {'nodes', 'edges', 'rights'} or not isinstance(identifier, str) or not identifier:
+        raise ValueError('a native navigation kind and exact identifier are required')
+    identity = hashlib.sha256(identifier.encode('utf-8')).hexdigest()
+    return f'source_navigation_row_digest:{kind}:{identity}'
+
+
 def _normalization(value: Any) -> bool:
     return (isinstance(value, dict) and set(value) == _NORMALIZATION_KEYS
             and value.get("schema") == "tos_knowledge_graph_normalization_binding_v1"

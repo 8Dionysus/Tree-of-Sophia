@@ -7,6 +7,10 @@ source dossier. Installed products preserve all owned row bytes and rights.
 from tos_access.projection_diff import DiffLimits, diff_projection_snapshots
 from tos_access.projection_store import canonical_bytes, _strict_json
 from tos_access.portable_paths import normalize_paths
+from tos_access.published_read_metadata import (
+    emitted_row_digest,
+    published_source_navigation_digest_key,
+)
 
 import source_navigation_rows as projection
 
@@ -105,15 +109,31 @@ def capture_transition(db, capture, before, after, before_rows, after_rows, *,
             raise ValueError('native navigation predecessor identity differs')
         payload = _capture_payload(db, capture, payload_table, identifier)
         old_value = None
+        predecessor_digest_chunks = []
         if actual is not None:
             encoded = actual[projection.COLUMNS[table].index('json')]
             if (encoded == '') != bool(payload):
                 raise ValueError('native navigation predecessor payload selection differs')
-            old_value = _strict_json(encoded if encoded else ''.join(row[2] for row in payload))
+            old_raw = encoded if encoded else ''.join(row[2] for row in payload)
+            old_value = _strict_json(old_raw)
             if canonical_bytes(old_value) != canonical_bytes(old['row']):
                 raise ValueError('native navigation predecessor source bytes differ')
+            digest_key = published_source_navigation_digest_key(collection, identifier)
+            try:
+                predecessor_digest, predecessor_digest_chunks = capture.metadata(db, digest_key)
+            except ValueError as exc:
+                raise ValueError(
+                    'native navigation predecessor digest requires explicit product migration'
+                ) from exc
+            if predecessor_digest != emitted_row_digest(old_raw):
+                raise ValueError(
+                    'native navigation predecessor digest differs; explicit product migration required'
+                )
         elif payload:
             raise ValueError('native navigation predecessor has orphan payload')
+        elif db.execute('SELECT 1 FROM edge_meta WHERE key=? LIMIT 1',
+                (published_source_navigation_digest_key(collection, identifier),)).fetchone():
+            raise ValueError('native navigation predecessor has orphan digest')
         # ord is retained legacy storage, not source-navigation query order.
         # Native readers order by stable IDs; insertion never renumbers O(N)
         # unrelated rows merely to recreate a full emitter's positional field.
@@ -130,6 +150,12 @@ def capture_transition(db, capture, before, after, before_rows, after_rows, *,
                 raise ValueError('native source row requires portable-path migration')
             projected.append(projection.project_rows(collection, ordinal, value, repo_root=repo_root))
         previous, successor = projected
+        if actual is not None:
+            # Preserve the admitted predecessor's exact metadata framing. The
+            # successor companion is produced from the successor's emitted
+            # JSON by ``project_rows`` below; never backfill a missing old
+            # checksum from the row itself.
+            previous['edge_meta'] = [tuple(row) for row in predecessor_digest_chunks]
         expected = previous.get(table, [])
         if expected != ([] if actual is None else [actual]):
             raise ValueError('native navigation predecessor serving row differs')
