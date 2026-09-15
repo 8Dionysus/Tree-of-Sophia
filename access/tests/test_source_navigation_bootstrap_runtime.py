@@ -14,6 +14,7 @@ from pathlib import Path
 import sqlite3
 import sys
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -327,6 +328,84 @@ class SourceNavigationBootstrapTests(unittest.TestCase):
         ):
             self.capture()
         self.assertFalse((self.root / "bootstrap.sql").exists())
+
+    def _legacy_native_for_integrity(self):
+        boot = self.capture()
+        self._apply('bootstrap.sql')
+        self.d1.execute("DELETE FROM edge_meta WHERE key GLOB 'source_navigation_row_digest:*'")
+        self.d1.execute("DELETE FROM edge_meta WHERE key='source_navigation_header_digest'")
+        self.d1.commit()
+        return boot['target_d1_revision']
+
+    def _integrity_capture(self, revision, *, limits=None, name='integrity', header_only=False):
+        self.d1.execute('BEGIN')
+        try:
+            return bootstrap.build_source_navigation_integrity_sql(self.d1, self.root / (name + '.sql'),
+                expected_d1_revision=revision, expected_source_revision=self.old_binding['source_revision'],
+                navigation_view=self.navigation_view, expected_navigation_sha256=self.navigation_view.snapshot_digest,
+                rights_view=self.rights_view, expected_rights_sha256=self.rights_view.snapshot_digest,
+                rollback_target=self.root / (name + '-rollback.sql'), limits=limits, header_only=header_only)
+        finally:
+            self.d1.rollback()
+
+    def test_integrity_migration_source_pairing_stage_replay_and_reverse(self):
+        revision = self._legacy_native_for_integrity()
+        before = self._native_metadata_state()
+        normalized = self._normalized_state()
+        receipt = self._integrity_capture(revision)
+        self.assertEqual(receipt['verified_source_rows'], {'nodes': 1, 'edges': 1, 'rights': 1})
+        self.assertEqual(receipt['native_rows_changed'], 0)
+        self._apply('integrity.sql', stage_only=True)
+        self.assertEqual(self._native_metadata_state(), before)
+        self._apply('integrity.sql')
+        self.assertEqual(self.d1.execute("SELECT count(*) FROM edge_meta WHERE key GLOB 'source_navigation_row_digest:*'").fetchone()[0], 3)
+        after = self._native_metadata_state()
+        self._apply('integrity.sql')
+        self.assertEqual(self._native_metadata_state(), after)
+        self.assertEqual(self._normalized_state(), normalized)
+        with self.assertRaisesRegex(ValueError, 'no blind checksum refresh'):
+            self._integrity_capture(receipt['target_d1_revision'], name='duplicate-integrity')
+        self._apply('integrity-rollback.sql')
+        self.assertEqual(self._native_metadata_state(), before)
+        self.assertEqual(self._normalized_state(), normalized)
+
+    def test_integrity_migration_rejects_persisted_rights_drift_and_budget(self):
+        revision = self._legacy_native_for_integrity()
+        with self.assertRaisesRegex(ValueError, 'migration budget'):
+            self._integrity_capture(revision, limits=replace(delta.PreparedD1DeltaLimits(), max_rows=2))
+        row = self.d1.execute('SELECT rights_id,json FROM source_navigation_rights LIMIT 1').fetchone()
+        value = json.loads(row[1])
+        value['review_status'] = 'accepted' if value.get('review_status') != 'accepted' else 'rejected'
+        self.d1.execute('UPDATE source_navigation_rights SET json=? WHERE rights_id=?', (full.compact_json(value), row[0]))
+        self.d1.commit()
+        with self.assertRaisesRegex(ValueError, 'differs from admitted input'):
+            self._integrity_capture(revision)
+        self.assertFalse((self.root / 'integrity.sql').exists())
+        self.assertFalse((self.root / 'integrity.sql.next').exists())
+        self.assertEqual(self.d1.execute("SELECT count(*) FROM edge_meta WHERE key GLOB 'source_navigation_row_digest:*'").fetchone()[0], 0)
+
+    def test_integrity_header_only_rejects_forged_authority_and_reverses_without_row_audit(self):
+        boot = self.capture()
+        self._apply('bootstrap.sql')
+        self.d1.execute("DELETE FROM edge_meta WHERE key='source_navigation_header_digest'")
+        original = self.d1.execute("SELECT json_chunk FROM edge_meta WHERE key='source_navigation_top'").fetchone()[0]
+        self.d1.execute("UPDATE edge_meta SET json_chunk=? WHERE key='source_navigation_top'",
+            (full.compact_json({**json.loads(original), 'authority_boundary': 'forged admission'}),))
+        self.d1.commit()
+        with self.assertRaisesRegex(ValueError, 'header policy differs'):
+            self._integrity_capture(boot['target_d1_revision'], header_only=True)
+        self.assertFalse((self.root / 'integrity.sql').exists())
+        self.d1.execute("UPDATE edge_meta SET json_chunk=? WHERE key='source_navigation_top'", (original,))
+        self.d1.commit()
+        before = self._native_metadata_state()
+        with patch.object(delta.Capture, 'tuple', side_effect=AssertionError('repeated row audit')):
+            result = self._integrity_capture(boot['target_d1_revision'], header_only=True)
+        self.assertEqual(result['verified_source_rows'], {})
+        self.assertEqual(result['verified_header_counts'], {'nodes': 1, 'edges': 1, 'rights': 1})
+        self._apply('integrity.sql')
+        self.assertEqual(self.d1.execute("SELECT count(*) FROM edge_meta WHERE key='source_navigation_header_digest'").fetchone()[0], 1)
+        self._apply('integrity-rollback.sql')
+        self.assertEqual(self._native_metadata_state(), before)
 
     def test_prepared_delta_after_bootstrap_maintains_native_row(self):
         boot = self.capture()

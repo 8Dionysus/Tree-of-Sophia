@@ -47,6 +47,9 @@ class PublishedReadModelError(RuntimeError):
     """The configured prepared reader is unavailable; never fall back to a build."""
 
 
+SOURCE_NAVIGATION_HEADER_DIGEST_KEY = 'source_navigation_header_digest'
+
+
 def _compact(value: Any) -> str:
     # Match the existing edge producer's emitted JSON byte framing.
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
@@ -61,6 +64,14 @@ def published_row_digest_key(kind: str, identifier: str) -> str:
     if kind not in {"node", "relation"} or not isinstance(identifier, str) or not identifier:
         raise ValueError("a node/relation and exact identifier are required")
     return f"knowledge_{kind}_digest:{identifier}"
+
+
+def published_source_navigation_digest_key(kind: str, identifier: str) -> str:
+    """Bounded key for an emitted native-navigation row, not rights admission."""
+    if kind not in {'nodes', 'edges', 'rights'} or not isinstance(identifier, str) or not identifier:
+        raise ValueError('a native navigation kind and exact identifier are required')
+    identity = hashlib.sha256(identifier.encode('utf-8')).hexdigest()
+    return f'source_navigation_row_digest:{kind}:{identity}'
 
 
 def _normalization(value: Any) -> bool:

@@ -19,6 +19,7 @@ from source_navigation_rows import (  # noqa: E402
     SQL_CHUNK_BYTES,
     project_rows,
     project_source_navigation_row,
+    source_navigation_digest_row,
 )
 
 
@@ -92,7 +93,11 @@ class SourceNavigationRowsTests(unittest.TestCase):
                 with self.subTest(kind=kind):
                     projected = project_source_navigation_row(kind, ordinal, item, root)
                     rows = project_rows(kind, ordinal, item, repo_root=root)
-                    self.assertEqual(rows, {projected.table: [projected.values]})
+                    self.assertEqual(rows, {
+                        projected.table: [projected.values],
+                        "edge_meta": [source_navigation_digest_row(projected)],
+                    })
+                    self.assertNotIn("edge_meta", COLUMNS)
                     self.assertIs(type(projected.values[1]), int)
                     self.assertEqual(projected.values[1], ordinal)
                     self.assertFalse(any(
@@ -168,6 +173,7 @@ class SourceNavigationRowsTests(unittest.TestCase):
                 rows[projected.payload_table],
                 list(projected.payload_rows),
             )
+            self.assertEqual(rows["edge_meta"], [source_navigation_digest_row(projected)])
             statements = self._emit(projected)
             self.assertEqual(len(statements), 1 + len(projected.payload_rows))
             self.assertEqual(

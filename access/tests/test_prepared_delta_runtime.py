@@ -86,6 +86,10 @@ class PreparedD1DeltaTests(unittest.TestCase):
             receipt = self.capture(result)
         self.assertEqual(list(self.d1.iterdump()), before)
         self.assertFalse(receipt['d1_applied'])
+        self.assertTrue(receipt['prepared_source_pairing_verified'])
+        self.assertTrue(receipt['successor_prepared_source_pairing_verified'])
+        self.assertTrue(receipt['predecessor_prepared_source_pairing_verified'])
+        self.assertFalse(receipt['predecessor_source_admission_external'])
         oracle = self.full(graph, result['catalog'], receipt['target_d1_revision'], 'oracle')
         sql = (self.root / 'delta.sql').read_text()
         publish = 'INSERT OR REPLACE INTO tos_delta_publications SELECT'

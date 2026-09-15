@@ -1,6 +1,7 @@
-import { stringArray, stringValue, type Item } from "./common.ts";
+import { HttpError, stringArray, stringValue, type Item } from "./common.ts";
+import {NativeD1Read, nativeD1Limits, nativeSha256} from './native-d1-read.ts';
+import {consistentRead} from './knowledge-store.ts';
 import { SourceNavigationError } from "./source-navigation.ts";
-import { metaItem } from "./store.ts";
 
 /*
  * Source navigation is stored as a row projection in D1.  The JSON payload
@@ -86,7 +87,30 @@ async function payloadFor(
 }
 
 async function parseHydrated<T extends SourceJsonRow>(db: D1Database, row: T, table: string, id: string): Promise<Item> {
-  return parseRow(row, row.json === "" ? await payloadFor(db, table, id) : undefined);
+  const raw = row.json === "" ? await payloadFor(db, table, id) : row.json;
+  const kinds: Record<string,string> = {
+    [SOURCE_NODE_PAYLOAD_TABLE]:'nodes', [SOURCE_EDGE_PAYLOAD_TABLE]:'edges', [SOURCE_RIGHT_PAYLOAD_TABLE]:'rights',
+  };
+  const kind = kinds[table];
+  if (!kind || !id) throw new HttpError(503,'invalid source-navigation checksum identity');
+  const key = `source_navigation_row_digest:${kind}:${await nativeSha256(id)}`;
+  await requireSourceDigest(db,key,raw);
+  return parseRow(row, raw);
+}
+
+async function requireSourceDigest(db:D1Database,key:string,raw:string):Promise<void> {
+  const checksum = await db.prepare(`SELECT part,
+    CASE WHEN typeof(json_chunk)='text' AND length(CAST(json_chunk AS BLOB))<=128 THEN json_chunk ELSE NULL END AS json_chunk
+    FROM edge_meta WHERE key=? ORDER BY part LIMIT 2`).bind(key).all<{part:number;json_chunk:string|null}>();
+  const first=checksum.results[0];
+  if (checksum.results.length!==1 || !first || first.part!==0 || first.json_chunk===null)
+    throw new HttpError(503,'source-navigation checksum unavailable; explicit product migration required');
+  let expected: unknown;
+  try { expected=JSON.parse(first.json_chunk); }
+  catch { throw new HttpError(503,'invalid source-navigation checksum'); }
+  if (!expected || typeof expected!=='object' || Array.isArray(expected)
+    || Object.keys(expected).join(',')!=='sha256' || (expected as {sha256:unknown}).sha256!==await nativeSha256(raw))
+    throw new HttpError(503,'emitted source-navigation row checksum differs');
 }
 
 function sortedById(items: Item[], key: string): Item[] {
@@ -102,19 +126,9 @@ function pageSize(limit: number): number {
 }
 
 async function sourceNavigationHeader(db: D1Database): Promise<Item> {
-  // `source_navigation_top` is the D1 metadata key.  The second spelling is
-  // accepted for compiled snapshots that use the portable query-store name;
-  // neither path loads the navigation collections.
-  let header: Item;
-  try {
-    header = await metaItem(db, "source_navigation_top");
-  } catch (firstError) {
-    try {
-      header = await metaItem(db, "source_navigation_header");
-    } catch {
-      throw firstError;
-    }
-  }
+  const {raw} = await new NativeD1Read(db,nativeD1Limits).metadata('source_navigation_top');
+  await requireSourceDigest(db,'source_navigation_header_digest',raw);
+  const header = parseRow({json:raw});
   if (header.schema_version !== "tos_source_navigation_v1") {
     throw new Error("ToS source-navigation metadata has an unsupported schema_version");
   }
@@ -292,6 +306,10 @@ export async function sourceDescendD1(
   maxDepth: number,
   limit: number,
 ): Promise<Item> {
+  return consistentRead(db, () => readSourceDescendD1(db, nodeId, maxDepth, limit));
+}
+
+async function readSourceDescendD1(db: D1Database, nodeId: string, maxDepth: number, limit: number): Promise<Item> {
   const navigation = await sourceNavigationHeader(db);
   const root = await sourceNode(db, nodeId);
   if (!root) throw new SourceNavigationError(404, `unknown ToS source-navigation node: ${nodeId}`);
@@ -351,6 +369,10 @@ export async function sourceDescendD1(
 
 /** Execute the Work/Link dossier route against indexed D1 rows. */
 export async function sourceDossierD1(db: D1Database, objectId: string, limit: number): Promise<Item> {
+  return consistentRead(db, () => readSourceDossierD1(db, objectId, limit));
+}
+
+async function readSourceDossierD1(db: D1Database, objectId: string, limit: number): Promise<Item> {
   const navigation = await sourceNavigationHeader(db);
   const selected = await sourceNode(db, objectId);
   if (!selected) throw new SourceNavigationError(404, `unknown ToS dossier object: ${objectId}`);
