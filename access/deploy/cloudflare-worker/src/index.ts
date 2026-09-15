@@ -22,6 +22,7 @@ import {
   knowledgeNodeD1,
   knowledgeRelationD1,
   knowledgeSearchD1,
+  knowledgeSearchCapabilitiesD1,
   knowledgeSearchD1Indexed,
   knowledgeTemporalCompareD1,
   knowledgeCatalogD1,
@@ -152,6 +153,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   const search = url.searchParams;
   const method = request.method;
 
+  if (path === "/api/knowledge/search/capabilities") return jsonResponse(await knowledgeSearchCapabilitiesD1(env.DB), 200, method);
   if (path === "/api/knowledge/explore/capabilities") return jsonResponse(await explorationCapabilitiesD1(env.DB), 200, method);
   if (path === "/api/knowledge/explore/contracts") {
     const contracts = await staticItem(env, request, "knowledge/exploration-contracts.json");

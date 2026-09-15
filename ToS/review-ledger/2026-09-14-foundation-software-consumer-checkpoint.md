@@ -248,3 +248,51 @@ browser build (`source-import-parity-r1-resource.json`, 6.530 seconds,
 658.8 MiB peak, zero swap). Browser asset hashes are unchanged. This closes
 the observed direct-runtime import defect, not the still-pending new CI run
 or the broader Foundation acceptance.
+
+## Native D1 navigation and advertised search · 2026-09-15
+
+PR #226 landed as `7f610a78d3743258cbae7df9e020f4888078479a` after
+successful required CI run `34926570346`. This is software landing, not a
+production deployment or a publication of newer authored corpus records.
+
+The retained full D1 now includes its native navigation product. An addressed
+bootstrap installed 27,112 nodes, 39,765 edges and 127 rights records, preserving
+the normalized corpus and source revision `46f6f4b8…`. Data revision changed
+from `3ee4420d…` to `73b8ba6b23c56983d97a5487a105f0637e55bf5793754ef5cb936027007a0d23`.
+The official atomic local SQL importer executed 1,244 statements in 4.056 s;
+the resource launch reported 627.1 MiB peak memory and zero swap. Read-only
+full product readback checked every native row against the exact retained
+navigation and rights inputs in 8.838 s, with 60.5 MiB peak memory and zero
+swap. No database copy or corpus normalization was performed. Exact reverse
+SQL is retained; it was not applied to the real full D1. Small-fixture reverse
+tests are separate evidence, not proof of a real full-database rollback.
+
+| Capability actually checked | Goal coverage | Remaining boundary |
+| --- | --- | --- |
+| Native D1 navigation/rights product matches its complete retained inputs and serves the real JGB Work dossier in the default Sources panel. | G7/G8, K3: addressed derived publication and source-preserving readback. | Retained inputs are not current-main corpus publication; bootstrap cost is not a small-edit growth budget. |
+| Worker search capability discovery now validates publication and schema without reading corpus rows. Human Jenseits search and native WebMCP search use indexed mode, then human Work selection and fresh agent inspection retain the same ID and source path. The scene loads 40 nodes / 39 relations. | G6/G9, K1: shared human/agent discovery, selection and source-dossier access. | Worker exact source handles/read are still absent: opening the original record fails while the dossier remains available. Exact text and the complete K2 routes remain open. |
+| Python and Worker health responses retain aggregate node/relation counts and the five validated display coverage counters, excluding diagnostic/catalog-sized details. Incomplete coverage still fails readiness. | G7: bounded readiness delivery without changing source diagnostics. | Health does not prove source semantics, permissions, corpus currentness or every query operation. |
+
+The live browser observation uses the dirty runtime-capabilities successor of
+the merge above; it records exact hashes of changed runtime files. Its receipt
+is `d1-browser-search-dossier-r3.json`, SHA-256
+`d8b9ec54ab7fea3103c451a437a24e18b6bf00c3290a2618ea5169be94114be3`.
+Native publication receipts are `native-bootstrap-apply-r2-resource.json`
+(`ba7313576a3718cf1b7cb397dbaeb52d1b111a6d4c7539c4fa94bab5c4632127`)
+and `native-bootstrap-readback-r2-resource.json`
+(`0efc2f68b0b4c169d13a05fc69ad758c88abf08272811bf74b7e5ef561ef87d4`).
+All are durable local task artifacts, not public runtime receipts.
+
+The existing indexed HTTP fixture now checks capability discovery before
+publication, after publication, and after removal of its fixture-only gram
+statistics table: 503, 200, 503. Its real indexed/cursor cycle remains intact.
+That test, the Worker health HTTP test, TypeScript checks and the three focused
+Python health cases pass. Previously sufficient corpus/search checks were not
+rerun. Exact successor CI and software artifact remain the next landing gate.
+
+Review: source traces, native values, identity, uncertainty and authored/derived
+separation remain preserved; yes. These adapters neither grant rights nor
+accept Claims, signatures, interpretations or canon. No source assessment or
+translation admission is made; not applicable. The master retains open exact
+source delivery, K2/K3 completion and final Foundation acceptance. Scratch G16
+remains open; no destructive cleanup was performed.

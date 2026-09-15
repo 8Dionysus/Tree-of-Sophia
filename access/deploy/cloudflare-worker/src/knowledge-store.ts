@@ -171,6 +171,31 @@ export async function knowledgeSearchD1(db: D1Database, options: Parameters<type
   return nativeSearchFailure(()=>consistentRead(db, snapshot => knowledgeSearchD1Unchecked(db, options, snapshot)));
 }
 
+export async function knowledgeSearchCapabilitiesD1(db: D1Database): Promise<Item> {
+  return nativeSearchFailure(() => consistentRead(db, async snapshot => {
+    const delivery = await NativeSearchDelivery.open(db, snapshot.revision);
+    // Inspect the published reader and its search schema, never corpus rows.
+    // Readiness is not completeness: actual queries still verify selected
+    // carriers/payloads and enforce their independent work budgets.
+    await delivery.read.query('SELECT kind,position,id,source_graph,kind_id,predicate_id,document_digest FROM knowledge_search_documents LIMIT 0');
+    await delivery.read.query('SELECT kind,n,gram,position FROM knowledge_search_grams LIMIT 0');
+    await delivery.read.query('SELECT kind,n,gram,postings FROM knowledge_search_gram_stats LIMIT 0');
+    await delivery.read.query('SELECT id,source_graph,kind_id,search_text,json FROM knowledge_nodes LIMIT 0');
+    await delivery.read.query('SELECT id,source_graph,predicate_id,search_text,json FROM knowledge_relations LIMIT 0');
+    return {
+      schema: 'tos_knowledge_search_capabilities_v1',
+      default_mode: 'legacy',
+      explicit_mode_required: false,
+      writes_to_tree: false,
+      modes: {
+        legacy: {available: true, schema: 'tos_knowledge_search_v1', verification: 'engine-selection-only', pagination: 'offset'},
+        indexed: {available: true, schema: 'tos_knowledge_search_indexed_v2', verification: 'engine-selection-only', pagination: 'cursor'},
+        compressed: {available: false, schema: 'tos_knowledge_search_compressed_v3', reason: 'not-supported-by-d1-adapter', writes_to_tree: false},
+      },
+    };
+  }));
+}
+
 export async function knowledgeSearchD1Indexed(
   db: D1Database,
   options: Parameters<typeof knowledgeSearchD1IndexedUnchecked>[1],

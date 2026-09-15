@@ -1554,6 +1554,82 @@ class CoreContractTests(unittest.TestCase):
                 server.shutdown()
                 server.server_close()
                 thread.join(timeout=5)
+
+    def test_health_compacts_knowledge_diagnostics_and_rejects_incomplete_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(tos_root=root)
+            source_header = core.knowledge_header()
+            source_counts = source_header["counts"]
+            self.assertIsInstance(source_counts, dict)
+            counts = dict(source_counts)
+            coverage = dict(counts["display_coverage"])
+            counts.update(
+                {
+                    "sources": {"dynamic-owner-key": 3},
+                    "semantic_validation": {
+                        "gaps": [{"sentinel": "must-not-escape"}],
+                        "violations": [{"sentinel": "must-not-escape"}],
+                    },
+                }
+            )
+            healthy_header = {**source_header, "counts": counts}
+            server = make_server(core, port=0)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                base = f"http://127.0.0.1:{server.server_port}"
+                with patch.object(ToSAccessCore, "knowledge_header", return_value=healthy_header):
+                    health = json.load(urllib.request.urlopen(base + "/health"))
+                self.assertTrue(health["ok"])
+                self.assertEqual(
+                    health["knowledge_counts"],
+                    {
+                        "nodes": counts["nodes"],
+                        "relations": counts["relations"],
+                        "display_coverage": {
+                            key: coverage[key]
+                            for key in (
+                                "node_titles",
+                                "node_summaries",
+                                "relation_labels",
+                                "relation_statements",
+                                "relation_explanations",
+                            )
+                        },
+                    },
+                )
+                self.assertNotIn("semantic_validation", health["knowledge_counts"])
+                self.assertNotIn("sources", health["knowledge_counts"])
+
+                incomplete_counts = {
+                    **counts,
+                    "display_coverage": {
+                        **coverage,
+                        "relation_explanations": int(counts["relations"]) - 1,
+                    },
+                }
+                with patch.object(
+                    ToSAccessCore,
+                    "knowledge_header",
+                    return_value={**source_header, "counts": incomplete_counts},
+                ):
+                    with self.assertRaises(urllib.error.HTTPError) as caught:
+                        urllib.request.urlopen(base + "/health")
+                self.assertEqual(caught.exception.code, 503)
+                with caught.exception as response:
+                    unhealthy = json.load(response)
+                self.assertFalse(unhealthy["ok"])
+                self.assertIn(
+                    "knowledge graph relation explanation coverage is incomplete",
+                    unhealthy["errors"],
+                )
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
+
     def test_source_navigation_and_dossiers_keep_access_separate_from_rights(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
