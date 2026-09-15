@@ -1033,12 +1033,13 @@ test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Pyth
       'a continuation cursor remains bound to its publication epoch',
     );
 
-    // The budget preflight must reject from carrier metadata before rank JSON
-    // fields or source search_text are evaluated. An invalid rank carrier is
-    // intentional: reaching rank evaluation would be a different failure.
+    // The budget preflight must reject from carrier metadata before source
+    // search_text is evaluated. Keep rank metadata valid here so this remains
+    // an isolated verification-budget assertion; malformed rank metadata is a
+    // separate fail-closed publication error.
     await db.prepare(
-      "UPDATE knowledge_search_documents SET document_chars=?, identity_values=? WHERE kind='nodes' AND position=0",
-    ).bind(16_000_001, "not-json").run();
+      "UPDATE knowledge_search_documents SET document_chars=? WHERE kind='nodes' AND position=0",
+    ).bind(16_000_001).run();
     await assert.rejects(
       () => knowledgeSearchD1Indexed(db, {
         query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1,

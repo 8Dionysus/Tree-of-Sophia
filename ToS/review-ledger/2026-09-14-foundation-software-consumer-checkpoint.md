@@ -3,6 +3,521 @@
 This is a bounded integration review, not Foundation v1 acceptance, corpus
 admission, CI, merge, or deployment evidence.
 
+## Header authority integrity and conflict classification · 2026-09-15 UTC
+
+Exact-head CI for `ed197a303cc6df4fa6b3237ed22f956708bfc788` passed all three
+required jobs. Merge nevertheless remained withheld for two review findings.
+The first identified the authority-bearing navigation header outside row
+checksums. The second identified the error path of a concurrent publication:
+an old row paired with a new checksum must report a snapshot conflict, not
+stable corruption. These are distinct from the earlier successful-read ABA test.
+
+Python and Worker now verify the exact emitted `source_navigation_top` bytes
+against `source_navigation_header_digest` before exposing authority fields.
+The full and initial producers emit it; a maintained delta verifies the old
+header companion, updates it atomically and preserves exact rollback framing.
+Unchanged or unavailable native products are not rewritten merely because an
+unrelated knowledge delta exists. The existing shared Worker publication guard
+also checks the epoch/revision after an operation throws, converting a real
+concurrent publication to conflict while retaining the original stable error.
+Tests replace an actual row and its checksum between reads; both native routes
+refuse the mixed publication. Stable authority-header tampering and absent
+header companions also refuse.
+
+The local continuation compared only the header and counts with the independently
+admitted immutable navigation/rights inputs. It did not reopen source parts or
+repeat the already sufficient 67,007-row audit. Three metadata rows changed;
+forward plus reverse SQL total 50,642 bytes, capture 0.320 s / 51.3 MiB / zero
+swap, and import 0.025 s. Source, prepared store, native rows and their existing
+checksums were not rewritten. The publication is now
+`eb7fb1a71f9d1a5600012fa812316df011ad26d7e855db80848ac8e6b1bfe286`,
+epoch 9; old binding refuses and both auxiliary lens bindings are current.
+After relaunch, actual Penn descent/dossier packets still equal Python and have
+unchanged packet hashes. This closes the G6/G7/K1 authority-header/read-error
+publication seams, not new rights, semantic admission or the open K2 JGB21 text.
+
+Typecheck and all eight Worker native-source tests pass (59.365 s), as do nine
+Python native-reader tests and nine native-delta tests. Bootstrap/integrity's
+ten cases pass across the suite and one targeted rerun: the new forged-header
+fixture initially violated compact JSON framing before reaching its intended
+policy check; correcting only serialization retains the forged authority and
+verifies policy refusal, zero repeated row audit, and exact reverse publication.
+Current corrected source still requires its own review/CI/landing.
+
+Durable evidence: `native-header-integrity-capture-r1.json` SHA-256
+`37f80c4fddd2f473e7cc1aef778ed2e49109e3fadddf61d438c0106e34ab5da5`;
+`native-header-integrity-apply-r1.json`
+`fc2e70a54999205605c527341ce25a469c10969b1d80f582b2dd77855962121f`;
+`published-native-navigation-comparison-r4.json`
+`d8cd4d2dfba91d85641790dddde83a0abedc15e1cfacf238d825c3956ef796cc`;
+`native-header-integrity-publication-readback-r1.json`
+`9e3c486ddbecd6027888a842ae081b20841548a1cce65c8ae9809e2d0b194236`.
+
+### Native publication race follow-through · 2026-09-15 UTC
+
+The adjacent concurrent-publication check exposed a second concrete gap: native
+Worker descent/dossier could accept an otherwise checksum-valid response across
+an A→B→A publication. The regression failed with `Missing expected rejection`
+before the fix. Both routes now use the existing revision-plus-epoch guard
+already used by search, inspection and lenses; no second clock or request-time
+migration is introduced. The guarded routes refuse the interleaved ABA case.
+Typecheck and all six native-source tests pass (58.528 s).
+Actual Penn descent and dossier still match Python exactly after this change;
+their packet hashes are unchanged. The two affected route observations were
+repeated because their execution boundary changed, not the completed corpus
+mapping, semantic review, private reads or unrelated cost checks.
+
+The human tab also searched and selected the Penn Work after publication,
+loaded 11 nodes / 12 relations, then opened its native sources panel. Work,
+expression, 1920 edition, DjVu file and item remain distinct; the displayed
+notice separates link availability from rights and says rights are unspecified.
+Both previously pinned reading items survive. This closes the G6/G7/K2 human
+selection→source panel join on the integrity-protected publication, not JGB21's
+missing exact text authority. Evidence: `native-integrity-human-source-r1.json`
+SHA-256 `d11837d73b9143b77c99b1ee034c674b5207cce5ab095f4cb28ba3be5dbbc311`;
+`published-native-navigation-comparison-r3.json`
+`7162c50aed53067c84b122824365b7c16b4abd36929b26b74fa50c33b16af90c`.
+Fresh corrected-head CI and landing remain required.
+
+## Native navigation integrity and publication seam · 2026-09-15 UTC
+
+The union's initial exact-head CI passed, but review found a real P1: a native
+navigation record's full JSON, including rights judgment fields, could drift
+while its indexed selection columns stayed unchanged. Both Python and Worker
+now require producer-emitted SHA-256 companions for every node, edge and rights
+row, checking exact inline or hydrated UTF-8 JSON before use. Missing companions
+refuse and require explicit product migration; readers never attest their own
+unverified persisted input. The full, initial-product and addressed-delta
+producers maintain the same contract. Delta capture rejects missing, wrong and
+orphan predecessor companions and retains exact predecessor framing for reversal.
+Checksums detect carrier drift, not a malicious publisher controlling both
+content and checksums; source, rights and publication authority remain separate.
+
+The bounded migration independently compared all 27,114 native nodes, 39,766
+edges and 127 rights rows with the admitted immutable navigation and rights
+snapshots. It emitted only checksums and publication metadata: no corpus,
+normalized knowledge, native row or prepared-source rewrite, and no database
+copy. Capture took 18.186 s, with 344.3 MiB peak and zero swap; both SQL directions
+total 26,880,029 bytes, under a reserved 128 MiB write envelope. Forward and
+reverse SQL are retained in managed scratch; durable receipts are outside it.
+
+The exact task-owned Worker was stopped for one local SQLite transaction and
+relaunched. A wrapper postcheck incorrectly expected the old epoch and reported
+failure after the import had committed. Readback established the actual result:
+67,007 checksums, unchanged source and normalization identity, new publication
+`af09d41589cf74648742e32eeed1b3eb893ad3e5645dfaed68a39ec20df35209`,
+and epoch 5→7 from the existing data-revision delete/insert triggers. This is
+intentional invalidation of disposable query state, not a source change. The
+old snapshot binding refuses; the current catalog and both auxiliary lens-store
+bindings are valid. No second import or manufactured success receipt was used.
+
+On real Penn material, source descent still returns 2 nodes / 1 edge and the
+work dossier retains its scoped rights. Python and Worker packets are exactly
+equal: descent 2.414 / 72.726 ms, dossier 6.176 / 181.085 ms, respectively.
+These are bounded observations, not latency percentiles or production claims.
+This closes the G6/G7/K1 native-read integrity and publication/auxiliary-store
+join. Remaining software gate: reviewed corrected exact-head CI and landing;
+remaining K2 exact JGB21 text authority/coverage is not closed by this fix.
+
+Verification: Python native-reader 8 tests, Worker native-source 5 tests and
+typecheck passed. The producer/bootstrap/delta suite passed 19/20 initially;
+the remaining oracle incorrectly compared physical hashes across semantically
+equal JSON with different key order. It now independently verifies each
+emitter's exact hashes before comparing semantic rows, and its targeted rerun
+passed. The suite includes migration staging/replay/exact reversal and refusal
+to sign a rights row differing from its immutable source. A bounded independent
+Luna producer review found no remaining deterministic defect; source and
+security judgment remain with the master.
+
+Durable evidence: `native-integrity-capture-r1.json` SHA-256
+`7bddcfae04af93df42c7c521e6539ea09ec1eed6d0ed9c10fedacb0d8bfa0841`;
+`published-native-navigation-comparison-r2.json`
+`56495fd7f01d2812c715e73d5709d04a20707f379fc738e7be5dd7720c742d1a`;
+`native-integrity-publication-readback-r1.json`
+`34053bacf4244736037c37ee58f8c9efcab13d867de2a0c5e15ecb2058259ff3`.
+This checkpoint does not grant rights, publish source payloads, or accept the
+whole Foundation goal. A checksum-less retained product needs this explicitly
+source-paired migration or an already planned compatible full production; a
+software merge does not silently upgrade or admit another owner's snapshot.
+
+## Two-Conception reading and cost reconciliation · 2026-09-15 UTC
+
+The actual D1-backed human reader now holds the JGB19 experienced-commanding
+and JGB21 metaphysical-self-origination Conceptions side by side in the existing
+generic reading shelf. Their Russian substantive names resolve through search;
+selection loads 8/7 and 10/9 node/relation carriers respectively. Each retains
+its own source-bound description, provisional identity and non-admission
+notice. The descriptions distinguish experienced agency from a target of
+criticism, without attributing the latter as Nietzsche's endorsed doctrine.
+Selecting English on the second card leaves the first Russian, uses the second
+card's exact English name and explicitly reports the absent English description
+with its available Russian fallback. A screenshot verifies the contextual
+two-column shelf over the existing graph; the pinned first item survives the
+second focus. This is comparison by reading, not an automatic semantic verdict
+that the items are equivalent or competing.
+
+This closes the G5/G6/G9 comparison/language-selection interaction seam.
+Known structured scope, unclassified fields and absent form roles remain
+visible as such, not fabricated prose or accepted content. The earlier exact
+agent/source checks and JGB19 private owner-process text return are reused
+separately. This observation neither extracts JGB21 nor transmits a private
+TextUnit through HTTP/MCP/UI. The exact-text portion of the JGB21 argument
+branch remains open; the existing JGB19 unit is not substituted for that text.
+Evidence: `jgb-conceptions-reader-comparison-r1.json`, SHA-256
+`5783e40592740df84a4ca3ac25d07f7bca0e54e2946dda1de4317a0c41575bb3`.
+
+The K3 review separates foreground reading from explicitly launched background
+publication. Existing observations are sufficient for the bounded v1 cost
+claim below; repeated full builds or destructive source deletion would not
+strengthen it.
+
+| Work class | Measured evidence already retained | Accepted boundary and residual risk |
+| --- | --- | --- |
+| Prepared catalog/search/focus/explore/inspect | Fresh-process / repeated core calls: 102.039/86.494, 29.875/11.414, 55.232/28.263, 44.229/23.389, 5.585/6.015 ms; process setup separately 314–459 ms, peak 100.3 MiB, zero swap. | Process-cold, not cold OS cache, HTTP or paint. Real packets and 42,674/62,693 retained node/relation carriers, not a tiny graph. No p95 service promise follows from one pair. |
+| Local D1 human/agent reads | Earlier full-store catalog 1,631 ms; exact inspections 192–206 ms. Scoped freedom focus first/repeat 685/606 ms; stored-route lens 6,916/6,062 ms, with exact Python parity. | Accept bounded synchronous reads under the existing 60 s client cancellation ceiling, not a claim that 60 s is desirable latency. Simple observed routes are sub-two-second; complex 1.36 MB route output is slower and remains cancellable. No production/network latency claim. |
+| Source correction, assessment/access change, derived deletion and recovery | Exact source/assessment timings and actual withdrawal/restore in the preceding lifecycle table; native positive note read 5.21 s, expired/outside scope refused. | Source history is preserved; derived absence, permission refusal and judgment withdrawal are different operations. No fabricated timing of model reasoning or grant issuance. |
+| Addressed background publication | Penn metadata addition 24.588 s; three-Claim batch 61.158 s / 751.6 MiB / zero swap; D1 catch-up 5.172 s; compact reader-header transition 3.427 s. | These are explicit jobs, not UI keystroke response budgets. The 100,000-mutation refusal preceded an explicitly bounded 500,000-mutation run; no hidden full rebuild or unlimited retry. |
+| Initial full publication | Prepared build 1,409.173 s / 5,260,079,104 bytes; D1 import 1,320.399 s / 1,008,590 SQL statements. Peak wrapper costs about 6.5/7.6 GiB, with observed swap. | Heavy offline initialization, not a small-change path. Its RAM/disk cost requires the host's reservation and resource route, not parallel duplicate corpus copies. It is not a foreground performance claim. |
+| Growth and bounded work | Existing 5,000→10,000 unrelated-row/high-degree query checks, plus 511→1,022 compressed insertion/update/deletion oracle and block-locality checks. | Deterministic row/byte/VM/mutation bounds survive these growth cases. No assertion of universal constant-time SQLite IO or model assessment. |
+
+The enforced budgets are part of the readers, not only this report: prepared
+row/metadata/response limits of 1/8/16 MiB, 4,096 returned rows and 200,000 VM
+steps; compressed page candidate/verification limits of 256/65,536 with bounded
+metadata and body delivery; D1 indexed verification of 16 million characters;
+and finite lens/exploration candidate, decode, cache and retained-state limits.
+Compact and exact inspection have separate budgets; oversized, malformed,
+stale and insufficient-budget requests refuse rather than truncate truth or
+silently fall back to corpus construction. TTL, bounded caches, cancellation,
+same-snapshot restart and stale-cursor refusal are independently tested.
+These limits protect request work and retained storage, not total physical IO
+or an unlimited corpus's total size. Larger future workloads must revise an
+explicit budget and rerun its affected boundary checks.
+
+K3's required bounded observations are now reconciled, including the real
+local/D1 seam and failure/recovery. Their acceptance is conditional on the
+reviewed software passing exact-head CI; it does not close the remaining K2
+text branch or K1 landing. The first union CI found one failing Worker test
+while 355 passed: its old over-budget fixture also corrupted rank JSON and
+therefore received a publication-error 503 before the requested-window 413.
+The test now changes only document length, leaving rank metadata intact;
+the exact 413 assertion is retained. Its targeted real-Miniflare run passed
+in 26.94 s. Separate malformed-carrier tests retain fail-closed coverage.
+The failed remote run is not counted as success; corrected exact-head CI
+must pass before landing.
+Cost evidence: `k3-retained-prepared-warm-benchmark-r2.json` SHA-256
+`7e897be37d41d1dbde3fb71234bf11d19a206501fcb9fc904cd04b2d4c10ad75`;
+`d1-scoped-lens-live-r3.json`
+`710c0b9e7286ab1b76e85a3b5956b4a1668b764b5a6210ae373675a53935537d`;
+`lens-cursor-real-seam-r1.json`
+`5acf8a5f99cb0c7a41d6c84524ff58b1504425a03d32db6ccb27a2af816dcdae`.
+
+## Ordinary word search and bounded verification · 2026-09-15 UTC
+
+The real `Wille` query exposed a second search boundary: rare-gram intersection
+alone cannot make a common word's full candidate text fit in one request.
+The Worker now verifies a rank-ordered candidate prefix within the unchanged
+16-million-character budget, including rank metadata. A materialized prefix
+precedes native text joins; continuation advances through verified candidates,
+including a prefix with no complete-string match. Global rank/ID/position,
+publication binding and exhausted-kind behavior are retained. An individually
+oversized next document remains an explicit refusal, not a silently skipped
+match. No index, schema, source, grant or D1 data was changed.
+
+Actual human search now shows `Wille` as a lexeme and the separate `Wille` /
+`Willen` spellings. Selecting the lexeme loads 7 nodes / 6 relations. Agent
+inspection returns the same exact ID and source path. The human relations tab
+exposes the separate `lexical_sense_of` Claim linking the contextual Sense,
+not a direct assertion that a philosophical conception is a dictionary meaning.
+Its bounded JGB19 proposal, uncertain/unreviewed status, source-reading basis
+and absence of exact token/paradigm authority remain visible. Two WebMCP search
+pages each return 6 nodes / 6 relations without repeated node IDs; both retain
+source revision `61e5059bcff97b455f04e4aab92d6edb6a5bc5b33a37e059ec3d80e6f2acba26`.
+The first HTTP node window covers 91 candidates / 15,563,210 document characters
+plus 90,426 rank characters; the relation side covers 147 / 1,755,003 plus
+162,032 rank characters. These are bounded logical spans, not total repeated
+SQL visits or physical IO measurements.
+
+This closes the observed ordinary-word search failure and checks the
+G6/G9 human/agent lexical-identity/context/continuation seam plus G7 bounded
+verification. It is not a complete corpus-search oracle, semantic admission,
+a new latency percentile, or completion of K2. Whole-goal acceptance and
+exact-head software landing remain separate.
+Type checking and all 23 native-search tests pass (28.455 s), including real
+D1 isolate restart, Python packet parity, stale/ABA cursor refusal and the
+new wide-prefix regressions. The latter use three real in-memory synthetic
+source/search carriers, not missing-native placeholders, and compare complete
+per-kind result streams across empty progress pages. Window boundary IDs
+also retain the existing 1 MiB SQL-side delivery mask.
+
+Evidence: `wille-indexed-human-agent-r1.json`, SHA-256
+`e97011057ca3b9ee08f76c9a3208edbedca699bf102f871eac76fac2b77047be`.
+
+The next human constructor check found a harness omission, not a catalog
+failure: the local Worker configuration had no `ASSETS` binding, so
+`/api/knowledge/contracts` returned 500 while the native catalog returned
+200 / 3,409,965 bytes. Only the two normal contract assets were exported
+from the selected local Python owner's routes, compared against all 16 exact
+current source files, then attached to the existing Worker configuration.
+They total 676,739 bytes; no production configuration, data or database copy
+was changed. `local-contract-assets-r1/receipt.json` records each source/asset
+digest. The repaired contract route returns the 12-contract bundle.
+
+The actual constructor then discovers `Тип сущности` / `равно` and the
+`tos.entity.lexeme` value. Applying it to the seven-carrier Wille area yields
+2 carriers / 1 relation with an explicit delta of −5/−5; an empty intermediate
+condition preserves the previous view rather than claiming a result. Returning
+to the original view restores its focus and selected Sense-to-lexeme Claim
+relation. This verifies G6/G9 condition discovery, bounded filtering and view
+return on real data. Counts describe carriers, not two different lexemes.
+
+## Current catalog and owner-separated completion · 2026-09-15 UTC
+
+The source owner's `render_outputs` / `check_outputs` reports no stale catalog
+companions: 312 objects and 377 Claims, 689 identities. A subsequent complete
+enumeration compared each exact public source record against the selected
+prepared reader's indexed subject carriers with the existing
+`observe_record` comparison. All fields and source-return references match:
+659 direct mappings, 30 native adapters, 411 bound source files. Source
+membership, bytes and the prepared publication were rechecked at the end.
+The observation took 13.461 s / 318,328 KiB peak process RSS, without graph
+construction, a database copy or source writes. It binds source revision
+`61e5059bcff97b455f04e4aab92d6edb6a5bc5b33a37e059ec3d80e6f2acba26`
+and prepared data revision
+`85030b1fb6d05c841cc443e8faa24f33a3b0834fda637c82738f24640437ab2e`.
+This refreshes the public catalog part of K4, not private/uncatalogued
+inventories, semantic assessment, historical versions or form quality. The
+addressed check enumerates exact/entity/native indexed subjects; it is not
+a full scan for conflicting identities hidden only in extension attributes.
+
+The corpus migration owner has preserved the earlier Foundation input
+`0f017572666e23f3d383f5dbce30e76ef6b21842`. The exact successor handoff through
+`303aef986bc8431f47b66f753f70acdbf23219c9` contains 21 changed tracked ToS files,
+897,620 successor bytes and no deletions. Before/after Git blobs and SHA-256
+values identify every member without copying the corpus. Penn environment,
+three Claims, forms and creation evidence remain distinct from catalog
+companions; the latter must not overwrite the recipient's union catalog.
+The recipient acknowledged this as **queued, not admitted**. Its mass snapshot
+and fresh remote restore are separate owner work, not this local D1 result.
+The recipient subsequently confirmed that this frozen, not-yet-activated
+corpus migration is **not a Foundation K1 gate**. The actual Foundation source
+additions are already in current Git `main`; the pending union differs in ToS
+only by this checkpoint and the coverage map. Current Git source and our
+verified prepared/D1 bindings remain the active Foundation path. The queued
+successor does not imply a common currentness claim for its separate snapshot.
+
+K1 follows the current software/corpus/integration release separation. Exact
+source-batch admission and snapshot binding still matter; a general KAG or
+documentation reseal is not a dependency of every software change. New review
+bytes after the handoff retain their own next delta; this note does not claim
+to be included in an earlier immutable packet.
+
+Existing real lifecycle measurements were inspected and reused, not rerun:
+
+| Capability and original goal scope | Existing measured result | Evidence boundary |
+| --- | --- | --- |
+| G6/G7 source correction with stable identity/history | Collection `record.revise` apply/replay 0.61/0.29 s, about 39/38 MiB | [Exact source review](2026-09-09-native-corpus-descriptive-revision-review.md); not a full-corpus latency curve. |
+| G4/G7 assessment withdrawal and dependent recovery | Layer withdrawal 1.13 s; renewed Layer/Unit 0.99/1.09 s, 42–43 MiB | [Real quality lifecycle](2026-09-09-real-native-quality-assessment-review.md); source-visible decisions and command time are distinct from model cost. |
+| G3/G6/G7 current local access | Renewed project-note human/native-MCP cycle 5.21 s; old expired selections and an outside unit refused | The existing renewal receipt verifies that only mandate/times changed; no material, license or transport expansion. Timing is the positive read cycle, not the act of granting authority. |
+| G7/G8 deletion and restoration in the derived publication | Withdrawal stage/commit 572/247 ms, 174 statements; restore 633/224 ms, 187 statements | Actual local Worker, human/native-MCP presence agreement and stale cursors; this removes serving records, not source history or source files. |
+| G7/G8 full local reader rollback/recovery | Reverse 3.165 s / 39,714 statements; forward 0.763 s / 62,316 statements | Exact source record and reading-note hashes unchanged; retained local D1 evidence, not production activation. |
+
+These close the named bounded lifecycle observations, not a blanket K3
+acceptance. Read-growth tests separately protect 5,000-to-10,000 unrelated
+rows/high degree; compressed mutation tests protect block locality and exact
+mutation-budget refusal. Synthetic growth checks are not historical events
+or measurements of source judgment. Remaining K3 review must reconcile these
+costs and full-store publication measurements;
+it must not demand destructive source deletion to prove derived deletion.
+
+An additional permanent compressed-store invariant uses 511 and 1,022
+synthetic documents and the same insert/update/delete sequence. Exact query
+streams agree with the reference after each step. Doubling the unrelated tail
+does not increase logical mutations (764/210/692) or affected posting blocks
+(339/80/339); payload bytes remain bounded by affected blocks times the codec
+block limit. The targeted test passed in 3.187 s. This is a bounded mechanism
+test alongside the real full-store publications, not a wall-time complexity
+proof or a historical source claim.
+
+Evidence SHA-256: `prepared-catalog-mapping-current-r1.json`
+`338ceaccbb9065ca21c7a148b926f07c40c372fc0b8454639863c3f28b80b332`;
+`foundation-source-delta-handoff-r2.json`
+`e47bfc8ea3a226d3f37ae67f74a7ac039c687c1d899d68444215fec79460fcb6`;
+`delta-batch-real-worker-r1.json`
+`0db3adc12328af385465940c486833b4b4b4148a3a86c6da7b5d452ee8742d66`;
+`full-d1-recovery-r2.json`
+`feb0d1125660c5f20f6690b12a9582d273abdfcd88ac5be8b33a2149e071dddc`.
+
+The old catch-up capture receipt's aggregate pairing flag was too broad.
+Only successor prepared/source pairing is mechanically verified; predecessor
+roots, dependencies and publication token remain externally admitted.
+`d1-catchup-pairing-qualification-r1.json` (SHA-256
+`29210c82f510cb7c7b4051a3f8efa16993178962171376e07eac920b9c8aa554`)
+narrows that historical claim without changing its bytes or reapplying SQL.
+The corrected receipt code has separate flags and both delta/catch-up tests.
+
+Manual boundary review: source traceability, stable identities, authored versus
+derived separation and source/assessment/rights authority remain intact.
+No new textual judgment, canon decision, private publication or abstraction
+was introduced. Remaining K1 is exact source/software union and software landing;
+K2 still needs its complete exact-text route and outstanding interaction seams.
+
+## Historical carrier/episode and bounded title search · 2026-09-15 UTC
+
+The current D1 scene now connects the already checked Penn source segments in
+an actual human/agent interaction: open the modern book, inspect its 1920
+Yale edition and DjVu File dossier, select the rediscovery-carrier Claim,
+inspect that same Claim through WebMCP, expand its neighborhood, and select
+the 1914 access episode. The title, uncertain/unreviewed statement, source
+path, and Jastrow attribution survive these transitions. The modern book,
+1920 edition, later digital carrier, physical tablet and episode remain
+different objects. Shared book evidence does not establish a causal link;
+prior access history remains unknown. The source-record/participant/context
+checks from earlier bounded segments were reused, not rerun as one large
+scenario. Nested context is still sometimes structured JSON, not accepted
+complete human prose.
+
+Two temporary 15-second requestAnimationFrame probes observed the visible
+scene and a book-to-Claim selection: 1,193 / 1,380 callbacks, p95 intervals
+16.8 / 16.7 ms, maxima 25.1 / 25.0 ms, zero intervals over 50 ms. Probes were
+removed. These are bounded callback observations, not GPU-present latency,
+all-scene smoothness or a timed claim about every subsequent route action.
+The existing spatial composition was visually inspected without redesign.
+
+The real query `An Old Babylonian Version` initially failed the unchanged
+16-million-character verification gate: the rarest trigram selected 166
+node candidates with 16,787,765 document characters. Indexed metadata-only
+diagnosis showed that three rare trigrams select 39 candidates / 1,656,122
+characters. The general Worker planner now intersects up to three postings
+using covering-index membership seeks before text verification. Every used
+posting closure is checked, and their summed closure count remains within
+the existing 50,000-candidate budget. Exact full-text matching, ordering,
+snapshot-bound cursors and the character cap remain unchanged; there is no
+title-specific exception, new index, database rebuild or legacy fallback.
+
+The same real request now returns HTTP 200 (272,640 bytes, 1,533.62 ms),
+including the book. WebMCP search then human selection retains that exact
+Work identity; a second cursor page has no repeated node/relation IDs from
+the first page and does not clear the selected book. Unknown totals remain
+unknown. The result closes this G6/G7/G9 search availability/continuation
+seam and the bounded G5/G6/K2 carrier-to-episode human/agent join, not all K2
+or global K3 performance acceptance.
+
+Durable local evidence: `penn-carrier-episode-ui-seam-r1.json` SHA-256
+`6e44928608ab5e183eb7571ea92cfb1dfb0c424f542aff83d2b3feb4ae8fe4e5`;
+`penn-title-intersection-runtime-r1.json` SHA-256
+`52cce1158f60784b2065fc1440db42a280ccafe7984619eb9ba35872bbc88ff8`.
+Remaining completion work includes complete concept/exact-text and other
+K2 interaction coverage, outstanding K3 mutation/growth dimensions, source
+companion sealing and exact-head CI/merge. PR 229 is now merged as
+`e7b09be2cbfd237b8d8f70c97c795ffefa2903a0`; later PRs remain separate.
+
+## Published native navigation reader · 2026-09-15 UTC
+
+Python now reads the selected SQLite publication's native source-navigation
+product instead of silently consulting the legacy corpus index. Shared pure
+query functions preserve the existing downward walk, bibliographic lineage,
+tree ancestry, Links, scoped rights and fail-closed agent summary. Native
+selection validates full JSON against indexed fields, including overflow
+payload framing, under the published reader's row/byte/SQLite-work budgets
+and post-transaction currentness check. No second database was created.
+
+On the already-running local D1 publication, Python and Worker return equal
+complete JSON packets for Penn collation environment descent (2 nodes / 1
+edge) and the Jastrow/Clay book dossier. A first Python observation took
+38.981 / 76.126 ms; the later paired check took 5.066 / 10.569 ms in Python
+and 154.411 / 109.208 ms through Worker HTTP. These are retained-cache bounded
+cases, not cold-OS measurements or corpus-wide endpoint parity. The selected
+source/data revisions are the same D1 revisions recorded below.
+
+Capability now working: the existing native source product can be consumed
+by Python and Worker through the same source-navigation operations, including
+new material absent from a stale static index. This closes that G6/G7/G8
+consumer seam. It does not add rights or accept a historical inference.
+Remaining limit: the separate prepared-normalization SQLite format currently
+has no complete native navigation product (especially its header and rights).
+That selection must report an unavailable product, not manufacture a dossier
+from normalized attributes or silently read the old index. The running Python
+prepared service has not been switched to D1 or restarted by this check.
+Complete K2 routes, remaining K3 measurements and whole-goal acceptance remain
+with the master.
+
+Reproduction: durable local `check_published_native_navigation.py` accepts an
+explicit database, expected source/data revisions, loopback peer and bounded
+public case IDs. Receipt `published-native-navigation-comparison-r1.json`
+SHA-256 `521e4b976ae36ee7fa8892365d9bcde225966613491b1ad30742d4239649e969`.
+Existing source/query-store regression checks and all 20 published-reader
+tests passed before additional malformed-native-product tests. No source
+grant, corpus payload, publication epoch, or service state changed.
+
+Delivery update: PR 228 passed all three required software/Worker/aggregate
+checks and was squash-merged as `620e2a59daf27476f92382c5c885a9fb7cc30a17`.
+PR 229's subsequent main synchronization has identical tree bytes to its
+already-reviewed predecessor; its exact new-head CI is separate and pending.
+
+## D1 catch-up and existing exact-source seam · 2026-09-15 UTC
+
+The lagging local D1 reader now shares prepared source revision
+`61e5059bcff97b455f04e4aab92d6edb6a5bc5b33a37e059ec3d80e6f2acba26`.
+Explicit offline reconciliation scanned 210,759 admitted digest-manifest rows
+in 13.252 s, retained 25 changed normalized rows, and emitted bounded forward
+and reverse SQL. Atomic local application took 5.172 s / 574 statements;
+all 25 changed native JSON bodies equal the prepared successor. Peak apply
+memory was 409.8 MiB with no swap. No second prepared database or full graph
+normalization was used. Ordinary per-edit capture still uses two held WAL
+read transactions on the same prepared file; this offline scan is not its
+latency budget or an automatic fallback.
+
+Worker health confirms data revision
+`027f508161807217223234ef62d54c0b63356e154634f4b797995e36292ecaf5` and
+42,682 nodes / 62,710 relations. Its indexed discovery carries the shared
+source revision. Python retains its own prepared-format data revision, not
+the D1 revision; distinct representation identities are expected. Work
+navigation/dossier and incoming Penn environment exploration agree on bounded
+IDs and topology. Python exact owner-read verifies the environment and three
+Claims. D1 explicitly reports that source-owner handle/read is unsupported;
+it does not pretend that derived JSON is an owner-record response. A direct
+environment descent returns 200 on D1 but 404 on Python: this separate legacy
+navigation seam remains under access-owner diagnosis, not full endpoint parity.
+
+Actual human D1 interaction opens the environment, its inverse relation and
+the Claim. WebMCP then identifies that exact selected Claim with unreviewed
+and derived-export posture. Publication year remains distinct from unknown
+collation date. This surfaced an ordinary-inspector defect: the validated
+readable-context companion was passed to the reader panel but omitted from
+the card. The card now passes the same verified companion to both form and
+record-context renderers. Real source labels such as identification status
+and provisional identification appear without a UI-owned taxonomy. Unknown
+context entries and nested source objects remain explicit; this is not a
+claim of complete prose coverage or global interaction smoothness.
+
+The exact JGB19 connection already existed and was not recreated. An existing
+private Claim binds the same public commanding-affect Conception version and
+digest to an English Expression, with an exact Occurrence and native TextUnit
+in its five-record source closure. The currently renewed local selection
+returns that source in the owner process; no private request crosses HTTP/MCP.
+This checked seam took 1.686 s, with no extraction, source mutation, new grant
+or semantic admission. The old creation configuration supplies addresses only,
+not current write authority. This evidence does not establish an exact German
+JGB21 unit or a public/private browser bridge.
+
+Goal closure at this checkpoint: G7/G8 addressed local derived publication
+and checked retention; G5/G6/G9 human/agent selected-identity and context
+continuity; G3/G6 and part of K2 exact existing JGB19 source connection.
+Remaining: direct Python environment descent, complete K2 routes, remaining
+K3 mutation/growth measurements, UI acceptance, exact-head CI/merge and final
+whole-goal review. Seven catch-up fixture tests, six existing prepared delta
+tests and the same-file WAL test pass. Inspector/context regressions pass
+52 existing and four new cases; typecheck passes. Existing replay/reverse
+coverage was reused, not relabeled as a new real reverse application.
+
+Durable local evidence (basename, SHA-256):
+
+- `d1-catchup-capture-r2.json`: `b6daa4e972a6cd3d698c0436ec7a9ea7932a6f2e95634609671c2f37c41fad51`.
+- `d1-catchup-apply-r1.json`: `5ec2c8bc2464eebfc83f1e62e8e5c2b3ef9a440cede58f1dd75af0f280b45c3d`.
+- `d1-catchup-consumer-evidence-r1.json`: `92ca0bf6f6244b40380ebf9e942642ebfea694de1cbf1020b1f4fada16d2a349`.
+- `d1-penn-browser-seam-r1.json`: `cf007ba1980f900b2f347f36f565a5130b9a95fca1eb5bdf4c13eec8fd779b57`.
+- `jgb19-private-public-seam-r1.json`: `77680f8ce0d039d0a396657281c099a5417734ae09a5cd8413365f329581bdad`.
+
 ## Penn source-creation continuation · 2026-09-15 UTC
 
 Committed creation evidence and a current write delegation now have distinct

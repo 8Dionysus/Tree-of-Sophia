@@ -4,6 +4,7 @@ import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { sourceDossier, sourceDescend } from "../src/source-navigation.ts";
 import { sourceDossierD1, sourceDescendD1, SOURCE_NAVIGATION_PAGE_SIZE } from "../src/source-navigation-store.ts";
 import type { Item } from "../src/common.ts";
+import {createHash} from 'node:crypto';
 
 type Navigation = {
   schema_version: string;
@@ -16,6 +17,8 @@ type Navigation = {
 
 const SCHEMA = `
 CREATE TABLE edge_meta(key TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY(key, part));
+CREATE TABLE knowledge_exploration_clock(singleton INTEGER PRIMARY KEY, epoch INTEGER NOT NULL);
+INSERT INTO knowledge_exploration_clock VALUES(1,0);
 CREATE TABLE source_navigation_nodes(node_id TEXT PRIMARY KEY, ord INTEGER NOT NULL, node_kind TEXT NOT NULL, source_ref TEXT NOT NULL, label TEXT NOT NULL, identity_status TEXT NOT NULL, properties_json TEXT NOT NULL, json TEXT NOT NULL);
 CREATE TABLE source_navigation_node_payload(id TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY(id, part));
 CREATE TABLE source_navigation_edges(edge_id TEXT PRIMARY KEY, ord INTEGER NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, edge_kind TEXT NOT NULL, predicate_id TEXT NOT NULL, review_status TEXT NOT NULL, source_refs_json TEXT NOT NULL, json TEXT NOT NULL);
@@ -53,14 +56,24 @@ function baseNavigation(): Navigation {
 
 async function populate(db: D1Database, navigation: Navigation, payloadIds: Set<string> = new Set()): Promise<void> {
   await db.exec(SCHEMA);
-  await db.prepare("INSERT INTO edge_meta VALUES (?, 0, ?)").bind("source_navigation_top", JSON.stringify({
+  await db.prepare('INSERT INTO edge_meta VALUES (?,0,?)').bind('data_revision',JSON.stringify({sha256:'a'.repeat(64)})).run();
+  const header=JSON.stringify({
     schema_version: navigation.schema_version,
     authority_boundary: navigation.authority_boundary,
     counts: navigation.counts,
-  })).run();
+  });
+  await db.prepare("INSERT INTO edge_meta VALUES (?,0,?)").bind('source_navigation_top',header).run();
+  await db.prepare("INSERT INTO edge_meta VALUES (?,0,?)").bind('source_navigation_header_digest',
+    JSON.stringify({sha256:createHash('sha256').update(header,'utf8').digest('hex')})).run();
+  async function checksum(kind:string,id:string,raw:string) {
+    const hash=(text:string)=>createHash('sha256').update(text,'utf8').digest('hex');
+    await db.prepare('INSERT INTO edge_meta VALUES (?,0,?)')
+      .bind(`source_navigation_row_digest:${kind}:${hash(id)}`,JSON.stringify({sha256:hash(raw)})).run();
+  }
   for (const [ord, node] of navigation.nodes.entries()) {
     const id = String(node.node_id);
     const payload = JSON.stringify(node);
+    await checksum('nodes',id,payload);
     await db.prepare("INSERT INTO source_navigation_nodes VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
       .bind(id, ord, node.node_kind, node.source_ref, node.label, node.identity_status,
         JSON.stringify(node.properties ?? {}), payloadIds.has(id) ? "" : payload).run();
@@ -69,6 +82,7 @@ async function populate(db: D1Database, navigation: Navigation, payloadIds: Set<
   for (const [ord, edge] of navigation.edges.entries()) {
     const id = String(edge.edge_id);
     const payload = JSON.stringify(edge);
+    await checksum('edges',id,payload);
     await db.prepare("INSERT INTO source_navigation_edges VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
       .bind(id, ord, edge.from_id, edge.to_id, edge.edge_kind, edge.predicate_id, edge.review_status,
         JSON.stringify(edge.source_refs ?? []), payloadIds.has(id) ? "" : payload).run();
@@ -77,6 +91,7 @@ async function populate(db: D1Database, navigation: Navigation, payloadIds: Set<
   for (const [ord, right] of navigation.rights.entries()) {
     const id = String(right.rights_id);
     const payload = JSON.stringify(right);
+    await checksum('rights',id,payload);
     await db.prepare("INSERT INTO source_navigation_rights VALUES (?, ?, ?, ?)")
       .bind(id, ord, JSON.stringify(right.scope_refs ?? []), payloadIds.has(id) ? "" : payload).run();
     if (payloadIds.has(id)) await db.prepare("INSERT INTO source_navigation_rights_payload VALUES (?, 0, ?)").bind(id, payload).run();
@@ -91,6 +106,97 @@ async function database(): Promise<{ mf: Miniflare; db: D1Database }> {
   }));
   return { mf, db: await mf.getD1Database("DB") };
 }
+
+test('native source routes refuse an ABA publication during an otherwise valid row read', async () => {
+  const {mf,db}=await database();
+  try {
+    await populate(db,baseNavigation());
+    for (const route of ['descent','dossier']) {
+      let changed=false;
+      const interleaved=new Proxy(db, {get(target,property) {
+        if (property!=='prepare') return Reflect.get(target,property);
+        return (sql:string) => {
+          const wrap=(statement:D1PreparedStatement):D1PreparedStatement => new Proxy(statement,{get(inner,key) {
+            if (key==='bind') return (...values:unknown[])=>wrap(inner.bind(...values));
+            if (key==='all') return async () => {
+              const result=await inner.all();
+              if (!changed && sql.includes('source_navigation_nodes')) {
+                changed=true;
+                // A -> B -> A keeps revision bytes but invalidates the epoch.
+                await db.batch([
+                  db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").bind(JSON.stringify({sha256:'b'.repeat(64)})),
+                  db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").bind(JSON.stringify({sha256:'a'.repeat(64)})),
+                  db.prepare('UPDATE knowledge_exploration_clock SET epoch=epoch+2 WHERE singleton=1'),
+                ]);
+              }
+              return result;
+            };
+            const value=Reflect.get(inner,key);
+            return typeof value==='function' ? value.bind(inner) : value;
+          }});
+          return wrap(target.prepare(sql));
+        };
+      }});
+      await assert.rejects(route==='descent' ? sourceDescendD1(interleaved,'era',8,300)
+        : sourceDossierD1(interleaved,'work',300), /snapshot changed during query/);
+      assert.equal(changed,true);
+    }
+  } finally { await mf.dispose(); }
+});
+
+test('native source routes distinguish concurrent row/checksum replacement from stable corruption', async () => {
+  for (const route of ['descent','dossier']) {
+    const {mf,db}=await database();
+    try {
+      await populate(db,baseNavigation());
+      let changed=false;
+      const interleaved=new Proxy(db,{get(target,property) {
+        if (property!=='prepare') return Reflect.get(target,property);
+        return (sql:string) => {
+          const wrap=(statement:D1PreparedStatement):D1PreparedStatement => new Proxy(statement,{get(inner,key) {
+            if (key==='bind') return (...values:unknown[])=>wrap(inner.bind(...values));
+            if (key==='first') return async () => {
+              const result=await inner.first< {json:string;node_id:string} >();
+              if (!changed && sql.includes('source_navigation_nodes') && result) {
+                changed=true;
+                const raw=JSON.stringify({...JSON.parse(result.json),research_note:'new publication'});
+                const hash=(value:string)=>createHash('sha256').update(value,'utf8').digest('hex');
+                await db.batch([
+                  db.prepare('UPDATE source_navigation_nodes SET json=? WHERE node_id=?').bind(raw,result.node_id),
+                  db.prepare('UPDATE edge_meta SET json_chunk=? WHERE key=?')
+                    .bind(JSON.stringify({sha256:hash(raw)}),`source_navigation_row_digest:nodes:${hash(result.node_id)}`),
+                  db.prepare('UPDATE knowledge_exploration_clock SET epoch=epoch+1 WHERE singleton=1'),
+                ]);
+              }
+              return result;
+            };
+            const value=Reflect.get(inner,key);
+            return typeof value==='function' ? value.bind(inner) : value;
+          }});
+          return wrap(target.prepare(sql));
+        };
+      }});
+      await assert.rejects(route==='descent' ? sourceDescendD1(interleaved,'era',8,300)
+        : sourceDossierD1(interleaved,'work',300),/snapshot changed during query/);
+      assert.equal(changed,true);
+    } finally { await mf.dispose(); }
+  }
+});
+
+test('native source header authority drift and missing header digest refuse', async () => {
+  const {mf,db}=await database();
+  try {
+    await populate(db,baseNavigation());
+    const original=await db.prepare("SELECT json_chunk FROM edge_meta WHERE key='source_navigation_top'").first<{json_chunk:string}>();
+    assert.ok(original);
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='source_navigation_top'")
+      .bind(JSON.stringify({...JSON.parse(original.json_chunk),authority_boundary:'forged canon authority'})).run();
+    await assert.rejects(sourceDossierD1(db,'work',300),/checksum differs/);
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='source_navigation_top'").bind(original.json_chunk).run();
+    await db.prepare("DELETE FROM edge_meta WHERE key='source_navigation_header_digest'").run();
+    await assert.rejects(sourceDescendD1(db,'era',8,300),/explicit product migration/);
+  } finally { await mf.dispose(); }
+});
 
 function tracedDatabase(db: D1Database, limits: number[]): D1Database {
   return {
@@ -210,5 +316,36 @@ test("D1 hydrates empty selection sentinels for nodes, edges and rights", async 
     await assert.rejects(sourceDescendD1(db, "packet-member", 1, 3), /unknown ToS source-navigation node/);
   } finally {
     await mf.dispose();
+  }
+});
+
+test('D1 rejects full-row drift and missing checksums before deriving rights posture', async () => {
+  for (const chunked of [false,true]) {
+    const {mf,db}=await database();
+    try {
+      const navigation=baseNavigation();
+      navigation.rights[0].review_status='unreviewed';
+      await populate(db,navigation,chunked?new Set(['work','e3','r1']):new Set());
+      const expected=sourceDossier(navigation,'work',300);
+      assert.deepEqual(await sourceDossierD1(db,'work',300),expected);
+      for (const [kind,id,delta] of [
+        ['nodes','work',{research_note:'altered'}],
+        ['edges','e3',{research_note:'altered'}],
+        ['rights','r1',{review_status:'accepted'}],
+      ] as const) {
+        const spec={nodes:['node_id','node'],edges:['edge_id','edge'],rights:['rights_id','rights']}[kind];
+        const table=chunked?`source_navigation_${spec[1]}_payload`:`source_navigation_${kind}`;
+        const column=chunked?'json_chunk':'json', key=chunked?'id':spec[0];
+        const original=await db.prepare(`SELECT ${column} AS raw FROM ${table} WHERE ${key}=?`).bind(id).first<{raw:string}>();
+        assert.ok(original);
+        await db.prepare(`UPDATE ${table} SET ${column}=? WHERE ${key}=?`)
+          .bind(JSON.stringify({...JSON.parse(original.raw),...delta}),id).run();
+        await assert.rejects(sourceDossierD1(db,'work',300),/checksum differs/);
+        await db.prepare(`UPDATE ${table} SET ${column}=? WHERE ${key}=?`).bind(original.raw,id).run();
+      }
+      const key=`source_navigation_row_digest:rights:${createHash('sha256').update('r1').digest('hex')}`;
+      await db.prepare('DELETE FROM edge_meta WHERE key=?').bind(key).run();
+      await assert.rejects(sourceDossierD1(db,'work',300),/explicit product migration required/);
+    } finally { await mf.dispose(); }
   }
 });

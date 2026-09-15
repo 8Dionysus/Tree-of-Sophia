@@ -128,6 +128,161 @@ if p['indexed']:
   packet.pop('work');packet['page']['cursor']=packet['page']['cursor'] is not None;packet['page']['next_cursor']=packet['page']['next_cursor'] is not None
 print(json.dumps(diff(a,b)))`,{actual,expected,indexed});assert.deepEqual(differences,[]);}
 
+function intersectionGrams(query){
+ const needle=query.toLowerCase(),grams=[];
+ for(let index=0;index<=needle.length-3;index++){
+  const gram=needle.slice(index,index+3);if(!grams.includes(gram))grams.push(gram);
+ }
+ return grams;
+}
+function intersectionFixture(query='common alpha metadata'){
+ const d=database(),grams=intersectionGrams(query),stats=[];let nextPosition=100000;
+ const stat=gram=>d.sqlite.prepare('SELECT postings FROM knowledge_search_gram_stats WHERE kind=? AND n=3 AND gram=?').get('nodes',gram)?.postings??0;
+ for(const [queryOrder,gram]of grams.entries()){
+  const postings=d.sqlite.prepare('SELECT postings FROM knowledge_search_gram_stats WHERE kind=? AND n=3 AND gram=?').get('nodes',gram);
+  assert.ok(postings,`missing fixture stats for ${JSON.stringify(gram)}`);
+  stats.push({gram,queryOrder,postings:postings.postings});
+ }
+ const target=Math.max(...stats.map(item=>item.postings))+2;
+ assert.ok(target*3<50000,'synthetic posting closure must stay below the shared candidate budget');
+ const addFalsePositive=(gram,documentChars)=>{
+  const position=nextPosition++,id=`philosophy:intersection-false-positive-${position}`;
+  d.sqlite.prepare('INSERT INTO knowledge_search_documents VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
+   .run('nodes',position,id,'philosophy','','',id.toLowerCase(),id.toLowerCase(),'[]','[]',documentChars,'unused');
+  d.sqlite.prepare('INSERT INTO knowledge_search_grams VALUES (?,?,?,?)').run('nodes',3,gram,position);
+  d.sqlite.prepare('UPDATE knowledge_search_gram_stats SET postings=postings+1 WHERE kind=? AND n=3 AND gram=?').run('nodes',gram);
+ };
+ const primary=stats.reduce((best,item)=>item.postings<best.postings?item:best,stats[0]);
+ // One non-deliverable row makes the original single-posting preflight exceed
+ // 16 MiB. Its id has no knowledge_nodes carrier, so it cannot be selected or
+ // delivered; only the numeric document budget observes it.
+ addFalsePositive(primary.gram,16_000_001);
+ for(const item of stats)if(item.gram!==primary.gram)for(let count=stat(item.gram);count<target;count++)addFalsePositive(item.gram,0);
+ const ordered=grams.map((gram,queryOrder)=>({gram,queryOrder,postings:stat(gram)}))
+  .sort((left,right)=>left.postings-right.postings||left.queryOrder-right.queryOrder);
+ assert.equal(ordered[0].gram,primary.gram,'synthetic primary gram must remain the rarest');
+ return {d,query,primary:ordered[0],secondary:ordered[1]};
+}
+function prefixVerificationFixture(){
+ const d=database(),query='metadata',grams=intersectionGrams(query),insert=d.sqlite.prepare('INSERT INTO knowledge_search_documents VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
+ for(const gram of grams)assert.ok(d.sqlite.prepare('SELECT postings FROM knowledge_search_gram_stats WHERE kind=? AND n=3 AND gram=?').get('nodes',gram),`missing fixture stats for ${JSON.stringify(gram)}`);
+ const source=JSON.parse(fixture.rows.nodes.find(row=>JSON.parse(row.raw).id==='philosophy:A').raw);
+ source.display.title={default:'False positive'};source.display.provenance.summary='synthetic';source.display.summary_state='synthetic';
+ const searchableDocument=raw=>python(String.raw`
+import hashlib,json
+from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S
+p=json.load(sys.stdin);n=json.loads(p['raw']);text=S._searchable(n)
+id_lower,native_id_lower,identity_values,visible_values=S._rank_fields(n,relation=False)
+print(json.dumps({'raw':json.dumps(n,ensure_ascii=False,separators=(',',':')),'text':text,
+ 'document':['nodes',100003,n['id'],n.get('source_graph',''),n.get('kind_id',''),n.get('predicate_id',''),id_lower,native_id_lower,identity_values,visible_values,len(text),hashlib.sha256(text.encode('utf-8','surrogatepass')).hexdigest()],
+ 'grams':list(dict.fromkeys(text[i:i+3] for i in range(len(text)-2)))},ensure_ascii=False,separators=(',',':')))
+ `,{raw});
+ for(const [suffix,position] of [[1,100000],[2,100001],[3,100002]]){
+  const wide=JSON.parse(JSON.stringify(source));wide.id=`philosophy:aa-prefix-false-positive-${suffix}`;wide.entity_id=wide.id;wide.native_id=`aa-prefix-false-positive-${suffix}`;wide.source_ref='test:prefix-false-positive';
+  wide.attributes.match='metXetaXtadXadaXdatXata'+'x'.repeat(7_999_000);
+  const falsePositive=searchableDocument(JSON.stringify(wide));
+  falsePositive.document[1]=position;
+  assert.equal(falsePositive.text.includes(query),false,'false-positive source carrier must not contain the complete query');
+  assert.ok(grams.every(gram=>falsePositive.grams.includes(gram)),'false-positive source carrier must retain every query gram');
+  assert.ok(falsePositive.document[10]>7_900_000,'false-positive source carrier must be wide');
+  d.sqlite.prepare('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)').run(...bindings('nodes',{raw:falsePositive.raw,text:falsePositive.text}));
+  d.sqlite.prepare('INSERT INTO edge_meta VALUES (?,0,?)').run(`knowledge_node_digest:${wide.id}`,JSON.stringify({sha256:sha(falsePositive.raw)}));
+  insert.run(...falsePositive.document);
+  for(const gram of falsePositive.grams){
+   d.sqlite.prepare('INSERT INTO knowledge_search_grams VALUES (?,?,?,?)').run('nodes',3,gram,position);
+   d.sqlite.prepare('INSERT OR IGNORE INTO knowledge_search_gram_stats VALUES (?,?,?,?)').run('nodes',3,gram,0);
+   d.sqlite.prepare('UPDATE knowledge_search_gram_stats SET postings=postings+1 WHERE kind=? AND n=3 AND gram=?').run('nodes',gram);
+  }
+ }
+ // Every false-positive row is a real native source/search carrier: its
+ // document_chars and digest come from its actual searchable text. Each is
+ // large enough to fit alone but not two at once after rank metadata.
+ return {d,query};
+}
+function numericPostingAggregate(d,kind,grams){
+ const parts=['knowledge_search_grams g0','CROSS JOIN knowledge_search_documents s ON s.kind=g0.kind AND s.position=g0.position'];
+ for(const [index,gram]of grams.slice(1).entries())parts.push(`CROSS JOIN knowledge_search_grams g${index+1} ON g${index+1}.kind=g0.kind AND g${index+1}.n=g0.n AND g${index+1}.position=g0.position AND g${index+1}.gram=?`);
+ const sql='SELECT COUNT(*) AS candidate_rows,COALESCE(SUM(s.document_chars),0) AS document_chars FROM '+parts.join(' ')+' WHERE g0.kind=? AND g0.n=? AND g0.gram=?';
+ return d.sqlite.prepare(sql).get(...grams.slice(1),kind,3,grams[0]);
+}
+
+test('indexed search intersects rare grams before verification without changing oracle paging',async()=>{
+ const {d,query,primary,secondary}=intersectionFixture();
+ try{
+  const single=numericPostingAggregate(d,'nodes',[primary.gram]);
+  const intersection=numericPostingAggregate(d,'nodes',[primary.gram,secondary.gram]);
+  assert.ok(single.document_chars>16_000_000,JSON.stringify(single));
+  assert.ok(intersection.document_chars<16_000_000,JSON.stringify(intersection));
+  const expected=oracle('indexed',query,{limit:2});let cursor=null;
+  for(const packet of expected){
+   const result=await response(d,'indexed',query,{limit:'2',...(cursor?{cursor}:{})});
+   const raw=await result.text();assert.equal(result.status,200,raw);assertPackets(raw,packet,true);cursor=JSON.parse(raw).page.next_cursor;
+  }
+  assert.equal(cursor,null);
+  const preflight=d.statements.find(row=>row.args?.[0]==='nodes'&&row.sql.includes('invalid_budgets')&&row.sql.includes('intersection'));
+  assert.ok(preflight,'indexed preflight must carry the bounded gram intersection');
+  const plan=d.sqlite.prepare('EXPLAIN QUERY PLAN '+preflight.sql).all(...preflight.args).map(row=>row.detail);
+  assert.ok(plan.some(detail=>/SEARCH intersection(?: EXISTS)? USING COVERING INDEX sqlite_autoindex_knowledge_search_grams_1/.test(detail)&&/position=\?/.test(detail)),JSON.stringify(plan));
+ }finally{d.close();}
+});
+
+test('indexed search rejects a corrupt selected secondary posting closure instead of returning empty',async()=>{
+ const {d,query,secondary}=intersectionFixture();
+ try{
+  d.sqlite.prepare('UPDATE knowledge_search_gram_stats SET postings=postings-1 WHERE kind=? AND n=3 AND gram=?').run('nodes',secondary.gram);
+  const result=await response(d,'indexed',query,{limit:'2'}),raw=await result.text();
+  assert.equal(result.status,503,raw);assert.match(raw,/posting closure is incomplete/);
+ }finally{d.close();}
+});
+
+test('indexed prefix verification preserves exact rows across bounded false-positive progress pages',async()=>{
+ const {d,query}=prefixVerificationFixture();
+ try{
+  const expectedPackets=oracle('indexed',query,{limit:1}).map(raw=>JSON.parse(raw));
+  const expected={nodes:expectedPackets.flatMap(packet=>packet.nodes),relations:expectedPackets.flatMap(packet=>packet.relations)};
+  const actual={nodes:[],relations:[]},pages=[];let cursor=null,emptyProgress=false;
+  for(let pageNumber=0;pageNumber<100;pageNumber++){
+   const result=await response(d,'indexed',query,{limit:'1',...(cursor?{cursor}:{})}),raw=await result.text();
+   assert.equal(result.status,200,raw);
+   const packet=JSON.parse(raw),rows=[...packet.nodes,...packet.relations];pages.push(packet);actual.nodes.push(...packet.nodes);actual.relations.push(...packet.relations);
+   assert.ok(packet.work.nodes.verified_chars+ (packet.work.nodes.rank_chars??0)<=16_000_000,JSON.stringify(packet.work));
+   assert.ok(packet.work.relations.verified_chars+ (packet.work.relations.rank_chars??0)<=16_000_000,JSON.stringify(packet.work));
+   if(rows.length===0){assert.ok(packet.page.next_cursor,`empty page ${pageNumber} must make cursor progress`);emptyProgress=true;}
+   const next=packet.page.next_cursor;
+   if(next===null){cursor=null;break;}
+   assert.notEqual(next,cursor,'each bounded prefix must advance the opaque cursor');cursor=next;
+  }
+  assert.equal(cursor,null);assert.ok(pages.length>=3,`expected multiple bounded prefixes, got ${pages.length}`);assert.equal(emptyProgress,true);
+  assert.deepEqual(actual,expected);for(const rows of Object.values(actual))assert.equal(new Set(rows.map(row=>row.id)).size,rows.length);
+  const aggregate=d.statements.find(row=>row.args?.[0]==='nodes'&&row.sql.includes('AS verified_chars'))?.results[0];
+  assert.ok(aggregate&&aggregate.verified_chars>16_000_000,JSON.stringify(aggregate));
+  assert.ok(aggregate.rank_chars<16_000_000,JSON.stringify(aggregate));
+  assert.ok(d.statements.some(row=>row.sql.includes('selected_candidates AS MATERIALIZED')),'delivery must stay behind the verified prefix');
+  const decode=value=>JSON.parse(Buffer.from(value,'base64url').toString('utf8')),encode=value=>Buffer.from(JSON.stringify(value)).toString('base64url');
+  const seed=pages.find(packet=>packet.page.next_cursor)?.page.next_cursor;assert.ok(seed,'fixture must expose an outer continuation cursor');
+  const outer=decode(seed),beyondOuter={...outer};
+  for(const kind of ['nodes','relations']){
+   if(typeof beyondOuter[kind]==='string'){beyondOuter[kind]=encode({...decode(beyondOuter[kind]),rank:3,id:'zzzz',position:Number.MAX_SAFE_INTEGER});beyondOuter[`${kind}_exhausted`]=false;}
+   else {assert.equal(beyondOuter[kind],null);beyondOuter[`${kind}_exhausted`]=true;}
+  }
+  const beyond=encode(beyondOuter);
+  const eof=await response(d,'indexed',query,{limit:'1',cursor:beyond}),eofRaw=await eof.text();assert.equal(eof.status,200,eofRaw);
+  const eofPacket=JSON.parse(eofRaw);assert.deepEqual(eofPacket.nodes,[]);assert.deepEqual(eofPacket.relations,[]);assert.equal(eofPacket.page.next_cursor,null);
+ }finally{d.close();}
+});
+
+test('indexed prefix verification rejects one oversized remaining document with 413',async()=>{
+ const d=database();
+ try{
+  d.sqlite.prepare("UPDATE knowledge_search_documents SET document_chars=? WHERE kind='nodes' AND id=?").run(16_000_001,'philosophy:scalar');
+  const result=await response(d,'indexed','scalar',{limit:'1'}),raw=await result.text();
+  assert.equal(result.status,413,raw);assert.match(raw,/first remaining document exceeds verification budget/);
+  const aggregate=d.statements.find(row=>row.args?.[0]==='nodes'&&row.sql.includes('AS verified_chars'))?.results[0];
+  assert.ok(aggregate&&aggregate.verified_chars>16_000_000,JSON.stringify(aggregate));
+  assert.ok(aggregate.rank_chars<16_000_000,JSON.stringify(aggregate));
+ }finally{d.close();}
+});
+
 test('selected search delivery drives exact address seeks even with publisher identity indexes',async()=>{
  const d=database();try{
   d.sqlite.exec('CREATE UNIQUE INDEX knowledge_search_address_id_idx ON knowledge_search_documents(kind,id)');
