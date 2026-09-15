@@ -46,6 +46,16 @@ from incremental_runtime import (  # noqa: E402
     DiskRowBaseline,
     MAX_D1_SQL_INSERT_ROWS,
 )
+from source_navigation_rows import (  # noqa: E402
+    COLUMNS as SOURCE_NAVIGATION_COLUMNS,
+    SQL_CHUNK_BYTES,
+    chunk_text,
+    compact_json,
+    prepare_source_navigation_row,
+    project_source_navigation_row,
+    source_navigation_selection_properties,
+    sql_text,
+)
 import lens_auxiliary_runtime as lens_auxiliary  # noqa: E402
 from build_stages import BuildStages, atomic_json, build_lock, fingerprint, tree_paths  # noqa: E402
 
@@ -53,7 +63,6 @@ from build_stages import BuildStages, atomic_json, build_lock, fingerprint, tree
 CORPUS_COLLECTIONS = ("nodes", "resources", "manifests", "branches", "graph_views")
 STATIC_PHILOSOPHY_LIMITS = (1, 1000)
 STATIC_CORPUS_LIMITS = (1, 100, 700, 1000)
-SQL_CHUNK_BYTES = 32_000
 READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v9"
 READ_MODEL_CONTENT_VERSION = "tos_cloudflare_edge_content_v5"
 SEARCH_READ_MODEL_SCHEMA_VERSION = "tos_knowledge_search_read_model_v3"
@@ -66,14 +75,6 @@ MAX_PRODUCER_LOGICAL_BINDING_VALUE_BYTES = 65_536
 MAX_PRODUCER_CARRIER_PATHS = 128
 MAX_PRODUCER_CARRIER_LABEL_BYTES = 4_096
 MAX_PRODUCER_CARRIER_PATH_BYTES = 4_096
-
-
-def compact_json(value: Any) -> str:
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
-
-
-def sql_text(value: str) -> str:
-    return "'" + value.replace("'", "''") + "'"
 
 
 def sql_nullable(value: str | None) -> str:
@@ -618,24 +619,6 @@ def sql_insert(table: str, columns: tuple[str, ...], values: tuple[str, ...]) ->
     return f"INSERT INTO {table} ({','.join(columns)}) VALUES ({','.join(values)});"
 
 
-def chunk_text(value: str, size: int = SQL_CHUNK_BYTES) -> list[str]:
-    """Split text without breaking UTF-8 and keep escaped INSERTs below D1's limit."""
-    chunks: list[str] = []
-    encoded = value.encode('utf-8')
-    start = 0
-    while start < len(encoded):
-        end = min(start + size, len(encoded))
-        while end < len(encoded) and end > start and encoded[end] & 0xC0 == 0x80:
-            end -= 1
-        if end == start:
-            raise ValueError('chunk size cannot hold one UTF-8 character')
-        chunks.append(encoded[start:end].decode('utf-8'))
-        start = end
-    if not chunks:
-        chunks.append('')
-    return chunks
-
-
 class SqlStatementWriter:
     """List-shaped streaming sink so large read models do not live twice in RAM."""
 
@@ -800,54 +783,6 @@ def prepare_native_knowledge_row(writer, kind, columns, values, raw, search):
             writer.append(sql_insert('edge_meta_next', ('key', 'part', 'json_chunk'),
                 (sql_text(key), str(part), sql_text(chunk))))
     return tuple(reduced)
-
-
-def prepare_source_navigation_row(
-    values: tuple[str, ...],
-    item_json: str,
-    *,
-    json_position: int,
-    properties_position: int,
-) -> tuple[tuple[str, ...], str | None]:
-    """Keep source-navigation selection fields bounded and payload lossless.
-
-    D1 limits the eventual row to 2 MiB. A large source-navigation record is
-    therefore inserted with empty JSON selection fields and reconstructed from
-    independently bounded payload chunks. The full ``properties`` object is
-    never copied into a second large row; it remains part of the one lossless
-    source JSON payload.
-    """
-    row_size = lambda candidate: sum(len(value.encode("utf-8")) for value in candidate) + 1024
-    if row_size(values) <= MAX_D1_SQL_ROW_VALUE_BYTES:
-        return values, None
-
-    compact_values = list(values)
-    compact_values[json_position] = sql_text("")
-    # A large properties object is a selection hint only. If retaining it
-    # would breach the row budget, leave it empty and let the full source JSON
-    # payload carry the object exactly once.
-    if row_size(tuple(compact_values)) > MAX_D1_SQL_ROW_VALUE_BYTES:
-        compact_values[properties_position] = sql_text("{}")
-    if row_size(tuple(compact_values)) > MAX_D1_SQL_ROW_VALUE_BYTES:
-        raise RuntimeError("source-navigation selection fields exceed the D1 row budget")
-    return tuple(compact_values), item_json
-
-
-def source_navigation_selection_properties(item: dict[str, Any]) -> dict[str, Any]:
-    """Keep only fields used to select source-navigation rows.
-
-    The complete properties object stays in the source JSON payload. These
-    hints let the edge filter dense text-packet carriers and determine Link
-    availability without storing a second copy of a potentially large object.
-    """
-    properties = item.get("properties")
-    if not isinstance(properties, dict):
-        return {}
-    return {
-        key: properties[key]
-        for key in ("packet_id", "access_status")
-        if key in properties
-    }
 
 
 def append_batched_inserts(
@@ -1431,155 +1366,38 @@ def _build_read_model_sql(
         )
         corpus_packs_count += 1
 
-    source_navigation_nodes_count = 0
-    source_navigation_edges_count = 0
-    source_navigation_rights_count = 0
-    source_navigation_node_payload_chunks = 0
-    source_navigation_edge_payload_chunks = 0
-    source_navigation_rights_payload_chunks = 0
+    source_navigation_counts = {"nodes": 0, "edges": 0, "rights": 0}
+    source_navigation_payload_chunks = {"nodes": 0, "edges": 0, "rights": 0}
     # Partitioned source navigation is too large for one static asset. It
     # is emitted as bounded D1 rows; the full source record is chunked only
     # when it would exceed D1's 2 MiB row limit.
-    for order, item in enumerate(navigation_rows("nodes")):
-        normalized = normalize_paths(item, REPO_ROOT)
-        item_json = compact_json(normalized)
-        properties_json = compact_json(source_navigation_selection_properties(normalized))
-        item_id = str(normalized.get("node_id") or "")
-        columns = (
-            "node_id",
-            "ord",
-            "node_kind",
-            "source_ref",
-            "label",
-            "identity_status",
-            "properties_json",
-            "json",
-        )
-        values = (
-            sql_text(item_id),
-            str(order),
-            sql_text(str(normalized.get("node_kind") or "")),
-            sql_text(str(normalized.get("source_ref") or "")),
-            sql_text(str(normalized.get("label") or "")),
-            sql_text(str(normalized.get("identity_status") or "")),
-            sql_text(properties_json),
-            sql_text(item_json),
-        )
-        row_values, payload_json = prepare_source_navigation_row(
-            values,
-            item_json,
-            json_position=7,
-            properties_position=6,
-        )
-        if payload_json is not None:
-            statements.append(sql_insert("source_navigation_nodes_next", columns, row_values))
-            source_navigation_node_payload_chunks += append_payload_chunks(
-                statements,
-                "source_navigation_node_payload_next",
-                item_id,
-                payload_json,
-            )
-        else:
-            append_chunkable_insert(
-                statements,
-                "source_navigation_nodes_next",
-                columns,
-                row_values,
-                selector_sql=f"node_id = {sql_text(item_id)}",
-                chunked_text={"properties_json": properties_json, "json": item_json},
-            )
-        source_navigation_nodes_count += 1
-
-    for order, item in enumerate(navigation_rows("edges")):
-        normalized = normalize_paths(item, REPO_ROOT)
-        item_json = compact_json(normalized)
-        source_refs = normalized.get("source_refs")
-        source_refs_json = compact_json(source_refs if isinstance(source_refs, list) else [])
-        item_id = str(normalized.get("edge_id") or "")
-        columns = (
-            "edge_id",
-            "ord",
-            "from_id",
-            "to_id",
-            "edge_kind",
-            "predicate_id",
-            "review_status",
-            "source_refs_json",
-            "json",
-        )
-        values = (
-            sql_text(item_id),
-            str(order),
-            sql_text(str(normalized.get("from_id") or "")),
-            sql_text(str(normalized.get("to_id") or "")),
-            sql_text(str(normalized.get("edge_kind") or "")),
-            sql_text(str(normalized.get("predicate_id") or "")),
-            sql_text(str(normalized.get("review_status") or "")),
-            sql_text(source_refs_json),
-            sql_text(item_json),
-        )
-        row_values, payload_json = prepare_source_navigation_row(
-            values,
-            item_json,
-            json_position=8,
-            properties_position=7,
-        )
-        if payload_json is not None:
-            statements.append(sql_insert("source_navigation_edges_next", columns, row_values))
-            source_navigation_edge_payload_chunks += append_payload_chunks(
-                statements,
-                "source_navigation_edge_payload_next",
-                item_id,
-                payload_json,
-            )
-        else:
-            append_chunkable_insert(
-                statements,
-                "source_navigation_edges_next",
-                columns,
-                row_values,
-                selector_sql=f"edge_id = {sql_text(item_id)}",
-                chunked_text={"source_refs_json": source_refs_json, "json": item_json},
-            )
-        source_navigation_edges_count += 1
-
-    for order, item in enumerate(navigation_rows("rights")):
-        normalized = normalize_paths(item, REPO_ROOT)
-        item_json = compact_json(normalized)
-        scope_refs = normalized.get("scope_refs")
-        scope_refs_json = compact_json(scope_refs if isinstance(scope_refs, list) else [])
-        item_id = str(normalized.get("rights_id") or "")
-        columns = ("rights_id", "ord", "scope_refs_json", "json")
-        values = (
-            sql_text(item_id),
-            str(order),
-            sql_text(scope_refs_json),
-            sql_text(item_json),
-        )
-        row_values, payload_json = prepare_source_navigation_row(
-            values,
-            item_json,
-            json_position=3,
-            properties_position=2,
-        )
-        if payload_json is not None:
-            statements.append(sql_insert("source_navigation_rights_next", columns, row_values))
-            source_navigation_rights_payload_chunks += append_payload_chunks(
-                statements,
-                "source_navigation_rights_payload_next",
-                item_id,
-                payload_json,
-            )
-        else:
-            append_chunkable_insert(
-                statements,
-                "source_navigation_rights_next",
-                columns,
-                row_values,
-                selector_sql=f"rights_id = {sql_text(item_id)}",
-                chunked_text={"scope_refs_json": scope_refs_json, "json": item_json},
-            )
-        source_navigation_rights_count += 1
+    for collection in ("nodes", "edges", "rights"):
+        for order, item in enumerate(navigation_rows(collection)):
+            projected = project_source_navigation_row(collection, order, item, REPO_ROOT)
+            table = projected.table + "_next"
+            if projected.payload_rows:
+                statements.append(sql_insert(table, projected.columns, projected.sql_values))
+                payload_table = projected.payload_table + "_next"
+                payload_columns = SOURCE_NAVIGATION_COLUMNS[projected.payload_table]
+                for item_id, part, chunk in projected.payload_rows:
+                    statements.append(
+                        sql_insert(
+                            payload_table,
+                            payload_columns,
+                            (sql_text(item_id), str(part), sql_text(chunk)),
+                        )
+                    )
+                source_navigation_payload_chunks[collection] += len(projected.payload_rows)
+            else:
+                append_chunkable_insert(
+                    statements,
+                    table,
+                    projected.columns,
+                    projected.sql_values,
+                    selector_sql=f"{projected.id_column} = {sql_text(projected.item_id)}",
+                    chunked_text=dict(projected.chunked_text),
+                )
+            source_navigation_counts[collection] += 1
 
     auxiliary_bytes = compact_rows = membership_rows = 0
 
@@ -1865,12 +1683,12 @@ def _build_read_model_sql(
         "knowledge_lens_memberships": membership_rows,
         "knowledge_lens_auxiliary_bytes": auxiliary_bytes,
         "auxiliary_migration": auxiliary_migration,
-        "source_navigation_nodes": source_navigation_nodes_count,
-        "source_navigation_node_payload_chunks": source_navigation_node_payload_chunks,
-        "source_navigation_edges": source_navigation_edges_count,
-        "source_navigation_edge_payload_chunks": source_navigation_edge_payload_chunks,
-        "source_navigation_rights": source_navigation_rights_count,
-        "source_navigation_rights_payload_chunks": source_navigation_rights_payload_chunks,
+        "source_navigation_nodes": source_navigation_counts["nodes"],
+        "source_navigation_node_payload_chunks": source_navigation_payload_chunks["nodes"],
+        "source_navigation_edges": source_navigation_counts["edges"],
+        "source_navigation_edge_payload_chunks": source_navigation_payload_chunks["edges"],
+        "source_navigation_rights": source_navigation_counts["rights"],
+        "source_navigation_rights_payload_chunks": source_navigation_payload_chunks["rights"],
         "sql_statements": statements.count,
         "delta": delta.summary() if delta is not None else None,
     }

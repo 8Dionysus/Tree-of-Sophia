@@ -162,6 +162,40 @@ class _Leaf:
     rows: dict
 
 
+class _SnapshotReader(_Reader):
+    """Checked immutable bytes; namespace paths locate parts, not root files."""
+
+    def __init__(self, snapshot, binding, budget):
+        self.budget, self.path = budget, snapshot.namespace_path
+        self._root_bytes, self._binding = snapshot.root_bytes, binding
+        budget.reserve(decoded=len(self._root_bytes))
+        self.verify_current()
+        self._initialize_manifest(0)
+
+    def verify_current(self):
+        # No selected-file freshness is asserted for an immutable snapshot.
+        if _sha(self._root_bytes) != self._binding:
+            raise ProjectionDiffError("immutable projection binding differs")
+
+
+def diff_projection_snapshots(before, after, *, expected_before_sha256: str,
+                              expected_after_sha256: str, trusted_baseline_sha256: str,
+                              limits: DiffLimits | None = None, include_rows: bool = False) -> dict:
+    """Compare exact retained roots without selecting or writing either root.
+
+    The caller owns pairing these immutable roots with its committed read
+    snapshots. This proves a bounded logical difference, not current source
+    selection, availability of unchanged parts, or publication authority.
+    """
+    # Mutation imports the checked diff reader; keep this type import lazy.
+    from .projection_mutation import ProjectionSnapshotView
+    if not isinstance(before, ProjectionSnapshotView) or not isinstance(after, ProjectionSnapshotView):
+        raise TypeError("two explicit ProjectionSnapshotViews are required")
+    return _diff(before, after, expected_before_sha256=expected_before_sha256,
+        expected_after_sha256=expected_after_sha256, trusted_baseline_sha256=trusted_baseline_sha256,
+        limits=limits, include_rows=include_rows, reader_type=_SnapshotReader)
+
+
 def diff_projections(before: ProjectionReader, after: ProjectionReader, *,
                      expected_before_sha256: str, expected_after_sha256: str,
                      trusted_baseline_sha256: str,
@@ -183,6 +217,13 @@ def diff_projections(before: ProjectionReader, after: ProjectionReader, *,
     """
     if not isinstance(before, ProjectionReader) or not isinstance(after, ProjectionReader):
         raise TypeError("two explicitly selected ProjectionReaders are required")
+    return _diff(before, after, expected_before_sha256=expected_before_sha256,
+        expected_after_sha256=expected_after_sha256, trusted_baseline_sha256=trusted_baseline_sha256,
+        limits=limits, include_rows=include_rows, reader_type=_Reader)
+
+
+def _diff(before, after, *, expected_before_sha256, expected_after_sha256,
+          trusted_baseline_sha256, limits, include_rows, reader_type):
     if type(include_rows) is not bool:
         raise TypeError("include_rows must be boolean")
     bindings = (expected_before_sha256, expected_after_sha256, trusted_baseline_sha256)
@@ -194,8 +235,8 @@ def diff_projections(before: ProjectionReader, after: ProjectionReader, *,
     if limits is not None and not isinstance(limits, DiffLimits):
         raise TypeError("limits must be DiffLimits")
     budget = _Budget(limits or DiffLimits())
-    left = _Reader(before, expected_before_sha256, budget)
-    right = _Reader(after, expected_after_sha256, budget)
+    left = reader_type(before, expected_before_sha256, budget)
+    right = reader_type(after, expected_after_sha256, budget)
     old, new = left.manifest, right.manifest
     if any(not isinstance(m["logical_schema"], str) or not m["logical_schema"] for m in (old, new)):
         raise ProjectionDiffError("logical schema version must be a nonempty string")
@@ -214,6 +255,10 @@ def diff_projections(before: ProjectionReader, after: ProjectionReader, *,
                                  "established_by_diff": False},
               "target_closure_verified": False, "establishes_epoch": False,
               "rows_included": include_rows, "header_change": None, "changes": []}
+    if reader_type is _SnapshotReader:
+        packet.update(schema_version="tos_projection_snapshot_diff_v1",
+                      selected_root_currentness_verified=False,
+                      accounting={"opened_parts": 0, "decoded_bytes": 0, "keys": 0})
     if _value_digest(old["header"]) != _value_digest(new["header"]):
         packet["header_change"] = {"before_sha256": _value_digest(old["header"]),
                                    "after_sha256": _value_digest(new["header"]),
@@ -283,6 +328,9 @@ def diff_projections(before: ProjectionReader, after: ProjectionReader, *,
     packet["changes"].sort(key=lambda item: (item["collection"], item["key"]))
     left.verify_current()
     right.verify_current()
+    if reader_type is _SnapshotReader:
+        packet['accounting'] = {key: getattr(budget, key)
+                                for key in ('opened_parts', 'decoded_bytes', 'keys')}
     # Final defensive exact check includes all packet framing. Never return a
     # success packet if a budget or freshness check failed earlier.
     if len(canonical_bytes(packet)) > budget.limits.max_output_bytes:

@@ -1,4 +1,4 @@
-"""Offline bibliographic prepared transition to revision-guarded D1 delta SQL.
+"""Offline source-paired prepared transition to revision-guarded D1 delta SQL.
 
 The caller admits the exact full D1/prepared predecessor pair and holds all
 three SQLite snapshots. No source commands, graph build, D1 write or deployment
@@ -12,6 +12,7 @@ from pathlib import Path
 
 import build_runtime as full
 import lens_auxiliary_runtime as auxiliary
+import source_navigation_delta_runtime as navigation
 from incremental_runtime import DeltaRecorder, REGISTERED_KEYS as PRIMARY_KEYS, plan_search_addresses_transaction, _search_address_revision
 from tos_access.prepared_source_binding import PreparedSourceInputs
 from tos_access.published_read_model import _json
@@ -22,7 +23,7 @@ from tos_access.published_read_metadata import (
 from tos_access.portable_paths import normalize_paths
 from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as Search
 
-SCHEMA = 'tos_prepared_bibliographic_d1_delta_v1'
+SCHEMA = 'tos_prepared_source_d1_delta_v2'
 NODE_COLUMNS = ('id', 'entity_id', 'native_id', 'source_graph', 'kind_id', 'type_id',
                 'title_text', 'summary_text', 'search_text', 'json')
 RELATION_COLUMNS = ('id', 'native_id', 'source_graph', 'from_id', 'to_id', 'predicate_id',
@@ -35,6 +36,7 @@ COLUMNS = {'edge_meta': ('key', 'part', 'json_chunk'), 'knowledge_nodes': NODE_C
     'knowledge_search_gram_stats': ('kind', 'n', 'gram', 'postings'),
     'knowledge_lens_order': ('kind', 'id', 'sort_key', 'from_id', 'to_id')}
 COLUMNS.update(auxiliary.COLUMNS)
+COLUMNS.update(navigation.projection.COLUMNS)
 
 
 @dataclass(frozen=True)
@@ -208,6 +210,11 @@ def execution_profile():
             'access/deploy/cloudflare-worker/scripts/incremental_runtime.py',
             'access/deploy/cloudflare-worker/scripts/build_runtime.py',
             'access/deploy/cloudflare-worker/scripts/lens_auxiliary_runtime.py',
+            'access/deploy/cloudflare-worker/scripts/source_navigation_rows.py',
+            'access/deploy/cloudflare-worker/scripts/source_navigation_delta_runtime.py',
+            'access/src/tos_access/projection_diff.py',
+            'access/src/tos_access/projection_mutation.py',
+            'access/src/tos_access/projection_store.py',
             'access/src/tos_access/compact_lens_carrier.py',
             'access/src/tos_access/compact_lens_store.py',
             'access/src/tos_access/lens_membership_index.py',
@@ -227,12 +234,13 @@ def execution_profile():
 
 def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_revision,
                             before_binding, after_binding, limits=None, rollback_target=None):
-    """Capture one committed bibliographic transition; emit, never apply, SQL.
+    """Capture one committed source-paired transition; emit, never apply, SQL.
 
     A trusted initial D1/prepared pair is an explicit caller prerequisite. Exact
     reader/catalog/lens headers and selected old rows are additionally checked.
     Frozen source-root/dependency checks prevent an unrelated legacy-carrier
-    migration from hitchhiking on this knowledge-only publication profile.
+    migration from hitchhiking on this bounded publication profile. Changed
+    native source navigation is maintained in the same publication transaction.
     """
     limits = limits or PreparedD1DeltaLimits()
     target = Path(target)
@@ -250,10 +258,12 @@ def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_rev
             or after_descriptor.get('parent_data_revision') != before_binding['data_revision']):
         raise ValueError('one exact committed prepared transition required')
     a, b = before_source.value(), after_source.value()
+    participating_roots = {'source-catalog', 'bibliographic-claims', 'source-navigation'}
+    publication_profiles = {'claim-publication-profile', 'metadata-addition-publication-profile'}
     if (set(a['roots']) != set(b['roots'])
-            or any(a['roots'][key] != b['roots'][key] for key in a['roots'] if key not in ('source-catalog', 'bibliographic-claims'))
-            or {k: v for k, v in a['dependencies'].items() if k != 'claim-publication-profile'}
-               != {k: v for k, v in b['dependencies'].items() if k != 'claim-publication-profile'}):
+            or any(a['roots'][key] != b['roots'][key] for key in a['roots'] if key not in participating_roots)
+            or {k: v for k, v in a['dependencies'].items() if k not in publication_profiles}
+               != {k: v for k, v in b['dependencies'].items() if k not in publication_profiles}):
         raise ValueError('nonparticipating source scope changed; broader D1 migration required')
     old_header, header = before_descriptor['header'], after_descriptor['header']
     if {k: v for k, v in old_header.items() if k not in ('source_revision', 'counts')} != {
@@ -289,6 +299,11 @@ def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_rev
         selected[key], original[key], successors[key] = operation, old, new
     accounting = [0, 0]
     before_rows, after_rows, plans, adjustments = Rows(limits, accounting), Rows(limits, accounting), [], Counter()
+    native_product = {'state': 'unchanged', 'changed_rows': 0}
+    if 'source-navigation' in a['roots']:
+        native_product = navigation.capture_transition(db, capture,
+            before_source.roots()['source-navigation'], after_source.roots()['source-navigation'],
+            before_rows, after_rows, repo_root=full.REPO_ROOT, max_changes=limits.max_changes)
     posting_count = 0
     for kind in ('node', 'relation'):
         groups, preview_members = {}, 0
@@ -392,6 +407,8 @@ def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_rev
         knowledge_exploration_top={'source_revision': header['source_revision'], 'authority_boundary': header['authority_boundary']},
         knowledge_search_top={'schema': full.SEARCH_READ_MODEL_SCHEMA_VERSION, 'source_revision': header['source_revision'],
             'ngram_size': 3, 'matching_counts': 'unknown-until-indexed-page-exhaustion'})
+    if native_product['state'] == 'maintained':
+        metadata['source_navigation_top'] = native_product.pop('top')
     for key, value in metadata.items():
         _, old_chunks = capture.metadata(db, key)
         for row in old_chunks:
@@ -440,4 +457,5 @@ def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_rev
             'rollback_sql_bytes': 0 if rollback_target is None else rollback_target.stat().st_size,
             'prepared_source_pairing_verified': True, 'global_source_currentness_verified': False,
             'maintained_auxiliary_stores': installed_auxiliary,
+            'source_navigation_product': native_product,
             'd1_applied': False, 'consumer_switched': False, 'semantic_acceptance': False}

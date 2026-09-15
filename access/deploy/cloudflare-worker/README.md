@@ -223,13 +223,18 @@ filter indexes must not reverse that order into a whole-source document walk.
 ### Joining an exact prepared transition to D1
 
 `scripts/prepared_delta_runtime.py::build_prepared_delta_sql` captures one
-committed, source-paired bibliographic `delta-history` transition from two
+committed, source-paired `delta-history` transition from two
 caller-held prepared snapshots and the exact admitted D1 predecessor snapshot.
 The caller supplies `expected_d1_revision`, `before_binding`, `after_binding`,
 a fresh SQL `target`, and optionally a distinct fresh `rollback_target`.
 All three connections must already hold read transactions. Publisher address
 indexes must be explicitly prepared first. Capture does not commit, mutate D1,
 invoke source commands, build a graph, switch consumers or deploy anything.
+The prepared connections may retain before/after read snapshots of **one WAL
+file** around the source publisher's committed write. A second complete
+prepared database is not required. Establish the old read snapshot before the
+write and release it promptly after capture, so retained WAL frames can be
+reclaimed; the normal writer/source guards still apply.
 
 The initial full D1/prepared pairing is an independently verified caller
 prerequisite, not established by a few matching rows. Capture additionally
@@ -237,8 +242,8 @@ checks reader/catalog/lens metadata and every affected predecessor row,
 digest, order row, search document and expected posting through exact keys.
 It does not globally scan for hidden corruption or recount all postings.
 Nonparticipating source roots and dependencies must remain unchanged; only
-source-catalog/bibliographic-claims and their explicit claim-publication
-profile may move. An unrelated corpus, philosophy, evidence, capability or
+source-catalog/bibliographic-claims/source-navigation and their explicit Claim
+or initial-metadata publication profiles may move. An unrelated corpus, philosophy, evidence, capability or
 schema migration must use its owning broader publication route. Source-pairing
 verification does not establish live source currentness or semantic acceptance.
 
@@ -249,7 +254,28 @@ baseline is emitted: its selected-row comparison index is internal only. This
 also permits an explicitly admitted full-only bootstrap to receive an addressed
 successor without constructing a whole-corpus row-index companion.
 
-The target revision uses `tos_prepared_bibliographic_d1_delta_v1` lineage: exact
+Changed source-navigation roots use the shared bounded immutable-root diff.
+Only changed parts are opened; this does not newly admit unchanged closure.
+For an installed native navigation product, exact predecessor nodes, edges,
+rights and overflow payloads are compared against the admitted raw source;
+the full producer's shared row kernel emits their replacements. Counts and
+all changed rows join the same revision-guarded publication and reverse SQL.
+JSON field order is not source identity, but the exact predecessor
+serialization is retained for reversal. Native queries order by stable IDs:
+the unused legacy `ord` column retains its predecessor value, or zero for an
+insertion, instead of renumbering unrelated rows. Full-build positional `ord`
+is not asserted as addressed-publication parity.
+
+A producer-declared unavailable native product (`source_navigation_top={}`
+and all six native tables empty) remains unavailable. Metadata growth does not
+create an incomplete native dossier. A populated product with an unsupported
+header, a partial unavailable product, mismatched raw counts, changed header
+policy, corrupted selected row or exhausted diff budget refuses the whole
+capture. Native product bootstrap remains a separate complete-source route.
+The receipt distinguishes `maintained`, `unchanged` and `unavailable`; it does
+not equate knowledge-query availability with native source-dossier readiness.
+
+The target revision uses `tos_prepared_source_d1_delta_v2` lineage: exact
 base D1 revision, before/after prepared bindings and source-input digests, and
 the publisher implementation digest. This is distinct from the full producer's
 content-revision algorithm; it is not claimed to have the same hash for the
@@ -262,6 +288,42 @@ Default budgets are 512 changed rows, 100,000 old/new observed postings,
 plus optional reverse SQL. SQL-side masking precedes selected text delivery.
 The caller separately admits runtime memory and storage; these byte counters
 are not claims about Python heap size or remote D1 capacity.
+
+### Initial native navigation without rebuilding knowledge
+
+`scripts/source_navigation_bootstrap_runtime.py::build_source_navigation_bootstrap_sql`
+fills only an explicitly absent native product in an already admitted
+D1/prepared pair. It reads the complete immutable `nodes`/`edges` projection
+bound by the prepared source vector, not a nearby corpus export with different
+provenance. It also requires an independently admitted immutable rights
+projection, exact expected/trusted SHA-256, and a fresh mandatory reverse SQL
+target. Both databases remain in caller-held read transactions during capture.
+
+The rights projection uses logical schema `tos_source_navigation_rights_v1`,
+one `rights` collection keyed and ordered by `rights_id`, and a
+`navigation_header` containing the full producer's original
+`tos_source_navigation_v1` header. Its counts must exactly describe the two
+retained collections and the complete rights collection. The source owner must
+verify the rights input inventory, bytes and projection before admitting this
+snapshot; passing a digest alone is not a rights assessment. Additional input
+provenance may be retained in its header and is covered by that digest.
+
+Capture verifies every selected part and emits native rows with the same row
+kernel as the full producer. Knowledge bodies, search postings and prepared
+rows do not change. The D1 revision and reader/auxiliary bindings advance in
+the existing atomic publication trigger; the lineage binds the old D1
+revision, prepared/source pair, navigation and rights roots, and executable
+implementation. The trigger rechecks that all six native tables are empty,
+so a product inserted after capture cannot be overwritten. Replay and reverse
+use the ordinary revision guards. Native `ord` is zero; consumers order by
+stable identity as in addressed maintenance.
+
+This is an explicitly bounded **initial full-product** scan, not an addressed
+update and not a second full D1 import. The caller supplies projection read
+budgets plus the existing D1 retained-row/SQL budgets and host reservation.
+Subsequent source changes use `build_prepared_delta_sql`. Neither operation
+admits source meaning, establishes global currentness, activates consumers or
+grants deployment permission. Unknown/restricted rights remain unchanged.
 
 The optional reverse package is built from the same exact selected predecessors
 before returning success. It requires the successor D1 revision, restores the

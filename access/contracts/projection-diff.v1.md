@@ -23,6 +23,21 @@ applicability. Repeating an arbitrary digest is not admission. The function
 checks that the trust assertion selects the exact before binding but cannot
 authenticate the external admission decision. There is no default trust grant.
 
+### Retained immutable roots
+
+`diff_projection_snapshots` accepts two explicit `ProjectionSnapshotView`
+values with the same digest, limits and row-selection arguments. It shares
+the complete comparison kernel, but reads root bytes from those values; their
+namespace paths locate parts only. It neither writes a temporary root file nor
+calls the selected-root API through a disguised reader. The result schema is
+`tos_projection_snapshot_diff_v1`, with
+`selected_root_currentness_verified: false`. The caller must separately bind
+the roots to its before/after committed snapshots. Root decoding reserves the
+actual retained byte lengths; part, key and output limits are unchanged. Root
+file changes or absence do not invalidate retained bytes. Changed parts must
+still pass the same exact content checks; unchanged closure remains dependent
+on the explicit baseline admission.
+
 ## Result and refusal
 
 Success returns `tos_projection_diff_v1` with `complete: true`, exact before and

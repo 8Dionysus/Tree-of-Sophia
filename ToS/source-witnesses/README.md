@@ -333,6 +333,15 @@ or prove reverse dependency closure. A prepared publisher still must assemble
 the new Claim and affected shared contexts, update declarations and all reader
 lanes atomically, and verify source guards before its own commit. Catalog
 staging alone does not make a new Claim visible to a running human/agent reader.
+
+The separate [initial metadata publication route](../../access/contracts/source-metadata-publication.v1.md)
+adds a source-created standalone identity of a registered profile without a
+full corpus rebuild. It retains the subject, exact RecordVersion, source-copy
+forms and provenance through the existing renderers and one guarded prepared
+transaction. The previous Agent-only correction route remains bounded to
+correction; new metadata does not inherit that restriction. Initial metadata
+publication neither performs compound growth nor repairs existing unresolved
+dependencies, switches consumers, or grants source assessment or text access.
 The separate [initial Claim publication composition](../../access/contracts/source-claim-publication.v1.md)
 joins this exact catalog candidate to complete affected incidence, new source
 declarations, singleton Claim contexts and all prepared lanes in one guarded
