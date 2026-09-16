@@ -13,7 +13,9 @@ titles and source quotations keep their own language.
 - Supported source facts keep their labels and values. A semantic category may
   contain references: it does not make a field readable. Shared context views
   select named presentation fields and resolve references only against the
-  same source revision. Unknown fields remain in the exact export. Field documentation,
+  same source revision. New readable scalar facts retain literal source wording
+  and exact number lexemes; unclassified facts appear in Additional information.
+  Unknown structures remain available in its explicit context download. Field documentation,
   routine transport state and repeated provenance disclaimers are not reading
   content. Missing required context gets one actionable state. Negation,
   disagreement and other actual source qualifications stay with the wording.
@@ -22,7 +24,9 @@ titles and source quotations keep their own language.
   navigation label, not a translation or replacement of the source record.
 - URLs use readable link labels. IDs, hashes, schema names, filesystem paths,
   payloads and execution traces stay out of ordinary panels and accessibility
-  labels. A source export retains the exact data for deliberate inspection.
+  labels. Source exports retain the complete delivered envelope, including
+  revisions, access, provenance and native text bindings, except for the transient
+  request handle. Native downloads respect delivery replacement and expiry.
 - Regression checks cover shared renderers, missing content, localization,
   qualifier retention, seeded variations and sampled real records. A green
   transport check alone does not establish that a page is usable.

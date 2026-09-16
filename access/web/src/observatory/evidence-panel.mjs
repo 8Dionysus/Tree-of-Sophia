@@ -22,6 +22,13 @@ const labels={
 const human=value=>labels[value]||ui("Недоступно");
 const sourceText=(value,fallback)=>typeof value==='string'&&value.trim()?value:fallback;
 
+/** Keep the packet's conclusion posture visible before its allowed statements. */
+export function evidenceConclusionState(conclusion){
+  const canConclude=conclusion?.can_conclude===true;
+  return {canConclude,heading:canConclude?ui("Выводы"):ui("Сведения"),
+    state:canConclude?null:ui("Вывод пока не установлен.")};
+}
+
 export function createEvidencePanel(root,scene,panels,{data:{client,queries},selected,onUserAction}){
   const requests=new RequestSlots();
   const panel=el('section','','sc-panel sc-evidence');panel.hidden=true;uiAttribute(panel, 'aria-label', ui("Основания и прочтения"));
@@ -80,8 +87,10 @@ export function createEvidencePanel(root,scene,panels,{data:{client,queries},sel
     }
     append(section(ui("Что установлено"), [packet.finding_ru||packet.finding],'sc-evidence-finding'));
     const limits=el('div','','sc-evidence-conclusions');
-    const conclusions=points(ui('Выводы'),packet.conclusion.allowed_ru||packet.conclusion.allowed,'sc-evidence-allowed');if(conclusions)limits.append(conclusions);
-    const qualifications=points(ui('Уточнения'),packet.conclusion.not_allowed_ru||packet.conclusion.not_allowed,'sc-evidence-limits');
+    const conclusion=evidenceConclusionState(packet.conclusion);
+    if(conclusion.state)uiChildren(limits,"append",el('p',conclusion.state,'sc-evidence-conclusion-state'));
+    const conclusions=points(conclusion.heading,packet.conclusion?.allowed_ru||packet.conclusion?.allowed,'sc-evidence-allowed');if(conclusions)limits.append(conclusions);
+    const qualifications=points(ui('Уточнения'),packet.conclusion?.not_allowed_ru||packet.conclusion?.not_allowed,'sc-evidence-limits');
     if(qualifications){const details=el('details');details.append(el('summary',ui('Ограничения')),qualifications);limits.append(details);}
     append(limits);
     append(points(ui("Открытые вопросы"),packet.gaps_ru||packet.gaps));

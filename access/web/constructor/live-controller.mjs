@@ -13,7 +13,7 @@ import {renderContextData} from '../src/observatory/context-view.mjs';
 import {mountSourceCommandPanel} from './source-command-panel.mjs';
 import {inclusionSummary} from './inclusion-summary.mjs';
 import {mountCorpusEntry} from '../src/corpus-reader/host.mjs';
-import {exactSourceRepresentations} from '../src/observatory/exact-source-read.mjs';
+import {exactSourceRepresentations,sourceReadExport} from '../src/observatory/exact-source-read.mjs';
 import {mountTemporalComparison} from '../src/observatory/temporal-compare.mjs';
 import {createLiveResumeStore,makeLiveResume,resolveLiveResumeSelection} from './live-resume.mjs';
 import {mountResearchShelfEntry} from '../src/research-shelf/host.mjs';
@@ -298,7 +298,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
         if(typeof result.record.language==='string')notes.lang=result.record.language;
         sourceNotes.append(notes);body.append(sourceNotes);
       }
-      body.append(rawDataDownload(result,t('technical'),'sophia-source-record.json'));
+      body.append(rawDataDownload(sourceReadExport(result),t('technical'),'sophia-source-record.json'));
       if(nativeActions){
         // The exact record is already available. Discovering optional text
         // actions must neither delay its display nor replace it on failure.

@@ -3,6 +3,8 @@ import {referenceDocumentId,referenceVersionId} from './model.mjs';
 import {readingSlot} from './notebook.mjs';
 import {readNativeSelection,readNativeReference} from './native-source.mjs';
 import {scheduleExpiry} from './expiry.mjs';
+import {rawDataDownload} from '../observatory/human-presentation.mjs';
+import {sourceReadExport} from '../observatory/exact-source-read.mjs';
 import './native-reader.css';
 
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);node.textContent=text;node.className=className;return node;};
@@ -145,7 +147,17 @@ export function mountNativeReader({host=document.body,client,notebook,locale=()=
     if(access?.scope==='local-native-unit')facts.append(el('p',word('Локальный текст источника.','Local source text.')));
     if(unit.summary?.content_verified===true)facts.append(el('p',word('Текст проверен по исходному слою.','The text was checked against the source layer.')));
     if(access?.recorded_rights_verified===true)facts.append(el('p',word('Условия чтения указаны источником.','Reading conditions are supplied by the source.')));
-    if(facts.childNodes.length){exact.append(facts);article.append(exact);}
+    exact.append(facts);
+    const deliveryGeneration=generation;
+    // Resolve at click time: detached controls cannot retain text after
+    // close, replacement or expiry, including a delayed expiry timer.
+    const exportButton=rawDataDownload(()=>{
+      if(deliveryGeneration!==generation||!opened||!result||expired)return;
+      const deadline=result.native_unit.local_conditions?.expires_at;
+      if(deadline&&Date.parse(deadline)<=Date.now())return;
+      return sourceReadExport(result);
+    },word('Скачать данные','Download data'),'tos-native-source.json');
+    exact.append(exportButton);article.append(exact);
   }
   function reveal(){if(!opened)restoreFocus=document.activeElement;opened=true;root.hidden=false;onOpen?.();root.focus({preventScroll:true});}
   async function open(address={}){

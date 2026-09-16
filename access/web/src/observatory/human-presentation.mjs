@@ -52,7 +52,9 @@ export function fileLabel(attributes={},locale=uiLanguage(),filename=''){
 export function rawDataDownload(value,label=ui('Скачать данные'),filename='sophia-source.json'){
   const button=document.createElement('button');button.type='button';button.className='sc-data-download';uiText(button,label);
   button.addEventListener('click',()=>{
-    const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));
+    const current=typeof value==='function'?value():value;
+    if(current===undefined)return;
+    const url=URL.createObjectURL(new Blob([JSON.stringify(current,null,2)],{type:'application/json'}));
     const link=document.createElement('a');link.href=url;link.download=filename;link.click();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   });

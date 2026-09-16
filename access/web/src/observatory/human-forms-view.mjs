@@ -66,7 +66,9 @@ export function renderHumanForms(raw,{exactForms=null,readableContext=null}={}){
 export function renderClaimContext(resolved,readableContext=null,presentation={}){
   const section=el('section','','sc-form-context sc-claim-context');
   for(const [index,context]of (resolved?.semantics?.assertion_contexts??[]).entries()){
-    const classified=readableContext?.state==='complete'?readableContext.contexts.filter(value=>value.form===null&&value.origin_pointer===`/semantics/assertion_contexts/${index}`):[];
+    const pointer=`/semantics/assertion_contexts/${index}`;
+    if(presentation.presentedPointers?.has(pointer))continue;
+    const classified=readableContext?.state==='complete'?readableContext.contexts.filter(value=>value.form===null&&value.origin_pointer===pointer):[];
     const entry=classified.length?renderReadableContexts(classified,`claim-context:${index}`,presentation):renderContextData(context,`claim-context:${index}`);
     if(entry.children.length)section.append(entry);
   }
@@ -80,7 +82,12 @@ export function renderEssentialContext(context,readableContext=null,presentation
     if(item.state!=='available')continue;
     const classified=readableContext?.state==='complete'?readableContext.contexts.filter(value=>value.form===null&&value.origin_pointer===item.pointer):[];
     const entry=classified.length?renderReadableContexts(classified,'record-context:'+index,presentation):renderContextData(item.value,'record-context:'+index);
-    if(entry.children.length)section.append(entry);
+    if(entry.children.length){
+      section.append(entry);
+      // The claim view can point to this same delivered context. Track its
+      // exact pointer so a reading shows that context once across both views.
+      (presentation.presentedPointers??=new Set()).add(item.pointer);
+    }
   }
   if(readableContext&&readableContext.state!=='complete'){const gap=el('p',ui('Часть контекста доступна в источнике.'),'sc-reader-gap');gap.dataset.contextPresentation=readableContext.state;section.append(gap);}
   if(['unavailable','incomplete'].includes(context.state))section.append(el('p',ui('Часть сведений недоступна.'),'sc-reader-gap'));

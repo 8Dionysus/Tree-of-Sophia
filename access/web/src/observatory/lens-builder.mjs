@@ -66,6 +66,14 @@ function selectedNodeId(selection){
   return null;
 }
 
+/** Resolve a saved focus label from the bounded area packet only. */
+export function lensBuilderFocusLabel(area,draft,preferred=uiLanguage()){
+  const center=Array.isArray(area?.packet?.nodes)
+    ?area.packet.nodes.find(item=>item?.id===draft?.focusId)
+    :null;
+  return center?displayTitle(center,ui("Звезда"),preferred):ui("Звезда недоступна");
+}
+
 /**
  * Build a valid working draft for a retained exploration view. If the view
  * exceeds LensSpec's node selector bound, all node IDs stay in the source
@@ -281,8 +289,7 @@ export function mountLensBuilder({host,client,locale='ru',getArea,getCatalog,onA
     const scope=el('select');for(const [value,label] of scopeChoices)uiChildren(scope,'append',option(value,label));scope.value=draft.scope;scope.addEventListener('change',()=>{draft.scope=scope.value;touch({rerender:true});});uiChildren(body,'append',field(ui("Отправная точка"),scope));
     if(draft.scope==='area')uiChildren(body,'append',el('p',ui("Исходная область: {0}. Фильтры выбирают начало; глубина добавляет окружение.",[count(draft.nodeIds.length,ui("звезда"),ui("звезды"),ui("звёзд"))]),'lens-builder-note'));
     if(draft.scope==='focus'){
-      const center=scene.port.node(draft.focusId)||area?.packet?.nodes?.find(item=>item.id===draft.focusId);
-      uiChildren(body,'append',el('p',ui("Центр: {0}",[center?displayTitle(center,ui("Звезда")):ui("Звезда недоступна")]),'lens-builder-focus'));
+      uiChildren(body,'append',el('p',ui("Центр: {0}",[lensBuilderFocusLabel(area,draft,language(locale))]),'lens-builder-focus'));
       if(!draft.focusId&&areaScopeNode())uiChildren(body,'append',button(ui("Взять выбранную звезду"),()=>{draft.focusId=areaScopeNode();touch({rerender:true});},'lens-builder-link'));
       uiChildren(body,'append',el('p',ui("Условия ниже выбирают связи вокруг явного центра."),'lens-builder-note'));
     }

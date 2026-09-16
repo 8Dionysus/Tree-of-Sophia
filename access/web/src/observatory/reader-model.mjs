@@ -116,7 +116,9 @@ function readingFailure(entry){
 }
 export function readingStatus(entry,sceneRevision){
   // Local status follows the interface language. Transport and contract
-  // details stay in the model; the reader exposes one actionable status.
+  // details stay in the model; only a still-loaded snapshot that no longer
+  // matches the current scene is actionable. `changed` records that a newer
+  // snapshot was loaded successfully and is therefore informational.
   const mismatch=Boolean(entry.snapshot&&sceneRevision&&entry.sourceRevision!==sceneRevision);
   return uiComputed(()=>{
     if(entry.loading)return t("Обновляю материал…");
@@ -125,8 +127,8 @@ export function readingStatus(entry,sceneRevision){
         ? t("Не удалось обновить материал. Показана сохранённая версия.")
         : readingFailure(entry)||t("Загрузка не удалась. Повторите попытку.");
     }
-    if(entry.changed)return t("Версия материала изменилась. Обновите материал.");
     if(mismatch)return t("Материал устарел. Обновите чтение.");
+    if(entry.changed)return t("Данные изменились: чтение начато с начала актуального материала.");
     return '';
   });
 }

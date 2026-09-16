@@ -574,7 +574,8 @@ def test_real_browser_sources_panel_reads_frozen_metadata_record(
     assert source_target["content_revision"] == expected_digest
 
     page.get_by_role("button", name="Открыть источники", exact=True).click()
-    page.get_by_role("button", name="Открыть исходную запись", exact=True).click()
+    with page.expect_response(lambda response: response.url.endswith('/api/source/read')) as delivery:
+        page.get_by_role("button", name="Открыть исходную запись", exact=True).click()
     wait_for(page, "document.querySelector('.sc-exact-source')?.dataset.sourceReadStatus === 'available'")
 
     exact = page.locator(".sc-exact-source")
@@ -588,7 +589,15 @@ def test_real_browser_sources_panel_reads_frozen_metadata_record(
     with page.expect_download() as downloaded:
         exact.get_by_role('button', name='Скачать запись', exact=True).click()
     exported = json.loads(Path(downloaded.value.path()).read_text(encoding='utf-8'))
-    assert exported == source_record
+    envelope = delivery.value.json()
+    envelope.pop('handle')
+    assert exported.pop('selection') == {
+        'kind': 'node', 'id': normalized_id,
+        'source_revision': node_packet['source_revision'],
+        'content_revision': node_packet['matches'][0]['content_revision'],
+    }
+    assert exported == envelope
+    assert exported['record'] == source_record
 
 
 
@@ -638,6 +647,7 @@ def test_source_metadata_remains_when_native_discovery_fails(
         record.get_by_role('button', name='Скачать данные', exact=True).click()
     exported = json.loads(Path(downloaded.value.path()).read_text(encoding='utf-8'))
     assert exported['record']['record_id'] == 'tos.text-unit.browser-fixture'
+    assert 'handle' not in exported
     assert 'ToS/synthetic/native-metadata.json' in json.dumps(exported)
 
 
@@ -1157,6 +1167,66 @@ def test_lens_large_relation_area_requires_scope_confirmation(reader_fixture_bas
         assert page.evaluate('scopeCheck.packet.nodes.length') == 41
         assert builder.get_by_role('button', name='Предпросмотр', exact=True).is_enabled()
         assert builder.get_by_role('button', name='Сохранить линзу', exact=True).is_enabled()
+        # Reopen the mounted control around a selected node. The label must
+        # resolve from the supplied area without depending on a scene object.
+        page.evaluate("""async () => {
+          scopeCheck.builder.close();
+          scopeCheck.packet.selection.kind='node';
+          scopeCheck.packet.selection.id='fixture:0';
+          scopeCheck.packet.nodes[0].display={title:{ru:'Выбранный центр'}};
+          await scopeCheck.builder.open();
+        }""")
+        assert choice.locator('select').input_value() == 'focus'
+        choice.get_by_role('button', name='Открыть область', exact=True).click()
+        assert 'Выбранный центр' in builder.inner_text()
+        assert builder.get_by_role('button', name='Предпросмотр', exact=True).is_enabled()
+        browser.close()
+
+
+def test_native_delivery_export_preserves_identity_and_respects_expiry(reader_fixture_base_url):
+    """The real download carries exact text identity and dies with its delivery."""
+    with short_chromium_tmp(), sync_playwright() as p:
+        options = {'headless': True, 'args': ['--no-sandbox']}
+        if CHROMIUM:
+            options['executable_path'] = CHROMIUM
+        browser = p.chromium.launch(**options)
+        page = browser.new_page(locale='ru-RU')
+        page.goto(reader_fixture_base_url + '/static/fixtures/native-reader.html')
+        page.get_by_role('button', name='Открыть текст', exact=True).click()
+        reader = page.locator('.native-reader[data-native-state="available"]')
+        reader.wait_for()
+        reader.get_by_text('Об источнике', exact=True).click()
+        with page.expect_download() as download:
+            reader.get_by_role('button', name='Скачать данные', exact=True).click()
+        exported = json.loads(Path(download.value.path()).read_text(encoding='utf-8'))
+        assert 'handle' not in exported
+        assert exported['record_ref']['id'] == 'tos.text-unit.fixture'
+        assert exported['native_unit']['packet']['version'] == 1
+        assert exported['native_unit']['spans'][0]['text'].startswith('A😀e\u0301')
+        assert exported['text_access']['scope'] == 'public-native-unit'
+        assert exported['selection']['id'] == 'source-claims:identity:tos.text-unit.fixture'
+        page.evaluate("""() => {
+          window.oldExport=document.querySelector('.nr-exact .sc-data-download');
+          window.exportAttempts=0;
+          URL.createObjectURL=()=>{exportAttempts++;return 'blob:blocked';};
+        }""")
+        reader.get_by_role('button', name='К Древу', exact=True).click()
+        page.locator('.native-reader').wait_for(state='hidden')
+        assert page.evaluate('oldExport.click();exportAttempts') == 0
+        page.get_by_role('button', name='Локальные условия', exact=True).click()
+        page.clock.install()
+        page.get_by_role('button', name='Открыть текст', exact=True).click()
+        reader.wait_for()
+        assert page.evaluate('oldExport.click();exportAttempts') == 0
+        page.evaluate("window.localExport=document.querySelector('.nr-exact .sc-data-download')")
+        # Move wall time without firing the expiry timer: click-time validity
+        # must reject the delivery even when the browser delays its timer.
+        page.clock.set_system_time(page.evaluate('Date.now()') + 91_000)
+        assert page.evaluate('localExport.click();exportAttempts') == 0
+        page.clock.fast_forward(91_000)
+        page.locator('.native-reader[data-native-state="expired"]').wait_for()
+        assert page.locator('.nr-exact .sc-data-download').count() == 0
+        assert page.evaluate('localExport.click();exportAttempts') == 0
         browser.close()
 
 

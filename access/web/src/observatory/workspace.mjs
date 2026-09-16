@@ -4,7 +4,7 @@ import {createResearchWorkspace,createLocalStoragePersistence} from '../research
 import {localized,displayTitle,RequestSlots} from './knowledge-client.mjs';
 import {refreshIcons} from './icons';
 import {stageObservation} from './research-actions';
-import {readExactSource,exactSourceRepresentations} from './exact-source-read.mjs';
+import {readExactSource,exactSourceRepresentations,sourceReadExport} from './exact-source-read.mjs';
 import {sourceLinkLabel,rawDataDownload} from './human-presentation.mjs';
 
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);uiText(node, text);node.className=className;return node;};
@@ -133,7 +133,7 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
           if(typeof read.record.preferred_label==='string')uiChildren(exact,"append",el('h4',read.record.preferred_label));
           const notes=read.layer==='authored_csv_record'?read.record.note:read.record.notes;
           if(typeof notes==='string'&&notes.trim())uiChildren(exact,"append",el('p',notes,'sc-source-text'));
-          uiChildren(exact,"append",rawDataDownload(read.record,ui("Скачать запись"),'sophia-source-record.json'));
+          uiChildren(exact,"append",rawDataDownload(sourceReadExport(read),ui("Скачать запись"),'sophia-source-record.json'));
           if(read.record.native_text_binding){
             const choices=el('div','','sc-native-source-choices');uiChildren(exact,"append",choices);
             const response=await requests.run('source-representations',signal=>exactSourceRepresentations(client,sourceRevision,signal));

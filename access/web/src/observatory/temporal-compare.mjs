@@ -7,6 +7,14 @@ const hash=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 const requireValue=value=>{if(!value)throw new ContractError('Invalid exact date-comparison response.');};
 const relations=new Set(['before','after','equal','contains','contained-by','overlaps']);
+const relationLabels=Object.freeze({before:'Раньше',after:'Позже',equal:'Совпадают',contains:'Первый диапазон включает второй',
+  'contained-by':'Второй диапазон включает первый',overlaps:'Пересекаются'});
+
+/** Keep comparable relation wording in the shared reactive UI catalog. */
+export function temporalComparisonRelationLabel(relation){
+  return ui(relationLabels[relation]??'Сопоставление выполнено');
+}
+
 export function temporalComparisonRequest(left,right){
   const operand=reading=>{
     const id=reading?.raw?.id,revision=reading?.raw?.content_revision;
@@ -54,9 +62,8 @@ export function mountTemporalComparison({client,getReadings,locale=()=> 'ru'}={}
     controller?.abort();controller=new AbortController();const request=controller,current=signature(),readings=selected();button.disabled=true;
     uiChildren(output,'replaceChildren',el('p',ui('Сопоставляю указанные источниками датировки…')));
     try{const packet=await compareExactDates(client,...readings,{signal:request.signal});if(request.signal.aborted||current!==signature()||!element.isConnected)return;
-      const c=packet.comparison,labels={before:['Раньше','Before'],after:['Позже','After'],equal:['Совпадают','Equal'],contains:['Первый диапазон включает второй','The first envelope contains the second'],
-        'contained-by':['Второй диапазон включает первый','The second envelope contains the first'],overlaps:['Пересекаются','Overlap']};
-      const status=c.status==='comparable'?ui(labels[c.relation]?.[0]??'Сопоставление выполнено'):c.status==='undetermined'?ui('Сопоставление не определено'):ui('Сопоставление датировок недоступно');
+      const c=packet.comparison;
+      const status=c.status==='comparable'?temporalComparisonRelationLabel(c.relation):c.status==='undetermined'?ui('Сопоставление не определено'):ui('Сопоставление датировок недоступно');
       const reasons={
         'source-date-unavailable':ui('Дата источника недоступна'),'incomplete-date':ui('Дата указана не полностью'),
         'ambiguous-date':ui('Дата допускает несколько толкований'),'different-calendars':ui('Используются разные календари'),

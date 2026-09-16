@@ -4,7 +4,8 @@ const el=(tag,text='',className='')=>{const node=document.createElement(tag);nod
 const labels={title:'Название',preferred_label:'Название',variant_labels:'Другие названия',language:'Язык',
   notes:'Примечания',note:'Примечание',context:'Контекст',scope:'Область действия',constraints:'Ограничения',
   conflicts:'Расхождения',interpretation:'Интерпретация',qualification:'Уточнение',qualifiers:'Уточнения',
-  uncertain:'Неопределённость',negation:'Отрицание',negative:'Отрицание',confidence:'Уверенность',polarity:'Характер утверждения',
+  uncertain:'Неопределённость',negation:'Отрицание',negative:'Отрицание',negated:'Отрицание',confidence:'Уверенность',polarity:'Характер утверждения',
+  condition:'Условие',conditions:'Условия',limitations:'Ограничения',supporting_quotes:'Цитируемые основания',temporal_context:'Временной контекст',spatial_context:'Пространственный контекст',
   modality:'Модальность',attribution:'Авторство',date:'Дата',year:'Год',place:'Место',publisher:'Издатель',
   author:'Автор',description:'Описание',summary:'Описание',identity_status:'Идентификация',same_as_posture:'Отождествление',
   text:'Текст',statement:'Утверждение',scope_note:'Область описания',identity_criterion:'Критерий идентичности',
@@ -29,6 +30,7 @@ const enums={
 // A semantic source category can contain opaque references. Only explicit
 // presentation fields or supplied readable value labels belong in a card.
 export const hasContextPresentation=key=>Object.hasOwn(labels,key)||wrappers.has(key);
+export const contextLabel=key=>Object.hasOwn(labels,key)?ui(labels[key]):null;
 export function contextScalar(item,key){
   if(item===null||item===undefined||item==='')return null;
   if(typeof item==='boolean')return item?ui('Да'):ui('Нет');

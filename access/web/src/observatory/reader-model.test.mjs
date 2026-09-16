@@ -275,9 +275,9 @@ test('reading status is concise and localized while client error detail stays in
   };
   try{
     for(const [language,loading,failure,changed]of [
-      ['ru','Обновляю материал…','Загрузка не удалась. Повторите попытку.','Версия материала изменилась. Обновите материал.'],
-      ['en','Refreshing the item…','Loading failed. Try again.','The item\'s version changed. Refresh the item.'],
-      ['es','Actualizando el material…','La carga falló. Vuelve a intentarlo.','La versión del material cambió. Actualiza el material.']]){
+      ['ru','Обновляю материал…','Загрузка не удалась. Повторите попытку.','Данные изменились: чтение начато с начала актуального материала.'],
+      ['en','Refreshing the item…','Loading failed. Try again.','The data changed: reading starts from the beginning of the current item.'],
+      ['es','Actualizando el material…','La carga falló. Vuelve a intentarlo.','Los datos cambiaron: la lectura comienza al principio del material actualizado.']]){
       setUiLanguage(language);
       assert.equal(String(readingStatus({...states.loading},revision)),loading);
       assert.equal(String(readingStatus({...states.failed},revision)),failure);
@@ -291,6 +291,22 @@ test('reading status is concise and localized while client error detail stays in
     }
   }finally{setUiLanguage('ru');}
   assert.equal(states.loading.error,'Обновить');
+});
+
+test('a successful newer snapshot is informational while a current-scene mismatch remains actionable',async()=>{
+  let current=answer();
+  const shelf=createReadingShelf({client:{readMaterial:async()=>current}});
+  const {key}=shelf.pin(target());await tick();
+  current=answer(node(), 'c'.repeat(64));
+  await shelf.refresh(key);
+  const entry=shelf.entries[0];
+  assert.equal(entry.changed,true);
+  assert.equal(String(readingStatus(entry,entry.sourceRevision)), 'Данные изменились: чтение начато с начала актуального материала.');
+  assert.equal(String(readingStatus(entry,'d'.repeat(64))), 'Материал устарел. Обновите чтение.');
+  await shelf.refresh(key);
+  assert.equal(entry.changed,true);
+  assert.equal(String(readingStatus(entry,entry.sourceRevision)), 'Данные изменились: чтение начато с начала актуального материала.');
+  shelf.dispose();
 });
 
 test('restored pairs fetch current material without carrying stored text or revision pins; late old requests stay excluded',async()=>{
