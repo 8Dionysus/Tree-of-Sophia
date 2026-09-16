@@ -116,7 +116,7 @@
         "fixity_verified_at"
       ],
       "properties": {
-        "relative_path": {"type": "string", "pattern": "^payload/(?!\\.\\.?$)[^/]+$"},
+        "relative_path": {"type": "string", "pattern": "^payload/(?!\\.\\.?$)[^/\\\\\\u0000]+$"},
         "original_basename": {"type": "string", "minLength": 1},
         "media_type": {"enum": ["application/pdf", "application/xml", "text/xml", "text/html"]},
         "byte_size": {"type": "integer", "minimum": 1},
@@ -141,8 +141,8 @@
           ]
         },
         "materialization_status": {"enum": ["not_materialized", "materialized"]},
-        "storage_posture": {"enum": ["unmaterialized_payload", "tracked_repository_payload"]},
-        "git_tracked": {"type": "boolean"},
+        "storage_posture": {"enum": ["unmaterialized_payload", "local_gitignored_payload"]},
+        "git_tracked": {"const": false},
         "fixity_verified_at": {"type": "string", "format": "date-time"}
       },
       "allOf": [
@@ -152,7 +152,7 @@
         },
         {
           "if": {"properties": {"materialization_status": {"const": "materialized"}}, "required": ["materialization_status"]},
-          "then": {"properties": {"storage_posture": {"const": "tracked_repository_payload"}, "git_tracked": {"const": true}}}
+          "then": {"properties": {"storage_posture": {"const": "local_gitignored_payload"}, "git_tracked": {"const": false}}}
         },
         {
           "if": {"properties": {"media_type": {"const": "application/pdf"}}, "required": ["media_type"]},

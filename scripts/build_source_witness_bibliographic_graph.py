@@ -13,6 +13,7 @@ from source_witness_bibliographic_graph_common import (
     render_payload,
 )
 from source_witness_human_forms import add_assessed_build_arguments, assessed_build_input, write_assessed_candidate
+from partitioned_projection_common import build_storage, write_partitioned_payload, check_partitioned_payload
 
 
 def main() -> int:
@@ -29,9 +30,9 @@ def main() -> int:
         assessed, target = assessed_build_input(args, REPO_ROOT, GRAPH_PATH)
     except ValueError as exc:
         parser.error(str(exc))
-    rendered = render_payload(build_payload(assessed_forms=assessed))
-    publication.verify_current()
     if assessed is not None:
+        rendered = render_payload(build_payload(assessed_forms=assessed))
+        publication.verify_current()
         if args.check:
             assessed.verify_current()
             if target.read_text(encoding='utf-8') != rendered:
@@ -43,24 +44,17 @@ def main() -> int:
             publication.verify_current()
             print(f'[ok] wrote local assessed graph candidate: {target}')
         return 0
-    if args.check:
-        try:
-            current = GRAPH_PATH.read_text(encoding="utf-8")
-        except FileNotFoundError:
-            raise SystemExit(
-                "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json is missing"
-            )
-        if current != rendered:
-            raise SystemExit(
-                "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json is out of date"
-            )
+    with build_storage() as storage:
+        payload = build_payload(storage=storage)
         publication.verify_current()
-        print("[ok] source-witness bibliographic claim graph matches authored inputs")
-        return 0
-    GRAPH_PATH.parent.mkdir(parents=True, exist_ok=True)
-    GRAPH_PATH.write_text(rendered, encoding="utf-8")
-    publication.verify_current()
-    print("[ok] wrote source-witness bibliographic claim graph")
+        if args.check:
+            check_partitioned_payload(GRAPH_PATH, payload)
+            publication.verify_current()
+            print("[ok] partitioned bibliographic graph and closure match authored inputs")
+        else:
+            write_partitioned_payload(GRAPH_PATH, payload, prune=True)
+            publication.verify_current()
+            print("[ok] wrote partitioned source-witness bibliographic claim graph")
     return 0
 
 

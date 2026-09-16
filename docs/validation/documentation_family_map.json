@@ -598,7 +598,7 @@
         "aoa-kag-mcp resource"
       ],
       "load_moment": "when a source-linked KAG/MCP projection is requested",
-      "owner": "kag/AGENTS.md, kag/manifest.json, and aoa-kag",
+      "owner": "kag/AGENTS.md, kag/provider-template.json, and aoa-kag",
       "roles": {
         "authored": "provider route law",
         "generated": "portable records/index family",
@@ -610,10 +610,10 @@
       "currentness_inputs": [
         "kag/AGENTS.md",
         "kag/VALIDATION.md",
-        "kag/manifest.json",
-        "kag/provider_pin.json",
+        "kag/provider-template.json",
         "scripts/validate_local_kag_provider.py",
-        "scripts/validate_local_segmented_kag_provider.py",
+        "scripts/build_kag_export.py",
+        "scripts/publish_kag_release.py",
         "ToS/derived-exports/"
       ],
       "next_organ": [

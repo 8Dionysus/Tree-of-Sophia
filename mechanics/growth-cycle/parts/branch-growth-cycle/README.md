@@ -220,7 +220,7 @@ separates this evidence from Claim identity and current assessment/admission.
 retain the requested exact reference but no record/provenance. There is no
 latest-version fallback. Private/native payload routes, symlinks, non-flat
 packages and mixed public/private Claim streams fail closed. The bounded reader
-permits 8 MiB/8,192 catalog rows, 1 MiB Claim streams, 64-file/8 MiB source
+permits 32 MiB/32,768 catalog rows, 1 MiB Claim streams, 64-file/8 MiB source
 packages, 128 retained corrections and 64 MiB cumulative preflight reads.
 Limits may refuse a valid larger source; refusal is not truncation or corruption.
 Only public current ownership/visibility can expose retained predecessors;

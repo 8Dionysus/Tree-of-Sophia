@@ -38,3 +38,21 @@ dist/
 # Explicitly compiled access query artifact; authored projection manifests remain tracked.
 /ToS/derived-exports/runtime/knowledge.sqlite3
 /ToS/derived-exports/runtime/knowledge.sqlite3.*.building*
+
+# Independent KAG releases are built in an explicitly selected external root.
+# Only authored route cards and provider-template.json belong in this checkout.
+/kag/manifest.json
+/kag/nodes/
+/kag/edges/
+/kag/indexes/
+/kag/projections/
+/kag/receipts/
+
+# Generated data is built from an explicitly admitted corpus revision.
+# Authored route cards remain source files.
+/ToS/derived-exports/**
+!/ToS/derived-exports/**/
+!/ToS/derived-exports/**/*.md
+/ToS/source-witnesses/catalog/**
+!/ToS/source-witnesses/catalog/**/
+!/ToS/source-witnesses/catalog/**/*.md

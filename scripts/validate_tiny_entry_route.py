@@ -13,6 +13,9 @@ ROUTE_PATH = Path("ToS") / "public-compatibility" / "tos_tiny_entry_route.exampl
 README_PATH = Path("README.md")
 CHARTER_PATH = Path("CHARTER.md")
 ROUTE_DOC_PATH = Path("ToS") / "zarathustra" / "public-entry" / "TINY_ENTRY_ROUTE.md"
+KAG_EXPORT_DOC_PATH = (
+    Path("mechanics") / "boundary-bridge" / "parts" / "derived-kag-seam" / "docs" / "KAG_EXPORT.md"
+)
 CAPSULE_PATH = Path("ToS") / "zarathustra" / "prologue-1" / "TRILINGUAL_ENTRY.md"
 KNOWLEDGE_MODEL_PATH = Path("ToS") / "doctrine" / "KNOWLEDGE_MODEL.md"
 REVIEW_CHECKLIST_PATH = (
@@ -54,7 +57,11 @@ ROUTE_DOC_REQUIRED_TOKENS = (
 )
 REVIEW_CHECKLIST_REQUIRED_TOKENS = (
     "scripts/validate_tiny_entry_route.py",
-    "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py",
+)
+KAG_EXPORT_TOOLING_REQUIRED_TOKENS = (
+    "scripts/build_kag_export.py",
+    "python scripts/build_kag_export.py verify",
+    "scripts/publish_kag_release.py",
 )
 BOUNDARY_REQUIRED_TOKENS = (
     "ToS-authored authority",
@@ -279,6 +286,12 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         relative_path=REVIEW_CHECKLIST_PATH,
         repo_root=repo_root,
         required_tokens=REVIEW_CHECKLIST_REQUIRED_TOKENS,
+        issues=issues,
+    )
+    require_tokens(
+        relative_path=KAG_EXPORT_DOC_PATH,
+        repo_root=repo_root,
+        required_tokens=KAG_EXPORT_TOOLING_REQUIRED_TOKENS,
         issues=issues,
     )
 

@@ -25,6 +25,12 @@ The packet is a public reference snapshot of the owner-controlled atlas and
 route map at a named source revision. It is not a live view, and its terminal
 progress means only that the declared census was processed.
 
+Port publication has its own immutable integration identity and status, separate
+from software and corpus releases. The publication command preserves the
+observation's original source revision and time. See [VALIDATION.md](VALIDATION.md)
+for explicit export, consumer and status selection; a new publication is not a
+new observation.
+
 ## Authority
 
 The ratio reports route coverage only. It does not establish dossier quality,

@@ -8,7 +8,7 @@ import os
 import shutil
 import sys
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -49,6 +49,8 @@ SUBJECT_STORE_ENV_NAMES = (
     "ABYSS_MACHINE_ARTIFACT_SUBJECT_STORE_ROOTS",
 )
 TOS_RUNTIME_MANIFEST = REPO_ROOT / "access" / "contracts" / "runtime-manifest.v1.json"
+PARTITIONED_PROJECTION_SCHEMA = "tos_partitioned_projection_v1"
+PARTITIONED_PROJECTION_ROOT_BYTES = 256 * 1024
 
 
 def _tos_abyssos_admission_paused() -> bool:
@@ -190,6 +192,124 @@ def _portable_ref(path: Path) -> str:
         return resolved.name
 
 
+def _manifest_subject_root(manifest: Mapping[str, Any]) -> Path:
+    """Resolve the subject root used by the static bundle manifest."""
+    manifest_path = manifest.get("_manifest_path")
+    if not isinstance(manifest_path, str) or not manifest_path:
+        raise ValueError("artifact bundle manifest path is required for subject resolution")
+    root_ref = str(manifest.get("subject_repo_root") or ".")
+    subject_root = Path(root_ref)
+    if not subject_root.is_absolute():
+        subject_root = Path(manifest_path).parent / subject_root
+    return subject_root.resolve()
+
+
+def _is_partitioned_projection_manifest(path: Path) -> bool:
+    """Probe a small root without parsing a legacy monolithic export."""
+    try:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > PARTITIONED_PROJECTION_ROOT_BYTES:
+            return False
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return False
+    return isinstance(value, dict) and value.get("schema_version") == PARTITIONED_PROJECTION_SCHEMA
+
+
+def _partitioned_projection_subject_closure(subject_root: Path, root: Path) -> set[str]:
+    """Return the validated manifest-plus-parts closure in subject-root refs."""
+    access_src = REPO_ROOT / "access" / "src"
+    if access_src.as_posix() not in sys.path:
+        sys.path.insert(0, access_src.as_posix())
+    try:
+        from tos_access.projection_store import ProjectionReader
+    except ImportError as exc:
+        raise ValueError("partitioned projection subject closure support is unavailable") from exc
+
+    try:
+        reader = ProjectionReader(root)
+        raw_paths = list(reader.closure_paths())
+    except ValueError as exc:
+        raise ValueError(f"partitioned projection subject closure is invalid: {root}") from exc
+    closure: set[str] = set()
+    resolved_subject_root = subject_root.resolve()
+    for raw_path in raw_paths:
+        path = Path(raw_path)
+        if not path.is_absolute():
+            path = root.parent / path
+        resolved = path.resolve()
+        try:
+            relative = resolved.relative_to(resolved_subject_root).as_posix()
+        except ValueError as exc:
+            raise ValueError(
+                f"partitioned projection subject closure escapes subject_repo_root: {resolved}"
+            ) from exc
+        closure.add(relative)
+    if not closure:
+        raise ValueError(f"partitioned projection subject closure is empty: {root}")
+    return closure
+
+
+def _assert_declared_subject_closures(manifest: Path) -> None:
+    """Require every partition manifest and part to be an exact subject.
+
+    The OS Abyss artifact resolver expands each ``artifact_subjects`` entry on
+    its own. It does not recursively interpret a ToS partition manifest, so a
+    root-only declaration would produce a signed but unusable subject store.
+    Keep this check in the ToS owner validator until a generated bundle
+    manifest or an owner-approved consumer contract carries that closure.
+    """
+    payload = _load_json(manifest)
+    payload["_manifest_path"] = str(manifest)
+    subject_root = _manifest_subject_root(payload)
+    specs = payload.get("artifact_subjects")
+    if not isinstance(specs, list):
+        return
+
+    declared_exact: set[str] = set()
+    partition_roots: list[tuple[str, Path]] = []
+    for index, spec in enumerate(specs):
+        if not isinstance(spec, dict):
+            continue
+        path_text = spec.get("path")
+        if isinstance(path_text, str) and path_text:
+            candidate_ref = Path(path_text)
+            if candidate_ref.is_absolute() or ".." in candidate_ref.parts:
+                raise ValueError(
+                    f"artifact_subjects[{index}].path must be repository-relative and safe: {path_text}"
+                )
+            candidate = subject_root / candidate_ref
+            relative = candidate_ref.as_posix()
+            declared_exact.add(relative)
+            if _is_partitioned_projection_manifest(candidate):
+                partition_roots.append((relative, candidate))
+            continue
+
+        glob_text = spec.get("glob")
+        if isinstance(glob_text, str) and glob_text:
+            try:
+                candidates = sorted(subject_root.glob(glob_text))
+            except (OSError, ValueError) as exc:
+                raise ValueError(
+                    f"artifact_subjects[{index}].glob cannot be inspected: {glob_text}"
+                ) from exc
+            for candidate in candidates:
+                if _is_partitioned_projection_manifest(candidate):
+                    raise ValueError(
+                        "partitioned projection subject closure requires exact artifact_subjects.path entries; "
+                        f"glob {glob_text!r} matched {candidate.relative_to(subject_root).as_posix()}"
+                    )
+
+    for root_ref, root in partition_roots:
+        closure = _partitioned_projection_subject_closure(subject_root, root)
+        missing = sorted(closure - declared_exact)
+        if missing:
+            raise ValueError(
+                "partitioned projection subject closure is incomplete; static ABI bundle cannot admit "
+                f"{root_ref} until every manifest and part is declared as an exact artifact_subjects.path: "
+                + ", ".join(missing)
+            )
+
+
 def _public_string_ref(value: str, abyss_machine_root: Path | None) -> str:
     repo_root = REPO_ROOT.resolve()
     if value == str(repo_root) or value.startswith(str(repo_root) + os.sep):
@@ -261,8 +381,7 @@ def _default_tmp_root() -> Path | None:
 
 
 def _manifest_subject_paths(manifest: dict[str, Any]) -> list[Path]:
-    root_ref = str(manifest.get("subject_repo_root") or ".")
-    subject_root = (Path(str(manifest.get("_manifest_path"))).parent / root_ref).resolve()
+    subject_root = _manifest_subject_root(manifest)
     paths: list[Path] = []
     abi_subject = manifest.get("abi_subject")
     if isinstance(abi_subject, dict) and abi_subject.get("path"):
@@ -291,8 +410,8 @@ def _assert_public_safe_subjects(manifest: Path, subject: Path) -> None:
     ]
     leaks: list[str] = []
     for path in sorted(set(paths)):
-        text = path.read_text(encoding="utf-8")
-        if any(item and item in text for item in forbidden):
+        raw = path.read_bytes()
+        if any(item and item.encode("utf-8") in raw for item in forbidden):
             leaks.append(_portable_ref(path))
     if leaks:
         raise ValueError("generated readmodel subjects contain private or machine-local markers: " + ", ".join(leaks))
@@ -836,6 +955,7 @@ def _validate_in_bundle_dir_impl(
     clean: bool,
 ) -> dict[str, Any]:
     _assert_manifest_contract_shape(manifest)
+    _assert_declared_subject_closures(manifest)
     _assert_public_safe_subjects(manifest, subject)
     if clean:
         _safe_rmtree_generated_dir(bundle_dir, label="bundle_dir", safe_parent=DEFAULT_BUNDLE_DIR.parent)

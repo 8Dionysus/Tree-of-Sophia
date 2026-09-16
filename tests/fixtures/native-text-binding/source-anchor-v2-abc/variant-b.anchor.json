@@ -1,0 +1,53 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-anchor-v2.schema.json",
+  "schema_version": "tos_source_anchor_v2",
+  "anchor_id": "tos.anchor.synthetic.source-anchor-v2.variant-b",
+  "passage_id": "tos.passage.synthetic.source-anchor-v2.variant-b",
+  "target": {
+    "item_id": "tos.item.synthetic.source-anchor-v2.variant-b",
+    "file_id": "tos.file.sha256.0e80d33931ca968af97942d1a91c82d4ab4c2ed9c417b21a05186ef85493dfce",
+    "file_sha256": "0e80d33931ca968af97942d1a91c82d4ab4c2ed9c417b21a05186ef85493dfce",
+    "media_type": "text/plain"
+  },
+  "selector_payload": {
+    "kind": "selector_expression",
+    "expression": {
+      "mode": "single",
+      "selector": {
+        "state": {
+          "state_type": "digest_state",
+          "representation_ref": "fixture:variant-b-unicode",
+          "representation_sha256": "0e80d33931ca968af97942d1a91c82d4ab4c2ed9c417b21a05186ef85493dfce",
+          "media_type": "text/plain",
+          "character_normalization": "none"
+        },
+        "selector": {
+          "type": "text_position",
+          "start": 4,
+          "end": 9,
+          "position_unit": "unicode_code_point",
+          "interval": "half_open"
+        }
+      }
+    }
+  },
+  "publication_boundary": {
+    "record_storage": "tracked",
+    "source_content_visibility": "public",
+    "source_text_in_record": false,
+    "public_payload_expected": true
+  },
+  "selector_method": {
+    "maker_type": "software",
+    "method": "tos-source-anchor-v2-lab-resolver",
+    "version": "1",
+    "configuration_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/lab.manifest.json",
+    "configuration_digest": "8c5792c69e896e53424c5bb8256e1d0fb082b93422ba06d3efb8430f53ad298d"
+  },
+  "resolution_status": "mechanically_resolved",
+  "review_status": "unreviewed",
+  "provenance_event_ref": "tos.event.annotation.source-anchor-v2-lab.2026-08-11",
+  "anchor_version": 1,
+  "supersedes_anchor_ref": null,
+  "review_ref": null
+}

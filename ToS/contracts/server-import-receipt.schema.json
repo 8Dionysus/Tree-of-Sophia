@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/server-import-receipt.schema.json",
+  "title": "Tree of Sophia immutable server import receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "receipt_id",
+    "server_import_id",
+    "plan",
+    "identity",
+    "source",
+    "storage",
+    "verification",
+    "publication"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/server-import-receipt.schema.json"},
+    "schema_version": {"const": "tos_server_import_receipt_v1"},
+    "receipt_id": {"type": "string", "pattern": "^tos\\.receipt\\.server-import\\.[a-z0-9.-]+$"},
+    "server_import_id": {"type": "string", "pattern": "^tos\\.server-import\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"type": "string", "pattern": "^(ToS/[A-Za-z0-9._/-]+|tos\\.server-import\\.[a-z0-9.-]+)$"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_ref", "file_ref", "item_revision_sha256", "file_revision_sha256", "rights_record_ref", "rights_revision_sha256"],
+      "properties": {
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "item_revision_sha256": {"$ref": "#/$defs/sha256"},
+        "file_revision_sha256": {"$ref": "#/$defs/sha256"},
+        "rights_record_ref": {"type": "string", "pattern": "^ToS/[A-Za-z0-9._/-]+$"},
+        "rights_revision_sha256": {"$ref": "#/$defs/sha256"},
+        "rights_review_ref": {"type": "string", "pattern": "^ToS/[A-Za-z0-9._/-]+$"},
+        "rights_review_sha256": {"$ref": "#/$defs/sha256"},
+        "rights_review_actor_kind": {"const": "model"}
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relative_path", "byte_size", "sha256", "media_type"],
+      "properties": {
+        "relative_path": {"type": "string", "pattern": "^payload/(?!\\.\\.?$)[^/]+$"},
+        "byte_size": {"type": "integer", "minimum": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "media_type": {"type": "string", "minLength": 1}
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "bucket_alias", "object_key", "storage_class", "remote_status"],
+      "properties": {
+        "provider": {"const": "cloudflare-r2"},
+        "bucket_alias": {"type": "string", "pattern": "^[A-Za-z0-9._-]+$"},
+        "object_key": {"type": "string", "pattern": "^blobs/sha256/[a-f0-9]{2}/[a-f0-9]{64}$"},
+        "storage_class": {"const": "Standard"},
+        "remote_status": {"enum": ["uploaded", "already-matched"]}
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["local_verified", "upload_attempted", "readback_verified", "readback_sha256", "readback_byte_size", "verified_at"],
+      "properties": {
+        "local_verified": {"const": true},
+        "upload_attempted": {"type": "boolean"},
+        "readback_verified": {"const": true},
+        "readback_sha256": {"$ref": "#/$defs/sha256"},
+        "readback_byte_size": {"type": "integer", "minimum": 1},
+        "verified_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["publication_id", "status", "access_class", "rights_revision_sha256"],
+      "properties": {
+        "publication_id": {"type": "string", "pattern": "^pub-[a-f0-9]{32}$"},
+        "status": {"const": "disabled"},
+        "access_class": {"enum": ["controlled-research", "public-payload"]},
+        "rights_revision_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "tosId": {"type": "string", "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}
+  }
+}

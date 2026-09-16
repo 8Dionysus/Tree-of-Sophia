@@ -112,6 +112,9 @@ ALLOWED_ACTIVE_CONTENT_REFERENCES = frozenset(
     {
         "first-wave",
         "first-wave-resident",
+        # Exact source title in the registry corpus; this is content-only
+        # provenance and must not admit the token in active paths or IDs.
+        "one-seeder",
         "may_seed_drafts",
         "may_seed_gold",
         "seed_claim_ref",
@@ -161,6 +164,18 @@ RETIRED_NORMALIZED_LABELS = (
     "constitution" + "-" + "runtime",
 )
 NORMALIZED_SEPARATOR_PATTERN = re.compile(r"[_\s]+")
+# Tokenize once instead of backtracking over every possible start of a long
+# path-like run. The retained expression above defines the same match grammar.
+REFERENCE_RUN_PATTERN = re.compile(r"[A-Za-z0-9._/-]+", re.IGNORECASE)
+REFERENCE_MARKER_PATTERN = re.compile(PATH_REFERENCE_MARKER_PATTERN, re.IGNORECASE)
+RETIRED_SUBSTRING_PATTERN = re.compile(RETIRED_TOKEN_PATTERN, re.IGNORECASE)
+CONTENT_CANDIDATE_PATTERN = re.compile(
+    "|".join(re.escape(value) for value in (
+        *RETIRED_TOKENS, OLD_ROUTE_PREFIX, "experience",
+        *(label.split("-")[0] for label in RETIRED_NORMALIZED_LABELS),
+    )),
+    re.IGNORECASE,
+)
 _FEEDBACK_CACHE_MISS = object()
 
 
@@ -331,6 +346,8 @@ def active_reference_issue(text: str) -> str | None:
 
 
 def retired_content_issue(text: str) -> str | None:
+    if CONTENT_CANDIDATE_PATTERN.search(text) is None:
+        return None
     for artifact_identity in QUOTED_EXTERNAL_ARTIFACT_IDENTITIES:
         text = text.replace(artifact_identity, "[quoted-external-artifact-identity]")
     for capture_fragment in QUOTED_CAPTURE_PROVENANCE_FRAGMENTS:

@@ -10,8 +10,9 @@ from unittest.mock import patch
 
 from tos_access.projection_diff import (
     DiffLimits, ProjectionDiffError, ProjectionDiffBudgetExceeded,
-    ProjectionDiffRequiresBootstrap, diff_projections,
+    ProjectionDiffRequiresBootstrap, diff_projection_snapshots, diff_projections,
 )
+from tos_access.projection_mutation import ProjectionSnapshotView
 from tos_access.projection_store import (
     Collection, ProjectionReader, ProjectionStoreError, MAX_ROOT_BYTES,
     canonical_bytes, write_projection, _gzip,
@@ -287,6 +288,43 @@ class ProjectionDiffTests(unittest.TestCase):
         after = self.build("after", [{**rows[0], "label": "changed"}, rows[1]], field=("pack", "edge"))
         changes = self.diff(before, after)["changes"]
         self.assertEqual([row["key"] for row in changes], ['["p1","e1"]'])
+
+    def test_positional_sequence_snapshots_preserve_duplicate_order_and_ordinals(self):
+        before_rows = [{"value": "repeat"}, {"value": "repeat"}, {"value": "tail"}]
+        after_rows = copy.deepcopy(before_rows)
+        after_rows[1]["value"] = "changed"
+
+        def snapshot(name, rows):
+            path = self.root / name / "sequence.min.json"
+            write_projection(path, {"schema_version": "sequence_v1"}, {
+                "items": Collection(rows, [], ()),
+            }, target_part_bytes=256, work_dir=self.root)
+            return ProjectionSnapshotView(path.read_bytes(), path)
+
+        before, after = snapshot("before-sequence", before_rows), snapshot("after-sequence", after_rows)
+        packet = diff_projection_snapshots(
+            before, after,
+            expected_before_sha256=before.snapshot_digest,
+            expected_after_sha256=after.snapshot_digest,
+            trusted_baseline_sha256=before.snapshot_digest,
+            include_rows=True,
+        )
+        self.assertEqual([change["key"] for change in packet["changes"]], ["00000000000000000001"])
+        self.assertEqual(packet["changes"][0]["before"]["row"], before_rows[1])
+        self.assertEqual(packet["changes"][0]["after"]["row"], after_rows[1])
+
+    def test_positional_sequence_diff_rejects_malformed_and_out_of_range_ordinals(self):
+        for key in ("not-an-ordinal", "00000000000000000001"):
+            with self.subTest(key=key):
+                before = self.build("before", [], field=[], order=())
+                after = self.build("after", ["value"], field=[], order=())
+                manifest = json.loads(after.path.read_bytes())
+                descriptor = manifest["collections"]["nodes"]["root"]
+                self.rewrite_part(after, descriptor, canonical_bytes({"key": key, "value": "value"}))
+                after.path.write_bytes(canonical_bytes(manifest))
+                after = ProjectionReader(after.path)
+                with self.assertRaisesRegex(ProjectionStoreError, "invalid sequence position"):
+                    self.diff(before, after)
 
     def test_invalid_limits(self):
         for value in (-1, False, 1.5, None):

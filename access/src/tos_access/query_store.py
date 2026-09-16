@@ -59,6 +59,8 @@ class QueryStore:
 
     @contextmanager
     def connect(self):
+        from .data_access import check_data_path
+        check_data_path(self.path)
         try:
             stat = self.path.stat()
             if (stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns) != self.file_identity:

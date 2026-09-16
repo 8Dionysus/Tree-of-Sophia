@@ -31,10 +31,8 @@ from .knowledge import (
     search_knowledge_graph,
 )
 from .search_read_model import (
-    SEARCH_READ_MODEL_DEFAULT_BYTES,
     SEARCH_READ_MODEL_MAX_POSTINGS,
     SEARCH_READ_MODEL_MAX_VERIFY_CHARS,
-    SEARCH_READ_MODEL_PAGE_SIZE,
     SearchReadModelError,
     SearchReadModelPage,
     SearchReadModelSnapshotError,
@@ -50,8 +48,9 @@ from .source_read import SourceReadError, SourceReadService, contract_summary, u
 from .source_read_owner import SelectedSourceReadService
 from .source_navigation_query import source_descend_query, source_dossier_query
 from .query_store import QueryStore, QueryStoreRequired, DEFAULT_RELATIVE_PATH
-from .projection_store import load_projection
+from .projection_store import ProjectionReader, ProjectionStoreError, is_partitioned, load_projection, row_order
 from .locations import data_root, program_path
+from .data_access import DataGuard, DataAccessUnavailable, check_data_path, guard_public_data_methods
 
 
 INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
@@ -165,6 +164,7 @@ def _unavailable_word_analysis_capability(reason: str) -> dict[str, Any]:
 
 def _read_json_file(path: Path) -> dict[str, Any]:
     """Read a selected carrier without registering or evicting process caches."""
+    check_data_path(path)
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise RuntimeError(f"ToS corpus index is not a JSON object: {path}")
@@ -190,6 +190,7 @@ def _read_json_version(
     a source-state change replaces that entry atomically.  The state key keeps
     same-size/same-mtime rewrites honest through inode and ctime changes.
     """
+    check_data_path(Path(path_text))
     state = (mtime_ns, size, inode, ctime_ns)
     with _json_version_cache_lock:
         cached = _json_version_cache.get(path_text)
@@ -207,10 +208,111 @@ def _read_json_version(
 
 
 def _read_json(path: Path) -> dict[str, Any]:
+    check_data_path(path)
     stat = path.stat()
     return _read_json_version(
         path.resolve().as_posix(), stat.st_mtime_ns, stat.st_size, stat.st_ino, stat.st_ctime_ns
     )
+
+
+class _LazyPartitionedProjection(dict[str, Any]):
+    """Expose one partitioned projection as a logical dict on demand.
+
+    The manifest header is the logical projection metadata.  Collections are
+    decoded only when a normal dict access asks for them, and each decoded
+    collection is returned as the same concrete list or dict produced by
+    ``ProjectionReader.materialize``.  This keeps existing consumers' value
+    semantics while avoiding an implicit whole-document export on every
+    request.
+    """
+
+    def __init__(self, reader: ProjectionReader):
+        self._reader = reader
+        self._collection_specs = dict(reader.manifest["collections"])
+        if any("/" in name for name in self._collection_specs):
+            raise ProjectionStoreError(
+                "partitioned philosophy projection must use flat top-level collections"
+            )
+        self._loaded_collections: dict[str, Any] = {}
+        super().__init__(reader.metadata())
+
+    def _load_collection(self, name: str) -> Any:
+        if name in self._loaded_collections:
+            return self._loaded_collections[name]
+        spec = self._collection_specs[name]
+        key_field = spec["key_field"]
+        if key_field == []:
+            value = [row for _, row in sorted(self._reader.iter_items(name))]
+        elif key_field is None:
+            value = dict(sorted(self._reader.iter_items(name)))
+        else:
+            value = list(self._reader.iter_collection(name))
+            fields = spec["order_fields"] or (key_field if isinstance(key_field, list) else [key_field])
+            value.sort(key=lambda row: row_order(row, fields))
+        self._reader.require_current()
+        self._loaded_collections[name] = value
+        # Keep the underlying dict populated after an explicit collection
+        # access so ordinary dict operations see the same concrete value.
+        dict.__setitem__(self, name, value)
+        return value
+
+    def __getitem__(self, key: str) -> Any:
+        if key in self._collection_specs:
+            return self._load_collection(key)
+        return dict.__getitem__(self, key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if key in self._collection_specs:
+            return self._load_collection(key)
+        return dict.get(self, key, default)
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._collection_specs or dict.__contains__(self, key)
+
+    def __iter__(self):
+        yield from dict.__iter__(self)
+        for name in self._collection_specs:
+            if not dict.__contains__(self, name):
+                yield name
+
+    def __len__(self) -> int:
+        return dict.__len__(self) + sum(
+            1 for name in self._collection_specs if not dict.__contains__(self, name)
+        )
+
+    def _load_all(self) -> None:
+        for name in self._collection_specs:
+            self._load_collection(name)
+
+    def keys(self):
+        # A key inventory is metadata-only.  Materialize collections only when
+        # a caller asks for their values through item access or an operation
+        # that explicitly enumerates the mapping contents.
+        return dict.fromkeys(iter(self)).keys()
+
+    def items(self):
+        self._load_all()
+        return dict.items(self)
+
+    def values(self):
+        self._load_all()
+        return dict.values(self)
+
+    def copy(self) -> dict[str, Any]:
+        self._load_all()
+        return dict.copy(self)
+
+    def __deepcopy__(self, memo):
+        result = copy.deepcopy(self.copy(), memo)
+        memo[id(self)] = result
+        return result
+
+
+def _read_logical_projection(path: Path) -> dict[str, Any]:
+    """Read a logical projection, keeping partitioned collections lazy."""
+    if not is_partitioned(path):
+        return _read_json(path)
+    return _LazyPartitionedProjection(ProjectionReader(path))
 
 
 def _knowledge_graph_version(
@@ -488,6 +590,7 @@ def _projection_nodes_edges(payload: dict[str, Any]) -> tuple[list[dict[str, Any
     return nodes, edges
 
 
+@guard_public_data_methods
 @dataclass(slots=True)
 class ToSAccessCore:
     tos_root: Path
@@ -506,6 +609,7 @@ class ToSAccessCore:
     published_read_model_expected: dict[str, Any] | None = None
     published_exploration_checkpoint_path: Path | None = None
     source_read_service: SourceReadService | SelectedSourceReadService | None = None
+    _data_guard: DataGuard | None = field(default=None, init=False, repr=False, compare=False)
     _prepared_reader: PublishedKnowledgeReadModel | None = field(default=None, init=False, repr=False, compare=False)
     _prepared_lens: PublishedLensService | None = field(default=None, init=False, repr=False, compare=False)
     _exploration: ExplorationService = field(init=False, repr=False, compare=False)
@@ -545,6 +649,19 @@ class ToSAccessCore:
     _query_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
 
     def __post_init__(self):
+        self._data_guard = DataGuard.for_data_root(self.tos_root)
+        if self._data_guard is not None:
+            # A selected release cannot borrow another source tree through a
+            # per-adapter path override. Optional absent subjects stay absent.
+            for selected in (self.index_path, self.philosophy_graph_projection_path,
+                    self.bibliographic_graph_path, self.entity_type_registry_path,
+                    self.relation_type_registry_path, self.philosophy_post_planting_audit_path,
+                    self.evidence_projection_path):
+                selected = Path(selected).absolute()
+                if not selected.is_relative_to(self._data_guard.data_root):
+                    raise DataAccessUnavailable('data override leaves the selected release')
+                if selected.exists() or selected.is_symlink():
+                    self._data_guard.check_path(selected)
         if (self.published_read_model_path is None) != (self.published_read_model_expected is None):
             raise ValueError("prepared reader requires both a path and an exact expected snapshot binding")
         if self.published_exploration_checkpoint_path is not None and self.published_read_model_path is None:
@@ -555,6 +672,8 @@ class ToSAccessCore:
             path = Path(self.published_read_model_path).expanduser()
             if not path.is_absolute():
                 path = self.tos_root / path
+            if self._data_guard is not None:
+                self._data_guard.check_path(path)
             self._prepared_reader = PublishedKnowledgeReadModel(path, self.published_read_model_expected)
             self._prepared_lens = PublishedLensService(self._prepared_reader)
         if self.search_read_model_path is None:
@@ -583,6 +702,8 @@ class ToSAccessCore:
         path = Path(configured).expanduser() if configured else self.tos_root / DEFAULT_RELATIVE_PATH
         if not path.is_absolute():
             path = self.tos_root / path
+        if self._data_guard is not None:
+            self._data_guard.check_path(path)
         inputs = {
             INDEX_RELATIVE_PATH.as_posix(): self.index_path,
             PHILOSOPHY_PROJECTION_RELATIVE_PATH.as_posix(): self.philosophy_graph_projection_path,
@@ -593,7 +714,11 @@ class ToSAccessCore:
         # Legacy small fixtures retain their existing explicit in-memory mode.
         # A partitioned root requires the compiled store even if it is missing.
         partitioned = False
-        for candidate in (self.index_path, self.bibliographic_graph_path):
+        for candidate in (
+            self.index_path,
+            self.philosophy_graph_projection_path,
+            self.bibliographic_graph_path,
+        ):
             if candidate.is_file() and candidate.stat().st_size < 4 * 1024 * 1024:
                 header = _read_json(candidate)
                 if header.get('schema_version') == 'tos_partitioned_projection_v1' or header.get('schema') == 'tos_partitioned_projection_v1':
@@ -890,7 +1015,7 @@ class ToSAccessCore:
         return self.philosophy_graph_projection_path.is_file()
 
     def philosophy_projection(self) -> dict[str, Any]:
-        return _checked_knowledge_schema(_read_json(self.philosophy_graph_projection_path), "philosophy")
+        return _checked_knowledge_schema(_read_logical_projection(self.philosophy_graph_projection_path), "philosophy")
 
     def bibliographic_graph(self) -> dict[str, Any]:
         payload = load_projection(self.bibliographic_graph_path)
@@ -1597,7 +1722,8 @@ class ToSAccessCore:
                 raise SearchReadModelError("invalid indexed knowledge search cursor")
 
         model = store if store is not None else self._search_read_model_for_snapshot(graph)
-        empty_page = lambda: SearchReadModelPage((), 0, 0, False, None, ordering_scope="global-rank")
+        def empty_page():
+            return SearchReadModelPage((), 0, 0, False, None, ordering_scope="global-rank")
         node_page = (
             empty_page()
             if node_exhausted
@@ -1845,8 +1971,7 @@ class ToSAccessCore:
         if normalized_language not in {"de", "ru", "en"}:
             raise ValueError(f"unsupported word-analysis language: {normalized_language}")
         bounded_rank = _bounded_int(rank, 1, 1, 100)
-        provider_candidate = self.tos_root / WORD_ANALYSIS_PROVIDER_RELATIVE_PATH
-        root = self.tos_root.resolve()
+        provider_candidate = program_path(WORD_ANALYSIS_PROVIDER_RELATIVE_PATH)
         authority = {
             "source_owner": "Tree-of-Sophia",
             "access_plane_is_source": False,
@@ -1860,8 +1985,6 @@ class ToSAccessCore:
                 "local source-bound word-analysis provider is not installed"
             )
         provider_path = provider_candidate.resolve()
-        if root not in provider_path.parents:
-            raise RuntimeError("local word-analysis provider escapes the configured ToS root")
         stat = provider_path.stat()
         module_name = f"tos_local_word_analysis_{stat.st_mtime_ns}_{stat.st_size}"
         spec = importlib.util.spec_from_file_location(module_name, provider_path)
