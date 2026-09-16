@@ -206,7 +206,7 @@
 .lens-builder .sc-path-editor { margin: 19px 0; padding-top: 12px; border-top: 1px solid #314256; }
 .lens-builder .sc-path-editor > h4 { margin: 0; color: #e1d4b9; font: 400 16px/1.5 Georgia, serif; }
 .lens-builder .sc-path-condition { min-width: 0; margin: 14px 0; padding: 10px 11px; border: 1px solid #465872; border-radius: 4px; background: #0a142033; }
-.lens-builder .sc-path-top, .lens-builder .sc-path-step-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.lens-builder .sc-path-top, .lens-builder .sc-path-step-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
 .lens-builder .sc-path-top > .sc-builder-link, .lens-builder .sc-path-step-top > .sc-builder-link { margin-bottom: 15px; white-space: nowrap; }
 .lens-builder .sc-path-step { min-width: 0; margin: 12px 0; padding: 8px 9px; border: 1px solid #34455b; border-radius: 4px; }
 .lens-builder .sc-path-step-top { grid-template-columns: minmax(0, 1fr) auto; margin-bottom: 4px; }
@@ -229,8 +229,8 @@
   .lens-builder-preview { max-height: 25vh; }
   .lens-builder-footer { gap: 6px; }
   .lens-builder-button, .lens-builder-primary { padding: 7px 9px; font-size: 10px; }
-  .lens-builder .sc-path-top { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .lens-builder .sc-path-top > .sc-builder-link { grid-column: 1 / -1; margin: 0; }
+  .lens-builder .sc-path-top { grid-template-columns: minmax(0, 1fr) auto; }
+  .lens-builder .sc-path-top > .sc-builder-link { grid-column: auto; margin: 0; }
   .lens-builder .sc-path-type-list { max-height: 140px; }
 }
 @media (max-width: 420px) {

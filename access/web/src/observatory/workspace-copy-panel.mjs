@@ -22,7 +22,7 @@ export function createWorkspaceCopyPanel(root,scene,panels,{workspace,reader,tra
     return validateWorkspaceCopy({schema:COPY_SCHEMA,v:1,exportedAt:new Date().toISOString(),history:travel.exportState(),places:storage?readPlaces(storage):[],resume:storage?readResume(storage,''):null,
       lenses:storage?readSaved(storage):[],preferences:panels.preferences,reading:reader.exportState(),research:JSON.parse(workspace.exportPacket())});
   }
-  const exportButton=button(ui("Скачать текущую копию"),()=>{onUserAction();try{download(capture());uiText(status, ui("Копия подготовлена для скачивания."));}catch(error){uiText(status, error.message);}});
+  const exportButton=button(ui("Скачать текущую копию"),()=>{onUserAction();try{download(capture());uiText(status, ui("Копия подготовлена для скачивания."));}catch{uiText(status,ui("Не удалось подготовить копию. Попробуйте ещё раз."));}});
   const importButton=button(ui("Выбрать копию для импорта"),()=>{onUserAction();upload.value='';upload.click();});
   const actions=el('div','','sc-copy-actions');uiChildren(actions, "append", exportButton, importButton);
   const content=el('div','','sc-copy-content');uiChildren(content, "append", heading, description, actions, upload, output, status);uiChildren(panel, "append", top, content);uiChildren(root, "append", panel);
@@ -44,10 +44,10 @@ export function createWorkspaceCopyPanel(root,scene,panels,{workspace,reader,tra
           // Reload through the normal owner readers. pagehide writers are
           // suspended so they cannot overwrite the imported state.
           location.assign(location.pathname);
-        }catch(error){uiText(status, error.message);}
+        }catch{uiText(status, ui("Не удалось заменить текущую копию. Попробуйте ещё раз."));}
       });
       uiChildren(output, "append", button(ui("Скачать прежнюю копию"),()=>download(previous)), apply, button(ui("Отменить импорт"),()=>{discard();uiText(status, ui("Импорт отменён."));}));uiText(status, ui("Файл проверен. Данные пока не заменены."));scene.invalidate();
-    }catch(error){pending=null;uiText(status, error.message);}
+    }catch{pending=null;uiText(status, ui("Файл копии не прошёл проверку. Выберите другую копию."));}
   });
   return {show};
 }

@@ -1,10 +1,20 @@
 import {ContractError,RevisionError,sameJson} from './knowledge-client.mjs';
 import {validateHumanForms} from './human-forms.mjs';
+import {ui,uiChildren} from './ui-i18n.mjs';
+import {rawDataDownload,sourceLinkLabel} from './human-presentation.mjs';
 
 const hash=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 const requireValue=value=>{if(!value)throw new ContractError('Invalid exact date-comparison response.');};
 const relations=new Set(['before','after','equal','contains','contained-by','overlaps']);
+const relationLabels=Object.freeze({before:'Раньше',after:'Позже',equal:'Совпадают',contains:'Первый диапазон включает второй',
+  'contained-by':'Второй диапазон включает первый',overlaps:'Пересекаются'});
+
+/** Keep comparable relation wording in the shared reactive UI catalog. */
+export function temporalComparisonRelationLabel(relation){
+  return ui(relationLabels[relation]??'Сопоставление выполнено');
+}
+
 export function temporalComparisonRequest(left,right){
   const operand=reading=>{
     const id=reading?.raw?.id,revision=reading?.raw?.content_revision;
@@ -39,28 +49,32 @@ export async function compareExactDates(client,left,right,{signal}={}){
   return packet;
 }
 
+export const dateComparisonCandidate=reading=>reading?.kind==='node'&&reading.raw?.kind_id==='claim'&&reading.raw?.source_graph==='source-claims';
+
 export function mountTemporalComparison({client,getReadings,locale=()=> 'ru'}={}){
   const el=(tag,text='')=>{const node=document.createElement(tag);node.textContent=text;return node;};
-  const word=(ru,en)=>locale()==='en'?en:ru;
   const element=el('section'),button=el('button'),output=el('div');button.type='button';element.className='sc-temporal-comparison';element.append(button,output);
   let controller=null,key=null;
   function selected(){const readings=getReadings();return readings?.length===2?readings:null;}
-  function signature(){try{return JSON.stringify(temporalComparisonRequest(...selected()));}catch{return null;}}
+  function signature(){try{const readings=selected();if(!readings?.every(dateComparisonCandidate))return null;return JSON.stringify(temporalComparisonRequest(...readings));}catch{return null;}}
   function update(){const next=signature();if(next!==key){controller?.abort();controller=null;output.replaceChildren();key=next;}
-    button.textContent=word('Сопоставить датировки','Compare date envelopes');button.disabled=!key;
+    button.textContent=String(ui('Сопоставить датировки'));button.disabled=!key;
     element.hidden=!key;}
   button.onclick=async()=>{
     controller?.abort();controller=new AbortController();const request=controller,current=signature(),readings=selected();button.disabled=true;
-    output.replaceChildren(el('p',word('Сопоставляю указанные источниками датировки…','Comparing the source date envelopes…')));
+    uiChildren(output,'replaceChildren',el('p',ui('Сопоставляю указанные источниками датировки…')));
     try{const packet=await compareExactDates(client,...readings,{signal:request.signal});if(request.signal.aborted||current!==signature()||!element.isConnected)return;
-      const c=packet.comparison,labels={before:['Раньше','Before'],after:['Позже','After'],equal:['Совпадают','Equal'],contains:['Первый диапазон включает второй','The first envelope contains the second'],
-        'contained-by':['Второй диапазон включает первый','The second envelope contains the first'],overlaps:['Пересекаются','Overlap']};
-      const status=c.status==='comparable'?word(...labels[c.relation]):c.status==='undetermined'?word('Сопоставление не определено','Comparison is undetermined'):word('Эти материалы не поддерживают сопоставление датировок','These materials do not support date comparison');
-      output.replaceChildren(el('p',status),el('p',word('Результат относится к диапазонам дат, указанным источниками. Он не устанавливает историческую истинность утверждений.','This result compares the source date envelopes. It does not establish the historical truth of the claims.')));
-      if(c.reasons.length)output.append(el('p',c.reasons.map(reason=>`${reason.side}: ${reason.code}`).join(' · ')));
-      const details=el('details');details.append(el('summary',word('Точное основание сопоставления','Exact comparison basis')),
-        el('pre',JSON.stringify({request:packet.request,left:packet.left.normalized_time,right:packet.right.normalized_time,source_refs:packet.source_refs},null,2)));output.append(details);
-    }catch(error){if(!request.signal.aborted&&current===signature())output.replaceChildren(el('p',error.message));}
+      const c=packet.comparison;
+      const status=c.status==='comparable'?temporalComparisonRelationLabel(c.relation):c.status==='undetermined'?ui('Сопоставление не определено'):ui('Сопоставление датировок недоступно');
+      const reasons={
+        'source-date-unavailable':ui('Дата источника недоступна'),'incomplete-date':ui('Дата указана не полностью'),
+        'ambiguous-date':ui('Дата допускает несколько толкований'),'different-calendars':ui('Используются разные календари'),
+      },sides={left:ui('Первый материал'),right:ui('Второй материал'),pair:ui('Оба материала')};
+      uiChildren(output,'replaceChildren',el('p',status));
+      const known=c.reasons.filter(reason=>reasons[reason.code]);if(known.length)uiChildren(output,'append',el('p',known.map(reason=>`${String(sides[reason.side]||ui('Материал'))}: ${String(reasons[reason.code])}`).join(' · ')));
+      if(packet.source_refs.length){const details=el('details'),list=el('ul');uiChildren(details,'append',el('summary',ui('Источники · {0}',[packet.source_refs.length])));for(const ref of packet.source_refs){let url=null;try{if(/^https?:\/\//i.test(ref))url=new URL(ref);}catch{}const a=el('a',sourceLinkLabel(ref));if(url){a.href=url.href;a.target='_blank';a.rel='noopener noreferrer';}uiChildren(list,'append',el('li'),a);}uiChildren(details,'append',list);uiChildren(output,'append',details);}
+      uiChildren(output,'append',rawDataDownload(packet,ui('Скачать данные сравнения'),'sophia-date-comparison.json'));
+    }catch(error){if(!request.signal.aborted&&current===signature())uiChildren(output,'replaceChildren',el('p',ui('Не удалось сопоставить датировки. Повторите запрос.')));}
     finally{if(controller===request){controller=null;button.disabled=!signature();}}
   };
   update();return {element,update,cancel(){controller?.abort();controller=null;},destroy(){controller?.abort();element.remove();}};

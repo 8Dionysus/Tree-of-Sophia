@@ -88,8 +88,8 @@ describe('corpus reader view model', () => {
 
   it('searches literal Unicode text and returns exact code-point offsets', () => {
     const reference = createReference({source, versionId: 'ru-1', unitId: 'u'});
-    const result = searchUnits([{id: 'u', text: 'слово ζωή слово', reference}], 'ζωή');
-    expect(result.items[0]).toMatchObject({unitId: 'u', start: 6, end: 9, scope: 'loaded'});
+    const result = searchUnits([{id: 'u', label: 'Абзац о слове', ordinal: 3, text: 'слово ζωή слово', reference}], 'ζωή');
+    expect(result.items[0]).toMatchObject({unitId: 'u', label: 'Абзац о слове', ordinal: 3, start: 6, end: 9, scope: 'loaded'});
     expect(result.items[0].reference.selector).toMatchObject({start: 6, end: 9, positionUnit: 'unicode_code_point'});
     expect(result.items[0].reference).not.toHaveProperty('quote');
   });

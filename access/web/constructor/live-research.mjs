@@ -206,6 +206,7 @@ export function createLiveResearch({session=new ExplorationSession(),sky,onChang
     move(id,position){if(!disposed){layout.move(id,position);}},
     async pin(){
       if(disposed||!state.view)return null;
+      if(state.comparison.some(item=>item.target.kind===state.selection?.kind&&item.target.id===state.selection?.id))return null;
       if(state.comparison.length>=2){emit({error:new Error('Only two exact reading cards can be compared.')});return null;}
       const target=structuredClone(state.selection),revision=state.view.source_revision;
       const slot=state.comparison.length,index=slot;

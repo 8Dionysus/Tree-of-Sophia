@@ -1,5 +1,6 @@
 import {test,expect,afterEach} from 'vitest';
 import fs from 'node:fs';
+import ts from 'typescript';
 import {UI_CATALOG} from './ui-catalog.mjs';
 import {t,ui,uiComputed,setUiLanguage,uiLanguage} from './ui-i18n.mjs';
 
@@ -27,7 +28,12 @@ test('both language catalogs retain every interpolation and cover authored messa
   }
   const dir=new URL('.',import.meta.url);
   for(const file of fs.readdirSync(dir).filter(file=>/\.(mjs|js)$/.test(file)&&!file.includes('.test.')&&!file.startsWith('ui-'))){
-    const source=fs.readFileSync(new URL(file,dir),'utf8');
-    for(const match of source.matchAll(/\b(?:ui|t)\(("(?:[^"\\]|\\.)*")/g))expect(UI_CATALOG[JSON.parse(match[1])],file+': '+match[1]).toBeTruthy();
+    const source=ts.createSourceFile(file,fs.readFileSync(new URL(file,dir),'utf8'),ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);
+    const visit=node=>{
+      if(ts.isCallExpression(node)&&['ui','t'].includes(node.expression.getText(source))&&node.arguments[0]&&ts.isStringLiteral(node.arguments[0])){
+        const key=node.arguments[0].text;expect(UI_CATALOG[key],file+': '+key).toBeTruthy();
+      }
+      ts.forEachChild(node,visit);
+    };visit(source);
   }
 });

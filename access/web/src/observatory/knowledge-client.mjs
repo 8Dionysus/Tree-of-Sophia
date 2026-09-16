@@ -1,4 +1,5 @@
 import {t,uiLanguage} from './ui-i18n.mjs';
+import {relationLabel,fileLabel,sourceLinkLabel,languageName,readableTitleForm,isReadablePresentationTitle} from './human-presentation.mjs';
 import {chooseKnowledgeSearchMode} from '../knowledge-search.ts';
 import {displayForm} from './display-language.mjs';
 import {contentLanguage,validateHumanForms,claimPathFor,claimPathClosure,FormContractError} from './human-forms.mjs';
@@ -85,10 +86,58 @@ export function materialDisplayForm(raw,field,preferred='ru'){
   return displayForm(raw?.display?.[field],preferred,selection.fields[field]);
 }
 export function displayTitleForm(raw,preferred=uiLanguage(),material=false){
-  if(missingReadableTitle(raw))return {text:[localized(raw.display.kind_label,raw.kind_id,preferred),t('Нет читаемого названия')].filter(Boolean).join(' · '),key:null,lang:null,fallback:false,unavailable:true};
+  if(raw?.predicate_id)return {text:relationLabel(raw,preferred),key:preferred,lang:preferred,fallback:false};
+  const provenance=raw?.display?.provenance||{};
+  // Text-layer navigation currently supplies a generated packet filename,
+  // not the title of a passage. Use only declared type/language here.
+  if(raw?.kind_id==='text-layer'&&provenance.title==='projected-label'&&!raw.display.title?.[preferred]){
+    const name={ru:'Текстовый слой',en:'Text layer',es:'Capa de texto'}[preferred]??'Text layer';
+    const language=raw.attributes?.language;
+    return {text:name+(language?' · '+languageName(language,preferred):''),key:preferred,lang:preferred,fallback:false,navigationOnly:true};
+  }
+
   const field=raw?.display?.title?'title':'label';
-  const form=material?materialDisplayForm(raw,field,preferred):displayForm(raw?.display?.[field],preferred);
-  return form&&raw?.display?.provenance?.title==='navigation-template'?{...form,navigationOnly:true}:form;
+  const administrative=['item','file','link','anchor','text-unit'].includes(raw?.kind_id)
+    ||provenance.title==='projected-path';
+  const selected=material?materialDisplayForm(raw,field,preferred):null;
+  // A full material may carry an owner-selected form. Keep that selection and
+  // preserve its exact source wording. Compact administrative navigation can
+  // still choose the first readable explicit source form.
+  const form=material&&raw?.display_selection!==undefined
+    ? selected&&(!administrative||isReadablePresentationTitle(selected.text))?selected:null
+    : readableTitleForm(raw?.display?.[field],preferred,{guard:administrative});
+  // A generated claim descriptor combines transport posture, endpoints and
+  // status prose. It is a navigation carrier, not an authored material title.
+  if(raw?.kind_id==='claim'&&(missingReadableTitle(raw)
+    ||provenance.title==='navigation-template'&&provenance.source_title_available!==true)){
+    const predicate=raw.semantics?.claim?.source_predicate_id;
+    const claimLabel={ru:'Утверждение',en:'Claim',es:'Afirmación'}[preferred]??'Claim';
+    const predicateLabel=relationLabel({predicate_id:predicate},preferred);
+    const knownPredicate=predicateLabel!==relationLabel({},preferred);
+    const text=predicate==='provision_activity'?predicateLabel:knownPredicate?`${claimLabel} · ${predicateLabel}`:claimLabel;
+    return {text,key:preferred,lang:preferred,fallback:false,navigationOnly:true};
+  }
+  if(missingReadableTitle(raw))return {text:localized(raw.display.kind_label,t('Материал'),preferred),key:null,lang:null,fallback:false,unavailable:true};
+  if(form)return provenance.title==='navigation-template'?{...form,navigationOnly:true}:form;
+  // Administrative carrier descriptions are source text, not interface titles.
+  // A localized kind is a navigation label; the original name stays in Sources.
+  if(administrative){
+    const names={
+      'text-unit':{ru:'Фрагмент',en:'Passage',es:'Pasaje'},anchor:{ru:'Место в тексте',en:'Text location',es:'Lugar del texto'},
+      'repository-branch_manifest':{ru:'Описание раздела',en:'Section description',es:'Descripción de la sección'},
+      'repository-manifest':{ru:'Описание раздела',en:'Section description',es:'Descripción de la sección'},
+      'repository-research_packet':{ru:'Исследование',en:'Research',es:'Investigación'},
+      'repository-source_witness':{ru:'Сведения об источнике',en:'Source information',es:'Información de la fuente'}};
+    let text=names[raw.kind_id]?.[preferred]??localized(raw.display.kind_label,t('Материал'),preferred);
+    if(raw.kind_id==='file')text=fileLabel(raw.attributes,preferred,raw.display.title?.default);
+    if(raw.kind_id==='item'||raw.kind_id==='link'){
+      const refs=[...(raw.attributes?.source_refs??[]),...(raw.source_refs??[])];
+      const url=typeof raw.attributes?.uri==='string'?raw.attributes.uri:refs.find(ref=>/^https?:\/\//i.test(ref));
+      if(url)text+=' · '+sourceLinkLabel(url,preferred);
+    }
+    return {text,key:preferred,lang:preferred,fallback:false,navigationOnly:true};
+  }
+  return null;
 }
 export function displayTitle(raw,fallback='',preferred=uiLanguage()){
   return displayTitleForm(raw,preferred)?.text||fallback;
@@ -98,7 +147,7 @@ export function sourceOriginalTitle(raw){
 }
 export function nodeLabels(raw,preferred=uiLanguage()){
   const form=displayTitleForm(raw,preferred),fullName=form?.text||raw.id;
-  return {name:missingReadableTitle(raw)?t('Нет читаемого названия'):fullName.length>46?fullName.slice(0,43)+'…':fullName,
+  return {name:fullName.length>46?fullName.slice(0,43)+'…':fullName,
     fullName,original:sourceOriginalTitle(raw),labelLanguage:form?.lang||null,
     kind:localized(raw.display.kind_label,raw.kind_id,preferred),description:localized(raw.display.summary,'',preferred)};
 }

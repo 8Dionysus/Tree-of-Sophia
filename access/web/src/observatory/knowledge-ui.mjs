@@ -7,6 +7,7 @@ import {renderHumanForms,renderEssentialContext} from './human-forms-view.mjs';
 import {essentialContext} from './record-context.mjs';
 import {readableContextFor} from './readable-context.mjs';
 import {formLabel,formLanguageNote} from './reader-model.mjs';
+import {sourceLinkLabel,sourceTitle,sourceLabel,rawDataDownload} from './human-presentation.mjs';
 
 export function renderInspectorForms(raw){
   const readableContext=readableContextFor(raw);
@@ -97,14 +98,10 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     const title=displayTitle(raw,raw.id);
     const row=button('',()=>kind==='node'?chooseNode(raw.id,revision):chooseRelation(raw,revision),'sc-result');
     const label=text('span','sc-result-label',title);
-    // Search deliberately preserves distinct source carriers, including two
-    // projections that share one declared entity_id. A title alone would make
-    // those rows look like a duplicate and invite an accidental merge. Keep
-    // the exact carrier route visible without changing the returned identity.
-    const carrier=[raw.source_graph,raw.native_id||raw.id].filter(value=>typeof value==='string'&&value.trim()).join(' · ');
+    const carrier=sourceLabel(raw.source_graph);
     let ariaLabel=title;
     if(kind==='relation'){
-      const statement=localized(raw.display.statement,raw.from_id+' → '+raw.to_id);
+      const statement=localized(raw.display.statement,'');
       uiChildren(label, "append", text('span','sc-result-detail',statement));ariaLabel+=" · "+statement;
     }
     if(carrier)uiChildren(label,"append",text('span','sc-result-identity',carrier));
@@ -144,33 +141,25 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     },180);
   }
   function sourceDetails(raw,kind){
-    const out=q('.sc-provenance');uiChildren(out, "replaceChildren");
-    const state=kind==='node'?raw.display.summary_state:raw.display.explanation_state;
-    const labels={authored:ui("Авторское описание"),'source-derived':ui("Описание из источника"),'metadata-synthesis':ui("Описание составлено из метаданных"),missing:ui("Описание пока не зафиксировано")};
-    uiChildren(out, "append", text('p','sc-description-origin',labels[state]||ui("Происхождение описания не указано")));
-    const summary=kind==='node'?raw.display.summary:raw.display.explanation;
-    if(!summary?.ru&&summary?.default)uiChildren(out, "append", text('p','sc-description-origin',ui("Показан исходный язык описания.")));
+    const out=q('.sc-provenance');uiChildren(out,'replaceChildren');
     const details=document.createElement('details');details.className='sc-source-details';
-    uiChildren(details, "append", text('summary','',ui("Источники и статус · {0}", [raw.source_refs.length])));
-    if(missingReadableTitle(raw))uiChildren(details,'append',text('p','sc-source-status',ui('Идентификатор')+': '+raw.id));
-    const posture=raw.epistemic||{};
-    for(const [label,value]of [[ui("Слой"),posture.authority_layer],[ui("Рассмотрение"),posture.review_posture],[ui("Канон"),posture.canon_status]]){
-      uiChildren(details, "append", text('p','sc-source-status',label+': '+(!value||value==='not-recorded'?ui("не указан"):value)));
+    details.append(text('summary','',ui('Источники')));
+    const original=sourceTitle(raw);
+    if(original&&original!==displayTitle(raw,'',cardLanguage)){
+      const title=document.createElement('details');title.append(text('summary','',ui('Название в источнике')),text('p','',original));details.append(title);
     }
     for(const ref of raw.source_refs){
-      if(/^https?:\/\//i.test(ref)){
-        try{const url=new URL(ref);const a=text('a','sc-source-ref',url.hostname+url.pathname);a.href=url.href;a.target='_blank';a.rel='noreferrer noopener';uiChildren(details, "append", a);}catch{uiChildren(details, "append", text('span','sc-source-ref',ref));}
-      }else uiChildren(details, "append", text('span','sc-source-ref',ref));
+      if(!/^https?:\/\//i.test(ref))continue;
+      try{const url=new URL(ref),a=text('a','sc-source-ref',sourceLinkLabel(ref));a.href=url.href;a.target='_blank';a.rel='noreferrer noopener';details.append(a);}catch{}
     }
-    details.addEventListener('toggle',()=>port.cardChanged());uiChildren(out, "append", details);
+    details.append(rawDataDownload(raw));details.addEventListener('toggle',()=>port.cardChanged());out.append(details);
   }
   function endpointName(id){return displayTitle(port.node(id),id,cardLanguage);}
   function renderTitle(raw){
     const form=displayTitleForm(raw,cardLanguage,true),title=q('.sc-node-title');
-    uiText(title,form?.text||raw.id);title.lang=form?.lang||'';
+    uiText(title,form?.text||ui('Материал'));title.lang=form?.lang||'';
     title.dataset.requestedLanguage=cardLanguage;title.dataset.displayLanguage=form?.key||'';
-    titleNote.hidden=!form?.fallback;
-    uiText(titleNote,form?.fallback?ui('Показана доступная форма названия: {0}.',[formLabel(form.key)]):'');
+    titleNote.hidden=true;uiText(titleNote,'');
   }
   function renderCard(kind,raw,endpoints=[]){
     const selection=validateHumanForms(raw),identity=formIdentity(raw);
@@ -179,10 +168,10 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     uiText(q('.sc-node-original'), kind==='node'?sourceOriginalTitle(raw):localized(raw.display.statement,'',cardLanguage));
     uiText(q('.sc-kind'), kind==='node'?localized(raw.display.kind_label,raw.kind_id,cardLanguage).toUpperCase():ui("ОТНОШЕНИЕ"));
     const description=materialDisplayForm(raw,kind==='node'?'summary':'explanation',cardLanguage);
-    uiText(q('.sc-description'), description?.text||ui("Описание пока не зафиксировано."));q('.sc-description').lang=description?.lang||'';
+    uiText(q('.sc-description'), description?.text||'');q('.sc-description').lang=description?.lang||'';
     descriptionNote.hidden=Boolean(selection)||!description||!description.fallback&&Boolean(description.lang);
     uiText(descriptionNote,descriptionNote.hidden?'':formLanguageNote(description));
-    q('.sc-description').hidden=Boolean(selection);forms.replaceChildren(...renderInspectorForms(raw));
+    q('.sc-description').hidden=Boolean(selection)||!description?.text;forms.replaceChildren(...renderInspectorForms(raw));
     const languages=[...new Set(['ru','en','es',...formLanguages(raw),cardLanguage])];
     language.replaceChildren(...languages.map(value=>{const option=document.createElement('option');option.value=value;uiText(option,formLabel(value));return option;}));language.value=cardLanguage;
     uiAttribute(q('.sc-inspector'), 'aria-label', kind==='node'?ui("Выбранный узел"):ui("Выбранное отношение"));
@@ -224,7 +213,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     }
     uiText(q('.sc-node-original'),'');q('.sc-provenance').replaceChildren();q('.sc-neighbors').replaceChildren();
     try{
-      forms.replaceChildren(text('p','sc-form-status',ui('Обновляю формы…')));q('.sc-description').hidden=true;descriptionNote.hidden=true;
+      forms.replaceChildren(text('p','sc-form-status',ui('Загружаю…')));q('.sc-description').hidden=true;descriptionNote.hidden=true;
       const found=await slots.run('inspect',signal=>readInspectorMaterial({client,scene,kind,raw,language,signal}));
       if(!found.current||port.packet!==scene||cardLanguage!==language
         ||(kind==='relation'?port.selection.relationId:port.selection.nodeId)!==raw.id)return;

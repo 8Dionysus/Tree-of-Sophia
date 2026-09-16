@@ -150,7 +150,7 @@ test('explicit identifier fallback is a missing title, retaining identity and po
   packet.nodes=packet.nodes.map(raw=>({...raw,kind_id:'future-kind',display:{...raw.display,
     title:{default:'claim:tos claim translation identifier'},kind_label:{default:'Supplied kind'},provenance:{title:'identifier-fallback'}}}));
   const before=structuredClone(packet),presented=projectLens(packet);
-  for(const raw of presented){assert.equal(raw.fullName,'Supplied kind · Нет читаемого названия');assert.equal(raw.name,'Нет читаемого названия');assert.equal(raw.original,'');}
+  for(const raw of presented){assert.equal(raw.fullName,'Supplied kind');assert.equal(raw.name,'Supplied kind');assert.equal(raw.original,'');}
   assert.deepEqual(packet,before);assert.deepEqual(presented.map(n=>n.id),packet.nodes.map(n=>n.id));
   presented[0].target=[17,28,-39];
   packet.nodes[0].display.title={ru:'Название, переданное владельцем'};packet.nodes[0].display.provenance.title='source-bound-navigation';
@@ -159,15 +159,23 @@ test('explicit identifier fallback is a missing title, retaining identity and po
   assert.equal(repaired[0].slot,presented[0].slot);
 });
 
-test('title guard uses provenance alone and leaves supplied content and relation labels verbatim',()=>{
+test('title guard hides machine titles while preserving readable content and relation labels',()=>{
   const raw=node('claim:tos.claim.opaque');raw.display.title={ru:'claim:tos claim opaque'};
   for(const title of [undefined,'projected-label','source-bound-navigation']){
     raw.display.provenance={title};assert.equal(displayTitle(raw),raw.display.title.ru);
   }
+  raw.display.title={ru:'Readable source claim'};
+  for(const title of [undefined,'projected-label','source-bound-navigation']){
+    raw.display.provenance={title};assert.equal(displayTitle(raw),raw.display.title.ru);
+  }
+  raw.display.title={ru:'[Source: claim]\nВторая строка'};raw.display.provenance={title:'projected-label'};
+  assert.equal(displayTitle(raw),raw.display.title.ru);
+  raw.display.title={original:'ToS/private/source-title'};raw.display.provenance={title:'source-bound-navigation'};
+  assert.equal(sourceOriginalTitle(raw),raw.display.title.original);
   assert.equal(displayTitle(fixture.relations[0]),'Связано с');
   raw.display.provenance.title='identifier-fallback';
   raw.human_form_selection={roles:{caption:{wording:'Do not replace the missing name with this statement.'}}};
-  assert.equal(displayTitle(raw),'Произведение · Нет читаемого названия');
+  assert.equal(displayTitle(raw),'Произведение');
 });
 
 test('access LensResult keeps source authority and exact opaque identities',()=>{
@@ -299,4 +307,22 @@ test('network and malformed payload errors are readable without losing cancellat
   await assert.rejects(network.capabilities(),e=>e instanceof RequestError&&e.status===0&&e.message.startsWith('Нет связи'));
   const malformed=new KnowledgeClient({fetcher:async()=>({ok:true,json:async()=>{throw new SyntaxError('invalid');}})});
   await assert.rejects(malformed.capabilities(),ContractError);
+});
+
+test('generated text-layer packet filenames are navigation metadata, not passage titles',()=>{
+  const raw={kind_id:'text-layer',attributes:{language:'ru'},display:{title:{default:'Text layer · ru · source-text-unit.v1.json'},provenance:{title:'projected-label'}}};
+  assert.equal(displayTitleForm(raw,'ru').text,'Текстовый слой · русский');
+  raw.display.title.ru='Предисловие: первая фраза';assert.equal(displayTitleForm(raw,'ru').text,'Предисловие: первая фраза');
+});
+
+
+test('generated claim headings distinguish declared predicates without parsing IDs or replacing authored titles',()=>{
+  const raw={kind_id:'claim',display:{title:{ru:'Machine descriptor'},provenance:{title:'navigation-template',source_title_available:false}},semantics:{claim:{source_predicate_id:'embodied_by'}}};
+  assert.equal(displayTitle(raw,'','ru'),'Утверждение · воплощено изданием');
+  raw.semantics.claim.source_predicate_id='translated_by';
+  assert.equal(displayTitle(raw,'','ru'),'Утверждение · Переводчик');
+  raw.semantics.claim.source_predicate_id='future_predicate';
+  assert.equal(displayTitle(raw,'','ru'),'Утверждение');
+  raw.display.provenance={title:'source-title',source_title_available:true};raw.display.title.ru='Слова автора';
+  assert.equal(displayTitle(raw,'','ru'),'Слова автора');
 });

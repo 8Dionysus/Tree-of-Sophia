@@ -7,6 +7,7 @@ import {READING_KEY,readReading,emptyReading,validateReading} from './reading-re
 import {refreshIcons} from './icons';
 import {mountTemporalComparison} from './temporal-compare.mjs';
 import {uiLanguage} from './ui-i18n.mjs';
+import {sourceLinkLabel} from './human-presentation.mjs';
 
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);uiText(node, text);node.className=className;return node;};
 const button=(label,action,className='')=>{const node=el('button',label,className);node.type='button';node.addEventListener('click',action);return node;};
@@ -19,7 +20,8 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
   const views=new Map();let activeKey=null,returnFocus=null,notice='',wide=false;
   let storage=null,savedText=null,saveTimer=null,storageError='',writable=true,initial=emptyReading();
   const storageKey=READING_KEY+':'+location.pathname;
-  try{storage=localStorage;savedText=storage.getItem(storageKey);initial=readReading(storage,storageKey);}catch(error){storageError=error.message;writable=false;}
+  const storageUnavailable=()=>ui("Сохранение чтения недоступно. Материалы останутся до закрытия страницы.");
+  try{storage=localStorage;savedText=storage.getItem(storageKey);initial=readReading(storage,storageKey);}catch{storageError=storageUnavailable();writable=false;}
   const restoredViews=new Map(initial.entries.map(entry=>[readingKey(entry.kind,entry.id),entry]));
   const opener=button('',()=>show(),'sc-control sc-reader-open');
   uiAttribute(opener, 'aria-label', ui("Чтение и сопоставление"));uiAttribute(opener, 'aria-expanded', 'false');
@@ -32,11 +34,11 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
   const panel=el('section','','sc-panel sc-reader');panel.hidden=true;uiAttribute(panel, 'aria-label', ui("Чтение и сопоставление"));
   panel.id='sc-reader-'+crypto.randomUUID();
   for(const control of [opener,resume]){uiAttribute(control, 'aria-controls', panel.id);uiAttribute(control, 'aria-expanded', 'false');}
-  uiHTML(panel, '<div class="sc-panel-top"><span class="sc-eyebrow">ЧТЕНИЕ</span><button type="button" class="sc-icon sc-reader-close" aria-label="Закрыть чтение"><i data-lucide="x" aria-hidden="true"></i></button></div><div class="sc-reader-heading"><h3 tabindex="-1">Удержать мысль</h3></div><div class="sc-reader-toolbar"></div><div class="sc-reader-tabs" role="tablist" aria-label="Закреплённые материалы"></div><div class="sc-reader-columns"></div><p class="sc-reader-notice" role="status"></p>');
+  uiHTML(panel, '<div class="sc-panel-top"><span class="sc-eyebrow">ЧТЕНИЕ</span><button type="button" class="sc-icon sc-reader-close" aria-label="Закрыть чтение"><i data-lucide="x" aria-hidden="true"></i></button></div><div class="sc-reader-heading"><h3 tabindex="-1">Закреплённые материалы</h3></div><div class="sc-reader-toolbar"></div><div class="sc-reader-tabs" role="tablist" aria-label="Закреплённые материалы"></div><div class="sc-reader-columns"></div><p class="sc-reader-notice" role="status"></p>');
   uiChildren(root, "append", panel);
   const columns=panel.querySelector('.sc-reader-columns'),tabs=panel.querySelector('.sc-reader-tabs'),status=panel.querySelector('.sc-reader-notice');
   const add=button(ui("Добавить выбранное"),()=>pinSelection(),'sc-reader-add');uiChildren(panel.querySelector('.sc-reader-toolbar'), "append", add);
-  const empty=el('p',ui("Оставьте здесь предмет или связь, чтобы читать, переходить к основаниям и сопоставлять с другим материалом."),'sc-reader-empty');
+  const empty=el('p',ui("Выберите предмет или связь, затем добавьте их в чтение."),'sc-reader-empty');
   const shelf=createReadingShelf({client,onChange:render});
   const temporal=mountTemporalComparison({client,locale:uiLanguage,getReadings:()=>shelf.entries.map(entry=>entry.snapshot)});panel.append(temporal.element);
   const current=()=>{
@@ -57,11 +59,13 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
   function persist(){
     clearTimeout(saveTimer);if(!writable)return;
     try{
-      if(!storage)throw new Error(ui("Чтение сохраняется только до закрытия страницы: хранилище недоступно."));
-      if(storage.getItem(storageKey)!==savedText){writable=false;throw new Error(ui("Чтение изменено в другой вкладке. Здесь новые изменения пока не сохранены."));}
+      if(!storage)throw new Error('storage-unavailable');
+      if(storage.getItem(storageKey)!==savedText){writable=false;throw Object.assign(new Error('storage-conflict'),{code:'storage-conflict'});}
       const text=JSON.stringify(exportState());clearTimeout(saveTimer);storage.setItem(storageKey,text);savedText=text;storageError='';
-    }catch(error){storageError=error.message;}
-    uiText(status, storageError||notice||ui("Пара материалов, формы и позиции чтения сохраняются в этом браузере."));status.dataset.important=String(Boolean(storageError));
+    }catch(error){storageError=error?.code==='storage-conflict'
+      ?ui("Чтение изменено в другой вкладке. Здесь новые изменения пока не сохранены.")
+      :storageUnavailable();}
+    uiText(status, storageError||notice||'');status.hidden=!Boolean(storageError||notice);status.dataset.important=String(Boolean(storageError));
   }
   function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(persist,500);}
   function restore(){for(const view of views.values())if(!view.article.hidden)view.reading.restore();}
@@ -110,7 +114,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     try{
       const result=shelf.pin({...source,bookmark:scene.port.captureView()});activeKey=result.key;
       notice=result.existing?ui("Этот материал уже оставлен для чтения."):ui("Материал оставлен для продолжения чтения.");
-    }catch(error){notice=error.message;}
+    }catch{notice=ui("Не удалось добавить материал. Обновите данные и попробуйте снова.");}
     show();
   }
   function remove(key){
@@ -173,7 +177,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
       if(index%2){uiChildren(text, "append", uiNode(part));return;}
       const p=el('p',part);p.dir='auto';p.dataset.readingAnchor=blockId+':'+index;uiChildren(text, "append", p);
     });uiChildren(parent, "append", text);
-    if(form.fallback||!form.lang){
+    if(form.fallback){
       uiChildren(parent, "append", el('p',formLanguageNote(form),'sc-reader-language-note'));
     }
   }
@@ -183,18 +187,19 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     uiChildren(view.body, "replaceChildren");view.body.scrollTop=0;view.titleText=uiText(view.title, doc.title?.text||ui("Материал"));
     view.title.dir='auto';if(doc.title?.lang)view.title.lang=doc.title.lang;else view.title.removeAttribute('lang');
     uiText(view.kind, entry.kind==='relation'?ui("Связь"):doc.kind?.text||ui("Предмет"));
-    if(doc.claimContextUnavailable)uiChildren(view.body,'append',el('p',ui('Связанный контекст утверждения не закреплён. Для полного чтения закрепите его из области, где этот контекст доступен.'),'sc-reader-gap'));
-    if(!doc.title?.unavailable&&(doc.title?.fallback||!doc.title?.lang))uiChildren(view.body, "append", el('p',ui("Название: {0}{1}", [formLabel(doc.title?.key||ui("не указана")), (doc.title?.lang?'':ui("; язык не указан"))]),'sc-reader-language-note'));
+    if(doc.claimContextUnavailable)uiChildren(view.body,'append',el('p',ui('Связанный контекст недоступен. Закрепите материал из области с этим контекстом.'),'sc-reader-gap'));
+    if(!doc.title?.unavailable&&doc.title?.fallback)uiChildren(view.body, "append", el('p',formLanguageNote(doc.title),'sc-reader-language-note'));
     for(const block of doc.blocks){
       const section=el('section','','sc-reader-section');uiChildren(section, "append", el('h5',block.title));
       if(block.form)appendForm(section,block.form,block.id);
-      else uiChildren(section, "append", el('p',block.id==='statement'?ui("Формулировка пока не предоставлена."):ui("Описание пока отсутствует."),'sc-reader-gap'));
+      else uiChildren(section, "append", el('p',block.state==='restricted'?ui("Доступ к описанию ограничен."):ui("Описание недоступно."),'sc-reader-gap'));
       if(originLabels[block.state])uiChildren(section, "append", el('p',originLabels[block.state],'sc-reader-origin'));
       uiChildren(view.body, "append", section);
     }
     if(doc.humanForms)uiChildren(view.body,'append',renderHumanForms(snapshot.raw,{exactForms:snapshot.exactForms,readableContext:snapshot.readableContext}));
-    uiChildren(view.body,'append',renderEssentialContext(doc.essentialContext,snapshot.readableContext));
-    if(snapshot.claimReading)uiChildren(view.body,'append',renderClaimContext(snapshot.claimReading,snapshot.readableContext));
+    const contextPresentation={};
+    uiChildren(view.body,'append',renderEssentialContext(doc.essentialContext,snapshot.readableContext,contextPresentation));
+    if(snapshot.claimReading)uiChildren(view.body,'append',renderClaimContext(snapshot.claimReading,snapshot.readableContext,contextPresentation));
     if(doc.participants.length){
       const section=el('section','','sc-reader-section');uiChildren(section, "append", el('h5',ui("Участники связи")));
       for(const participant of doc.participants){
@@ -205,20 +210,21 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     }
     const review=doc.posture.review_posture;
     if(postureLabels[review]&&review!=='not-recorded')uiChildren(view.body, "append", el('p',ui("Рассмотрение: {0}.", [postureLabels[review]]),'sc-reader-assessment'));
-    const refs=el('details','','sc-reader-section');refs.dataset.readingKey='sources';uiChildren(refs, "append", el('summary',ui("Источники · {0}", [doc.sourceRefs.length])));
-    for(const ref of doc.sourceRefs){
-      let link=el('span',ref,'sc-source-ref');
-      try{const url=new URL(ref);if(['http:','https:'].includes(url.protocol)){link=el('a',ref,'sc-source-ref');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';}}catch{/* Local source references stay selectable text. */}
-      uiChildren(refs, "append", link);
+    if(doc.sourceRefs.length){
+      const refs=el('details','','sc-reader-section');refs.dataset.readingKey='sources';uiChildren(refs, "append", el('summary',ui("Источники")));
+      for(const ref of doc.sourceRefs){
+        let link=el('span',sourceLinkLabel(ref,uiLanguage()),'sc-source-ref');
+        try{const url=new URL(ref);if(['http:','https:'].includes(url.protocol)){link=el('a',sourceLinkLabel(ref,uiLanguage()),'sc-source-ref');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';}}
+        catch{/* Local source references remain available to the source handoff. */}
+        uiChildren(refs, "append", link);
+      }
+      uiChildren(view.body, "append", refs);
     }
-    uiChildren(view.body, "append", refs);
     onReadingRendered(view.body,snapshot);
-    const technical=el('details','','sc-reader-technical');technical.dataset.readingKey='identity';uiChildren(technical, "append", el('summary',ui("Точные сведения о материале")));
-    const details=el('dl');
-    for(const [label,value]of [[ui("Идентификатор"),entry.id],[ui("Снимок данных"),snapshot.sourceRevision],[ui("Версия материала"),snapshot.raw.content_revision],[ui("Слой"),doc.posture.authority_layer],[ui("Рассмотрение"),review],[ui("Канон"),doc.posture.canon_status],[ui("Уверенность, как передана источником"),doc.posture.confidence]]){
-      const row=el('div');uiChildren(row, "append", el('dt',label), el('dd',value===null||value===undefined||value==='not-recorded'?ui("Не указан"):String(value)));uiChildren(details, "append", row);
-    }
-    uiChildren(technical, "append", details);uiChildren(view.body, "append", technical);view.snapshot=snapshot;
+    // Exact identity, revisions and source packets stay in the snapshot for
+    // anchors, refreshes and handoffs. They are intentionally absent from the
+    // ordinary reading surface; raw JSON belongs to an explicit export action.
+    view.snapshot=snapshot;
   }
   function layout(){
     const focused=readingFocus(),entries=shelf.entries,twoColumns=wide&&entries.length===2;
@@ -269,7 +275,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     const resumeLabel=ui("К чтению · {0}", [entries.length]);
     uiAttribute(resume, 'aria-label', resumeLabel);uiText(resume.querySelector('span'), resumeLabel);
     uiText(resume.querySelector('.sc-reader-resume-count'), String(entries.length));
-    panel.dataset.count=String(entries.length);uiText(status, storageError||notice||ui("Пара материалов, формы и позиции чтения сохраняются в этом браузере."));status.dataset.important=String(Boolean(storageError));
+    panel.dataset.count=String(entries.length);uiText(status, storageError||notice||'');status.hidden=!Boolean(storageError||notice);status.dataset.important=String(Boolean(storageError));
     layout();restore();retainFocus(focused);scheduleSave();
   }
   const resize=new ResizeObserver(()=>{

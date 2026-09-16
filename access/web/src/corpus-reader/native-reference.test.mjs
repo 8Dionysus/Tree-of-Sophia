@@ -4,6 +4,7 @@ import {createNativeReference,validateNativeReference,nativeReferenceKey,matchNa
 import {referenceKey,referenceDocumentId,referenceVersionId} from './model.mjs';
 import {createCorpusNotebook,createMemoryCorpusNotebookState,readingSlot} from './notebook.mjs';
 import {readNativeReference,readNativeSelection,NativeReferenceError} from './native-source.mjs';
+import {sourceReadExport} from '../observatory/exact-source-read.mjs';
 
 const H='a'.repeat(64),B='b'.repeat(64);
 function result(){return {status:'available',selection:{kind:'node',id:'source:tos.text-unit.fixture',source_revision:H,content_revision:B},
@@ -13,6 +14,21 @@ function result(){return {status:'available',selection:{kind:'node',id:'source:t
   layer_record_sha256:H,representation_sha256:B,spans:[
     {anchor_ref:'tos.anchor.one',selector:{start:20,end:27},exact_sha256:H,text:'A😀e\u0301אבZ'},
     {anchor_ref:'tos.anchor.two',selector:{start:42,end:46},exact_sha256:B,text:'next'}]}};}
+
+test('native exact delivery export keeps record, unit, packet, access and provenance while omitting the handle',()=>{
+  const source=result(),input={...source,handle:{schema_version:'tos_source_read_handle_v1',epoch:{source_publication:{token:'secret-capability'}}},
+    text_access:{scope:'public-native-unit',recorded_rights_verified:true,grants_current_use:false},
+    provenance:{source:{source_ref:'ToS/synthetic/native.txt'}},extension:{future_field:true}};
+  const exported=sourceReadExport(input);
+  assert.equal(Object.hasOwn(exported,'handle'),false);
+  assert.deepEqual(exported.record_ref,input.record_ref);
+  assert.deepEqual(exported.native_unit,input.native_unit);
+  assert.deepEqual(exported.native_unit.packet,input.native_unit.packet);
+  assert.deepEqual(exported.text_access,input.text_access);
+  assert.deepEqual(exported.provenance,input.provenance);assert.deepEqual(exported.extension,input.extension);
+  assert.doesNotMatch(JSON.stringify(exported),/secret-capability/);
+  assert.deepEqual(input.handle.epoch.source_publication.token,'secret-capability');
+});
 
 test('native references retain exact segmentation, span and code-point positions without joining gaps',()=>{
   const read=result(),reference=createNativeReference(read,0,{start:21,end:24});

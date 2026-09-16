@@ -15,7 +15,7 @@ test('every delivered role retains its exact wording, complete context, values a
   expect(raw).toEqual(before);raw.human_form_selection.roles.statement.packet.context[0].value.unknown.zero=7;
   expect(snapshot.raw.human_form_selection.roles.statement.packet.context[0].value.unknown.zero).toBe(0);
   expect(nodePreview(formLens([raw]),raw).body).not.toContain('Текст формы');
-  expect(nodePreview(formLens([raw]),raw).body).toContain('контекст');
+  expect(nodePreview(formLens([raw]),raw).body).toBe('');
 });
 
 test.each([

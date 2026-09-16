@@ -9,7 +9,7 @@ const compact=(value,limit)=>{const text=String(value||'').replace(/\s+/g,' ').t
 export function nodePreview(packet,node,preferred=uiLanguage()){
   const kind=localized(node?.display?.kind_label,node?.kind_id||'',preferred);
   if(node?.human_form_selection){
-    let body;try{validateHumanForms(node);body=t('Формы и обязательный контекст — в карточке.');}catch{body=t('Форму не удалось проверить. Откройте карточку.');}
+    let body='';try{validateHumanForms(node);}catch{body=t('Материал пока недоступен.');}
     return {kind:compact(kind,72),title:compact(displayTitle(node,'',preferred),100),body};
   }
   const summary=['authored','source-derived'].includes(node?.display?.summary_state)?localized(node.display.summary,'',preferred):'';
@@ -24,7 +24,7 @@ export function nodePreview(packet,node,preferred=uiLanguage()){
 export function relationPreview(packet,relation,preferred=uiLanguage()){
   const title=localized(relation?.display?.label,'',preferred),left=packet.nodes.find(n=>n.id===relation?.from_id),right=packet.nodes.find(n=>n.id===relation?.to_id);
   let body=compact([displayTitle(left,'',preferred),displayTitle(right,'',preferred)].filter(Boolean).join(' → '),150);
-  if(relation?.human_form_selection){try{validateHumanForms(relation);body=t('Формы и обязательный контекст — в карточке.');}catch{body=t('Форму не удалось проверить. Откройте карточку.');}}
+  if(relation?.human_form_selection){try{validateHumanForms(relation);}catch{body=t('Материал пока недоступен.');}}
   return {kind:t("Связь"),title:compact(title,90),body};
 }
 export function describePreview(element,preview){

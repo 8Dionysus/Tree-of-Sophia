@@ -119,17 +119,26 @@ test('a navigation-only pin retains one identity across language changes and reo
   assert.deepEqual(raw,before);
 });
 
-test('an identifier fallback is a UI title gap, never a selected source form or authored statement',()=>{
+test('an identifier fallback uses a kind label without inventing a source form or statement',()=>{
   const raw=node();raw.display.title={default:'claim:tos claim opaque'};raw.display.provenance={title:'identifier-fallback'};
   const snapshot=readingSnapshot(answer(raw),'node'),doc=readingDocument(snapshot,'en');
-  assert.deepEqual({...doc.title,text:String(doc.title.text)},{text:'Произведение · Нет читаемого названия',key:null,lang:null,fallback:false,unavailable:true});
+  assert.deepEqual({...doc.title,text:String(doc.title.text)},{text:'Произведение',key:null,lang:null,fallback:false,unavailable:true});
   try{
-    for(const [language,placeholder]of [['en','No readable title'],['es','No hay un título legible'],['ru','Нет читаемого названия']]){
-      setUiLanguage(language);assert.equal(String(doc.title.text),'Произведение · '+placeholder);
+    for(const language of ['en','es','ru']){
+      setUiLanguage(language);assert.equal(String(doc.title.text),'Произведение');
     }
   }finally{setUiLanguage('ru');}
   assert.equal(doc.humanForms,null);assert.equal(doc.blocks[0].form.text,raw.display.summary.ru);
   assert.deepEqual(snapshot.raw.display,raw.display);assert.equal(snapshot.raw.id,raw.id);
+});
+test('the shelf reader keeps a readable source filename when the requested language is absent',async()=>{
+  const raw=node('source-navigation:file');raw.kind_id='file';raw.display.title={default:'Ницше Так говорил Заратустра 1913.pdf'};
+  raw.display.kind_label={ru:'Файл',en:'File',es:'Archivo'};raw.display.provenance={title:'projected-label',source_title_available:true};
+  const shelf=createReadingShelf({client:{readMaterial:async()=>answer(raw)}});
+  const {key}=shelf.pin({...target(raw),preferred:'en'});await tick();
+  assert.equal(shelf.entries[0].title.text,raw.display.title.default);
+  assert.equal(readingDocument(shelf.entries[0].snapshot,'en').title.text,raw.display.title.default);
+  assert.equal(shelf.entries[0].key,key);shelf.dispose();
 });
 
 test('reading preserves exact qualifications, provenance and missing descriptions',()=>{
@@ -140,7 +149,31 @@ test('reading preserves exact qualifications, provenance and missing description
   assert.deepEqual(doc.sourceRefs,original.match.source_refs);assert.deepEqual(original,before);
   original.match.display.summary.ru='Changed elsewhere';assert.notEqual(snapshot.raw.display.summary.ru,'Changed elsewhere');
   const missing=node();missing.display.summary_state='missing';missing.display.summary.ru='Generic placeholder';
-  assert.equal(readingDocument(readingSnapshot(answer(missing),'node')).blocks[0].form,null);
+  assert.deepEqual(readingDocument(readingSnapshot(answer(missing),'node')).blocks,[]);
+});
+
+test('seeded display states keep supplied prose and omit metadata-only placeholders',()=>{
+  let seed=0x5eed;
+  const next=()=>{seed=(seed*1664525+1013904223)>>>0;return seed;};
+  const states=['authored','source-derived','metadata-synthesis','missing','unavailable','restricted','text-unavailable'];
+  for(let index=0;index<32;index+=1){
+    const state=states[next()%states.length],sourceAvailable=(next()&1)===1;
+    const synthetic='Развёрнутое описание пока не добавлено.';
+    const prose=`Источник сохраняет формулировку ${index}.`;
+    const sourceText=state==='metadata-synthesis'&&!sourceAvailable?synthetic:(next()&1)?prose:'';
+    const raw=node(`seed:${index}`);
+    raw.display.summary={ru:sourceText};raw.display.summary_state=state;
+    raw.display.provenance={source_summary_available:sourceAvailable};
+    const blocks=readingDocument(readingSnapshot(answer(raw),'node')).blocks;
+    const description=blocks.find(block=>block.id==='description');
+    if(state==='metadata-synthesis'&&!sourceAvailable||state==='missing'||!sourceText.trim()){
+      if(['unavailable','restricted','text-unavailable'].includes(state))assert.ok(description);
+      else assert.equal(description,undefined);
+      continue;
+    }
+    assert.equal(description?.form?.text,sourceText);
+    assert.ok(description?.form?.text.includes('Источник сохраняет')||sourceText===synthetic);
+  }
 });
 
 test('reading keeps the owner dossier handle for the Sources handoff',()=>{
@@ -241,18 +274,48 @@ test('unavailable or invalid exact material requires explicit refresh instead of
   }
 });
 
-test('reading status follows UI language while client error detail stays verbatim',()=>{
-  const entry={snapshot:{},sourceRevision:revision,loading:true,error:'Обновить',failure:'load',changed:false};
-  const status=readingStatus(entry,revision);
+test('reading status is concise and localized while client error detail stays internal',()=>{
+  const states={
+    loading:{loading:true,error:'Обновить',failure:'load'},
+    failed:{error:'Обновить',failure:'load'},
+    retained:{snapshot:{},error:'Обновить',failure:'load'},
+    changed:{changed:true},
+    stale:{snapshot:{},sourceRevision:'b'.repeat(64)},
+  };
   try{
-    for(const [language,loading,failure,retained]of [
-      ['ru','Обновляю материал…','Загрузка не удалась. Повторите попытку.','Показан ранее закреплённый материал.'],
-      ['en','Refreshing the item…','Loading failed. Try again.','Showing the previously pinned item.'],
-      ['es','Actualizando el material…','La carga falló. Vuelve a intentarlo.','Se muestra el material fijado anteriormente.']]){
-      setUiLanguage(language);assert.equal(String(status),[loading,failure,'Обновить',retained].join(' '));
+    for(const [language,loading,failure,changed]of [
+      ['ru','Обновляю материал…','Загрузка не удалась. Повторите попытку.','Данные изменились: чтение начато с начала актуального материала.'],
+      ['en','Refreshing the item…','Loading failed. Try again.','The data changed: reading starts from the beginning of the current item.'],
+      ['es','Actualizando el material…','La carga falló. Vuelve a intentarlo.','Los datos cambiaron: la lectura comienza al principio del material actualizado.']]){
+      setUiLanguage(language);
+      assert.equal(String(readingStatus({...states.loading},revision)),loading);
+      assert.equal(String(readingStatus({...states.failed},revision)),failure);
+      for(const name of ['retained','changed','stale']){
+        const status=String(readingStatus({...states[name]},revision));
+        assert.ok(status);assert.doesNotMatch(status,/Обновить/);assert.doesNotMatch(status,/b{64}/);
+      }
+      assert.equal(String(readingStatus({...states.changed},revision)),changed);
+      const stale=String(readingStatus({...states.stale},revision));
+      assert.ok(stale);assert.doesNotMatch(stale,/Обновить/);assert.doesNotMatch(stale,/b{64}/);
     }
   }finally{setUiLanguage('ru');}
-  assert.equal(entry.error,'Обновить');
+  assert.equal(states.loading.error,'Обновить');
+});
+
+test('a successful newer snapshot is informational while a current-scene mismatch remains actionable',async()=>{
+  let current=answer();
+  const shelf=createReadingShelf({client:{readMaterial:async()=>current}});
+  const {key}=shelf.pin(target());await tick();
+  current=answer(node(), 'c'.repeat(64));
+  await shelf.refresh(key);
+  const entry=shelf.entries[0];
+  assert.equal(entry.changed,true);
+  assert.equal(String(readingStatus(entry,entry.sourceRevision)), 'Данные изменились: чтение начато с начала актуального материала.');
+  assert.equal(String(readingStatus(entry,'d'.repeat(64))), 'Материал устарел. Обновите чтение.');
+  await shelf.refresh(key);
+  assert.equal(entry.changed,true);
+  assert.equal(String(readingStatus(entry,entry.sourceRevision)), 'Данные изменились: чтение начато с начала актуального материала.');
+  shelf.dispose();
 });
 
 test('restored pairs fetch current material without carrying stored text or revision pins; late old requests stay excluded',async()=>{

@@ -1,12 +1,12 @@
 import {ui,uiAttribute,uiChildren,uiHTML,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
-import {RequestSlots,RevisionError,localized} from './knowledge-client.mjs';
+import {RequestSlots,RevisionError,localized,displayTitle} from './knowledge-client.mjs';
 import {pathAvailable,pathSearchSpec,explorationQuery,loadPaths} from './navigation-model.mjs';
 import {refreshIcons} from './icons';
 
 const el=(tag,text='',className='')=>{const n=document.createElement(tag);uiText(n, text);n.className=className;return n;};
 const button=(label,action,className='sc-nav-button')=>{const n=el('button',label,className);n.type='button';n.addEventListener('click',action);return n;};
-const name=raw=>localized(raw?.display?.title||raw?.display?.label,ui("Выбрать звезду"));
+const name=raw=>displayTitle(raw,ui("Выбрать звезду"));
 
 export function createNavigationPanel(root,scene,panels,{data:{client,queries},selected,commit,onUserAction}){
   const requests=new RequestSlots();
@@ -55,7 +55,7 @@ export function createNavigationPanel(root,scene,panels,{data:{client,queries},s
       const reply=await requests.run('navigation',own=>work(signal?AbortSignal.any([own,signal]):own));
       signal?.throwIfAborted();if(!reply.current||id!==ticket||panel.hidden)throw new DOMException('Navigation cancelled','AbortError');
       accept(reply.value);return reply.value;
-    }catch(e){if(id===ticket&&!panel.hidden){error=e.name==='AbortError'?new Error(ui("Поиск прерван. Можно повторить.")):e;}throw e;}
+    }catch(e){if(id===ticket&&!panel.hidden){error=e.name==='AbortError'?new Error(ui("Поиск прерван. Можно повторить.")):new Error(ui("Не удалось выполнить поиск. Повторите запрос."));}throw e;}
     finally{if(id===ticket){busy=false;render();}}
   }
   const user=action=>()=>{onUserAction();void action().catch(()=>{});};
@@ -131,15 +131,15 @@ export function createNavigationPanel(root,scene,panels,{data:{client,queries},s
           const hits=reply.value.nodes.filter(pathAvailable);
           for(const raw of hits){const b=button('',()=>{onUserAction();cancel();if(which==='start'){start=raw;if(!end)searchTarget='end';}else end=raw;result=null;excluded=[];error=null;render();},'sc-nav-search-result');
             b.dataset.itemId=raw.id;
-            uiChildren(b, "append", el('span',name(raw)), el('small',localized(raw.display.kind_label)), el('span',localized(raw.display.summary),'sc-nav-search-context'), el('small',raw.native_id,'sc-nav-search-identity'));uiChildren(list, "append", b);}
+            uiChildren(b, "append", el('span',name(raw)), el('small',localized(raw.display.kind_label,ui("Тип недоступен"))), el('span',localized(raw.display.summary,ui("Описание недоступно")),'sc-nav-search-context'));uiChildren(list, "append", b);}
           uiChildren(list, "append", paragraph(hits.length===6?ui("Первые 6 совпадений. Уточните название для более точного поиска."):hits.length?ui("Объекты философского графа"):ui("Совпадений в философском графе нет.")));scene.invalidate();
-        }catch(e){if(input.isConnected&&!panel.hidden){uiChildren(list, "replaceChildren", paragraph(e.message));scene.invalidate();}}
+        }catch(e){if(input.isConnected&&!panel.hidden){uiChildren(list, "replaceChildren", paragraph(ui("Не удалось найти объект. Уточните название и повторите поиск.")));scene.invalidate();}}
       },200);
     });
   }
   function renderPaths(){
-    const pair=el('div','','sc-nav-endpoints');uiChildren(pair, "append", endpoint(ui("01 / НАЧАЛО"),start,'start'), el('span','↓','sc-nav-connector'), endpoint(ui("02 / НАЗНАЧЕНИЕ"),end,'end'));uiChildren(body, "append", pair);
-    uiChildren(body, "append", paragraph(ui("Поиск между объектами философского графа. Связность сама по себе не означает согласия.")));
+    const pair=el('div','','sc-nav-endpoints');uiChildren(pair, "append", endpoint(ui("Начало"),start,'start'), el('span','↓','sc-nav-connector'), endpoint(ui("Конечная точка"),end,'end'));uiChildren(body, "append", pair);
+    uiChildren(body, "append", paragraph(ui("Выберите две звезды, задайте глубину и найдите маршрут.")));
     if(!result)renderSearch();
     uiChildren(body, "append", options(true));
     if(excluded.length){const group=el('div','','sc-nav-exclusions');uiChildren(group, "append", el('span',ui("Обходим связи:"),'sc-nav-caption'));

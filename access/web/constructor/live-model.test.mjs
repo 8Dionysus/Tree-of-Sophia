@@ -1,3 +1,4 @@
+import {liveSearchPreview} from './live-model.mjs';
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 import {StableExplorationLayout,liveLabel,livePredicateLabel} from './live-model.mjs';
@@ -34,8 +35,14 @@ test('layout moves admit only existing finite bounded coordinates',()=>{
   for(const pos of [[NaN,0,0],[Infinity,0,0],[0,0],[1e6,0,0]])assert.throws(()=>layout.move(id,pos),RangeError);
 });
 test('catalog predicate labels use the supplied direct language map, never opaque ID words',()=>{
-  const predicate={predicate_id:'has_object',display:{ru:'имеет объект',en:'has object',default:'has object'}};
-  assert.equal(livePredicateLabel(predicate,'ru'),'имеет объект');
-  assert.equal(livePredicateLabel(predicate,'en'),'has object');
-  assert.equal(livePredicateLabel({predicate_id:'has_object',display:{}},'ru'),'Название не предоставлено');
+  const predicate={predicate_id:'thought-influence',display:{ru:'влияет на',en:'influences',default:'influences'}};
+  assert.equal(livePredicateLabel(predicate,'ru'),'влияет на');
+  assert.equal(livePredicateLabel(predicate,'en'),'influences');
+  assert.equal(livePredicateLabel({predicate_id:'future-type',display:{}},'ru'),'Связь');
+});
+
+test('search quotes a bound source statement and preserves its negation',()=>{
+  const raw={kind_id:'claim',semantics:{claim:{claim_id:'c',claim_version:1}},attributes:{source_claim:{claim_id:'c',claim_version:1,qualifiers:{statement:'Связь не установлена.',statement_language:'ru'}}}};
+  assert.deepEqual(liveSearchPreview(raw),{text:'Связь не установлена.',lang:'ru'});
+  raw.attributes.source_claim.claim_version=2;assert.equal(liveSearchPreview(raw),null);
 });
