@@ -314,3 +314,15 @@ test('generated text-layer packet filenames are navigation metadata, not passage
   assert.equal(displayTitleForm(raw,'ru').text,'Текстовый слой · русский');
   raw.display.title.ru='Предисловие: первая фраза';assert.equal(displayTitleForm(raw,'ru').text,'Предисловие: первая фраза');
 });
+
+
+test('generated claim headings distinguish declared predicates without parsing IDs or replacing authored titles',()=>{
+  const raw={kind_id:'claim',display:{title:{ru:'Machine descriptor'},provenance:{title:'navigation-template',source_title_available:false}},semantics:{claim:{source_predicate_id:'embodied_by'}}};
+  assert.equal(displayTitle(raw,'','ru'),'Утверждение · воплощено изданием');
+  raw.semantics.claim.source_predicate_id='translated_by';
+  assert.equal(displayTitle(raw,'','ru'),'Утверждение · Переводчик');
+  raw.semantics.claim.source_predicate_id='future_predicate';
+  assert.equal(displayTitle(raw,'','ru'),'Утверждение');
+  raw.display.provenance={title:'source-title',source_title_available:true};raw.display.title.ru='Слова автора';
+  assert.equal(displayTitle(raw,'','ru'),'Слова автора');
+});

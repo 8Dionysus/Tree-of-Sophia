@@ -59,5 +59,5 @@ test('generated claim navigation uses a short type label while authored names re
 test('claims retain an owner-supplied readable title when source context is available',()=>{
   const raw={kind_id:'claim',display:{title:{default:'Перевод Так говорил Заратустра'},kind_label:{ru:'Утверждение'},provenance:{title:'navigation-template',source_title_available:true}},semantics:{claim:{source_predicate_id:'translated_by'}}};
   expect(displayTitleForm(raw,'ru').text).toBe(raw.display.title.default);
-  expect(displayTitleForm({...raw,display:{...raw.display,provenance:{title:'navigation-template',source_title_available:false}}},'ru').text).toBe('Утверждение');
+  expect(displayTitleForm({...raw,display:{...raw.display,provenance:{title:'navigation-template',source_title_available:false}}},'ru').text).toBe('Утверждение · Переводчик');
 });

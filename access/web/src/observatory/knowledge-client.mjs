@@ -111,7 +111,10 @@ export function displayTitleForm(raw,preferred=uiLanguage(),material=false){
   if(raw?.kind_id==='claim'&&(missingReadableTitle(raw)
     ||provenance.title==='navigation-template'&&provenance.source_title_available!==true)){
     const predicate=raw.semantics?.claim?.source_predicate_id;
-    const text=predicate==='provision_activity'?relationLabel({predicate_id:predicate},preferred):{ru:'Утверждение',en:'Claim',es:'Afirmación'}[preferred]??'Claim';
+    const claimLabel={ru:'Утверждение',en:'Claim',es:'Afirmación'}[preferred]??'Claim';
+    const predicateLabel=relationLabel({predicate_id:predicate},preferred);
+    const knownPredicate=predicateLabel!==relationLabel({},preferred);
+    const text=predicate==='provision_activity'?predicateLabel:knownPredicate?`${claimLabel} · ${predicateLabel}`:claimLabel;
     return {text,key:preferred,lang:preferred,fallback:false,navigationOnly:true};
   }
   if(missingReadableTitle(raw))return {text:localized(raw.display.kind_label,t('Материал'),preferred),key:null,lang:null,fallback:false,unavailable:true};

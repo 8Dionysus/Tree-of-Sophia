@@ -125,6 +125,7 @@ const navigationPredicates={
   owns_resource:['материал раздела','section material','material de la sección'],
   has_subject:['предмет утверждения','claim subject','sujeto de la afirmación'],
   has_object:['объект утверждения','claim object','objeto de la afirmación'],
+  embodied_by:['воплощено изданием','embodied by edition','plasmado en la edición'],
   has_expression:['Текст или перевод','Text or translation','Texto o traducción'],
   translated_by:['Переводчик','Translator','Traductor'],
   has_normalized_agent:['Участник','Participant','Participante'],
