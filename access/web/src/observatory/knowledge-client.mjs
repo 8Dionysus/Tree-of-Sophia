@@ -87,6 +87,11 @@ export function materialDisplayForm(raw,field,preferred='ru'){
 }
 export function displayTitleForm(raw,preferred=uiLanguage(),material=false){
   if(raw?.predicate_id)return {text:relationLabel(raw,preferred),key:preferred,lang:preferred,fallback:false};
+  // A generated claim descriptor combines transport posture, endpoints and
+  // status prose. It is a navigation carrier, not an authored material title.
+  if(raw?.kind_id==='claim'&&(missingReadableTitle(raw)||raw?.display?.provenance?.title==='navigation-template')){
+    return {text:{ru:'Утверждение',en:'Claim',es:'Afirmación'}[preferred]??'Claim',key:preferred,lang:preferred,fallback:false,navigationOnly:true};
+  }
   // Administrative carrier descriptions are source text, not interface titles.
   // A localized kind is a navigation label; the original name stays in Sources.
   const localTitle=raw?.display?.title?.[preferred];
@@ -106,7 +111,7 @@ export function displayTitleForm(raw,preferred=uiLanguage(),material=false){
     }
     return {text,key:preferred,lang:preferred,fallback:false,navigationOnly:true};
   }
-  if(missingReadableTitle(raw))return {text:[localized(raw.display.kind_label,raw.kind_id,preferred),t('Нет читаемого названия')].filter(Boolean).join(' · '),key:null,lang:null,fallback:false,unavailable:true};
+  if(missingReadableTitle(raw))return {text:localized(raw.display.kind_label,t('Материал'),preferred),key:null,lang:null,fallback:false,unavailable:true};
   const field=raw?.display?.title?'title':'label';
   const form=material?materialDisplayForm(raw,field,preferred):displayForm(raw?.display?.[field],preferred);
   return form&&raw?.display?.provenance?.title==='navigation-template'?{...form,navigationOnly:true}:form;
@@ -119,7 +124,7 @@ export function sourceOriginalTitle(raw){
 }
 export function nodeLabels(raw,preferred=uiLanguage()){
   const form=displayTitleForm(raw,preferred),fullName=form?.text||raw.id;
-  return {name:missingReadableTitle(raw)?t('Нет читаемого названия'):fullName.length>46?fullName.slice(0,43)+'…':fullName,
+  return {name:fullName.length>46?fullName.slice(0,43)+'…':fullName,
     fullName,original:sourceOriginalTitle(raw),labelLanguage:form?.lang||null,
     kind:localized(raw.display.kind_label,raw.kind_id,preferred),description:localized(raw.display.summary,'',preferred)};
 }

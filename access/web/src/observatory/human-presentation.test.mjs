@@ -28,3 +28,12 @@ test('seeded technical record titles do not leak opaque IDs and do not replace s
     raw.display.title.ru='Название из источника '+index;expect(displayTitleForm(raw,'ru').text).toBe(raw.display.title.ru);
   }
 });
+test('generated claim navigation uses a short type label while authored names remain intact',()=>{
+  for(const title of ['navigation-template','identifier-fallback']){
+    const raw={kind_id:'claim',display:{title:{ru:'Запись утверждения · связь: содержит [исходная запись не оценена]'},kind_label:{ru:'Утверждение с доказательствами'},provenance:{title}}},before=structuredClone(raw);
+    expect(displayTitleForm(raw,'ru').text).toBe('Утверждение');
+    expect(displayTitleForm(raw,'en').text).toBe('Claim');expect(raw).toEqual(before);
+    raw.display.provenance.title='source-bound-navigation';
+    expect(displayTitleForm(raw,'ru').text).toBe(raw.display.title.ru);
+  }
+});

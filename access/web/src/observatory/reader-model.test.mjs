@@ -119,13 +119,13 @@ test('a navigation-only pin retains one identity across language changes and reo
   assert.deepEqual(raw,before);
 });
 
-test('an identifier fallback is a UI title gap, never a selected source form or authored statement',()=>{
+test('an identifier fallback uses a kind label without inventing a source form or statement',()=>{
   const raw=node();raw.display.title={default:'claim:tos claim opaque'};raw.display.provenance={title:'identifier-fallback'};
   const snapshot=readingSnapshot(answer(raw),'node'),doc=readingDocument(snapshot,'en');
-  assert.deepEqual({...doc.title,text:String(doc.title.text)},{text:'Произведение · Нет читаемого названия',key:null,lang:null,fallback:false,unavailable:true});
+  assert.deepEqual({...doc.title,text:String(doc.title.text)},{text:'Произведение',key:null,lang:null,fallback:false,unavailable:true});
   try{
-    for(const [language,placeholder]of [['en','No readable title'],['es','No hay un título legible'],['ru','Нет читаемого названия']]){
-      setUiLanguage(language);assert.equal(String(doc.title.text),'Произведение · '+placeholder);
+    for(const language of ['en','es','ru']){
+      setUiLanguage(language);assert.equal(String(doc.title.text),'Произведение');
     }
   }finally{setUiLanguage('ru');}
   assert.equal(doc.humanForms,null);assert.equal(doc.blocks[0].form.text,raw.display.summary.ru);

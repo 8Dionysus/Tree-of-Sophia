@@ -150,7 +150,7 @@ test('explicit identifier fallback is a missing title, retaining identity and po
   packet.nodes=packet.nodes.map(raw=>({...raw,kind_id:'future-kind',display:{...raw.display,
     title:{default:'claim:tos claim translation identifier'},kind_label:{default:'Supplied kind'},provenance:{title:'identifier-fallback'}}}));
   const before=structuredClone(packet),presented=projectLens(packet);
-  for(const raw of presented){assert.equal(raw.fullName,'Supplied kind · Нет читаемого названия');assert.equal(raw.name,'Нет читаемого названия');assert.equal(raw.original,'');}
+  for(const raw of presented){assert.equal(raw.fullName,'Supplied kind');assert.equal(raw.name,'Supplied kind');assert.equal(raw.original,'');}
   assert.deepEqual(packet,before);assert.deepEqual(presented.map(n=>n.id),packet.nodes.map(n=>n.id));
   presented[0].target=[17,28,-39];
   packet.nodes[0].display.title={ru:'Название, переданное владельцем'};packet.nodes[0].display.provenance.title='source-bound-navigation';
@@ -167,7 +167,7 @@ test('title guard uses provenance alone and leaves supplied content and relation
   assert.equal(displayTitle(fixture.relations[0]),'Связано с');
   raw.display.provenance.title='identifier-fallback';
   raw.human_form_selection={roles:{caption:{wording:'Do not replace the missing name with this statement.'}}};
-  assert.equal(displayTitle(raw),'Произведение · Нет читаемого названия');
+  assert.equal(displayTitle(raw),'Произведение');
 });
 
 test('access LensResult keeps source authority and exact opaque identities',()=>{
