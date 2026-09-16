@@ -1,17 +1,29 @@
 import {ui,uiAttribute,uiChildren,uiHTML,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
 import {createResearchWorkspace,createLocalStoragePersistence} from '../research-workspace';
-import {localized,RequestSlots} from './knowledge-client.mjs';
+import {localized,displayTitle,RequestSlots} from './knowledge-client.mjs';
 import {refreshIcons} from './icons';
 import {stageObservation} from './research-actions';
 import {readExactSource,exactSourceRepresentations} from './exact-source-read.mjs';
+import {sourceLinkLabel,rawDataDownload} from './human-presentation.mjs';
 
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);uiText(node, text);node.className=className;return node;};
 const button=(label,action)=>{const b=el('button',label);b.type='button';b.addEventListener('click',action);return b;};
 function link(ref){
-  if(/^https?:\/\//i.test(ref)){try{const url=new URL(ref);const a=el('a',url.hostname+url.pathname,'sc-source-ref');a.href=url.href;a.target='_blank';a.rel='noreferrer noopener';return a;}catch{/* Render invalid references as text. */}}
-  return el('span',ref,'sc-source-ref');
+  const label=sourceLinkLabel(ref);
+  if(/^https?:\/\//i.test(ref)){try{const url=new URL(ref);const a=el('a',label,'sc-source-ref');a.href=url.href;a.target='_blank';a.rel='noreferrer noopener';return a;}catch{/* Render invalid references as a human source label. */}}
+  return el('span',label,'sc-source-ref');
 }
+const statusLabels={
+  'pre-canon':ui("До канона"),canon:ui("Канон"),'derived-export':ui("Проекция источников"),
+  prepared_research_candidate:ui("Исследовательский кандидат"),prepared_branch_candidate:ui("Кандидат ветви"),
+  contested_review_required:ui("Требует рассмотрения"),pending_human_review:ui("Ожидает рассмотрения"),
+  'not-recorded':ui("Не указан"),unresolved:ui("Не разрешено"),review_status_unresolved:ui("Статус рассмотрения не установлен"),
+  unknown:ui("Не указан"),available:ui("Доступно"),missing:ui("Не найдено"),stale:ui("Устарело"),corrupt:ui("Повреждено"),
+  'access-restricted':ui("Доступ ограничен"),'over-budget':ui("Слишком большой объём"),unsupported:ui("Не поддерживается"),
+  source:ui("Источник"),projection:ui("Проекция"),runtime:ui("Рабочий слой"),pending:ui("Ожидает"),
+};
+const humanStatus=value=>statusLabels[value]||ui("Недоступно");
 export function createTools(root,scene,{data:{queries,client},selected,panels,onChange}){
   let persistence=false;
   try{persistence=createLocalStoragePersistence(localStorage,'tos-research-workspace-v1');}catch{/* Workspace remains usable in memory. */}
@@ -35,7 +47,7 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
   panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close();}});
   function show(tab='notes',source){
     reading.capture();focusReturn=document.activeElement instanceof HTMLElement?document.activeElement:open;
-    target=source?{id:source.raw.id,label:localized(source.raw.display.title||source.raw.display.label),kind:source.kind==='relation'?'edge':'node',source_refs:source.raw.source_refs}:selected();
+    target=source?{id:source.raw.id,label:displayTitle(source.raw,ui("Материал без названия")),kind:source.kind==='relation'?'edge':'node',source_refs:source.raw.source_refs}:selected();
     rawSource=source?.raw||(target?.kind==='edge'?scene.port.relation(target.id):scene.port.node(target?.id));sourceKind=source?.kind||(target?.kind==='edge'?'relation':'node');
     panels.open('workspace');uiAttribute(open, 'aria-expanded', 'true');switchTab(tab);tabButtons[Object.keys(names).indexOf(tab)].focus();
   }
@@ -44,7 +56,7 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
   }
   panels.configure('workspace',{onResume:()=>{reading.restore();switchTab(active);}});
   root.addEventListener('sophia-sources',e=>show('sources',e.detail));
-  function report(error){if(error?.name==='AbortError')return;uiText(status, error.message||ui("Не удалось выполнить действие."));scene.invalidate();}
+  function report(error,fallback=ui("Не удалось выполнить действие. Повторите запрос.")){if(error?.name==='AbortError')return;uiText(status,fallback);scene.invalidate();}
   function safe(action){try{return action();}catch(error){report(error);}}
   function actions(...items){const row=el('div','','sc-tool-actions');uiChildren(row, "append", ...items);return row;}
   function context(){uiChildren(body, "append", el('p',target?ui("Для: {0}", [target.label]):ui("Общие записи исследования"),'sc-muted'));}
@@ -65,9 +77,8 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
       actorOrigin:input.actor_origin==='agent'?'agent':'human',basePageRevision:input.context_revision||0,
       dataFingerprint:scene.port.packet?.source_revision||'unavailable'});
   }
-  function download(){const url=URL.createObjectURL(new Blob([workspace.exportPacket()],{type:'application/json'}));const a=el('a');a.href=url;a.download='sophia-research.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   function renderNotes(){
-    const noteTarget=notebookDraft?draftTarget:target;uiChildren(body, "append", el('p',noteTarget?ui("Для: {0}", [noteTarget.label]):ui("Общие записи исследования"),'sc-muted'));uiChildren(body, "append", el('p',ui("Записи и гипотезы сохраняются в этом браузере. Предложения остаются черновиками до рассмотрения."),'sc-muted'));
+    const noteTarget=notebookDraft?draftTarget:target;uiChildren(body, "append", el('p',noteTarget?ui("Для: {0}", [noteTarget.label]):ui("Общие записи исследования"),'sc-muted'));
     const form=el('form'),label=el('label',ui("Новая запись"));label.htmlFor='sc-note-text';const input=el('textarea');input.id='sc-note-text';input.maxLength=2000;uiAttribute(input, "placeholder", ui("Мысль, вопрос или наблюдение…"));input.value=notebookDraft;
     input.addEventListener('input',()=>{if(!notebookDraft)draftTarget=target?{...target}:null;notebookDraft=input.value;});
     const kindLabel=el('label',ui("Тип записи"));kindLabel.htmlFor='sc-note-kind';const kind=el('select');kind.id='sc-note-kind';for(const [value,text]of [['note',ui("Заметка")],['hypothesis',ui("Гипотеза")],['proposal',ui("Предложение к рассмотрению")]]){const opt=el('option',text);opt.value=value;uiChildren(kind, "append", opt);}kind.value=draftKind;kind.addEventListener('change',()=>draftKind=kind.value);
@@ -75,11 +86,12 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
     form.addEventListener('submit',e=>{e.preventDefault();safe(()=>{const text=input.value.trim();if(!text)throw new Error(ui("Напишите текст записи."));const bound=notebookDraft?draftTarget:target;if(kind.value==='hypothesis')hypothesis(text,bound);else if(kind.value==='proposal')stage(text,bound);else addNote(text,bound?.id);notebookDraft='';draftTarget=null;switchTab('notes');uiText(status, ui("Запись сохранена."));});});uiChildren(body, "append", form);
     const undo=button(ui("Отменить"),()=>{workspace.undo();switchTab('notes');}),redo=button(ui("Повторить действие"),()=>{workspace.redo();switchTab('notes');});undo.disabled=!workspace.canUndo();redo.disabled=!workspace.canRedo();
     const upload=el('input');upload.type='file';upload.accept='.json,application/json';upload.hidden=true;uiAttribute(upload, 'aria-label', ui("Импорт исследования"));
-    upload.addEventListener('change',async()=>{const file=upload.files?.[0];if(!file)return;if(file.size>1000000){report(new Error(ui("Файл превышает 1 МБ.")));return;}try{const packet=await file.text();workspace.importPacket(packet);switchTab('notes');uiText(status, ui("Исследование импортировано."));}catch(error){report(error);}});
-    uiChildren(body, "append", actions(undo,redo,button(ui("Экспорт записей"),download),button(ui("Импорт записей"),()=>upload.click()),button(ui("Полная копия исследования"),()=>root.dispatchEvent(new CustomEvent('sophia-workspace-copy')))), upload);
+    upload.addEventListener('change',async()=>{const file=upload.files?.[0];if(!file)return;if(file.size>1000000){uiText(status,ui("Файл превышает 1 МБ."));return;}try{const packet=await file.text();workspace.importPacket(packet);switchTab('notes');uiText(status, ui("Исследование импортировано."));}catch(error){report(error,ui("Не удалось импортировать исследование. Проверьте файл и повторите."));}});
+    const exportButton=rawDataDownload(JSON.parse(workspace.exportPacket()),ui("Экспорт записей"),'sophia-research.json');
+    uiChildren(body, "append", actions(undo,redo,exportButton,button(ui("Импорт записей"),()=>upload.click()),button(ui("Полная копия исследования"),()=>root.dispatchEvent(new CustomEvent('sophia-workspace-copy')))), upload);
     const state=workspace.getState();
     for(const [type,items]of [[ui("Заметка"),state.notes],[ui("Гипотеза"),state.hypotheses],[ui("Предложение · ожидает рассмотрения"),state.proposals]])for(const item of items.slice().reverse()){
-      const entry=el('article','','sc-entry');uiChildren(entry, "append", el('small',type), el('p',item.body||item.statement));if(item.targetId)uiChildren(entry, "append", el('small',item.targetId));
+      const entry=el('article','','sc-entry');uiChildren(entry, "append", el('small',type), el('p',item.body||item.statement));
       if(type==='Заметка')uiChildren(entry, "append", actions(button(ui("Удалить"),()=>{workspace.removeNote(item.id);switchTab('notes');})));
       uiChildren(body, "append", entry);
     }
@@ -87,7 +99,7 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
     if(workspace.persistenceError())uiText(status, ui("Браузер не смог сохранить записи на диск. Экспортируйте исследование перед закрытием."));
   }
   function sourceRecord(record){
-    const entry=el('article','','sc-entry');uiChildren(entry, "append", el('h4',record.label||record.preferred_label||record.node_id));
+    const entry=el('article','','sc-entry');uiChildren(entry, "append", el('h4',record.label||record.preferred_label||ui("Материал без названия")));
     const properties=record.properties||{};if(properties.description||properties.notes)uiChildren(entry, "append", el('p',properties.description||properties.notes,'sc-source-text'));
     for(const ref of [...new Set([...(record.source_refs||[]),properties.url,properties.locator,properties.source_url].filter(v=>typeof v==='string'))])uiChildren(entry, "append", link(ref));
     return entry;
@@ -96,8 +108,8 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
     context();if(!rawSource){uiChildren(body, "append", el('p',ui("Выберите звезду или отношение, чтобы увидеть источники.")));return;}
     const source=rawSource;uiChildren(body, "append", el('p',localized(sourceKind==='relation'?source.display.explanation:source.display.summary,ui("Описание пока не зафиксировано.")),'sc-source-text'));
     const provenance=el('details');uiChildren(provenance, "append", el('summary',ui("Происхождение и статус")));
-    for(const [label,value]of [[ui("Слой"),source.epistemic?.authority_layer],[ui("Рассмотрение"),source.epistemic?.review_posture],[ui("Канон"),source.epistemic?.canon_status]])uiChildren(provenance, "append", el('p',label+': '+(value&&value!=='not-recorded'?value:ui("не указан")),'sc-muted'));
-    for(const ref of source.source_refs)uiChildren(provenance, "append", link(ref));uiChildren(body, "append", provenance);
+    for(const [label,value]of [[ui("Слой"),source.epistemic?.authority_layer],[ui("Рассмотрение"),source.epistemic?.review_posture],[ui("Канон"),source.epistemic?.canon_status]])uiChildren(provenance, "append", el('p',`${String(label)}: ${String(humanStatus(value))}`,'sc-muted'));
+    for(const ref of source.source_refs||[])uiChildren(provenance, "append", link(ref));uiChildren(body, "append", provenance);
     const sourceRevision=scene.port.packet?.source_revision,kind=sourceKind;
     const exact=el('section','','sc-exact-source');
     const isCurrent=()=>!panel.hidden&&active==='sources'&&rawSource===source&&scene.port.packet?.source_revision===sourceRevision;
@@ -115,16 +127,13 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
         const read=response.value;output.dataset.sourceReadStatus=read.status;
         uiChildren(output,"replaceChildren");
         if(read.status!=='available'){
-          uiChildren(output,"append",el('p',ui("Запрошенное представление не выдано. Статус: {0}. Причина: {1}.",[read.status,read.reason]),'sc-muted'));scene.invalidate();return;
+          uiChildren(output,"append",el('p',ui("Запись источника сейчас недоступна. Попробуйте открыть её позже."),'sc-muted'));scene.invalidate();return;
         }
-        const detail=(title,value)=>{const section=el('details');uiChildren(section,"append",el('summary',title),el('pre',JSON.stringify(value,null,2),'sc-source-text'));return section;};
         {
-          uiChildren(exact,"append",el('p',ui("Точная публичная запись источника; её чтение не даёт допуска содержанию или прав на текст носителя.")));
           if(typeof read.record.preferred_label==='string')uiChildren(exact,"append",el('h4',read.record.preferred_label));
           const notes=read.layer==='authored_csv_record'?read.record.note:read.record.notes;
           if(typeof notes==='string'&&notes.trim())uiChildren(exact,"append",el('p',notes,'sc-source-text'));
-          uiChildren(exact,"append",detail(ui("Точная исходная запись"),read.record),detail(ui("Происхождение и статус"),
-            {source_revision:read.source_revision,record_ref:read.record_ref,content_revision:read.content_revision,access:read.access,provenance:read.provenance}));
+          uiChildren(exact,"append",rawDataDownload(read.record,ui("Скачать запись"),'sophia-source-record.json'));
           if(read.record.native_text_binding){
             const choices=el('div','','sc-native-source-choices');uiChildren(exact,"append",choices);
             const response=await requests.run('source-representations',signal=>exactSourceRepresentations(client,sourceRevision,signal));
@@ -138,8 +147,8 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
         }
         reading.restore();scene.invalidate();
       }catch(error){if(!isCurrent()||!output.isConnected)return;
-        if(output.dataset.sourceReadStatus==='loading'){output.dataset.sourceReadStatus='error';uiChildren(output,"replaceChildren",el('p',error.message,'sc-muted'));}
-        else uiChildren(output,"append",el('p',error.message,'sc-muted'));
+        if(output.dataset.sourceReadStatus==='loading'){output.dataset.sourceReadStatus='error';uiChildren(output,"replaceChildren",el('p',ui("Не удалось прочитать запись источника. Попробуйте ещё раз."),'sc-muted'));}
+        else uiChildren(output,"append",el('p',ui("Не удалось прочитать запись источника. Попробуйте ещё раз."),'sc-muted'));
         scene.invalidate();}
     }
     uiChildren(body,"append",actions(button(ui("Открыть исходную запись"),()=>void openExact())),exact);
@@ -158,10 +167,10 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
       for(const [key,title]of [['work',ui("Произведение")],['expression',ui("Редакции и переводы")],['edition',ui("Издания")],['file',ui("Файлы")],['item',ui("Экземпляры")],['link',ui("Ссылки")]]){
         const items=packet.chain?.[key]||[];if(!items.length)continue;const group=el('details');uiChildren(group, "append", el('summary',title+' · '+items.length));for(const item of items)uiChildren(group, "append", sourceRecord(item));uiChildren(result, "append", group);
       }
-      const boundary=packet.agent_summary;if(boundary)uiChildren(result, "append", el('p',ui("Доступность ссылки и право использования — отдельные сведения. Статус прав: {0}.", [(boundary.rights_posture&&boundary.rights_posture!=='unknown'?boundary.rights_posture:ui("не указан"))]),'sc-muted'));
+      const boundary=packet.agent_summary;if(boundary)uiChildren(result, "append", el('p',ui("Доступность ссылки и право использования — отдельные сведения. Статус прав: {0}.",[String(humanStatus(boundary.rights_posture))]),'sc-muted'));
       if(!result.children.length)uiChildren(result, "append", el('p',ui("Дополнительные маршруты источников пока не записаны."),'sc-muted'));
       uiAttribute(body, 'aria-busy', 'false');reading.restore();scene.invalidate();
-    }catch(error){uiAttribute(body, 'aria-busy', 'false');uiChildren(result, "replaceChildren", el('p',error.message,'sc-muted'));uiChildren(result, "append", actions(button(ui("Повторить"),()=>switchTab('sources'))));scene.invalidate();}
+    }catch(error){uiAttribute(body, 'aria-busy', 'false');uiChildren(result, "replaceChildren", el('p',ui("Не удалось загрузить досье источников. Попробуйте ещё раз."),'sc-muted'));uiChildren(result, "append", actions(button(ui("Повторить"),()=>switchTab('sources'))));scene.invalidate();}
   }
   function renderAnalysis(){
     uiChildren(body, "append", el('p',ui("Ищите недостающие источники или подготовьте разбор слова в «Заратустре»."),'sc-muted'));
@@ -176,17 +185,17 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
       const response=await requests.run('analysis',signal=>queries.invoke(operation,input,{signal:externalSignal?AbortSignal.any([signal,externalSignal]):signal}));
       if(!response.current||panel.hidden||active!=='analysis'){externalSignal?.throwIfAborted();throw new DOMException('Panel closed','AbortError');}externalSignal?.throwIfAborted();const packet=response.value;uiText(status, '');
       if(kind==='gaps'){
-        gapHits.clear();for(const gap of packet.gaps||[]){gapHits.set(gap.edge_id,gap);const entry=el('article','','sc-entry');uiChildren(entry, "append", el('h4',gap.to_label||gap.label), el('p',gap.properties?.public_summary_en||gap.summary||''), el('small',ui("Доступ: {0} · Запрос: {1}", [gap.access_status, gap.request_status])));for(const ref of gap.source_refs||[])uiChildren(entry, "append", link(ref));uiChildren(entry, "append", actions(button(ui("Рассмотреть"),()=>chooseGap(gap.edge_id))));uiChildren(out, "append", entry);}
+        gapHits.clear();for(const gap of packet.gaps||[]){gapHits.set(gap.edge_id,gap);const entry=el('article','','sc-entry');uiChildren(entry, "append", el('h4',gap.to_label||gap.label||ui("Источник без названия")), el('p',gap.properties?.public_summary_en||gap.summary||ui("Описание пока недоступно.")), el('small',ui("Доступ: {0} · Запрос: {1}", [String(humanStatus(gap.access_status)), String(humanStatus(gap.request_status))])));for(const ref of gap.source_refs||[])uiChildren(entry, "append", link(ref));uiChildren(entry, "append", actions(button(ui("Рассмотреть"),()=>chooseGap(gap.edge_id))));uiChildren(out, "append", entry);}
         if(!packet.gaps?.length)uiChildren(out, "append", el('p',ui("По этому запросу пробелов не найдено.")));
-      }else if(packet.available!==true){uiChildren(out, "append", el('p',ui("Разбор для этого запроса сейчас недоступен.")), el('p',packet.reason||'','sc-muted'));}
+      }else if(packet.available!==true){uiChildren(out, "append", el('p',ui("Разбор для этого запроса сейчас недоступен. Попробуйте другой запрос.")));}
       else{
         const source=packet.task?.source||{};uiChildren(out, "append", el('h4',source.surface||source.text||query), el('p',source.context||source.excerpt||source.sentence||''));if(source.source_ref)uiChildren(out, "append", link(source.source_ref));
         uiChildren(out, "append", el('p',ui("Подготовлен разбор по исходному тексту. Результат требует рассмотрения."),'sc-muted'));
         // Preserve the full source-bound analysis task for the agent and local export.
-        uiChildren(out, "append", actions(button(ui("Сохранить задание"),()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(packet,null,2)],{type:'application/json'}));const a=el('a');a.href=url;a.download='sophia-word-analysis.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);})));
+        uiChildren(out, "append", actions(rawDataDownload(packet,ui("Сохранить задание"),'sophia-word-analysis.json')));
       }
       scene.invalidate();return packet;
-    }catch(error){report(error);throw error;}
+    }catch(error){report(error,ui("Не удалось выполнить исследование. Повторите запрос."));throw error;}
   }
   function selectionChanged(){/* Drafts remain anchored to their explicit target. */}
   function chooseGap(id){

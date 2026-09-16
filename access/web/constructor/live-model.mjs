@@ -1,9 +1,13 @@
+import {relationLabel} from '../src/observatory/human-presentation.mjs';
 import {displayTitleForm,localized} from '../src/observatory/knowledge-client.mjs';
 import {validateHumanForms,resolveClaimReading} from '../src/observatory/human-forms.mjs';
 
 // Labels remain supplied material. A missing wording stays a visible gap; no
 // meaning, historical relation or confidence is inferred from opaque IDs.
 export function liveLabel(raw,language='ru'){
+  if(raw?.predicate_id)return {text:relationLabel(raw,language),lang:language,role:'navigation'};
+  const navigation=displayTitleForm(raw,language);
+  if(navigation?.navigationOnly||raw?.display?.title?.[language]||raw?.display?.label?.[language])return {...navigation,role:'navigation'};
   const selected=validateHumanForms(raw)?.roles.name;
   if(selected?.state==='ready')return {text:selected.packet.display_text,lang:selected.packet.language,role:'name'};
   const fallback=displayTitleForm(raw,language);
@@ -12,7 +16,7 @@ export function liveLabel(raw,language='ru'){
 // Catalog predicates carry the language map directly in display, unlike
 // graph records. Consume that contract without deriving words from the ID.
 export function livePredicateLabel(predicate,language='ru'){
-  return localized(predicate.display,language==='ru'?'Название не предоставлено':'Name not supplied',language);
+  return relationLabel(predicate,language);
 }
 const TYPE_COLORS=['#bdd5ed','#dbc69a','#b6a5dc','#96c9bb','#d8acae','#aabfdd','#c4ca9b','#d0b7d4'];
 export function liveTypeColor(raw){
@@ -22,7 +26,7 @@ export function liveTypeColor(raw){
 }
 export function liveHover(raw,language='ru'){
   const form=validateHumanForms(raw)?.roles.hover;
-  return form?.state==='ready'?form.packet.display_text:liveLabel(raw,language).text;
+  return form?.state==='ready'&&form.packet.derivation!=='source-copy'?form.packet.display_text:liveLabel(raw,language).text;
 }
 export function liveEdgeLabel(view,edge,language='ru'){
   const missing=()=>({text:language==='ru'?'Формулировка не предоставлена':'Wording not supplied',lang:null,role:'missing'});

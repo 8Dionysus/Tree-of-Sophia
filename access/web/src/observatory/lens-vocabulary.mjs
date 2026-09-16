@@ -1,5 +1,6 @@
-import {t,uiLanguage} from './ui-i18n.mjs';
+import {t,ui,uiLanguage} from './ui-i18n.mjs';
 import {localized} from './knowledge-client.mjs';
+import {relationLabel} from './human-presentation.mjs';
 
 // Presentation groups use the advertised type registry, never ID prefixes or
 // translated labels as evidence of meaning. Unknown mappings stay discoverable.
@@ -31,14 +32,18 @@ export function lensVocabulary(catalog,key){
       return 'other';
     }
     const buckets=types.map(bucket),group=buckets.find(b=>b!=='technical')||buckets[0]||'other';
-    return {id:item[field],title:localized(item.display,item[field]),group,sources,sourceKnown,count:item.count||0};
+    // A missing owner label is still selectable so a saved draft can be
+    // repaired, but it must read as unavailable in the human surface. The
+    // opaque identifier remains in the draft and never becomes a label.
+    const title=sourceKnown?(relation?relationLabel(item):localized(item.display,ui("Недоступно"))):ui("Недоступно");
+    return {id:item[field],title:String(title)===item[field]?ui("Недоступно"):title,group:sourceKnown?group:'unavailable',sources,sourceKnown,count:item.count||0};
   });
 }
 export function vocabularyGroups(items,{sources,selected=[],query='',sort='alphabet'}={}){
   const collator=new Intl.Collator(uiLanguage(),{numeric:true,sensitivity:'base'});
   const needle=query.trim().toLocaleLowerCase('ru'),chosen=new Set(selected),result=new Map();
   const candidates=[...items];
-  for(const id of chosen)if(!items.some(item=>item.id===id))candidates.push({id,title:id,group:'other',sources:[],sourceKnown:false,count:0});
+  for(const id of chosen)if(!items.some(item=>item.id===id))candidates.push({id,title:ui("Сохранённый тип недоступен"),group:'unavailable',sources:[],sourceKnown:false,count:0});
   for(const item of candidates){
     const available=!item.sourceKnown||item.sources.some(source=>sources.includes(source));
     if(!available&&!chosen.has(item.id))continue;

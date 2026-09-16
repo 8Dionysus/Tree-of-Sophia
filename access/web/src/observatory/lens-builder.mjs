@@ -1,10 +1,11 @@
 import {ui,uiAttribute,uiChildren,uiText,uiComputed,uiLanguage} from './ui-i18n.mjs';
-import {BUDGET,ContractError,RequestSlots,localized,sameJson} from './knowledge-client.mjs';
+import {BUDGET,ContractError,RequestSlots,localized,displayTitle,sameJson} from './knowledge-client.mjs';
 import {createConstructorCatalogLoader,initialDraft,validateDraft,compileDraft,previewDraft,draftForPacket,lensDelta} from './lens-model.mjs';
 import {lensVocabulary,vocabularyGroups} from './lens-vocabulary.mjs';
-import {conditionCatalog,conditionText} from './lens-conditions.mjs';
-import {createConditionEditor} from './lens-condition-editor.mjs';
+import {conditionCatalog} from './lens-conditions.mjs';
+import {createConditionEditor,humanConditionText} from './lens-condition-editor.mjs';
 import {createLensPathEditor} from './lens-path-editor.mjs';
+import {sourceLabel,relationLabel} from './human-presentation.mjs';
 import './lens-builder.css';
 
 export const LENS_BUILDER_LIMITS=Object.freeze({nodes:BUDGET.nodes,relations:BUDGET.relations,catalogPage:40});
@@ -17,7 +18,6 @@ const el=(tag,text='',className='')=>{const node=document.createElement(tag);uiT
 const option=(value,text)=>{const node=el('option',text);node.value=String(value);return node;};
 const button=(text,action,className='lens-builder-button')=>{const node=el('button',text,className);node.type='button';node.addEventListener('click',()=>void Promise.resolve().then(action));return node;};
 const field=(text,input)=>{const label=el('label','','lens-builder-field');uiChildren(label,'append',el('span',text),input);return label;};
-const technical=(summary,text)=>{const details=el('details','','lens-builder-technical');uiChildren(details,'append',el('summary',summary),el('p',text));return details;};
 const copy=value=>typeof structuredClone==='function'?structuredClone(value):JSON.parse(JSON.stringify(value));
 const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 const revision=value=>typeof value==='string'&&REVISION.test(value);
@@ -130,32 +130,22 @@ function areaStillCurrent(previous,current){
   return sameJson(areaSignature(previous),areaSignature(current))&&sameJson(previous.packet,current.packet);
 }
 
-function sourceLabel(catalog,id){
-  const labels=catalog?.source_labels??catalog?.sources;
-  if(record(labels)&&typeof labels[id]==='object')return localized(labels[id],id);
-  if(Array.isArray(labels)){
-    const found=labels.find(item=>item?.id===id||item?.source_id===id);
-    if(found)return localized(found.display??found.label??found.labels,id);
-  }
-  return id;
-}
-
-function sourceNames(catalog,ids){return ids.map(id=>sourceLabel(catalog,id)).join(', ');}
+function sourceNames(ids){return ids.map(id=>sourceLabel(id)).join(', ');}
 
 function queryLines(draft,context){
   const nodeEntries=conditionCatalog(context,'nodes'),relationEntries=conditionCatalog(context,'relations');
   const lines=[draft.scope==='area'?ui("Из исходной области · {0}",[draft.nodeIds.length]):draft.scope==='focus'?ui("От выбранной звезды"):ui("По всему древу")];
-  lines.push(ui("Источники: {0}",[sourceNames(context.catalog,draft.sources)||ui("не выбраны")]));
+  lines.push(ui("Источники: {0}",[sourceNames(draft.sources)||ui("не выбраны")]));
   if(draft.scope!=='focus'){
     if(draft.query)lines.push(ui("Поиск: «{0}»",[draft.query]));
-    if(draft.kinds.length)lines.push(ui("Типы узлов: {0}",[draft.kinds.map(id=>localized(context.catalog.node_kinds.find(item=>item.kind_id===id)?.display,id)).join(', ')]));
-    for(const rule of draft.conditions.nodes)lines.push(conditionText(rule,nodeEntries));
+    if(draft.kinds.length)lines.push(ui("Типы узлов: {0}",[draft.kinds.map(id=>{const item=context.catalog.node_kinds.find(entry=>entry.kind_id===id),value=localized(item?.display,ui("Недоступно"));return String(value)===id?ui("Недоступно"):value;}).join(', ')]));
+    for(const rule of draft.conditions.nodes)lines.push(humanConditionText(rule,nodeEntries));
   }
   if(draft.paths?.length)for(const path of draft.paths)
-    lines.push(ui("Путь «{0}»: {1} · шагов: {2}",[path.pathId,path.quantifier==='not_exists'?ui("Такого пути нет"):ui("Есть такой путь"),path.steps.length]));
+    lines.push(ui("Условие пути {0}: {1} · шагов: {2}",[draft.paths.indexOf(path)+1,path.quantifier==='not_exists'?ui("Такого пути нет"):ui("Есть такой путь"),path.steps.length]));
   if(draft.relations){
-    if(draft.predicates.length)lines.push(ui("Типы связей: {0}",[draft.predicates.map(id=>localized(context.catalog.predicates.find(item=>item.predicate_id===id)?.display,id)).join(', ')]));
-    for(const rule of draft.conditions.relations)lines.push(ui("Связь: {0}",[conditionText(rule,relationEntries)]));
+    if(draft.predicates.length)lines.push(ui("Типы связей: {0}",[draft.predicates.map(id=>{const item=context.catalog.predicates.find(entry=>entry.predicate_id===id);return item?relationLabel(item):ui("Недоступно");}).join(', ')]));
+    for(const rule of draft.conditions.relations)lines.push(ui("Связь: {0}",[humanConditionText(rule,relationEntries)]));
     lines.push(ui("Окружение: {0} · {1} · {2}",[draft.depth,({either:ui("в обе стороны"),outgoing:ui("по связям"),incoming:ui("против связей")})[draft.direction],draft.profile==='all'?ui("все типы"):ui("обзор")]));
   }else lines.push(ui("Без связей"));
   lines.push(ui("До {0} звёзд",[draft.limit]));
@@ -169,19 +159,19 @@ function choicePicker({draft,context,key,title,onChange,stateStore}){
   const details=el('details','','lens-builder-choices'),summary=el('summary'),controls=el('div','','lens-builder-choice-controls'),search=el('input'),sort=el('select'),list=el('div','','lens-builder-options');
   search.type='search';search.maxLength=256;uiAttribute(search,'placeholder',ui("Найти в списке…"));uiAttribute(search,'aria-label',ui("Найти: {0}",[title]));search.value=state.query;
   for(const [id,label] of [['alphabet',ui("По алфавиту")],['frequency',ui("Сначала частые")]])uiChildren(sort,'append',option(id,label));sort.value=state.sort;
-  const vocabulary=lensVocabulary(context.catalog,key),titleCounts=new Map();for(const item of vocabulary)titleCounts.set(item.title,(titleCounts.get(item.title)||0)+1);
+  const vocabulary=lensVocabulary(context.catalog,key);
   const caption=()=>uiText(summary,`${String(title)} · ${draft[key].length?ui("{0} выбрано",[draft[key].length]):ui("любые")}`);caption();
   function redraw(){
     const scroll=list.scrollTop;uiChildren(list,'replaceChildren');
     for(const group of vocabularyGroups(vocabulary,{sources:draft.sources,selected:draft[key],query:state.query,sort:state.sort})){
       const section=el('details','','lens-builder-choice-group');section.dataset.group=group.key;section.open=Boolean(state.query)||group.items.some(item=>item.selected)||state.expanded.get(group.key)===true;
       const heading=el('summary',`${String(group.title)} · ${group.items.length}`);section.addEventListener('toggle',()=>state.expanded.set(group.key,section.open));uiChildren(section,'append',heading);
-      if(group.key==='unavailable')uiChildren(section,'append',el('p',ui("Эти условия сохраняются. Снимите их или включите соответствующий источник."),'lens-builder-note'));
+      if(group.key==='unavailable')uiChildren(section,'append',el('p',ui("Некоторые сохранённые варианты недоступны. Снимите выбор или обновите каталог."),'lens-builder-note'));
       const limit=state.limits.get(group.key)||LENS_BUILDER_LIMITS.catalogPage;
       for(const item of group.items.slice(0,limit)){
         const input=el('input');input.type='checkbox';input.value=item.id;input.checked=item.selected;
         input.addEventListener('change',()=>{draft[key]=input.checked?[...draft[key],item.id]:draft[key].filter(id=>id!==item.id);caption();onChange();});
-        const name=el('span',item.title);if(titleCounts.get(item.title)>1)uiChildren(name,'append',el('small',item.id));
+        const name=el('span',item.title);
         const label=el('label','','lens-builder-choice');uiChildren(label,'append',input,name);uiChildren(section,'append',label);
       }
       if(group.items.length>limit)uiChildren(section,'append',button(ui("Ещё варианты · {0}",[group.items.length-limit]),()=>{state.limits.set(group.key,limit+LENS_BUILDER_LIMITS.catalogPage);redraw();},'lens-builder-link'));
@@ -191,7 +181,7 @@ function choicePicker({draft,context,key,title,onChange,stateStore}){
     list.scrollTop=scroll;
   }
   search.addEventListener('input',()=>{state.query=search.value;redraw();});sort.addEventListener('change',()=>{state.sort=sort.value;redraw();});
-  uiChildren(controls,'append',search,sort);uiChildren(details,'append',summary,controls,list,el('p',ui("Типы для выбранных источников. Технические — в отдельной группе."),'lens-builder-note'),button(ui("Сбросить выбор"),()=>{draft[key]=[];caption();redraw();onChange();},'lens-builder-link'));redraw();return details;
+  uiChildren(controls,'append',search,sort);uiChildren(details,'append',summary,controls,list,el('p',ui("Дополнительные типы собраны отдельно."),'lens-builder-note'),button(ui("Сбросить выбор"),()=>{draft[key]=[];caption();redraw();onChange();},'lens-builder-link'));redraw();return details;
 }
 
 function localizedPacketCounts(packet){
@@ -209,9 +199,9 @@ export function mountLensBuilder({host,client,locale='ru',getArea,getCatalog,onA
   const requests=new RequestSlots();
   const catalogLoader=createConstructorCatalogLoader(client,getCatalog);
   const root=el('section','','lens-builder');root.hidden=true;root.tabIndex=-1;root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.lang=language(locale);uiAttribute(root,'aria-label',ui("Конструктор линз"));
-  const header=el('header','','lens-builder-header'),heading=el('h2',ui("Собрать линзу")),subtitle=el('p',ui("Настройте область по словарю текущего снимка."),'lens-builder-subtitle'),closeButton=button(ui("Закрыть конструктор"),()=>close(),'lens-builder-close');
+  const header=el('header','','lens-builder-header'),heading=el('h2',ui("Собрать линзу")),closeButton=button(ui("Закрыть конструктор"),()=>close(),'lens-builder-close');
   heading.id=`lens-builder-title-${++builderId}`;root.setAttribute('aria-labelledby',heading.id);
-  uiChildren(header,'append',el('div','','lens-builder-heading-copy'),closeButton);header.querySelector('.lens-builder-heading-copy').append(heading,subtitle);
+  uiChildren(header,'append',el('div','','lens-builder-heading-copy'),closeButton);header.querySelector('.lens-builder-heading-copy').append(heading);
   const areaInfo=el('section','','lens-builder-area'),body=el('div','','lens-builder-body'),previewRegion=el('section','','lens-builder-preview');previewRegion.setAttribute('aria-live','polite');
   const status=el('p','','lens-builder-status');status.setAttribute('role','status');const footer=el('footer','','lens-builder-footer');
   uiChildren(root,'append',header,areaInfo,body,previewRegion,status,footer);host.append(root);
@@ -219,8 +209,8 @@ export function mountLensBuilder({host,client,locale='ru',getArea,getCatalog,onA
   let opened=false,destroyed=false,loading=false,previewing=false,area=null,context=null,draft=null,preview=null;
   let error='',previewError='',areaChoice=null,invalidDraft=null,previewRevision=-1,draftRevision=0,areaRevision=null,returnFocus=null;
   const choiceStates=new Map();
-  const report=problem=>{if(destroyed)return;error=problem?.message||String(problem);status.dataset.state='error';try{onError?.(problem);}catch{}};
-  const areaProblem=message=>{const problem=message instanceof Error?message:new ContractError(message);report(problem);return problem;};
+  const report=problem=>{if(destroyed)return;error=ui("Не удалось выполнить действие. Повторите запрос.");status.dataset.state='error';try{onError?.(problem);}catch{}};
+  const areaProblem=message=>{const problem=message instanceof Error?message:new ContractError(message);if(message instanceof Error)report(problem);else{error=String(message);status.dataset.state='error';try{onError?.(problem);}catch{}}return problem;};
   // A top-level opening may have no current area. Keep that as an explicit
   // null state so a saved all/focus definition can still be edited without
   // manufacturing a packet or borrowing a stale scene.
@@ -231,7 +221,7 @@ export function mountLensBuilder({host,client,locale='ru',getArea,getCatalog,onA
     return normalizeLensBuilderArea(value);
   };
   const sourceMismatch=()=>Boolean(area&&context&&context.catalog.source_revision!==area.packet.source_revision);
-  const draftValidationError=()=>{try{validateDraft(draft);return '';}catch(problem){return problem?.message||String(problem);}};
+  const draftValidationError=()=>{try{validateDraft(draft);return '';}catch{return ui("Проверьте настройки линзы.");}};
   const validDraft=()=>!draftValidationError();
   const areaScopeNode=()=>selectedNodeId(area?.selection)||area?.packet?.focus?.node_id||null;
   const previewApplicable=()=>lensBuilderCanApply({preview,previewRevision,draftRevision,areaRevision,sourceRevision:area?.packet?.source_revision??context?.catalog?.source_revision})&&!sourceMismatch()&&!areaChoice?.required;
@@ -253,16 +243,14 @@ export function mountLensBuilder({host,client,locale='ru',getArea,getCatalog,onA
     const budget=lensBuilderAreaBudget(area),scope=area.packet.schema==='tos_lens_result_v1'?ui("Линза"):ui("Исследовательская область");
     const title=el('p',`${String(scope)} · ${ui("Исходных записей: {0}; связей: {1}",[budget.nodes,budget.relations])}`,'lens-builder-area-title');
     const areaSources=Array.isArray(area.packet.sources)?area.packet.sources:Array.isArray(draft?.sources)?draft.sources:[];
-    const sources=el('p',ui("Источники области: {0}",[sourceNames(context?.catalog,areaSources)]),'lens-builder-note');
-    const revisionText=technical(ui("Технические сведения"),ui("Версия области: {0}",[area.packet.source_revision]));
-    uiChildren(areaInfo,'append',title,sources,revisionText);
-    if(budget.overBudget)uiChildren(areaInfo,'append',el('p',ui("Область больше обычного размера; счётчики показаны полностью."),'lens-builder-warning'),technical(ui("Технические сведения"),ui("Границы конструктора: узлы {0}, связи {1}. Исходный packet не обрезается.",[LENS_BUILDER_LIMITS.nodes,LENS_BUILDER_LIMITS.relations])));
+    const sources=el('p',ui("Источники области: {0}",[sourceNames(areaSources)]),'lens-builder-note');
+    uiChildren(areaInfo,'append',title,sources);
+    if(budget.overBudget)uiChildren(areaInfo,'append',el('p',ui("Область больше обычного размера. Выберите центр или весь граф.") ,'lens-builder-warning'));
     if(sourceMismatch())uiChildren(areaInfo,'append',el('p',ui("Каталог и область относятся к разным версиям данных. Обновите область перед просмотром или сохранением."),'lens-builder-warning'));
     if(areaChoice?.required){
       const choice=el('fieldset','','lens-builder-area-choice');uiChildren(choice,'append',el('legend',ui("Большая область: выберите область действия")));
-      const help=areaChoice.invalid?ui("Выберите «От выбранной звезды» или «По всему древу»; исходные идентификаторы сохранены."):ui("Исходная область содержит {0} узлов. Выберите способ отбора.",[areaChoice.nodeCount]);
-      const technicalHelp=areaChoice.invalid?ui("Импортировано идентификаторов узлов: {0}. Схема допускает не более {1}; исходные значения не обрезаются.",[areaChoice.sourceNodeIds,LENS_BUILDER_LIMITS.nodes]):ui("Исходные идентификаторы packet не обрезаются; для области больше {0} узлов требуется явный выбор способа отбора.",[LENS_BUILDER_LIMITS.nodes]);
-      uiChildren(choice,'append',el('p',help,'lens-builder-warning'),technical(ui("Технические сведения"),technicalHelp));
+      const help=areaChoice.invalid?ui("Выберите «От выбранной звезды» или «По всему древу»."):ui("Исходная область содержит {0} узлов. Выберите способ отбора.",[areaChoice.nodeCount]);
+      uiChildren(choice,'append',el('p',help,'lens-builder-warning'));
       const select=el('select');uiAttribute(select,'aria-label',ui("Область действия большой области"));
       for(const value of areaChoice.choices)uiChildren(select,'append',option(value,value==='focus'?ui("От выбранной звезды"):ui("По всему древу")));
       if(areaChoice.defaultScope)select.value=areaChoice.defaultScope;
@@ -293,12 +281,13 @@ export function mountLensBuilder({host,client,locale='ru',getArea,getCatalog,onA
     const scope=el('select');for(const [value,label] of scopeChoices)uiChildren(scope,'append',option(value,label));scope.value=draft.scope;scope.addEventListener('change',()=>{draft.scope=scope.value;touch({rerender:true});});uiChildren(body,'append',field(ui("Отправная точка"),scope));
     if(draft.scope==='area')uiChildren(body,'append',el('p',ui("Исходная область: {0}. Фильтры выбирают начало; глубина добавляет окружение.",[count(draft.nodeIds.length,ui("звезда"),ui("звезды"),ui("звёзд"))]),'lens-builder-note'));
     if(draft.scope==='focus'){
-      uiChildren(body,'append',el('p',ui("Центр: {0}",[draft.focusId||ui("не выбран")]),'lens-builder-focus'));
+      const center=scene.port.node(draft.focusId)||area?.packet?.nodes?.find(item=>item.id===draft.focusId);
+      uiChildren(body,'append',el('p',ui("Центр: {0}",[center?displayTitle(center,ui("Звезда")):ui("Звезда недоступна")]),'lens-builder-focus'));
       if(!draft.focusId&&areaScopeNode())uiChildren(body,'append',button(ui("Взять выбранную звезду"),()=>{draft.focusId=areaScopeNode();touch({rerender:true});},'lens-builder-link'));
       uiChildren(body,'append',el('p',ui("Условия ниже выбирают связи вокруг явного центра."),'lens-builder-note'));
     }
     const sources=el('fieldset','','lens-builder-sources');uiChildren(sources,'append',el('legend',ui("Источники")));
-    for(const id of context.catalog.capabilities.sources){const input=el('input');input.type='checkbox';input.checked=draft.sources.includes(id);input.addEventListener('change',()=>{draft.sources=input.checked?[...draft.sources,id]:draft.sources.filter(source=>source!==id);touch({rerender:true});});const label=el('label');uiChildren(label,'append',input,el('span',sourceLabel(context.catalog,id)));uiChildren(sources,'append',label);}uiChildren(body,'append',sources);
+    for(const id of context.catalog.capabilities.sources){const input=el('input');input.type='checkbox';input.checked=draft.sources.includes(id);input.addEventListener('change',()=>{draft.sources=input.checked?[...draft.sources,id]:draft.sources.filter(source=>source!==id);touch({rerender:true});});const label=el('label');uiChildren(label,'append',input,el('span',sourceLabel(id)));uiChildren(sources,'append',label);}uiChildren(body,'append',sources);
     if(draft.scope!=='focus'){
       const query=el('input');query.type='search';query.maxLength=256;query.value=draft.query;uiAttribute(query,'placeholder',ui("Имя, произведение, понятие…"));query.addEventListener('input',()=>{draft.query=query.value;touch();});uiChildren(body,'append',field(ui("Слова в исходных узлах"),query));
       uiChildren(body,'append',choicePicker({draft,context,key:'kinds',title:ui("Типы узлов"),onChange:touch,stateStore:choiceStates}));
@@ -315,20 +304,18 @@ export function mountLensBuilder({host,client,locale='ru',getArea,getCatalog,onA
       }
     }
     const limit=el('select');for(const value of [10,20,40])uiChildren(limit,'append',option(value,ui("До {0}",[value])));limit.value=String(draft.limit);limit.addEventListener('change',()=>{draft.limit=Number(limit.value);touch();});uiChildren(grid,'append',field(ui("Звёзд в области"),limit));uiChildren(body,'append',grid);
-    uiChildren(body,'append',el('p',ui("Словарь данных задаёт доступные поля. Просмотр не изменяет текущее пространство."),'lens-builder-note'),technical(ui("Технические сведения"),ui("Доступные поля и ограничения берутся из каталога и схемы; просмотр не меняет сцену.")));
   }
 
   function renderPreview(){
     uiChildren(previewRegion,'replaceChildren');
-    if(!draft||!context){uiChildren(previewRegion,'append',el('p',ui("Измените условия, затем запросите просмотр."),'lens-builder-note'));return;}
-    const summary=el('details','','lens-builder-query');uiChildren(summary,'append',el('summary',ui("Настройки линзы")));const lines=el('ul');for(const line of queryLines(draft,context))uiChildren(lines,'append',el('li',line));uiChildren(summary,'append',lines,el('p',ui("Источники настроек: {0}",[sourceNames(context.catalog,draft.sources)]),'lens-builder-note'));uiChildren(previewRegion,'append',summary);
-    if(!preview){uiChildren(previewRegion,'append',el('p',ui("Просмотр выполняется только после явного действия и не меняет сцену."),'lens-builder-note'));return;}
+    if(!draft||!context)return;
+    const summary=el('details','','lens-builder-query');uiChildren(summary,'append',el('summary',ui("Настройки линзы")));const lines=el('ul');for(const line of queryLines(draft,context))uiChildren(lines,'append',el('li',line));uiChildren(summary,'append',lines,el('p',ui("Источники настроек: {0}",[sourceNames(draft.sources)]),'lens-builder-note'));uiChildren(previewRegion,'append',summary);
+    if(!preview)return;
     const counts=localizedPacketCounts(preview);uiChildren(previewRegion,'append',el('strong',ui("Исходных записей: {0}; связей: {1}",[counts.nodes,counts.relations])));
     if(counts.matched!==null)uiChildren(previewRegion,'append',el('p',ui("Условиями выбрано: {0}.",[counts.matched])));
     if(counts.truncatedNodes||counts.truncatedRelations)uiChildren(previewRegion,'append',el('p',ui("Результат ограничен: узлы {0}, связи {1}.",[counts.truncatedNodes,counts.truncatedRelations]),'lens-builder-warning'));
     if(area){const delta=lensDelta(area.packet,preview);uiChildren(previewRegion,'append',el('p',ui("Изменение исходных записей: +{0} / −{1}; связей: +{2} / −{3}.",[delta.nodes.added,delta.nodes.removed,delta.relations.added,delta.relations.removed])));}
-    uiChildren(previewRegion,'append',technical(ui("Технические сведения"),ui("Источники результата: {0} · версия: {1}",[sourceNames(context.catalog,draft.sources),preview.source_revision||context.catalog.source_revision])));
-    if(!counts.nodes)uiChildren(previewRegion,'append',el('p',ui("В выбранной области совпадений нет. Это не означает глобального отсутствия в древе."),'lens-builder-warning'),el('p',area?ui("Прежняя область сохранена; пустой результат нельзя открыть в текущем пространстве."):ui("Текущее пространство не изменено; пустой результат нельзя открыть."),'lens-builder-warning'));
+    if(!counts.nodes)uiChildren(previewRegion,'append',el('p',ui("Совпадений нет. Измените источники или условие."),'lens-builder-warning'));
     if(previewRevision!==draftRevision)uiChildren(previewRegion,'append',el('p',ui("Результат относится к прежним настройкам. Запросите просмотр снова после правки."),'lens-builder-warning'));
     if(previewError)uiChildren(previewRegion,'append',el('p',previewError,'lens-builder-warning'));
   }
@@ -346,9 +333,9 @@ export function mountLensBuilder({host,client,locale='ru',getArea,getCatalog,onA
     const validation=draft?draftValidationError():'';
     try{
       root.dataset.state=error||validation?'error':previewError?'preview-error':preview&&previewRevision!==draftRevision?'preview-stale':preview?'preview':loading?'loading':'ready';
-      renderArea();renderBody();renderPreview();renderFooter();uiText(status,error||validation||previewError||sourceMismatch()?error||validation||previewError||ui("Каталог и область относятся к разным версиям данных. Обновите область."):previewing?ui("Получаю результат…"):preview&&previewRevision!==draftRevision?ui("Настройки изменены. Старый результат сохранён, но его нельзя открыть."):preview?ui("Результат готов; текущее пространство не менялось."):ui("Измените условия и запросите просмотр."));
+      renderArea();renderBody();renderPreview();renderFooter();uiText(status,error||validation||previewError||sourceMismatch()?error||validation||previewError||ui("Каталог и область относятся к разным версиям данных. Обновите область."):previewing?ui("Получаю результат…"):preview&&previewRevision!==draftRevision?ui("Условия изменены. Обновите предпросмотр."):'');
     }catch(problem){
-      error=problem?.message||String(problem);root.dataset.state='error';
+      error=ui("Не удалось отобразить конструктор. Повторите загрузку.");root.dataset.state='error';
       try{onError?.(problem);}catch{}
       uiChildren(body,'replaceChildren',el('p',error,'lens-builder-warning'));
       uiChildren(previewRegion,'replaceChildren');uiChildren(footer,'replaceChildren');
@@ -396,7 +383,7 @@ export function mountLensBuilder({host,client,locale='ru',getArea,getCatalog,onA
       const sourceRevision=area?.packet?.source_revision??context.catalog.source_revision;
       if(answer.value.source_revision!==sourceRevision)throw new ContractError(ui("Результат относится к другой версии данных."));
       preview=answer.value;previewRevision=revisionAtStart;previewError='';return true;
-    }catch(problem){if(revisionAtStart===draftRevision&&opened){previewError=problem?.message||String(problem);try{onError?.(problem);}catch{}}return false;}
+    }catch(problem){if(revisionAtStart===draftRevision&&opened){previewError=ui("Не удалось выполнить просмотр. Проверьте условия и повторите.");try{onError?.(problem);}catch{}}return false;}
     finally{if(revisionAtStart===draftRevision){previewing=false;render();}}
   }
 

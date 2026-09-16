@@ -1,6 +1,6 @@
 import {uiComputed,uiLanguage,ui,uiAttribute,uiChildren,uiText} from './ui-i18n.mjs';
 import {capturePlace,reopenPlace,pinHistoryPlace} from './place-model.mjs';
-import {localized} from './knowledge-client.mjs';
+import {displayTitle} from './knowledge-client.mjs';
 import {createTravelStore,createTravelNavigation,historyLabel,travelKey,HISTORY_KEY,HISTORY_LIMIT} from './travel-model.mjs';
 import './travel.css';
 
@@ -37,8 +37,8 @@ export function createTravelPanel(root,scene,panels,{client,onUserAction=()=>{}}
     uiAttribute(back, "data-tooltip", back.disabled?ui("Это начало сохранённого пути."):ui("Предыдущий материал или область. Alt + ←."));
     uiAttribute(forward, "data-tooltip", forward.disabled?ui("Дальше сохранённых переходов нет."):ui("Следующий материал или область. Alt + →."));
     uiText(opener, ui("История{0} ▾", [(entries.length?' · '+(cursor+1)+'/'+entries.length:'')]));
-    opener.dataset.unsaved=String(Boolean(store.error));uiAttribute(opener, "data-tooltip", store.error||ui("Вернуться к материалу или области исследования."));
-    uiAttribute(panel, 'aria-busy', String(busy));uiText(status, failure||store.error||message);
+    opener.dataset.unsaved=String(Boolean(store.error));uiAttribute(opener, "data-tooltip", store.error?ui("Историю не удалось сохранить. Экспортируйте записи перед закрытием страницы."):ui("Вернуться к материалу или области исследования."));
+    uiAttribute(panel, 'aria-busy', String(busy));uiText(status, failure||(store.error?ui("Историю не удалось сохранить. Экспортируйте записи перед закрытием страницы."):message));
     retry.hidden=!retryId||!failure;retry.disabled=busy;save.hidden=!store.error;clear.disabled=busy;
     if(panel.hidden)return;
     const focused=document.activeElement?.dataset.historyId,scroll=list.scrollTop;uiChildren(list, "replaceChildren");
@@ -50,7 +50,7 @@ export function createTravelPanel(root,scene,panels,{client,onUserAction=()=>{}}
       const pin=button(ui("☆ В места"),()=>{
         onUserAction();try{if(!storage)throw new Error(ui("Локальное хранилище недоступно."));const place=pinHistoryPlace(storage,entry);
           root.dispatchEvent(new CustomEvent('sophia-place-saved',{detail:place}));failure='';message=ui("Место «{0}» сохранено. Название можно изменить в «Моём пространстве».", [place.name]);render();
-        }catch(error){failure=error.message;render();}
+        }catch{failure=ui("Не удалось сохранить место. Проверьте хранилище браузера.");render();}
       },'sc-history-pin');uiAttribute(pin, "data-tooltip", ui("Сохранить область, линзу и положение камеры для возвращения. Название можно изменить в местах."));uiAttribute(pin, 'aria-label', ui("Сохранить место: {0}", [entry.name]));pin.disabled=busy;uiChildren(row, "append", pin);
     }
     list.scrollTop=scroll;if(focused)[...list.querySelectorAll('button')].find(b=>b.dataset.historyId===focused)?.focus();scene.invalidate();
@@ -58,7 +58,7 @@ export function createTravelPanel(root,scene,panels,{client,onUserAction=()=>{}}
   function capture(){
     const packet=scene.port.packet;if(!packet?.nodes.length)return null;
     const pose=scene.port.capturePlace(),raw=pose.relationId?scene.port.relation(pose.relationId):scene.port.node(pose.selectedId||packet.focus?.node_id);
-    const title=localized(raw?.display?.title||raw?.display?.label,ui("область"));
+    const title=displayTitle(raw,ui("область"));
     const value=capturePlace(packet,pose,{name:ui("Шаг"),id:crypto.randomUUID(),route:location.search});
     value.name=historyLabel(lastPlace,value,title);return value;
   }
@@ -68,7 +68,7 @@ export function createTravelPanel(root,scene,panels,{client,onUserAction=()=>{}}
     pending=false;
     try{const value=capture();if(!value)return;const key=travelKey(value);if(key===baseline&&value.name===store.state.entries[store.state.cursor]?.name)return;
       baseline=key;store.record(value);lastPlace=store.state.entries[store.state.cursor]||value;saveLater();render();
-    }catch(error){failure=error.message;render();}
+    }catch{failure=ui("Не удалось сохранить историю. Экспортируйте записи перед закрытием страницы.");render();}
   }
   function observe(){if(!started||applying||busy||pending)return;pending=true;queueMicrotask(()=>{if(pending)flush();});}
   function cancel(){if(!busy)return;navigator.cancel();retryId=null;failure='';message=ui("Переход прерван вашим действием.");render();}
@@ -82,7 +82,7 @@ export function createTravelPanel(root,scene,panels,{client,onUserAction=()=>{}}
       retryId=null;const pose=result.value.pose,selection=scene.port.selection;
       message=(pose.selectedId&&selection.nodeId!==pose.selectedId||pose.relationId&&selection.relationId!==pose.relationId)?ui("Область открыта; прежний выбранный материал больше недоступен."):result.value.changed?ui("Шаг открыт. Данные обновились с прошлого посещения."):ui("Шаг открыт.");
       store.save();scene.port.announce(message);render();
-    }catch(error){failure=error.message;message='';panels.open('history');uiAttribute(opener, 'aria-expanded', 'true');render();}
+    }catch{failure=ui("Не удалось открыть этот шаг. Повторите переход.");message='';panels.open('history');uiAttribute(opener, 'aria-expanded', 'true');render();}
   }
   async function step(delta){flush();const {entries,cursor}=store.state;await go(entries[cursor+delta]?.id);}
   // The scene calls beforeChange before a semantic mutation. The microtask
@@ -104,7 +104,7 @@ export function createTravelPanel(root,scene,panels,{client,onUserAction=()=>{}}
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&!replacing){flush();store.save();}});
   render();
   return {observe,exportState(){flush();return store.state;},flush(){flush();clearTimeout(saveTimer);store.save();},resume:route=>store.resume(route),start({restored=false}={}){
-    if(restored){try{lastPlace=capture();baseline=lastPlace&&travelKey(lastPlace);}catch(error){failure=error.message;}}
+    if(restored){try{lastPlace=capture();baseline=lastPlace&&travelKey(lastPlace);}catch{failure=ui("Не удалось восстановить историю. Откройте сохранённый шаг вручную.");}}
     started=true;observe();render();
   }};
 }

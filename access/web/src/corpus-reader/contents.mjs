@@ -4,7 +4,8 @@ export function mountCorpusContents({reader,provider,locale=()=> 'ru'}) {
   const root=reader.element;
   if(!root)throw new TypeError('Reader element is required.');
   let opened=false,disposed=false,request=null,generation=0,page=null,back=[],currentCursor=null,currentKey='';
-  const words=()=>locale()==='en'?{
+  const english=()=>String(locale()||'ru').toLowerCase().startsWith('en');
+  const words=()=>english()?{
     title:'Contents',close:'Close contents',empty:'Choose a work first.',unavailable:'The source does not provide a table of contents yet.',
     loading:'Loading sections…',failed:'These sections could not be loaded.',more:'More sections',back:'Previous sections',start:'Beginning',retry:'Retry',
   }:{title:'Оглавление',close:'Закрыть оглавление',empty:'Сначала выберите произведение.',unavailable:'Источник пока не предоставляет оглавление.',

@@ -1,16 +1,17 @@
 import {uiComputed,uiLanguage,ui,uiAttribute,uiChildren,uiHTML,uiText} from './ui-i18n.mjs';
-import {RequestSlots,localized} from './knowledge-client.mjs';
+import {RequestSlots,localized,displayTitle} from './knowledge-client.mjs';
 import {constructorCatalog,initialDraft,validateDraft,compileDraft,previewDraft,summarizeLens,lensDelta,encodeDraft,draftForPacket,readSaved,saveDraft} from './lens-model.mjs';
 import {lensVocabulary,vocabularyGroups} from './lens-vocabulary.mjs';
-import {createConditionEditor} from './lens-condition-editor.mjs';
+import {createConditionEditor,humanConditionText} from './lens-condition-editor.mjs';
 import {createLensPathEditor} from './lens-path-editor.mjs';
-import {conditionCatalog,conditionText} from './lens-conditions.mjs';
+import {conditionCatalog} from './lens-conditions.mjs';
+import {sourceLabel,relationLabel,profileLabel} from './human-presentation.mjs';
 import {refreshIcons} from './icons';
 
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);uiText(node, text);node.className=className;return node;};
 const button=(label,action,className='sc-builder-button')=>{const b=el('button',label,className);b.type='button';b.addEventListener('click',action);return b;};
 const count=(n,one,few,many)=>uiComputed(()=>`${n} ${{one,few,many}[new Intl.PluralRules(uiLanguage()).select(n)]||many}`);
-const sourceNames={'philosophy':ui("Философский атлас"),'canon':ui("Канон"),'candidate-intake':ui("Исследовательские кандидаты"),'source-navigation':ui("Произведения и источники"),'source-claims':ui("Утверждения источников"),'semantic-interchange':ui("Понятия и типы"),'repository':ui("Карта проекта")};
+const sourceNames=ids=>ids.map(id=>sourceLabel(id)).join(', ');
 
 export function createLensPanel(root,scene,panels,{data:{client},onUserAction=()=>{},onSave}={}){
   const requests=new RequestSlots();
@@ -29,22 +30,22 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction=()
   function queryLines(value,lookup=context){
     const nodeEntries=lookup?conditionCatalog(lookup,'nodes'):[],relationEntries=lookup?conditionCatalog(lookup,'relations'):[];
     const lines=[value.scope==='area'?ui("Из исходной области · {0}", [value.nodeIds.length]):value.scope==='focus'?ui("От выбранной звезды"):ui("По всему древу")];
-    lines.push(ui("Источники: {0}", [value.sources.map(id=>sourceNames[id]||id).join(', ')]));
+    lines.push(ui("Источники: {0}", [sourceNames(value.sources)||ui("не выбраны")]));
     if(value.scope!=='focus'){
       if(value.query)lines.push(ui("Поиск: «{0}»", [value.query]));
-      if(value.kinds.length)lines.push(ui("Типы узлов: {0}", [value.kinds.map(id=>localized(lookup?.catalog.node_kinds.find(k=>k.kind_id===id)?.display,id)).join(', ')]));
-      for(const rule of value.conditions.nodes)lines.push(conditionText(rule,nodeEntries));
+      if(value.kinds.length)lines.push(ui("Типы узлов: {0}", [value.kinds.map(id=>{const item=lookup?.catalog.node_kinds.find(entry=>entry.kind_id===id),value=localized(item?.display,ui("Недоступно"));return String(value)===id?ui("Недоступно"):value;}).join(', ')]));
+      for(const rule of value.conditions.nodes)lines.push(humanConditionText(rule,nodeEntries));
     }
     if(Array.isArray(value.paths)&&value.paths.length){
       for(const path of value.paths){
         const check=path.quantifier==='not_exists'?ui("Такого пути нет"):ui("Есть такой путь");
-        lines.push(ui("Путь «{0}»: {1} · шагов: {2}",[path.pathId,check,path.steps.length]));
+        lines.push(ui("Условие пути {0}: {1} · шагов: {2}",[value.paths.indexOf(path)+1,check,path.steps.length]));
       }
     }
     if(value.relations){
-      if(value.predicates.length)lines.push(ui("Типы связей: {0}", [value.predicates.map(id=>localized(lookup?.catalog.predicates.find(k=>k.predicate_id===id)?.display,id)).join(', ')]));
-      for(const rule of value.conditions.relations)lines.push(ui("Связь: {0}", [conditionText(rule,relationEntries)]));
-      lines.push(ui("Окружение: {0} · {1} · {2}", [value.depth, ({either:ui("в обе стороны"),outgoing:ui("по связям"),incoming:ui("против связей")})[value.direction], value.profile==='all'?ui("все типы"):ui("обзор")]));
+      if(value.predicates.length)lines.push(ui("Типы связей: {0}", [value.predicates.map(id=>{const item=lookup?.catalog.predicates.find(entry=>entry.predicate_id===id);return item?relationLabel(item):ui("Недоступно");}).join(', ')]));
+      for(const rule of value.conditions.relations)lines.push(ui("Связь: {0}", [humanConditionText(rule,relationEntries)]));
+      lines.push(ui("Окружение: {0} · {1} · {2}", [value.depth, ({either:ui("в обе стороны"),outgoing:ui("по связям"),incoming:ui("против связей")})[value.direction]||ui("Недоступно"), profileLabel(value.profile)]));
     }else lines.push(ui("Без связей"));
     lines.push(ui("До {0} звёзд", [value.limit]));return lines;
   }
@@ -65,10 +66,10 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction=()
     panels.open('builder');failure='';notice='';
     if(hasRequestedDraft){
       try{draft=validateDraft(structuredClone(requestedDraft));}
-      catch(error){draft=null;failure=error.message||ui("Не удалось прочитать настройки линзы.");render();return false;}
+      catch(error){draft=null;failure=ui("Не удалось прочитать настройки линзы. Проверьте условия и повторите.");render();return false;}
     }
     if(onSave){saved=[];storageError='';}
-    else try{saved=readSaved(localStorage);storageError='';}catch(error){saved=[];storageError=error.message||ui("Локальное хранилище недоступно.");}
+    else try{saved=readSaved(localStorage);storageError='';}catch(error){saved=[];storageError=ui("Локальное хранилище недоступно.");}
     if(context&&context.catalog.source_revision===scene.port.packet?.source_revision){prepareDraft();render();return Boolean(draft&&!failure);}
     await loadCatalog();return Boolean(draft&&!failure);
   }
@@ -81,7 +82,7 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction=()
     onUserAction();stop();const token=generation;busy=true;context=null;notice='';render();
     try{const answer=await requests.run('catalog',signal=>constructorCatalog(client,signal));
       if(!answer.current||token!==generation||panel.hidden)return;context=answer.value;prepareDraft();failure='';
-    }catch(error){if(token===generation)failure=error.message||ui("Не удалось загрузить словарь данных.");}
+    }catch(error){if(token===generation)failure=ui("Не удалось загрузить словарь данных. Обновите каталог и повторите.");}
     finally{if(token===generation){busy=false;render();}}
   }
   function touch({composing=false}={}){
@@ -102,8 +103,7 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction=()
     search.type='search';uiAttribute(search, "placeholder", ui("Найти в списке…"));uiAttribute(search, 'aria-label', ui("Найти: {0}", [title]));search.value=state.query;
     const sorting=el('select');uiAttribute(sorting, 'aria-label', ui("Порядок: {0}", [title]));
     for(const [id,name]of [['alphabet',ui("По алфавиту")],['frequency',ui("Сначала частые")]]){const option=el('option',name);option.value=id;uiChildren(sorting, "append", option);}sorting.value=state.sort;
-    const vocabulary=lensVocabulary(context.catalog,key),titleCounts=new Map();
-    for(const item of vocabulary)titleCounts.set(item.title,(titleCounts.get(item.title)||0)+1);
+    const vocabulary=lensVocabulary(context.catalog,key);
     const caption=()=>uiText(summary, title+' · '+(draft[key].length?ui("{0} выбрано", [draft[key].length]):ui("любые")));caption();
     function redraw(){
       const scroll=list.scrollTop;uiChildren(list, "replaceChildren");
@@ -113,13 +113,12 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction=()
         section.dataset.group=group.key;
         section.open=state.query.trim()!==''||group.items.some(item=>item.selected)||state.expanded.get(group.key)===true;
         section.addEventListener('toggle',()=>state.expanded.set(group.key,section.open));uiChildren(section, "append", heading);
-        if(group.key==='unavailable')uiChildren(section, "append", el('p',ui("Эти условия сохраняются. Снимите их или включите соответствующий источник."),'sc-builder-note'));
+        if(group.key==='unavailable')uiChildren(section, "append", el('p',ui("Некоторые сохранённые варианты недоступны. Снимите выбор или обновите каталог."),'sc-builder-note'));
         const limit=state.limits.get(group.key)||40;
         for(const item of group.items.slice(0,limit)){
           const input=el('input');input.type='checkbox';input.value=item.id;input.checked=item.selected;
           input.addEventListener('change',()=>{draft[key]=input.checked?[...draft[key],item.id]:draft[key].filter(id=>id!==item.id);caption();touch();});
           const label=el('label','','sc-builder-choice'),name=el('span',item.title);
-          if(titleCounts.get(item.title)>1)uiChildren(name, "append", el('small',item.id));
           uiChildren(label, "append", input, name);uiChildren(section, "append", label);
         }
         if(group.items.length>limit)uiChildren(section, "append", button(ui("Ещё варианты · {0}", [(group.items.length-limit)]),()=>{state.limits.set(group.key,limit+40);redraw();},'sc-builder-link'));
@@ -132,7 +131,7 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction=()
     sorting.addEventListener('change',()=>{state.sort=sorting.value;redraw();});
     choiceUpdates.set(key,redraw);redraw();
     const controls=el('div','','sc-builder-choice-controls');uiChildren(controls, "append", search, sorting);
-    uiChildren(details, "append", summary, controls, list, el('p',ui("Типы для выбранных источников. Технические — в отдельной группе."),'sc-builder-note'), button(ui("Сбросить выбор"),()=>{draft[key]=[];caption();redraw();touch();},'sc-builder-link'));return details;
+    uiChildren(details, "append", summary, controls, list, el('p',ui("Дополнительные типы собраны отдельно."),'sc-builder-note'), button(ui("Сбросить выбор"),()=>{draft[key]=[];caption();redraw();touch();},'sc-builder-link'));return details;
   }
   function render(){
     const scroll=body.scrollTop;uiChildren(body, "replaceChildren");choiceUpdates.clear();
@@ -142,12 +141,12 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction=()
     uiChildren(body, "append", select(ui("Отправная точка"),'scope',[['area',ui("Из исходной области")],['focus',ui("От выбранной звезды")],['all',ui("По всему древу")]]));
     if(draft.scope==='area')uiChildren(body, "append", el('p',ui("Исходная область: {0}. Фильтры выбирают начало; глубина добавляет окружение.", [count(draft.nodeIds.length,ui("звезда"),ui("звезды"),ui("звёзд"))]),'sc-builder-note'));
     if(draft.scope==='focus'){
-      const raw=scene.port.node(draft.focusId)||origin?.nodes.find(n=>n.id===draft.focusId);uiChildren(body, "append", el('p',raw?localized(raw.display.title):draft.focusId?ui("Звезда из сохранённой линзы."):ui("Сначала выберите звезду в пространстве."),'sc-builder-focus'));
+      const raw=scene.port.node(draft.focusId)||origin?.nodes.find(n=>n.id===draft.focusId);uiChildren(body, "append", el('p',raw?displayTitle(raw,ui("Звезда")):draft.focusId?ui("Звезда недоступна"):ui("Сначала выберите звезду в пространстве."),'sc-builder-focus'));
       const selected=scene.port.selection.nodeId;if(selected&&selected!==draft.focusId)uiChildren(body, "append", button(ui("Взять выбранную звезду"),()=>{draft.focusId=selected;touch();render();},'sc-builder-link'));
       uiChildren(body, "append", el('p',ui("Центр остаётся в области. Условия ниже выбирают связи вокруг него."),'sc-builder-note'));
     }
     const sources=el('fieldset','','sc-builder-sources');uiChildren(sources, "append", el('legend',ui("Источники")));
-    for(const id of context.catalog.capabilities.sources){const input=el('input');input.type='checkbox';input.checked=draft.sources.includes(id);input.addEventListener('change',()=>{draft.sources=input.checked?[...draft.sources,id]:draft.sources.filter(s=>s!==id);touch();for(const update of choiceUpdates.values())update();});const label=el('label');uiChildren(label, "append", input, el('span',sourceNames[id]||id));uiChildren(sources, "append", label);}uiChildren(body, "append", sources);
+    for(const id of context.catalog.capabilities.sources){const input=el('input');input.type='checkbox';input.checked=draft.sources.includes(id);input.addEventListener('change',()=>{draft.sources=input.checked?[...draft.sources,id]:draft.sources.filter(s=>s!==id);touch();for(const update of choiceUpdates.values())update();});const label=el('label');uiChildren(label, "append", input, el('span',sourceLabel(id)));uiChildren(sources, "append", label);}uiChildren(body, "append", sources);
     if(draft.scope!=='focus'){
       const query=el('input');query.type='search';query.maxLength=256;query.value=draft.query;uiAttribute(query, "placeholder", ui("Имя, произведение, понятие…"));query.addEventListener('input',()=>{draft.query=query.value;touch();});uiChildren(body, "append", field(ui("Слова в исходных узлах"),query));
       uiChildren(body, "append", choices(ui("Типы узлов"),'kinds'));
@@ -160,7 +159,6 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction=()
     const options=el('div','','sc-builder-grid');
     if(draft.relations){uiChildren(options, "append", select(ui("Глубина"),'depth',[[0,ui("Только исходные")],[1,ui("1 шаг")],[2,ui("2 шага")],[3,ui("3 шага")]]), select(ui("Направление"),'direction',[['either',ui("В обе стороны")],['outgoing',ui("По связям →")],['incoming',ui("Против связей ←")]]), select(ui("Подробность связей"),'profile',[['all',ui("Все типы, включая текст")],['overview',ui("Обзор без структуры текста")]]));}
     uiChildren(options, "append", select(ui("Звёзд в области"),'limit',[[10,ui("До 10")],[20,ui("До 20")],[40,ui("До 40")]]));uiChildren(body, "append", options);
-    uiChildren(body, "append", el('p',ui("Линза меняет способ просмотра. Фильтры не меняют источники, связи или их статус."),'sc-builder-note'));
     renderResult();body.scrollTop=scroll;
   }
   function renderResult(){
@@ -173,7 +171,7 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction=()
       if(current&&(JSON.stringify(current)!==JSON.stringify(draft)||context.catalog.source_revision!==scene.port.packet.source_revision)){
         const shown=el('details','','sc-query-description');uiChildren(shown, "append", el('summary',ui("Сейчас в пространстве: {0}", [current.name])));
         const sameRevision=context.catalog.source_revision===scene.port.packet.source_revision;
-        if(!sameRevision)uiChildren(shown, "append", el('p',ui("Эта область получена из предыдущего снимка. Названия свойств из нового каталога к ней не применяются.")));
+        if(!sameRevision)uiChildren(shown, "append", el('p',ui("Каталог обновился. Откройте конструктор заново."),'sc-builder-warning'));
         const lines=el('ul');for(const line of queryLines(current,sameRevision?context:null))uiChildren(lines, "append", el('li',line));uiChildren(shown, "append", lines);uiChildren(result, "append", shown);
       }
       if(preview){const summary=summarizeLens(preview);uiChildren(result, "append", el('strong',`${count(summary.nodes,ui("звезда"),ui("звезды"),ui("звёзд"))} · ${count(summary.relations,ui("связь"),ui("связи"),ui("связей"))}`));
@@ -181,7 +179,7 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction=()
         if(summary.limited)uiChildren(result, "append", el('p',ui("Результат ограничен размером области. Для другого среза уточните условия."),'sc-builder-warning'));
         if(delta)uiChildren(result, "append", el('p',ui("Изменение области: звёзды +{0} / −{1}; связи +{2} / −{3}.", [delta.nodes.added, delta.nodes.removed, delta.relations.added, delta.relations.removed])));
         if(!summary.nodes){
-          uiChildren(result, "append", el('p',ui("В выбранных источниках и области совпадений нет. Это не означает, что таких материалов нет во всём древе.")));
+          uiChildren(result, "append", el('p',ui("Совпадений нет. Попробуйте изменить источники или условие."),'sc-builder-warning'));
           const help=el('div','','sc-empty-actions');
           if(draft.scope==='area')uiChildren(help, "append", button(ui("Искать по всему древу"),()=>{draft.scope='all';touch();render();}));
           if(draft.query)uiChildren(help, "append", button(ui("Убрать текстовый поиск"),()=>{draft.query='';touch();render();}));
@@ -189,7 +187,7 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction=()
           if(kind)uiChildren(help, "append", button(ui("Убрать последнее условие {0}", [(kind==='nodes'?ui("узла"):ui("связи"))]),()=>{draft.conditions[kind].pop();touch();render();}));
           uiChildren(result, "append", help);
         }
-      }else uiChildren(result, "append", el('p',ui("Изменения применяются автоматически; исходный вид можно вернуть.")));
+      }
       const apply=button(busy?ui("Обновляю…"):ui("Обновить пространство"),()=>void run(),'sc-builder-primary');apply.disabled=busy||stale;uiChildren(footer, "append", apply);
       const save=button(ui("Сохранить линзу"),()=>void saveCurrent());save.disabled=busy||saving||scheduled||stale;uiChildren(footer, "append", save);
       if(failure)uiChildren(footer, "append", button(ui("Обновить каталог"),()=>void loadCatalog(),'sc-builder-link'));
@@ -207,7 +205,7 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction=()
       if(!answer.current||token!==generation||panel.hidden)return;
       preview=answer.value;
       if(preview.nodes.length){delta=lensDelta(scene.port.packet,preview);applying=true;try{scene.port.setGraph(preview);basePacket=scene.port.packet;applied=true;}finally{applying=false;}}
-    }catch(error){if(token===generation){failure=error.message||ui("Не удалось собрать линзу.");preview=null;}}
+    }catch(error){if(token===generation){failure=ui("Не удалось обновить пространство. Проверьте условия и повторите.");preview=null;}}
     finally{if(token===generation){busy=false;renderResult();scene.invalidate();}}
   }
   async function saveCurrent(){
@@ -219,7 +217,7 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction=()
       if(onSave){await onSave({draft:value});notice=ui("Линза передана в общую полку.");}
       else {saved=saveDraft(localStorage,value);notice=ui("Линза сохранена в этом браузере.");}
       return true;
-    }catch(error){failure=error.message||ui("Не удалось сохранить линзу.");return false;}
+    }catch(error){failure=ui("Не удалось сохранить линзу. Проверьте условия и повторите.");return false;}
     finally{saving=false;render();}
   }
   function selectionChanged(){

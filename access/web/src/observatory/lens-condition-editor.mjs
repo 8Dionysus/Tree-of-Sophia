@@ -1,5 +1,6 @@
 import {ui,uiAttribute,uiChildren,uiText} from './ui-i18n.mjs';
-import {MAX_CONDITIONS,conditionCatalog,conditionKey,conditionText,defaultCondition,operatorLabels} from './lens-conditions.mjs';
+import {MAX_CONDITIONS,conditionCatalog,conditionKey,defaultCondition,operatorLabels} from './lens-conditions.mjs';
+import {languageName} from './human-presentation.mjs';
 
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);uiText(node, text);node.className=className;return node;};
 const option=(value,text)=>{const node=el('option',text);node.value=value;return node;};
@@ -7,6 +8,23 @@ const button=(text,action)=>{const node=el('button',text,'sc-builder-link');node
 const field=(text,input)=>{const label=el('label','','sc-builder-field');uiChildren(label, "append", el('span',text), input);return label;};
 const number=text=>/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(text.trim())&&Number.isFinite(Number(text))?Number(text):text;
 let listId=0;
+
+function humanValue(value){
+  if(value===null)return ui("пусто");
+  if(typeof value==='boolean')return value?ui("да"):ui("нет");
+  return String(value);
+}
+
+/** Render a condition as a short human sentence without exposing wire JSON. */
+export function humanConditionText(rule,entries=[]){
+  const entry=entries.find(item=>conditionKey(item)===conditionKey(rule));
+  const title=entry&&entry.title!==entry.id?entry.title:ui("Свойство недоступно");
+  const operation=operatorLabels[rule.op]||ui("Операция недоступна");
+  const value=rule.op==='exists'?(rule.value?ui("да"):ui("нет")):
+    Array.isArray(rule.value)?rule.value.map(humanValue).join(', '):humanValue(rule.value);
+  return `${String(title)} ${String(operation)} ${value}`;
+}
+
 export function createConditionEditor({draft,context,kind,onChange,maxConditions=MAX_CONDITIONS,note}){
   const entries=conditionCatalog(context,kind),rules=draft.conditions[kind],isNode=kind==='nodes';
   const section=el('section','','sc-conditions');uiAttribute(section, 'aria-label', isNode?ui("Условия исходных узлов"):ui("Условия связей"));
@@ -28,11 +46,11 @@ export function createConditionEditor({draft,context,kind,onChange,maxConditions
         uiChildren(selector, "replaceChildren");
         const filtered=entries.filter(e=>(e.title+' '+e.id).toLocaleLowerCase('ru').includes(needle));
         const visible=filtered.slice(0,100);if(chosen&&!visible.includes(chosen))visible.unshift(chosen);
-        if(!chosen)uiChildren(selector, "append", option(current,ui("Недоступно: {0}", [rule.id])));
+        if(!chosen)uiChildren(selector, "append", option(current,ui("Сохранённое свойство недоступно")));
         for(const [key,title]of [['property_id',ui("Свойства сущностей")],['field',ui("Поля представления")]]){
           const group=el('optgroup');group.label=title;
           const titles=new Map();for(const e of visible)titles.set(e.title,(titles.get(e.title)||0)+1);
-          for(const e of visible.filter(e=>e.selector===key))uiChildren(group, "append", option(conditionKey(e),e.title+(titles.get(e.title)>1?' · '+e.id:'')));
+          for(const e of visible.filter(e=>e.selector===key))uiChildren(group, "append", option(conditionKey(e),e.title));
           if(group.children.length)uiChildren(selector, "append", group);
         }
         selector.value=current;
@@ -40,9 +58,9 @@ export function createConditionEditor({draft,context,kind,onChange,maxConditions
       }
       function renderValue(){
         uiChildren(details, "replaceChildren");const entry=entries.find(e=>conditionKey(e)===conditionKey(rule));
-        if(!entry){uiChildren(details, "append", el('p',conditionText(rule,[]),'sc-builder-note'), el('p',ui("Это условие сохранено. Выберите доступное свойство или удалите условие."),'sc-builder-warning'));return;}
+        if(!entry){uiChildren(details, "append", el('p',humanConditionText(rule,[]),'sc-builder-note'), el('p',ui("Условие сохранено. Выберите доступное свойство или удалите его."),'sc-builder-warning'));return;}
         const op=el('select');uiAttribute(op, 'aria-label', ui("Операция условия {0}", [index+1]));
-        if(!entry.operators.includes(rule.op))uiChildren(op, "append", option(rule.op,ui("Недоступно: {0}", [(operatorLabels[rule.op]||rule.op)])));
+        if(!entry.operators.includes(rule.op))uiChildren(op, "append", option(rule.op,operatorLabels[rule.op]||ui("Операция недоступна")));
         for(const id of entry.operators)uiChildren(op, "append", option(id,operatorLabels[id]));op.value=rule.op;
         op.addEventListener('change',()=>{
           rule.op=op.value;
@@ -73,10 +91,10 @@ export function createConditionEditor({draft,context,kind,onChange,maxConditions
           const info=el('details','','sc-condition-definition');uiChildren(info, "append", el('summary',ui("Смысл и область свойства")));
           if(entry.definition)uiChildren(info, "append", el('p',entry.definition));
           const types=context.catalog.semantic_registries?.entity_types?.entries||[];
-          uiChildren(info, "append", el('p',ui("Применимо к: {0}{1}", [entry.appliesTo.map(id=>{const t=types.find(t=>t.type_id===id);return t?.labels?.ru||t?.labels?.default||id;}).join(', '), (entry.inherited?ui(" и их подтипам."):'.')])));
-          if(entry.unit)uiChildren(info, "append", el('p',ui("Единица: {0}", [entry.unit])));if(entry.language)uiChildren(info, "append", el('p',ui("Язык значения: {0}", [entry.language])));
+          uiChildren(info, "append", el('p',ui("Применимо к: {0}{1}", [entry.appliesTo.map(id=>{const t=types.find(t=>t.type_id===id);return t?.labels?.ru||t?.labels?.default||ui("Недоступно");}).join(', '), (entry.inherited?ui(" и их подтипам."):'.')])));
+          if(entry.unit)uiChildren(info, "append", el('p',ui("Единица: {0}", [entry.unit])));if(entry.language)uiChildren(info, "append", el('p',ui("Язык значения: {0}", [languageName(entry.language)])));
           if(entry.valueType.startsWith('string'))uiChildren(info, "append", el('p',ui("Значение передаётся без изменения регистра, языка или символов. Правила сравнения задаёт сервер.")));
-          uiChildren(info, "append", el('code',entry.id));uiChildren(details, "append", info);
+          uiChildren(details, "append", info);
         }
       }
       search.addEventListener('input',choices);

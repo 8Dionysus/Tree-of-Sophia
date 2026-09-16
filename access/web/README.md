@@ -1,5 +1,32 @@
 # Tree of Sophia web client
 
+## Presentation contract
+
+The research UI presents materials, their relationships and available actions.
+Shared renderers under `src/observatory/` select those views from validated
+backend packets. UI labels follow the chosen interface language. Original
+titles and source quotations keep their own language.
+
+- A card has one title, available content, relevant facts and related materials.
+  Empty optional roles are omitted. The same text is not repeated as multiple
+  presentation roles.
+- Supported source facts keep their labels and values. A semantic category may
+  contain references: it does not make a field readable. Shared context views
+  select named presentation fields and resolve references only against the
+  same source revision. Unknown fields remain in the exact export. Field documentation,
+  routine transport state and repeated provenance disclaimers are not reading
+  content. Missing required context gets one actionable state. Negation,
+  disagreement and other actual source qualifications stay with the wording.
+- Administrative records use supplied localized kind labels when no localized
+  title exists. Original titles remain available in Sources. This is a
+  navigation label, not a translation or replacement of the source record.
+- URLs use readable link labels. IDs, hashes, schema names, filesystem paths,
+  payloads and execution traces stay out of ordinary panels and accessibility
+  labels. A source export retains the exact data for deliberate inspection.
+- Regression checks cover shared renderers, missing content, localization,
+  qualifier retention, seeded variations and sampled real records. A green
+  transport check alone does not establish that a page is usable.
+
 ## Real research entry and durable reading
 
 The software build includes `/static/research.html`, the cosmic research UI,
