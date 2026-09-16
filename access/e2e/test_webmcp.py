@@ -655,7 +655,7 @@ def test_research_seeded_locale_and_panel_sequence(webmcp_page: Page, access_bas
         'en': ['Build a lens', 'Read works and editions', 'My shelf', 'About this area', 'Choose relations', 'Close'],
     }
     language = 'ru'
-    actions = ['en', 'ru', 'sources', 'scope', 'conditions'] * 3
+    actions = ['en', 'ru', 'sources', 'scope', 'conditions', 'shelf', 'library'] * 3
     random.Random(915236).shuffle(actions)
     for step, action in enumerate(actions):
         if action in names:
@@ -667,6 +667,22 @@ def test_research_seeded_locale_and_panel_sequence(webmcp_page: Page, access_bas
             assert page.locator('.reading [data-source-record-id]').is_visible(), (step, action)
             assert page.locator('.reading pre').count() == 0
             disclosure.click()
+        elif action == 'shelf':
+            page.get_by_role('button', name=names[language][2], exact=True).click()
+            shelf = page.locator('.research-shelf')
+            labels = ['Исследовательская полка', 'Тип', 'Закрыть полку'] if language == 'ru' else ['Research shelf', 'Type', 'Close shelf']
+            assert shelf.get_by_role('heading', name=labels[0], exact=True).is_visible(), (step, action)
+            assert shelf.get_by_label(labels[1], exact=True).is_visible(), (step, action)
+            assert shelf.locator('pre').count() == 0
+            shelf.get_by_role('button', name=labels[2], exact=True).click()
+        elif action == 'library':
+            page.get_by_role('button', name=names[language][1], exact=True).click()
+            reader = page.locator('.corpus-reader')
+            message = 'Источник полных текстов пока не подключён.' if language == 'ru' else 'The full-text source is not connected yet.'
+            reader.get_by_text(message, exact=True).wait_for(state='visible')
+            assert reader.get_by_text(message, exact=True).count() == 1
+            assert reader.locator('.cr-library,.cr-save').count() == 0
+            reader.get_by_role('button', name='Вернуться к Древу' if language == 'ru' else 'Return to the tree', exact=True).click()
         else:
             page.get_by_role('button', name=names[language][3 if action == 'scope' else 4], exact=True).click()
             dialog = page.get_by_role('dialog')

@@ -325,12 +325,25 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   }
   function appendReading(container,snapshot){
     const doc=readingDocument(snapshot,language),heading=el('h1',doc.title?.text??t('noTitle'));heading.dataset.readingAnchor='form:name:wording';container.append(heading);
+    const state=controller.state(),presentation={resolveValue:entry=>{
+      if(state.view?.source_revision!==snapshot.sourceRevision||entry.display.type!=='string')return;
+      if(entry.key==='predicate'){
+        const catalog=state.discovery?.catalog,id=entry.display.text;
+        if(catalog?.source_revision!==snapshot.sourceRevision)return;
+        const predicate=catalog?.predicates?.find(row=>row.predicate_id===id);
+        if(predicate)return livePredicateLabel(predicate,language);
+        const type=catalog?.semantic_registries?.relation_types?.entries?.find(row=>row.source_mappings?.some(mapping=>mapping.source_predicate_id===id&&mapping.source_graph===snapshot.raw.source_graph));
+        return type?livePredicateLabel({predicate_id:id,display:type.labels},language):undefined;
+      }
+      if(!['subject_ref','object'].includes(entry.key))return;
+      const names=new Set(state.view.nodes.filter(row=>[row.id,row.native_id,row.entity_id].includes(entry.display.text)).map(row=>liveLabel(row,language).text));
+      return names.size===1?[...names][0]:undefined;
+    }};
     if(doc.humanForms)container.append(renderHumanForms(snapshot.raw,{exactForms:snapshot.exactForms,readableContext:snapshot.readableContext}));
     else for(const block of doc.blocks){if(!block.form?.text)continue;const text=el('p',block.form.text,'body');
       if(block.form.lang)text.lang=block.form.lang;container.append(text);}
-    container.append(renderEssentialContext(doc.essentialContext,snapshot.readableContext));
-    if(snapshot.claimReading)container.append(renderClaimContext(snapshot.claimReading,snapshot.readableContext));
-    if(snapshot.claimContextUnavailable)container.append(el('p',language==='ru'?'Контекст утверждения не вошёл в эту карточку. Раскройте его связи.':'Claim context is not included in this card. Expand its relations.','muted'));
+    container.append(renderEssentialContext(doc.essentialContext,snapshot.readableContext,presentation));
+    if(snapshot.claimReading)container.append(renderClaimContext(snapshot.claimReading,snapshot.readableContext,presentation));
     const sources=el('details');sources.append(el('summary',t('sources')));
     const exactSource=button(t('sourceRecord'),()=>void openSourceRecord(snapshot),'source-link');
     exactSource.dataset.sourceRecordId=snapshot.raw.id;sources.append(exactSource);

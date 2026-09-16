@@ -10,7 +10,10 @@ titles and source quotations keep their own language.
 - A card has one title, available content, relevant facts and related materials.
   Empty optional roles are omitted. The same text is not repeated as multiple
   presentation roles.
-- Source-provided facts keep their labels and values; field documentation,
+- Supported source facts keep their labels and values. A semantic category may
+  contain references: it does not make a field readable. Shared context views
+  select named presentation fields and resolve references only against the
+  same source revision. Unknown fields remain in the exact export. Field documentation,
   routine transport state and repeated provenance disclaimers are not reading
   content. Missing required context gets one actionable state. Negation,
   disagreement and other actual source qualifications stay with the wording.

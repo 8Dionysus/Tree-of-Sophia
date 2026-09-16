@@ -457,6 +457,7 @@ export function mountCorpusReader({
   function renderHeader(state) {
     const header = element('header', 'cr-header');
     const menu = button('☰', () => { libraryOpen = !libraryOpen; render(); }, 'cr-icon cr-menu');
+    menu.hidden=!state.document;
     menu.setAttribute('aria-label', t('library')); menu.setAttribute('aria-expanded', String(libraryOpen));
     const title = element('div', 'cr-title');
     title.append(element('span', 'cr-kicker', `✧ ${t('reading')}`));
@@ -933,12 +934,14 @@ export function mountCorpusReader({
     if (!state.document) {
       const empty=element('main','cr-empty-state');const error=state.catalog.error||state.error;
       const message=state.catalog.busy?t('loading'):error?.code==='provider_unavailable'?t('providerUnavailable'):error?t('error'):t('noCatalog');
-      empty.append(element('h2','',t('library')),element('p','',message));
-      if(error)empty.append(button(uiLocale()==='en'?'Retry':'Повторить',()=>loadInitial()));
+      const disconnected=error?.code==='provider_unavailable';
+      if(disconnected)empty.append(element('h2','',t('library')),element('p','',message));
+      else if(error)empty.append(element('p','',message));
+      if(error&&error.code!=='provider_unavailable')empty.append(button(uiLocale()==='en'?'Retry':'Повторить',()=>loadInitial()));
       // An empty first page can still carry an opaque continuation. Keep the
       // library visible so the user can advance one bounded page explicitly.
-      empty.append(renderLibrary(state));
-      root.append(empty,renderFooter());rendering=false;return;
+      if(!disconnected)empty.append(renderLibrary(state));
+      root.append(empty);rendering=false;return;
     }
     const versions = chooseVersions(state.document, state);
     root.append(renderVersionBar(state, versions));

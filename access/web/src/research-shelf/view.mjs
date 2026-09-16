@@ -6,9 +6,9 @@ import './research-shelf.css';
 const own=(value,key)=>Object.prototype.hasOwnProperty.call(value,key);
 const copy=value=>typeof structuredClone==='function'?structuredClone(value):JSON.parse(JSON.stringify(value));
 const typeNames={
-  ru:{material:'Материал',form:'Форма',text:'Текстовый фрагмент',lens:'Линза',route:'Маршрут'},
-  en:{material:'Material',form:'Form',text:'Text passage',lens:'Lens',route:'Route'},
-  es:{material:'Material',form:'Forma',text:'Fragmento de texto',lens:'Lente',route:'Ruta'},
+  ru:{material:'Материал',form:'Фрагмент',text:'Текстовый фрагмент',lens:'Линза',route:'Маршрут'},
+  en:{material:'Material',form:'Excerpt',text:'Text passage',lens:'Lens',route:'Route'},
+  es:{material:'Material',form:'Fragmento',text:'Fragmento de texto',lens:'Lente',route:'Ruta'},
 };
 
 function language(locale){
@@ -53,27 +53,52 @@ export function mountResearchShelf({host,locale='ru',onOpen,onError,onOpenView,o
   const shelf=store??createResearchShelfStore({storage,dbName,...(indexedDB===undefined?{}:{indexedDB})});
   const ownsStore=!store;
   const root=text('section','','research-shelf');root.hidden=true;root.tabIndex=-1;root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');
-  const heading=text('h2',authored(locale,'Исследовательская полка','Research shelf','Estante de investigación'));heading.id='research-shelf-title';root.setAttribute('aria-labelledby',heading.id);
-  const closeButton=button(authored(locale,'Закрыть полку','Close shelf','Cerrar estante'),()=>close());closeButton.className='research-shelf-close';
+  const heading=text('h2','');heading.id='research-shelf-title';root.setAttribute('aria-labelledby',heading.id);
+  const closeButton=button('',()=>close());closeButton.className='research-shelf-close';
   const header=text('header','','research-shelf-header');header.append(heading,closeButton);
   const status=text('p','','research-shelf-status');status.setAttribute('role','status');
   const toolbar=text('div','','research-shelf-toolbar');
-  const search=text('input');search.type='search';search.maxLength=256;search.placeholder=String(authored(locale,'Поиск на загруженной странице','Search this loaded page','Buscar en esta página cargada'));search.setAttribute('aria-label',search.placeholder);
-  const typeFilter=document.createElement('select');typeFilter.setAttribute('aria-label',String(authored(locale,'Тип','Type','Tipo')));
-  const collectionFilter=document.createElement('select');collectionFilter.setAttribute('aria-label',String(authored(locale,'Подборка','Collection','Colección')));
-  const deleteCollectionButton=button(authored(locale,'Удалить подборку','Delete collection','Eliminar colección'),()=>deleteCollection());deleteCollectionButton.className='research-shelf-delete-collection';
-  const previous=button(authored(locale,'Предыдущая страница','Previous page','Página anterior'),()=>goPrevious());
-  const next=button(authored(locale,'Следующая страница','Next page','Página siguiente'),()=>loadPage(page?.nextCursor||null,true));
-  const exportButton=button(authored(locale,'Экспорт записей','Export records','Exportar registros'),()=>exportShelf());
-  const importButton=button(authored(locale,'Импорт записей','Import records','Importar registros'),()=>fileInput.click());
-  const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='application/json,.json';fileInput.hidden=true;fileInput.setAttribute('aria-label',String(authored(locale,'Файл полки','Shelf file','Archivo del estante')));
-  const newCollection=text('input');newCollection.type='text';newCollection.maxLength=128;newCollection.placeholder=String(authored(locale,'Новая подборка','New collection','Nueva colección'));newCollection.setAttribute('aria-label',newCollection.placeholder);
-  const addCollection=button(authored(locale,'Добавить подборку','Add collection','Añadir colección'),()=>createCollection());
-  for(const [value,label] of [['','Все типы'],['material','Материал'],['form','Форма'],['text','Текст'],['lens','Линза'],['route','Маршрут']]){const option=document.createElement('option');option.value=value;option.textContent=String(language(locale)==='en'?({ '':'All types',material:'Material',form:'Form',text:'Text',lens:'Lens',route:'Route'})[value]:language(locale)==='es'?({ '':'Todos los tipos',material:'Material',form:'Forma',text:'Texto',lens:'Lente',route:'Ruta'})[value]:label);typeFilter.append(option);}
+  const search=text('input');search.type='search';search.maxLength=256;
+  const typeFilter=document.createElement('select');
+  const collectionFilter=document.createElement('select');
+  const deleteCollectionButton=button('',()=>deleteCollection());deleteCollectionButton.className='research-shelf-delete-collection';
+  const previous=button('',()=>goPrevious());
+  const next=button('',()=>loadPage(page?.nextCursor||null,true));
+  const exportButton=button('',()=>exportShelf());
+  const importButton=button('',()=>fileInput.click());
+  const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='application/json,.json';fileInput.hidden=true;
+  const newCollection=text('input');newCollection.type='text';newCollection.maxLength=128;
+  const addCollection=button('',()=>createCollection());
+  for(const value of ['', 'material','form','text','lens','route']){const option=document.createElement('option');option.value=value;typeFilter.append(option);}
   const collectionGroup=text('label','');collectionGroup.append(newCollection,addCollection);
   toolbar.append(search,typeFilter,collectionFilter,deleteCollectionButton,previous,next,exportButton,importButton,fileInput,collectionGroup);
   const content=text('div','','research-shelf-content');
   root.append(header,status,toolbar,content);host.append(root);
+
+  // The shelf persists while the host language can change between openings.
+  // Refresh static controls as well as the rows loaded on demand.
+  function refreshLabels(){
+    root.lang=language(locale);
+    for(const [node,ru,en,es]of [
+      [heading,'Исследовательская полка','Research shelf','Estante de investigación'],
+      [closeButton,'Закрыть полку','Close shelf','Cerrar estante'],
+      [deleteCollectionButton,'Удалить подборку','Delete collection','Eliminar colección'],
+      [previous,'Предыдущая страница','Previous page','Página anterior'],
+      [next,'Следующая страница','Next page','Página siguiente'],
+      [exportButton,'Экспорт записей','Export records','Exportar registros'],
+      [importButton,'Импорт записей','Import records','Importar registros'],
+      [addCollection,'Добавить подборку','Add collection','Añadir colección'],
+    ])node.textContent=String(authored(locale,ru,en,es));
+    for(const [node,ru,en,es]of [
+      [search,'Поиск на загруженной странице','Search this loaded page','Buscar en esta página cargada'],
+      [newCollection,'Новая подборка','New collection','Nueva colección'],
+    ]){node.placeholder=String(authored(locale,ru,en,es));node.setAttribute('aria-label',node.placeholder);}
+    for(const [node,ru,en,es]of [[typeFilter,'Тип','Type','Tipo'],[collectionFilter,'Подборка','Collection','Colección'],[fileInput,'Файл полки','Shelf file','Archivo del estante']])node.setAttribute('aria-label',String(authored(locale,ru,en,es)));
+    const types={ru:{'':'Все типы',text:'Текст'},en:{'':'All types',text:'Text'},es:{'':'Todos los tipos',text:'Texto'}};
+    for(const option of typeFilter.options)option.textContent=types[language(locale)][option.value]??typeNames[language(locale)][option.value];
+  }
+
+  refreshLabels();
 
   let opened=false,destroyed=false,loading=false,page=null,collections=[],notesPage=null,notesLoading=false;
   let pageCursor=null,history=[],notesCursor=null,notesHistory=[],requestToken=0,notesRequestToken=0,query='',focusReturn=null;
@@ -216,7 +241,7 @@ export function mountResearchShelf({host,locale='ru',onOpen,onError,onOpenView,o
     else event.stopPropagation();
   });
   async function open(){
-    if(destroyed)return false;if(opened)return true;
+    if(destroyed)return false;refreshLabels();if(opened)return true;
     const active=document.activeElement;focusReturn=active&&active!==document.body&&!root.contains(active)?active:focusReturn;
     opened=true;root.hidden=false;viewHook(onOpenView,{element:root,opener:focusReturn});
     closeButton.focus({preventScroll:true});

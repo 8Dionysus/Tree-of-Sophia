@@ -199,9 +199,9 @@ export function mountLensBuilder({host,client,locale='ru',getArea,getCatalog,onA
   const requests=new RequestSlots();
   const catalogLoader=createConstructorCatalogLoader(client,getCatalog);
   const root=el('section','','lens-builder');root.hidden=true;root.tabIndex=-1;root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.lang=language(locale);uiAttribute(root,'aria-label',ui("Конструктор линз"));
-  const header=el('header','','lens-builder-header'),heading=el('h2',ui("Собрать линзу")),subtitle=el('p',ui("Настройте область по словарю текущего снимка."),'lens-builder-subtitle'),closeButton=button(ui("Закрыть конструктор"),()=>close(),'lens-builder-close');
+  const header=el('header','','lens-builder-header'),heading=el('h2',ui("Собрать линзу")),closeButton=button(ui("Закрыть конструктор"),()=>close(),'lens-builder-close');
   heading.id=`lens-builder-title-${++builderId}`;root.setAttribute('aria-labelledby',heading.id);
-  uiChildren(header,'append',el('div','','lens-builder-heading-copy'),closeButton);header.querySelector('.lens-builder-heading-copy').append(heading,subtitle);
+  uiChildren(header,'append',el('div','','lens-builder-heading-copy'),closeButton);header.querySelector('.lens-builder-heading-copy').append(heading);
   const areaInfo=el('section','','lens-builder-area'),body=el('div','','lens-builder-body'),previewRegion=el('section','','lens-builder-preview');previewRegion.setAttribute('aria-live','polite');
   const status=el('p','','lens-builder-status');status.setAttribute('role','status');const footer=el('footer','','lens-builder-footer');
   uiChildren(root,'append',header,areaInfo,body,previewRegion,status,footer);host.append(root);
@@ -308,9 +308,9 @@ export function mountLensBuilder({host,client,locale='ru',getArea,getCatalog,onA
 
   function renderPreview(){
     uiChildren(previewRegion,'replaceChildren');
-    if(!draft||!context){uiChildren(previewRegion,'append',el('p',ui("Измените условия, затем запросите просмотр."),'lens-builder-note'));return;}
+    if(!draft||!context)return;
     const summary=el('details','','lens-builder-query');uiChildren(summary,'append',el('summary',ui("Настройки линзы")));const lines=el('ul');for(const line of queryLines(draft,context))uiChildren(lines,'append',el('li',line));uiChildren(summary,'append',lines,el('p',ui("Источники настроек: {0}",[sourceNames(draft.sources)]),'lens-builder-note'));uiChildren(previewRegion,'append',summary);
-    if(!preview){uiChildren(previewRegion,'append',el('p',ui("Нажмите «Предпросмотр», чтобы увидеть результат."),'lens-builder-note'));return;}
+    if(!preview)return;
     const counts=localizedPacketCounts(preview);uiChildren(previewRegion,'append',el('strong',ui("Исходных записей: {0}; связей: {1}",[counts.nodes,counts.relations])));
     if(counts.matched!==null)uiChildren(previewRegion,'append',el('p',ui("Условиями выбрано: {0}.",[counts.matched])));
     if(counts.truncatedNodes||counts.truncatedRelations)uiChildren(previewRegion,'append',el('p',ui("Результат ограничен: узлы {0}, связи {1}.",[counts.truncatedNodes,counts.truncatedRelations]),'lens-builder-warning'));
@@ -333,7 +333,7 @@ export function mountLensBuilder({host,client,locale='ru',getArea,getCatalog,onA
     const validation=draft?draftValidationError():'';
     try{
       root.dataset.state=error||validation?'error':previewError?'preview-error':preview&&previewRevision!==draftRevision?'preview-stale':preview?'preview':loading?'loading':'ready';
-      renderArea();renderBody();renderPreview();renderFooter();uiText(status,error||validation||previewError||sourceMismatch()?error||validation||previewError||ui("Каталог и область относятся к разным версиям данных. Обновите область."):previewing?ui("Получаю результат…"):preview&&previewRevision!==draftRevision?ui("Настройки изменены. Старый результат сохранён, но его нельзя открыть."):preview?ui("Результат готов; текущее пространство не менялось."):ui("Измените условия и запросите просмотр."));
+      renderArea();renderBody();renderPreview();renderFooter();uiText(status,error||validation||previewError||sourceMismatch()?error||validation||previewError||ui("Каталог и область относятся к разным версиям данных. Обновите область."):previewing?ui("Получаю результат…"):preview&&previewRevision!==draftRevision?ui("Условия изменены. Обновите предпросмотр."):'');
     }catch(problem){
       error=ui("Не удалось отобразить конструктор. Повторите загрузку.");root.dataset.state='error';
       try{onError?.(problem);}catch{}

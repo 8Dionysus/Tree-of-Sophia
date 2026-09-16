@@ -12,7 +12,9 @@ function packetContext(packet,anchor,readableContext){
   const context=el('section','','sc-form-context');
   if(readableContext&&readableContext.state!=='complete'){const gap=el('p',ui('Часть контекста доступна в источнике.'),'sc-reader-gap');gap.dataset.contextPresentation=readableContext.state;context.append(gap);}
   for(const [index,entry]of packet.context.entries()){
-    const rendered=renderContextData(entry.value,`${anchor}:${index}`);rendered.dataset.contextSlot=entry.slot;
+    const pointer=entry.binding?.pointer??'';if(pointer.startsWith('/field_languages/'))continue;
+    const key=pointer.split('/').at(-1)?.replace(/~1/g,'/').replace(/~0/g,'~');
+    const rendered=renderContextData(key?{[key]:entry.value}:entry.value,`${anchor}:${index}`);rendered.dataset.contextSlot=entry.slot;
     if(rendered.children.length)context.append(rendered);
   }
   return context;
@@ -61,23 +63,23 @@ export function renderHumanForms(raw,{exactForms=null,readableContext=null}={}){
   }
   return container;
 }
-export function renderClaimContext(resolved,readableContext=null){
+export function renderClaimContext(resolved,readableContext=null,presentation={}){
   const section=el('section','','sc-form-context sc-claim-context');
   for(const [index,context]of (resolved?.semantics?.assertion_contexts??[]).entries()){
     const classified=readableContext?.state==='complete'?readableContext.contexts.filter(value=>value.form===null&&value.origin_pointer===`/semantics/assertion_contexts/${index}`):[];
-    const entry=classified.length?renderReadableContexts(classified,`claim-context:${index}`):renderContextData(context,`claim-context:${index}`);
+    const entry=classified.length?renderReadableContexts(classified,`claim-context:${index}`,presentation):renderContextData(context,`claim-context:${index}`);
     if(entry.children.length)section.append(entry);
   }
   if(readableContext&&readableContext.state!=='complete'){const gap=el('p',ui('Часть контекста доступна в источнике.'),'sc-reader-gap');gap.dataset.contextPresentation=readableContext.state;section.append(gap);}
   return section;
 }
-export function renderEssentialContext(context,readableContext=null){
+export function renderEssentialContext(context,readableContext=null,presentation={}){
   const section=el('section','','sc-form-role sc-record-context');section.dataset.contextState=context.state;
   if(context.state==='not-declared')return section;
   for(const [index,item]of context.items.entries()){
     if(item.state!=='available')continue;
     const classified=readableContext?.state==='complete'?readableContext.contexts.filter(value=>value.form===null&&value.origin_pointer===item.pointer):[];
-    const entry=classified.length?renderReadableContexts(classified,'record-context:'+index):renderContextData(item.value,'record-context:'+index);
+    const entry=classified.length?renderReadableContexts(classified,'record-context:'+index,presentation):renderContextData(item.value,'record-context:'+index);
     if(entry.children.length)section.append(entry);
   }
   if(readableContext&&readableContext.state!=='complete'){const gap=el('p',ui('Часть контекста доступна в источнике.'),'sc-reader-gap');gap.dataset.contextPresentation=readableContext.state;section.append(gap);}

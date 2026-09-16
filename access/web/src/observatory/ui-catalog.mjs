@@ -4175,7 +4175,8 @@ export const UI_CATALOG={
   ,"Для конструктора нужны область и каталог.": {"en":"The builder needs an area and a catalog.","es":"El constructor necesita un área y un catálogo."}
   ,"не выбраны": {"en":"none selected","es":"ninguna seleccionada"}
   ,"Путь «{0}»: {1} · шагов: {2}": {"en":"Path “{0}”: {1} · steps: {2}","es":"Ruta «{0}»: {1} · pasos: {2}"}
-  ,"Настройте область по словарю текущего снимка.": {"en":"Configure an area from the current snapshot vocabulary.","es":"Configura un área con el vocabulario de la instantánea actual."}
+  ,"Условия изменены. Обновите предпросмотр.": {"en":"The conditions changed. Refresh the preview.","es":"Las condiciones cambiaron. Actualiza la vista previa."}
+  ,"Сведения о записи": {"en":"Record details","es":"Detalles del registro"}
   ,"Загружаю область…": {"en":"Loading area…","es":"Cargando área…"}
   ,"Область недоступна.": {"en":"The area is unavailable.","es":"El área no está disponible."}
   ,"Линза": {"en":"Lens","es":"Lente"}
@@ -4256,4 +4257,28 @@ export const UI_CATALOG={
   ,"Каждое условие начинается от узлов, найденных основной линзой.": {"en":"Each condition starts from nodes found by the main lens.","es":"Cada condición comienza en los nodos encontrados por la lente principal."}
   ,"Проверка пути недоступна в текущем каталоге; основной запрос работает как прежде.": {"en":"Path checking is unavailable in the current catalog; the main query works as before.","es":"La comprobación de rutas no está disponible en el catálogo actual; la consulta principal funciona como antes."}
   ,"Шаги остаются в выбранных источниках; not_exists означает отсутствие только в этой области источников.": {"en":"Steps stay within the selected sources; not_exists means absence only in that source area.","es":"Los pasos permanecen en las fuentes seleccionadas; not_exists significa ausencia solo en esa área de fuentes."}
+  ,"Формулировка источника": {"en": "Source wording", "es": "Texto de la fuente"}
+  ,"Написание в источнике": {"en": "Source spelling", "es": "Grafía de la fuente"}
+  ,"Лица и организации": {"en": "People and organizations", "es": "Personas y organizaciones"}
+  ,"Выходные сведения": {"en": "Publication details", "es": "Datos de publicación"}
+  ,"Тип утверждения": {"en": "Claim type", "es": "Tipo de afirmación"}
+  ,"Слой утверждения": {"en": "Claim layer", "es": "Nivel de afirmación"}
+  ,"Роль": {"en": "Role", "es": "Función"}
+  ,"Предварительная идентификация": {"en": "Provisional identification", "es": "Identificación provisional"}
+  ,"Идентификация проверена": {"en": "Identification reviewed", "es": "Identificación revisada"}
+  ,"Идентификация не установлена": {"en": "Identification unresolved", "es": "Identificación sin resolver"}
+  ,"Библиографическое": {"en": "Bibliographic", "es": "Bibliográfica"}
+  ,"Текстологическое": {"en": "Textual", "es": "Textual"}
+  ,"Смысловое": {"en": "Semantic", "es": "Semántica"}
+  ,"Библиографические сведения": {"en": "Bibliographic information", "es": "Información bibliográfica"}
+  ,"Изготовление": {"en": "Manufacture", "es": "Fabricación"}
+  ,"Публикация": {"en": "Publication", "es": "Publicación"}
+  ,"Распространение": {"en": "Distribution", "es": "Distribución"}
+  ,"Создание": {"en": "Production", "es": "Producción"}
+  ,"Печатник": {"en": "Printer", "es": "Impresor"}
+  ,"Распространитель": {"en": "Distributor", "es": "Distribuidor"}
+  ,"Изготовитель": {"en": "Manufacturer", "es": "Fabricante"}
+  ,"Место изготовления": {"en": "Place of manufacture", "es": "Lugar de fabricación"}
+  ,"Место издания": {"en": "Place of publication", "es": "Lugar de publicación"}
+  ,"Дата в источнике": {"en": "Date in the source", "es": "Fecha en la fuente"}
 };

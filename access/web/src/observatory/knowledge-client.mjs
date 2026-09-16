@@ -90,7 +90,9 @@ export function displayTitleForm(raw,preferred=uiLanguage(),material=false){
   // A generated claim descriptor combines transport posture, endpoints and
   // status prose. It is a navigation carrier, not an authored material title.
   if(raw?.kind_id==='claim'&&(missingReadableTitle(raw)||raw?.display?.provenance?.title==='navigation-template')){
-    return {text:{ru:'Утверждение',en:'Claim',es:'Afirmación'}[preferred]??'Claim',key:preferred,lang:preferred,fallback:false,navigationOnly:true};
+    const predicate=raw.semantics?.claim?.source_predicate_id;
+    const text=predicate==='provision_activity'?relationLabel({predicate_id:predicate},preferred):{ru:'Утверждение',en:'Claim',es:'Afirmación'}[preferred]??'Claim';
+    return {text,key:preferred,lang:preferred,fallback:false,navigationOnly:true};
   }
   // Administrative carrier descriptions are source text, not interface titles.
   // A localized kind is a navigation label; the original name stays in Sources.

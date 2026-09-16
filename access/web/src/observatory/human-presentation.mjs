@@ -80,6 +80,7 @@ const predicates={
   uses_script:['использует письменность','uses script','usa la escritura']
 };
 const navigationPredicates={
+  provision_activity:['Выходные сведения','Publication details','Datos de publicación'],
   grounds_source_backlog_anchor:['основание поиска источника','basis for source discovery','base para buscar la fuente'],
   has_anchor:['место в тексте','text location','lugar del texto'],
   has_record_version:['версия записи','record version','versión del registro'],
