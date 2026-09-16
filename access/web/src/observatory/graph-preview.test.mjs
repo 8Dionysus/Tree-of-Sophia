@@ -49,3 +49,11 @@ test('missing titles use the supplied kind in previews without rewriting their r
   expect(relationPreview(packet,relation).body).toBe('Claim → Источник');
   expect(packet).toEqual(before);
 });
+test('previews keep a readable source filename through the shared title path',()=>{
+  const raw=node('source-navigation:file','file');
+  raw.display.title={default:'Ницше Так говорил Заратустра 1913.pdf'};
+  raw.display.kind_label={ru:'Файл',en:'File',es:'Archivo'};
+  raw.display.provenance={title:'projected-label',source_title_available:true};
+  for(const language of ['ru','en','es'])
+    expect(nodePreview({nodes:[raw],relations:[]},raw,language).title).toBe(raw.display.title.default);
+});

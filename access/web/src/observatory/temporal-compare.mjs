@@ -49,12 +49,14 @@ export async function compareExactDates(client,left,right,{signal}={}){
   return packet;
 }
 
+export const dateComparisonCandidate=reading=>reading?.kind==='node'&&reading.raw?.kind_id==='claim'&&reading.raw?.source_graph==='source-claims';
+
 export function mountTemporalComparison({client,getReadings,locale=()=> 'ru'}={}){
   const el=(tag,text='')=>{const node=document.createElement(tag);node.textContent=text;return node;};
   const element=el('section'),button=el('button'),output=el('div');button.type='button';element.className='sc-temporal-comparison';element.append(button,output);
   let controller=null,key=null;
   function selected(){const readings=getReadings();return readings?.length===2?readings:null;}
-  function signature(){try{return JSON.stringify(temporalComparisonRequest(...selected()));}catch{return null;}}
+  function signature(){try{const readings=selected();if(!readings?.every(dateComparisonCandidate))return null;return JSON.stringify(temporalComparisonRequest(...readings));}catch{return null;}}
   function update(){const next=signature();if(next!==key){controller?.abort();controller=null;output.replaceChildren();key=next;}
     button.textContent=String(ui('Сопоставить датировки'));button.disabled=!key;
     element.hidden=!key;}
@@ -68,8 +70,8 @@ export function mountTemporalComparison({client,getReadings,locale=()=> 'ru'}={}
         'source-date-unavailable':ui('Дата источника недоступна'),'incomplete-date':ui('Дата указана не полностью'),
         'ambiguous-date':ui('Дата допускает несколько толкований'),'different-calendars':ui('Используются разные календари'),
       },sides={left:ui('Первый материал'),right:ui('Второй материал'),pair:ui('Оба материала')};
-      uiChildren(output,'replaceChildren',el('p',status),el('p',ui('Сопоставление выполнено по диапазонам дат, указанным источниками.')));
-      if(c.reasons.length)uiChildren(output,'append',el('p',c.reasons.map(reason=>`${String(sides[reason.side]||ui('Материал'))}: ${String(reasons[reason.code]||ui('Причина не указана'))}`).join(' · ')));
+      uiChildren(output,'replaceChildren',el('p',status));
+      const known=c.reasons.filter(reason=>reasons[reason.code]);if(known.length)uiChildren(output,'append',el('p',known.map(reason=>`${String(sides[reason.side]||ui('Материал'))}: ${String(reasons[reason.code])}`).join(' · ')));
       if(packet.source_refs.length){const details=el('details'),list=el('ul');uiChildren(details,'append',el('summary',ui('Источники · {0}',[packet.source_refs.length])));for(const ref of packet.source_refs){let url=null;try{if(/^https?:\/\//i.test(ref))url=new URL(ref);}catch{}const a=el('a',sourceLinkLabel(ref));if(url){a.href=url.href;a.target='_blank';a.rel='noopener noreferrer';}uiChildren(list,'append',el('li'),a);}uiChildren(details,'append',list);uiChildren(output,'append',details);}
       uiChildren(output,'append',rawDataDownload(packet,ui('Скачать данные сравнения'),'sophia-date-comparison.json'));
     }catch(error){if(!request.signal.aborted&&current===signature())uiChildren(output,'replaceChildren',el('p',ui('Не удалось сопоставить датировки. Повторите запрос.')));}

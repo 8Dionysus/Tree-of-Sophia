@@ -98,3 +98,21 @@ test('new source facts retain literal wording and number lexemes with a complete
   expect(flatten(node).some(value=>value.tagName==='pre')).toBe(false);expect(contexts).toEqual(before);
   vi.runOnlyPendingTimers();
 });
+
+test('title language keeps its field scope distinct from the material language',()=>{
+  dom();
+  const entry=pointer=>({key:'language',category:'unclassified',label:{ru:'Неразобранное поле источника',en:'Unclassified source field'},
+    binding:{source_pointer:pointer},display:{type:'string',text:'ru'},value_label:null});
+  const contexts=[{entries:[entry('/variant_labels/0/language'),entry('/language')]}];
+  const before=structuredClone(contexts),node=renderReadableContexts(contexts,'name');
+  expect(flatten(node).filter(value=>value.tagName==='dt').map(value=>value.textContent)).toEqual(['Язык названия','Язык']);
+  expect(contexts).toEqual(before);
+});
+
+test('title verification is localized with its scope while unclassified source wording stays literal',()=>{
+  dom();const entry={key:'status',category:'unclassified',label:{ru:'status'},display:{type:'string',text:'verified'},binding:{source_pointer:'/variant_labels/0/status'}};
+  const node=renderReadableContexts([{entries:[entry]}],'title');
+  expect(node.textContent).toContain('Проверка названия');expect(node.textContent).toContain('Проверено');expect(node.textContent).not.toContain('verified');
+  const literal=renderReadableContexts([{entries:[{...entry,binding:{source_pointer:'/author_note/status'}}]}],'literal');
+  expect(literal.textContent).toContain('verified');
+});

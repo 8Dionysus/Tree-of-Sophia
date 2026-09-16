@@ -1,3 +1,4 @@
+import {liveSearchPreview} from './live-model.mjs';
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 import {StableExplorationLayout,liveLabel,livePredicateLabel} from './live-model.mjs';
@@ -38,4 +39,10 @@ test('catalog predicate labels use the supplied direct language map, never opaqu
   assert.equal(livePredicateLabel(predicate,'ru'),'влияет на');
   assert.equal(livePredicateLabel(predicate,'en'),'influences');
   assert.equal(livePredicateLabel({predicate_id:'future-type',display:{}},'ru'),'Связь');
+});
+
+test('search quotes a bound source statement and preserves its negation',()=>{
+  const raw={kind_id:'claim',semantics:{claim:{claim_id:'c',claim_version:1}},attributes:{source_claim:{claim_id:'c',claim_version:1,qualifiers:{statement:'Связь не установлена.',statement_language:'ru'}}}};
+  assert.deepEqual(liveSearchPreview(raw),{text:'Связь не установлена.',lang:'ru'});
+  raw.attributes.source_claim.claim_version=2;assert.equal(liveSearchPreview(raw),null);
 });

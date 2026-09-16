@@ -159,11 +159,19 @@ test('explicit identifier fallback is a missing title, retaining identity and po
   assert.equal(repaired[0].slot,presented[0].slot);
 });
 
-test('title guard uses provenance alone and leaves supplied content and relation labels verbatim',()=>{
+test('title guard hides machine titles while preserving readable content and relation labels',()=>{
   const raw=node('claim:tos.claim.opaque');raw.display.title={ru:'claim:tos claim opaque'};
   for(const title of [undefined,'projected-label','source-bound-navigation']){
     raw.display.provenance={title};assert.equal(displayTitle(raw),raw.display.title.ru);
   }
+  raw.display.title={ru:'Readable source claim'};
+  for(const title of [undefined,'projected-label','source-bound-navigation']){
+    raw.display.provenance={title};assert.equal(displayTitle(raw),raw.display.title.ru);
+  }
+  raw.display.title={ru:'[Source: claim]\nВторая строка'};raw.display.provenance={title:'projected-label'};
+  assert.equal(displayTitle(raw),raw.display.title.ru);
+  raw.display.title={original:'ToS/private/source-title'};raw.display.provenance={title:'source-bound-navigation'};
+  assert.equal(sourceOriginalTitle(raw),raw.display.title.original);
   assert.equal(displayTitle(fixture.relations[0]),'Связано с');
   raw.display.provenance.title='identifier-fallback';
   raw.human_form_selection={roles:{caption:{wording:'Do not replace the missing name with this statement.'}}};
@@ -299,4 +307,10 @@ test('network and malformed payload errors are readable without losing cancellat
   await assert.rejects(network.capabilities(),e=>e instanceof RequestError&&e.status===0&&e.message.startsWith('Нет связи'));
   const malformed=new KnowledgeClient({fetcher:async()=>({ok:true,json:async()=>{throw new SyntaxError('invalid');}})});
   await assert.rejects(malformed.capabilities(),ContractError);
+});
+
+test('generated text-layer packet filenames are navigation metadata, not passage titles',()=>{
+  const raw={kind_id:'text-layer',attributes:{language:'ru'},display:{title:{default:'Text layer · ru · source-text-unit.v1.json'},provenance:{title:'projected-label'}}};
+  assert.equal(displayTitleForm(raw,'ru').text,'Текстовый слой · русский');
+  raw.display.title.ru='Предисловие: первая фраза';assert.equal(displayTitleForm(raw,'ru').text,'Предисловие: первая фраза');
 });

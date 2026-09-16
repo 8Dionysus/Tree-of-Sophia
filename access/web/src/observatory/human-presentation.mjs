@@ -1,4 +1,38 @@
 import {ui,uiText,uiLanguage,t} from './ui-i18n.mjs';
+import {displayLanguageKey} from './display-language.mjs';
+
+const present=value=>typeof value==='string'&&Boolean(value.trim());
+
+// A title is allowed to stay in the language supplied by its owner. This
+// guard only removes transport identifiers, projected paths and serialized
+// records that cannot serve as a human title. It never translates or derives
+// wording from an ID.
+const machineTitle=value=>{
+  if(!present(value))return true;
+  const text=value.trim();
+  if(/\u0000|\u007f/.test(text))return true;
+  if(/^\s*(?:\{\s*["']?(?:id|kind|title|display|relation|node)\b|\[\s*\{)/i.test(text)
+    ||/^[a-z][a-z0-9+.-]*:\/\//i.test(text))return true;
+  if(/^(?:\/|[a-z]:[\\/]|\.{1,2}[\\/])/i.test(text))return true;
+  if(/^(?:ToS|source(?:[-_][a-z0-9-]+)?|(?:srv|home|tmp|var|opt|usr|mnt))[\\/]/i.test(text))return true;
+  if(/^tos(?:\.(?:record|node|edge|relation|claim|work|file|item)\b|[\\/]|$)/i.test(text))return true;
+  if(/^(?:sha(?:256)?|md5):[a-f0-9]{16,}$/i.test(text)||/^[a-f0-9]{40,}$/i.test(text))return true;
+  if(/^(?:source-(?:navigation|claims)|graph|node|edge|relation)(?:[.:/\\]|$)/i.test(text))return true;
+  if(/^(?:claim|identity|record|item|file|node|edge|relation):(?:tos\b|source[-_:]|sha(?:256)?\b|[a-f0-9]{16,}\b)/i.test(text))return true;
+  return false;
+};
+
+export const isReadablePresentationTitle=(value,{guard=true}={})=>present(value)&&(!guard||!machineTitle(value));
+
+// Select the first explicit title form that remains readable. `default` and
+// `original` are source vocabulary keys, not guessed language tags.
+export function readableTitleForm(value,preferred='ru',{guard=false}={}){
+  if(!value||typeof value!=='object'||Array.isArray(value))return null;
+  const keys=[preferred,'default','original','ru','en',...Object.keys(value).filter(displayLanguageKey)];
+  const key=keys.find((candidate,index)=>keys.indexOf(candidate)===index&&isReadablePresentationTitle(value[candidate],{guard}));
+  if(!key)return null;
+  return {text:value[key],key,lang:displayLanguageKey(key)?key:null,fallback:key!==preferred};
+}
 
 // Interface vocabulary only; source titles and quotations remain source text.
 export function languageName(tag,locale=uiLanguage()){
@@ -90,7 +124,11 @@ const navigationPredicates={
   owns_manifest:['описание раздела','section description','descripción de la sección'],
   owns_resource:['материал раздела','section material','material de la sección'],
   has_subject:['предмет утверждения','claim subject','sujeto de la afirmación'],
-  has_object:['объект утверждения','claim object','objeto de la afirmación']
+  has_object:['объект утверждения','claim object','objeto de la afirmación'],
+  has_expression:['Текст или перевод','Text or translation','Texto o traducción'],
+  translated_by:['Переводчик','Translator','Traductor'],
+  has_normalized_agent:['Участник','Participant','Participante'],
+  has_normalized_place:['Место','Place','Lugar']
 };
 export function relationLabel(raw,locale=uiLanguage()){
   const id=raw?.predicate_id??'',display=raw?.display?.label??raw?.display;

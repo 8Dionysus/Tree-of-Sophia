@@ -1,6 +1,6 @@
 import {afterEach,test} from 'vitest';
 import assert from 'node:assert/strict';
-import {temporalComparisonRequest,compareExactDates,temporalComparisonRelationLabel} from './temporal-compare.mjs';
+import {temporalComparisonRequest,compareExactDates,temporalComparisonRelationLabel,dateComparisonCandidate} from './temporal-compare.mjs';
 import {ContractError,RevisionError} from './knowledge-client.mjs';
 import {setUiLanguage} from './ui-i18n.mjs';
 const H='a'.repeat(64),C='b'.repeat(64),left={kind:'node',sourceRevision:H,raw:{id:'claim:left',content_revision:C}},right={...left,raw:{id:'claim:right',content_revision:H}};
@@ -40,4 +40,9 @@ test('undetermined and unsupported outcomes retain reasons and never invent an o
     assert.equal((await compareExactDates({request:async()=>p},left,right)).comparison.status,status);
     p.comparison.relation='before';await assert.rejects(compareExactDates({request:async()=>p},left,right),ContractError);
   }
+});
+
+test('date action is offered for source claims rather than arbitrary edition cards',()=>{
+  assert.equal(dateComparisonCandidate({...left,raw:{...left.raw,kind_id:'expression',source_graph:'source-navigation'}}),false);
+  assert.equal(dateComparisonCandidate({...left,raw:{...left.raw,kind_id:'claim',source_graph:'source-claims'}}),true);
 });

@@ -4,7 +4,7 @@ import {mountConstructorSky} from './sky.mjs';
 import {createLiveResearch,seekSearchPage,SEARCH_SEEK_WINDOW} from './live-research.mjs';
 import {ExplorationSession} from '../src/observatory/exploration-session.mjs';
 import {isSourceDossierRef,SOURCE_DOSSIER_LIMIT,specForPacket,localized} from '../src/observatory/knowledge-client.mjs';
-import {liveLabel,liveEdgeLabel,livePredicateLabel,liveTypeColor} from './live-model.mjs';
+import {liveLabel,liveEdgeLabel,livePredicateLabel,liveTypeColor,liveSearchPreview} from './live-model.mjs';
 import {readingDocument} from '../src/observatory/reader-model.mjs';
 import {renderHumanForms,renderClaimContext,renderEssentialContext} from '../src/observatory/human-forms-view.mjs';
 import {setUiLanguage} from '../src/observatory/ui-i18n.mjs';
@@ -152,6 +152,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     if(error instanceof RevisionError||error?.status===409)return word('Данные изменились. Обновите материал.','The data changed. Refresh the material.');
     if(error?.status===403)return word('Доступ к материалу ограничен.','Access to this material is restricted.');
     if(error?.status===404)return word('Материал не найден.','Material not found.');
+    if(error?.status===503)return word('Этот раздел сейчас недоступен.','This section is currently unavailable.');
     if(error?.status===504)return word('Источник не ответил вовремя. Повторите попытку.','The source timed out. Try again.');
     return word('Не удалось выполнить действие. Повторите попытку.','The action could not be completed. Try again.');
   };
@@ -197,6 +198,14 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     if(readingOpen&&(renderedReading!==state.reading||renderedReadingError!==state.readingError)){
       renderedReading=state.reading;renderedReadingError=state.readingError;renderReading(state);
     }
+    const pin=reading.querySelector('[data-compare-selection]');
+    if(pin){
+      const pinned=state.comparison.some(item=>item.target.kind===state.selection?.kind&&item.target.id===state.selection?.id);
+      pin.textContent=pinned?word('Добавлено к сравнению','Added to comparison'):state.comparison.length>=2?word('Открыть сравнение','Open comparison'):t('pin');
+      pin.disabled=pinned;
+      pin.onclick=()=>state.comparison.length>=2?renderComparison(controller.state()):void controller.pin();
+    }
+    const compare=root.querySelector('[data-live-action="compare"]');compare.textContent=t('compare')+(state.comparison.length?` (${state.comparison.length}/2)`:'');
     if(state.error)report(state.error);
     if(dialog.open&&dialog.dataset.kind==='comparison'&&renderedComparison!==state.comparison)renderComparison(state);
     sky.refresh();
@@ -267,7 +276,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       if(disposed||surface!==surfaceGeneration)return;
       body.replaceChildren();
       if(dossier)appendSourceDossier(body,dossier,snapshot,requestedRef);else body.append(el('p',t('sourceDossierUnavailable'),'body'));
-    }catch(error){if(!disposed&&surface===surfaceGeneration){body.replaceChildren(el('p',errorText(error),'body'));}}
+    }catch(error){if(!disposed&&surface===surfaceGeneration){body.replaceChildren(el('p',error?.status===503?word('Сведения об источнике сейчас недоступны.','Source information is currently unavailable.'):errorText(error),'body'),button(word('Повторить','Retry'),()=>void openSourceDossier(requestedRef,snapshot)));}}
   }
   async function openSourceRecord(snapshot,representation='record'){
     if(representation!=='record'){
@@ -344,6 +353,22 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       if(block.form.lang)text.lang=block.form.lang;container.append(text);}
     container.append(renderEssentialContext(doc.essentialContext,snapshot.readableContext,presentation));
     if(snapshot.claimReading)container.append(renderClaimContext(snapshot.claimReading,snapshot.readableContext,presentation));
+    if(doc.participants.length){
+      const participants=el('section','','relation-participants');
+      participants.setAttribute('aria-label',word('Участники связи','Relation endpoints'));
+      for(const participant of doc.participants){
+        const endpoint=snapshot.endpoints.find(node=>node.id===participant.id);
+        if(!endpoint)continue;
+        const action=button('',()=>{
+          if(dialog.open&&!closeDialog())return;readingOpen=true;
+          if(controller.state().view?.source_revision===snapshot.sourceRevision&&controller.state().view.nodes.some(node=>node.id===endpoint.id))controller.selectRaw({kind:'node',id:endpoint.id});
+          else void open({kind:'node',id:endpoint.id,content_revision:endpoint.content_revision});
+        },'material-row');
+        action.dataset.relatedNodeId=endpoint.id;
+        action.append(el('small',participant.role),el('strong',participant.form?.text??liveLabel(endpoint,language).text));participants.append(action);
+      }
+      container.append(participants);
+    }
     const sources=el('details');sources.append(el('summary',t('sources')));
     const exactSource=button(t('sourceRecord'),()=>void openSourceRecord(snapshot),'source-link');
     exactSource.dataset.sourceRecordId=snapshot.raw.id;sources.append(exactSource);
@@ -371,7 +396,8 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       return;
     }
     const actions=el('div','','reading-actions');actions.append(button(t('expand'),()=>open(controller.selectedTarget())),
-      button(t('newSpace'),()=>open(controller.selectedTarget(),true)),button(t('pin'),()=>void controller.pin()));reading.append(actions);
+      button(t('newSpace'),()=>open(controller.selectedTarget(),true)));
+    const pin=button(t('pin'),()=>void controller.pin());pin.dataset.compareSelection='true';actions.append(pin);reading.append(actions);
     if(['text-unit','textual-fragment','occurrence'].includes(state.reading.raw.kind_id))actions.prepend(button(word('Читать','Read'),async()=>{
       try{const choices=await exactSourceRepresentations(activeSession.client,state.reading.sourceRevision);
         const representation=choices.includes('native_local_unit')?'native_local_unit':choices[0];
@@ -398,12 +424,14 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     for(const edge of state.model.edges){if(![edge.fromId,edge.toId].includes(state.model.carrierToVertex.get(ids[0])))continue;
       const current=state.model.carrierToVertex.get(ids[0]),other=edge.fromId===current?edge.toId:edge.fromId;
       const vertex=state.model.verticesById.get(other),raw=vertex?state.model.rawNodesById.get(vertex.representativeId):null;
-      const entry=button('',()=>controller.selectEdge(edge.id),'material-row');
+      const entry=button('',()=>controller.selectNode(other),'material-row');entry.dataset.relatedNodeId=vertex?.representativeId??'';
       const relation=state.model.rawRelationsById.get(edge.rawId),typeId=edge.kind==='claim-path'?edge.path.relation_type_id:relation?.relation_type_id;
       const type=state.discovery?.catalog?.semantic_registries?.relation_types?.entries?.find(row=>row.relation_type_id===typeId);
       const relationName=edge.kind==='claim-path'?localized(type?.labels,word('Связь','Relation'),language):relation?liveLabel(relation,language).text:word('Связь','Relation');
       const direction=edge.fromId===current?'→':'←';
-      entry.append(el('small',direction+' '+relationName),el('strong',raw?liveLabel(raw,language).text:word('Связь','Relation')));links.append(entry);}
+      entry.append(el('small',direction+' '+relationName),el('strong',raw?liveLabel(raw,language).text:word('Связь','Relation')));
+      const row=el('div','','related-material-row'),inspect=button(word('О связи','About this relation'),()=>controller.selectEdge(edge.id),'related-relation');
+      inspect.setAttribute('aria-label',word('О связи: ','About relation: ')+relationName);row.append(entry,inspect);links.append(row);}
     if(links.children.length>1)reading.append(links);
   }
   async function open(target,replace=false){
@@ -491,6 +519,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     const list=root.querySelector('.material-list');list.replaceChildren();const rows=searchPage?[...searchPage.nodes.map(raw=>({kind:'node',raw})),...searchPage.relations.map(raw=>({kind:'relation',raw}))]:[];
     for(const {kind,raw} of rows){const item=button('',()=>open({kind,id:raw.id,content_revision:raw.content_revision}),'material-row');
       item.dataset.resultKind=kind;item.dataset.resultId=raw.id;item.append(el('small',t(kind)),el('strong',liveLabel(raw,language).text));
+      const preview=liveSearchPreview(raw,language);if(preview?.text){const text=el('span',preview.text,'search-preview');if(preview.lang)text.lang=preview.lang;item.append(text);}
       list.append(item);}
     root.querySelector('.live-search-status').textContent=rows.length?'':searchSeek?.paused
       ?format('searchPaused',[searchSeek.requests,searchSeek.limits.maxRequests,searchSeek.bytes,searchSeek.limits.maxBytes,

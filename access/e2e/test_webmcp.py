@@ -786,7 +786,24 @@ def test_built_research_entry_persists_exact_shelf_and_camera(webmcp_page: Page,
     hits = command_value(invoke(page, "tos.page.knowledge-search", {"query": "fixture", "limit": 1}))
     material_id = hits["nodes"][0]["id"]
     page.goto(f"{access_base_url}/static/research.html?focus={quote(material_id, safe='')}")
-    page.locator('#tree[data-ready="true"] .reading').get_by_role("button", name="Сохранить материал", exact=True).click()
+    reading = page.locator('#tree[data-ready="true"] .reading')
+    reading.get_by_role("button", name="Сохранить материал", exact=True).click()
+    # A named neighbor is a navigation action; the predicate has its own action.
+    neighbor = reading.locator('.related-materials [data-related-node-id]').first
+    neighbor.wait_for(state='visible')
+    neighbor_id = neighbor.get_attribute('data-related-node-id')
+    neighbor.click()
+    wait_for(page, f"document.querySelector('#tree').dataset.selection === {json.dumps(neighbor_id)}")
+    reading.locator('.related-relation').first.click()
+    endpoint = reading.locator('.relation-participants [data-related-node-id]').first
+    endpoint.wait_for(state='visible')
+    endpoint_id = endpoint.get_attribute('data-related-node-id')
+    endpoint.click()
+    wait_for(page, f"document.querySelector('#tree').dataset.selection === {json.dumps(endpoint_id)}")
+    reading.get_by_role('button', name='Сравнить', exact=True).click()
+    assert reading.get_by_role('button', name='Добавлено к сравнению', exact=True).is_disabled()
+    assert page.locator('[data-live-action="compare"]').inner_text() == 'Сопоставить (1/2)'
+
     page.locator('[data-research-shelf="true"]').click()
     card = page.locator('.research-shelf-card').first
     card.wait_for(state="visible")
@@ -1180,6 +1197,15 @@ def test_lens_large_relation_area_requires_scope_confirmation(reader_fixture_bas
         choice.get_by_role('button', name='Открыть область', exact=True).click()
         assert 'Выбранный центр' in builder.inner_text()
         assert builder.get_by_role('button', name='Предпросмотр', exact=True).is_enabled()
+        # In a normal bounded area, choosing focus uses the current selection
+        # immediately; it must not require a second corrective click.
+        page.evaluate('''async () => {
+          scopeCheck.builder.close();scopeCheck.packet.nodes.splice(2);
+          await scopeCheck.builder.open();
+        }''')
+        builder.locator('.lens-builder-field').filter(has=page.get_by_text('Отправная точка', exact=True)).locator('select').select_option('focus')
+        assert 'Выбранный центр' in builder.locator('.lens-builder-focus').inner_text()
+        assert builder.get_by_role('button', name='Взять выбранную звезду', exact=True).count() == 0
         browser.close()
 
 

@@ -9,11 +9,13 @@ import {sourceLinkLabel,rawDataDownload} from './human-presentation.mjs';
 
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);uiText(node, text);node.className=className;return node;};
 const button=(label,action)=>{const b=el('button',label);b.type='button';b.addEventListener('click',action);return b;};
-function link(ref){
+export function sourceReferenceLink(ref){
   const label=sourceLinkLabel(ref);
   if(/^https?:\/\//i.test(ref)){try{const url=new URL(ref);const a=el('a',label,'sc-source-ref');a.href=url.href;a.target='_blank';a.rel='noreferrer noopener';return a;}catch{/* Render invalid references as a human source label. */}}
-  return el('span',label,'sc-source-ref');
+  const name=String(ref).split(/[\\/]/).filter(Boolean).at(-1)||String(ui('Источник'));
+  const download=rawDataDownload({source_ref:ref},ui('Скачать ссылку: {0}',[name]),'sophia-source-reference.json');download.classList.add('sc-source-ref');return download;
 }
+const link=sourceReferenceLink;
 const statusLabels={
   'pre-canon':ui("До канона"),canon:ui("Канон"),'derived-export':ui("Проекция источников"),
   prepared_research_candidate:ui("Исследовательский кандидат"),prepared_branch_candidate:ui("Кандидат ветви"),
@@ -21,9 +23,16 @@ const statusLabels={
   'not-recorded':ui("Не указан"),unresolved:ui("Не разрешено"),review_status_unresolved:ui("Статус рассмотрения не установлен"),
   unknown:ui("Не указан"),available:ui("Доступно"),missing:ui("Не найдено"),stale:ui("Устарело"),corrupt:ui("Повреждено"),
   'access-restricted':ui("Доступ ограничен"),'over-budget':ui("Слишком большой объём"),unsupported:ui("Не поддерживается"),
+  'public-domain':ui('Общественное достояние'),'public-domain-reviewed':ui('Общественное достояние: проверено'),
+  'open-licensed':ui('Открытая лицензия'),'permission-granted':ui('Разрешение получено'),
+  'research-only':ui('Только для исследования'),restricted:ui('Доступ ограничен'),'rights-unknown':ui('Права не установлены'),rejected:ui('Отклонено'),
+  'draft-not-sent':ui('Черновик запроса'),'awaiting-human-send-approval':ui('Ожидает разрешения на отправку'),
+  sent:ui('Запрос отправлен'),'response-received':ui('Ответ получен'),'permission-denied':ui('В разрешении отказано'),
+  expired:ui('Срок истёк'),withdrawn:ui('Запрос отозван'),
   source:ui("Источник"),projection:ui("Проекция"),runtime:ui("Рабочий слой"),pending:ui("Ожидает"),
 };
-const humanStatus=value=>statusLabels[value]||ui("Недоступно");
+export const humanSourceStatus=value=>Object.hasOwn(statusLabels,value)?statusLabels[value]:(typeof value==='string'&&value?ui('Статус источника: {0}',[value]):ui('Не указан'));
+const humanStatus=humanSourceStatus;
 export function createTools(root,scene,{data:{queries,client},selected,panels,onChange}){
   let persistence=false;
   try{persistence=createLocalStoragePersistence(localStorage,'tos-research-workspace-v1');}catch{/* Workspace remains usable in memory. */}
@@ -167,7 +176,7 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
       for(const [key,title]of [['work',ui("Произведение")],['expression',ui("Редакции и переводы")],['edition',ui("Издания")],['file',ui("Файлы")],['item',ui("Экземпляры")],['link',ui("Ссылки")]]){
         const items=packet.chain?.[key]||[];if(!items.length)continue;const group=el('details');uiChildren(group, "append", el('summary',title+' · '+items.length));for(const item of items)uiChildren(group, "append", sourceRecord(item));uiChildren(result, "append", group);
       }
-      const boundary=packet.agent_summary;if(boundary)uiChildren(result, "append", el('p',ui("Доступность ссылки и право использования — отдельные сведения. Статус прав: {0}.",[String(humanStatus(boundary.rights_posture))]),'sc-muted'));
+      const boundary=packet.agent_summary;if(boundary)uiChildren(result, "append", el('p',ui("Права: {0}.",[String(humanStatus(boundary.rights_posture))]),'sc-muted'));
       if(!result.children.length)uiChildren(result, "append", el('p',ui("Дополнительные маршруты источников пока не записаны."),'sc-muted'));
       uiAttribute(body, 'aria-busy', 'false');reading.restore();scene.invalidate();
     }catch(error){uiAttribute(body, 'aria-busy', 'false');uiChildren(result, "replaceChildren", el('p',ui("Не удалось загрузить досье источников. Попробуйте ещё раз."),'sc-muted'));uiChildren(result, "append", actions(button(ui("Повторить"),()=>switchTab('sources'))));scene.invalidate();}

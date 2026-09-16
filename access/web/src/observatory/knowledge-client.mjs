@@ -1,5 +1,5 @@
 import {t,uiLanguage} from './ui-i18n.mjs';
-import {relationLabel,fileLabel,sourceLinkLabel} from './human-presentation.mjs';
+import {relationLabel,fileLabel,sourceLinkLabel,languageName,readableTitleForm,isReadablePresentationTitle} from './human-presentation.mjs';
 import {chooseKnowledgeSearchMode} from '../knowledge-search.ts';
 import {displayForm} from './display-language.mjs';
 import {contentLanguage,validateHumanForms,claimPathFor,claimPathClosure,FormContractError} from './human-forms.mjs';
@@ -87,24 +87,45 @@ export function materialDisplayForm(raw,field,preferred='ru'){
 }
 export function displayTitleForm(raw,preferred=uiLanguage(),material=false){
   if(raw?.predicate_id)return {text:relationLabel(raw,preferred),key:preferred,lang:preferred,fallback:false};
+  const provenance=raw?.display?.provenance||{};
+  // Text-layer navigation currently supplies a generated packet filename,
+  // not the title of a passage. Use only declared type/language here.
+  if(raw?.kind_id==='text-layer'&&provenance.title==='projected-label'&&!raw.display.title?.[preferred]){
+    const name={ru:'Текстовый слой',en:'Text layer',es:'Capa de texto'}[preferred]??'Text layer';
+    const language=raw.attributes?.language;
+    return {text:name+(language?' · '+languageName(language,preferred):''),key:preferred,lang:preferred,fallback:false,navigationOnly:true};
+  }
+
+  const field=raw?.display?.title?'title':'label';
+  const administrative=['item','file','link','anchor','text-unit'].includes(raw?.kind_id)
+    ||provenance.title==='projected-path';
+  const selected=material?materialDisplayForm(raw,field,preferred):null;
+  // A full material may carry an owner-selected form. Keep that selection and
+  // preserve its exact source wording. Compact administrative navigation can
+  // still choose the first readable explicit source form.
+  const form=material&&raw?.display_selection!==undefined
+    ? selected&&(!administrative||isReadablePresentationTitle(selected.text))?selected:null
+    : readableTitleForm(raw?.display?.[field],preferred,{guard:administrative});
   // A generated claim descriptor combines transport posture, endpoints and
   // status prose. It is a navigation carrier, not an authored material title.
-  if(raw?.kind_id==='claim'&&(missingReadableTitle(raw)||raw?.display?.provenance?.title==='navigation-template')){
+  if(raw?.kind_id==='claim'&&(missingReadableTitle(raw)
+    ||provenance.title==='navigation-template'&&provenance.source_title_available!==true)){
     const predicate=raw.semantics?.claim?.source_predicate_id;
     const text=predicate==='provision_activity'?relationLabel({predicate_id:predicate},preferred):{ru:'Утверждение',en:'Claim',es:'Afirmación'}[preferred]??'Claim';
     return {text,key:preferred,lang:preferred,fallback:false,navigationOnly:true};
   }
+  if(missingReadableTitle(raw))return {text:localized(raw.display.kind_label,t('Материал'),preferred),key:null,lang:null,fallback:false,unavailable:true};
+  if(form)return provenance.title==='navigation-template'?{...form,navigationOnly:true}:form;
   // Administrative carrier descriptions are source text, not interface titles.
   // A localized kind is a navigation label; the original name stays in Sources.
-  const localTitle=raw?.display?.title?.[preferred];
-  if((['item','file','link','anchor','text-unit'].includes(raw?.kind_id)||raw?.display?.provenance?.title==='projected-path')&&!localTitle&&raw?.display?.kind_label?.[preferred]){
+  if(administrative){
     const names={
       'text-unit':{ru:'Фрагмент',en:'Passage',es:'Pasaje'},anchor:{ru:'Место в тексте',en:'Text location',es:'Lugar del texto'},
       'repository-branch_manifest':{ru:'Описание раздела',en:'Section description',es:'Descripción de la sección'},
       'repository-manifest':{ru:'Описание раздела',en:'Section description',es:'Descripción de la sección'},
       'repository-research_packet':{ru:'Исследование',en:'Research',es:'Investigación'},
       'repository-source_witness':{ru:'Сведения об источнике',en:'Source information',es:'Información de la fuente'}};
-    let text=names[raw.kind_id]?.[preferred]??raw.display.kind_label[preferred];
+    let text=names[raw.kind_id]?.[preferred]??localized(raw.display.kind_label,t('Материал'),preferred);
     if(raw.kind_id==='file')text=fileLabel(raw.attributes,preferred,raw.display.title?.default);
     if(raw.kind_id==='item'||raw.kind_id==='link'){
       const refs=[...(raw.attributes?.source_refs??[]),...(raw.source_refs??[])];
@@ -113,10 +134,7 @@ export function displayTitleForm(raw,preferred=uiLanguage(),material=false){
     }
     return {text,key:preferred,lang:preferred,fallback:false,navigationOnly:true};
   }
-  if(missingReadableTitle(raw))return {text:localized(raw.display.kind_label,t('Материал'),preferred),key:null,lang:null,fallback:false,unavailable:true};
-  const field=raw?.display?.title?'title':'label';
-  const form=material?materialDisplayForm(raw,field,preferred):displayForm(raw?.display?.[field],preferred);
-  return form&&raw?.display?.provenance?.title==='navigation-template'?{...form,navigationOnly:true}:form;
+  return null;
 }
 export function displayTitle(raw,fallback='',preferred=uiLanguage()){
   return displayTitleForm(raw,preferred)?.text||fallback;

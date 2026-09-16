@@ -131,6 +131,15 @@ test('an identifier fallback uses a kind label without inventing a source form o
   assert.equal(doc.humanForms,null);assert.equal(doc.blocks[0].form.text,raw.display.summary.ru);
   assert.deepEqual(snapshot.raw.display,raw.display);assert.equal(snapshot.raw.id,raw.id);
 });
+test('the shelf reader keeps a readable source filename when the requested language is absent',async()=>{
+  const raw=node('source-navigation:file');raw.kind_id='file';raw.display.title={default:'Ницше Так говорил Заратустра 1913.pdf'};
+  raw.display.kind_label={ru:'Файл',en:'File',es:'Archivo'};raw.display.provenance={title:'projected-label',source_title_available:true};
+  const shelf=createReadingShelf({client:{readMaterial:async()=>answer(raw)}});
+  const {key}=shelf.pin({...target(raw),preferred:'en'});await tick();
+  assert.equal(shelf.entries[0].title.text,raw.display.title.default);
+  assert.equal(readingDocument(shelf.entries[0].snapshot,'en').title.text,raw.display.title.default);
+  assert.equal(shelf.entries[0].key,key);shelf.dispose();
+});
 
 test('reading preserves exact qualifications, provenance and missing descriptions',()=>{
   const original=answer(),before=structuredClone(original),snapshot=readingSnapshot(original,'node');

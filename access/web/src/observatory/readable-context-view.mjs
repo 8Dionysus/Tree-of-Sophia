@@ -37,8 +37,13 @@ export function renderReadableContexts(contexts,anchor,{resolveValue}={}){
       // those fields; their absence does not alter the source fact's value.
       if(entry.category==='technical'||entry.key==='same_as_posture'&&entry.display.text==='no_equivalence_claim'
         ||entry.binding?.source_pointer?.startsWith('/field_languages/'))continue;
-      const stamp=JSON.stringify([entry.key,entry.display,entry.value_label]);if(seen.has(stamp))continue;seen.add(stamp);
+      const stamp=JSON.stringify([entry.key,entry.binding?.source_pointer,entry.display,entry.value_label]);if(seen.has(stamp))continue;seen.add(stamp);
       if(entry.display.type==='null'||entry.display.text==='')continue;
+      const nameStatus=entry.key==='status'&&/^\/variant_labels\/\d+\/status$/.test(entry.binding?.source_pointer??'');
+      if(nameStatus&&entry.display.text==='verified'){
+        const row=el('div','','sc-form-context');row.dataset.readingAnchor=`${anchor}:${index}:${ordinal}`;
+        row.append(el('dt',label({ru:'Проверка названия',en:'Title verification',es:'Verificación del título'})),el('dd',ui('Проверено'),'sc-form-value'));content.append(row);continue;
+      }
       const resolved=resolveValue?.(entry);
       if(!resolved&&!entry.value_label&&!hasContextPresentation(entry.key)){
         if(referenceField(entry.key))continue;
@@ -48,7 +53,8 @@ export function renderReadableContexts(contexts,anchor,{resolveValue}={}){
       const target=recordFields.has(entry.key)?record:content;
       const row=el('div','','sc-form-context');row.dataset.contextCategory=entry.category;row.dataset.readingAnchor=`${anchor}:${index}:${ordinal}`;
       const compound=['object','array'].includes(entry.display.type);
-      if(!compound)row.append(el('dt',entry.category==='unclassified'?contextLabel(entry.key)||label(entry.label):label(entry.label),'sc-form-context-slot'));
+      const nameLanguage=entry.key==='language'&&/^\/variant_labels\/\d+\/language$/.test(entry.binding?.source_pointer??'');
+      if(!compound)row.append(el('dt',nameLanguage?label({ru:'Язык названия',en:'Title language',es:'Idioma del título'}):entry.category==='unclassified'?contextLabel(entry.key)||label(entry.label):label(entry.label),'sc-form-context-slot'));
       if(resolved)row.append(el('dd',resolved,'sc-form-value'));
       else if(entry.value_label)row.append(el('dd',label(entry.value_label),'sc-form-value'));
       else if(['object','array'].includes(entry.display.type)){

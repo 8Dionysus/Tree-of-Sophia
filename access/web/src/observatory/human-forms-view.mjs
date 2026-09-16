@@ -1,4 +1,4 @@
-import {ui,uiText} from './ui-i18n.mjs';
+import {ui,uiText,uiComputed,uiLanguage} from './ui-i18n.mjs';
 import {formView,inspectExactHumanForms} from './human-forms.mjs';
 import {renderContextData} from './context-view.mjs';
 import {formContexts} from './readable-context.mjs';
@@ -15,6 +15,9 @@ function packetContext(packet,anchor,readableContext){
     const pointer=entry.binding?.pointer??'';if(pointer.startsWith('/field_languages/'))continue;
     const key=pointer.split('/').at(-1)?.replace(/~1/g,'/').replace(/~0/g,'~');
     const rendered=renderContextData(key?{[key]:entry.value}:entry.value,`${anchor}:${index}`);rendered.dataset.contextSlot=entry.slot;
+    if(/^\/variant_labels\/\d+\/language$/.test(pointer)){
+      const title=rendered.querySelector('dt');if(title)uiText(title,uiComputed(()=>({ru:'Язык названия',en:'Title language',es:'Idioma del título'}[uiLanguage()]??'Title language')));
+    }
     if(rendered.children.length)context.append(rendered);
   }
   return context;

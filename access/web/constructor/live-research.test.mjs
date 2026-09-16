@@ -53,7 +53,8 @@ test('closing a card discards ignored-abort late reading; selection races cannot
 });
 test('comparison has two reserved exact slots and clearing discards late cards',async()=>{
   const {controller:c,session,first}=harness();await c.open(first.query.origin);
-  const pending=deferred();session.inspect=()=>pending.promise;const left=c.pin(),right=c.pin();
+  const pending=deferred();session.inspect=()=>pending.promise;const left=c.pin();assert.equal(await c.pin(),null);assert.equal(c.state().comparison.length,1);
+  c.selectNode(c.state().model.vertices.find(vertex=>vertex.representativeId!==c.state().selection.id).id);const right=c.pin();
   assert.equal(c.state().comparison.length,2);assert.equal(await c.pin(),null);
   c.clearComparison();pending.resolve({raw:{id:'old'}});await Promise.all([left,right]);assert.deepEqual(c.state().comparison,[]);
 });

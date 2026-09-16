@@ -1,5 +1,6 @@
 import {relationLabel} from '../src/observatory/human-presentation.mjs';
 import {displayTitleForm,localized} from '../src/observatory/knowledge-client.mjs';
+import {displayForm} from '../src/observatory/display-language.mjs';
 import {validateHumanForms,resolveClaimReading} from '../src/observatory/human-forms.mjs';
 
 // Labels remain supplied material. A missing wording stays a visible gap; no
@@ -89,4 +90,14 @@ export class StableExplorationLayout {
     return {nodes,edges,clusters:[],labels,selectedNodeId:selected?.kind==='node'?focus:null,
       selectedEdgeId:selected?.kind==='relation'||selected?.kind==='claim-path'?selected.id:null};
   }
+}
+
+// Search snippets quote supplied wording. They do not reconstruct a claim
+// from transport IDs or strip its uncertainty/negation to make a shorter title.
+export function liveSearchPreview(raw,language='ru'){
+  if(raw?.predicate_id)return displayForm(raw.display?.statement,language);
+  const claim=raw?.attributes?.source_claim,identity=raw?.semantics?.claim;
+  if(raw?.kind_id!=='claim'||!claim||!identity||claim.claim_id!==identity.claim_id||claim.claim_version!==identity.claim_version)return null;
+  const wording=claim.qualifiers?.statement;
+  return typeof wording==='string'&&wording.trim()?{text:wording,lang:claim.qualifiers.statement_language??null}:null;
 }

@@ -286,7 +286,7 @@ export function mountLensBuilder({host,client,locale='ru',getArea,getCatalog,onA
     if(!context||!draft){if(!loading)uiChildren(body,'append',button(ui("Повторить загрузку"),()=>void load({refresh:true})));return;}
     const name=el('input');name.type='text';name.maxLength=64;name.value=draft.name;name.addEventListener('input',()=>{draft.name=name.value;touch();});uiChildren(body,'append',field(ui("Название линзы"),name));
     const scopeChoices=[];if(!areaChoice?.required||areaChoice.choices.includes('area'))scopeChoices.push(['area',ui("Из исходной области")]);scopeChoices.push(['focus',ui("От выбранной звезды")],['all',ui("По всему древу")]);
-    const scope=el('select');for(const [value,label] of scopeChoices)uiChildren(scope,'append',option(value,label));scope.value=draft.scope;scope.addEventListener('change',()=>{draft.scope=scope.value;touch({rerender:true});});uiChildren(body,'append',field(ui("Отправная точка"),scope));
+    const scope=el('select');for(const [value,label] of scopeChoices)uiChildren(scope,'append',option(value,label));scope.value=draft.scope;scope.addEventListener('change',()=>{draft.scope=scope.value;if(draft.scope==='focus'&&!draft.focusId)draft.focusId=areaScopeNode();touch({rerender:true});});uiChildren(body,'append',field(ui("Отправная точка"),scope));
     if(draft.scope==='area')uiChildren(body,'append',el('p',ui("Исходная область: {0}. Фильтры выбирают начало; глубина добавляет окружение.",[count(draft.nodeIds.length,ui("звезда"),ui("звезды"),ui("звёзд"))]),'lens-builder-note'));
     if(draft.scope==='focus'){
       uiChildren(body,'append',el('p',ui("Центр: {0}",[lensBuilderFocusLabel(area,draft,language(locale))]),'lens-builder-focus'));
