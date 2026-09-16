@@ -48,7 +48,7 @@ from .source_read import SourceReadError, SourceReadService, contract_summary, u
 from .source_read_owner import SelectedSourceReadService
 from .source_navigation_query import source_descend_query, source_dossier_query
 from .query_store import QueryStore, QueryStoreRequired, DEFAULT_RELATIVE_PATH
-from .projection_store import load_projection
+from .projection_store import ProjectionReader, ProjectionStoreError, is_partitioned, load_projection, row_order
 from .locations import data_root, program_path
 from .data_access import DataGuard, DataAccessUnavailable, check_data_path, guard_public_data_methods
 
@@ -213,6 +213,106 @@ def _read_json(path: Path) -> dict[str, Any]:
     return _read_json_version(
         path.resolve().as_posix(), stat.st_mtime_ns, stat.st_size, stat.st_ino, stat.st_ctime_ns
     )
+
+
+class _LazyPartitionedProjection(dict[str, Any]):
+    """Expose one partitioned projection as a logical dict on demand.
+
+    The manifest header is the logical projection metadata.  Collections are
+    decoded only when a normal dict access asks for them, and each decoded
+    collection is returned as the same concrete list or dict produced by
+    ``ProjectionReader.materialize``.  This keeps existing consumers' value
+    semantics while avoiding an implicit whole-document export on every
+    request.
+    """
+
+    def __init__(self, reader: ProjectionReader):
+        self._reader = reader
+        self._collection_specs = dict(reader.manifest["collections"])
+        if any("/" in name for name in self._collection_specs):
+            raise ProjectionStoreError(
+                "partitioned philosophy projection must use flat top-level collections"
+            )
+        self._loaded_collections: dict[str, Any] = {}
+        super().__init__(reader.metadata())
+
+    def _load_collection(self, name: str) -> Any:
+        if name in self._loaded_collections:
+            return self._loaded_collections[name]
+        spec = self._collection_specs[name]
+        key_field = spec["key_field"]
+        if key_field == []:
+            value = [row for _, row in sorted(self._reader.iter_items(name))]
+        elif key_field is None:
+            value = dict(sorted(self._reader.iter_items(name)))
+        else:
+            value = list(self._reader.iter_collection(name))
+            fields = spec["order_fields"] or (key_field if isinstance(key_field, list) else [key_field])
+            value.sort(key=lambda row: row_order(row, fields))
+        self._reader.require_current()
+        self._loaded_collections[name] = value
+        # Keep the underlying dict populated after an explicit collection
+        # access so ordinary dict operations see the same concrete value.
+        dict.__setitem__(self, name, value)
+        return value
+
+    def __getitem__(self, key: str) -> Any:
+        if key in self._collection_specs:
+            return self._load_collection(key)
+        return dict.__getitem__(self, key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if key in self._collection_specs:
+            return self._load_collection(key)
+        return dict.get(self, key, default)
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._collection_specs or dict.__contains__(self, key)
+
+    def __iter__(self):
+        yield from dict.__iter__(self)
+        for name in self._collection_specs:
+            if not dict.__contains__(self, name):
+                yield name
+
+    def __len__(self) -> int:
+        return dict.__len__(self) + sum(
+            1 for name in self._collection_specs if not dict.__contains__(self, name)
+        )
+
+    def _load_all(self) -> None:
+        for name in self._collection_specs:
+            self._load_collection(name)
+
+    def keys(self):
+        # A key inventory is metadata-only.  Materialize collections only when
+        # a caller asks for their values through item access or an operation
+        # that explicitly enumerates the mapping contents.
+        return dict.fromkeys(iter(self)).keys()
+
+    def items(self):
+        self._load_all()
+        return dict.items(self)
+
+    def values(self):
+        self._load_all()
+        return dict.values(self)
+
+    def copy(self) -> dict[str, Any]:
+        self._load_all()
+        return dict.copy(self)
+
+    def __deepcopy__(self, memo):
+        result = copy.deepcopy(self.copy(), memo)
+        memo[id(self)] = result
+        return result
+
+
+def _read_logical_projection(path: Path) -> dict[str, Any]:
+    """Read a logical projection, keeping partitioned collections lazy."""
+    if not is_partitioned(path):
+        return _read_json(path)
+    return _LazyPartitionedProjection(ProjectionReader(path))
 
 
 def _knowledge_graph_version(
@@ -614,7 +714,11 @@ class ToSAccessCore:
         # Legacy small fixtures retain their existing explicit in-memory mode.
         # A partitioned root requires the compiled store even if it is missing.
         partitioned = False
-        for candidate in (self.index_path, self.bibliographic_graph_path):
+        for candidate in (
+            self.index_path,
+            self.philosophy_graph_projection_path,
+            self.bibliographic_graph_path,
+        ):
             if candidate.is_file() and candidate.stat().st_size < 4 * 1024 * 1024:
                 header = _read_json(candidate)
                 if header.get('schema_version') == 'tos_partitioned_projection_v1' or header.get('schema') == 'tos_partitioned_projection_v1':
@@ -911,7 +1015,7 @@ class ToSAccessCore:
         return self.philosophy_graph_projection_path.is_file()
 
     def philosophy_projection(self) -> dict[str, Any]:
-        return _checked_knowledge_schema(_read_json(self.philosophy_graph_projection_path), "philosophy")
+        return _checked_knowledge_schema(_read_logical_projection(self.philosophy_graph_projection_path), "philosophy")
 
     def bibliographic_graph(self) -> dict[str, Any]:
         payload = load_projection(self.bibliographic_graph_path)
