@@ -311,6 +311,8 @@ export function normalizeSearch(raw = {}, {document = {}, version = {}, scope = 
       reference,
       sourceReference: typeof candidateReference === 'string' ? candidateReference : null,
       unitId: first(match.unitId, match.unit_id, reference?.unitId, null),
+      label: text(first(match.label, match.locator, match.heading), ''),
+      ordinal: Number.isSafeInteger(match.ordinal) ? match.ordinal : null,
       snippet: text(first(match.snippet, match.text, match.excerpt), ''),
       start: first(match.start, match.offsetStart, reference?.selector?.start, null),
       end: first(match.end, match.offsetEnd, reference?.selector?.end, null),
@@ -351,7 +353,7 @@ export function searchUnits(units, query, {limit = READER_LIMITS.searchResults, 
       const matchReference = reference
         ? validateReference({...reference, selector: {...reference.selector, start, end}})
         : null;
-      items.push({id: `${scope}-${index}-${hit.index}`, unitId, start, end, snippet: value, reference: matchReference, scope});
+      items.push({id: `${scope}-${index}-${hit.index}`, unitId, label: text(unit?.label, ''), ordinal: Number.isSafeInteger(unit?.ordinal) ? unit.ordinal : null, start, end, snippet: value, reference: matchReference, scope});
       // The bounded local scan stops before it can establish a corpus total.
       // Keep that uncertainty visible instead of presenting the cache cap as
       // an exact number of matches.

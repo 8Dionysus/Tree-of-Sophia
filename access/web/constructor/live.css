@@ -30,3 +30,10 @@
   #tree[data-mode=live] .lens-rail{top:145px}
 }
 @media(max-width:700px){#tree[data-mode=live] .reading{font-size:16px}#tree[data-mode=live] .footer{gap:8px}#tree[data-mode=live] .space-count{font-size:10px}#tree[data-mode=live] .live-back{max-width:100px;font-size:11px}}
+
+#tree[data-mode=live] .brand small:empty,#tree[data-mode=live] .view-kicker:empty,#tree[data-mode=live] .view-heading p:empty{display:none}
+#tree[data-mode=live] .reading .related-materials{margin-top:24px}
+#tree[data-mode=live] .reading .related-materials .material-row{width:100%;text-align:left;padding:10px 0}
+#tree[data-mode=live] .reading .related-materials .material-row small{font-size:12px;color:#9aadc0}
+#tree[data-mode=live] .reading .related-materials .material-row strong{font-size:15px;font-weight:400}
+#tree[data-mode=live] .sc-data-download{background:none;border:0;padding:8px 0;color:#9aadc0;font:inherit;font-size:12px;cursor:pointer}

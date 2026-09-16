@@ -581,10 +581,14 @@ def test_real_browser_sources_panel_reads_frozen_metadata_record(
     for index in range(exact.locator("details").count()):
         exact.locator("details").nth(index).locator("summary").click()
     exact_text = exact.inner_text()
-    assert source_record["record_id"] in exact_text
+    assert source_record["record_id"] not in exact_text
     assert source_record["preferred_label"] in exact_text
-    assert f'"record_version": {source_record["record_version"]}' in exact_text
-    assert SOURCE_RECORD_RELATIVE.as_posix() in exact_text
+    assert SOURCE_RECORD_RELATIVE.as_posix() not in exact_text
+    assert exact.locator('pre').count() == 0
+    with page.expect_download() as downloaded:
+        exact.get_by_role('button', name='Скачать запись', exact=True).click()
+    exported = json.loads(Path(downloaded.value.path()).read_text(encoding='utf-8'))
+    assert exported == source_record
 
 
 
@@ -598,7 +602,7 @@ def test_source_metadata_remains_when_native_discovery_fails(
     _, node_id = first_edge_and_node(page)
     page.goto(f"{access_base_url}/static/research.html?focus={quote('philosophy:' + node_id, safe='')}")
     page.locator('#tree[data-ready="true"] .reading [data-source-record-id]').wait_for(state="attached")
-    page.locator('.reading details').filter(has=page.locator('[data-source-record-id]')).locator('summary').click()
+    page.locator('.reading details').filter(has=page.locator('[data-source-record-id]')).locator(':scope > summary').click()
     pending = []
     capability_calls = 0
 
@@ -613,7 +617,8 @@ def test_source_metadata_remains_when_native_discovery_fails(
     page.route("**/api/source/capabilities", capabilities)
     page.locator('.reading [data-source-record-id]').click()
     record = page.locator('dialog[data-kind="source-record"] .dialog-content')
-    record.get_by_role('heading', name='Synthetic native metadata', exact=True).wait_for(state="visible")
+    record.get_by_text('Synthetic native metadata', exact=True).wait_for(state="visible")
+    record.locator('details > summary').click()
     assert "Available exact metadata remains readable." in record.inner_text()
     assert len(pending) == 1
     assert record.get_attribute('data-source-read-status') == 'available'
@@ -623,13 +628,54 @@ def test_source_metadata_remains_when_native_discovery_fails(
         pending[0].fulfill(status=200, content_type='application/json', body='{')
     record.get_by_text('Способы чтения текста сейчас недоступны.', exact=True).wait_for(state="visible")
     assert record.get_attribute('data-source-read-status') == 'available'
-    assert record.get_by_role('heading', name='Synthetic native metadata', exact=True).is_visible()
+    assert record.get_by_text('Synthetic native metadata', exact=True).is_visible()
     assert "Available exact metadata remains readable." in record.inner_text()
     assert record.locator('.source-native-actions button').count() == 0
-    for summary in record.locator('details > summary').all():
-        summary.click()
-    assert 'tos.text-unit.browser-fixture' in record.inner_text()
-    assert 'ToS/synthetic/native-metadata.json' in record.inner_text()
+    assert 'tos.text-unit.browser-fixture' not in record.inner_text()
+    assert 'ToS/synthetic/native-metadata.json' not in record.inner_text()
+    assert record.locator('pre').count() == 0
+    with page.expect_download() as downloaded:
+        record.get_by_role('button', name='Скачать данные', exact=True).click()
+    exported = json.loads(Path(downloaded.value.path()).read_text(encoding='utf-8'))
+    assert exported['record']['record_id'] == 'tos.text-unit.browser-fixture'
+    assert 'ToS/synthetic/native-metadata.json' in json.dumps(exported)
+
+
+@pytest.mark.parametrize("access_base_url", ["source"], indirect=True)
+def test_research_seeded_locale_and_panel_sequence(webmcp_page: Page, access_base_url: str) -> None:
+    import random
+    from urllib.parse import quote
+
+    page = webmcp_page
+    _, node_id = first_edge_and_node(page)
+    page.goto(f"{access_base_url}/static/research.html?focus={quote('philosophy:' + node_id, safe='')}")
+    page.locator('#tree[data-ready="true"] .reading h1').wait_for()
+    names = {
+        'ru': ['Собрать линзу', 'Читать произведения и издания', 'Моя полка', 'Об этой области', 'Настроить связи', 'Закрыть'],
+        'en': ['Build a lens', 'Read works and editions', 'My shelf', 'About this area', 'Choose relations', 'Close'],
+    }
+    language = 'ru'
+    actions = ['en', 'ru', 'sources', 'scope', 'conditions'] * 3
+    random.Random(915236).shuffle(actions)
+    for step, action in enumerate(actions):
+        if action in names:
+            page.locator(f'[data-live-lang="{action}"]').click()
+            language = action
+        elif action == 'sources':
+            disclosure = page.locator('.reading details').filter(has=page.locator('[data-source-record-id]')).locator(':scope > summary')
+            disclosure.click()
+            assert page.locator('.reading [data-source-record-id]').is_visible(), (step, action)
+            assert page.locator('.reading pre').count() == 0
+            disclosure.click()
+        else:
+            page.get_by_role('button', name=names[language][3 if action == 'scope' else 4], exact=True).click()
+            dialog = page.get_by_role('dialog')
+            assert dialog.is_visible(), (step, action)
+            assert dialog.locator('pre').count() == 0
+            dialog.get_by_role('button', name=names[language][5], exact=True).click()
+        for name in names[language][:3]:
+            assert page.get_by_role('button', name=name, exact=True).is_visible(), (step, action, name)
+    assert page.locator('.reading h1').is_visible()
 
 
 def test_real_browser_cancellation_reload_and_deep_link(webmcp_page: Page) -> None:

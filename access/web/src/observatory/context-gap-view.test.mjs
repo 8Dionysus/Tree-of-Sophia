@@ -21,23 +21,27 @@ const flatten=node=>[node,...node.children.flatMap(flatten)];
 const raw={fields:{negation:{value:false,source_pointer:'/negation'}},conflicts:['disputed'],unknown:null};
 const gap={state:'requires-exact-context',contexts:[]};
 
-test.each(['requires-exact-context','complete'])('missing record presentation stays explicit and exact data stays closed: %s',state=>{
+test.each(['requires-exact-context','complete'])('fallback presents known facts without a raw packet: %s',state=>{
   dom();const before=structuredClone(raw);
   const node=renderEssentialContext({state:'available',items:[{state:'available',pointer:'/record',value:raw}]},{...gap,state});
-  const all=flatten(node),notice=all.find(value=>value.dataset.contextPresentation);
-  expect(notice.dataset.contextPresentation).toBe(state==='complete'?'not-included':state);
-  expect(notice.textContent).toContain('перед выводами');
-  const disclosure=all.find(value=>value.tagName==='details'&&value.textContent.includes('disputed'));
-  expect(disclosure.open).toBe(false);
-  expect(JSON.parse(flatten(disclosure).find(value=>value.tagName==='pre').textContent)).toEqual(raw);
+  const all=flatten(node);
+  expect(node.textContent).toContain('Отрицание');expect(node.textContent).toContain('Нет');
+  expect(node.textContent).toContain('Оспаривается');expect(all.some(value=>value.tagName==='pre')).toBe(false);
+  if(state==='requires-exact-context')expect(node.textContent).toContain('Часть контекста доступна в источнике.');
   expect(raw).toEqual(before);
 });
 
-test('Claim fallback preserves conflict, negation and unknown in exact disclosure without rendering a technical field wall',()=>{
-  dom();const node=renderClaimContext({semantics:{assertion_contexts:[raw]},relations:[]},gap),all=flatten(node);
+test('Claim fallback preserves negation and dispute as human facts',()=>{
+  dom();const before=structuredClone(raw),node=renderClaimContext({semantics:{assertion_contexts:[raw]},relations:[]},gap),all=flatten(node);
+  expect(node.textContent).toContain('Отрицание');expect(node.textContent).toContain('Оспаривается');
   expect(all.some(value=>value.dataset.contextPresentation==='requires-exact-context')).toBe(true);
-  expect(all.some(value=>value.tagName==='dl')).toBe(false);
-  const details=all.filter(value=>value.tagName==='details');
-  expect(details.every(value=>!value.open)).toBe(true);
-  expect(details.some(value=>flatten(value).some(child=>child.tagName==='pre'&&JSON.stringify(JSON.parse(child.textContent))===JSON.stringify(raw)))).toBe(true);
+  expect(all.some(value=>value.tagName==='pre')).toBe(false);expect(raw).toEqual(before);
+});
+
+test('structured descriptions retain their substance instead of only displaying language metadata',()=>{
+  dom();const value={semantic_scope:{scope_note:'Историческая языковая традиция.',identity_criterion:'Разновидности рассматриваются отдельно.',language:'ru',script:'Cyrl'},
+    semantic_content:{system_account:'A supplied source description.',language:'en',script:'Latn'}};
+  const before=structuredClone(value),node=renderEssentialContext({state:'available',items:[{state:'available',pointer:'/record',value}]});
+  for(const wording of ['Историческая языковая традиция.','Разновидности рассматриваются отдельно.','A supplied source description.'])expect(node.textContent).toContain(wording);
+  expect(node.textContent).not.toContain('system_account');expect(value).toEqual(before);
 });

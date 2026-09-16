@@ -1,4 +1,5 @@
 import {t,uiLanguage} from './ui-i18n.mjs';
+import {relationLabel,fileLabel,sourceLinkLabel} from './human-presentation.mjs';
 import {chooseKnowledgeSearchMode} from '../knowledge-search.ts';
 import {displayForm} from './display-language.mjs';
 import {contentLanguage,validateHumanForms,claimPathFor,claimPathClosure,FormContractError} from './human-forms.mjs';
@@ -85,6 +86,26 @@ export function materialDisplayForm(raw,field,preferred='ru'){
   return displayForm(raw?.display?.[field],preferred,selection.fields[field]);
 }
 export function displayTitleForm(raw,preferred=uiLanguage(),material=false){
+  if(raw?.predicate_id)return {text:relationLabel(raw,preferred),key:preferred,lang:preferred,fallback:false};
+  // Administrative carrier descriptions are source text, not interface titles.
+  // A localized kind is a navigation label; the original name stays in Sources.
+  const localTitle=raw?.display?.title?.[preferred];
+  if((['item','file','link','anchor','text-unit'].includes(raw?.kind_id)||raw?.display?.provenance?.title==='projected-path')&&!localTitle&&raw?.display?.kind_label?.[preferred]){
+    const names={
+      'text-unit':{ru:'Фрагмент',en:'Passage',es:'Pasaje'},anchor:{ru:'Место в тексте',en:'Text location',es:'Lugar del texto'},
+      'repository-branch_manifest':{ru:'Описание раздела',en:'Section description',es:'Descripción de la sección'},
+      'repository-manifest':{ru:'Описание раздела',en:'Section description',es:'Descripción de la sección'},
+      'repository-research_packet':{ru:'Исследование',en:'Research',es:'Investigación'},
+      'repository-source_witness':{ru:'Сведения об источнике',en:'Source information',es:'Información de la fuente'}};
+    let text=names[raw.kind_id]?.[preferred]??raw.display.kind_label[preferred];
+    if(raw.kind_id==='file')text=fileLabel(raw.attributes,preferred,raw.display.title?.default);
+    if(raw.kind_id==='item'||raw.kind_id==='link'){
+      const refs=[...(raw.attributes?.source_refs??[]),...(raw.source_refs??[])];
+      const url=typeof raw.attributes?.uri==='string'?raw.attributes.uri:refs.find(ref=>/^https?:\/\//i.test(ref));
+      if(url)text+=' · '+sourceLinkLabel(url,preferred);
+    }
+    return {text,key:preferred,lang:preferred,fallback:false,navigationOnly:true};
+  }
   if(missingReadableTitle(raw))return {text:[localized(raw.display.kind_label,raw.kind_id,preferred),t('Нет читаемого названия')].filter(Boolean).join(' · '),key:null,lang:null,fallback:false,unavailable:true};
   const field=raw?.display?.title?'title':'label';
   const form=material?materialDisplayForm(raw,field,preferred):displayForm(raw?.display?.[field],preferred);

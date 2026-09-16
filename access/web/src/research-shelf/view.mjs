@@ -1,4 +1,5 @@
 import {ui,uiLanguage} from '../observatory/ui-i18n.mjs';
+import {rawDataDownload} from '../observatory/human-presentation.mjs';
 import {createResearchShelfStore} from './storage.mjs';
 import './research-shelf.css';
 
@@ -23,12 +24,11 @@ function authored(locale,ru,en,es){
 }
 const text=(tag,value='',className='')=>{const node=document.createElement(tag);node.textContent=String(value??'');if(className)node.className=className;return node;};
 const button=(label,run,className='')=>{const node=text('button',label,className);node.type='button';node.addEventListener('click',()=>void Promise.resolve().then(run));return node;};
-const titleOf=(record,locale)=>record.title||`${typeNames[language(locale)][record.type]??record.type} · ${record.id}`;
+const titleOf=(record,locale)=>record.title||targetSummary(record,locale);
 function targetSummary(record,locale='ru'){
-  // Exact ids and revisions stay in the disclosure below each card. The
-  // compact line names only the user-facing type; the title carries the
+  // The compact line names only the user-facing type; the title carries the
   // personal label chosen for the record.
-  return typeNames[language(locale)][record?.type]??typeNames.ru[record?.type]??record?.type;
+  return typeNames[language(locale)][record?.type]??typeNames.ru[record?.type]??authored(locale,'Тип недоступен','Unavailable type','Tipo no disponible');
 }
 function noteText(note,locale){return note?.text||note?.quote||authored(locale,'Заметка','Note','Nota');}
 function errorLabel(error,locale){
@@ -39,7 +39,7 @@ function errorLabel(error,locale){
     quota:{ru:'Браузер исчерпал место для полки.',en:'The browser ran out of shelf storage.',es:'El navegador se quedó sin espacio para el estante.'},
     'storage-unavailable':{ru:'Постоянное хранилище недоступно; записи остаются в памяти.',en:'Persistent storage is unavailable; records remain in memory.',es:'El almacenamiento persistente no está disponible; los registros quedan en memoria.'},
   };
-  return labels[code]?.[lang]??error?.message??String(error);
+  return labels[code]?.[lang]??authored(locale,'Не удалось обновить полку. Попробуйте ещё раз.','The shelf could not be refreshed. Try again.','No se pudo actualizar el estante. Inténtalo de nuevo.');
 }
 
 /**
@@ -122,14 +122,13 @@ export function mountResearchShelf({host,locale='ru',onOpen,onError,onOpenView,o
     const card=text('article','','research-shelf-card');card.dataset.recordId=record.id;
     const cardHeader=text('div','','research-shelf-card-header');const title=text('h3',titleOf(record,locale));title.dir='auto';cardHeader.append(title,text('span',String(authored(locale,'Личная запись','Personal record','Registro personal')),'research-shelf-personal'));card.append(cardHeader);
     const meta=text('p',targetSummary(record,locale),'research-shelf-meta');meta.dir='auto';card.append(meta);
-    const titleInput=document.createElement('input');titleInput.type='text';titleInput.maxLength=256;titleInput.value=record.title;titleInput.setAttribute('aria-label',String(authored(locale,'Название записи','Record title','Título del registro')));titleInput.className='research-shelf-title-input';
+    const titleInput=document.createElement('input');titleInput.type='text';titleInput.maxLength=256;titleInput.value=record.title||'';titleInput.setAttribute('aria-label',String(authored(locale,'Название записи','Record title','Título del registro')));titleInput.className='research-shelf-title-input';
     const actions=text('div','','research-shelf-card-actions');const open=button(authored(locale,'Открыть','Open','Abrir'),async()=>{try{await onOpen?.(copy(record));}catch(error){report(error);}});const save=button(authored(locale,'Сохранить запись','Save record','Guardar registro'),async()=>{
       const selected=[...card.querySelectorAll('input[type="checkbox"]:checked')].map(input=>input.value);const draft={title:titleInput.value,type:record.type,target:record.target,collectionIds:selected};
       try{await shelf.save({id:record.id,...draft},{expectedRevision:record.revision});announce(authored(locale,'Запись сохранена.','Record saved.','Registro guardado.'));await loadPage(null,false);}catch(error){if(error?.code==='conflict')showConflict(card,record,draft);else report(error);}
     });const remove=button(authored(locale,'Удалить запись','Delete record','Eliminar registro'),async()=>{
       try{await shelf.remove(record.id,record.revision);announce(authored(locale,'Запись удалена.','Record deleted.','Registro eliminado.'));await loadPage(null,false);}catch(error){if(error?.code==='conflict'){showConflict(card,record,{title:titleInput.value,collectionIds:[...card.querySelectorAll('input[type="checkbox"]:checked')].map(input=>input.value)});}else report(error);}
-    });actions.append(open,save,remove);card.append(titleInput,actions);collectionChecks(record,card);
-    const exact=text('details','','research-shelf-exact');exact.append(text('summary',authored(locale,'Точный адрес','Exact address','Dirección exacta')),text('pre',JSON.stringify(record.target,null,2)));card.append(exact);
+    });actions.append(open,save,remove,rawDataDownload(record.target,authored(locale,'Скачать адрес','Download address','Descargar dirección'),'tos-research-address.json'));card.append(titleInput,actions);collectionChecks(record,card);
     return card;
   }
   function renderNotes(){
@@ -148,7 +147,7 @@ export function mountResearchShelf({host,locale='ru',onOpen,onError,onOpenView,o
           try{await onOpen?.({type:'text',target:{reference:note.reference},note});}catch(error){report(error);}
         }));
         item.append(actions);
-        const ref=text('details');ref.append(text('summary',authored(locale,'Точная ссылка','Exact reference','Referencia exacta')),text('pre',JSON.stringify(note.reference,null,2)));item.append(ref);list.append(item);
+        actions.append(rawDataDownload(note.reference,authored(locale,'Скачать ссылку','Download reference','Descargar referencia'),'tos-note-reference.json'));list.append(item);
       }
       section.append(list);
     }

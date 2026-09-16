@@ -1,33 +1,43 @@
 import {ui,uiText,uiComputed,uiLanguage} from './ui-i18n.mjs';
-
+import {renderContextData} from './context-view.mjs';
+import {languageName} from './human-presentation.mjs';
 const el=(tag,value='',className='')=>{const node=document.createElement(tag);node.className=className;uiText(node,value);return node;};
-// Only the owner-provided label is localized. Source wording is never run
-// through the interface translation catalog or a browser-owned classifier.
 const label=value=>uiComputed(()=>value[uiLanguage()]??value.en??Object.values(value)[0]);
 
 export function renderReadableContexts(contexts,anchor){
-  const section=el('section','','sc-readable-context');
-  section.dataset.contextPresentation='complete';
+  const section=el('section','','sc-readable-context');section.dataset.contextPresentation='complete';const seen=new Set();
   for(const [index,context]of contexts.entries()){
-    const content=el('dl','','sc-form-values'),technical=el('details','','sc-context-technical');
-    technical.append(el('summary',ui('Технические сведения контекста')));
-    const technicalValues=el('dl','','sc-form-values');technical.append(technicalValues);
+    const content=el('dl','','sc-form-values');
     for(const [ordinal,entry]of context.entries.entries()){
-      const row=el('div','','sc-form-context');row.dataset.contextCategory=entry.category;
-      row.dataset.readingAnchor=`${anchor}:${index}:${ordinal}`;
-      row.append(el('dt',label(entry.label),'sc-form-context-slot'));
-      if(entry.category==='unclassified')row.append(el('code',entry.key,'sc-source-ref'),el('small',ui('Не классифицировано; исходное значение сохранено.'),'sc-reader-gap'));
-      if(entry.explanation)row.append(el('p',label(entry.explanation),'sc-reader-language-note'));
+      // Sidecar categories and labels are source-owned. Explanations document
+      // those fields; their absence does not alter the source fact's value.
+      if(entry.category==='technical'||entry.key==='same_as_posture'&&entry.display.text==='no_equivalence_claim'
+        ||entry.binding?.source_pointer?.startsWith('/field_languages/'))continue;
+      const stamp=JSON.stringify([entry.key,entry.display,entry.value_label]);if(seen.has(stamp))continue;seen.add(stamp);
+      if(entry.display.type==='null'||entry.display.text==='')continue;
+      if(entry.category==='unclassified'){
+        let value=entry.display.text;
+        if(['object','array'].includes(entry.display.type)){try{value=JSON.parse(value);}catch{continue;}}
+        const human=renderContextData({[entry.key]:value},`${anchor}:${index}:${ordinal}`);
+        if(human.children.length)content.append(human);continue;
+      }
+      const row=el('div','','sc-form-context');row.dataset.contextCategory=entry.category;row.dataset.readingAnchor=`${anchor}:${index}:${ordinal}`;
+      const compound=['object','array'].includes(entry.display.type);
+      if(!compound)row.append(el('dt',label(entry.label),'sc-form-context-slot'));
       if(entry.value_label)row.append(el('dd',label(entry.value_label),'sc-form-value'));
-      const value=el(['array','object'].includes(entry.display.type)?'pre':'dd',entry.display.text,'sc-form-value');
-      value.dir='auto';if(entry.language)value.lang=entry.language;
-      if(!entry.value_label)row.append(value);
-      const origin=el('details','','sc-context-location');origin.append(el('summary',ui('Поле источника')));
-      if(entry.value_label)origin.append(value);
-      origin.append(el('pre',JSON.stringify(entry.binding,null,2),'sc-source-ref'));row.append(origin);
-      (entry.category==='technical'?technicalValues:content).append(row);
+      else if(['object','array'].includes(entry.display.type)){
+        let value;try{value=JSON.parse(entry.display.text);}catch{continue;}
+        const rendered=renderContextData(value,`${anchor}:${index}:${ordinal}`);if(!rendered.children.length)continue;
+        if(['semantic_content','notes'].includes(entry.key)&&entry.language&&entry.language.split('-')[0]!==uiLanguage()){
+          const original=el('details');original.append(el('summary',uiComputed(()=>`${ui('Описание источника')} · ${languageName(entry.language)}`)),rendered);row.append(original);
+        }else row.append(rendered);
+      }else{
+        const text=entry.display.type==='boolean'?(entry.display.text==='true'?ui('Да'):ui('Нет')):entry.display.text;
+        const value=el('dd',text,'sc-form-value');value.dir='auto';if(entry.language)value.lang=entry.language;row.append(value);
+      }
+      content.append(row);
     }
-    section.append(content);if(technicalValues.children.length)section.append(technical);
+    if(content.children.length)section.append(content);
   }
   return section;
 }
