@@ -8,7 +8,7 @@ const deferred=()=>{let resolve;const promise=new Promise(done=>resolve=done);re
 function harness(){
   const cache=new ExplorationSceneCache(),first=pageFixture(),events=[],calls=[];
   let ticket;
-  const session={discover:async()=>({catalog:{}}),snapshot:()=>cache.snapshot(),
+  const session={discover:async()=>({catalog:{}}),snapshot:()=>cache.snapshot(),captureLocal:()=>cache.captureLocal(),restoreLocal:token=>cache.restoreLocal(token),
     async open(target,{replace,options}){calls.push({target,replace,options});ticket=cache.begin(first.query,{replace});return cache.accept(ticket,first);},
     async continue(){return cache.accept(ticket,secondPage(first));},select:target=>cache.select(target),
     async inspect(target){return {target,raw:{id:target.id}};},cancelInspect(){},cancelScene(){},dispose(){calls.push('disposed');}};
@@ -122,4 +122,41 @@ test('seek preserves a valid match when an in-flight page crosses the soft windo
   const result=await seekSearchPage(async()=>{now=10;return page;},{window:{maxRequests:1,maxBytes:8,maxTimeMs:5},now:()=>now});
   assert.equal(result.page.nodes[0].id,'hit');assert.equal(result.paused,false);assert.equal(result.reason,'match');
   assert.ok(result.bytes>8);assert.ok(result.elapsedMs>5);assert.equal(result.windowExceeded.bytes,true);assert.equal(result.windowExceeded.time,true);
+});
+
+test('a LensResult remains distinct while exact selection reads and back restores the retained area',async()=>{
+  const {controller:c,session,first,events}=harness();await c.open(first.query.origin);await c.continue();
+  const previous=c.state().view,vertex=c.state().model.vertices[1];c.move(vertex.id,[42,23,11]);
+  const lens={schema:'tos_lens_result_v1',source_revision:first.source_revision,nodes:first.nodes,relations:first.relations,
+    focus:{node_id:first.nodes[0].id},groups:[],authority_boundary:first.authority_boundary};
+  session.client={readMaterial:async(kind,id,signal,revision,contentRevision)=>{
+    const match=first.nodes.find(row=>row.id===id);assert.equal(match.content_revision,contentRevision);
+    return {packet:{source_revision:revision,nodes:[match],relations:[]},match,endpoints:[]};
+  }};
+  c.showLens(lens);assert.equal(c.state().areaKind,'lens');assert.equal(c.state().view,lens);
+  assert.equal(Object.hasOwn(lens,'selection'),false);assert.equal(Object.hasOwn(lens,'continuation'),false);
+  c.selectNode(first.nodes[1].id);await c.read();assert.equal(c.state().reading.raw.id,first.nodes[1].id);
+  // An exact shelf/resume address carries version evidence; the scene keeps
+  // its own selection grammar so reopening the lens builder remains valid.
+  c.selectRaw({kind:'node',id:first.nodes[1].id,sourceRevision:first.source_revision,contentRevision:first.nodes[1].content_revision});
+  assert.deepEqual(c.state().selection,{kind:'node',id:first.nodes[1].id});
+  assert.equal(c.state().historyDepth,1);assert.equal(await c.continue(),null);
+  assert.equal(c.back(),true);assert.equal(c.state().areaKind,'exploration');assert.equal(c.state().view,previous);
+  assert.deepEqual(events.filter(event=>event.type==='update').at(-1).state.nodes.find(node=>node.id===vertex.id).position,[42,23,11]);
+  assert.equal(c.state().historyDepth,0);
+});
+
+test('only two previous areas are retained and failed replacements do not add history',async()=>{
+  const {controller:c,session,first}=harness();await c.open(first.query.origin);
+  for(let i=0;i<5;i++)await c.open(first.query.origin,{replace:true});assert.equal(c.state().historyDepth,2);
+  session.open=async()=>{throw new Error('offline');};await c.open(first.query.origin,{replace:true});assert.equal(c.state().historyDepth,2);
+  assert.equal(c.back(),true);assert.equal(c.back(),true);assert.equal(c.back(),false);
+});
+
+test('local cache bookmarks reject forged or foreign tokens and cannot revive a pending request',()=>{
+  const cache=new ExplorationSceneCache(),first=pageFixture(),ticket=cache.begin(first.query);
+  cache.accept(ticket,first);const saved=cache.captureLocal(),old=cache.snapshot();
+  const pending=cache.begin(first.query,{replace:true});cache.restoreLocal(saved);
+  assert.equal(cache.snapshot(),old);assert.throws(()=>cache.accept(pending,first));
+  assert.throws(()=>cache.restoreLocal({}));assert.throws(()=>new ExplorationSceneCache().restoreLocal(saved));
 });

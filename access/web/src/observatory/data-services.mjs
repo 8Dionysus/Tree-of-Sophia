@@ -5,7 +5,7 @@ import {createToSQueryOperations} from '../query-operations';
 // One page-owned connection for the scene and every reading/research tool.
 // Request cancellation stays local to each consumer; responses and source
 // identities are still checked by their existing contract adapters.
-export function createObservatoryData({fetcher,timeoutMs=60000}={}){
+export function createObservatoryData({fetcher,timeoutMs=60000,corpus}={}){
   const client=new KnowledgeClient({fetcher,timeoutMs});
   const transport=new KnowledgeClient({fetcher,timeoutMs,base:''});
   const queries=createToSQueryOperations(async(url,options)=>{
@@ -16,5 +16,5 @@ export function createObservatoryData({fetcher,timeoutMs=60000}={}){
       throw error;
     }
   });
-  return Object.freeze({client,queries});
+  return Object.freeze({client,queries,...(corpus?{corpus}:{})});
 }

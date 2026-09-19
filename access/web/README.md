@@ -1,5 +1,52 @@
 # Tree of Sophia web client
 
+## Real research entry and durable reading
+
+The software build includes `/static/research.html`, the cosmic research UI,
+and the existing Observatory entry. Observatory links to the research space.
+The demo constructor remains a separate development entry. Both real hosts
+use the same KnowledgeClient, exact source reader, HumanForms and personal
+shelf; unavailable corpus delivery is shown explicitly.
+
+The [corpus reader](src/corpus-reader/README.md) opens current owner-delivered
+native units through exact inspect and source-read capabilities. Personal
+references preserve record, packet, segmentation, unit, text-layer, byte
+digests and one original span. Selections use half-open Unicode code-point
+offsets. A changed version, gap or access condition cannot silently reattach a
+note. Full local reading notices remain with the delivered text; expiry clears
+that delivery while preserving the personal note.
+
+The [research shelf](src/research-shelf/README.md) stores exact material, form,
+text, lens and route targets in IndexedDB, with paged records, collections,
+conflict checks and additive imports. Existing notebook notes are accessible
+through the same shelf. Source text and transport handles are not copied into
+it. The notebook, shelf and last-view store have separate lifecycles; an
+unavailable persistent store is visible. The Observatory's older recent-reading
+selectors retain their explicit current-material behavior; opening an exact
+personal shelf record uses a separate pinned read.
+
+In the cosmic UI, **Собрать линзу** uses the advertised vocabulary and path
+conditions, previews a bounded LensResult and applies it only on request.
+Exploration continuation remains a separate operation. The original packet
+schema is preserved. Up to two previous areas retain their query result and
+camera in memory; the latest query, exact selection and presentation persist
+without server cursors. Each Exploration area is bounded by 200 nodes, 600
+relations and 4 MiB; a LensResult remains bounded by 40 nodes and 80 relations.
+Color distinguishes declared types; placement does not assert source meaning.
+
+The full-book provider is an injected browser seam. The catalog, version
+structure, bounded reading-window and scoped-search operations still need an
+owner backend implementation, as specified in the reader's
+[data contract](src/corpus-reader/DATA-CONTRACT.md). Synthetic long-text fixtures
+exercise these boundaries without claiming that production books are delivered.
+
+`TOS_DEV_API_TARGET` can select the local API proxy for development and preview.
+It does not change production endpoint configuration or data authorization.
+Use the repository `software_browser` lane for the shipped entry, default
+IndexedDB persistence, exact shelf opening and camera restoration. Development
+fixtures additionally cover native spans, gaps, Unicode, access expiry,
+large catalogs, two text windows and long transition sequences.
+
 The default entry is the Observatory: a full-window, living star field with
 bounded knowledge neighborhoods and floating search, source, and research panels.
 It is a read-only consumer of the access backend. Notes, hypotheses and proposals
@@ -56,7 +103,7 @@ automation; trusted events are counted separately. Heap estimates are not
 retained-size measurements or proof of leak freedom. These diagnostics remain
 local to the development fixture and are not a production telemetry service.
 
-`dist/` is tracked. Rebuild it from source. Both HTTP and edge adapters load the
+`dist/` is a generated build output. Rebuild it from source. Both HTTP and edge adapters load the
 stable `/static/assets/tos-graph.js` bootstrap and `tos-graph.css`; imported view
 JavaScript and CSS use content hashes. No CDN, inline scripts, iframe, or relaxed
 CSP is required.
@@ -200,6 +247,10 @@ CSP is required.
   to 40 nodes, 80 relations and depth 3. Changes compile after a 400ms pause
   and update the scene directly, retaining camera pose and established star
   positions. The status shows applied counts or explains an unchanged result.
+  The research entry's lens builder reuses the immutable catalog already bound
+  to the live exploration session. It fetches `/contracts` once per binding and
+  again on explicit retry, preserving the existing source revision checks. See the bounded
+  [catalog delivery note](src/observatory/CATALOG-DELIVERY.md).
   Closing, changing conditions or changing the area invalidates pending work. Empty results and failures keep the graph.
   The original-view action restores its scene and camera bookmark.
   Up to 12 definitions are saved under a separate browser-local storage key,
@@ -556,12 +607,19 @@ identities and positions do not change merely because the wire encoding does.
 
 Inspector and pinned reading share `human-forms-view.mjs`. All seven roles are
 available: name, caption, hover, statement, grounds, history and technical.
-Ready wording and every mandatory context value are one complete scrolling
-unit. Unknown context fields, bindings, false, zero, null and empty values remain
-intact. Provenance, form identity and source-snapshot assessment details stay
-separate from semantic acceptance. Role-specific diagnostics do not attribute
-another role's stale or restricted candidate to the selected role. Ambiguity,
-missing delivery, unavailable forms and delivery limits remain explicit.
+The view keeps statement as the open reading surface; name, caption and hover
+are available under an additional-representations disclosure, grounds and
+history under a substantive-context disclosure, and technical details and
+selection diagnostics under an exact-details disclosure. Ready wording and
+every mandatory context value remain one complete scrolling unit. If the
+bounded readable-context sidecar is unavailable, the selected form's own
+mandatory context stays beside its wording with the caveat visible, while
+exact bindings remain nested for inspection. Unknown context fields, bindings,
+false, zero, null and empty values remain intact. Provenance, form identity and
+source-snapshot assessment details stay separate from semantic acceptance.
+Role-specific diagnostics do not attribute another role's stale or restricted
+candidate to the selected role. Ambiguity, missing delivery, unavailable forms
+and delivery limits remain explicit.
 
 Small graph hints refer to the full card instead of truncating a human form.
 Legacy display fields retain their existing navigation role. Content-language

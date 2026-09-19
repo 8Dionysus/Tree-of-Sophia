@@ -19,12 +19,13 @@ const fields={
   graph_layers:["Слои графа",'string-array'],view_ids:["Представления",'string-array'],source_refs:["Ссылки на источники",'string-array'],source_dossier_ref:["Досье источника",'string'],
 };
 const typeOps={string:['eq','neq','in','contains','prefix','exists'],'string-array':['eq','neq','in','contains','exists'],number:['eq','neq','in','gt','gte','lt','lte','exists'],boolean:['eq','neq','exists']};
-export function validateConditions(value){
+export function validateConditions(value,{maxConditions=MAX_CONDITIONS}={}){
   if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!['nodes','relations'].includes(k)))fail(t("Неверный набор условий."));
   const result={};
   for(const kind of ['nodes','relations']){
     const entries=value[kind];
-    if(!Array.isArray(entries)||entries.length>MAX_CONDITIONS)fail(t("Можно добавить до 12 условий в каждый раздел."));
+    if(!Number.isInteger(maxConditions)||maxConditions<0||!Array.isArray(entries)||entries.length>maxConditions)
+      fail(t("Можно добавить до {0} условий в каждый раздел.",[maxConditions]));
     result[kind]=entries.map(rule=>{
       if(!rule||!['field','property_id'].includes(rule.selector)||!id(rule.id)||!Object.hasOwn(operatorLabels,rule.op)
         ||!(Array.isArray(rule.value)?rule.value.length<=100&&rule.value.every(scalar):scalar(rule.value))
@@ -68,11 +69,13 @@ export function conditionCatalog({catalog,schema},kind){
 }
 export const conditionKey=rule=>rule.selector+':'+rule.id;
 export function defaultCondition(entry){return {selector:entry.selector,id:entry.id,op:entry.operators[0],value:entry.valueType==='boolean'||entry.operators[0]==='exists'?true:''};}
-export function compileConditions(rules,context,kind){
+export function compileConditions(rules,context,kind,{reserveTypeSlot=true}={}){
   const entries=conditionCatalog(context,kind),wireKind=kind==='nodes'?'node':'relation';
   const limit=context.schema.$defs?.[wireKind+'Query']?.properties?.filters?.maxItems;
-  // Reserve one slot for the existing type selector.
-  if(rules.length&&(!Number.isInteger(limit)||rules.length+1>limit))fail(t("Сервер допускает меньше условий в этом разделе."));
+  // Root groups reserve a slot for their existing type selector; path groups
+  // can opt out when no dedicated type selector is present.
+  const reserved=reserveTypeSlot?1:0;
+  if(rules.length&&(!Number.isInteger(limit)||rules.length+reserved>limit))fail(t("Сервер допускает меньше условий в этом разделе."));
   return rules.map(rule=>{
     const entry=entries.find(item=>conditionKey(item)===conditionKey(rule));
     if(!entry||!entry.operators.includes(rule.op))fail(t("Условие больше не поддерживается: {0}. Измените или удалите его.", [(entry?.title||rule.id)]));

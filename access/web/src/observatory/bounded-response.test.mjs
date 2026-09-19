@@ -120,6 +120,23 @@ test('HTTP errors preserve status mapping and cancel unread response bodies',asy
   }
 });
 
+test('oversized discovery directs recovery to the service, while area limits retain their own recovery',async()=>{
+  const errors=new Map();
+  for(const path of ['/catalog','/contracts','/catalog?revision=selected','/lens']){
+    const messages=[];
+    for(const http of [false,true]){
+      const response=http?new Response('{}',{status:413}):new Response(JSON.stringify({data:'x'.repeat(64)}));
+      await assert.rejects(client(response,{maxResponseBytes:32}).request(path),error=>{
+        assert.ok(isStatus(413)(error));messages.push(error.message);return true;
+      });
+    }
+    assert.equal(messages[0],messages[1]);errors.set(path,messages[0]);
+  }
+  assert.equal(errors.get('/catalog'),errors.get('/contracts'));
+  assert.equal(errors.get('/catalog'),errors.get('/catalog?revision=selected'));
+  assert.notEqual(errors.get('/catalog'),errors.get('/lens'));
+});
+
 test('json-only in-memory transports retain object identity with a post-parse UTF-8 size check',async()=>{
   const packet={word:'雪🌌'},size=encode(JSON.stringify(packet)).length,json=vi.fn(async()=>packet);
   assert.equal(await client({ok:true,json},{maxResponseBytes:size}).request('/lens'),packet);

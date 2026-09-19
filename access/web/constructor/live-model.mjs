@@ -14,6 +14,16 @@ export function liveLabel(raw,language='ru'){
 export function livePredicateLabel(predicate,language='ru'){
   return localized(predicate.display,language==='ru'?'Название не предоставлено':'Name not supplied',language);
 }
+const TYPE_COLORS=['#bdd5ed','#dbc69a','#b6a5dc','#96c9bb','#d8acae','#aabfdd','#c4ca9b','#d0b7d4'];
+export function liveTypeColor(raw){
+  const id=raw?.type_id??raw?.kind_id;if(typeof id!=='string')return '#bdd5ed';
+  let hash=0;for(const point of id)hash=(Math.imul(hash,31)+point.codePointAt(0))>>>0;
+  return TYPE_COLORS[hash%TYPE_COLORS.length];
+}
+export function liveHover(raw,language='ru'){
+  const form=validateHumanForms(raw)?.roles.hover;
+  return form?.state==='ready'?form.packet.display_text:liveLabel(raw,language).text;
+}
 export function liveEdgeLabel(view,edge,language='ru'){
   const missing=()=>({text:language==='ru'?'Формулировка не предоставлена':'Wording not supplied',lang:null,role:'missing'});
   if(edge.kind==='claim-path'){
@@ -33,18 +43,28 @@ export function liveEdgeLabel(view,edge,language='ru'){
 export class StableExplorationLayout {
   #positions=new Map();#serial=0;
   reset(){this.#positions.clear();this.#serial=0;}
+  capture(){return {v:1,serial:this.#serial,positions:[...this.#positions].map(([id,position])=>[id,[...position]])};}
+  restore(value){
+    if(value?.v!==1||!Number.isSafeInteger(value.serial)||value.serial<0||value.serial>400||!Array.isArray(value.positions)||value.positions.length>400)throw new TypeError('Invalid saved layout.');
+    const positions=new Map();
+    for(const row of value.positions){if(!Array.isArray(row)||row.length!==2||typeof row[0]!=='string'||!row[0]||row[0].length>2048||positions.has(row[0])
+      ||!Array.isArray(row[1])||row[1].length!==3||row[1].some(n=>!Number.isFinite(n)||Math.abs(n)>100000))throw new TypeError('Invalid saved layout.');
+      positions.set(row[0],[...row[1]]);}
+    if(value.serial<positions.size)throw new TypeError('Invalid saved layout.');
+    this.#positions=positions;this.#serial=value.serial;
+  }
   position(id){const value=this.#positions.get(id);return value?[...value]:null;}
   move(id,position){
     if(!this.#positions.has(id)||!Array.isArray(position)||position.length!==3
       ||position.some(value=>!Number.isFinite(value)||Math.abs(value)>100000))throw new RangeError('Invalid bounded scene position.');
     this.#positions.set(id,[...position]);
   }
-  project(view,model,{language='ru'}={}){
+  project(view,model,{language='ru',selection=view.selection}={}){
     const absent=model.vertices.filter(vertex=>!this.#positions.has(vertex.id));
     // At most one grouped and one raw identity per retained raw node, plus
     // small compatibility headroom. Hidden compact Claims keep their places.
     if(this.#positions.size+absent.length>400)throw new RangeError('The layout reached its bounded capacity.');
-    const selected=view.selection,focusRaw=selected?.kind==='relation'?model.rawRelationsById.get(selected.id)?.from_id:
+    const selected=selection,focusRaw=selected?.kind==='relation'?model.rawRelationsById.get(selected.id)?.from_id:
       selected?.kind==='claim-path'?selected.claimId:selected?.id;
     const focus=model.carrierToVertex.get(focusRaw);
     for(const vertex of absent){
@@ -54,10 +74,11 @@ export class StableExplorationLayout {
     }
     const labels={},nodes=model.vertices.map(vertex=>{
       const raw=model.rawNodesById.get(vertex.representativeId),label=liveLabel(raw,language);labels[vertex.id]=label.text;
-      return {id:vertex.id,position:this.position(vertex.id),title:label.text,kind:'knowledge',
+      return {id:vertex.id,position:this.position(vertex.id),title:label.text,kind:'knowledge',hover:liveHover(raw,language),
+        ownerType:raw?.type_id??raw?.kind_id??null,
         prominent:vertex.id===focus,major:vertex.id===focus,accessibilityLabel:label.text,
-        // The visual style is neutral. A color cannot assert an epistemic state.
-        color:'#bdd5ed'};
+        // Categorical identity only: the legend names the declared type.
+        color:liveTypeColor(raw)};
     });
     const edges=model.edges.map(edge=>({id:edge.id,from:edge.fromId,to:edge.toId,kind:'relates',
       label:liveEdgeLabel(view,edge,language).text,color:'#a5b7cf'}));

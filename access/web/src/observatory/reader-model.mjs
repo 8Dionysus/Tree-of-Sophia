@@ -1,5 +1,5 @@
 import {t,ui,uiComputed} from './ui-i18n.mjs';
-import {ContractError,RequestSlots,RequestError,RevisionError,checkRevision,displayTitleForm,materialDisplayForm,claimMaterialReference,materialVersions} from './knowledge-client.mjs';
+import {ContractError,RequestSlots,RequestError,RevisionError,checkRevision,displayTitleForm,materialDisplayForm,claimMaterialReference,materialVersions,validateClaimReference} from './knowledge-client.mjs';
 import {essentialContext} from './record-context.mjs';
 import {readableContextFor} from './readable-context.mjs';
 import {displayForm as readingForm,displayLanguageKey as languageKey} from './display-language.mjs';
@@ -141,6 +141,19 @@ export function createReadingShelf({client,onChange=()=>{}}){
     get entries(){return [...items.values()];},
     get sceneRevision(){return sceneRevision;},
     observeRevision(revision){if(sceneRevision!==revision){sceneRevision=revision;onChange();}},
+    async pinExact(reference){
+      const {kind,id,sourceRevision,contentRevision,preferred='ru',claimReference}=reference;
+      if(!['node','relation'].includes(kind)||typeof id!=='string'||!id||id.length>1024
+        ||![sourceRevision,contentRevision].every(value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value)))throw new RevisionError();
+      if(claimReference)validateClaimReference(claimReference);
+      const key=readingKey(kind,id);
+      if(!items.has(key)&&items.size>=2)throw new Error(t("Уже закреплены два материала. Уберите один из них, чтобы добавить другой."));
+      requests.cancel(key);
+      items.set(key,{key,kind,id,sourceRevision,contentRevision,preferred,
+        ...(claimReference?{claimReference:structuredClone(claimReference)}:{}),
+        title:null,bookmark:null,snapshot:null,loading:true,error:null,changed:false});
+      onChange();await load(key);return key;
+    },
     pin({raw,kind,sourceRevision,bookmark,preferred}){
       const key=readingKey(kind,raw.id),existing=items.get(key);
       if(!existing&&items.size>=2)throw new Error(t("Уже закреплены два материала. Уберите один из них, чтобы добавить другой."));

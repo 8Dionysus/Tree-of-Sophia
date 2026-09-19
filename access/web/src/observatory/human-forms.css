@@ -2,6 +2,14 @@
 .sc-form-role{margin:14px 0;padding-top:8px;border-top:1px solid var(--sc-border,rgba(150,170,210,.18))}
 .sc-form-role h5{font-size:inherit;margin:0 0 6px}
 .sc-form-role h6{font-size:.9em;margin:12px 0 5px}
+.sc-form-disclosure{margin:14px 0;border-top:1px solid var(--sc-border,rgba(150,170,210,.18))}
+.sc-form-disclosure>summary{padding:9px 0;color:var(--sc-accent,#cdb790);cursor:pointer;font-size:.9em;line-height:1.5}
+.sc-form-disclosure>summary:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+.sc-form-disclosure>.sc-form-role{margin:0 0 14px 9px;padding-top:10px}
+.sc-form-disclosure>.sc-form-role:first-of-type{margin-top:0}
+.sc-form-disclosure-exact{font-size:.92em}
+.sc-form-diagnostic{margin:8px 0;padding-left:9px;border-left:1px solid var(--sc-border,rgba(150,170,210,.22))}
+.sc-form-diagnostic>summary{cursor:pointer;color:var(--sc-accent,#cdb790);font-size:.85em;line-height:1.5;padding:4px 0}
 .sc-form-wording{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65}
 .sc-form-status{font-size:.85em;line-height:1.45;margin:5px 0;opacity:.85}
 .sc-form-inspect{display:inline-block;margin:6px 0;padding:5px 9px;border:1px solid var(--sc-border,rgba(150,170,210,.35));border-radius:3px;background:transparent;color:inherit;cursor:pointer;font:inherit;text-align:left}
