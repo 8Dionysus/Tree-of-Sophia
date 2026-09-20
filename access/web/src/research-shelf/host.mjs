@@ -27,7 +27,7 @@ export async function readShelfMaterial(client,target,{signal,language='ru',form
 // One local shelf entry point in both hosts. Personal content remains in its
 // own store; source access still re-enters the exact shared read consumers.
 export function mountResearchShelfEntry({root,client,corpus,locale=()=> 'ru',onMaterial,onLens,onRoute,onError,onViewChange}={}){
-  const word=(ru,en)=>locale()==='en'?en:ru;
+  const word=(ru,en,es=en)=>locale()==='en'?en:locale()==='es'?es:ru;
   const toolbar=root.querySelector('.main-tools,.sc-header-actions');if(!toolbar)throw new Error('The research toolbar is missing.');
   let disposed=false,reading=null;
   const report=error=>onError?.(error);
@@ -49,10 +49,11 @@ export function mountResearchShelfEntry({root,client,corpus,locale=()=> 'ru',onM
     },
   });
   const opener=document.createElement('button');opener.type='button';opener.className='corpus-open sc-control';opener.dataset.researchShelf='true';
-  const label=()=>{opener.textContent=word('Моя полка','My shelf');};label();toolbar.append(opener);
+  const label=()=>{opener.textContent=word('Моя полка','My shelf','Mi estante');narrow?.setAttribute('aria-label',opener.textContent);};toolbar.append(opener);
   opener.onclick=()=>{label();void shelf.open();};
   const narrow=root.querySelector('.header')?document.createElement('button'):null;
-  if(narrow){narrow.type='button';narrow.className='research-shelf-narrow';narrow.textContent='☆';narrow.setAttribute('aria-label',word('Моя полка','My shelf'));narrow.onclick=()=>void shelf.open();root.querySelector('.header').append(narrow);}
+  if(narrow){narrow.type='button';narrow.className='research-shelf-narrow';narrow.textContent='☆';narrow.setAttribute('aria-label',word('Моя полка','My shelf','Mi estante'));narrow.onclick=()=>void shelf.open();root.querySelector('.header').append(narrow);}
+  label();document.addEventListener('sophia-ui-language',label);
   const save=async input=>{
     const result=await shelf.save(input);if(!disposed)root.dispatchEvent(new CustomEvent('sophia-research-saved',{detail:{record:result}}));return result;
   };
@@ -64,10 +65,10 @@ export function mountResearchShelfEntry({root,client,corpus,locale=()=> 'ru',onM
       button.onclick=async()=>{button.disabled=true;try{await work();button.textContent=word('На вашей полке','On your shelf');}catch(error){button.disabled=false;report(error);}};return button;};
     container.prepend(action(word('Сохранить материал','Save material'),()=>save({type:'material',title,target:shelfMaterial(snapshot)})));
     for(const role of FORM_ROLES){const target=shelfForm(snapshot,role);if(!target)continue;
-      const section=container.querySelector(`[data-form-role="${role}"]`);if(section)section.append(action(word('Сохранить эту форму','Save this form'),()=>save({type:'form',title,target})));
+      const section=container.querySelector(`[data-form-role="${role}"]`);if(section)section.append(action(word('Сохранить фрагмент','Save passage'),()=>save({type:'form',title,target})));
     }
   }
   return {shelf,save,open:()=>shelf.open(),addReadingActions,
-    destroy(){if(disposed)return;disposed=true;reading?.abort();root.removeEventListener('sophia-save-research',saveEvent);root.removeEventListener('sophia-open-research',openEvent);opener.remove();narrow?.remove();void shelf.destroy();},
+    destroy(){if(disposed)return;disposed=true;reading?.abort();document.removeEventListener('sophia-ui-language',label);root.removeEventListener('sophia-save-research',saveEvent);root.removeEventListener('sophia-open-research',openEvent);opener.remove();narrow?.remove();void shelf.destroy();},
   };
 }

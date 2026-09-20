@@ -17,13 +17,24 @@ export function mountCorpusEntry({root,provider=createUnavailableProvider(),note
   notebook??=createCorpusNotebook({dbName});
   const opener=document.createElement('button');opener.type='button';opener.className='corpus-open sc-control';
   opener.dataset.corpusOpen='true';
+  const english=()=>String(locale()||'ru').toLowerCase().startsWith('en');
+  const displayError=error=>{
+    const key=String(error?.code??error?.status??'').toLowerCase();
+    if(key==='provider_unavailable')return english()?'The full-text source is not connected yet.':'Источник полных текстов пока не подключён.';
+    if(key==='version-unavailable'||key==='404')return english()?'This edition is unavailable.':'Это издание недоступно.';
+    if(key==='document-unavailable')return english()?'The work is unavailable.':'Произведение недоступно.';
+    if(key==='conflict')return english()?'The notebook changed in another tab.':'Блокнот изменён в другой вкладке.';
+    if(key==='stale_reference'||key==='changed')return english()?'The saved passage belongs to an older text version.':'Сохранённый фрагмент относится к старой версии текста.';
+    return english()?'The reading view could not be opened. Try again.':'Не удалось открыть чтение. Повторите попытку.';
+  };
   const report=error=>{
     if(onError){onError(error);return;}
     let notice=root.querySelector('.corpus-entry-notice');
     if(!notice){notice=document.createElement('p');notice.className='corpus-entry-notice';notice.setAttribute('role','status');root.append(notice);}
-    notice.textContent=error?.message??String(error);
+    notice.textContent=displayError(error);
   };
-  const updateLabel=()=>{opener.textContent=locale()==='en'?'Library':'Библиотека';opener.setAttribute('aria-label',locale()==='en'?'Read works and editions':'Читать произведения и издания');};
+  const updateLabel=()=>{opener.textContent=english()?'Library':'Библиотека';opener.setAttribute('aria-label',english()?'Read works and editions':'Читать произведения и издания');
+    narrow?.setAttribute('aria-label',opener.getAttribute('aria-label'));if(notesOpen)notesOpen.textContent=english()?'My notes':'Мои записи';};
   const reader=mountCorpusReader({host:document.body,provider,notebook,locale,
     onNativeReference:(reference,note)=>native?.open({reference,note}),
     onClose(){contents?.close();root.inert=false;delete root.dataset.corpusReading;onReadingChange?.(false);(opener.offsetParent===null&&narrow?narrow:opener).focus({preventScroll:true});},
@@ -46,26 +57,27 @@ export function mountCorpusEntry({root,provider=createUnavailableProvider(),note
     root.dataset.corpusReading='true';root.inert=true;onReadingChange?.(true);
     try{return await reader.open(address);}catch(error){root.inert=false;delete root.dataset.corpusReading;onReadingChange?.(false);report(error);}
   };
-  opener.addEventListener('click',()=>void open());toolbar.append(opener);updateLabel();
+  opener.addEventListener('click',()=>void open());toolbar.append(opener);
   // Constructor hides its wide toolbar on a narrow screen. Reading must stay
   // reachable there even before any graph selection has been made.
   const narrow=root.querySelector('.header')?document.createElement('button'):null;
-  if(narrow){narrow.type='button';narrow.className='corpus-open corpus-open-narrow';narrow.textContent='▤';narrow.setAttribute('aria-label',locale()==='en'?'Read works and editions':'Читать произведения и издания');narrow.onclick=()=>void open();root.querySelector('.header').append(narrow);}
-  root.addEventListener('click',updateLabel);
+  if(narrow){narrow.type='button';narrow.className='corpus-open corpus-open-narrow';narrow.textContent='▤';narrow.setAttribute('aria-label',english()?'Read works and editions':'Читать произведения и издания');narrow.onclick=()=>void open();root.querySelector('.header').append(narrow);}
+  document.addEventListener('sophia-ui-language',updateLabel);
   const readEvent=event=>void open(event.detail??{});
   root.addEventListener('sophia-read-text',readEvent);
   const nativeEvent=async event=>{if(!native)return;await reader.close();if(reader.isOpen())return;root.dataset.corpusReading='true';await native.open(event.detail??{});};
   root.addEventListener('sophia-read-native',nativeEvent);
   const notesOpen=native?document.createElement('button'):null;
-  if(notesOpen){notesOpen.type='button';notesOpen.className='corpus-open sc-control';notesOpen.dataset.nativeNotes='true';notesOpen.textContent=locale()==='en'?'My notes':'Мои записи';
+  if(notesOpen){notesOpen.type='button';notesOpen.className='corpus-open sc-control';notesOpen.dataset.nativeNotes='true';notesOpen.textContent=english()?'My notes':'Мои записи';
     notesOpen.onclick=async()=>{await reader.close();if(reader.isOpen())return;await native.openNotes();};toolbar.append(notesOpen);}
+  updateLabel();
   const restore=()=>{if(!route)return;try{const address=decodeReadingRoute(location.hash);if(address)void open(address);}catch(error){report(error);}};
   window.addEventListener('hashchange',restore);
   let destroyed=false,destroyWork=null;
   const destroy=()=>{
     if(destroyed)return destroyWork;destroyed=true;contents.destroy();
     const saving=[reader.destroy(),native?.flush()];
-    opener.remove();notesOpen?.remove();narrow?.remove();root.removeEventListener('click',updateLabel);root.removeEventListener('sophia-read-text',readEvent);root.removeEventListener('sophia-read-native',nativeEvent);window.removeEventListener('hashchange',restore);window.removeEventListener('pagehide',pageHide);
+    opener.remove();notesOpen?.remove();narrow?.remove();document.removeEventListener('sophia-ui-language',updateLabel);root.removeEventListener('sophia-read-text',readEvent);root.removeEventListener('sophia-read-native',nativeEvent);window.removeEventListener('hashchange',restore);window.removeEventListener('pagehide',pageHide);
     destroyWork=Promise.allSettled(saving).then(async()=>{native?.destroy();if(ownsNotebook)await notebook.close();});return destroyWork;
   };
   // pagehide cannot be awaited by the browser; destroy performs the best

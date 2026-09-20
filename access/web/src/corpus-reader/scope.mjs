@@ -16,8 +16,8 @@ export function explorationScope(state) {
 }
 export function scopeText(scope, language = 'ru') {
   if (!scope.available) return language === 'en' ? 'Open an area to explore.' : 'Откройте область для исследования.';
-  if (language === 'en') return `Loaded area: ${scope.loadedNodes} objects, ${scope.loadedRelations} relations. Visible: ${scope.shownNodes} objects, ${scope.shownRelations} relations. ${scope.hasMore ? 'More material is available in this expansion.' : 'No next page is available for this expansion.'} These counts describe this area; the corpus total is not supplied here.`;
-  return `В загруженной области: ${scope.loadedNodes} объектов, ${scope.loadedRelations} связей. Показано: ${scope.shownNodes} объектов, ${scope.shownRelations} связей. ${scope.hasMore ? 'В этом раскрытии есть продолжение.' : 'Следующая страница этого раскрытия недоступна.'} Числа относятся к этой области; общий размер корпуса здесь не указан.`;
+  if (language === 'en') return `Loaded: ${scope.loadedNodes} objects, ${scope.loadedRelations} relations. Visible: ${scope.shownNodes} objects, ${scope.shownRelations} relations.${scope.hasMore ? ' More material is available.' : ''}`;
+  return `Загружено: ${scope.loadedNodes} объектов, ${scope.loadedRelations} связей. Показано: ${scope.shownNodes} объектов, ${scope.shownRelations} связей.${scope.hasMore ? ' Есть продолжение.' : ''}`;
 }
 export function mountExplorationScope(root, controller, locale = () => 'ru') {
   const container = root.querySelector('.footer') ?? root;

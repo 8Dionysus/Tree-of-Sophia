@@ -1,5 +1,36 @@
 # Tree of Sophia web client
 
+## Presentation contract
+
+The research UI presents materials, their relationships and available actions.
+Shared renderers under `src/observatory/` select those views from validated
+backend packets. UI labels follow the chosen interface language. Original
+titles and source quotations keep their own language.
+
+- A card has one title, available content, relevant facts and related materials.
+  Empty optional roles are omitted. The same text is not repeated as multiple
+  presentation roles.
+- Supported source facts keep their labels and values. A semantic category may
+  contain references: it does not make a field readable. Shared context views
+  select named presentation fields and resolve references only against the
+  same source revision. New readable scalar facts retain literal source wording
+  and exact number lexemes; unclassified facts appear in Additional information.
+  Unknown structures remain available in its explicit context download. Field documentation,
+  routine transport state and repeated provenance disclaimers are not reading
+  content. Missing required context gets one actionable state. Negation,
+  disagreement and other actual source qualifications stay with the wording.
+- Administrative records use supplied localized kind labels when no localized
+  title exists. Original titles remain available in Sources. This is a
+  navigation label, not a translation or replacement of the source record.
+- URLs use readable link labels. IDs, hashes, schema names, filesystem paths,
+  payloads and execution traces stay out of ordinary panels and accessibility
+  labels. Source exports retain the complete delivered envelope, including
+  revisions, access, provenance and native text bindings, except for the transient
+  request handle. Native downloads respect delivery replacement and expiry.
+- Regression checks cover shared renderers, missing content, localization,
+  qualifier retention, seeded variations and sampled real records. A green
+  transport check alone does not establish that a page is usable.
+
 ## Real research entry and durable reading
 
 The software build includes `/static/research.html`, the cosmic research UI,
@@ -33,6 +64,22 @@ camera in memory; the latest query, exact selection and presentation persist
 without server cursors. Each Exploration area is bounded by 200 nodes, 600
 relations and 4 MiB; a LensResult remains bounded by 40 nodes and 80 relations.
 Color distinguishes declared types; placement does not assert source meaning.
+
+The **Исследование** view sets aside objects whose carrier types all have the
+catalog role `projection`. Unknown types, mixed groups and the current exact
+selection stay visible. **Все объекты** restores these service objects;
+**Отдельные записи** also separates individual carriers. These are local views
+over the retained packet. Mode changes preserve coordinates and refresh the
+related-material list without replacing the open source disclosure. Technical
+atlas type names use exact catalog vocabulary; authored names retain their
+supplied wording.
+
+Search uses the same declared projection roles and omits carrier-to-carrier
+`tos.relation.projects` links by default. **Служебные записи** includes them.
+Seeking past service-only pages shares the request, byte and time bounds of
+ordinary search; the original packet and continuation cursor remain intact.
+Previous-page navigation retains up to 16 delivered cursors and requeries those
+pages, without keeping their records in memory.
 
 The full-book provider is an injected browser seam. The catalog, version
 structure, bounded reading-window and scoped-search operations still need an

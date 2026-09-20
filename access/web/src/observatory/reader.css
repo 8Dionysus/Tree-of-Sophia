@@ -29,11 +29,7 @@
 #sophia-gestures .sc-reader :is(.sc-reader-state,.sc-reader-assessment){font:11px/1.6 system-ui,sans-serif;color:#d4be97;margin:4px 0 10px;max-height:66px;overflow:auto;flex:none}
 #sophia-gestures .sc-reader :is(.sc-reader-gap,.sc-reader-empty){font:16px/1.8 Georgia,serif;color:#a8b7ca;margin:10px 0 20px}
 #sophia-gestures .sc-reader summary{font:11px/1.65 system-ui,sans-serif;color:#cdb790;cursor:pointer;padding-block:6px}
-#sophia-gestures .sc-reader-technical{font:10px/1.7 system-ui,sans-serif;color:#a5b5ca;margin-bottom:15px}
-#sophia-gestures .sc-reader-technical dl{margin:10px 0}
-#sophia-gestures .sc-reader-technical dl div{margin:10px 0}
-#sophia-gestures .sc-reader-technical dt{color:#c2cbd7}
-#sophia-gestures .sc-reader-technical dd{margin:2px 0 0;user-select:text}
+#sophia-gestures .sc-reader .sc-source-ref{display:block;margin-top:8px;overflow-wrap:anywhere;color:#b9c9da;font:11px/1.5 system-ui,sans-serif}
 #sophia-gestures .sc-reader .sc-reader-participant{display:flex;flex-direction:column;max-width:100%;gap:2px;overflow-wrap:anywhere}
 #sophia-gestures .sc-reader-participant small{color:#93a6bf}
 #sophia-gestures .sc-reader-actions{display:flex;flex-wrap:wrap;gap:0 16px;flex:none;border-top:1px solid #29384b;padding-top:7px;margin-top:8px}

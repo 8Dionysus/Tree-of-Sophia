@@ -18,9 +18,11 @@ test('language annotations follow interface switching while the supplied text an
   const note=formLanguageNote(form),labels=[],headings=[],forms=[],document=readingDocument(readingSnapshot({match:raw(),packet:{source_revision:revision}},'node'),'en'),label=formLabel('original');
   try{for(const language of ['ru','en','es']){setUiLanguage(language);labels.push(String(note));headings.push(String(document.blocks[0].title));forms.push(String(label));}}
   finally{setUiLanguage('ru');}
-  assert.equal(new Set(labels).size,3);assert.match(labels[0],/Выбранная форма/);assert.match(labels[1],/The selected form/);
-  assert.equal(new Set(headings).size,3);assert.equal(new Set(forms).size,3);assert.equal(document.blocks[0].form.text,'Старая запись');
-  assert.equal(String(formLabel('toString')),'toString');assert.equal(String(formLabel('zh-Hant')),'zh-Hant');
+  assert.equal(new Set(labels).size,3);assert.match(labels[0],/Язык текста: русский/);assert.match(labels[1],/Text language: Russian/);
+  assert.equal(new Set(headings).size,3);assert.deepEqual(forms,['Оригинал','Original','Original']);assert.equal(document.blocks[0].form.text,'Старая запись');
+  assert.notEqual(String(formLabel('en')),'en');assert.notEqual(String(formLabel('es')),'es');
+  assert.notEqual(String(formLabel('toString')),'toString');
+  assert.notEqual(String(formLabel('zh-Hant')),'zh-Hant');
   assert.deepEqual(form,before);
 });
 

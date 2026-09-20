@@ -193,7 +193,6 @@ const el=(tag,text='',className='')=>{const node=document.createElement(tag);uiT
 const option=(value,text)=>{const node=el('option',text);node.value=value;return node;};
 const button=(text,action,className='sc-builder-link')=>{const node=el('button',text,className);node.type='button';node.addEventListener('click',action);return node;};
 const field=(text,input)=>{const label=el('label','','sc-builder-field');uiChildren(label,'append',el('span',text),input);return label;};
-const technical=(summary,text)=>{const details=el('details','','sc-technical-disclosure');uiChildren(details,'append',el('summary',summary),el('p',text));return details;};
 
 function typePicker({draft,context,step,key,title,onChange}){
   const details=el('details','','sc-path-types'),summary=el('summary'),controls=el('div','','sc-path-type-controls'),search=el('input'),list=el('div','','sc-path-type-list');
@@ -208,7 +207,7 @@ function typePicker({draft,context,step,key,title,onChange}){
       for(const item of group.items.slice(0,visibleLimit)){
         const input=el('input');input.type='checkbox';input.value=item.id;input.checked=item.selected;
         input.addEventListener('change',()=>{step[key]=input.checked?[...step[key],item.id]:step[key].filter(id=>id!==item.id);updateSummary();onChange();});
-        const name=el('span',item.title);if(item.title===item.id)uiAttribute(name,'title',item.id);const label=el('label','','sc-builder-choice');uiChildren(label,'append',input,name);uiChildren(section,'append',label);
+        const name=el('span',item.title),label=el('label','','sc-builder-choice');uiChildren(label,'append',input,name);uiChildren(section,'append',label);
       }
       if(group.items.length>visibleLimit)uiChildren(section,'append',button(ui("Ещё варианты · {0}",[group.items.length-visibleLimit]),()=>{visibleLimit+=40;redraw();},'sc-builder-link'));
       uiChildren(list,'append',section);
@@ -255,14 +254,12 @@ export function createLensPathEditor({draft,context,onChange=()=>{}}){
   uiAttribute(section,'aria-label',ui("Условия пути"));
   function render(){
     uiChildren(section,'replaceChildren');
-    uiChildren(section,'append',el('h4',ui("Пути к условиям")),el('p',ui("Каждое условие начинается от узлов, найденных основной линзой."),'sc-builder-note'),technical(ui("Технические сведения"),ui("Шаги остаются в выбранных источниках; not_exists означает отсутствие только в этой области источников.")));
-    if(legacyNoPath)uiChildren(section,'append',el('p',ui("Проверка пути недоступна в текущем каталоге; основной запрос работает как прежде."),'sc-builder-warning'),technical(ui("Технические сведения"),ui("Схема линз пока не объявила path_query. Основной запрос сохраняет прежнюю семантику.")));
-    if(!draft.paths.length)uiChildren(section,'append',el('p',ui("Пути не добавлены. Основной запрос сохраняет прежнюю семантику."),'sc-builder-note'));
+    if(draft.paths.length)uiChildren(section,'append',el('h4',ui("Пути к условиям")),el('p',ui("Каждое условие начинается от узлов, найденных основной линзой."),'sc-builder-note'));
+    if(legacyNoPath)uiChildren(section,'append',el('p',ui("Проверка пути пока недоступна. Основной запрос работает как прежде."),'sc-builder-warning'));
     draft.paths.forEach((path,pathIndex)=>{
       const box=el('fieldset','','sc-path-condition'),legend=el('legend',ui("Условие пути {0}",[pathIndex+1]));uiChildren(box,'append',legend);
-      const idInput=el('input');idInput.type='text';idInput.maxLength=128;idInput.value=path.pathId;uiAttribute(idInput,'aria-label',ui("Идентификатор условия пути {0}",[pathIndex+1]));idInput.addEventListener('input',()=>{path.pathId=idInput.value;onChange();});
       const quantifier=el('select');for(const value of limits.quantifiers)uiChildren(quantifier,'append',option(value,value==='exists'?ui("Есть такой путь"):ui("Такого пути нет")));quantifier.value=path.quantifier;quantifier.addEventListener('change',()=>{path.quantifier=quantifier.value;onChange();});
-      const top=el('div','','sc-path-top');uiChildren(top,'append',field(ui("Имя условия"),idInput),field(ui("Проверка"),quantifier),button(ui("Удалить условие"),()=>{draft.paths.splice(pathIndex,1);render();onChange();},'sc-builder-link'));uiChildren(box,'append',top);
+      const top=el('div','','sc-path-top');uiChildren(top,'append',field(ui("Проверка"),quantifier),button(ui("Удалить условие"),()=>{draft.paths.splice(pathIndex,1);render();onChange();},'sc-builder-link'));uiChildren(box,'append',top);
       path.steps.forEach((step,stepIndex)=>{
         const item=el('fieldset','','sc-path-step'),stepLegend=el('legend',ui("Шаг {0} из {1}",[stepIndex+1,path.steps.length]));uiChildren(item,'append',stepLegend);
         const direction=el('select');for(const value of limits.directions)uiChildren(direction,'append',option(value,{outgoing:ui("По направлению →"),incoming:ui("Против направления ←"),either:ui("В любую сторону")}[value]));direction.value=step.direction;direction.addEventListener('change',()=>{step.direction=direction.value;onChange();});

@@ -1,6 +1,8 @@
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 import {lensVocabulary,vocabularyGroups} from './lens-vocabulary.mjs';
+import {setUiLanguage} from './ui-i18n.mjs';
+import {relationLabel} from './human-presentation.mjs';
 import {lensDelta} from './lens-model.mjs';
 
 const entity=(id,role,sources,kind)=>({type_id:id,object_role:role,source_mappings:sources.map(source_graph=>({source_graph,source_kind_id:kind}))});
@@ -10,7 +12,8 @@ const catalog={node_kinds:[kind('concept','Явление','meaning',5),kind('wo
 test('presentation follows registered roles and exact source mappings without classifying by names',()=>{
   const vocab=lensVocabulary(catalog,'kinds');
   assert.equal(vocab.find(i=>i.id==='table').group,'technical');
-  assert.equal(vocab.find(i=>i.id==='future').group,'other');
+  assert.equal(vocab.find(i=>i.id==='future').group,'unavailable');
+  assert.equal(String(vocab.find(i=>i.id==='future').title),'Недоступно');
   assert.equal(vocab.find(i=>i.id==='future').sourceKnown,false);
   const shown=vocabularyGroups(vocab,{sources:['canon']}).flatMap(g=>g.items.map(i=>i.id));
   assert.deepEqual(shown,['concept','future']);
@@ -18,8 +21,8 @@ test('presentation follows registered roles and exact source mappings without cl
 });
 test('source changes never silently drop chosen filters; missing registry entries remain removable',()=>{
   const groups=vocabularyGroups(lensVocabulary(catalog,'kinds'),{sources:['canon'],selected:['table','removed-type']});
-  assert.equal(groups.find(g=>g.key==='unavailable').items[0].id,'table');
-  assert.equal(groups.find(g=>g.key==='other').items.find(i=>i.id==='removed-type').selected,true);
+  assert.ok(groups.find(g=>g.key==='unavailable').items.some(item=>item.id==='table'));
+  assert.equal(groups.find(g=>g.key==='unavailable').items.find(i=>i.id==='removed-type').selected,true);
   assert.equal(groups.flatMap(g=>g.items).filter(i=>i.id==='table').length,1);
 });
 test('all choices remain reachable, search crosses groups and sorting uses readable Russian labels',()=>{
@@ -36,6 +39,32 @@ test('relation groups retain authored meaning while derived structures stay sepa
   c.semantic_registries.relation_types.entries=[{relation_type_id:'derived',assertion_mode:'derived-projection',source_mappings:[{source_graph:'repository',source_predicate_id:'contains',scope:'edge'}]},{relation_type_id:'authored',assertion_mode:'reified-claim',parent_relation_type_ids:['tos.relation.responsibility'],source_mappings:[{source_graph:'sources',source_predicate_id:'author',scope:'edge'},{source_graph:'claims',source_predicate_id:'author',scope:'claim-predicate'}]}];
   const vocab=lensVocabulary(c,'predicates');assert.equal(vocab[0].group,'technical');assert.equal(vocab[1].group,'authorship');
   assert.deepEqual(vocab[1].sources,['sources']);
+});
+
+test('seeded labels and missing mappings stay human across interface languages',()=>{
+  let seed=0x9e3779b9;
+  const next=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed;};
+  try{
+    for(const language of ['ru','en','es']){
+      setUiLanguage(language);
+      for(let round=0;round<12;round++){
+        const entries=Array.from({length:18},(_,index)=>{
+          const id=`future-${round}-${index}`;
+          const known=(next()&1)===0,source=known?(next()&1?'canon':'philosophy'):null;
+          const typeId=`type-${round}-${index}`;
+          return {id,title:known?`Label ${round}-${index}`:'Недоступно',sourceKnown:known,group:known?'meaning':'unavailable',sources:source?[source]:[],count:index,
+            ...(known?{}:{raw:id}),typeId};
+        });
+        const selected=entries.filter(item=>(next()&3)===0).map(item=>item.id).concat(`missing-${round}`);
+        const groups=vocabularyGroups(entries,{sources:['canon'],selected,query:''}),shown=groups.flatMap(group=>group.items);
+        for(const id of selected)assert.ok(shown.some(item=>item.id===id),`${language} lost ${id}`);
+        for(const item of shown.filter(item=>item.sourceKnown===false))assert.ok(!String(item.title).includes(item.id),`${language} exposed ${item.id}`);
+        const knownId=round%2?'transmits_to':'custom-relation-'+round;
+        const relation=relationLabel({predicate_id:knownId,display:round%2?{default:knownId}:{[language]:`Readable ${language} ${round}`}},language);
+        assert.ok(!String(relation).includes(knownId),`${language} exposed ${knownId}`);
+      }
+    }
+  }finally{setUiLanguage('ru');}
 });
 test('a live lens reports changed identities even when counts stay equal',()=>{
   const a={nodes:[{id:'a'}],relations:[{id:'r1'}]},b={nodes:[{id:'b'}],relations:[{id:'r2'}]};

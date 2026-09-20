@@ -18,8 +18,9 @@ test.each([null,{state:'complete',contexts:[]},{state:'requires-exact-context',c
     renderHumanForms.mockReturnValue('forms');renderEssentialContext.mockReturnValue('record');
     expect(renderInspectorForms(raw)).toEqual(['forms','record']);
     expect(readableContextFor).toHaveBeenCalledWith(raw);
-    expect(renderHumanForms).toHaveBeenCalledWith(raw,{readableContext:context});
-    expect(renderEssentialContext).toHaveBeenCalledWith(essential,context);
+    const presentation=renderHumanForms.mock.calls[0][1].presentation;
+    expect(renderHumanForms).toHaveBeenCalledWith(raw,{readableContext:context,presentation});
+    expect(renderEssentialContext).toHaveBeenCalledWith(essential,context,presentation);
   });
 test('unverified or changed presentation cannot silently fall back to raw card context',()=>{
   readableContextFor.mockImplementation(()=>{throw new Error('unverified');});

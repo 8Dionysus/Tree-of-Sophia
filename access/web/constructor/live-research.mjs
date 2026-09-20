@@ -4,6 +4,7 @@ import {RequestSlots,validateLens,RevisionError} from '../src/observatory/knowle
 import {readExactSource} from '../src/observatory/exact-source-read.mjs';
 import {StableExplorationLayout} from './live-model.mjs';
 import {validateSkyPose} from './sky-pose.mjs';
+import {researchVisibility} from './research-visibility.mjs';
 
 // Search pages are exact, source-revision-bound packets.  Seeking through an
 // empty prefix is a convenience for the reader, never permission to drain the
@@ -20,8 +21,9 @@ const jsonBytes=value=>{
   const text=JSON.stringify(value);
   return typeof TextEncoder==='function'?new TextEncoder().encode(text).byteLength:text.length;
 };
-export async function seekSearchPage(fetchPage,{cursor=null,window=SEARCH_SEEK_WINDOW,isCurrent=()=>true,now=()=>Date.now()}={}){
-  if(typeof fetchPage!=='function'||typeof isCurrent!=='function'||typeof now!=='function')throw new TypeError('Invalid search-seek callbacks.');
+export async function seekSearchPage(fetchPage,{cursor=null,window=SEARCH_SEEK_WINDOW,isCurrent=()=>true,now=()=>Date.now(),
+  hasMatches=page=>(Array.isArray(page.nodes)&&page.nodes.length>0)||(Array.isArray(page.relations)&&page.relations.length>0)}={}){
+  if([fetchPage,isCurrent,now,hasMatches].some(callback=>typeof callback!=='function'))throw new TypeError('Invalid search-seek callbacks.');
   const maxRequests=positiveWindow(window.maxRequests,'maxRequests'),maxBytes=positiveWindow(window.maxBytes,'maxBytes'),maxTimeMs=positiveWindow(window.maxTimeMs,'maxTimeMs');
   const limits=Object.freeze({maxRequests,maxBytes,maxTimeMs});
   const started=now();let nextCursor=cursor,requests=0,bytes=0,last=null;
@@ -36,7 +38,7 @@ export async function seekSearchPage(fetchPage,{cursor=null,window=SEARCH_SEEK_W
     if(!isCurrent())return result(null,false,'cancelled',true);
     if(page===null||page===undefined)return result(null,false,'cancelled',true);
     requests++;bytes+=jsonBytes(page);last=page;
-    const found=(Array.isArray(page.nodes)&&page.nodes.length>0)||(Array.isArray(page.relations)&&page.relations.length>0);
+    const found=hasMatches(page);
     // Preserve a useful match even when its response crossed the soft window;
     // no further page is fetched until the user explicitly continues.
     if(found)return result(page,false,'match');
@@ -57,9 +59,10 @@ export function createLiveResearch({session=new ExplorationSession(),sky,onChang
   let generation=0,inspection=0,sourceGeneration=0,disposed=false;
   const emit=patch=>{state={...state,...patch};if(!disposed)onChange(state);};
   function present(view,{reset=false,frame=false,areaKind=state.areaKind,selection=areaKind==='exploration'?view.selection:state.selection}={}){
-    const model=(areaKind==='exploration'?buildExplorationSceneModel:buildSceneModel)(view,{mode:state.mode});
+    const scene=(areaKind==='exploration'?buildExplorationSceneModel:buildSceneModel)(view,{mode:state.mode});
+    const model=researchVisibility(scene,{catalog:state.discovery?.catalog,selection,mode:state.mode});
     if(reset)layout.reset();
-    const projected=layout.project(view,model,{language:state.language,selection});
+    const projected=layout.project(view,model,{language:state.language,selection,catalog:state.discovery?.catalog});
     sky.update(projected,projected.labels);sky.select(projected.selectedNodeId);sky.selectEdge(projected.selectedEdgeId);
     if(frame)sky.frame();
     emit({view,model,areaKind,selection,historyDepth:history.length});
@@ -122,7 +125,7 @@ export function createLiveResearch({session=new ExplorationSession(),sky,onChang
   }
   return {
     state:()=>state,
-    start:()=>run(()=>session.discover(),discovery=>emit({discovery})),
+    start:()=>run(()=>session.discover(),discovery=>{emit({discovery});if(state.view)present(state.view);}),
     open(target,{replace=false,options={}}={}){
       const first=!state.view,replacing=replace||state.areaKind==='lens',saved=replacing?capture():null;
       return run(()=>session.open(target,{replace:replacing,options}),view=>{
@@ -206,6 +209,7 @@ export function createLiveResearch({session=new ExplorationSession(),sky,onChang
     move(id,position){if(!disposed){layout.move(id,position);}},
     async pin(){
       if(disposed||!state.view)return null;
+      if(state.comparison.some(item=>item.target.kind===state.selection?.kind&&item.target.id===state.selection?.id))return null;
       if(state.comparison.length>=2){emit({error:new Error('Only two exact reading cards can be compared.')});return null;}
       const target=structuredClone(state.selection),revision=state.view.source_revision;
       const slot=state.comparison.length,index=slot;

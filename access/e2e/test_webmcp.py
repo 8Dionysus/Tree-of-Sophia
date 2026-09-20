@@ -574,17 +574,30 @@ def test_real_browser_sources_panel_reads_frozen_metadata_record(
     assert source_target["content_revision"] == expected_digest
 
     page.get_by_role("button", name="Открыть источники", exact=True).click()
-    page.get_by_role("button", name="Открыть исходную запись", exact=True).click()
+    with page.expect_response(lambda response: response.url.endswith('/api/source/read')) as delivery:
+        page.get_by_role("button", name="Открыть исходную запись", exact=True).click()
     wait_for(page, "document.querySelector('.sc-exact-source')?.dataset.sourceReadStatus === 'available'")
 
     exact = page.locator(".sc-exact-source")
     for index in range(exact.locator("details").count()):
         exact.locator("details").nth(index).locator("summary").click()
     exact_text = exact.inner_text()
-    assert source_record["record_id"] in exact_text
+    assert source_record["record_id"] not in exact_text
     assert source_record["preferred_label"] in exact_text
-    assert f'"record_version": {source_record["record_version"]}' in exact_text
-    assert SOURCE_RECORD_RELATIVE.as_posix() in exact_text
+    assert SOURCE_RECORD_RELATIVE.as_posix() not in exact_text
+    assert exact.locator('pre').count() == 0
+    with page.expect_download() as downloaded:
+        exact.get_by_role('button', name='Скачать запись', exact=True).click()
+    exported = json.loads(Path(downloaded.value.path()).read_text(encoding='utf-8'))
+    envelope = delivery.value.json()
+    envelope.pop('handle')
+    assert exported.pop('selection') == {
+        'kind': 'node', 'id': normalized_id,
+        'source_revision': node_packet['source_revision'],
+        'content_revision': node_packet['matches'][0]['content_revision'],
+    }
+    assert exported == envelope
+    assert exported['record'] == source_record
 
 
 
@@ -598,7 +611,7 @@ def test_source_metadata_remains_when_native_discovery_fails(
     _, node_id = first_edge_and_node(page)
     page.goto(f"{access_base_url}/static/research.html?focus={quote('philosophy:' + node_id, safe='')}")
     page.locator('#tree[data-ready="true"] .reading [data-source-record-id]').wait_for(state="attached")
-    page.locator('.reading details').filter(has=page.locator('[data-source-record-id]')).locator('summary').click()
+    page.locator('.reading details').filter(has=page.locator('[data-source-record-id]')).locator(':scope > summary').click()
     pending = []
     capability_calls = 0
 
@@ -613,7 +626,8 @@ def test_source_metadata_remains_when_native_discovery_fails(
     page.route("**/api/source/capabilities", capabilities)
     page.locator('.reading [data-source-record-id]').click()
     record = page.locator('dialog[data-kind="source-record"] .dialog-content')
-    record.get_by_role('heading', name='Synthetic native metadata', exact=True).wait_for(state="visible")
+    record.get_by_text('Synthetic native metadata', exact=True).wait_for(state="visible")
+    record.locator('details > summary').click()
     assert "Available exact metadata remains readable." in record.inner_text()
     assert len(pending) == 1
     assert record.get_attribute('data-source-read-status') == 'available'
@@ -623,13 +637,90 @@ def test_source_metadata_remains_when_native_discovery_fails(
         pending[0].fulfill(status=200, content_type='application/json', body='{')
     record.get_by_text('Способы чтения текста сейчас недоступны.', exact=True).wait_for(state="visible")
     assert record.get_attribute('data-source-read-status') == 'available'
-    assert record.get_by_role('heading', name='Synthetic native metadata', exact=True).is_visible()
+    assert record.get_by_text('Synthetic native metadata', exact=True).is_visible()
     assert "Available exact metadata remains readable." in record.inner_text()
     assert record.locator('.source-native-actions button').count() == 0
-    for summary in record.locator('details > summary').all():
-        summary.click()
-    assert 'tos.text-unit.browser-fixture' in record.inner_text()
-    assert 'ToS/synthetic/native-metadata.json' in record.inner_text()
+    assert 'tos.text-unit.browser-fixture' not in record.inner_text()
+    assert 'ToS/synthetic/native-metadata.json' not in record.inner_text()
+    assert record.locator('pre').count() == 0
+    with page.expect_download() as downloaded:
+        record.get_by_role('button', name='Скачать данные', exact=True).click()
+    exported = json.loads(Path(downloaded.value.path()).read_text(encoding='utf-8'))
+    assert exported['record']['record_id'] == 'tos.text-unit.browser-fixture'
+    assert 'handle' not in exported
+    assert 'ToS/synthetic/native-metadata.json' in json.dumps(exported)
+
+
+@pytest.mark.parametrize("access_base_url", ["source"], indirect=True)
+def test_research_seeded_locale_and_panel_sequence(webmcp_page: Page, access_base_url: str) -> None:
+    import random
+    from urllib.parse import quote
+
+    page = webmcp_page
+    _, node_id = first_edge_and_node(page)
+    page.goto(f"{access_base_url}/static/research.html?focus={quote('philosophy:' + node_id, safe='')}")
+    page.locator('#tree[data-ready="true"] .reading h1').wait_for()
+    names = {
+        'ru': ['Собрать линзу', 'Читать произведения и издания', 'Моя полка', 'Об этой области', 'Настроить связи', 'Закрыть'],
+        'en': ['Build a lens', 'Read works and editions', 'My shelf', 'About this area', 'Choose relations', 'Close'],
+    }
+    language = 'ru'
+    actions = ['en', 'ru', 'sources', 'scope', 'conditions', 'shelf', 'library', 'search'] * 3
+    random.Random(915236).shuffle(actions)
+    for step, action in enumerate(actions):
+        if action in names:
+            page.locator(f'[data-live-lang="{action}"]').click()
+            language = action
+        elif action == 'sources':
+            disclosure = page.locator('.reading details').filter(has=page.locator('[data-source-record-id]')).locator(':scope > summary')
+            disclosure.click()
+            assert page.locator('.reading [data-source-record-id]').is_visible(), (step, action)
+            assert page.locator('.reading pre').count() == 0
+            disclosure.click()
+        elif action == 'search':
+            page.locator('.search-trigger').click()
+            page.locator('[data-search-service]').uncheck()
+            assert page.get_by_label('Служебные записи' if language == 'ru' else 'Service records', exact=True).is_visible()
+            page.locator('.search').fill('fixture')
+            page.locator('.live-search-form button').click()
+            page.locator('.material-list [data-result-id]').first.wait_for(state='visible')
+            first_ids = page.locator('.material-list [data-result-id]').evaluate_all("rows => rows.map(row => row.dataset.resultId)")
+            page.locator('.live-more').click()
+            page.locator('.live-search-previous').wait_for(state='visible')
+            page.locator('.live-search-previous').click()
+            wait_for(page, 'JSON.stringify([...document.querySelectorAll(".material-list [data-result-id]")].map(row=>row.dataset.resultId)) === '+json.dumps(json.dumps(first_ids, separators=(',', ':'))))
+            page.locator('[data-search-service]').check()
+            page.keyboard.press('Escape')
+            assert not page.locator('.materials-panel').is_visible()
+            page.locator('.search-trigger').click()
+            assert page.locator('[data-search-service]').is_checked()
+            assert not page.locator('.live-more').is_disabled()
+            page.keyboard.press('Escape')
+        elif action == 'shelf':
+            page.get_by_role('button', name=names[language][2], exact=True).click()
+            shelf = page.locator('.research-shelf')
+            labels = ['Исследовательская полка', 'Тип', 'Закрыть полку'] if language == 'ru' else ['Research shelf', 'Type', 'Close shelf']
+            assert shelf.get_by_role('heading', name=labels[0], exact=True).is_visible(), (step, action)
+            assert shelf.get_by_label(labels[1], exact=True).is_visible(), (step, action)
+            assert shelf.locator('pre').count() == 0
+            shelf.get_by_role('button', name=labels[2], exact=True).click()
+        elif action == 'library':
+            page.get_by_role('button', name=names[language][1], exact=True).click()
+            reader = page.locator('.corpus-reader')
+            message = 'Источник полных текстов пока не подключён.' if language == 'ru' else 'The full-text source is not connected yet.'
+            reader.get_by_text(message, exact=True).wait_for(state='visible')
+            assert reader.get_by_text(message, exact=True).count() == 1
+            assert reader.locator('.cr-library,.cr-save').count() == 0
+            reader.get_by_role('button', name='Вернуться к Древу' if language == 'ru' else 'Return to the tree', exact=True).click()
+        else:
+            page.get_by_role('button', name=names[language][3 if action == 'scope' else 4], exact=True).click()
+            dialog = page.get_by_role('dialog')
+            assert dialog.is_visible(), (step, action)
+            assert dialog.locator('pre').count() == 0
+            dialog.get_by_role('button', name=names[language][5], exact=True).click()
+        for name in names[language][:3]:
+            assert page.get_by_role('button', name=name, exact=True).is_visible(), (step, action, name)
+    assert page.locator('.reading h1').is_visible()
 
 
 def test_real_browser_cancellation_reload_and_deep_link(webmcp_page: Page) -> None:
@@ -707,6 +798,50 @@ def test_observatory_prepared_human_agent_search_and_continuation(webmcp_page: P
     assert page.locator(".sc-search-results .sc-result").all_text_contents() == first_page
 
 
+def test_research_visibility_refreshes_links_and_preserves_source_disclosure(webmcp_page: Page, access_base_url: str) -> None:
+    """A changed view refreshes navigable links without replacing the reading."""
+    from urllib.parse import quote
+    page = webmcp_page
+    hits = command_value(invoke(page, "tos.page.knowledge-search", {"query": "Alpha", "limit": 10}))
+    material_id = next(row['id'] for row in hits['nodes'] if row['id'] == 'philosophy:a')
+
+    def service_catalog(route):
+        response = route.fetch()
+        catalog = response.json()
+        changed = 0
+        # Only this synthetic fixture declares its neighboring types service
+        # objects. No production corpus or source registry is changed.
+        for entry in catalog['semantic_registries']['entity_types']['entries']:
+            if any(mapping.get('source_graph') == 'philosophy' and mapping.get('source_kind_id') in ('work', 'source')
+                   for mapping in entry.get('source_mappings', [])):
+                entry['object_role'] = 'projection'
+                changed += 1
+        assert changed
+        route.fulfill(response=response, json=catalog)
+
+    page.route('**/api/knowledge/catalog', service_catalog)
+    page.goto(f"{access_base_url}/static/research.html?focus={quote(material_id, safe='')}")
+    reading = page.locator('#tree[data-ready="true"] .reading')
+    reading.locator('h1').wait_for(state='visible')
+    reading.get_by_text('Источники', exact=True).click()
+    opened_source = reading.locator('details[open]').first
+    assert opened_source.is_visible()
+    page.locator('[data-show-service-objects]').click()
+    reading.locator('.related-materials [data-related-node-id]').first.wait_for(state='visible')
+    assert opened_source.is_visible()
+    assert not page.get_by_text('Не удалось выполнить действие. Повторите попытку.', exact=True).is_visible()
+    reading.locator('.related-relation').first.click()
+    reading.locator('.relation-participants').wait_for(state='visible')
+    selection = page.locator('#tree').get_attribute('data-selection')
+    page.locator('[data-live-projection="compact"]').click()
+    assert page.locator('#tree').get_attribute('data-selection') == selection
+    assert reading.locator('.relation-participants [data-related-node-id]').count() == 2
+    reading.locator('.relation-participants [data-related-node-id]').first.click()
+    reading.locator('h1').wait_for(state='visible')
+    page.locator('[data-live-projection="grouped"]').click()
+    reading.locator('.related-materials [data-related-node-id]').first.wait_for(state='visible')
+
+
 def test_built_research_entry_persists_exact_shelf_and_camera(webmcp_page: Page, access_base_url: str) -> None:
     """Use the shipped entry and default browser storage, with a small dataset."""
     from urllib.parse import quote
@@ -714,7 +849,38 @@ def test_built_research_entry_persists_exact_shelf_and_camera(webmcp_page: Page,
     hits = command_value(invoke(page, "tos.page.knowledge-search", {"query": "fixture", "limit": 1}))
     material_id = hits["nodes"][0]["id"]
     page.goto(f"{access_base_url}/static/research.html?focus={quote(material_id, safe='')}")
-    page.locator('#tree[data-ready="true"] .reading').get_by_role("button", name="Сохранить материал", exact=True).click()
+    reading = page.locator('#tree[data-ready="true"] .reading')
+    reading.get_by_role("button", name="Сохранить материал", exact=True).click()
+    # A named neighbor is a navigation action; the predicate has its own action.
+    neighbor = reading.locator('.related-materials [data-related-node-id]').first
+    neighbor.wait_for(state='visible')
+    neighbor_id = neighbor.get_attribute('data-related-node-id')
+    neighbor.click()
+    wait_for(page, f"document.querySelector('#tree').dataset.selection === {json.dumps(neighbor_id)}")
+    reading.locator('.related-relation').first.click()
+    endpoint = reading.locator('.relation-participants [data-related-node-id]').first
+    endpoint.wait_for(state='visible')
+    endpoint_id = endpoint.get_attribute('data-related-node-id')
+    endpoint.click()
+    wait_for(page, f"document.querySelector('#tree').dataset.selection === {json.dumps(endpoint_id)}")
+    reading.get_by_role('button', name='Сравнить', exact=True).click()
+    assert reading.get_by_role('button', name='Добавлено к сравнению', exact=True).is_disabled()
+    assert page.locator('[data-live-action="compare"]').inner_text() == 'Сопоставить (1/2)'
+    # Dismissing an overlay preserves the selected material underneath it.
+    selected_title = reading.locator('h1').inner_text()
+    page.locator('[data-live-action="compare"]').click()
+    page.locator('dialog[open]').wait_for(state='visible')
+    page.keyboard.press('Escape')
+    page.locator('dialog[open]').wait_for(state='hidden')
+    assert reading.is_visible()
+    assert reading.locator('h1').inner_text() == selected_title
+    page.locator('.search-trigger').click()
+    page.locator('.search').fill('fixture')
+    page.keyboard.press('Escape')
+    assert not page.locator('.materials-panel').is_visible()
+    assert reading.is_visible()
+    assert reading.locator('h1').inner_text() == selected_title
+
     page.locator('[data-research-shelf="true"]').click()
     card = page.locator('.research-shelf-card').first
     card.wait_for(state="visible")
@@ -1095,6 +1261,75 @@ def test_lens_large_relation_area_requires_scope_confirmation(reader_fixture_bas
         assert page.evaluate('scopeCheck.packet.nodes.length') == 41
         assert builder.get_by_role('button', name='Предпросмотр', exact=True).is_enabled()
         assert builder.get_by_role('button', name='Сохранить линзу', exact=True).is_enabled()
+        # Reopen the mounted control around a selected node. The label must
+        # resolve from the supplied area without depending on a scene object.
+        page.evaluate("""async () => {
+          scopeCheck.builder.close();
+          scopeCheck.packet.selection.kind='node';
+          scopeCheck.packet.selection.id='fixture:0';
+          scopeCheck.packet.nodes[0].display={title:{ru:'Выбранный центр'}};
+          await scopeCheck.builder.open();
+        }""")
+        assert choice.locator('select').input_value() == 'focus'
+        choice.get_by_role('button', name='Открыть область', exact=True).click()
+        assert 'Выбранный центр' in builder.inner_text()
+        assert builder.get_by_role('button', name='Предпросмотр', exact=True).is_enabled()
+        # In a normal bounded area, choosing focus uses the current selection
+        # immediately; it must not require a second corrective click.
+        page.evaluate('''async () => {
+          scopeCheck.builder.close();scopeCheck.packet.nodes.splice(2);
+          await scopeCheck.builder.open();
+        }''')
+        builder.locator('.lens-builder-field').filter(has=page.get_by_text('Отправная точка', exact=True)).locator('select').select_option('focus')
+        assert 'Выбранный центр' in builder.locator('.lens-builder-focus').inner_text()
+        assert builder.get_by_role('button', name='Взять выбранную звезду', exact=True).count() == 0
+        browser.close()
+
+
+def test_native_delivery_export_preserves_identity_and_respects_expiry(reader_fixture_base_url):
+    """The real download carries exact text identity and dies with its delivery."""
+    with short_chromium_tmp(), sync_playwright() as p:
+        options = {'headless': True, 'args': ['--no-sandbox']}
+        if CHROMIUM:
+            options['executable_path'] = CHROMIUM
+        browser = p.chromium.launch(**options)
+        page = browser.new_page(locale='ru-RU')
+        page.goto(reader_fixture_base_url + '/static/fixtures/native-reader.html')
+        page.get_by_role('button', name='Открыть текст', exact=True).click()
+        reader = page.locator('.native-reader[data-native-state="available"]')
+        reader.wait_for()
+        reader.get_by_text('Об источнике', exact=True).click()
+        with page.expect_download() as download:
+            reader.get_by_role('button', name='Скачать данные', exact=True).click()
+        exported = json.loads(Path(download.value.path()).read_text(encoding='utf-8'))
+        assert 'handle' not in exported
+        assert exported['record_ref']['id'] == 'tos.text-unit.fixture'
+        assert exported['native_unit']['packet']['version'] == 1
+        assert exported['native_unit']['spans'][0]['text'].startswith('A😀e\u0301')
+        assert exported['text_access']['scope'] == 'public-native-unit'
+        assert exported['selection']['id'] == 'source-claims:identity:tos.text-unit.fixture'
+        page.evaluate("""() => {
+          window.oldExport=document.querySelector('.nr-exact .sc-data-download');
+          window.exportAttempts=0;
+          URL.createObjectURL=()=>{exportAttempts++;return 'blob:blocked';};
+        }""")
+        reader.get_by_role('button', name='К Древу', exact=True).click()
+        page.locator('.native-reader').wait_for(state='hidden')
+        assert page.evaluate('oldExport.click();exportAttempts') == 0
+        page.get_by_role('button', name='Локальные условия', exact=True).click()
+        page.clock.install()
+        page.get_by_role('button', name='Открыть текст', exact=True).click()
+        reader.wait_for()
+        assert page.evaluate('oldExport.click();exportAttempts') == 0
+        page.evaluate("window.localExport=document.querySelector('.nr-exact .sc-data-download')")
+        # Move wall time without firing the expiry timer: click-time validity
+        # must reject the delivery even when the browser delays its timer.
+        page.clock.set_system_time(page.evaluate('Date.now()') + 91_000)
+        assert page.evaluate('localExport.click();exportAttempts') == 0
+        page.clock.fast_forward(91_000)
+        page.locator('.native-reader[data-native-state="expired"]').wait_for()
+        assert page.locator('.nr-exact .sc-data-download').count() == 0
+        assert page.evaluate('localExport.click();exportAttempts') == 0
         browser.close()
 
 

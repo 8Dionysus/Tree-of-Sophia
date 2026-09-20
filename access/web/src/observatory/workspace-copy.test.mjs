@@ -2,6 +2,7 @@ import {test,expect} from 'vitest';
 import {createResearchWorkspace} from '../research-workspace';
 import {capturePlace,pinHistoryPlace,readPlaces,savePlace} from './place-model.mjs';
 import {COPY_SCHEMA,validateWorkspaceCopy,snapshotCopyStorage,copyStorageKeys,commitWorkspaceCopy} from './workspace-copy.mjs';
+import {sourceReadExport} from './exact-source-read.mjs';
 import {DEFAULT_INTERFACE} from './interface-model.mjs';
 import {emptyReading,readReading,READING_KEY} from './reading-resume.mjs';
 import {createTravelStore,HISTORY_KEY} from './travel-model.mjs';
@@ -38,4 +39,20 @@ test('pinning history is one idempotent save of that step; renaming preserves it
   const s=storage(),step=place('history-step'),pinned=pinHistoryPlace(s,step);expect(readPlaces(s)).toHaveLength(1);
   expect(pinned.pose).toEqual(step.pose);expect(pinned.spec).toEqual(step.spec);savePlace(s,{...pinned,name:'Моя мысль'});
   expect(pinHistoryPlace(s,step).name).toBe('Моя мысль');expect(readPlaces(s)).toHaveLength(1);expect(step.name).toBe('Место history-step');
+});
+
+test('exact source export keeps the validated delivery envelope without exporting its capability handle',()=>{
+  const read={schema_version:'tos_source_read_result_v1',status:'available',reason:'owner-record-available',
+    source_revision:'a'.repeat(64),content_revision:'sha256:'+'b'.repeat(64),layer:'metadata_record',record_kind:'metadata',
+    record_ref:{id:'tos.agent.fixture',version:2,digest:'sha256:'+'c'.repeat(64)},
+    record:{record_id:'tos.agent.fixture',record_version:2,preferred_label:'Exact source'},
+    access:{scope:'public-metadata-record',visibility:'public_metadata_only'},provenance:{catalog:{row_sha256:'d'.repeat(64)}},
+    handle:{schema_version:'tos_source_read_handle_v1',epoch:{source_publication:{token:'sha256:'+'e'.repeat(64)}}},
+    extension:{future_field:'preserve me'}};
+  const exported=sourceReadExport(read);
+  expect(Object.hasOwn(exported,'handle')).toBe(false);
+  expect(exported.record_ref).toEqual(read.record_ref);expect(exported.access).toEqual(read.access);
+  expect(exported.provenance).toEqual(read.provenance);expect(exported.extension).toEqual(read.extension);
+  expect(JSON.stringify(exported)).not.toMatch(/source_read_handle|sha256:e{64}/);
+  expect(read.handle.epoch.source_publication.token).toBe('sha256:'+'e'.repeat(64));
 });

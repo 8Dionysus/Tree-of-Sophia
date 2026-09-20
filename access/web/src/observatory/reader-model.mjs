@@ -3,6 +3,7 @@ import {ContractError,RequestSlots,RequestError,RevisionError,checkRevision,disp
 import {essentialContext} from './record-context.mjs';
 import {readableContextFor} from './readable-context.mjs';
 import {displayForm as readingForm,displayLanguageKey as languageKey} from './display-language.mjs';
+import {languageName} from './human-presentation.mjs';
 export {readingForm};
 import {FORM_ROLES,FormContractError,validateHumanForms,inspectExactHumanForms,formLanguages,formIdentity,claimPathFor,resolveClaimReading} from './human-forms.mjs';
 
@@ -12,13 +13,19 @@ const FORM_ROLES_WITH_EXACT=selection=>FORM_ROLES.filter(role=>selection.roles[r
 export const readingKey=(kind,id)=>JSON.stringify([kind,id]);
 export function formLabel(key){
   return uiComputed(()=>{
-    const labels={ru:t("Русский"),en:'English',es:'Español',auto:t('Автоматически'),original:t("Исходная форма"),default:t("Форма по умолчанию")};
-    return Object.hasOwn(labels,key)?labels[key]:String(key??'');
+    const labels={auto:t('Автоматически'),original:t('Оригинал'),default:t('Язык источника')};
+    const value=typeof key==='string'?key:'';
+    if(Object.hasOwn(labels,value))return labels[value];
+    // Display-language keys are source vocabulary, while this label belongs
+    // to the interface. Keep language names readable in the current UI locale
+    // and never leak an opaque form key when a packet is incomplete.
+    return languageKey(value)?languageName(value):t('Не указан');
   });
 }
 export function formLanguageNote(form){
-  return uiComputed(()=>(form.fallback?t('Выбранная форма отсутствует. Показана: '):t('Показана: '))
-    +formLabel(form.lang||form.key)+(form.lang?'.':t('. Язык в этой форме не указан.')));
+  return uiComputed(()=>form?.fallback&&form.lang
+    ? `${t('Язык текста: ')}${formLabel(form.lang)}`
+    : '');
 }
 function readingTitle(raw,preferred='ru'){
   const form=displayTitleForm(raw,preferred,true);
@@ -74,9 +81,19 @@ export function readingDocument(snapshot,language='ru'){
   const blocks=[];
   const humanForms=validateHumanForms(raw);
   if(!humanForms){
-    if(kind==='relation')blocks.push({id:'statement',title:ui("Формулировка связи"),form:materialDisplayForm(raw,'statement',language)});
-    blocks.push({id:'description',title:kind==='node'?ui("Описание"):ui("Пояснение"),state,
-      form:state==='missing'?null:materialDisplayForm(raw,kind==='node'?'summary':'explanation',language)});
+    if(kind==='relation'){
+      const statement=materialDisplayForm(raw,'statement',language);
+      if(statement?.text)blocks.push({id:'statement',title:ui("Формулировка связи"),form:statement});
+    }
+    const field=kind==='node'?'summary':'explanation';
+    const sourceAvailability=kind==='node'?'source_summary_available':'source_explanation_available';
+    const form=state==='missing'||state==='metadata-synthesis'&&display.provenance?.[sourceAvailability]===false
+      ? null : materialDisplayForm(raw,field,language);
+    // Metadata-only labels and blank placeholders add no reading value. Keep a
+    // provider-declared unavailable state visible so the reader can distinguish
+    // a missing description from a delivery restriction.
+    const unavailable=['unavailable','restricted','text-unavailable'].includes(state);
+    if(form?.text||unavailable)blocks.push({id:'description',title:kind==='node'?ui("Описание"):ui("Пояснение"),state,form});
   }
   return {title:readingTitle(raw,language),claimContextUnavailable:Boolean(snapshot.claimContextUnavailable),
     kind:kind==='node'?materialDisplayForm(raw,'kind_label',language):null,blocks,humanForms,
@@ -98,13 +115,22 @@ function readingFailure(entry){
   }
 }
 export function readingStatus(entry,sceneRevision){
-  // Local status follows the interface language. An error supplied by the
-  // client stays verbatim, even if it happens to match a translated UI label.
+  // Local status follows the interface language. Transport and contract
+  // details stay in the model; only a still-loaded snapshot that no longer
+  // matches the current scene is actionable. `changed` records that a newer
+  // snapshot was loaded successfully and is therefore informational.
   const mismatch=Boolean(entry.snapshot&&sceneRevision&&entry.sourceRevision!==sceneRevision);
-  return uiComputed(()=>[entry.loading?t("Обновляю материал…"):null,readingFailure(entry),entry.error,
-    entry.changed?t("Данные изменились: чтение начато с начала актуального материала."):null,
-    mismatch?t("Материал и сцена относятся к разным снимкам."):null,
-    entry.snapshot&&entry.error?t("Показан ранее закреплённый материал."):null].filter(Boolean).join(' '));
+  return uiComputed(()=>{
+    if(entry.loading)return t("Обновляю материал…");
+    if(entry.error){
+      return entry.snapshot
+        ? t("Не удалось обновить материал. Показана сохранённая версия.")
+        : readingFailure(entry)||t("Загрузка не удалась. Повторите попытку.");
+    }
+    if(mismatch)return t("Материал устарел. Обновите чтение.");
+    if(entry.changed)return t("Данные изменились: чтение начато с начала актуального материала.");
+    return '';
+  });
 }
 
 // Source copies and graph bookmarks stay in page memory. Durable reading uses

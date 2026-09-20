@@ -1,274 +1,103 @@
-import {ui,uiText} from './ui-i18n.mjs';
+import {ui,uiText,uiComputed,uiLanguage} from './ui-i18n.mjs';
 import {formView,inspectExactHumanForms} from './human-forms.mjs';
 import {renderContextData} from './context-view.mjs';
 import {formContexts} from './readable-context.mjs';
 import {renderReadableContexts} from './readable-context-view.mjs';
-
 const el=(tag,value='',className='')=>{const node=document.createElement(tag);node.className=className;uiText(node,value);return node;};
-const roleLabels={name:'Название',caption:'Подпись',hover:'Краткий контекст',statement:'Формулировка',grounds:'Основания',history:'История',technical:'Точные сведения'};
-const stateLabels={ready:'Доступна',missing:'Форма не предоставлена',unavailable:'Форма недоступна',ambiguous:'Есть несколько форм',
-  'over-budget':'Форма превышает предел доставки',invalid:'Пакет формы некорректен',stale:'Форма устарела',restricted:'Доступ ограничен','needs-assessment':'Требуется оценка'};
-const reasonLabels={'exact-language':'Точное совпадение языка','less-specific-language':'Показан менее конкретный вариант языка',
-  automatic:'Автоматический выбор источника',fallback:'Выбранный язык отсутствует; показан доступный',original:'Исходная форма, как указано источником',
-  'no-ready-form':'Готовая форма не предоставлена','multiple-forms':'Однозначная форма не выбрана','original-role-not-declared':'Исходная форма не указана',
-  'inspect-exact-form':'Полный пакет не поместился в ответ'};
-function jsonBlock(value,anchor){
-  const node=el('pre',JSON.stringify(value,null,2),'sc-form-json');node.dir='auto';node.dataset.readingAnchor=anchor;return node;
-}
-
-function scalarValue(value){
-  if(typeof value==='string')return value;
-  if(value===null)return 'null';
-  if(typeof value==='boolean')return value?'true':'false';
-  if(typeof value==='number')return String(value);
-  return '';
-}
-
-// Context values are source data, not a browser taxonomy. Render their keys
-// and scalar values as a readable projection, while the exact JSON stays
-// available below the corresponding details disclosure.
-function readableValue(value,anchor,depth=0){
-  if(value===null||['string','boolean','number'].includes(typeof value)){
-    const node=el('span',scalarValue(value),'sc-form-value');node.dir='auto';node.dataset.readingAnchor=anchor;return node;
-  }
-  if(depth>=8){
-    const node=el('span',ui('Вложенное значение доступно в точной записи.'),'sc-form-value sc-form-value-raw');node.dir='auto';node.dataset.readingAnchor=anchor;return node;
-  }
-  if(Array.isArray(value)){
-    const list=el('ul','','sc-form-values');list.dataset.readingAnchor=anchor;
-    if(!value.length)list.append(el('li','[]','sc-form-value'));
-    value.forEach((item,index)=>{const row=el('li');row.append(readableValue(item,`${anchor}:${index}`,depth+1));list.append(row);});
-    return list;
-  }
-  if(value&&typeof value==='object'){
-    const list=el('dl','','sc-form-values');list.dataset.readingAnchor=anchor;
-    const entries=Object.entries(value);
-    if(!entries.length)list.append(el('dd','{}','sc-form-value'));
-    entries.forEach(([key,item])=>{
-      const row=el('div');row.append(el('dt',key,'sc-form-value-key'),readableValue(item,`${anchor}:${key}`,depth+1));list.append(row);
-    });
-    return list;
-  }
-  return el('span','sc-form-value');
-}
-
-function exactDetails(title,value,anchor,className='sc-form-exact'){
-  const details=el('details','',className);details.append(el('summary',title));details.append(jsonBlock(value,anchor));return details;
-}
-
-function formDisclosure(summary,group){
-  const details=el('details','',`sc-form-disclosure sc-form-disclosure-${group}`);
-  details.dataset.formGroup=group;
-  details.append(el('summary',summary));
-  return details;
-}
-
-function appendContextEntry(section,entry,anchorPrefix){
-  const context=el('section','','sc-form-context');context.dataset.contextSlot=entry.slot;
-  const heading=el('p',entry.slot,'sc-form-context-slot');heading.dataset.readingAnchor=`${anchorPrefix}:slot`;context.append(heading);
-  context.append(renderContextData(entry.value,`${anchorPrefix}:value`));
-  if(typeof entry.binding?.pointer==='string'){
-    const pointer=el('p',ui('Поле источника: {0}',[entry.binding.pointer||ui('корень')]),'sc-source-ref');
-    pointer.dataset.readingAnchor=`${anchorPrefix}:pointer`;context.append(pointer);
-  }
-  context.append(exactDetails(ui('Точная запись контекста'),entry,`${anchorPrefix}:raw`));
-  section.append(context);
-}
-
-function appendReadyPacket(section,packet,role,anchorPrefix=`form:${role}`,readableContext=null){
-  section.append(el('p',ui('Язык формы: {0}',[packet.language||ui('Не указан')]),'sc-reader-language-note'));
-  if(packet.derivation==='source-copy')section.append(el('p',ui('Полная копия поля источника; истинность формулировки не оценивалась.'),'sc-form-status'));
-  const wording=el('div',packet.display_text,'sc-form-wording');wording.dir='auto';if(packet.language)wording.lang=packet.language;
-  wording.dataset.readingAnchor=anchorPrefix+':wording';section.append(wording);
+const disclosure=(title,group)=>{const node=el('details','','sc-form-disclosure');node.dataset.formGroup=group;node.append(el('summary',title));return node;};
+const usable=role=>role&&(role.state==='ready'||role.state==='over-budget'&&role.reason==='inspect-exact-form');
+function packetContext(packet,anchor,readableContext,presentation={}){
   const contexts=formContexts(readableContext,packet.form);
-  if(readableContext?.state==='complete'&&contexts.length){
-    section.append(el('h6',ui('Обязательный контекст')),renderReadableContexts(contexts,anchorPrefix+':context'));
-  }else if(readableContext){
-    const gap=el('p',ui('Человекочитаемое представление контекста недоступно. Проверьте исходный контекст формы.'),'sc-reader-gap');
-    gap.dataset.contextPresentation=readableContext.state==='complete'?'not-included':readableContext.state;section.append(gap);
-    // A bounded readable-context sidecar may be absent or incomplete, but the
-    // selected form's mandatory context still travels with its wording. Keep
-    // the caveat visible and render the source values here; exact bindings and
-    // the full packet remain available through their nested disclosures.
-    if(packet.context.length){
-      section.append(el('h6',ui('Обязательный контекст')));
-      packet.context.forEach((entry,index)=>appendContextEntry(section,entry,`${anchorPrefix}:context:${index}`));
+  if(readableContext?.state==='complete'&&contexts.length)return renderReadableContexts(contexts,anchor,presentation);
+  const context=el('section','','sc-form-context');
+  if(readableContext)context.dataset.contextPresentation=readableContext.state;
+  for(const [index,entry]of packet.context.entries()){
+    const pointer=entry.binding?.pointer??'';if(pointer.startsWith('/field_languages/'))continue;
+    const key=pointer.split('/').at(-1)?.replace(/~1/g,'/').replace(/~0/g,'~');
+    const rendered=renderContextData(key?{[key]:entry.value}:entry.value,`${anchor}:${index}`);rendered.dataset.contextSlot=entry.slot;
+    if(/^\/variant_labels\/\d+\/language$/.test(pointer)){
+      const title=rendered.querySelector('dt');if(title)uiText(title,uiComputed(()=>({ru:'Язык названия',en:'Title language',es:'Idioma del título'}[uiLanguage()]??'Title language')));
     }
-  }else if(packet.context.length){
-    section.append(el('h6',ui('Обязательный контекст')));
-    packet.context.forEach((entry,index)=>{
-      appendContextEntry(section,entry,`${anchorPrefix}:context:${index}`);
-    });
+    if(rendered.children.length)context.append(rendered);
   }
-  if(packet.language_context){
-    section.append(el('h6',ui('Языковое происхождение')));
-    const languageContext=packet.language_context.value||{};
-    const summary=el('p',ui('Язык: {0} · связь: {1}',[languageContext.language||ui('не указан'),languageContext.relation||ui('не указана')]),'sc-reader-language-note');
-    summary.dataset.readingAnchor=anchorPrefix+':language:summary';section.append(summary);
-    section.append(exactDetails(ui('Точная запись языкового контекста'),packet.language_context,anchorPrefix+':language:raw'));
-  }
-  const metadata=el('details','','sc-form-metadata');metadata.append(el('summary',ui('Происхождение и точная версия формы')));
-  const {display_text,context,language_context,...rest}=packet;metadata.append(jsonBlock(rest,anchorPrefix+':metadata'));section.append(metadata);
-  if(packet.assessment_snapshot) section.append(el('p',ui('Оценка относится к указанному снимку; разрешение публикации не предоставляется.'),'sc-form-status'));
+  return context;
 }
-
-function exactInspectionAction(section,selected,exact,readableContext){
-  if(!exact)return;
-  const action=el('button',ui('Показать полную форму'),'sc-form-inspect');action.type='button';
-  action.addEventListener('click',()=>{
-    action.remove();section.dataset.exactFormInspected='true';
-    section.append(el('p',ui('Показан полный пакет по точной ссылке. Предел доставки не меняет состояние формы и не означает её семантического принятия.'),'sc-form-status'));
-    appendReadyPacket(section,exact.packet,selected.role,`form:${selected.role}:exact`,readableContext);
-  });
-  section.append(action);
+function appendPacket(section,packet,role,readableContext,presentation){
+  const anchor=`form:${role}`;section.dataset.formId=packet.form.id;section.dataset.formDigest=packet.form.digest;
+  const wording=el('div',packet.display_text,'sc-form-wording');wording.dir='auto';if(packet.language)wording.lang=packet.language;
+  wording.dataset.readingAnchor=anchor+':wording';section.append(wording);
+  const context=packetContext(packet,anchor+':context',readableContext,presentation);if(context.children.length)section.append(context);
 }
-
-function renderRole(selected,inspected,readableContext){
+function renderRole(selected,inspected,readableContext,presentation){
   const section=el('section','','sc-form-role');section.dataset.formRole=selected.role;section.dataset.formState=selected.state;
-  const heading=el('h5',ui(roleLabels[selected.role]));heading.dataset.readingAnchor='form:'+selected.role+':heading';section.append(heading);
-  if(selected.state!=='ready'){
-    section.append(el('p',ui(stateLabels[selected.state]),'sc-form-status'));
-    section.append(el('p',ui(reasonLabels[selected.reason]),'sc-reader-language-note'));
-    if(selected.state==='over-budget'&&selected.reason==='inspect-exact-form'){
-      exactInspectionAction(section,selected,inspected?.[selected.role],readableContext);
-      if(!inspected?.[selected.role])section.append(el('p',ui('Полную форму не удалось проверить в этой версии ответа.'),'sc-form-status'));
-    }
-  }else{
-    const packet=selected.packet;section.dataset.formId=packet.form.id;section.dataset.formDigest=packet.form.digest;
-    section.append(el('p',ui(reasonLabels[selected.reason]),'sc-reader-language-note'));
-    appendReadyPacket(section,packet,selected.role,`form:${selected.role}`,readableContext);
+  if(selected.state==='ready')appendPacket(section,selected.packet,selected.role,readableContext,presentation);
+  else if(inspected?.[selected.role]){
+    const action=el('button',ui('Показать полностью'),'sc-form-inspect');action.type='button';
+    action.addEventListener('click',()=>{action.remove();section.dataset.exactFormInspected='true';appendPacket(section,inspected[selected.role].packet,selected.role,readableContext,presentation);});section.append(action);
   }
   return section;
 }
-
-function appendRoleDiagnostics(section,selected){
-  const diagnostic=selected.candidates.filter(candidate=>candidate.state!=='ready');
-  for(const candidate of diagnostic)section.append(el('p',ui('{0} · {1}',[ui(stateLabels[candidate.state]),candidate.form.id]),'sc-form-status'));
-  if(selected.state==='ambiguous')for(const candidate of selected.candidates)section.append(el('p',candidate.form.id+' · '+(candidate.language||String(ui('Не указан'))),'sc-form-status'));
-}
-
-function appendSelectionDiagnostics(section,view){
-  for(const issue of view.selection.issues)section.append(el('p',issue,'sc-form-status'));
-  for(const candidate of view.selection.candidates.filter(value=>value.role===null)){
-    const details=el('details','','sc-form-diagnostic');details.dataset.candidateState=candidate.state;
-    details.append(el('summary',ui('{0} · {1}',[ui(stateLabels[candidate.state]),candidate.form.id])));
-    details.append(jsonBlock(candidate,'unassigned-form'));section.append(details);
-  }
-}
-
-export function renderHumanForms(raw,{exactForms=null,readableContext=null}={}){
-  const view=formView(raw),container=el('div','','sc-human-forms');
-  if(!view){container.append(el('p',ui('Этот ответ не содержит выбранных форм.'),'sc-reader-language-note'));return container;}
-  const inspected=exactForms||inspectExactHumanForms(raw);
+export function renderHumanForms(raw,{exactForms=null,readableContext=null,presentation={}}={}){
+  const view=formView(raw),container=el('div','','sc-human-forms');if(!view)return container;
   container.dataset.formState=view.selection.state;
-  if(view.selection.state!=='available')container.append(el('p',ui(stateLabels[view.selection.state]),'sc-form-status'));
-  container.append(el('p',ui('Формы переданы источником. Доступность не означает семантического принятия.'),'sc-form-status'));
-  if(view.selection.source_ref)container.append(el('p',view.selection.source_ref,'sc-source-ref'));
-  const roles=new Map(view.roles.map(selected=>[selected.role,selected]));
-  const statement=roles.get('statement');
-  if(statement){
-    const section=renderRole(statement,inspected,readableContext);appendRoleDiagnostics(section,statement);container.append(section);
+  const inspected=exactForms||inspectExactHumanForms(raw),roles=new Map(view.roles.map(role=>[role.role,role]));
+  const primary=['statement','caption'].map(role=>roles.get(role)).find(usable),shown=new Set();
+  const add=(selected,parent)=>{
+    const packet=selected.packet??inspected?.[selected.role]?.packet;if(!packet)return;const identity=JSON.stringify([packet.display_text,packet.context]);if(shown.has(identity))return;
+    shown.add(identity);const section=renderRole(selected,inspected,readableContext,presentation);if(section.children.length)parent.append(section);
+  };
+  if(primary)add(primary,container);
+  const hover=roles.get('hover');
+  if(!primary&&usable(hover)){
+    const packet=hover.packet??inspected?.hover?.packet;
+    if(packet?.derivation==='source-copy'){
+      const text=disclosure(ui('Примечание источника'),'source-note');add(hover,text);if(text.children.length>1)container.append(text);
+    }else add(hover,container);
   }
-  const additional=formDisclosure(ui('Дополнительные представления'),'additional');
-  for(const role of ['name','caption','hover']){
-    const selected=roles.get(role);if(!selected)continue;
-    const section=renderRole(selected,inspected,readableContext);appendRoleDiagnostics(section,selected);additional.append(section);
+  for(const [role,title]of [['grounds','Основания'],['history','История']]){
+    const selected=roles.get(role);if(!usable(selected))continue;
+    const section=disclosure(ui(title),role);add(selected,section);if(section.children.length>1)container.append(section);
   }
-  container.append(additional);
-  const context=formDisclosure(ui('Основания и история'),'context');
-  for(const role of ['grounds','history']){
-    const selected=roles.get(role);if(!selected)continue;
-    const section=renderRole(selected,inspected,readableContext);appendRoleDiagnostics(section,selected);context.append(section);
+  // Metadata has no statement: show its supplied facts once, independently of
+  // the source note. Do not repeat names or empty roles as reading sections.
+  if(!primary){
+    const name=roles.get('name');const packet=name?.packet??hover?.packet;
+    if(packet){const context=packetContext(packet,'form:name:context',readableContext,presentation);if(context.children.length)container.append(context);}
   }
-  container.append(context);
-  const exact=formDisclosure(ui('Точные сведения и диагностика'),'exact');
-  const technical=roles.get('technical');
-  if(technical){
-    const section=renderRole(technical,inspected,readableContext);appendRoleDiagnostics(section,technical);exact.append(section);
+  if(!container.children.length){
+    const states=['statement','caption','hover'].map(role=>roles.get(role)?.state);
+    const message=states.includes('ambiguous')?ui('Вариант текста не определён.'):states.includes('unavailable')?ui('Текст недоступен.'):ui('Текст пока не предоставлен.');
+    container.append(el('p',message,'sc-reader-gap'));
   }
-  appendSelectionDiagnostics(exact,view);container.append(exact);
   return container;
 }
-export function renderClaimContext(resolved,readableContext=null){
-  const section=el('section','','sc-form-context sc-claim-context');section.append(el('h5',ui('Контекст чтения утверждения')));
-  const reading=resolved?.reading||{};
-  section.append(el('p',ui('Тип чтения: {0}',[reading.mode||ui('не указан')]),'sc-reader-language-note'));
-  const contexts=resolved?.semantics?.assertion_contexts;
-  if(Array.isArray(contexts)&&contexts.length){
-    section.append(el('h6',ui('Контексты утверждения')));
-    contexts.forEach((context,index)=>{
-      const item=el('section','','sc-assertion-context');item.dataset.contextIndex=String(index);
-      item.append(el('p',ui('Контекст {0}',[index+1]),'sc-form-context-slot'));
-      const classified=readableContext?.state==='complete'?readableContext.contexts.filter(value=>value.form===null&&value.origin_pointer===`/semantics/assertion_contexts/${index}`):[];
-      if(classified.length){
-        item.append(renderReadableContexts(classified,`claim-context:assertion:${index}`));
-        item.append(exactDetails(ui('Точная запись контекста утверждения'),context,`claim-context:assertion:${index}:raw`));
-        section.append(item);return;
-      }
-      if(readableContext){
-        item.append(contextPresentationGap(readableContext),
-          exactDetails(ui('Точная запись контекста утверждения'),context,`claim-context:assertion:${index}:raw`));
-        section.append(item);return;
-      }
-      const fields=context&&typeof context==='object'&&context.fields&&typeof context.fields==='object'?context.fields:{};
-      const values=el('dl','','sc-form-values');
-      for(const [name,field] of Object.entries(fields)){
-        const row=el('div');row.append(el('dt',name,'sc-form-value-key'));
-        const value=field&&typeof field==='object'&&Object.hasOwn(field,'value')?field.value:field;
-        row.append(el('dd','','sc-form-value'));row.lastChild.append(readableValue(value,`claim-context:assertion:${index}:${name}`));
-        if(typeof field?.source_pointer==='string')row.append(el('small',field.source_pointer,'sc-source-ref'));
-        values.append(row);
-      }
-      if(!values.children.length)values.append(el('dd',ui('Поля контекста не предоставлены.'),'sc-reader-gap'));
-      item.append(values);
-      if(Array.isArray(context?.conflicts)&&context.conflicts.length)item.append(el('p',ui('Конфликты: {0}',[context.conflicts.join(', ')]),'sc-form-status'));
-      if(typeof context?.interpretation==='string')item.append(el('p',context.interpretation,'sc-form-status'));
-      item.append(exactDetails(ui('Точная запись контекста утверждения'),context,`claim-context:assertion:${index}:raw`));
-      section.append(item);
-    });
-  }else section.append(el('p',ui('Контекст утверждения не предоставлен.'),'sc-reader-gap'));
-  const relations=Array.isArray(resolved?.relations)?resolved.relations:[];
-  if(relations.length){
-    section.append(el('h6',ui('Связи обязательного контекста')));
-    relations.forEach((relation,index)=>{
-      const item=el('section','','sc-assertion-context');
-      item.append(el('p',relation.relation_type_id||relation.predicate_id||ui('Связь без типа'),'sc-form-context-slot'));
-      item.append(el('p',ui('{0} → {1}',[relation.from_id||ui('не указан'),relation.to_id||ui('не указан')]),'sc-form-status'));
-      item.append(exactDetails(ui('Точная запись связи'),relation,`claim-context:relation:${index}:raw`));section.append(item);
-    });
+export function renderClaimContext(resolved,readableContext=null,presentation={}){
+  const section=el('section','','sc-form-context sc-claim-context');
+  for(const [index,context]of (resolved?.semantics?.assertion_contexts??[]).entries()){
+    const pointer=`/semantics/assertion_contexts/${index}`;
+    if(presentation.presentedPointers?.has(pointer))continue;
+    const classified=readableContext?.state==='complete'?readableContext.contexts.filter(value=>value.form===null&&value.origin_pointer===pointer):[];
+    const entry=classified.length?renderReadableContexts(classified,`claim-context:${index}`,presentation):renderContextData(context,`claim-context:${index}`);
+    if(entry.children.length)section.append(entry);
   }
-  section.append(exactDetails(ui('Точные данные чтения'),resolved,'claim-context:raw'));
+  if(readableContext)section.dataset.contextPresentation=readableContext.state;
   return section;
 }
-export function renderEssentialContext(context,readableContext=null){
+export function renderEssentialContext(context,readableContext=null,presentation={}){
   const section=el('section','','sc-form-role sc-record-context');section.dataset.contextState=context.state;
-  section.hidden=context.state==='not-declared'||context.state==='available'&&!context.items.length;
-  if(section.hidden)return section;
-  section.append(el('h5',ui('Обязательный контекст записи')));
-  if(context.state==='unavailable')section.append(el('p',ui('Объявленный контекст недоступен в этой версии ответа.'),'sc-reader-gap'));
-  context.items.forEach((item,index)=>{
-    const entry=el('section','','sc-form-context');entry.dataset.contextPointer=typeof item.pointer==='string'?item.pointer:'';
-    entry.append(el('h6',ui('Контекст {0}',[index+1])));
-    if(item.state==='available'){
-      const classified=readableContext?.state==='complete'?readableContext.contexts.filter(value=>value.form===null&&value.origin_pointer===item.pointer):[];
-      if(classified.length)entry.append(renderReadableContexts(classified,'record-context:'+index));
-      else if(readableContext)entry.append(contextPresentationGap(readableContext),
-        exactDetails(ui('Точные данные контекста'),item.value,'record-context:'+index+':raw'));
-      else entry.append(renderContextData(item.value,'record-context:'+index));
+  if(context.state==='not-declared')return section;
+  for(const [index,item]of context.items.entries()){
+    if(item.state!=='available')continue;
+    const classified=readableContext?.state==='complete'?readableContext.contexts.filter(value=>value.form===null&&value.origin_pointer===item.pointer):[];
+    const entry=classified.length?renderReadableContexts(classified,'record-context:'+index,presentation):renderContextData(item.value,'record-context:'+index);
+    if(entry.children.length){
+      section.append(entry);
+      // The claim view can point to this same delivered context. Track its
+      // exact pointer so a reading shows that context once across both views.
+      (presentation.presentedPointers??=new Set()).add(item.pointer);
     }
-    else entry.append(el('p',ui('Объявленный контекст недоступен в этой версии ответа.'),'sc-reader-gap'));
-    if(typeof item.pointer==='string'){
-      const route=el('details','','sc-context-location');route.dataset.readingKey='record-context:'+index+':route';
-      route.append(el('summary',ui('Расположение в ответе')),el('p',item.pointer,'sc-source-ref'));entry.append(route);
-    }
-    section.append(entry);
-  });
-  if(['unavailable','incomplete'].includes(context.state))section.append(el('p',ui('Чтобы проверить отсутствующий контекст, откройте источники материала.'),'sc-form-status'));
+  }
+  if(readableContext)section.dataset.contextPresentation=readableContext.state;
+  if(['unavailable','incomplete'].includes(context.state))section.append(el('p',ui('Часть сведений недоступна.'),'sc-reader-gap'));
   return section;
-}
-
-function contextPresentationGap(readableContext){
-  const gap=el('p',ui('Читаемое представление этого контекста недоступно. Откройте точные данные контекста перед выводами.'),'sc-reader-gap');
-  gap.dataset.contextPresentation=readableContext.state==='complete'?'not-included':readableContext.state;
-  return gap;
 }

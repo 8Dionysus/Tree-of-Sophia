@@ -311,6 +311,8 @@ export function normalizeSearch(raw = {}, {document = {}, version = {}, scope = 
       reference,
       sourceReference: typeof candidateReference === 'string' ? candidateReference : null,
       unitId: first(match.unitId, match.unit_id, reference?.unitId, null),
+      label: text(first(match.label, match.locator, match.heading), ''),
+      ordinal: Number.isSafeInteger(match.ordinal) ? match.ordinal : null,
       snippet: text(first(match.snippet, match.text, match.excerpt), ''),
       start: first(match.start, match.offsetStart, reference?.selector?.start, null),
       end: first(match.end, match.offsetEnd, reference?.selector?.end, null),
@@ -351,7 +353,7 @@ export function searchUnits(units, query, {limit = READER_LIMITS.searchResults, 
       const matchReference = reference
         ? validateReference({...reference, selector: {...reference.selector, start, end}})
         : null;
-      items.push({id: `${scope}-${index}-${hit.index}`, unitId, start, end, snippet: value, reference: matchReference, scope});
+      items.push({id: `${scope}-${index}-${hit.index}`, unitId, label: text(unit?.label, ''), ordinal: Number.isSafeInteger(unit?.ordinal) ? unit.ordinal : null, start, end, snippet: value, reference: matchReference, scope});
       // The bounded local scan stops before it can establish a corpus total.
       // Keep that uncertainty visible instead of presenting the cache cap as
       // an exact number of matches.
@@ -473,16 +475,22 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
     }
   }
 
-  async function readDocument(documentId, {refresh = false} = {}) {
+  async function readDocument(documentId, {refresh = false, cache = true} = {}) {
     const existing = state.catalog.items.find(item => item.id === documentId);
     if (existing && existing.versions.length && !refresh) return existing;
-    const value = await run(`document:${documentId}`, signal => callProvider(provider, 'document', {documentId, signal}));
+    const value = await run(`${cache ? 'document' : 'document-metadata'}:${documentId}`, signal => callProvider(provider, 'document', {documentId, signal}));
     if (!value) return null;
     const document = normalizeDocument(value);
-    const index = state.catalog.items.findIndex(item => item.id === document.id);
-    if (index < 0) state.catalog.items = [...state.catalog.items, document].slice(-CATALOG_CACHE_LIMIT);
-    else state.catalog.items = state.catalog.items.map((item, itemIndex) => itemIndex === index ? document : item);
+    if (cache) {
+      const index = state.catalog.items.findIndex(item => item.id === document.id);
+      if (index < 0) state.catalog.items = [...state.catalog.items, document].slice(-CATALOG_CACHE_LIMIT);
+      else state.catalog.items = state.catalog.items.map((item, itemIndex) => itemIndex === index ? document : item);
+    }
     return document;
+  }
+
+  async function readDocumentMetadata(documentId, options = {}) {
+    return readDocument(documentId, {...options, cache: false});
   }
 
   async function open({documentId, versionId, reference = null, unitId = null, revision = null} = {}) {
@@ -917,6 +925,10 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
     snapshot,
     limits: READER_LIMITS,
     catalog,
+    // Metadata-only consumers such as notebook labels can hydrate one work
+    // without changing the active document, version, or text window.
+    readDocument,
+    readDocumentMetadata,
     open,
     loadWindow,
     search,

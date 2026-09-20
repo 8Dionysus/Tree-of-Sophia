@@ -4,6 +4,12 @@ import {withAbort} from './bounded-response.mjs';
 
 export const SOURCE_READ_RESPONSE_BYTES=2*1024*1024;
 export const SOURCE_READ_DEADLINE_MS=15000;
+// Keep the complete validated delivery for deliberate inspection, excluding
+// the transient handle used to request it. Never mutate the live result.
+export function sourceReadExport(read){
+  if(read===null||typeof read!=='object'||Array.isArray(read))throw new TypeError('An exact source read envelope is required.');
+  const value=structuredClone(read);delete value.handle;return value;
+}
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 const hash=value=>typeof value==='string'&&/^[a-f0-9]{64}$(?![\s\S])/.test(value);
 const digest=value=>typeof value==='string'&&value.startsWith('sha256:')&&hash(value.slice(7));

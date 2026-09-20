@@ -30,53 +30,62 @@ function dom(){
 
 afterEach(()=>vi.unstubAllGlobals());
 
-test('places statement first and keeps every declared role behind an accessible disclosure',()=>{
+test('shows the statement and populated supporting material without transport diagnostics',()=>{
   dom();const raw=formNode(),before=structuredClone(raw),view=renderHumanForms(raw);
-  expect(roleSections(view).map(value=>value.dataset.formRole)).toEqual(['statement','name','caption','hover','grounds','history','technical']);
+  expect(roleSections(view).map(value=>value.dataset.formRole)).toEqual(['statement','grounds','history']);
   const statement=roleSections(view)[0];expect(statement.parentNode).toBe(view);
   expect(one(statement,value=>value.dataset.readingAnchor==='form:statement:wording')).toBeTruthy();
-  expect(descendants(statement).some(value=>value.textContent.includes('НЕ доказано'))).toBe(true);
-  expect(detailsFor(view).filter(value=>value.dataset.formGroup).map(value=>value.dataset.formGroup)).toEqual(['additional','context','exact']);
-  expect(detailsFor(view).filter(value=>value.dataset.formGroup).every(value=>value.open===false)).toBe(true);
+  expect(statement.textContent).toContain('НЕ доказано');
+  expect(statement.textContent).toContain('Отрицание');
+  expect(detailsFor(view).map(value=>value.dataset.formGroup)).toEqual(['grounds','history']);
+  expect(descendants(view).some(value=>value.tagName==='pre')).toBe(false);
+  expect(view.textContent).not.toContain('tos.form.');expect(view.textContent).not.toContain('семантического принятия');
   expect(raw).toEqual(before);
 });
 
-test('keeps mandatory form context beside wording when readable context falls back',()=>{
-  dom();const raw=formNode(),view=renderHumanForms(raw,{readableContext:{state:'requires-exact-context',contexts:[]}});
+test('keeps supplied qualification and distinguishes an incomplete context',()=>{
+  dom();const view=renderHumanForms(formNode(),{readableContext:{state:'requires-exact-context',contexts:[]}});
   const statement=one(view,value=>value.dataset.formRole==='statement');
-  const all=descendants(statement),gap=all.find(value=>value.dataset.contextPresentation);
-  expect(gap?.dataset.contextPresentation).toBe('requires-exact-context');
-  expect(all.some(value=>value.dataset.contextSlot==='qualification')).toBe(true);
-  expect(statement.textContent.indexOf('Текст формы statement')).toBeLessThan(statement.textContent.indexOf('НЕ доказано'));
-  expect(all.some(value=>value.className==='sc-context-fallback')).toBe(false);
-  expect(all.some(value=>value.className==='sc-context-exact'&&value.open===false)).toBe(true);
+  expect(statement.textContent).toContain('НЕ доказано');
+  expect(statement.textContent).not.toContain('Часть контекста доступна в источнике.');
+  expect(one(statement,value=>value.dataset.contextPresentation==='requires-exact-context')).toBeTruthy();
+  expect(one(statement,value=>value.dataset.contextSlot==='qualification')).toBeTruthy();
+  expect(descendants(view).some(value=>value.tagName==='pre')).toBe(false);
 });
 
-test('retains role states and exact diagnostics inside the matching disclosures',()=>{
+test('omits absent roles and offers the complete bounded text without candidate IDs',()=>{
   dom();const raw=formNode(),selection=raw.human_form_selection;
-  selection.roles.name={state:'missing',reason:'no-ready-form',form:null,packet:null};
-  selection.candidates.find(value=>value.role==='name').state='stale';
-  selection.roles.caption={state:'ambiguous',reason:'multiple-forms',form:null,packet:null};
-  selection.roles.hover={state:'unavailable',reason:'no-ready-form',form:null,packet:null};
-  selection.candidates.find(value=>value.role==='hover').state='restricted';
-  selection.roles.history={state:'unavailable',reason:'no-ready-form',form:null,packet:null};
-  selection.candidates.find(value=>value.role==='history').state='needs-assessment';
+  for(const role of ['name','caption','hover','history','technical'])selection.roles[role]={state:'missing',reason:'no-ready-form',form:null,packet:null};
   selection.roles.grounds.state='over-budget';selection.roles.grounds.reason='inspect-exact-form';selection.roles.grounds.packet=null;
-  selection.candidates.push({form:ref('tos.form.fixture.unassigned','e'),role:null,language:null,state:'invalid',source_pointer:'/attributes/human_forms/7'});
-  const view=renderHumanForms(raw),sections=roleSections(view),all=descendants(view);
-  expect(sections).toHaveLength(7);
-  expect(sections.find(value=>value.dataset.formRole==='name').textContent).toContain('Форма не предоставлена');
-  expect(sections.find(value=>value.dataset.formRole==='caption').textContent).toContain('Есть несколько форм');
-  expect(all.some(value=>value.textContent.includes('Доступ ограничен'))).toBe(true);
-  expect(all.some(value=>value.textContent.includes('Требуется оценка'))).toBe(true);
-  const exact=all.find(value=>value.dataset.formGroup==='exact');
-  expect(exact.children.some(value=>value.dataset.formRole==='technical')).toBe(true);
-  const diagnostic=one(exact,value=>value.dataset.candidateState==='invalid');
-  expect(diagnostic?.open).toBe(false);
-  expect(one(diagnostic,value=>value.dataset.readingAnchor==='unassigned-form')).toBeTruthy();
+  const view=renderHumanForms(raw),sections=roleSections(view);
+  expect(sections.map(value=>value.dataset.formRole)).toEqual(['statement','grounds']);
+  expect(view.textContent).not.toContain('Форма не предоставлена');expect(view.textContent).not.toContain('tos.form.');
   const grounds=sections.find(value=>value.dataset.formRole==='grounds');
-  const inspect=one(grounds,value=>value.className==='sc-form-inspect');expect(inspect).toBeTruthy();
-  inspect.dispatchEvent({type:'click'});
+  one(grounds,value=>value.className==='sc-form-inspect').dispatchEvent({type:'click'});
   expect(grounds.dataset.exactFormInspected).toBe('true');
-  expect(one(grounds,value=>value.dataset.readingAnchor==='form:grounds:exact:wording')).toBeTruthy();
+  expect(one(grounds,value=>value.dataset.readingAnchor==='form:grounds:wording')).toBeTruthy();
+});
+
+test('seeded role availability keeps statements qualified and machine details out of the reading tree',()=>{
+  dom();let seed=915236;const next=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed;};
+  for(let run=0;run<120;run++){
+    const raw=formNode();
+    for(const role of ['name','caption','hover','grounds','history','technical'])if(next()%3){
+      raw.human_form_selection.roles[role]={state:next()%2?'missing':'unavailable',reason:'no-ready-form',form:null,packet:null};
+    }
+    const before=structuredClone(raw),view=renderHumanForms(raw);
+    expect(view.textContent).toContain(raw.human_form_selection.roles.statement.packet.display_text);
+    expect(view.textContent).toContain('НЕ доказано');
+    expect(view.textContent).not.toMatch(/tos\.form\.|sha256:|schema_version|семантического принятия/);
+    expect(descendants(view).some(value=>value.tagName==='pre')).toBe(false);
+    expect(raw).toEqual(before);
+  }
+});
+
+
+test.each([['missing','Текст пока не предоставлен.'],['unavailable','Текст недоступен.'],['ambiguous','Вариант текста не определён.']])('an empty primary selection exposes its state: %s',(state,message)=>{
+  dom();const raw=formNode();
+  for(const role of Object.keys(raw.human_form_selection.roles))raw.human_form_selection.roles[role]={state:'missing',reason:'no-ready-form',form:null,packet:null};
+  raw.human_form_selection.roles.statement={state,reason:'no-ready-form',form:null,packet:null};
+  expect(renderHumanForms(raw).textContent).toContain(message);
 });

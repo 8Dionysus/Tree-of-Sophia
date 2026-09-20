@@ -1,5 +1,6 @@
-import {test,expect} from 'vitest';
-import {lensBuilderAreaBudget,normalizeLensBuilderArea,prepareLensBuilderDraft,lensBuilderCanApply,LENS_BUILDER_LIMITS} from './lens-builder.mjs';
+import {afterEach,test,expect} from 'vitest';
+import {lensBuilderAreaBudget,normalizeLensBuilderArea,prepareLensBuilderDraft,lensBuilderCanApply,lensBuilderFocusLabel,LENS_BUILDER_LIMITS} from './lens-builder.mjs';
+import {setUiLanguage} from './ui-i18n.mjs';
 
 const revision='a'.repeat(64);
 const boundary={is_source:false,is_canon:false,writes_to_tree:false};
@@ -8,6 +9,8 @@ const context={catalog};
 const node=id=>({id});
 const relation=id=>({id,from_id:'n0',to_id:'n1'});
 const area=(nodes,relations=[],selection={kind:'node',id:nodes[0]?.id})=>({packet:{schema:'tos_browser_exploration_view_v1',source_revision:revision,nodes,relations,selection,authority_boundary:boundary},selection});
+
+afterEach(()=>setUiLanguage('ru'));
 
 test('area budget reports the original packet size without slicing it',()=>{
   const value=area(Array.from({length:41},(_,i)=>node('n'+i)),Array.from({length:81},(_,i)=>relation('r'+i)));
@@ -48,6 +51,18 @@ test('an empty opening keeps the area absent while preparing an all-tree draft',
   const saved={...prepared.draft,scope:'focus',focusId:'saved:node'};
   const restored=prepareLensBuilderDraft({packet:null,context,draft:saved});
   expect(restored.draft).toEqual(saved);
+});
+
+test('focus scope resolves a saved center from the bounded packet in the active locale',()=>{
+  const value=area([{id:'n0',display:{title:{ru:'Русский центр',en:'English center',es:'Centro español'}}}],[],{kind:'node',id:'n0'});
+  const saved={v:2,name:'Saved',scope:'focus',sources:['philosophy'],nodeIds:[],focusId:'n0',query:'',kinds:[],predicates:[],depth:0,direction:'either',profile:'all',limit:40,relations:true,conditions:{nodes:[],relations:[]},paths:[]};
+  const before=structuredClone(saved),restored=prepareLensBuilderDraft({packet:null,context,draft:saved}).draft;
+  expect(restored).toEqual(saved);
+  for(const [locale,label] of [['ru','Русский центр'],['en','English center'],['es','Centro español']]){
+    setUiLanguage(locale);expect(String(lensBuilderFocusLabel(value,restored))).toBe(label);
+  }
+  setUiLanguage('en');expect(String(lensBuilderFocusLabel(null,restored))).toBe('Star unavailable');
+  expect(saved).toEqual(before);
 });
 
 test('area carrier accepts lens and exploration schemas only with an exact selection',()=>{
