@@ -20,3 +20,5 @@ test('declared distinct versions and sources provide readable distinctions',()=>
 });
 
 test('distinct supplied descriptions need no extra ordinal',()=>{expect(searchDisambiguators([{...row('a'),detail:'Первый источник'},{...row('b'),detail:'Второй источник'}]).size).toBe(0);});
+
+test('repeated links to one carrier do not create a false record distinction',()=>{const a=row('a'),b=row('b');expect(searchDisambiguators([a,a]).size).toBe(0);expect(searchDisambiguators([a,a,b])).toEqual(searchDisambiguators([a,b]));});

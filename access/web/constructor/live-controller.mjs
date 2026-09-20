@@ -434,13 +434,25 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       related.push({edge,other,vertex,raw,title,relationName,direction});
     }
     const distinctions=searchDisambiguators(related.filter(row=>row.raw).map(row=>({...row,kind:'node',detail:row.direction+' '+row.relationName})),language);
-    for(const {edge,other,vertex,raw,title,relationName,direction}of related){
+    const groups=new Map();
+    for(const item of related){
+      const key=JSON.stringify([item.other,item.direction,item.relationName]);
+      if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item);
+    }
+    for(const items of groups.values()){
+      const {other,vertex,raw,title,relationName,direction}=items[0];
       const distinction=raw?distinctions.get(`node:${raw.id}`):null;
       const entry=button('',()=>controller.selectNode(other),'material-row');entry.dataset.relatedNodeId=vertex?.representativeId??'';
       entry.append(el('small',direction+' '+relationName),el('strong',title));
       if(distinction)entry.append(el('small',distinction));
-      const row=el('div','','related-material-row'),inspect=button(word('О связи','About this relation'),()=>controller.selectEdge(edge.id),'related-relation');
-      inspect.setAttribute('aria-label',word('О связи: ','About relation: ')+relationName+' · '+title+(distinction?' · '+distinction:''));row.append(entry,inspect);links.append(row);}
+      const row=el('div','','related-material-row');row.append(entry);
+      items.forEach(({edge},index)=>{
+        const ordinal=items.length>1?` ${index+1}`:'';
+        const inspect=button(word('О связи','About this relation')+ordinal,()=>controller.selectEdge(edge.id),'related-relation');
+        inspect.setAttribute('aria-label',word('О связи','About relation')+ordinal+': '+relationName+' · '+title+(distinction?' · '+distinction:''));row.append(inspect);
+      });
+      links.append(row);
+    }
     if(links.children.length>1)reading.append(links);
   }
   async function open(target,replace=false){

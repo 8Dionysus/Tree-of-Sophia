@@ -5,7 +5,8 @@ import {sourceLabel} from './human-presentation.mjs';
 export function searchDisambiguators(rows,language='ru'){
   const groups=new Map(),result=new Map();
   for(const row of rows){const key=JSON.stringify([row.title,row.kind,row.detail??'']);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(row);}
-  for(const group of groups.values()){
+  for(const entries of groups.values()){
+    const group=[...new Map(entries.map(row=>[`${row.kind}:${row.raw.id}`,row])).values()];
     if(group.length<2)continue;
     const sources=new Map();
     for(const row of group){const source=sourceLabel(row.raw.source_graph,language);if(!sources.has(source))sources.set(source,[]);sources.get(source).push(row);}
