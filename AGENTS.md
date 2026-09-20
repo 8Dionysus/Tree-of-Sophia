@@ -118,7 +118,8 @@ mechanical validator coverage.
 Branch, PR, CI, merge, post-landing synchronization, and publication procedure
 lives in `docs/RELEASING.md`. `.github/AGENTS.md` owns only GitHub-native
 support surfaces. Under TOS-D-0062, `Repo Validation` protects software and
-applicable authored changes. Production corpus compilation, full KAG/stats
+applicable authored changes with the changed-path selection documented in
+`docs/RELEASING.md`; unknown/shared paths select the full software suite. Production corpus compilation, full KAG/stats
 integration and generated documentation currentness are separate operations,
 not prerequisites for every software merge or release. Preserve exact inputs
 and validation evidence at the corresponding data/integration boundary.
