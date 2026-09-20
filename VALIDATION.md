@@ -45,7 +45,8 @@ Execute one selected internal sequence:
 python scripts/validation_lanes.py --run route_docs
 ```
 
-Execute software contracts and fixture-based behavior:
+Execute the full software contracts and fixture-based behavior route locally
+(CI selects affected checks as described in `docs/RELEASING.md`):
 
 ```bash
 python scripts/release_check.py

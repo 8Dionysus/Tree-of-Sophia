@@ -2649,25 +2649,38 @@ class AuthoredContractTests(unittest.TestCase):
         self.assertIn("tree-of-sophia-software.zip.manifest.json", workflow)
         self.assertIn("if-no-files-found: error", workflow)
 
-    def test_required_software_gate_rejects_failed_or_skipped_work(self) -> None:
+    def test_required_software_gate_rejects_failed_or_skipped_selected_work(self) -> None:
+        import os
         import subprocess
         import yaml
         workflow = yaml.safe_load((REPO_ROOT / ".github/workflows/repo-validation.yml").read_text())
         gate = workflow["jobs"]["required_gate"]
-        required = gate["needs"]
-        self.assertTrue(required)
+        self.assertEqual(set(gate["needs"]), {"plan", "software", "worker"})
         self.assertEqual(gate["if"], "${{ always() }}")
-        command = gate["steps"][0]["run"]
-        for failed_job in [None, *required]:
-            for state in ("failure", "cancelled", "skipped"):
-                with self.subTest(job=failed_job, state=state):
-                    script = command
-                    for job in required:
-                        expression = "${{ needs." + job + ".result }}"
-                        self.assertIn(expression, command)
-                        script = script.replace(expression, state if job == failed_job else "success")
-                    result = subprocess.run(["bash", "-e", "-c", script], capture_output=True)
-                    self.assertEqual(result.returncode == 0, failed_job is None)
+        run_steps = [step for step in gate["steps"] if "run" in step]
+        self.assertEqual(len(run_steps), 1)
+        command = run_steps[0]["run"]
+        self.assertEqual(run_steps[0]["env"]["CI_NEEDS"], "${{ toJSON(needs) }}")
+        for mode, worker in [("full", True), ("reader", True), ("browser", False),
+                             ("none", True), ("none", False)]:
+            baseline = {
+                "plan": {"result": "success", "outputs": {
+                    "software_mode": mode, "worker": str(worker).lower()}},
+                "software": {"result": "skipped" if mode == "none" else "success"},
+                "worker": {"result": "success" if worker else "skipped"},
+            }
+            for changed_job in [None, *gate["needs"]]:
+                for state in ("failure", "cancelled", "skipped"):
+                    with self.subTest(mode=mode, worker=worker, job=changed_job, state=state):
+                        needs = json.loads(json.dumps(baseline))
+                        if changed_job is not None:
+                            needs[changed_job]["result"] = state
+                        env = os.environ.copy()
+                        env["CI_NEEDS"] = json.dumps(needs)
+                        result = subprocess.run(["bash", "-e", "-c", command],
+                                                cwd=REPO_ROOT, env=env, capture_output=True)
+                        expected = changed_job is None or state == baseline[changed_job]["result"]
+                        self.assertEqual(result.returncode == 0, expected, result.stderr.decode())
 
     def test_release_workflow_installs_standalone_mcp_extra(self) -> None:
         workflow = (REPO_ROOT / ".github/workflows/repo-validation.yml").read_text(encoding="utf-8")
