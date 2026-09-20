@@ -31,6 +31,14 @@ jobs:
             /mechanics/growth-cycle/tests/test_source_revisions.py
             /docs/validation/validation_lanes.json
             /tests/test_validation_lanes.py
+            /tests/test_corpus_*.py
+            /tests/test_local_stats_port.py
+            /tests/test_build_kag_export.py
+            /tests/test_downstream_status.py
+            /tests/test_publish_kag_release.py
+            /tests/test_publish_stats_release.py
+            /kag/provider-template.json
+            /mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py
             /tests/test_source_catalog_projection.py
             /tests/test_source_catalog_slots.py
             /tests/test_native_text_binding.py
@@ -38,9 +46,7 @@ jobs:
             /ToS/canon/registries/predicates.csv
             /ToS/doctrine/semantic-interchange/entity-types.v1.json
             /ToS/doctrine/semantic-interchange/relation-types.v1.json
-            /ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-b.anchor.json
-            /ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-a.layer.json
-            /ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-a-source-layout-observation.json
+            /tests/fixtures/native-text-binding/
             /requirements-dev.txt
             /pytest.ini
             /.github/workflows/repo-validation.yml

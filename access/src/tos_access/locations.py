@@ -16,12 +16,22 @@ def _source_checkout() -> bool:
 def data_root(explicit: str | Path | None = None) -> Path:
     """Select data without discovering an unrelated checkout through cwd.
 
-    TOS_ROOT/AOA_TOS_ROOT remain explicit compatibility inputs. They do not
-    select executable code, web assets or the reader's API contracts.
+    TOS_DATA_ROOT selects a dataset; TOS_RELEASE_ROOT selects a managed pair.
+    Neither selects executable code, web assets or the reader's API contracts.
     A missing explicit selection stays missing instead of falling back.
     """
-    selected = explicit or os.environ.get("TOS_DATA_ROOT") or os.environ.get("TOS_ROOT") or os.environ.get("AOA_TOS_ROOT")
-    return Path(selected).expanduser().resolve() if selected else PACKAGE_ROOT / "runtime_data"
+    selected = explicit or os.environ.get("TOS_DATA_ROOT")
+    if selected:
+        root = Path(selected).expanduser().absolute()
+        if root != root.resolve():
+            raise ValueError("data root may not contain symlinks")
+        if os.path.lexists(root / "manifest.json") and (root / "data").is_dir():
+            return root / "data"
+        return root
+    if release_root := os.environ.get("TOS_RELEASE_ROOT"):
+        from .data_access import release_data_root
+        return release_data_root(Path(release_root))
+    return PACKAGE_ROOT / "runtime_data"
 
 
 def program_path(relative: str | Path) -> Path:

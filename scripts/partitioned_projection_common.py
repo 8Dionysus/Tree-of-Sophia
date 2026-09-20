@@ -13,7 +13,7 @@ _ACCESS = Path(__file__).resolve().parents[1] / "access/src"
 if str(_ACCESS) not in sys.path:
     sys.path.insert(0, str(_ACCESS))
 from tos_access.disk_collections import DiskCollections, DiskMap, DiskSequence, canonical_digest, json_chunks
-from tos_access.projection_store import Collection, ProjectionReader, ProjectionStoreError, write_projection, is_partitioned, load_projection
+from tos_access.projection_store import Collection, ProjectionReader, ProjectionStoreError, write_projection, is_partitioned, load_projection, row_order
 
 
 PROJECTION_PART_ROOTS = (
@@ -21,6 +21,7 @@ PROJECTION_PART_ROOTS = (
     "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.parts",
 )
 CORPUS_COLLECTIONS = {
+    "diagnostics": ((), ()),
     "nodes": ("node_id", ("source_path",)),
     "resources": ("path", ("path",)),
     "manifests": ("path", ("path",)),
@@ -36,13 +37,22 @@ BIBLIOGRAPHIC_COLLECTIONS = {
     "claim_traces": ("claim_ref", ("claim_ref",)),
     "input_digests": (None, ()),
 }
+PHILOSOPHY_COLLECTIONS = {
+    "nodes": ("node_id", ("node_id",)),
+    "edges": ("edge_id", ("edge_id",)),
+    "clusters": ("cluster_id", ("cluster_id",)),
+    "views": ("view_id", ("order", "view_id")),
+}
 
 
 def collection_policy(payload):
     if payload["schema_version"] == "tos_corpus_index_v1":
-        return CORPUS_COLLECTIONS
+        return {name: spec for name, spec in CORPUS_COLLECTIONS.items()
+                if name != "diagnostics" or name in payload}
     if payload["schema_version"] == "tos_source_witness_bibliographic_graph_v1":
         return BIBLIOGRAPHIC_COLLECTIONS
+    if payload["schema_version"] == "tos_philosophy_graph_projection_v2":
+        return PHILOSOPHY_COLLECTIONS
     raise ProjectionStoreError("no owner collection policy for this logical schema")
 
 
@@ -136,12 +146,16 @@ def disk_payload(reader, storage):
     """Explicit complete validation/export view whose collections stay on disk."""
     result = reader.metadata()
     for name, spec in reader.manifest["collections"].items():
-        if spec["key_field"] is None:
+        if spec["key_field"] == []:
+            positioned = storage.sequence(reader.iter_items(name))
+            positioned.sort(key=lambda item: item[0])
+            value = storage.sequence(item[1] for item in positioned)
+        elif spec["key_field"] is None:
             value = storage.mapping(reader.iter_items(name))
         else:
             value = storage.sequence(reader.iter_collection(name))
             fields = spec["order_fields"] or (spec["key_field"] if isinstance(spec["key_field"], list) else [spec["key_field"]])
-            value.sort(key=lambda row: tuple(str(row.get(field, "")) for field in fields))
+            value.sort(key=lambda row: row_order(row, fields))
         owner = result
         parts = name.split("/")
         for part in parts[:-1]:

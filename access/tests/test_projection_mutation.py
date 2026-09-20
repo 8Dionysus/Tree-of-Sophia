@@ -264,6 +264,15 @@ class ProjectionMutationTests(unittest.TestCase):
         self.write(collection=Collection([{"a": "x", "b": "y"}], ("a", "b"), ("b", "a")))
         self.stage([])
 
+    def test_positional_sequence_changes_require_complete_publication(self):
+        self.write(collection=Collection(["repeat", "repeat", "tail"], [], ()))
+        change = ProjectionChange("records", "00000000000000000001", True,
+                                  sha("repeat"), True, "changed")
+        with self.assertRaisesRegex(ProjectionMutationRequiresBootstrap, "positional sequence changes"):
+            self.stage([change])
+        with self.assertRaisesRegex(ProjectionMutationRequiresBootstrap, "positional sequence changes"):
+            self.stage_snapshot(changes=[change])
+
     def test_bad_changes_and_conflicts_have_no_part_writes(self):
         good = self.change()
         bad = [replace(good, before_present=1), replace(good, after_present=0),

@@ -1,0 +1,1380 @@
+{
+  "profile_id": "tos-link-registry-normalization-v1",
+  "version": 1,
+  "semantic_ceiling": "Imported source statements remain reported claims, never source admission, rights clearance, canon or current availability.",
+  "unknown_field_policy": "error",
+  "registry": {
+    "record_id": {
+      "target": "identity.source_record_id",
+      "value_type": "text"
+    },
+    "tos_row_id": {
+      "target": "identity.atlas_row_id",
+      "value_type": "text"
+    },
+    "work_or_corpus_title": {
+      "target": "subject.title",
+      "value_type": "text"
+    },
+    "original_title_or_variant": {
+      "target": "subject.alternative_title",
+      "value_type": "text"
+    },
+    "author_or_attribution": {
+      "target": "subject.author_or_attribution",
+      "value_type": "text"
+    },
+    "original_date": {
+      "target": "subject.chronology",
+      "value_type": "temporal_statement"
+    },
+    "object_type": {
+      "target": "subject.object_kind",
+      "value_type": "object_kind"
+    },
+    "relevance": {
+      "target": "subject.relevance",
+      "value_type": "relevance"
+    },
+    "version_edition_or_translation": {
+      "target": "version.description",
+      "value_type": "text"
+    },
+    "translator_or_editor": {
+      "target": "version.contributor_description",
+      "value_type": "text"
+    },
+    "language": {
+      "target": "version.languages",
+      "value_type": "languages"
+    },
+    "coverage": {
+      "target": "version.coverage",
+      "value_type": "coverage"
+    },
+    "repository": {
+      "target": "source.repository",
+      "value_type": "text"
+    },
+    "witness_or_catalog_id": {
+      "target": "source.witness_or_catalog_identifier",
+      "value_type": "text"
+    },
+    "stable_identifier": {
+      "target": "source.stable_identifier",
+      "value_type": "text"
+    },
+    "landing_url": {
+      "target": "links.landing",
+      "value_type": "links"
+    },
+    "direct_download_url": {
+      "target": "links.download",
+      "value_type": "links"
+    },
+    "rights_evidence_url": {
+      "target": "links.rights_evidence",
+      "value_type": "links"
+    },
+    "access_mode": {
+      "target": "access.reported_modes",
+      "value_type": "access_modes"
+    },
+    "formats": {
+      "target": "access.reported_formats",
+      "value_type": "formats"
+    },
+    "work_rights": {
+      "target": "rights.work_statement",
+      "value_type": "text"
+    },
+    "version_or_edition_rights": {
+      "target": "rights.version_statement",
+      "value_type": "text"
+    },
+    "digital_object_rights": {
+      "target": "rights.digital_object_statement",
+      "value_type": "text"
+    },
+    "site_or_platform_terms": {
+      "target": "rights.platform_terms_statement",
+      "value_type": "text"
+    },
+    "license_or_rights_statement": {
+      "target": "rights.license_statement",
+      "value_type": "text"
+    },
+    "rights_scope": {
+      "target": "rights.scope_statement",
+      "value_type": "text"
+    },
+    "rights_confidence": {
+      "target": "rights.reported_confidence",
+      "value_type": "confidence"
+    },
+    "tos_use": {
+      "target": "rights.reported_use_tags",
+      "value_type": "use_tags"
+    },
+    "own_translation_basis": {
+      "target": "rights.translation_basis_statement",
+      "value_type": "text"
+    },
+    "verification_status": {
+      "target": "observation.reported_verification",
+      "value_type": "reported_status"
+    },
+    "checked_at": {
+      "target": "observation.checked_at",
+      "value_type": "date"
+    },
+    "notes": {
+      "target": "notes",
+      "value_type": "text"
+    }
+  },
+  "gaps": {
+    "gap_id": {
+      "target": "identity.source_record_id",
+      "value_type": "text"
+    },
+    "record_id": {
+      "target": "identity.source_record_id",
+      "value_type": "text"
+    },
+    "candidate_id": {
+      "target": "identity.source_record_id",
+      "value_type": "text"
+    },
+    "tos_row_id": {
+      "target": "identity.atlas_row_id",
+      "value_type": "text"
+    },
+    "candidate": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "target": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "candidate_title": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "candidate_object": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "candidate_or_missing_object": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "candidate_or_gap": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "candidate_or_object": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "object": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "work_or_corpus_title": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "candidate_or_work": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "candidate_or_issue": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "title_or_corpus": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "candidate_or_scope": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "work_or_candidate": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "candidate_or_topic": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "work_or_corpus_or_route": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "candidate_or_missing_layer": {
+      "target": "subject.label",
+      "value_type": "text"
+    },
+    "candidate_type": {
+      "target": "subject.object_kind",
+      "value_type": "object_kind"
+    },
+    "object_type": {
+      "target": "subject.object_kind",
+      "value_type": "object_kind"
+    },
+    "relevance": {
+      "target": "subject.relevance",
+      "value_type": "relevance"
+    },
+    "provisional_relevance": {
+      "target": "subject.relevance",
+      "value_type": "relevance"
+    },
+    "expected_relevance": {
+      "target": "subject.relevance",
+      "value_type": "relevance"
+    },
+    "relevance_or_role": {
+      "target": "subject.relevance",
+      "value_type": "relevance"
+    },
+    "relation": {
+      "target": "subject.relation_description",
+      "value_type": "text"
+    },
+    "relationship": {
+      "target": "subject.relation_description",
+      "value_type": "text"
+    },
+    "relation_to_T2_06": {
+      "target": "subject.relation_description",
+      "value_type": "text"
+    },
+    "relation_to_T2_09": {
+      "target": "subject.relation_description",
+      "value_type": "text"
+    },
+    "relation_to_T2_23": {
+      "target": "subject.relation_description",
+      "value_type": "text"
+    },
+    "relation_to_T2_30": {
+      "target": "subject.relation_description",
+      "value_type": "text"
+    },
+    "connection_to_T2_16": {
+      "target": "subject.relation_description",
+      "value_type": "text"
+    },
+    "connection_to_T2_17": {
+      "target": "subject.relation_description",
+      "value_type": "text"
+    },
+    "connection_to_row": {
+      "target": "subject.relation_description",
+      "value_type": "text"
+    },
+    "relationship_to_row": {
+      "target": "subject.relation_description",
+      "value_type": "text"
+    },
+    "specific_relation": {
+      "target": "subject.relation_description",
+      "value_type": "text"
+    },
+    "relation_to_row": {
+      "target": "subject.relation_description",
+      "value_type": "text"
+    },
+    "why_important": {
+      "target": "subject.relevance_rationale",
+      "value_type": "text"
+    },
+    "why_relevant": {
+      "target": "subject.relevance_rationale",
+      "value_type": "text"
+    },
+    "why_it_matters": {
+      "target": "subject.relevance_rationale",
+      "value_type": "text"
+    },
+    "why_needed": {
+      "target": "subject.relevance_rationale",
+      "value_type": "text"
+    },
+    "why_related": {
+      "target": "subject.relevance_rationale",
+      "value_type": "text"
+    },
+    "chronology": {
+      "target": "subject.chronology",
+      "value_type": "temporal_statement"
+    },
+    "date_or_layer": {
+      "target": "subject.chronology",
+      "value_type": "temporal_statement"
+    },
+    "period_relation": {
+      "target": "subject.chronology_or_relation",
+      "value_type": "temporal_statement"
+    },
+    "chronology_or_relation": {
+      "target": "subject.chronology_or_relation",
+      "value_type": "temporal_statement"
+    },
+    "gap_type": {
+      "target": "gap.kind",
+      "value_type": "reported_status"
+    },
+    "category": {
+      "target": "gap.kind",
+      "value_type": "reported_status"
+    },
+    "reason_not_in_registry_or_unresolved": {
+      "target": "gap.reason",
+      "value_type": "text"
+    },
+    "why_unresolved": {
+      "target": "gap.reason",
+      "value_type": "text"
+    },
+    "reason": {
+      "target": "gap.reason",
+      "value_type": "text"
+    },
+    "reason_not_fully_registered": {
+      "target": "gap.reason",
+      "value_type": "text"
+    },
+    "problem": {
+      "target": "gap.reason",
+      "value_type": "text"
+    },
+    "reason_not_in_registry_or_incomplete": {
+      "target": "gap.reason",
+      "value_type": "text"
+    },
+    "gap_reason": {
+      "target": "gap.reason",
+      "value_type": "text"
+    },
+    "reason_not_in_registry": {
+      "target": "gap.reason",
+      "value_type": "text"
+    },
+    "why_missing": {
+      "target": "gap.reason",
+      "value_type": "text"
+    },
+    "reason_missing": {
+      "target": "gap.reason",
+      "value_type": "text"
+    },
+    "reason_not_in_registry_or_not_fully_resolved": {
+      "target": "gap.reason",
+      "value_type": "text"
+    },
+    "why_not_in_registry_or_not_resolved": {
+      "target": "gap.reason",
+      "value_type": "text"
+    },
+    "why_not_main_registry": {
+      "target": "gap.reason",
+      "value_type": "text"
+    },
+    "issue": {
+      "target": "gap.reason",
+      "value_type": "text"
+    },
+    "missing_access_or_evidence": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "missing_or_uncertain": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "what_is_missing": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "needed_confirmation": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "needed_verification": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "needed_evidence_or_access": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "verification_needed": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "missing_access": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "missing_rights": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "what_is_needed": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "missing_access_or_confirmation": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "evidence_needed": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "gap_or_limitation": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "what_remains": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "remaining_work": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "missing_or_limitation": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "missing_evidence_or_access": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "gap_or_limit": {
+      "target": "gap.missing_evidence_or_access",
+      "value_type": "text"
+    },
+    "reason_or_missing_path": {
+      "target": "gap.mixed_reason_and_evidence",
+      "value_type": "text"
+    },
+    "reason_or_missing_evidence": {
+      "target": "gap.mixed_reason_and_evidence",
+      "value_type": "text"
+    },
+    "reason_or_missing_access": {
+      "target": "gap.mixed_reason_and_evidence",
+      "value_type": "text"
+    },
+    "finding_or_problem": {
+      "target": "gap.mixed_reason_and_evidence",
+      "value_type": "text"
+    },
+    "reason_or_current_state": {
+      "target": "gap.reason_or_current_state",
+      "value_type": "text"
+    },
+    "why_relevant_or_missing": {
+      "target": "gap.relevance_or_missing",
+      "value_type": "text"
+    },
+    "status": {
+      "target": "observation.current_state",
+      "value_type": "reported_status"
+    },
+    "current_state": {
+      "target": "observation.current_state",
+      "value_type": "reported_status"
+    },
+    "current_status": {
+      "target": "observation.current_state",
+      "value_type": "reported_status"
+    },
+    "search_status": {
+      "target": "observation.current_state",
+      "value_type": "reported_status"
+    },
+    "known_status": {
+      "target": "observation.current_state",
+      "value_type": "reported_status"
+    },
+    "verification_status": {
+      "target": "observation.current_state",
+      "value_type": "reported_status"
+    },
+    "gap_status": {
+      "target": "observation.current_state",
+      "value_type": "reported_status"
+    },
+    "current_access_state": {
+      "target": "observation.access_state",
+      "value_type": "text"
+    },
+    "current_access_or_problem": {
+      "target": "observation.access_state_or_problem",
+      "value_type": "text"
+    },
+    "checked_at": {
+      "target": "observation.checked_at",
+      "value_type": "date"
+    },
+    "last_checked": {
+      "target": "observation.checked_at",
+      "value_type": "date"
+    },
+    "evidence_so_far": {
+      "target": "evidence.description",
+      "value_type": "text"
+    },
+    "evidence_found": {
+      "target": "evidence.description",
+      "value_type": "text"
+    },
+    "evidence": {
+      "target": "evidence.description",
+      "value_type": "text"
+    },
+    "current_evidence": {
+      "target": "evidence.description",
+      "value_type": "text"
+    },
+    "what_is_verified": {
+      "target": "evidence.description",
+      "value_type": "text"
+    },
+    "what_is_known": {
+      "target": "evidence.description",
+      "value_type": "text"
+    },
+    "identified_source": {
+      "target": "evidence.description",
+      "value_type": "text"
+    },
+    "what_was_found": {
+      "target": "evidence.description",
+      "value_type": "text"
+    },
+    "known_identifier_or_hint": {
+      "target": "evidence.identifier_or_hint",
+      "value_type": "text"
+    },
+    "evidence_or_hint": {
+      "target": "evidence.identifier_or_hint",
+      "value_type": "text"
+    },
+    "source_hint": {
+      "target": "evidence.identifier_or_hint",
+      "value_type": "text"
+    },
+    "weak_source_origin": {
+      "target": "evidence.identifier_or_hint",
+      "value_type": "text"
+    },
+    "weak_or_partial_lead": {
+      "target": "evidence.identifier_or_hint",
+      "value_type": "text"
+    },
+    "evidence_or_lead": {
+      "target": "evidence.identifier_or_hint",
+      "value_type": "text"
+    },
+    "evidence_or_discovery": {
+      "target": "evidence.identifier_or_hint",
+      "value_type": "text"
+    },
+    "evidence_or_discovery_source": {
+      "target": "evidence.identifier_or_hint",
+      "value_type": "text"
+    },
+    "known_or_candidate_basis": {
+      "target": "evidence.identifier_or_hint",
+      "value_type": "text"
+    },
+    "best_lead": {
+      "target": "evidence.lead_or_entry",
+      "value_type": "text"
+    },
+    "known_entry_point": {
+      "target": "evidence.lead_or_entry",
+      "value_type": "text"
+    },
+    "known_lead": {
+      "target": "evidence.lead_or_entry",
+      "value_type": "text"
+    },
+    "known_starting_point": {
+      "target": "evidence.lead_or_entry",
+      "value_type": "text"
+    },
+    "evidence_or_search_entry": {
+      "target": "evidence.lead_or_entry",
+      "value_type": "text"
+    },
+    "known_evidence_or_access": {
+      "target": "evidence.lead_or_entry",
+      "value_type": "text"
+    },
+    "known_evidence_or_lead": {
+      "target": "evidence.lead_or_entry",
+      "value_type": "text"
+    },
+    "known_evidence_or_entry": {
+      "target": "evidence.lead_or_entry",
+      "value_type": "text"
+    },
+    "known_evidence_or_locator": {
+      "target": "evidence.lead_or_entry",
+      "value_type": "text"
+    },
+    "known_evidence_or_route": {
+      "target": "evidence.lead_or_entry",
+      "value_type": "text"
+    },
+    "evidence_or_access_lead": {
+      "target": "evidence.lead_or_entry",
+      "value_type": "text"
+    },
+    "best_starting_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "best_lead_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "known_entry_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "evidence_or_lead_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "evidence_or_discovery_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "current_best_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "best_lead_or_evidence_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "source_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "candidate_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "discovery_or_candidate_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "source_or_candidate_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "lead_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "evidence_or_candidate_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "confirmed_or_discovery_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "attempted_or_evidence_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "evidence_or_attempted_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "verified_lead_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "known_evidence_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "last_checked_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "source_or_search_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "known_source_or_candidate_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "confirmed_or_candidate_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "evidence_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "checked_or_candidate_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "known_evidence_or_access_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "candidate_or_evidence_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "verified_or_lead_url": {
+      "target": "evidence.link",
+      "value_type": "links"
+    },
+    "evidence_or_reason": {
+      "target": "evidence.evidence_or_reason",
+      "value_type": "text"
+    },
+    "evidence_or_next_step": {
+      "target": "evidence.evidence_or_next_step",
+      "value_type": "text"
+    },
+    "next_action": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "targeted_follow_up": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "follow_up": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "next_step": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "best_next_query": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "best_next_query_or_action": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "recommended_follow_up": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "targeted_next_step": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "next_target": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "needed_follow_up": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "suggested_next_search": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "follow_up_needed": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "next_query": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "targeted_followup": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "targeted_search_or_action": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "next_search": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "required_next_step": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "next_targeted_search": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "next_search_or_action": {
+      "target": "follow_up.action",
+      "value_type": "text"
+    },
+    "missing_evidence_or_action": {
+      "target": "follow_up.missing_evidence_or_action",
+      "value_type": "text"
+    },
+    "searches_attempted": {
+      "target": "follow_up.attempted_searches",
+      "value_type": "text"
+    },
+    "search_attempted": {
+      "target": "follow_up.attempted_searches",
+      "value_type": "text"
+    },
+    "search_attempts_or_known_routes": {
+      "target": "follow_up.attempted_searches",
+      "value_type": "text"
+    },
+    "checked_paths_or_queries": {
+      "target": "follow_up.attempted_searches",
+      "value_type": "text"
+    },
+    "checked_path": {
+      "target": "follow_up.attempted_searches",
+      "value_type": "text"
+    },
+    "checked_route": {
+      "target": "follow_up.attempted_searches",
+      "value_type": "text"
+    },
+    "checked_sources_or_queries": {
+      "target": "follow_up.attempted_searches",
+      "value_type": "text"
+    },
+    "what_was_checked": {
+      "target": "follow_up.attempted_searches",
+      "value_type": "text"
+    },
+    "priority": {
+      "target": "follow_up.reported_priority",
+      "value_type": "priority"
+    },
+    "follow_up_priority": {
+      "target": "follow_up.reported_priority",
+      "value_type": "priority"
+    },
+    "related_records": {
+      "target": "related.source_records",
+      "value_type": "record_references"
+    },
+    "related_registry_records": {
+      "target": "related.source_records",
+      "value_type": "record_references"
+    },
+    "notes": {
+      "target": "notes",
+      "value_type": "text"
+    }
+  },
+  "vocabulary": {
+    "object_kind": {
+      "translation_or_edition": "translation_or_edition",
+      "digital_text_or_facsimile": "digital_text_or_facsimile",
+      "physical_witness": "physical_witness",
+      "digital_project_or_catalogue": "digital_project_or_catalogue",
+      "dataset_or_api": "dataset_or_api",
+      "secondary_navigation": "secondary_navigation",
+      "corpus": "corpus",
+      "work": "work"
+    },
+    "relevance": {
+      "core": "core",
+      "same_corpus_or_tradition": "same_corpus_or_tradition",
+      "transmission_or_preservation": "transmission_or_preservation",
+      "infrastructure": "infrastructure",
+      "commentary_or_reception": "commentary_or_reception",
+      "antecedent": "antecedent",
+      "continuation": "continuation",
+      "supporting": "supporting",
+      "secondary_navigation": "secondary_navigation",
+      "boundary": "boundary"
+    },
+    "coverage": {
+      "complete_work_or_corpus": "complete_work_or_corpus",
+      "substantial_part": "substantial_part",
+      "single_witness": "single_witness",
+      "selected_sections": "selected_sections",
+      "translation_only": "translation_only",
+      "metadata_only": "metadata_only",
+      "commentary_or_reference_only": "commentary_or_reference_only",
+      "fragment": "fragment",
+      "unknown": "unknown"
+    },
+    "access_modes": {
+      "free_full_read": "free_full_read",
+      "free_download": "free_download",
+      "purchase": "purchase",
+      "metadata_only": "metadata_only",
+      "preview_or_snippet": "preview_or_snippet",
+      "institutional_access": "institutional_access",
+      "temporarily_unavailable": "temporarily_unavailable",
+      "library_borrow": "library_borrow",
+      "free_registration": "free_registration"
+    },
+    "use_tags": {
+      "link_ok": "LINK_OK",
+      "free_read": "FREE_READ",
+      "rights_review_required": "RIGHTS_REVIEW_REQUIRED",
+      "local_research_copy": "LOCAL_RESEARCH_COPY",
+      "free_download": "FREE_DOWNLOAD",
+      "embeddings_ok": "EMBEDDINGS_OK",
+      "fulltext_index_ok": "FULLTEXT_INDEX_OK",
+      "own_translation_possible": "OWN_TRANSLATION_POSSIBLE",
+      "mirror_with_attribution": "MIRROR_WITH_ATTRIBUTION",
+      "link_only": "LINK_ONLY",
+      "permission_required": "PERMISSION_REQUIRED",
+      "purchase": "PURCHASE",
+      "sharealike_required": "SHAREALIKE_REQUIRED",
+      "ocr_ok": "OCR_OK",
+      "metadata_only": "METADATA_ONLY",
+      "mirror_noncommercial": "MIRROR_NONCOMMERCIAL",
+      "preview_only": "PREVIEW_ONLY",
+      "mirror_ok": "MIRROR_OK",
+      "library_borrow": "LIBRARY_BORROW",
+      "unchanged_only": "UNCHANGED_ONLY",
+      "institutional_access": "INSTITUTIONAL_ACCESS"
+    },
+    "confidence": {
+      "high": "high",
+      "medium": "medium",
+      "low": "low"
+    },
+    "priority": {
+      "p0": {
+        "label": "P0",
+        "scheme": "p_rank"
+      },
+      "p1": {
+        "label": "P1",
+        "scheme": "p_rank"
+      },
+      "p2": {
+        "label": "P2",
+        "scheme": "p_rank"
+      },
+      "p3": {
+        "label": "P3",
+        "scheme": "p_rank"
+      },
+      "high": {
+        "label": "high",
+        "scheme": "verbal"
+      },
+      "medium": {
+        "label": "medium",
+        "scheme": "verbal"
+      },
+      "low": {
+        "label": "low",
+        "scheme": "verbal"
+      },
+      "very_high": {
+        "label": "very_high",
+        "scheme": "verbal"
+      },
+      "medium-high": {
+        "label": "medium-high",
+        "scheme": "verbal"
+      },
+      "critical": {
+        "label": "critical",
+        "scheme": "verbal"
+      },
+      "highest": {
+        "label": "highest",
+        "scheme": "verbal"
+      }
+    },
+    "languages": {
+      "en": "en",
+      "eng": "en",
+      "english": "en",
+      "английский": "en",
+      "ru": "ru",
+      "rus": "ru",
+      "russian": "ru",
+      "русский": "ru",
+      "la": "la",
+      "lat": "la",
+      "latin": "la",
+      "латинский": "la",
+      "grc": "grc",
+      "ancient greek": "grc",
+      "древнегреческий": "grc",
+      "el": "el",
+      "ell": "el",
+      "modern greek": "el",
+      "новогреческий": "el",
+      "sa": "sa",
+      "san": "sa",
+      "sanskrit": "sa",
+      "санскрит": "sa",
+      "pi": "pi",
+      "pli": "pi",
+      "pali": "pi",
+      "пали": "pi",
+      "lzh": "lzh",
+      "classical chinese": "lzh",
+      "классический китайский": "lzh",
+      "zh": "zh",
+      "zho": "zh",
+      "chinese": "zh",
+      "китайский": "zh",
+      "ar": "ar",
+      "ara": "ar",
+      "arabic": "ar",
+      "арабский": "ar",
+      "he": "he",
+      "heb": "he",
+      "hebrew": "he",
+      "иврит": "he",
+      "древнееврейский": "he",
+      "fr": "fr",
+      "fra": "fr",
+      "fre": "fr",
+      "french": "fr",
+      "французский": "fr",
+      "de": "de",
+      "deu": "de",
+      "ger": "de",
+      "german": "de",
+      "немецкий": "de",
+      "it": "it",
+      "ita": "it",
+      "italian": "it",
+      "итальянский": "it",
+      "es": "es",
+      "spa": "es",
+      "spanish": "es",
+      "испанский": "es",
+      "fa": "fa",
+      "fas": "fa",
+      "per": "fa",
+      "persian": "fa",
+      "персидский": "fa",
+      "bo": "bo",
+      "bod": "bo",
+      "tib": "bo",
+      "tibetan": "bo",
+      "тибетский": "bo",
+      "akk": "akk",
+      "akkadian": "akk",
+      "аккадский": "akk",
+      "sux": "sux",
+      "sumerian": "sux",
+      "шумерский": "sux",
+      "cop": "cop",
+      "coptic": "cop",
+      "коптский": "cop",
+      "syc": "syc",
+      "classical syriac": "syc",
+      "классический сирийский": "syc",
+      "syr": "syr",
+      "syriac": "syr",
+      "сирийский": "syr",
+      "egy": "egy",
+      "ancient egyptian": "egy",
+      "древнеегипетский": "egy",
+      "ja": "ja",
+      "jpn": "ja",
+      "japanese": "ja",
+      "японский": "ja",
+      "ave": "ae",
+      "avestan": "ae",
+      "авестийский": "ae",
+      "peo": "peo",
+      "old persian": "peo",
+      "древнеперсидский": "peo",
+      "pal": "pal",
+      "pahlavi": "pal",
+      "middle persian": "pal",
+      "среднеперсидский": "pal",
+      "gez": "gez",
+      "geʻez": "gez",
+      "hy": "hy",
+      "hye": "hy",
+      "arm": "hy",
+      "armenian": "hy",
+      "армянский": "hy",
+      "ae": "ae",
+      "ge'ez": "gez",
+      "geʽez": "gez",
+      "geʿez": "gez",
+      "pāli": "pi",
+      "vedic sanskrit": {
+        "language_code": "sa",
+        "qualifiers": [
+          "Vedic"
+        ]
+      },
+      "classical buddhist chinese": {
+        "language_code": "lzh",
+        "qualifiers": [
+          "Buddhist"
+        ]
+      },
+      "english metadata": {
+        "language_code": "en",
+        "qualifiers": [],
+        "role": "metadata"
+      },
+      "english interface": {
+        "language_code": "en",
+        "qualifiers": [],
+        "role": "interface"
+      },
+      "english catalogue metadata": {
+        "language_code": "en",
+        "qualifiers": [
+          "catalogue"
+        ],
+        "role": "metadata"
+      },
+      "english translation": {
+        "language_code": "en",
+        "qualifiers": [],
+        "role": "translation"
+      },
+      "english where available": {
+        "language_code": "en",
+        "qualifiers": [
+          "where available"
+        ]
+      },
+      "latin apparatus": {
+        "language_code": "la",
+        "qualifiers": [],
+        "role": "apparatus"
+      },
+      "метаданные на английском": {
+        "language_code": "en",
+        "qualifiers": [],
+        "role": "metadata"
+      },
+      "арабские вставки, где имеются": {
+        "language_code": "ar",
+        "qualifiers": [
+          "where present"
+        ],
+        "role": "insertions"
+      },
+      "translated from coptic": {
+        "language_code": "cop",
+        "qualifiers": [],
+        "role": "translation_source"
+      },
+      "аккадский, клинопись": {
+        "language_code": "akk",
+        "qualifiers": [
+          "cuneiform"
+        ]
+      }
+    },
+    "formats": {
+      "html": "html",
+      "htm": "html",
+      "pdf": "pdf",
+      "epub": "epub",
+      "epub3": "epub3",
+      "txt": "text",
+      "text": "text",
+      "plain text": "text",
+      "xml": "xml",
+      "tei": "tei_xml",
+      "tei/xml": "tei_xml",
+      "xml/tei": "tei_xml",
+      "tei xml": "tei_xml",
+      "xml tei": "tei_xml",
+      "xml/tei p5": "tei_xml",
+      "json": "json",
+      "csv": "csv",
+      "jpeg": "jpeg",
+      "jpg": "jpeg",
+      "png": "png",
+      "tiff": "tiff",
+      "tif": "tiff",
+      "zip": "zip",
+      "docx": "docx",
+      "doc": "doc",
+      "odt": "odt",
+      "print": {
+        "carrier": "print"
+      },
+      "печатная книга": {
+        "carrier": "print"
+      },
+      "djvu": {
+        "format": "djvu"
+      },
+      "djv": {
+        "format": "djvu"
+      },
+      "jp2": {
+        "format": "jpeg2000"
+      },
+      "jpeg2000": {
+        "format": "jpeg2000"
+      },
+      "jpeg 2000": {
+        "format": "jpeg2000"
+      },
+      "mobi": {
+        "format": "mobi"
+      },
+      "hocr": {
+        "format": "hocr"
+      },
+      "xhtml": {
+        "format": "xhtml"
+      },
+      "alto xml": {
+        "format": "alto_xml"
+      },
+      "alto/xml": {
+        "format": "alto_xml"
+      },
+      "html reader": {
+        "format": "html",
+        "role": "reader"
+      },
+      "html-карточка": {
+        "format": "html",
+        "role": "record_page"
+      },
+      "html card": {
+        "format": "html",
+        "role": "record_page"
+      },
+      "html catalogue": {
+        "format": "html",
+        "content_kind": "catalogue"
+      },
+      "html metadata": {
+        "format": "html",
+        "content_kind": "metadata"
+      },
+      "html zip": {
+        "format": "html",
+        "container": "zip"
+      },
+      "txt zip": {
+        "format": "text",
+        "container": "zip"
+      },
+      "xml/tml": {
+        "format": "xml",
+        "qualifiers": [
+          "TML"
+        ]
+      },
+      "ocr txt": {
+        "format": "text",
+        "reported_process": "ocr"
+      },
+      "txt/ocr": {
+        "format": "text",
+        "reported_process": "ocr"
+      },
+      "ocr text": {
+        "format": "text",
+        "reported_process": "ocr"
+      },
+      "ocr": {
+        "reported_process": "ocr"
+      },
+      "page images": {
+        "content_kind": "page_images"
+      },
+      "images": {
+        "content_kind": "images"
+      },
+      "изображения": {
+        "content_kind": "images"
+      },
+      "изображения на странице": {
+        "content_kind": "images",
+        "qualifiers": [
+          "on-page"
+        ]
+      },
+      "metadata": {
+        "content_kind": "metadata"
+      },
+      "catalogue metadata": {
+        "content_kind": "catalogue_metadata"
+      },
+      "searchable text": {
+        "content_kind": "searchable_text"
+      },
+      "translation": {
+        "content_layer": "translation"
+      },
+      "transliteration": {
+        "representation": "transliteration"
+      },
+      "wiki source": {
+        "representation": "wiki_source"
+      },
+      "git": {
+        "transport": "git"
+      },
+      "git repository": {
+        "transport": "git"
+      },
+      "raw git file": {
+        "transport": "git",
+        "qualifiers": [
+          "raw file"
+        ]
+      },
+      "iiif": {
+        "delivery_protocol": "iiif"
+      },
+      "cts passages": {
+        "delivery_protocol": "cts",
+        "coverage_kind": "passages"
+      },
+      "cts urn": {
+        "identifier_scheme": "cts_urn"
+      },
+      "bookreader": {
+        "reader": "bookreader"
+      },
+      "kindle": {
+        "reader_family": "kindle"
+      },
+      "ebook": {
+        "carrier": "digital_book"
+      },
+      "mobile formats": {
+        "format_family": "mobile_unspecified"
+      }
+    }
+  },
+  "record_reference_pattern": "(?:(?:A\\d{2}|T2[-_]\\d{2})-)?[RGC]?\\d+(?:[-–][RGC]?\\d+)?"
+}

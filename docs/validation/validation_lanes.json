@@ -7,7 +7,7 @@
     "This manifest is the executable command-authority surface for ToS validation lanes.",
     "scripts/validation_lanes.py is a loader and checker only.",
     "Inventories describe coverage and do not own command execution.",
-    "TOS-D-0062: release_check is software-only; integration_snapshot_audit is an explicit historical snapshot audit, never a prerequisite of software merge or release. Blocking mode applies only inside the selected owner operation."
+    "TOS-D-0062: release_check validates software only. The former full repository aggregate is retired. Blocking mode applies only inside the selected source, data or integration operation."
   ],
   "lanes": {
     "validation_authority": {
@@ -31,9 +31,16 @@
       "owner_surface": "ToS/doctrine/semantic-interchange/README.md",
       "purpose": "Compare current authored registries with an explicitly supplied immutable pre-change commit; require version advances and retained historical identity/reader/schema routes.",
       "command_sequence": "semantic_registry_transition",
-      "required_environment": ["TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT"],
+      "required_environment": [
+        "TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT"
+      ],
       "failure_route": "ToS/doctrine/semantic-interchange/README.md",
-      "does_not_own": ["baseline selection", "semantic compatibility judgment", "reference migration acceptance", "runtime graph reads"]
+      "does_not_own": [
+        "baseline selection",
+        "semantic compatibility judgment",
+        "reference migration acceptance",
+        "runtime graph reads"
+      ]
     },
     "source_home": {
       "label": "source home",
@@ -236,14 +243,14 @@
       "layer": "local-kag-provider",
       "mode": "blocking",
       "owner_surface": "kag/AGENTS.md",
-      "purpose": "Protect the complete ToS KAG provider, source ownership, current source hashes, segmented-family integrity, bounded record reads and family binding.",
-      "command_sequence": "local_kag_provider",
+      "purpose": "Verify a selected immutable ToS source-return export. Full KAG family integrity and admission belong to its explicitly selected downstream consumer.",
       "failure_route": "kag/AGENTS.md",
       "does_not_own": [
         "aoa-kag shared schema law",
         "runtime graph storage",
         "MCP service implementation"
-      ]
+      ],
+      "focused_target": "kag/VALIDATION.md"
     },
     "local_stats_port": {
       "label": "local stats port",
@@ -251,13 +258,13 @@
       "mode": "blocking",
       "owner_surface": "stats/port.manifest.json",
       "purpose": "Verify the Tree of Sophia measurement declaration and reference packet against the shared aoa-stats protocol without widening either owner's authority.",
-      "command_sequence": "local_stats_port",
       "failure_route": "stats/AGENTS.md",
       "does_not_own": [
         "philosophical meaning",
         "graph review readiness",
         "canon or eval verdicts"
-      ]
+      ],
+      "focused_target": "stats/VALIDATION.md"
     },
     "questbook_surface": {
       "label": "questbook surface",
@@ -340,26 +347,7 @@
       "entrypoint": "scripts/release_check.py",
       "covers_lanes": [
         "validation_authority",
-        "semantic_registry_transition",
-        "source_home",
-        "source_witness_foundation",
-        "philosophy_topology",
-        "mechanics_topology",
-        "mechanics_local",
-        "experience_contracts",
-        "active_naming",
-        "generated_parity",
-        "graph_exports",
-        "standalone_access",
-        "canon_contracts",
-        "intake_contracts",
-        "public_entry",
-        "local_kag_provider",
-        "local_stats_port",
-        "questbook_surface",
-        "route_docs",
-        "agent_surface",
-        "cross_corpus_documentation"
+        "standalone_access"
       ],
       "failure_route": "docs/RELEASING.md",
       "does_not_own": [
@@ -385,7 +373,10 @@
     "semantic_registry_transition": [
       {
         "label": "validate semantic registry transition against explicit baseline",
-        "command": ["python", "scripts/validate_semantic_registry_transition.py"]
+        "command": [
+          "python",
+          "scripts/validate_semantic_registry_transition.py"
+        ]
       }
     ],
     "source_home": [
@@ -766,24 +757,6 @@
         ]
       }
     ],
-    "local_kag_provider": [
-      {
-        "label": "validate current ToS KAG provider and source family",
-        "command": [
-          "python",
-          "scripts/validate_local_kag_provider.py"
-        ]
-      }
-    ],
-    "local_stats_port": [
-      {
-        "label": "validate local stats port",
-        "command": [
-          "python",
-          "scripts/validate_local_stats_port.py"
-        ]
-      }
-    ],
     "questbook_surface": [
       {
         "label": "validate questbook surface",
@@ -907,7 +880,16 @@
       },
       {
         "label": "run exact source-read pytest contracts",
-        "command": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "access/tests/test_source_read.py", "access/tests/test_source_read_owner.py"]
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "-p",
+          "no:cacheprovider",
+          "access/tests/test_source_read.py",
+          "access/tests/test_source_read_owner.py"
+        ]
       },
       {
         "label": "validate standalone access source profile",
@@ -958,7 +940,20 @@
           "-m",
           "not data_release",
           "access/tests",
-          "tests/test_validation_lanes.py"
+          "tests/test_validation_lanes.py",
+          "tests/test_corpus_archive.py",
+          "tests/test_corpus_store.py",
+          "tests/test_corpus_r2.py",
+          "tests/test_corpus_locator.py",
+          "tests/test_corpus_admit.py",
+          "tests/test_corpus_source_validation.py",
+          "tests/test_corpus_source_retirement.py",
+          "tests/test_corpus_build_worker.py",
+          "tests/test_local_stats_port.py",
+          "tests/test_build_kag_export.py",
+          "tests/test_downstream_status.py",
+          "tests/test_publish_kag_release.py",
+          "tests/test_publish_stats_release.py"
         ]
       }
     ],
@@ -968,414 +963,6 @@
         "command": [
           "python",
           "scripts/run_mechanics_local_tests.py"
-        ]
-      }
-    ],
-    "integration_snapshot_audit": [
-      {
-        "label": "validate complete research registry normalization",
-        "command": [
-          "python",
-          "scripts/validate_source_registry_normalization.py"
-        ]
-      },
-      {
-        "label": "validate validation lane manifest",
-        "command": [
-          "python",
-          "scripts/validation_lanes.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate ToS source home",
-        "command": [
-          "python",
-          "scripts/validate_tos_source_home.py"
-        ]
-      },
-      {
-        "label": "check source-witness catalog parity",
-        "command": [
-          "python",
-          "scripts/build_source_witness_catalog.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate source-witness evidence spine",
-        "command": [
-          "python",
-          "scripts/validate_source_witness_foundation.py"
-        ]
-      },
-      {
-        "label": "validate witness-structure correspondence",
-        "command": [
-          "python",
-          "scripts/validate_witness_structure_correspondence.py"
-        ]
-      },
-      {
-        "label": "validate Nietzsche transfer source routes",
-        "command": [
-          "python",
-          "scripts/validate_nietzsche_transfer_source_routes.py"
-        ]
-      },
-      {
-        "label": "validate golden-kernel transfer target passages",
-        "command": [
-          "python",
-          "scripts/validate_golden_kernel_transfer_target_passages.py"
-        ]
-      },
-      {
-        "label": "validate golden-kernel transfer source passages",
-        "command": [
-          "python",
-          "scripts/validate_golden_kernel_transfer_source_passages.py"
-        ]
-      },
-      {
-        "label": "check golden-kernel transfer route readiness",
-        "command": [
-          "python",
-          "scripts/build_golden_kernel_transfer_route_readiness.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate golden-kernel transfer route readiness",
-        "command": [
-          "python",
-          "scripts/validate_golden_kernel_transfer_route_readiness.py"
-        ]
-      },
-      {
-        "label": "validate Zarathustra lexical projection",
-        "command": [
-          "python",
-          "scripts/validate_zarathustra_lexical_index.py"
-        ]
-      },
-      {
-        "label": "check Zarathustra exact-form recurrence projection",
-        "command": [
-          "python",
-          "scripts/build_zarathustra_recurrence_projection.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate philosophy topology",
-        "command": [
-          "python",
-          "scripts/validate_philosophy_topology.py"
-        ]
-      },
-      {
-        "label": "validate mechanics topology",
-        "command": [
-          "python",
-          "scripts/validate_mechanics_topology.py"
-        ]
-      },
-      {
-        "label": "run mechanics-local checks",
-        "command": [
-          "python",
-          "scripts/run_mechanics_local_tests.py"
-        ]
-      },
-      {
-        "label": "validate Experience contracts",
-        "command": [
-          "python",
-          "-m",
-          "unittest",
-          "discover",
-          "-s",
-          "mechanics/experience/tests",
-          "-p",
-          "test*.py"
-        ]
-      },
-      {
-        "label": "validate active naming",
-        "command": [
-          "python",
-          "scripts/validate_active_naming.py"
-        ]
-      },
-      {
-        "label": "check root entry map",
-        "command": [
-          "python",
-          "scripts/build_root_entry_map.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate root entry map",
-        "command": [
-          "python",
-          "scripts/validate_root_entry_map.py"
-        ]
-      },
-      {
-        "label": "validate ToS corpus index",
-        "command": [
-          "python",
-          "scripts/validate_tos_corpus_index.py"
-        ]
-      },
-      {
-        "label": "check source-witness bibliographic graph",
-        "command": [
-          "python",
-          "scripts/build_source_witness_bibliographic_graph.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate source-witness bibliographic graph",
-        "command": [
-          "python",
-          "scripts/validate_source_witness_bibliographic_graph.py"
-        ]
-      },
-      {
-        "label": "check philosophy atlas projection",
-        "command": [
-          "python",
-          "scripts/build_philosophy_atlas_projection.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate philosophy atlas projection",
-        "command": [
-          "python",
-          "scripts/validate_philosophy_atlas_projection.py"
-        ]
-      },
-      {
-        "label": "check philosophy graph views",
-        "command": [
-          "python",
-          "scripts/build_philosophy_graph_views.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate philosophy graph views",
-        "command": [
-          "python",
-          "scripts/validate_philosophy_graph_views.py"
-        ]
-      },
-      {
-        "label": "validate philosophy graph projection",
-        "command": [
-          "python",
-          "scripts/validate_philosophy_graph_projection.py"
-        ]
-      },
-      {
-        "label": "check epistemic evidence projection",
-        "command": [
-          "python",
-          "scripts/build_epistemic_evidence_projection.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate epistemic evidence projection",
-        "command": [
-          "python",
-          "scripts/validate_epistemic_evidence_projection.py"
-        ]
-      },
-      {
-        "label": "compile standalone query snapshot",
-        "command": [
-          "python",
-          "access/src/tos_access/knowledge_compile.py",
-          "--root",
-          "."
-        ]
-      },
-      {
-        "label": "run standalone access contract tests",
-        "command": [
-          "python",
-          "-m",
-          "unittest",
-          "discover",
-          "-s",
-          "access/tests"
-        ]
-      },
-      {
-        "label": "validate standalone access source profile",
-        "command": [
-          "python",
-          "access/packaging/validate_standalone.py"
-        ]
-      },
-      {
-        "label": "check philosophy post-planting audit",
-        "command": [
-          "python",
-          "scripts/build_philosophy_post_planting_audit.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate philosophy post-planting audit",
-        "command": [
-          "python",
-          "scripts/validate_philosophy_post_planting_audit.py"
-        ]
-      },
-      {
-        "label": "validate tree node contracts",
-        "command": [
-          "python",
-          "scripts/validate_tree_node_contracts.py"
-        ]
-      },
-      {
-        "label": "validate tree relation packs",
-        "command": [
-          "python",
-          "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py"
-        ]
-      },
-      {
-        "label": "validate public example sync",
-        "command": [
-          "python",
-          "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py"
-        ]
-      },
-      {
-        "label": "validate intake pack",
-        "command": [
-          "python",
-          "scripts/validate_intake_pack.py"
-        ]
-      },
-      {
-        "label": "validate tiny entry route",
-        "command": [
-          "python",
-          "scripts/validate_tiny_entry_route.py"
-        ]
-      },
-      {
-        "label": "validate ToS KAG provider integrity and source currentness",
-        "command": [
-          "python",
-          "scripts/validate_local_kag_provider.py"
-        ]
-      },
-      {
-        "label": "validate local stats port",
-        "command": [
-          "python",
-          "scripts/validate_local_stats_port.py"
-        ]
-      },
-      {
-        "label": "validate questbook surface",
-        "command": [
-          "python",
-          "mechanics/questbook/scripts/validate_questbook_surface.py"
-        ]
-      },
-      {
-        "label": "check AGENTS route-card currentness",
-        "command": [
-          "python",
-          "scripts/build_agents_route_currentness.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate route-card structure",
-        "command": [
-          "python",
-          "scripts/validate_nested_agents.py"
-        ]
-      },
-      {
-        "label": "run deterministic AGENTS task route harness",
-        "command": [
-          "python",
-          "scripts/agents_route_harness.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "check agent-surface currentness",
-        "command": [
-          "python",
-          "scripts/build_agent_surface_currentness.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate agent-surface routes",
-        "command": [
-          "python",
-          "scripts/validate_agent_surface.py",
-          "--check",
-          "--fetch-budget-bases"
-        ]
-      },
-      {
-        "label": "check documentation family currentness",
-        "command": [
-          "python",
-          "scripts/build_documentation_family_currentness.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate cross-corpus documentation guards",
-        "command": [
-          "python",
-          "scripts/validate_documentation_cross_corpus.py"
-        ]
-      },
-      {
-        "label": "check decision indexes",
-        "command": [
-          "python",
-          "scripts/generate_decision_indexes.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate decision records",
-        "command": [
-          "python",
-          "scripts/validate_decision_records.py"
-        ]
-      },
-      {
-        "label": "run tests",
-        "command": [
-          "python",
-          "-m",
-          "pytest",
-          "-q",
-          "-p",
-          "no:cacheprovider",
-          "--durations=20",
-          "tests"
         ]
       }
     ],

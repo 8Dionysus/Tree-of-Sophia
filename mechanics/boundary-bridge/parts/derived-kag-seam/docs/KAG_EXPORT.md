@@ -3,60 +3,82 @@
 This document records the current source-owned tiny KAG export posture for Tree
 of Sophia.
 
-The export is deliberately narrow.
-It exposes one bounded source-node capsule for downstream KAG consumers without
-replacing ToS-authored authority.
+The export is deliberately narrow. It exposes one bounded source-node capsule
+for downstream KAG consumers while keeping ToS-authored authority in its owning
+surfaces.
 
 ## Current pilot
 
-The current pilot stays on the Zarathustra prologue route only:
+The pilot stays on the Zarathustra prologue route. The bounded export contains
+six selected source files and one generated capsule:
 
-- one exported object: `tos.source.thus-spoke-zarathustra.prologue`
-- one canonical authored source node: `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`
-- one public compatibility entry surface: `ToS/public-compatibility/source_node.example.json`
-- two supporting doctrine surfaces:
-  - `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md`
-  - `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
-- one compact consumer export: `ToS/derived-exports/kag_export.min.json`
+- canonical source node: `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`
+- source-facing documentation: `ToS/derived-exports/README.md`
+- public compatibility concept and source nodes:
+  `ToS/public-compatibility/concept_node.example.json` and
+  `ToS/public-compatibility/source_node.example.json`
+- supporting route surfaces:
+  `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md` and
+  `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
+- generated capsule: `ToS/derived-exports/kag_export.min.json`
+
+The selected CorpusStore revision is an explicit input to the builder. The
+export binds the complete listed source closure and the generated capsule to
+that revision.
 
 ## Core rule
 
-The export is a source-owned guide surface, not a new authority layer.
+The export is a source-owned guide surface. It may expose a bounded question,
+summaries, interpretation-layer handles, and current route refs for downstream
+consumption. Authored ToS authority remains in the canonical tree node and its
+supporting ToS surfaces; the public entry remains a compatibility mirror.
 
-It may expose a bounded question, summaries, interpretation-layer handles, and
-current route refs for downstream consumption, but authored ToS authority
-remains in the canonical tree node and its supporting ToS docs, while the public
-entry surface remains a compatibility mirror for the current tiny-entry seam.
+## Tooling
 
-## Current files
+`scripts/build_kag_export.py` is the explicit export builder and verifier:
 
-- `ToS/derived-exports/kag_export.json`
-- `ToS/derived-exports/kag_export.min.json`
-- `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py`
-- `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`
+```text
+python scripts/build_kag_export.py build --store STORE --revision REVISION --output EXPORT
+python scripts/build_kag_export.py verify EXPORT
+```
 
-If you edit supporting surfaces in `docs/`, `ToS/public-compatibility/`, `ToS/derived-exports/`, `ToS/contracts/`, or `scripts/`, also follow the nested `AGENTS.md` in that directory.
+The builder reads the selected CorpusStore revision and calls the pure renderer
+`mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py`
+with the staged source root. The renderer has no ambient repository or output
+paths and only returns deterministic payload data.
+
+`scripts/publish_kag_release.py` owns the local handoff to an explicitly
+selected downstream KAG consumer and its release status:
+
+```text
+python scripts/publish_kag_release.py build --store STORE --revision REVISION --kag-root KAG_ROOT --release-root RELEASE_ROOT
+python scripts/publish_kag_release.py status --release-root RELEASE_ROOT --expected-revision REVISION
+```
+
+The selected KAG owner supplies the actual consumer and records consumer
+status/lag in its `kag/README.md` route. This ToS seam does not claim corpus
+admission, public deployment, or the consumer's semantic validation.
 
 ## Current verification
 
-For the current bounded export seam without regeneration, use:
+For an already built export, run `python scripts/build_kag_export.py verify
+EXPORT`. Verification checks the exact source membership, bytes, manifest
+identity, source return, capsule structure, and bounded relation targets.
 
-Current verification is owned by
-`mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`
-and the `public_entry` sequence in `docs/validation/validation_lanes.json`.
-
-`python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py` checks generated export parity and
-payload structure for this seam.
-The release lane pairs it with canon, intake, route-card, and public-entry
-validators when broader route assurance is needed.
-`python -m pytest -q -p no:cacheprovider --durations=20 tests` strengthens
-repo-local contract and schema coverage around that same bounded route.
+For a published downstream result, use the `status` command above. The release
+publisher rechecks the private export copy, the selected consumer's returned
+source identity, and the immutable release membership before reporting status.
+The `public_entry` sequence in `docs/validation/validation_lanes.json` owns
+broader route assurance.
 
 ## Regeneration
 
-If you change export inputs or generation logic, use:
+After the source owner has selected an accepted CorpusStore revision, build a
+fresh export with the explicit `build` command above. No in-checkout Git parity
+step or software merge gate is part of this export route; the selected revision
+and its verified source objects are the input boundary.
 
-Regeneration is owned by
-`mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py`
-after the public-mirror owner has synchronized its inputs. The nearest
-part-local `AGENTS.md` and the validation-lane manifest own the operator route.
+If the downstream owner needs a release, invoke `scripts/publish_kag_release.py
+build` with explicit store, revision, KAG root, and release root paths. Keep
+consumer semantics, status, lag, admission, and deployment with their actual
+owners.

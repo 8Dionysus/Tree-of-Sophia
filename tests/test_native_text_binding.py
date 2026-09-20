@@ -26,7 +26,7 @@ from native_text_binding import NativeTextBindingError, NativeTextBindingResolve
 from native_text_return import read_public_unit, read_local_unit, LocalTextReadSelection, LocalTextReadError
 
 
-LAB = "ToS/research-packets/foundation-laboratory-2026-07"
+LAB = "tests/fixtures/native-text-binding"
 CONTRACTS = (
     "native-text-unit-binding.schema.json",
     "native-text-layer-binding.schema.json",

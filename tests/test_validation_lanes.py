@@ -1,7 +1,6 @@
 """Command selection and failure propagation, independent of production data."""
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 import subprocess
@@ -12,8 +11,8 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
-import release_check
-import validation_lanes
+import release_check  # noqa: E402
+import validation_lanes  # noqa: E402
 
 
 class ValidationLaneTests(unittest.TestCase):
@@ -55,11 +54,6 @@ class ValidationLaneTests(unittest.TestCase):
             self.assertEqual(release_check.main([]), 0)
         select.assert_called_once_with('release_check', release_check.REPO_ROOT)
         self.assertEqual(run.call_args_list, [mock.call(*step) for step in steps])
-
-    def test_integration_audit_requires_explicit_selection(self):
-        with mock.patch.object(release_check, 'command_sequence', return_value=[('audit',['audit'])]) as select, mock.patch.object(release_check, 'run_step', return_value=0):
-            self.assertEqual(release_check.main(['--integration-audit']), 0)
-        select.assert_called_once_with('integration_snapshot_audit', release_check.REPO_ROOT)
 
     def test_release_stops_at_failure(self):
         with mock.patch.object(release_check, 'command_sequence', return_value=[('bad',['a']),('later',['b'])]), mock.patch.object(release_check, 'run_step', return_value=23) as run:

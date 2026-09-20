@@ -218,6 +218,59 @@ class ProjectionStoreTests(unittest.TestCase):
         self.assertEqual(sorted(reader.iter_collection("input_digests"), key=lambda x: x['key']),
                          [{"key": "source-a", "value": "abc"}, {"key": "source-b", "value": "def"}])
 
+    def positional_manifest(self, rows, order=()):
+        return write_projection(self.path, {"schema_version": "sequence_v1"}, {
+            "items": Collection(rows, [], order),
+        }, target_part_bytes=1024, work_dir=self.root)
+
+    def rewrite_sequence_leaf(self, key, value):
+        manifest = json.loads(self.path.read_bytes())
+        descriptor = manifest["collections"]["items"]["root"]
+        self.assertEqual(descriptor["kind"], "data")
+        raw = canonical_bytes({"key": key, "value": value})
+        stored = _gzip(raw)
+        digest = hashlib.sha256(stored).hexdigest()
+        part = self.path.with_name(self.path.stem + ".parts") / digest[:2] / (digest + ".jsonl.gz")
+        part.parent.mkdir(parents=True, exist_ok=True)
+        part.write_bytes(stored)
+        descriptor.update(path=part.relative_to(self.path.parent).as_posix(),
+                          sha256=digest, size_bytes=len(stored), decoded_bytes=len(raw),
+                          decoded_sha256=hashlib.sha256(raw).hexdigest())
+        self.path.write_bytes(canonical_bytes(manifest))
+
+    def test_positional_sequence_preserves_order_and_duplicate_values(self):
+        rows = [{"value": "repeat"}, {"value": "repeat"}, {"value": "tail"}]
+        self.positional_manifest(rows)
+        reader = ProjectionReader(self.path)
+        expected = {f"{index:020d}": row for index, row in enumerate(rows)}
+        items = list(reader.iter_items("items"))
+        # The iterator follows hash partition placement. Check identity and
+        # values independently; positional order is an export concern.
+        self.assertEqual(dict(items), expected)
+        self.assertEqual(dict(zip((key for key, _ in items), reader.iter_collection("items"))), expected)
+        self.assertGreater(
+            sum(1 for path in reader.closure_paths() if path.name.endswith(".jsonl.gz")), 1
+        )
+        self.assertEqual(reader.materialize(), {"schema_version": "sequence_v1", "items": rows})
+
+    def test_positional_sequence_rejects_malformed_and_out_of_range_ordinals(self):
+        for key in ("not-an-ordinal", "00000000000000000001"):
+            with self.subTest(key=key):
+                self.positional_manifest(["value"])
+                self.rewrite_sequence_leaf(key, "value")
+                with self.assertRaisesRegex(ProjectionStoreError, "invalid sequence position"):
+                    list(ProjectionReader(self.path, cache_bytes=0).iter_items("items"))
+
+    def test_positional_sequence_rejects_nonempty_order_fields(self):
+        with self.assertRaisesRegex(ProjectionStoreError, "positional sequence cannot declare record ordering"):
+            self.positional_manifest(["value"], order=("rank",))
+        self.positional_manifest(["value"])
+        manifest = json.loads(self.path.read_bytes())
+        manifest["collections"]["items"]["order_fields"] = ["rank"]
+        self.path.write_bytes(canonical_bytes(manifest))
+        with self.assertRaisesRegex(ProjectionStoreError, "positional sequence cannot declare record ordering"):
+            ProjectionReader(self.path)
+
     def numeric_manifest(self, header=None):
         return write_projection(self.path, header or {"schema_version": "numbers_v1"}, {
             "numbers": Collection([("value", None)], None),

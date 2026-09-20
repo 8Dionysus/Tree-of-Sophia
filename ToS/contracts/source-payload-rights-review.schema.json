@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-payload-rights-review.schema.json",
+  "title": "Tree of Sophia exact source payload rights review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "review_id",
+    "actor",
+    "reviewed_at",
+    "scope",
+    "license_evidence",
+    "decision"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/source-payload-rights-review.schema.json"},
+    "schema_version": {"const": "tos_source_payload_rights_review_v1"},
+    "review_id": {"$ref": "#/$defs/tosReviewId"},
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "actor_ref", "model"],
+      "properties": {
+        "kind": {"const": "model"},
+        "actor_ref": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1}
+      }
+    },
+    "reviewed_at": {"type": "string", "format": "date-time"},
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_ref", "file_refs", "manifest_ref", "manifest_sha256", "rights_record_ref", "rights_record_sha256"],
+      "properties": {
+        "item_ref": {"$ref": "#/$defs/tosItemId"},
+        "file_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/tosFileId"}},
+        "manifest_ref": {"$ref": "#/$defs/repoRef"},
+        "manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "rights_record_ref": {"$ref": "#/$defs/repoRef"},
+        "rights_record_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "license_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_ref", "evidence_ref", "evidence_sha256", "kind", "scope"],
+        "properties": {
+          "source_ref": {"type": "string", "minLength": 1},
+          "evidence_ref": {"$ref": "#/$defs/repoRef"},
+          "evidence_sha256": {"$ref": "#/$defs/sha256"},
+          "kind": {"enum": ["primary-license", "scope-evidence"]},
+          "scope": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "source_posture_resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["basis", "server_processing_postures", "redistribution_postures", "rationale"],
+      "properties": {
+        "basis": {"const": "primary-license-private-retention"},
+        "server_processing_postures": {"type": "array", "uniqueItems": true, "items": {"enum": ["not_authorized", "authorized_with_conditions"]}},
+        "redistribution_postures": {"type": "array", "uniqueItems": true, "items": {"enum": ["not_authorized", "metadata_only", "authorized_with_conditions"]}},
+        "retained_conditions": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["source_condition", "how_satisfied"],
+            "properties": {
+              "source_condition": {"type": "string", "minLength": 1},
+              "how_satisfied": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "rationale": {"type": "string", "minLength": 1}
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["access_class", "raw_cloud_retention", "server_processing", "publication", "conditions", "expires_at", "revocation_check_ref"],
+      "properties": {
+        "access_class": {"const": "controlled-research"},
+        "raw_cloud_retention": {"const": "controlled-research"},
+        "server_processing": {"const": "authorized"},
+        "publication": {"const": "not-published"},
+        "conditions": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "expires_at": {"type": ["string", "null"], "format": "date-time"},
+        "revocation_check_ref": {"$ref": "#/$defs/repoRef"}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoRef": {"type": "string", "pattern": "^ToS/[A-Za-z0-9._/-]+$"},
+    "tosItemId": {"type": "string", "pattern": "^tos\\.item\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "tosFileId": {"type": "string", "pattern": "^tos\\.file\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "tosReviewId": {"type": "string", "pattern": "^tos\\.review\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}
+  }
+}

@@ -1,39 +1,30 @@
-# Tree-of-Sophia Local KAG Provider
+# Tree-of-Sophia KAG integration
 
-`kag/` exposes the current Tree-of-Sophia KAG provider packet as portable
-source-linked records.
+ToS publishes KAG independently from its software and corpus admission. This
+directory owns the bounded provider template and the operator route; it is not
+the current provider database.
 
-## Operating Card
+`provider-template.json` describes the portable node, edge, index, projection
+and receipt routes. The publisher combines these declarations with one exact
+corpus export in a new external directory. The selected aoa-kag producer builds
+its complete family there, and its family and provider-home readers validate
+the result before local publication. Template receipts declare a route; they
+do not assert successful validation or current production state.
 
-| Field | Route |
-| --- | --- |
-| role | local KAG provider for ToS-derived export surfaces |
-| records | `nodes/`, `edges/`, `indexes/`, `projections/`, `receipts/` |
-| manifest | `manifest.json` and exact provider pin `provider_pin.json` |
-| source route | `ToS/derived-exports/` and the derived KAG seam mechanic |
-| consumer route | `aoa-kag` registry/composition, `abyss-stack`, MCP resources |
-| owner return | `ToS/derived-exports/README.md` and `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md` |
+Use [VALIDATION.md](VALIDATION.md) to build an export, publish an integration and
+inspect its status. Every result lives in `releases/<integration_revision>` and
+binds its corpus/export revision, consumer program hashes and complete bytes.
+A consumer update may create a new integration for the same corpus. Failures
+retain the last successful release and remain visible in downstream status.
 
-## Record Classes
+Existing aoa-kag consumers select the published `provider/Tree-of-Sophia` root,
+including through their explicit `TREE_OF_SOPHIA_ROOT` configuration. Its cold
+shards are retained inside that immutable local provider, so the provider-home
+reader needs no ambient corpus checkout or hidden artifact cache. Exact queries
+can also select the release's separate `artifacts` directory explicitly.
 
-| Class | Current record |
-| --- | --- |
-| node | KAG export capsule and derived export route |
-| edge | source export returns to the derived export route |
-| index | repository source, entity, artifact, and event indexes |
-| projection | MCP-readable source-return packet |
-| receipt | validator receipt for the current export seam |
-
-Runtime graph and vector stores consume these records downstream through their
-own owner routes. Git holds the compact provider packet and source-return
-handles.
-
-## Segmented family
-
-The current family manifest is `aoa-repo-local-kag-segmented-family-v1`. Its
-bounded segments live under `indexes/segments/` and are read through the
-explicit adapter `scripts/validate_local_segmented_kag_provider.py`. The
-adapter admits only the clean `aoa-kag` checkout and revision named in
-`provider_pin.json`; legacy v3/v4 readers remain explicit rollback carriers,
-not silent fallbacks. Validation checks the full segment set and one bounded
-read, while complete compatibility assembly remains opt-in.
+The selected provider is a bounded source-return export. It does not replace
+ToS philosophical graphs or source authority, and publication here does not
+activate federation, MCP services or an AbyssOS installation. Their consuming
+owners retain runtime admission. A pinned older integration stays an older
+integration; software CI cannot make it current.

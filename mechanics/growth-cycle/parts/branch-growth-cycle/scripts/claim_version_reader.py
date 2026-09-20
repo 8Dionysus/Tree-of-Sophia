@@ -24,8 +24,10 @@ from source_metadata_snapshot import PublicationSnapshot, PublicationStateError,
 from build_source_witness_catalog import verify_catalog_publication, CatalogBuildError
 
 CATALOG_REF = 'ToS/source-witnesses/catalog/claims.jsonl'
-MAX_CATALOG_BYTES = 8 * 1024 * 1024
-MAX_CATALOG_ROWS = 8192
+# The retained mass corpus already has 22,019 Claims (about 26 MiB).
+# Catalog growth must fit without relaxing exact-version or aggregate limits.
+MAX_CATALOG_BYTES = 32 * 1024 * 1024
+MAX_CATALOG_ROWS = 32768
 MAX_TOTAL_BYTES = 64 * 1024 * 1024
 PUBLIC = {'public', 'public_metadata_only'}
 FORBIDDEN = {'catalog', 'payload', 'private', 'local-content', 'owner-local'}

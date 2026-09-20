@@ -53,7 +53,8 @@ AbyssOS release helper is not a prerequisite for standalone ToS software.
 
 Select data explicitly through `TOS_DATA_ROOT` or `--root`; the reader does not
 search the current working directory or sibling repositories. Existing
-`TOS_ROOT` and `AOA_TOS_ROOT` remain explicit legacy selections during migration.
+`TOS_DATA_ROOT` selects a dataset; `TOS_RELEASE_ROOT` selects a managed release
+pair. The former `TOS_ROOT` and `AOA_TOS_ROOT` aliases have been removed.
 Code-owned API schemas and browser assets always come from the software.
 A UI change does not require rebuilding a compatible selected query store.
 
@@ -63,12 +64,30 @@ passing software CI does not admit that record or publish it. Full dataset
 coverage tests are marked `data_release` and require a separately selected
 `TOS_DATA_ROOT`. They do not run as software tests.
 
-The second migration delivery moves bulk records and derived artifacts into
-versioned local storage and private Cloudflare R2 with restore evidence. Until
-that verified migration lands, existing tracked records remain preserved.
-The accepted payload custody is permanent local storage plus private R2;
-local-only records do not gain upload or public rights through this change.
-No history rewrite or deletion of unique corpus evidence is part of release.
+The source-to-reader operation is explicit:
+
+1. Prepare a `tos_corpus_batch_v1` manifest naming the exact base revision,
+   validator identity, source bytes/modes and any explicit retirements.
+2. Run `scripts/corpus_admit.py` with `--store`, `--batch`, `--input-root`
+   and `--grammar-root`. Historical evidence and payload custody use their
+   explicit options. A rejected batch leaves the accepted pointer unchanged.
+   General record/claim batches currently run a conservative full source audit;
+   only the verified retirement transition has a scoped fast path.
+3. Run `scripts/corpus_build_worker.py --store STORE --revision REVISION
+   --output NEW_SNAPSHOT`. The output directory must be new. Its `manifest.json`
+   binds the corpus and completed compiled data; source files cannot select
+   executable producers.
+4. Select `NEW_SNAPSHOT/data` with `TOS_DATA_ROOT` or `--root`. The reader checks
+   artifact integrity and compatibility before serving it. A failed build or
+   corrupt new artifact does not replace an existing readable snapshot.
+
+Bulk source revisions and their historical evidence use permanent local
+storage and permitted private Cloudflare R2 backups with verified restore.
+Curated authored sources remain Git-backed; generated catalogs and projections
+are not Git companions. Preserve exact old commits/locators before retiring
+tracking. Payload custody remains permanent local plus its permitted private
+R2 copy; local-only records gain no upload or public rights. No history rewrite
+or deletion of unique corpus evidence is part of release.
 
 ## Integration and historical audits
 
@@ -78,16 +97,10 @@ own publication on failure. It does not block unrelated source/software merge.
 Consumers must expose revision and staleness rather than claim that an older
 integration follows the latest source. See `kag/VALIDATION.md` for KAG checks.
 
-For an intentional audit of a fully materialized historical repository snapshot:
-
-```sh
-python scripts/release_check.py --integration-audit
-```
-
-This explicit route retains the former aggregate while the data migration is
-completed. It requires the relevant corpus and external owner inputs; it is
-neither the default release command nor a software CI dependency. Individual
-owner routes remain available through `scripts/validation_lanes.py`.
+The former full repository aggregate is retired. Select the affected source,
+data or external integration operation directly; individual owner procedures
+remain available through `scripts/validation_lanes.py`. No combined audit of
+corpus, KAG, statistics and documentation currentness owns release permission.
 
 Historical v0.5.0 provider release identities remain in `CHANGELOG.md`:
 `aoa-stats@v0.2.0` (`88ff38b1b38eef939f2c5b4541cbe8363a05fc8d`) and

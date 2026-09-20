@@ -16,8 +16,8 @@ KAG_EXPORT_DOC_PATH = (
 TINY_ENTRY_ROUTE = "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md"
 TRILINGUAL_ENTRY = "ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md"
 KAG_EXPORT_DOC = "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"
-KAG_EXPORT_VALIDATOR = "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py"
-KAG_EXPORT_BUILDER = "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py"
+KAG_EXPORT_BUILDER = "scripts/build_kag_export.py"
+KAG_EXPORT_PUBLISHER = "scripts/publish_kag_release.py"
 ROOT_ENTRY_MAP = "ToS/derived-exports/root_entry_map.min.json"
 ROOT_ENTRY_BUILDER = "scripts/build_root_entry_map.py"
 ROOT_ENTRY_VALIDATOR = "scripts/validate_root_entry_map.py"
@@ -127,7 +127,7 @@ class DocsVerifyRoutesTestCase(unittest.TestCase):
             kag_export_doc.index("## Current verification"),
             kag_export_doc.index("## Regeneration"),
         )
-        assert_route_refs(self, kag_export_doc, KAG_EXPORT_VALIDATOR, KAG_EXPORT_BUILDER)
+        assert_route_refs(self, kag_export_doc, KAG_EXPORT_BUILDER, KAG_EXPORT_PUBLISHER)
 
     def test_readme_and_tiny_entry_doc_expose_root_entry_capsule(self) -> None:
         readme = read_text(README_PATH)

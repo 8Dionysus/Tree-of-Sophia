@@ -25,7 +25,7 @@ Semantic growth begins on this floor. It is not collapsed into it.
 | immutable | the recorded value never changes; a change creates another object/event | acquired file bytes, SHA-256 digest, signed receipt, review event |
 | persistent identity | the identifier remains while correctable descriptions accumulate | work, expression, edition, item, text layer, passage, occurrence, lexeme, sign, concept, relation, annotation, claim |
 | versioned assertion | content may be superseded without erasing lineage | title attribution, date, lemma, etymology, translation, concept boundary, relation |
-| derived projection | safely rebuildable from stronger tracked surfaces | search index, vector index, graph store, KAG export, visualization |
+| derived projection | safely rebuildable from stronger exact source surfaces | search index, vector index, graph store, KAG export, visualization |
 
 An accepted assertion is not rewritten into an immutable fact. Acceptance is
 an immutable review event pointing to a versioned assertion.
@@ -744,8 +744,12 @@ text layer remains a real positive finding rather than being erased.
 
 ## Owner-local source contexts
 
-Public source metadata remains tracked under the current corpus rule; no new
-ignored metadata subtree is introduced. Content-bearing private annotations,
+Curated public source metadata remains Git-backed. Bulk imported metadata and
+its provenance, fixity, rights and review evidence may live in an explicitly
+selected immutable corpus revision with exact historical locators and verified
+restore. Permanent local custody and permitted private R2 copies are separate
+from public delivery. Generated catalogs and projections are data artifacts;
+their removal from Git is not source retirement. Content-bearing private annotations,
 native token packets, human forms and their operation/assessment history need
 a separate explicitly selected confidential source store outside the public
 checkout. They retain the same ToS identities and source contracts. A private
@@ -755,7 +759,8 @@ an automatically publishable catalog or a cache whose deletion is harmless.
 The [owner-local context contract](../contracts/owner-local-source-context.schema.json)
 partitions logical refs by `ToS/source-witnesses/owner-local/<store_id>/`.
 That prefix has exactly one private physical root; all other source/contract
-refs have the existing checkout as their owner. `public_root` names a location,
+refs use the explicitly selected public source root, either a Git checkout or
+a verified corpus view. `public_root` names a location,
 not permission to read or publish every file there. There is no search,
 fallback, root shadowing or copied private schema authority. An alias under
 the checkout's reserved owner-local home is refused, even with identical bytes.

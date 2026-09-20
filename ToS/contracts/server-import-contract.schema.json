@@ -80,7 +80,16 @@
         "assessment_status": {
           "enum": ["public-domain-reviewed", "open-licensed", "permission-granted", "research-only", "restricted", "rights-unknown", "rejected"]
         },
-        "review_status": {"enum": ["unreviewed", "human-reviewed", "legal-reviewed"]},
+        "review_status": {"enum": ["unreviewed", "human-reviewed", "legal-reviewed", "agent-reviewed"]},
+        "rights_review": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ref", "sha256"],
+          "properties": {
+            "ref": {"$ref": "#/$defs/repoRef"},
+            "sha256": {"$ref": "#/$defs/sha256"}
+          }
+        },
         "jurisdictions_reviewed": {
           "type": "array",
           "uniqueItems": true,
@@ -197,7 +206,7 @@
           },
           "server_receipt_refs": {"minItems": 1},
           "rights_policy": {
-            "properties": {"review_status": {"enum": ["human-reviewed", "legal-reviewed"]}}
+            "properties": {"review_status": {"enum": ["human-reviewed", "legal-reviewed", "agent-reviewed"]}}
           }
         }
       }
@@ -213,6 +222,48 @@
               "permission_or_license_refs": {"minItems": 1}
             }
           }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "contract_version": {"maximum": 2},
+          "rights_policy": {
+            "properties": {"review_status": {"const": "agent-reviewed"}}
+          }
+        },
+        "required": ["contract_version", "rights_policy"]
+      },
+      "then": {"properties": {"rights_policy": {"not": {}}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "rights_policy": {
+            "properties": {"review_status": {"enum": ["unreviewed", "human-reviewed", "legal-reviewed"]}}
+          }
+        },
+        "required": ["rights_policy"]
+      },
+      "then": {"properties": {"rights_policy": {"properties": {"rights_review": {"not": {}}}}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "rights_policy": {
+            "properties": {"review_status": {"const": "agent-reviewed"}}
+          }
+        },
+        "required": ["rights_policy"]
+      },
+      "then": {
+        "required": ["contract_version"],
+        "properties": {
+          "contract_version": {"minimum": 3},
+          "access_class": {"const": "controlled-research"},
+          "publication_status": {"const": "not-published"},
+          "rights_policy": {"required": ["rights_review"]}
         }
       }
     },
