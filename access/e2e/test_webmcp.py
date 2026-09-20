@@ -803,6 +803,20 @@ def test_built_research_entry_persists_exact_shelf_and_camera(webmcp_page: Page,
     reading.get_by_role('button', name='Сравнить', exact=True).click()
     assert reading.get_by_role('button', name='Добавлено к сравнению', exact=True).is_disabled()
     assert page.locator('[data-live-action="compare"]').inner_text() == 'Сопоставить (1/2)'
+    # Dismissing an overlay preserves the selected material underneath it.
+    selected_title = reading.locator('h1').inner_text()
+    page.locator('[data-live-action="compare"]').click()
+    page.locator('dialog[open]').wait_for(state='visible')
+    page.keyboard.press('Escape')
+    page.locator('dialog[open]').wait_for(state='hidden')
+    assert reading.is_visible()
+    assert reading.locator('h1').inner_text() == selected_title
+    page.locator('.search-trigger').click()
+    page.locator('.search').fill('fixture')
+    page.keyboard.press('Escape')
+    assert not page.locator('.materials-panel').is_visible()
+    assert reading.is_visible()
+    assert reading.locator('h1').inner_text() == selected_title
 
     page.locator('[data-research-shelf="true"]').click()
     card = page.locator('.research-shelf-card').first

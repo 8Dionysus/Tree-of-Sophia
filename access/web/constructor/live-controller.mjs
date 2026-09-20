@@ -590,9 +590,19 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   root.querySelector('.live-search-form').onsubmit=event=>{event.preventDefault();void search();};
   root.querySelector('.search').oninput=()=>{searchGeneration++;activeSession.cancelSearch();searchPage=null;searchSeek=null;renderSearch();};
   root.querySelector('.live-more').onclick=()=>{if(searchPage&&searchQuery===root.querySelector('.search').value)void search(searchPage.page.next_cursor);};
-  const keydown=event=>{if(root.inert||event.defaultPrevented||event.target.closest('input,textarea,select,[contenteditable]'))return;
-    if(event.key==='/'){event.preventDefault();showSearch();}if(event.key==='Escape'){actions['close-search']();readingOpen=false;controller.closeReading();}
-    if(event.key==='o'&&!dialog.open)sky.frame();};
+  const keydown=event=>{
+    // Native dialog cancellation owns Escape, including the pending-command
+    // guard. Global shortcuts must not also dismiss the reading underneath.
+    if(root.inert||event.defaultPrevented||dialog.open)return;
+    if(event.key==='Escape'){
+      event.preventDefault();
+      if(!drawer.hidden){actions['close-search']();return;}
+      readingOpen=false;controller.closeReading();return;
+    }
+    if(event.target.closest('input,textarea,select,[contenteditable]'))return;
+    if(event.key==='/'){event.preventDefault();showSearch();}
+    if(event.key==='o')sky.frame();
+  };
   document.addEventListener('keydown',keydown);
   root.addEventListener('pointerup',scheduleResume);root.addEventListener('wheel',scheduleResume,{passive:true});
   const visibility=()=>{if(document.visibilityState==='hidden'&&resumeEnabled)void saveResume();};document.addEventListener('visibilitychange',visibility);
