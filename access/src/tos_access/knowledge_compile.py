@@ -24,7 +24,7 @@ if __package__ != 'tos_access':
 
 from .disk_collections import DiskCollections, DiskSequence, DiskMap, canonical_digest, retained_json as compact
 from . import knowledge as k
-from .projection_store import ProjectionReader, FORMAT, is_partitioned
+from .projection_store import ProjectionReader, FORMAT, is_partitioned, row_order
 from .query_store import SCHEMA, DEFAULT_RELATIVE_PATH, COMPILER_VERSION
 from .exploration import EXECUTION_VERSION
 
@@ -59,7 +59,11 @@ def _load(path, storage, *, allow_legacy, legacy_bound=4 * 1024 * 1024):
         parts = name.split('/')
         for part in parts[:-1]:
             target = target.setdefault(part, {})
-        if spec['key_field'] is None:
+        if spec['key_field'] == []:
+            positioned = storage.sequence(reader.iter_items(name))
+            positioned.sort(key=lambda item: item[0])
+            target[parts[-1]] = storage.sequence(item[1] for item in positioned)
+        elif spec['key_field'] is None:
             target[parts[-1]] = storage.mapping(reader.iter_items(name))
         else:
             rows = storage.sequence(reader.iter_collection(name))
@@ -67,7 +71,7 @@ def _load(path, storage, *, allow_legacy, legacy_bound=4 * 1024 * 1024):
                 spec['key_field'] if isinstance(spec['key_field'], list)
                 else [spec['key_field']]
             )
-            rows.sort(key=lambda row: tuple(str(row.get(field, '')) for field in fields))
+            rows.sort(key=lambda row: row_order(row, fields))
             target[parts[-1]] = rows
     return result, reader
 
@@ -134,19 +138,24 @@ def compile_knowledge_store(root, output=None, *, allow_legacy=False, search_acc
     db = sqlite3.connect(temporary)
     token = k.active_cache.set(None)
     storage = None
+    staging_db = None
+    staging_path = None
     reader_closures = []
     try:
-        # This unpublished file is discarded in full on every error; no caller
-        # can observe or resume a partial transaction. Avoid a second multi-GB
-        # rollback copy during VACUUM. The prior published snapshot remains
-        # untouched until integrity/input checks pass and atomic replacement.
+        # Both databases are unpublished scratch. Keep intermediates out of
+        # the release database so finalization never needs a full VACUUM copy.
         db.execute('PRAGMA journal_mode=OFF')
         db.execute('PRAGMA temp_store=FILE')
         db.execute('PRAGMA cache_size=-8192')
-        # This database is private compiler scratch state.  Final VACUUM
-        # removes retired staging rows before the completed store is published.
-        db.execute('PRAGMA secure_delete=OFF')
-        storage = DiskCollections(db)
+        stage_fd, staging_path = tempfile.mkstemp(
+            prefix=output.name + '.', suffix='.intermediates', dir=output.parent)
+        os.close(stage_fd)
+        staging_db = sqlite3.connect(staging_path)
+        staging_db.execute('PRAGMA journal_mode=OFF')
+        staging_db.execute('PRAGMA temp_store=FILE')
+        staging_db.execute('PRAGMA cache_size=-8192')
+        staging_db.execute('PRAGMA secure_delete=OFF')
+        storage = DiskCollections(staging_db)
         corpus, cr = _load(paths['corpus'], storage, allow_legacy=allow_legacy)
         # Philosophy retains its existing deduplicated transport; this one explicit
         # offline load is separate from the partitioned corpus/bibliography path.
@@ -240,10 +249,13 @@ def compile_knowledge_store(root, output=None, *, allow_legacy=False, search_acc
                               'source_rights_scopes': ['scope_id']}.items():
             for field in fields:
                 db.execute(f'CREATE INDEX {table}_{field} ON {table}({field})')
-        phase('compact')
-        storage.drop()
+        phase('release-intermediates')
+        storage.close()
+        staging_db.close()
+        staging_db = None
+        os.unlink(staging_path)
+        staging_path = None
         db.commit()
-        db.execute('VACUUM')
         phase('verify')
         if db.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
             raise ValueError('compiled store integrity check failed')
@@ -272,6 +284,10 @@ def compile_knowledge_store(root, output=None, *, allow_legacy=False, search_acc
             # closed; weakref finalizers then become no-ops instead of issuing
             # SQL against a closed scratch database during frame teardown.
             storage.close()
+        if staging_db is not None:
+            staging_db.close()
+        if staging_path is not None and os.path.exists(staging_path):
+            os.unlink(staging_path)
         db.close()
         if os.path.exists(temporary):
             os.unlink(temporary)

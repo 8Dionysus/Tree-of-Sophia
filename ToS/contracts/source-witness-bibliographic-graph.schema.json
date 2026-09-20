@@ -308,7 +308,8 @@
           "$ref": "#/$defs/sha256"
         },
         "properties": {
-          "type": "object"
+          "type": "object",
+          "description": "For provenance_event nodes, source_event preserves the complete source event. Growing inputs and outputs are exposed there once, not duplicated as flattened aliases; source_ref, source_line and source_sha256 bind the original evidence."
         },
         "display": {
           "type": "object",

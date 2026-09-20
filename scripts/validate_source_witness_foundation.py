@@ -20,6 +20,8 @@ import sys
 import unicodedata
 import xml.etree.ElementTree as ET
 from collections import Counter
+from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
@@ -42,6 +44,7 @@ from build_source_witness_catalog import (
 from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError, OWNER_LOCAL_HOME
 from source_bibliographic_topology import BibliographicTopologyError, validate_current_topology
 from source_metadata_snapshot import PublicationSnapshot
+from source_payload_custody import CustodyError, checked_root, payload_path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -4407,6 +4410,8 @@ def _digest_bound_ref_issue(
         return f"{field} is not a digest-bound reference"
     if digest_bound_ref.get("ref") != _relative(expected_path, repo_root):
         return f"{field} does not cite the current owner artifact"
+    if not expected_path.is_file() or expected_path.is_symlink():
+        return f"{field} referenced owner artifact is missing or linked"
     if digest_bound_ref.get("sha256") != _sha256(expected_path):
         return f"{field} digest drifted"
     return None
@@ -5708,7 +5713,44 @@ def _visual_retrieval_plan_issues(
     return issues
 
 
+_SOURCE_MEMBERSHIP = ContextVar('tos_source_validation_membership', default=None)
+
+
+@contextmanager
+def source_snapshot_membership(repo_root: Path, members: frozenset[str]):
+    """Validate custody against exact immutable inputs without requiring Git.
+
+    The admission adapter supplies the already verified source and retained
+    evidence members. This checks inclusion/exclusion, not current Git tracking
+    or publication permission. The legacy Git-backed route is unchanged.
+    """
+    root = repo_root.resolve()
+    if any(not isinstance(ref, str) or Path(ref).is_absolute()
+           or '..' in Path(ref).parts or '.git' in Path(ref).parts for ref in members):
+        raise ValueError('invalid source validation membership')
+    token = _SOURCE_MEMBERSHIP.set((root, members))
+    try:
+        yield
+    finally:
+        _SOURCE_MEMBERSHIP.reset(token)
+
+
+def _snapshot_member(repo_root: Path, path: Path) -> bool | None:
+    selected = _SOURCE_MEMBERSHIP.get()
+    if selected is None:
+        return None
+    if repo_root.resolve() != selected[0]:
+        raise ValueError('source validation root differs from selected snapshot')
+    try:
+        relative = path.absolute().relative_to(selected[0]).as_posix()
+    except ValueError:
+        return False
+    return relative in selected[1]
+
+
 def _git_ignored(repo_root: Path, path: Path) -> bool | None:
+    if (included := _snapshot_member(repo_root, path)) is not None:
+        return not included
     if not (repo_root / ".git").exists():
         return None
     result = subprocess.run(
@@ -5726,6 +5768,8 @@ def _git_ignored(repo_root: Path, path: Path) -> bool | None:
 
 
 def _git_tracked(repo_root: Path, path: Path) -> bool | None:
+    if (included := _snapshot_member(repo_root, path)) is not None:
+        return included
     if not (repo_root / ".git").exists():
         return None
     result = subprocess.run(
@@ -5883,6 +5927,7 @@ def validate_payload_file(
     payload_entry: dict[str, Any],
     *,
     require_local_payloads: bool,
+    payload_source_root: Path | None = None,
 ) -> list[Issue]:
     """Validate one manifest payload entry; public clones may omit local bytes."""
 
@@ -5892,31 +5937,51 @@ def validate_payload_file(
     if not isinstance(relative_path, str):
         return [(location, "payload relative_path is not a string")]
 
-    payload_path = item_directory / relative_path
-    if not payload_path.is_file():
+    item_ref = _relative(item_directory, repo_root)
+    stable_payload_ref = f"{item_ref}/{relative_path}"
+    if payload_source_root is None:
+        local_payload_path = item_directory / relative_path
+    else:
+        try:
+            local_payload_path = payload_path(payload_source_root, item_ref, relative_path)
+        except CustodyError as exc:
+            return [(location, str(exc))]
+    if not local_payload_path.is_file() or local_payload_path.is_symlink():
         if require_local_payloads:
-            issues.append((_relative(payload_path, repo_root), "required local payload is missing"))
+            issues.append((stable_payload_ref, "required local payload is missing or is a symlink"))
         return issues
 
     expected_size = payload_entry.get("byte_size")
-    actual_size = payload_path.stat().st_size
+    actual_size = local_payload_path.stat().st_size
     if actual_size != expected_size:
         issues.append(
-            (_relative(payload_path, repo_root), f"byte size {actual_size} != manifest {expected_size}")
+            (stable_payload_ref, f"byte size {actual_size} != manifest {expected_size}")
         )
 
     expected_digest = payload_entry.get("sha256")
-    actual_digest = _sha256(payload_path)
+    actual_digest = _sha256(local_payload_path)
     if actual_digest != expected_digest:
         issues.append(
-            (_relative(payload_path, repo_root), f"sha256 {actual_digest} != manifest {expected_digest}")
+            (stable_payload_ref, f"sha256 {actual_digest} != manifest {expected_digest}")
         )
 
-    ignored = _git_ignored(repo_root, payload_path)
+    if (included := _snapshot_member(repo_root, repo_root / stable_payload_ref)) is not None:
+        ignored = not included
+    elif payload_source_root is None:
+        ignored = _git_ignored(repo_root, local_payload_path)
+    else:
+        result = subprocess.run(
+            ("git", "check-ignore", "--quiet", "--", stable_payload_ref),
+            cwd=repo_root,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        ignored = True if result.returncode == 0 else False if result.returncode == 1 else None
     if ignored is False:
-        issues.append((_relative(payload_path, repo_root), "local payload is not ignored by Git"))
+        issues.append((stable_payload_ref, "local payload is not ignored by Git"))
     elif ignored is None and (repo_root / ".git").exists():
-        issues.append((_relative(payload_path, repo_root), "could not determine Git ignore posture"))
+        issues.append((stable_payload_ref, "could not determine Git ignore posture"))
     return issues
 
 
@@ -7361,13 +7426,22 @@ def _record_paths(repo_root: Path) -> Iterable[Path]:
             yield path
 
 
-def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False) -> list[Issue]:
+def validate_foundation(
+    repo_root: Path,
+    *,
+    require_local_payloads: bool = False,
+    payload_source_root: Path | None = None,
+) -> list[Issue]:
     """One participating publication snapshot covers the complete validation."""
     try:
         snapshot = PublicationSnapshot(repo_root.resolve())
     except (OSError, ValueError) as error:
         return [(SOURCE_ROOT.as_posix(), f'source metadata publication is unavailable: {error}')]
-    issues = _validate_foundation(repo_root, require_local_payloads=require_local_payloads)
+    issues = _validate_foundation(
+        repo_root,
+        require_local_payloads=require_local_payloads,
+        payload_source_root=payload_source_root,
+    )
     try:
         snapshot.verify_current()
     except (OSError, ValueError) as error:
@@ -7375,7 +7449,12 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
     return issues
 
 
-def _validate_foundation(repo_root: Path, *, require_local_payloads: bool = False) -> list[Issue]:
+def _validate_foundation(
+    repo_root: Path,
+    *,
+    require_local_payloads: bool = False,
+    payload_source_root: Path | None = None,
+) -> list[Issue]:
     repo_root = repo_root.resolve()
     issues: list[Issue] = []
 
@@ -8082,6 +8161,7 @@ def _validate_foundation(repo_root: Path, *, require_local_payloads: bool = Fals
                     item_directory,
                     payload_entry,
                     require_local_payloads=require_local_payloads,
+                    payload_source_root=payload_source_root,
                 )
             )
         expected_fixity = "\n".join(expected_lines) + ("\n" if expected_lines else "")
@@ -15476,8 +15556,10 @@ def _validate_foundation(repo_root: Path, *, require_local_payloads: bool = Fals
         # registry domains, exact catalogs, evidence, and provenance resolution.
         # This is read-only and does not authorize the historical assertions.
         from source_witness_bibliographic_graph_common import BibliographicGraphBuildError, build_payload
+        from partitioned_projection_common import build_storage
         try:
-            build_payload(repo_root)
+            with build_storage() as storage:
+                build_payload(repo_root, storage=storage)
         except (BibliographicGraphBuildError, SourceProfileError) as exc:
             issues.append((SOURCE_ROOT.as_posix(), f'declared source profile: {exc}'))
 
@@ -15541,6 +15623,11 @@ def main(argv: list[str] | None = None) -> int:
         "--require-local-payloads",
         action="store_true",
         help="fail when local gitignored source bytes are absent",
+    )
+    parser.add_argument(
+        "--payload-source-root",
+        type=Path,
+        help="explicit directory mirroring ToS/source-witnesses for payload bytes",
     )
     parser.add_argument(
         "--source-anchor-v2-lab-only",
@@ -15643,6 +15730,7 @@ def main(argv: list[str] | None = None) -> int:
     issues = validate_foundation(
         args.repo_root,
         require_local_payloads=args.require_local_payloads,
+        payload_source_root=checked_root(args.payload_source_root) if args.payload_source_root else None,
     )
     if issues:
         print("Source-witness foundation validation failed.", file=sys.stderr)

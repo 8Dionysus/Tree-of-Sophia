@@ -161,6 +161,37 @@ class PublicationReaderTests(unittest.TestCase):
               patch.object(corpus, 'SourceRecordProfiles', side_effect=self.profiles)):
             yield
 
+    def test_batch_exact_reads_match_standalone_with_constant_full_verifications(self):
+        reference = self.exact_ref(self.agent)
+        expected = metadata_reader.MetadataVersionReader(self.root).resolve(reference)
+        self.assertEqual(expected['status'], 'available')
+        instance = metadata_reader.MetadataVersionReader(self.root)
+        with patch.object(instance._snapshot, 'verify', wraps=instance._snapshot.verify) as verify:
+            with instance.batch_read():
+                for _ in range(30):
+                    self.assertEqual(instance.resolve(reference), expected)
+                self.assertEqual(verify.call_count, 1)
+            self.assertEqual(verify.call_count, 2)
+
+    def test_batch_rejects_changed_observed_file_before_result_can_escape(self):
+        instance = metadata_reader.MetadataVersionReader(self.root)
+        with self.assertRaises(source.JournalConflict):
+            with instance.batch_read():
+                self.assertEqual(instance.resolve(self.exact_ref(self.agent))['status'], 'available')
+                self.write(self.agent_ref, encoded({**self.agent, 'preferred_label': 'Changed'}))
+        self.assertFalse(instance._batch_read)
+        self.assertNotEqual(instance.resolve(self.exact_ref(self.agent))['status'], 'available')
+
+    def test_batch_exception_restores_standalone_checks_and_rejects_nesting(self):
+        instance = metadata_reader.MetadataVersionReader(self.root)
+        with self.assertRaisesRegex(RuntimeError, 'cannot nest'):
+            with instance.batch_read():
+                with instance.batch_read():
+                    pass
+        with patch.object(instance._snapshot, 'verify', wraps=instance._snapshot.verify) as verify:
+            self.assertEqual(instance.resolve(self.exact_ref(self.agent))['status'], 'available')
+            self.assertGreater(verify.call_count, 0)
+
     def test_legacy_absent_control_keeps_unbound_catalog_and_exact_reads(self):
         self.assertIsNone(publication.PublicationSnapshot(self.root).token)
         manifest = json.loads((self.root / catalog.MANIFEST_PATH).read_bytes())

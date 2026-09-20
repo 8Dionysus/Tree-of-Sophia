@@ -64,6 +64,10 @@ AbyssOS admission remains specific to an AbyssOS consumer.
 - Supersedes D0026, D0030 and D0035 only where ecosystem provider alignment
   blocks an independent software release. Historical published identities
   and exact downstream provenance remain.
+- Supersedes D0065/D0066 only for the checkout-local provider pin, generated
+  Git family and dual-reader transition. The selected external KAG release
+  records and verifies its actual consumer identity and complete family;
+  previous immutable artifacts remain the explicit rollback route.
 - Extends D0038 to independent build, test, package and release. D0059's
   explicit offline compilation and partition integrity are retained.
 

@@ -14,6 +14,7 @@ if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
 import validate_philosophy_topology  # noqa: E402
+from prepare_philosophy_source_planting import PreparationError, prepare_anchor  # noqa: E402
 
 
 def write_text(path: Path, content: str = "") -> None:
@@ -169,6 +170,39 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
             ),
             issues,
         )
+
+    def test_planting_schema_accepts_current_table_two_and_three_namespaces(self) -> None:
+        validator = validate_philosophy_topology.load_schema_validator(REPO_ROOT, validate_philosophy_topology.SOURCE_PLANTING_SCHEMA)
+        existing = next((REPO_ROOT / "ToS/philosophy/eras").glob("**/sources/plantings/*/source-planting.json"))
+        planting = json.loads(existing.read_text())
+        for atlas_id in ("A12", "T2-39", "T3-01"):
+            planting.update(atlas_row_id=atlas_id, dossier_id=atlas_id)
+            self.assertEqual([], list(validator.iter_errors(planting)))
+        planting.update(atlas_row_id="T4-01", dossier_id="T4-01")
+        self.assertTrue(list(validator.iter_errors(planting)))
+
+    def test_planting_atlas_membership_is_more_than_namespace_syntax(self) -> None:
+        branch = "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff"
+        planting = {"atlas_row_id": "T2-39", "dossier_id": "T2-39", "branch_path": branch}
+        self.assertEqual([], validate_philosophy_topology.validate_planting_atlas_membership(REPO_ROOT, planting, "fixture"))
+        planting.update(atlas_row_id="T2-99", dossier_id="T2-99")
+        messages = [message for _, message in validate_philosophy_topology.validate_planting_atlas_membership(REPO_ROOT, planting, "fixture")]
+        self.assertIn("planting atlas row must resolve exactly once in current master tables", messages)
+        planting.update(atlas_row_id="A12", dossier_id="A12")
+        messages = [message for _, message in validate_philosophy_topology.validate_planting_atlas_membership(REPO_ROOT, planting, "fixture")]
+        self.assertIn("planting atlas row does not belong to the exact branch", messages)
+
+    def test_readonly_preparation_preserves_provider_anchor_and_antecedent_route(self) -> None:
+        prepared = prepare_anchor(REPO_ROOT, atlas_row_id="A12", source_table_index=14, source_row_index=1,
+            source_label="Sefaria: Proverbs / Job / Ecclesiastes")
+        self.assertEqual("prepared-not-planted", prepared["status"])
+        self.assertEqual(9, prepared["source_backlog_anchor"]["line"])
+        self.assertNotIn("source_witness", prepared)
+        with self.assertRaisesRegex(PreparationError, "exact atlas, branch or source label"):
+            prepare_anchor(REPO_ROOT, atlas_row_id="A12", source_table_index=14, source_row_index=1, source_label="MorphHB")
+        prepared = prepare_anchor(REPO_ROOT, atlas_row_id="T2-39", source_table_index=14, source_row_index=2, source_label="SuttaCentral")
+        self.assertEqual(14, prepared["source_backlog_anchor"]["line"])
+        self.assertIn("pali-scholastic-commentarial-handoff", prepared["branch_path"])
 
     def test_current_source_planting_contract_fails_closed_on_promotion(self) -> None:
         schema_path = Path("ToS/contracts/philosophy-source-planting.schema.json")

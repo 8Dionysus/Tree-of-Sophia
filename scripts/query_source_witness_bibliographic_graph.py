@@ -11,6 +11,8 @@ from source_witness_bibliographic_graph_common import (
     load_verified_projection,
     query_projection,
 )
+from partitioned_projection_common import build_storage, ProjectionReader, ProjectionStoreError, is_partitioned
+from source_witness_bibliographic_graph_common import GRAPH_PATH
 
 
 def main() -> int:
@@ -39,19 +41,25 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        projection = load_verified_projection()
-        result = query_projection(
-            projection,
-            claim_ref=args.claim_ref,
-            subject_ref=args.subject_ref,
-            object_ref=args.object_ref,
-            normalized_ref=args.normalized_ref,
-            predicate=args.predicate,
-            review_status=args.review_status,
-            visibility=args.visibility,
-            limit=args.limit,
-        )
-    except BibliographicGraphBuildError as exc:
+        with build_storage() as storage:
+            transport = ProjectionReader(GRAPH_PATH) if is_partitioned(GRAPH_PATH) else None
+            projection = load_verified_projection(storage=storage)
+            result = query_projection(
+                projection,
+                claim_ref=args.claim_ref,
+                subject_ref=args.subject_ref,
+                object_ref=args.object_ref,
+                normalized_ref=args.normalized_ref,
+                predicate=args.predicate,
+                review_status=args.review_status,
+                visibility=args.visibility,
+                limit=args.limit,
+                storage=storage,
+            )
+            if transport is not None:
+                transport.require_current()
+                result["source_manifest_sha256"] = transport.snapshot_digest
+    except (BibliographicGraphBuildError, ProjectionStoreError) as exc:
         parser.exit(2, f"query rejected: {exc}\n")
 
     print(

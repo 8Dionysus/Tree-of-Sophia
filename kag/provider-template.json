@@ -1,0 +1,367 @@
+{
+  "schema_version": "tos_kag_provider_template_v1",
+  "files": {
+    "kag/AGENTS.md": "# Immutable ToS KAG provider\n\nThis selected release exposes a bounded source export. Its source bytes and corpus revision are bound by the enclosing integration manifest. These generated carriers do not admit meaning, rights, canon or runtime state. Return to the exact canonical ToS source before making source judgments.\n",
+    "kag/README.md": "# Tree-of-Sophia KAG release\n\nThis provider home belongs to one immutable integration, not to a mutable software checkout. The enclosing integration.json identifies its corpus/export, consumer programs and complete bytes. Candidate route declarations describe source navigation; successful publication and lag are reported by the separate downstream status. The canonical source is ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json.\n",
+    "kag/edges/source-return.json": {
+      "schema_version": "aoa-local-kag-record-v1",
+      "repo": "Tree-of-Sophia",
+      "local_id": "edge:tos-kag-export:returns-to-route",
+      "record_class": "edge",
+      "source_refs": [
+        {
+          "repo": "Tree-of-Sophia",
+          "path": "ToS/derived-exports/kag_export.min.json",
+          "source_class": "tos_source",
+          "role": "primary",
+          "authority": "source_owned_export"
+        }
+      ],
+      "source_owner": "Tree-of-Sophia",
+      "provenance_mode": "strict_source_linked",
+      "derived_method": "documented owner-return relation",
+      "generated_or_authored": "generated_from_source",
+      "status": "active",
+      "owner_return_route": {
+        "repo": "Tree-of-Sophia",
+        "surface": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+        "route_kind": "source_export"
+      },
+      "freshness": {
+        "mode": "source_snapshot",
+        "state": "candidate",
+        "checked_ref": "ToS/derived-exports/kag_export.min.json"
+      },
+      "builder": {
+        "route": "explicit immutable ToS KAG publication",
+        "surface": "kag/manifest.json"
+      },
+      "validator": {
+        "route": "selected aoa-kag provider-home and repository-family consumer",
+        "lane": "local-kag"
+      },
+      "storage_posture": {
+        "git_surface": "portable_records",
+        "payload_class": "edge",
+        "runtime_route": "source-repo"
+      },
+      "consumer_route": "aoa-kag provider registry with explicit Tree-of-Sophia release root",
+      "from_id": "node:tos:kag-export",
+      "to_id": "node:tos:derived-export-route",
+      "edge_kind": "returns_to",
+      "edge_trace": "bounded source export returns to its exact ToS owner"
+    },
+    "kag/indexes/source-routes.json": {
+      "schema_version": "aoa-local-kag-record-v1",
+      "repo": "Tree-of-Sophia",
+      "local_id": "index:tos:kag-source-surfaces",
+      "record_class": "index",
+      "source_refs": [
+        {
+          "repo": "Tree-of-Sophia",
+          "path": "ToS/derived-exports/kag_export.min.json",
+          "source_class": "tos_source",
+          "role": "primary",
+          "authority": "source_owned_export"
+        }
+      ],
+      "source_owner": "Tree-of-Sophia",
+      "provenance_mode": "strict_source_linked",
+      "derived_method": "derived export route record",
+      "generated_or_authored": "authored_control",
+      "status": "active",
+      "owner_return_route": {
+        "repo": "Tree-of-Sophia",
+        "surface": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+        "route_kind": "source_export"
+      },
+      "freshness": {
+        "mode": "source_snapshot",
+        "state": "candidate",
+        "checked_ref": "ToS/derived-exports/kag_export.min.json"
+      },
+      "builder": {
+        "route": "explicit immutable ToS KAG publication",
+        "surface": "kag/manifest.json"
+      },
+      "validator": {
+        "route": "selected aoa-kag provider-home and repository-family consumer",
+        "lane": "local-kag"
+      },
+      "storage_posture": {
+        "git_surface": "portable_records",
+        "payload_class": "index",
+        "runtime_route": "source-repo"
+      },
+      "consumer_route": "aoa-kag provider registry with explicit Tree-of-Sophia release root",
+      "index_kind": "lookup",
+      "indexed_record_classes": [
+        "node",
+        "edge",
+        "projection",
+        "receipt"
+      ],
+      "source_record_ids": [
+        "node:tos:derived-export-route",
+        "node:tos:kag-export"
+      ]
+    },
+    "kag/manifest.json": {
+      "schema_version": "aoa-local-kag-manifest-v1",
+      "repo": "Tree-of-Sophia",
+      "owner_surface": "kag/AGENTS.md",
+      "source_surfaces": [
+        {
+          "repo": "Tree-of-Sophia",
+          "path": "ToS/derived-exports/kag_export.min.json",
+          "source_class": "tos_source",
+          "role": "primary",
+          "authority": "source_owned_export"
+        },
+        {
+          "repo": "Tree-of-Sophia",
+          "path": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+          "source_class": "tos_source",
+          "role": "supporting",
+          "authority": "authored_source"
+        },
+        {
+          "repo": "Tree-of-Sophia",
+          "path": "ToS/derived-exports/README.md",
+          "source_class": "tos_source",
+          "role": "owner_route",
+          "authority": "authored_source"
+        }
+      ],
+      "record_classes": [
+        "node",
+        "edge",
+        "index",
+        "projection",
+        "receipt"
+      ],
+      "storage_posture": {
+        "git_surface": "portable_records",
+        "payload_class": "manifest",
+        "runtime_route": "source-repo"
+      },
+      "validation_routes": [
+        {
+          "route": "Tree-of-Sophia:scripts/publish_kag_release.py",
+          "lane": "owner-local"
+        },
+        {
+          "route": "aoa-kag:explicit provider-home and repository-family consumer",
+          "lane": "local-kag"
+        }
+      ],
+      "consumer_routes": [
+        "aoa-kag registry",
+        "abyss-stack federation mirror",
+        "aoa-kag-mcp resource"
+      ],
+      "owner_return_routes": [
+        {
+          "repo": "Tree-of-Sophia",
+          "surface": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+          "route_kind": "source_export"
+        },
+        {
+          "repo": "Tree-of-Sophia",
+          "surface": "ToS/derived-exports/README.md",
+          "route_kind": "source_export"
+        }
+      ]
+    },
+    "kag/nodes/export-route.json": {
+      "schema_version": "aoa-local-kag-record-v1",
+      "repo": "Tree-of-Sophia",
+      "local_id": "node:tos:derived-export-route",
+      "record_class": "node",
+      "source_refs": [
+        {
+          "repo": "Tree-of-Sophia",
+          "path": "ToS/derived-exports/README.md",
+          "source_class": "tos_source",
+          "role": "primary",
+          "authority": "authored_source"
+        }
+      ],
+      "source_owner": "Tree-of-Sophia",
+      "provenance_mode": "strict_source_linked",
+      "derived_method": "derived export route record",
+      "generated_or_authored": "authored_control",
+      "status": "active",
+      "owner_return_route": {
+        "repo": "Tree-of-Sophia",
+        "surface": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+        "route_kind": "source_export"
+      },
+      "freshness": {
+        "mode": "source_snapshot",
+        "state": "candidate",
+        "checked_ref": "ToS/derived-exports/README.md"
+      },
+      "builder": {
+        "route": "explicit immutable ToS KAG publication",
+        "surface": "kag/manifest.json"
+      },
+      "validator": {
+        "route": "selected aoa-kag provider-home and repository-family consumer",
+        "lane": "local-kag"
+      },
+      "storage_posture": {
+        "git_surface": "portable_records",
+        "payload_class": "node",
+        "runtime_route": "source-repo"
+      },
+      "consumer_route": "aoa-kag provider registry with explicit Tree-of-Sophia release root",
+      "node_kind": "route_surface",
+      "label": "Tree-of-Sophia derived export route"
+    },
+    "kag/nodes/source-export.json": {
+      "schema_version": "aoa-local-kag-record-v1",
+      "repo": "Tree-of-Sophia",
+      "local_id": "node:tos:kag-export",
+      "record_class": "node",
+      "source_refs": [
+        {
+          "repo": "Tree-of-Sophia",
+          "path": "ToS/derived-exports/kag_export.min.json",
+          "source_class": "tos_source",
+          "role": "primary",
+          "authority": "source_owned_export"
+        }
+      ],
+      "source_owner": "Tree-of-Sophia",
+      "provenance_mode": "strict_source_linked",
+      "derived_method": "source-owned ToS KAG export capsule",
+      "generated_or_authored": "generated_from_source",
+      "status": "active",
+      "owner_return_route": {
+        "repo": "Tree-of-Sophia",
+        "surface": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+        "route_kind": "source_export"
+      },
+      "freshness": {
+        "mode": "source_snapshot",
+        "state": "candidate",
+        "checked_ref": "ToS/derived-exports/kag_export.min.json"
+      },
+      "builder": {
+        "route": "explicit immutable ToS KAG publication",
+        "surface": "kag/manifest.json"
+      },
+      "validator": {
+        "route": "selected aoa-kag provider-home and repository-family consumer",
+        "lane": "local-kag"
+      },
+      "storage_posture": {
+        "git_surface": "portable_records",
+        "payload_class": "node",
+        "runtime_route": "source-repo"
+      },
+      "consumer_route": "aoa-kag provider registry with explicit Tree-of-Sophia release root",
+      "node_kind": "source_surface",
+      "label": "Tree-of-Sophia KAG export capsule"
+    },
+    "kag/projections/source-return.json": {
+      "schema_version": "aoa-local-kag-record-v1",
+      "repo": "Tree-of-Sophia",
+      "local_id": "projection:mcp:tos-source-return",
+      "record_class": "projection",
+      "source_refs": [
+        {
+          "repo": "Tree-of-Sophia",
+          "path": "ToS/derived-exports/kag_export.min.json",
+          "source_class": "tos_source",
+          "role": "primary",
+          "authority": "source_owned_export"
+        }
+      ],
+      "source_owner": "Tree-of-Sophia",
+      "provenance_mode": "strict_source_linked",
+      "derived_method": "MCP-readable source-return packet",
+      "generated_or_authored": "generated_from_source",
+      "status": "active",
+      "owner_return_route": {
+        "repo": "Tree-of-Sophia",
+        "surface": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+        "route_kind": "source_export"
+      },
+      "freshness": {
+        "mode": "source_snapshot",
+        "state": "candidate",
+        "checked_ref": "ToS/derived-exports/kag_export.min.json"
+      },
+      "builder": {
+        "route": "explicit immutable ToS KAG publication",
+        "surface": "kag/manifest.json"
+      },
+      "validator": {
+        "route": "selected aoa-kag provider-home and repository-family consumer",
+        "lane": "local-kag"
+      },
+      "storage_posture": {
+        "git_surface": "portable_records",
+        "payload_class": "projection",
+        "runtime_route": "source-repo"
+      },
+      "consumer_route": "aoa-kag provider registry with explicit Tree-of-Sophia release root",
+      "projection_kind": "mcp_packet",
+      "source_record_ids": [
+        "node:tos:kag-export",
+        "node:tos:derived-export-route",
+        "index:tos:kag-source-surfaces"
+      ],
+      "consumer_shape": "bounded canonical source return and exact source-export handles"
+    },
+    "kag/receipts/publication-route.json": {
+      "schema_version": "aoa-local-kag-record-v1",
+      "repo": "Tree-of-Sophia",
+      "local_id": "receipt:validation:tos-kag-provider",
+      "record_class": "receipt",
+      "source_refs": [
+        {
+          "repo": "Tree-of-Sophia",
+          "path": "kag/manifest.json",
+          "source_class": "tos_source",
+          "role": "primary",
+          "authority": "authored_source"
+        }
+      ],
+      "source_owner": "Tree-of-Sophia",
+      "provenance_mode": "strict_source_linked",
+      "derived_method": "declares the independent publication validation route; no source or runtime acceptance",
+      "generated_or_authored": "authored_control",
+      "status": "active",
+      "owner_return_route": {
+        "repo": "Tree-of-Sophia",
+        "surface": "ToS/derived-exports/README.md",
+        "route_kind": "source_export"
+      },
+      "freshness": {
+        "mode": "source_snapshot",
+        "state": "candidate",
+        "checked_ref": "kag/manifest.json"
+      },
+      "builder": {
+        "route": "explicit immutable ToS KAG publication",
+        "surface": "kag/manifest.json"
+      },
+      "validator": {
+        "route": "selected aoa-kag provider-home and repository-family consumer",
+        "lane": "local-kag"
+      },
+      "storage_posture": {
+        "git_surface": "portable_records",
+        "payload_class": "receipt",
+        "runtime_route": "source-repo"
+      },
+      "consumer_route": "aoa-kag provider registry with explicit Tree-of-Sophia release root",
+      "receipt_kind": "validation",
+      "result": "routed",
+      "fallback_route": "ToS/derived-exports/README.md"
+    }
+  }
+}

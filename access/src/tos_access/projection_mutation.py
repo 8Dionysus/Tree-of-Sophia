@@ -417,6 +417,9 @@ def _stage(reader, binding, trust, changes, header_change, target, budget):
             raise ProjectionMutationError("absent after state cannot carry a value")
         if not change.before_present and not change.after_present:
             raise ProjectionMutationError("absent-to-absent is not a mutation")
+        if manifest["collections"][name]["key_field"] == []:
+            raise ProjectionMutationRequiresBootstrap(
+                "requires-bootstrap: positional sequence changes require complete publication")
         frame = {"collection": name, "key": key,
                  "before": {"present": change.before_present, "sha256": change.before_sha256},
                  "after": {"present": change.after_present, "sha256": None}}

@@ -15,7 +15,7 @@ PACKAGING_ROOT = Path(__file__).resolve().parent
 if PACKAGING_ROOT.as_posix() not in sys.path:
     sys.path.insert(0, PACKAGING_ROOT.as_posix())
 
-from build_standalone_bundle import (  # noqa: E402
+from archive_common import (  # noqa: E402
     _write_deterministic_zip as _write_zip,
     sha256_file,
 )
@@ -32,7 +32,7 @@ TOS_SCHEMA_FILES = (
 )
 SOURCE_STATUS_PATHS = (
     "access/packaging/build_software_bundle.py",
-    "access/packaging/build_standalone_bundle.py",
+    "access/packaging/archive_common.py",
     "access/pyproject.toml",
     "access/README.md",
     "access/packaging/tos_build_backend.py",

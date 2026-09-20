@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT / "access" / "src"))
+
+from tos_access.projection_store import Collection, ProjectionReader, write_projection
+
 VALIDATOR_PATH = (
     REPO_ROOT
     / "mechanics"
@@ -67,6 +73,63 @@ validator_subject_store_env_names = (
 
 
 class ArtifactSubjectStoreIsolationTests(unittest.TestCase):
+    def test_partitioned_subject_closure_must_be_listed_as_exact_manifest_paths(self) -> None:
+        validator = load_validator()
+
+        with tempfile.TemporaryDirectory(prefix="tos-partitioned-subject-closure-") as tmp:
+            root = Path(tmp)
+            manifest_dir = root / "manifests"
+            subject_root = root / "subjects"
+            manifest_dir.mkdir()
+            subject_root.mkdir()
+            projection = subject_root / "projection.min.json"
+            write_projection(
+                projection,
+                {"schema_version": "synthetic_projection_v1"},
+                {"rows": Collection([{"id": "one", "label": "One"}], "id")},
+            )
+            manifest = manifest_dir / "bundle.json"
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "subject_repo_root": "../subjects",
+                        "artifact_subjects": [
+                            {"path": "projection.min.json", "role": "projection"}
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "partitioned projection subject closure is incomplete",
+            ):
+                validator._assert_declared_subject_closures(manifest)
+
+            closure = list(ProjectionReader(projection).closure_paths())
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            payload["artifact_subjects"].extend(
+                {
+                    "path": path.relative_to(subject_root).as_posix(),
+                    "role": "projection-part",
+                }
+                for path in closure
+                if path != projection
+            )
+            manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+            validator._assert_declared_subject_closures(manifest)
+            validator._assert_public_safe_subjects(manifest, projection)
+
+            payload["artifact_subjects"] = [{"glob": "projection.min.json", "role": "projection"}]
+            manifest.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(
+                ValueError,
+                "requires exact artifact_subjects.path entries",
+            ):
+                validator._assert_declared_subject_closures(manifest)
+
     def test_raw_empty_root_is_rejected_before_materialization(self) -> None:
         validator = load_validator()
 

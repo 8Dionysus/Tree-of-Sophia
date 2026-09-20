@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate software; full integration audits require explicit selection."""
+"""Validate the standalone software release."""
 from __future__ import annotations
 
 import argparse
@@ -40,12 +40,9 @@ def run_step(label: str, command: list[str]) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--phase', choices=('all', 'checks', 'tests'), default='all')
-    parser.add_argument('--integration-audit', action='store_true',
-                        help='explicitly audit the historical full repository snapshot; requires its data and external owners')
     args = parser.parse_args(argv)
-    sequence = 'integration_snapshot_audit' if args.integration_audit else RELEASE_SEQUENCE
     try:
-        steps = select_steps(command_sequence(sequence, REPO_ROOT), args.phase)
+        steps = select_steps(command_sequence(RELEASE_SEQUENCE, REPO_ROOT), args.phase)
     except (KeyError, ValueError) as exc:
         print(f'[error] {exc}', flush=True)
         return 2

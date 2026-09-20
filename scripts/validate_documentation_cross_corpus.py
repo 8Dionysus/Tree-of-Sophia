@@ -594,6 +594,81 @@ def route_visible_markdown(text: str) -> str:
     )
 
 
+def declared_gitignored_payload_reference(
+    repo_root: Path,
+    source_path: Path,
+    reference: str,
+) -> bool:
+    """Accept a missing local payload only when its tracked item manifest names it.
+
+    Source-item payload bytes are intentionally gitignored.  A README may still
+    link to the real local file so an operator checkout remains directly
+    readable; a clean checkout needs the tracked manifest to establish that the
+    missing target is deferred custody rather than a typo.  The manifest's
+    relative path is the owner contract and the source-foundation validator
+    remains responsible for its full schema/fixity checks.
+    """
+    target, fragment = validate_mechanics_topology.reference_parts(reference)
+    if fragment or not target:
+        return False
+    repo_root = repo_root.resolve()
+    candidates = (source_path.parent / target, repo_root / target)
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve()
+            relative = resolved.relative_to(repo_root)
+        except (OSError, ValueError):
+            continue
+        parts = relative.parts
+        if (
+            len(parts) != 13
+            or parts[:3] != ("ToS", "source-witnesses", "works")
+            or parts[5] != "expressions"
+            or parts[7] != "editions"
+            or parts[9] != "items"
+            or parts[11] != "payload"
+        ):
+            continue
+        item_root = resolved.parent.parent
+        manifest_path = item_root / "item.manifest.json"
+        try:
+            manifest_relative = manifest_path.relative_to(repo_root)
+            tracked = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(repo_root),
+                    "ls-files",
+                    "--error-unmatch",
+                    "--",
+                    manifest_relative.as_posix(),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        except (OSError, ValueError):
+            continue
+        if tracked.returncode != 0 or tracked.stdout.strip() != manifest_relative.as_posix():
+            continue
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            continue
+        if manifest.get("storage_posture") != "local_gitignored_payload":
+            continue
+        payload_files = manifest.get("payload_files")
+        if not isinstance(payload_files, list):
+            continue
+        expected = f"payload/{resolved.name}"
+        if any(
+            isinstance(entry, dict) and entry.get("relative_path") == expected
+            for entry in payload_files
+        ):
+            return True
+    return False
+
+
 def validate_markdown_routes(repo_root: Path, issues: list[Issue]) -> None:
     for path in _tracked_markdown_paths(repo_root):
         relative = path.relative_to(repo_root).as_posix()
@@ -615,6 +690,8 @@ def validate_markdown_routes(repo_root: Path, issues: list[Issue]) -> None:
                 continue
             resolved = validate_mechanics_topology.resolve_doc_reference(repo_root, path, reference)
             if resolved is None:
+                if declared_gitignored_payload_reference(repo_root, path, reference):
+                    continue
                 _issue(issues, relative, f"broken local documentation route: {reference}")
                 continue
             target, fragment = validate_mechanics_topology.reference_parts(reference)

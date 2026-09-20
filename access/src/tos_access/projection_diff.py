@@ -144,7 +144,11 @@ class _Reader(ProjectionReader):
             if (previous is not None and key <= previous) or not _sha(key.encode()).startswith(prefix):
                 raise ProjectionDiffError("duplicate, unsorted, or misplaced partition key")
             value = record["value"]
-            if field is not None and (not isinstance(value, dict) or _record_key(value, field) != key):
+            if field == []:
+                if (len(key) != 20 or not key.isascii() or not key.isdigit()
+                        or int(key) >= self.manifest["collections"][name]["root"]["count"]):
+                    raise ProjectionDiffError("invalid sequence position")
+            elif field is not None and (not isinstance(value, dict) or _record_key(value, field) != key):
                 raise ProjectionDiffError("partition key differs from record identity")
             previous, count = key, count + 1
             yield key, value
