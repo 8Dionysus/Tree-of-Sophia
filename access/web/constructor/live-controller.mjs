@@ -423,17 +423,24 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     }
     if(reasons.length)reading.append(explanation);
     const links=el('section','','related-materials');links.append(el('h2',word('Связанные материалы','Related materials'),'minor-title'));
+    const related=[];
     for(const edge of state.model.edges){if(![edge.fromId,edge.toId].includes(state.model.carrierToVertex.get(ids[0])))continue;
       const current=state.model.carrierToVertex.get(ids[0]),other=edge.fromId===current?edge.toId:edge.fromId;
       const vertex=state.model.verticesById.get(other),raw=vertex?state.model.rawNodesById.get(vertex.representativeId):null;
-      const entry=button('',()=>controller.selectNode(other),'material-row');entry.dataset.relatedNodeId=vertex?.representativeId??'';
       const relation=state.model.rawRelationsById.get(edge.rawId),typeId=edge.kind==='claim-path'?edge.path.relation_type_id:relation?.relation_type_id;
       const type=state.discovery?.catalog?.semantic_registries?.relation_types?.entries?.find(row=>row.relation_type_id===typeId);
       const relationName=edge.kind==='claim-path'?localized(type?.labels,word('Связь','Relation'),language):relation?liveLabel(relation,language).text:word('Связь','Relation');
-      const direction=edge.fromId===current?'→':'←';
-      entry.append(el('small',direction+' '+relationName),el('strong',raw?liveLabel(raw,language).text:word('Связь','Relation')));
+      const direction=edge.fromId===current?'→':'←',title=raw?liveLabel(raw,language).text:word('Связь','Relation');
+      related.push({edge,other,vertex,raw,title,relationName,direction});
+    }
+    const distinctions=searchDisambiguators(related.filter(row=>row.raw).map(row=>({...row,kind:'node',detail:row.direction+' '+row.relationName})),language);
+    for(const {edge,other,vertex,raw,title,relationName,direction}of related){
+      const distinction=raw?distinctions.get(`node:${raw.id}`):null;
+      const entry=button('',()=>controller.selectNode(other),'material-row');entry.dataset.relatedNodeId=vertex?.representativeId??'';
+      entry.append(el('small',direction+' '+relationName),el('strong',title));
+      if(distinction)entry.append(el('small',distinction));
       const row=el('div','','related-material-row'),inspect=button(word('О связи','About this relation'),()=>controller.selectEdge(edge.id),'related-relation');
-      inspect.setAttribute('aria-label',word('О связи: ','About relation: ')+relationName);row.append(entry,inspect);links.append(row);}
+      inspect.setAttribute('aria-label',word('О связи: ','About relation: ')+relationName+' · '+title+(distinction?' · '+distinction:''));row.append(entry,inspect);links.append(row);}
     if(links.children.length>1)reading.append(links);
   }
   async function open(target,replace=false){
