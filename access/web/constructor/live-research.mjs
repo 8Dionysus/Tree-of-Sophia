@@ -21,8 +21,9 @@ const jsonBytes=value=>{
   const text=JSON.stringify(value);
   return typeof TextEncoder==='function'?new TextEncoder().encode(text).byteLength:text.length;
 };
-export async function seekSearchPage(fetchPage,{cursor=null,window=SEARCH_SEEK_WINDOW,isCurrent=()=>true,now=()=>Date.now()}={}){
-  if(typeof fetchPage!=='function'||typeof isCurrent!=='function'||typeof now!=='function')throw new TypeError('Invalid search-seek callbacks.');
+export async function seekSearchPage(fetchPage,{cursor=null,window=SEARCH_SEEK_WINDOW,isCurrent=()=>true,now=()=>Date.now(),
+  hasMatches=page=>(Array.isArray(page.nodes)&&page.nodes.length>0)||(Array.isArray(page.relations)&&page.relations.length>0)}={}){
+  if([fetchPage,isCurrent,now,hasMatches].some(callback=>typeof callback!=='function'))throw new TypeError('Invalid search-seek callbacks.');
   const maxRequests=positiveWindow(window.maxRequests,'maxRequests'),maxBytes=positiveWindow(window.maxBytes,'maxBytes'),maxTimeMs=positiveWindow(window.maxTimeMs,'maxTimeMs');
   const limits=Object.freeze({maxRequests,maxBytes,maxTimeMs});
   const started=now();let nextCursor=cursor,requests=0,bytes=0,last=null;
@@ -37,7 +38,7 @@ export async function seekSearchPage(fetchPage,{cursor=null,window=SEARCH_SEEK_W
     if(!isCurrent())return result(null,false,'cancelled',true);
     if(page===null||page===undefined)return result(null,false,'cancelled',true);
     requests++;bytes+=jsonBytes(page);last=page;
-    const found=(Array.isArray(page.nodes)&&page.nodes.length>0)||(Array.isArray(page.relations)&&page.relations.length>0);
+    const found=hasMatches(page);
     // Preserve a useful match even when its response crossed the soft window;
     // no further page is fetched until the user explicitly continues.
     if(found)return result(page,false,'match');

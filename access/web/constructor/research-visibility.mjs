@@ -1,12 +1,9 @@
 // The scene contract retains every carrier. This local view only sets aside
 // objects explicitly classified as projections by the selected ToS catalog.
 // Missing classifications and mixed groups remain visible.
+import {projectionTypeIds} from './research-content.mjs';
 export function researchVisibility(model,{catalog,selection,mode='compact'}={}){
-  const roles=new Map();
-  for(const entry of catalog?.semantic_registries?.entity_types?.entries??[]){
-    if(!roles.has(entry.type_id))roles.set(entry.type_id,new Set());
-    roles.get(entry.type_id).add(entry.object_role);
-  }
+  const projectionTypes=projectionTypeIds(catalog);
   const protectedVertices=new Set();
   const protect=id=>{const vertex=model.carrierToVertex.get(id);if(vertex)protectedVertices.add(vertex);};
   if(selection?.kind==='node')protect(selection.id);
@@ -27,8 +24,7 @@ export function researchVisibility(model,{catalog,selection,mode='compact'}={}){
     }
   }
   const hidden=mode==='compact'?model.vertices.filter(vertex=>!protectedVertices.has(vertex.id)&&vertex.nodeIds.length>0&&vertex.nodeIds.every(id=>{
-    const role=roles.get(model.rawNodesById.get(id)?.type_id);
-    return role?.size===1&&role.has('projection');
+    return projectionTypes.has(model.rawNodesById.get(id)?.type_id);
   })):[];
   const hiddenIds=new Set(hidden.map(vertex=>vertex.id));
   const vertices=model.vertices.filter(vertex=>!hiddenIds.has(vertex.id));

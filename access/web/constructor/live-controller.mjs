@@ -23,13 +23,14 @@ import {mountLensBuilder} from '../src/observatory/lens-builder.mjs';
 import {constructorCatalog,previewDraft} from '../src/observatory/lens-model.mjs';
 import {validateRouteTarget} from '../src/research-shelf/model.mjs';
 import {RevisionError} from '../src/observatory/knowledge-client.mjs';
+import {researchSearchRows} from './research-content.mjs';
 
 const copy={ru:{brand:'ДРЕВО СОФИИ',subtitle:'',search:'Поиск по Древу',close:'Закрыть',
   view:'ПРЕДСТАВЛЕНИЕ',compact:'Исследование',grouped:'Все объекты',raw:'Отдельные записи',conditions:'Настроить связи',
   compare:'Сопоставить',continue:'Показать ещё',overview:'Вместить в поле',motion:'Движение пространства',cinema:'Скрыть интерфейс',
   show:'Показать интерфейс',empty:'С чего начнём исследование?',emptyText:'Найдите слово, мысль, человека, произведение, событие или связь.',
   loading:'Загружаю…',readonly:'Об этой области',searchGo:'Найти',more:'Следующая страница',continueSearch:'Продолжить поиск',
-  searchPaused:'Есть ещё результаты. Продолжите поиск.',
+  searchPaused:'Просмотрена часть результатов.',serviceRecords:'Служебные записи',previousSearch:'Предыдущая страница',
   none:'Совпадений на этой странице нет.',node:'Предмет',relation:'Связь',read:'Читать',expand:'Связи',
   newSpace:'Перейти сюда',pin:'Сравнить',sources:'Источники',technical:'Скачать данные',
   reasons:'Как найдено',noReading:'Выберите звезду или линию для чтения.',cancel:'Отменить запрос',
@@ -48,7 +49,7 @@ en:{brand:'TREE OF SOPHIA',subtitle:'',search:'Search the Tree',close:'Close',
   compare:'Compare',continue:'Continue expansion',overview:'Fit the field',motion:'Space motion',cinema:'Hide interface',
   show:'Show interface',empty:'Where shall we begin?',emptyText:'Find a word, thought, person, work, event or relation.',
   loading:'Loading…',readonly:'About this area',searchGo:'Search',more:'Next page',continueSearch:'Continue search',
-  searchPaused:'More results are available. Continue searching.',none:'No matches on this page.',
+  searchPaused:'Part of the results has been checked.',serviceRecords:'Service records',previousSearch:'Previous page',none:'No matches on this page.',
   node:'Object',relation:'Relation',read:'Read',expand:'Expand neighborhood',newSpace:'Open in a new field',pin:'Pin for comparison',
   sources:'Sources',technical:'Download data',reasons:'How it was found',noReading:'Select a star or line to read.',cancel:'Cancel request',
   profile:'Proximity rule',direction:'Direction',either:'Both directions',incoming:'Incoming',outgoing:'Outgoing',depth:'Depth',
@@ -73,6 +74,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   let research=null,moving=!matchMedia('(prefers-reduced-motion: reduce)').matches;
   let routedView=null;
   let options={},searchPage=null,searchQuery='',searchSeek=null,searchGeneration=0,surfaceGeneration=0,renderedReading=null,renderedReadingError=null,renderedRelatedModel=null,renderedComparison=null;
+  let searchService=false,searchPending=false,searchHistory=[];
   const t=key=>copy[language][key];setUiLanguage(language);
   const word=(ru,en)=>language==='ru'?ru:en;
   const viewStore=createLiveResumeStore();let resumeTimer=null,resumeWriting=Promise.resolve(),resumeEnabled=false,lastResumeKey='',unresolvedResume=null;
@@ -86,8 +88,9 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     <div class="view-heading"><div class="view-kicker" data-live-copy="space"></div><h1></h1><p></p></div>
     <aside class="reading" hidden></aside>
     <aside class="materials-panel panel" hidden><div class="panel-top"><h2 data-live-copy="search"></h2><button class="icon" data-live-action="close-search">×</button></div>
-      <form class="live-search-form"><input class="search" type="search" maxlength="256"><button class="primary" type="submit" data-live-copy="searchGo"></button></form>
-      <p class="muted live-search-status" role="status"></p><div class="material-list"></div><button class="text-button live-more" data-live-copy="more" hidden></button></aside>
+      <form class="live-search-form"><input class="search" type="search" maxlength="256"><button class="primary" type="submit" data-live-copy="searchGo" disabled></button></form>
+      <label class="live-search-options"><input type="checkbox" data-search-service><span data-live-copy="serviceRecords"></span></label>
+      <p class="muted live-search-status" role="status"></p><div class="material-list"></div><nav class="live-search-pages"><button class="text-button live-search-previous" data-live-copy="previousSearch" hidden></button><button class="text-button live-more" data-live-copy="more" hidden></button></nav></aside>
     <div class="empty-space"><h1 data-live-copy="empty"></h1><p data-live-copy="emptyText"></p><button class="primary" data-live-action="search" data-live-copy="searchGo"></button></div>
     <div class="relation-bar"><button class="primary" data-live-action="continue" data-live-copy="continue" disabled></button><button class="text-button" data-live-action="cancel" data-live-copy="cancel" hidden></button></div>
     <footer class="footer"><button class="text-button live-back" data-live-action="back" hidden></button><button class="posture-button" data-live-action="scope" data-live-copy="readonly"></button><span class="space-count"></span><div class="footer-tools">
@@ -536,21 +539,35 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     }));
   }
   const format=(key,values)=>String(t(key)).replace(/\{(\d+)\}/g,(_,index)=>String(values[Number(index)]??''));
-  async function search(cursor=null){
-    const query=root.querySelector('.search').value,token=++searchGeneration;
-    root.querySelector('.live-search-status').textContent=t('loading');root.querySelector('.live-more').disabled=true;
+  function reflectSearchNavigation(){
+    root.querySelector('.live-search-form button').disabled=!root.querySelector('.search').value.trim();
+    const previous=root.querySelector('.live-search-previous');previous.hidden=!searchHistory.length;previous.disabled=searchPending;
+    const more=root.querySelector('.live-more');more.hidden=!searchPage?.page.has_more;more.disabled=searchPending;
+    more.textContent=searchSeek?.paused?t('continueSearch'):t('more');
+  }
+  async function search(cursor=null,{back=false}={}){
+    const query=root.querySelector('.search').value;if(!query.trim())return;
+    const token=++searchGeneration,includeService=searchService;
+    searchPending=true;root.querySelector('.live-search-status').textContent=t('loading');reflectSearchNavigation();
     try{
       // Search uses the same session as the scene and the bound discovery. An
       // empty prefix is sought only within the explicit browser-side window;
       // the returned cursor remains the sole continuation authority.
       const seek=await seekSearchPage(nextCursor=>activeSession.search(query,{cursor:nextCursor}),{
-        cursor,isCurrent:()=>!disposed&&token===searchGeneration&&root.querySelector('.search').value===query,window:SEARCH_SEEK_WINDOW});
+        cursor,isCurrent:()=>!disposed&&token===searchGeneration&&root.querySelector('.search').value===query,window:SEARCH_SEEK_WINDOW,
+        hasMatches:page=>researchSearchRows(page,controller.state().discovery?.catalog,{includeService}).rows.length>0});
       if(disposed||token!==searchGeneration||!seek.page)return;
+      if(back)searchHistory.pop();
+      else if(cursor===null)searchHistory=[];
+      else if(searchPage&&searchQuery===query&&researchSearchRows(searchPage,controller.state().discovery?.catalog,{includeService}).rows.length){
+        searchHistory.push(searchPage.page.cursor);if(searchHistory.length>16)searchHistory.shift();
+      }
       searchPage=seek.page;searchQuery=query;searchSeek=seek.paused?seek:null;renderSearch();
     }catch(error){if(!disposed&&token===searchGeneration){root.querySelector('.live-search-status').textContent=errorText(error);report(error);}}
+    finally{if(!disposed&&token===searchGeneration){searchPending=false;reflectSearchNavigation();}}
   }
   function renderSearch(){
-    const list=root.querySelector('.material-list');list.replaceChildren();const rows=searchPage?[...searchPage.nodes.map(raw=>({kind:'node',raw})),...searchPage.relations.map(raw=>({kind:'relation',raw}))]:[];
+    const list=root.querySelector('.material-list');list.replaceChildren();const {rows}=researchSearchRows(searchPage,controller.state().discovery?.catalog,{includeService:searchService});
     const distinctions=searchDisambiguators(rows.map(row=>({...row,title:humanLabel(row.raw).text,detail:liveSearchPreview(row.raw,language)?.text})),language);
     for(const {kind,raw} of rows){const item=button('',()=>open({kind,id:raw.id,content_revision:raw.content_revision}),'material-row');
       item.dataset.resultKind=kind;item.dataset.resultId=raw.id;item.append(el('small',t(kind)),el('strong',humanLabel(raw).text));
@@ -560,8 +577,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     root.querySelector('.live-search-status').textContent=rows.length?'':searchSeek?.paused
       ?format('searchPaused',[searchSeek.requests,searchSeek.limits.maxRequests,searchSeek.bytes,searchSeek.limits.maxBytes,
         searchSeek.elapsedMs,searchSeek.limits.maxTimeMs]):searchPage?t('none'):'';
-    const more=root.querySelector('.live-more');more.hidden=!searchPage?.page.has_more;more.disabled=false;
-    more.textContent=searchSeek?.paused?t('continueSearch'):t('more');
+    reflectSearchNavigation();
   }
   function showSearch(){surfaceGeneration++;drawer.hidden=false;root.querySelector('.search').focus();sky.refresh();}
   function showConditions(){
@@ -590,7 +606,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     body.append(temporalComparison.element);
     body.append(button(t('clear'),()=>controller.clearComparison()));
   }
-  const actions={search:showSearch,'close-search':()=>{searchGeneration++;activeSession.cancelSearch();searchSeek=null;drawer.hidden=true;sky.refresh();},
+  const actions={search:showSearch,'close-search':()=>{searchGeneration++;activeSession.cancelSearch();searchPending=false;renderSearch();drawer.hidden=true;sky.refresh();},
     conditions:showConditions,compare:()=>renderComparison(controller.state()),continue:()=>void controller.continue(),cancel:()=>controller.cancel(),scope:showScope,
     back:()=>{readingOpen=true;controller.back();reflect(controller.state());},
     overview:()=>sky.frame(),motion:()=>{moving=!moving;sky.motion(moving);root.querySelector('[data-live-action="motion"]').setAttribute('aria-pressed',String(moving));},
@@ -601,7 +617,10 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       renderedReading=undefined;controller.language(lang);renderSearch();}};
   root.addEventListener('click',click);
   root.querySelector('.live-search-form').onsubmit=event=>{event.preventDefault();void search();};
-  root.querySelector('.search').oninput=()=>{searchGeneration++;activeSession.cancelSearch();searchPage=null;searchSeek=null;renderSearch();};
+  const resetSearch=()=>{searchGeneration++;activeSession.cancelSearch();searchPage=null;searchSeek=null;searchHistory=[];searchPending=false;renderSearch();};
+  root.querySelector('.search').oninput=resetSearch;
+  root.querySelector('[data-search-service]').onchange=event=>{searchService=event.target.checked;resetSearch();if(root.querySelector('.search').value.trim())void search();};
+  root.querySelector('.live-search-previous').onclick=()=>{if(searchHistory.length)void search(searchHistory.at(-1),{back:true});};
   root.querySelector('.live-more').onclick=()=>{if(searchPage&&searchQuery===root.querySelector('.search').value)void search(searchPage.page.next_cursor);};
   const keydown=event=>{
     // Native dialog cancellation owns Escape, including the pending-command

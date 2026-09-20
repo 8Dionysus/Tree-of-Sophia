@@ -665,7 +665,7 @@ def test_research_seeded_locale_and_panel_sequence(webmcp_page: Page, access_bas
         'en': ['Build a lens', 'Read works and editions', 'My shelf', 'About this area', 'Choose relations', 'Close'],
     }
     language = 'ru'
-    actions = ['en', 'ru', 'sources', 'scope', 'conditions', 'shelf', 'library'] * 3
+    actions = ['en', 'ru', 'sources', 'scope', 'conditions', 'shelf', 'library', 'search'] * 3
     random.Random(915236).shuffle(actions)
     for step, action in enumerate(actions):
         if action in names:
@@ -677,6 +677,25 @@ def test_research_seeded_locale_and_panel_sequence(webmcp_page: Page, access_bas
             assert page.locator('.reading [data-source-record-id]').is_visible(), (step, action)
             assert page.locator('.reading pre').count() == 0
             disclosure.click()
+        elif action == 'search':
+            page.locator('.search-trigger').click()
+            page.locator('[data-search-service]').uncheck()
+            assert page.get_by_label('Служебные записи' if language == 'ru' else 'Service records', exact=True).is_visible()
+            page.locator('.search').fill('fixture')
+            page.locator('.live-search-form button').click()
+            page.locator('.material-list [data-result-id]').first.wait_for(state='visible')
+            first_ids = page.locator('.material-list [data-result-id]').evaluate_all("rows => rows.map(row => row.dataset.resultId)")
+            page.locator('.live-more').click()
+            page.locator('.live-search-previous').wait_for(state='visible')
+            page.locator('.live-search-previous').click()
+            wait_for(page, 'JSON.stringify([...document.querySelectorAll(".material-list [data-result-id]")].map(row=>row.dataset.resultId)) === '+json.dumps(json.dumps(first_ids, separators=(',', ':'))))
+            page.locator('[data-search-service]').check()
+            page.keyboard.press('Escape')
+            assert not page.locator('.materials-panel').is_visible()
+            page.locator('.search-trigger').click()
+            assert page.locator('[data-search-service]').is_checked()
+            assert not page.locator('.live-more').is_disabled()
+            page.keyboard.press('Escape')
         elif action == 'shelf':
             page.get_by_role('button', name=names[language][2], exact=True).click()
             shelf = page.locator('.research-shelf')

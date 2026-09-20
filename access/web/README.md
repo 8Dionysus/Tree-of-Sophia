@@ -74,6 +74,13 @@ related-material list without replacing the open source disclosure. Technical
 atlas type names use exact catalog vocabulary; authored names retain their
 supplied wording.
 
+Search uses the same declared projection roles and omits carrier-to-carrier
+`tos.relation.projects` links by default. **Служебные записи** includes them.
+Seeking past service-only pages shares the request, byte and time bounds of
+ordinary search; the original packet and continuation cursor remain intact.
+Previous-page navigation retains up to 16 delivered cursors and requeries those
+pages, without keeping their records in memory.
+
 The full-book provider is an injected browser seam. The catalog, version
 structure, bounded reading-window and scoped-search operations still need an
 owner backend implementation, as specified in the reader's

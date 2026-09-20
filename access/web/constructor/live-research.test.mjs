@@ -138,6 +138,17 @@ test('search seeking pauses at request, byte and time bounds and suppresses canc
   const pending=deferred();let current=true;const cancelled=seekSearchPage(()=>pending.promise,{isCurrent:()=>current,now:()=>0});current=false;pending.resolve(empty(null));
   assert.equal((await cancelled).cancelled,true);
 });
+test('search seeking counts full responses while seeking visible matches through service-only pages',async()=>{
+  const first={nodes:[{id:'service',service:true}],relations:[],page:{has_more:true,next_cursor:'next'}};
+  const second={nodes:[{id:'material'}],relations:[],page:{has_more:false,next_cursor:null}};
+  const calls=[],hasMatches=page=>page.nodes.some(row=>!row.service);
+  const result=await seekSearchPage(cursor=>{calls.push(cursor);return cursor===null?first:second;},{hasMatches,now:()=>0});
+  assert.deepEqual(calls,[null,'next']);assert.equal(result.page,second);assert.equal(result.requests,2);
+  assert.equal(result.bytes,new TextEncoder().encode(JSON.stringify(first)+JSON.stringify(second)).byteLength);
+  const paused=await seekSearchPage(()=>first,{hasMatches,now:()=>0,window:{maxRequests:1,maxBytes:100000,maxTimeMs:1000}});
+  assert.equal(paused.paused,true);assert.equal(paused.page,first);assert.equal(paused.reason,'requests');
+  const all=await seekSearchPage(()=>first,{hasMatches:()=>true,now:()=>0});assert.equal(all.page,first);assert.equal(all.requests,1);
+});
 
 test('seek preserves a valid match when an in-flight page crosses the soft window',async()=>{
   let now=0;
