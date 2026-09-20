@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,7 +14,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  plan:
+    name: Select checks and validate changed documentation
+    runs-on: ubuntu-latest
+    outputs:
+      software_mode: ${{ steps.select.outputs.software_mode }}
+      worker: ${{ steps.select.outputs.worker }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Select checks from both sides of the exact change
+        id: select
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FULL_RELEASE: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          if [ "$FULL_RELEASE" = true ] || [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = 0000000000000000000000000000000000000000 ]; then
+            python scripts/software_ci.py plan --base HEAD --full
+          else
+            git fetch --no-tags --depth=1 origin "$BASE_SHA"
+            python scripts/software_ci.py plan --base "$BASE_SHA"
+          fi
+
   software:
+    needs: plan
+    if: ${{ needs.plan.outputs.software_mode != 'none' }}
     name: Software Contracts, Browser and Installed Package
     runs-on: ubuntu-latest
     steps:
@@ -31,6 +55,7 @@ jobs:
             /mechanics/growth-cycle/tests/test_source_revisions.py
             /docs/validation/validation_lanes.json
             /tests/test_validation_lanes.py
+            /tests/test_software_ci.py
             /tests/test_corpus_*.py
             /tests/test_local_stats_port.py
             /tests/test_build_kag_export.py
@@ -69,8 +94,16 @@ jobs:
           npm ci --prefer-offline --no-audit --no-fund --prefix access/web
           python -m playwright install --with-deps chromium
 
-      - name: Build and validate software without production data
-        run: python scripts/release_check.py
+      - name: Validate software contracts and build browser assets
+        run: python scripts/release_check.py --phase checks
+
+      - name: Test shared software and data-operation code on fixtures
+        if: ${{ needs.plan.outputs.software_mode == 'full' }}
+        run: python scripts/release_check.py --phase tests
+
+      - name: Test reader and API behavior on fixtures
+        if: ${{ needs.plan.outputs.software_mode == 'reader' }}
+        run: python scripts/validation_lanes.py --run software_reader
 
       - name: Test browser behavior with bounded fixtures
         run: python scripts/validation_lanes.py --run software_browser
@@ -93,6 +126,8 @@ jobs:
           retention-days: 14
 
   worker:
+    needs: plan
+    if: ${{ needs.plan.outputs.worker == 'true' }}
     name: Worker Software Contracts
     runs-on: ubuntu-latest
     steps:
@@ -140,10 +175,13 @@ jobs:
   required_gate:
     name: Repo Validation
     if: ${{ always() }}
-    needs: [software, worker]
+    needs: [plan, software, worker]
     runs-on: ubuntu-latest
     steps:
-      - name: Require every software branch to pass
-        run: |
-          test "${{ needs.software.result }}" = "success"
-          test "${{ needs.worker.result }}" = "success"
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          sparse-checkout: scripts
+      - name: Require every selected check to pass
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: python scripts/software_ci.py gate

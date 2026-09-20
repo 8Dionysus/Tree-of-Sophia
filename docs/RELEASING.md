@@ -35,15 +35,43 @@ KAG indexes, stats projections or documentation currentness carriers.
    The validator checks exact file digests and installs a wheel in an isolated
    environment outside the checkout, without a corpus or AoA installation.
 6. Complete the ordinary checkpoint review for the exact repo, commit and
-   session; open a PR. Required **Repo Validation** covers software contracts,
-   Python behavior, browser behavior, Worker contracts and the installed
-   software artifact. Failed, cancelled or skipped required work cannot pass.
+   session; open a PR. Required **Repo Validation** selects checks from the
+   exact changed paths using the table below. Failed, cancelled or unexpectedly
+   skipped selected work cannot pass; an unselected job must be skipped.
 7. Merge only after review and required CI succeed. Verify the resulting remote
    `main` commit and its checks; synchronize clean dependent worktrees without
    resetting another session's dirty checkout. Record the merge commit and
    the software candidate identity separately.
 
-The workflow uploads `tree-of-sophia-software.zip` and its digest manifest.
+### Checks selected for a change
+
+The workflow always checks changed Markdown for conflict markers and newly
+introduced relative file links (not remote URLs or fragment anchors). It then
+selects the union of the following software checks. Deletes and both sides of
+renames participate. Empty changes, unknown paths and selection-policy changes
+use the full suite; a missing or failed selector fails the required gate.
+
+| Changed paths | Selected checks |
+| --- | --- |
+| Root, `docs/` or `access/` human Markdown, excluding `AGENTS.md` | Documentation checks only; no package rebuild or browser/Worker install |
+| `access/web/` or `access/e2e/` code/configuration | Software contracts, browser build/unit/types/behavior, isolated software package install |
+| `access/src/` or `access/tests/` | The browser/package checks, reader/API fixture tests, and Worker cross-adapter tests |
+| `access/deploy/cloudflare-worker/` code/configuration | Worker type and behavior tests, including cross-adapter fixtures |
+| Shared contracts/profiles, packaging, dependencies, scripts, workflow, owner cards, source surfaces or any other path | Full software release suite and Worker tests |
+
+A combined change takes all needed checks. Human Markdown is identified before
+its surrounding implementation directory; `ToS/` source Markdown does not use
+the documentation-only shortcut. Source assessment/admission still belongs to
+its owner, not to a green software gate. This selector does not publish data.
+
+PR and `main` checks use the same rules. `workflow_dispatch` explicitly runs the
+full release suite, as does the local `python scripts/release_check.py` command
+plus the browser and Worker routes above. A documentation-only green check is
+not an installable release artifact: run the full release route when publishing
+software, even when the last change was documentation.
+
+When the software job is selected, the workflow uploads
+`tree-of-sophia-software.zip` and its digest manifest.
 It contains program code, API contracts, static schemas and browser assets;
 `data_included` is false. CI candidate publication is not a production deploy.
 Tags and public releases require their intended scope and authorization; an

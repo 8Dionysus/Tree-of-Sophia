@@ -953,7 +953,8 @@
           "tests/test_build_kag_export.py",
           "tests/test_downstream_status.py",
           "tests/test_publish_kag_release.py",
-          "tests/test_publish_stats_release.py"
+          "tests/test_publish_stats_release.py",
+          "tests/test_software_ci.py"
         ]
       }
     ],
@@ -995,6 +996,23 @@
           "pytest",
           "-q",
           "access/e2e/test_webmcp.py"
+        ]
+      }
+    ],
+    "software_reader": [
+      {
+        "label": "reader and API fixture tests",
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "-p",
+          "no:cacheprovider",
+          "--strict-markers",
+          "-m",
+          "not data_release",
+          "access/tests"
         ]
       }
     ]
