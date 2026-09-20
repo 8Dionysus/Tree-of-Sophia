@@ -1,5 +1,5 @@
 import {test,expect} from 'vitest';
-import {languageName,sourceLinkLabel,relationLabel,fileLabel,sourceTitle} from './human-presentation.mjs';
+import {catalogNodeKindLabel,languageName,sourceLinkLabel,relationLabel,fileLabel,sourceTitle} from './human-presentation.mjs';
 import {displayTitleForm} from './knowledge-client.mjs';
 
 test('language and source labels are human without exposing paths',()=>{
@@ -11,6 +11,24 @@ test('language and source labels are human without exposing paths',()=>{
 test('file cards retain the format and size needed to choose a source',()=>{
   expect(fileLabel({media_type:'application/pdf',byte_size:16228737},'ru')).toBe('PDF · 16,2 МБ');
   expect(fileLabel({media_type:'application/vnd.djvu+xml',byte_size:8882082},'ru')).toBe('DjVu XML · 8,9 МБ');
+});
+test('declared catalog labels resolve technical kinds without humanizing IDs',()=>{
+  const catalog={node_kinds:[
+    {kind_id:'atlas-node-type',display:{default:'Atlas object type',ru:'Тип объекта атласа',en:'Atlas object type'}},
+    {kind_id:'civilization_literary_complex',display:{default:'Civilization or literary complex candidate',ru:'Кандидат цивилизационного или литературного комплекса',en:'Civilization or literary complex candidate'}},
+  ],semantic_registries:{entity_types:{entries:[{
+    type_id:'tos.entity.philosophy-meta',labels:{default:'Philosophy projection metadata',ru:'Метаданные философской проекции',en:'Philosophy projection metadata'},
+    source_mappings:[{source_graph:'philosophy',source_kind_id:'atlas-node-type',labels:{default:'Atlas object type',ru:'Тип объекта атласа',en:'Atlas object type'}}],
+  },{
+    type_id:'tos.entity.civilization-literary-complex',labels:{default:'Civilization or literary complex candidate',ru:'Кандидат цивилизационного или литературного комплекса',en:'Civilization or literary complex candidate'},
+    source_mappings:[{source_graph:'philosophy',source_kind_id:'civilization_literary_complex'}],
+  }]}}};
+  const raw={source_graph:'philosophy',kind_id:'atlas-node-type',type_id:'tos.entity.philosophy-meta'};
+  expect(catalogNodeKindLabel(raw,catalog,'ru')).toBe('Тип объекта атласа');
+  expect(catalogNodeKindLabel(raw,catalog,'en')).toBe('Atlas object type');
+  expect(catalogNodeKindLabel({source_graph:'philosophy',kind_id:'civilization_literary_complex',type_id:'tos.entity.civilization-literary-complex'},catalog,'ru')).toBe('Кандидат цивилизационного или литературного комплекса');
+  expect(catalogNodeKindLabel({...raw,kind_id:'philosophy:atlas-node-type:civilization_literary_complex'},catalog,'ru')).toBe('');
+  expect(catalogNodeKindLabel({kind_id:'future-kind',type_id:'future-type'},catalog,'ru')).toBe('');
 });
 test('known predicate names are localized while source wording and future identities stay intact',()=>{
   expect(relationLabel({predicate_id:'transmits_to',display:{default:'transmits_to'}},'ru')).toBe('передаёт');

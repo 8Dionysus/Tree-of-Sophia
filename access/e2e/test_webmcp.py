@@ -779,6 +779,50 @@ def test_observatory_prepared_human_agent_search_and_continuation(webmcp_page: P
     assert page.locator(".sc-search-results .sc-result").all_text_contents() == first_page
 
 
+def test_research_visibility_refreshes_links_and_preserves_source_disclosure(webmcp_page: Page, access_base_url: str) -> None:
+    """A changed view refreshes navigable links without replacing the reading."""
+    from urllib.parse import quote
+    page = webmcp_page
+    hits = command_value(invoke(page, "tos.page.knowledge-search", {"query": "Alpha", "limit": 10}))
+    material_id = next(row['id'] for row in hits['nodes'] if row['id'] == 'philosophy:a')
+
+    def service_catalog(route):
+        response = route.fetch()
+        catalog = response.json()
+        changed = 0
+        # Only this synthetic fixture declares its neighboring types service
+        # objects. No production corpus or source registry is changed.
+        for entry in catalog['semantic_registries']['entity_types']['entries']:
+            if any(mapping.get('source_graph') == 'philosophy' and mapping.get('source_kind_id') in ('work', 'source')
+                   for mapping in entry.get('source_mappings', [])):
+                entry['object_role'] = 'projection'
+                changed += 1
+        assert changed
+        route.fulfill(response=response, json=catalog)
+
+    page.route('**/api/knowledge/catalog', service_catalog)
+    page.goto(f"{access_base_url}/static/research.html?focus={quote(material_id, safe='')}")
+    reading = page.locator('#tree[data-ready="true"] .reading')
+    reading.locator('h1').wait_for(state='visible')
+    reading.get_by_text('Источники', exact=True).click()
+    opened_source = reading.locator('details[open]').first
+    assert opened_source.is_visible()
+    page.locator('[data-show-service-objects]').click()
+    reading.locator('.related-materials [data-related-node-id]').first.wait_for(state='visible')
+    assert opened_source.is_visible()
+    assert not page.get_by_text('Не удалось выполнить действие. Повторите попытку.', exact=True).is_visible()
+    reading.locator('.related-relation').first.click()
+    reading.locator('.relation-participants').wait_for(state='visible')
+    selection = page.locator('#tree').get_attribute('data-selection')
+    page.locator('[data-live-projection="compact"]').click()
+    assert page.locator('#tree').get_attribute('data-selection') == selection
+    assert reading.locator('.relation-participants [data-related-node-id]').count() == 2
+    reading.locator('.relation-participants [data-related-node-id]').first.click()
+    reading.locator('h1').wait_for(state='visible')
+    page.locator('[data-live-projection="grouped"]').click()
+    reading.locator('.related-materials [data-related-node-id]').first.wait_for(state='visible')
+
+
 def test_built_research_entry_persists_exact_shelf_and_camera(webmcp_page: Page, access_base_url: str) -> None:
     """Use the shipped entry and default browser storage, with a small dataset."""
     from urllib.parse import quote

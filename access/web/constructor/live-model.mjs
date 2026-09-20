@@ -1,13 +1,19 @@
-import {relationLabel} from '../src/observatory/human-presentation.mjs';
+import {catalogNodeKindLabel,relationLabel} from '../src/observatory/human-presentation.mjs';
 import {displayTitleForm,localized} from '../src/observatory/knowledge-client.mjs';
 import {displayForm} from '../src/observatory/display-language.mjs';
 import {validateHumanForms,resolveClaimReading} from '../src/observatory/human-forms.mjs';
 
 // Labels remain supplied material. A missing wording stays a visible gap; no
 // meaning, historical relation or confidence is inferred from opaque IDs.
-export function liveLabel(raw,language='ru'){
+export function liveLabel(raw,language='ru',catalog=null){
   if(raw?.predicate_id)return {text:relationLabel(raw,language),lang:language,role:'navigation'};
   const navigation=displayTitleForm(raw,language);
+  // An atlas type record names a declared kind, rather than a work or concept.
+  // Only an exact catalog vocabulary match can replace its technical token.
+  if(raw?.kind_id==='atlas-node-type'&&navigation?.text){
+    const type=catalogNodeKindLabel({kind_id:navigation.text,source_graph:raw.source_graph},catalog,language);
+    if(type)return {text:`${language==='ru'?'Тип':'Type'}: ${type}`,lang:language,role:'catalog'};
+  }
   if(navigation?.navigationOnly||raw?.display?.title?.[language]||raw?.display?.label?.[language])return {...navigation,role:'navigation'};
   const selected=validateHumanForms(raw)?.roles.name;
   if(selected?.state==='ready')return {text:selected.packet.display_text,lang:selected.packet.language,role:'name'};
@@ -25,9 +31,9 @@ export function liveTypeColor(raw){
   let hash=0;for(const point of id)hash=(Math.imul(hash,31)+point.codePointAt(0))>>>0;
   return TYPE_COLORS[hash%TYPE_COLORS.length];
 }
-export function liveHover(raw,language='ru'){
+export function liveHover(raw,language='ru',catalog=null){
   const form=validateHumanForms(raw)?.roles.hover;
-  return form?.state==='ready'&&form.packet.derivation!=='source-copy'?form.packet.display_text:liveLabel(raw,language).text;
+  return form?.state==='ready'&&form.packet.derivation!=='source-copy'?form.packet.display_text:liveLabel(raw,language,catalog).text;
 }
 export function liveEdgeLabel(view,edge,language='ru'){
   const missing=()=>({text:language==='ru'?'Формулировка не предоставлена':'Wording not supplied',lang:null,role:'missing'});
@@ -64,7 +70,7 @@ export class StableExplorationLayout {
       ||position.some(value=>!Number.isFinite(value)||Math.abs(value)>100000))throw new RangeError('Invalid bounded scene position.');
     this.#positions.set(id,[...position]);
   }
-  project(view,model,{language='ru',selection=view.selection}={}){
+  project(view,model,{language='ru',selection=view.selection,catalog=null}={}){
     const absent=model.vertices.filter(vertex=>!this.#positions.has(vertex.id));
     // At most one grouped and one raw identity per retained raw node, plus
     // small compatibility headroom. Hidden compact Claims keep their places.
@@ -78,8 +84,8 @@ export class StableExplorationLayout {
       this.#positions.set(vertex.id,position);
     }
     const labels={},nodes=model.vertices.map(vertex=>{
-      const raw=model.rawNodesById.get(vertex.representativeId),label=liveLabel(raw,language);labels[vertex.id]=label.text;
-      return {id:vertex.id,position:this.position(vertex.id),title:label.text,kind:'knowledge',hover:liveHover(raw,language),
+      const raw=model.rawNodesById.get(vertex.representativeId),label=liveLabel(raw,language,catalog);labels[vertex.id]=label.text;
+      return {id:vertex.id,position:this.position(vertex.id),title:label.text,kind:'knowledge',hover:liveHover(raw,language,catalog),
         ownerType:raw?.type_id??raw?.kind_id??null,
         prominent:vertex.id===focus,major:vertex.id===focus,accessibilityLabel:label.text,
         // Categorical identity only: the legend names the declared type.

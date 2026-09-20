@@ -47,7 +47,8 @@ test('keeps supplied qualification and distinguishes an incomplete context',()=>
   dom();const view=renderHumanForms(formNode(),{readableContext:{state:'requires-exact-context',contexts:[]}});
   const statement=one(view,value=>value.dataset.formRole==='statement');
   expect(statement.textContent).toContain('НЕ доказано');
-  expect(statement.textContent).toContain('Часть контекста доступна в источнике.');
+  expect(statement.textContent).not.toContain('Часть контекста доступна в источнике.');
+  expect(one(statement,value=>value.dataset.contextPresentation==='requires-exact-context')).toBeTruthy();
   expect(one(statement,value=>value.dataset.contextSlot==='qualification')).toBeTruthy();
   expect(descendants(view).some(value=>value.tagName==='pre')).toBe(false);
 });

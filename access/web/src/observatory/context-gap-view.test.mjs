@@ -32,7 +32,8 @@ test.each(['requires-exact-context','complete'])('fallback presents known facts 
   const all=flatten(node);
   expect(node.textContent).toContain('Отрицание');expect(node.textContent).toContain('Нет');
   expect(node.textContent).toContain('Оспаривается');expect(all.some(value=>value.tagName==='pre')).toBe(false);
-  if(state==='requires-exact-context')expect(node.textContent).toContain('Часть контекста доступна в источнике.');
+  expect(node.dataset.contextPresentation).toBe(state);
+  expect(node.textContent).not.toContain('Часть контекста доступна в источнике.');
   expect(raw).toEqual(before);
 });
 

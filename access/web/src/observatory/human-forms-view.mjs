@@ -10,7 +10,7 @@ function packetContext(packet,anchor,readableContext,presentation={}){
   const contexts=formContexts(readableContext,packet.form);
   if(readableContext?.state==='complete'&&contexts.length)return renderReadableContexts(contexts,anchor,presentation);
   const context=el('section','','sc-form-context');
-  if(readableContext&&readableContext.state!=='complete'){const gap=el('p',ui('Часть контекста доступна в источнике.'),'sc-reader-gap');gap.dataset.contextPresentation=readableContext.state;context.append(gap);}
+  if(readableContext)context.dataset.contextPresentation=readableContext.state;
   for(const [index,entry]of packet.context.entries()){
     const pointer=entry.binding?.pointer??'';if(pointer.startsWith('/field_languages/'))continue;
     const key=pointer.split('/').at(-1)?.replace(/~1/g,'/').replace(/~0/g,'~');
@@ -80,7 +80,7 @@ export function renderClaimContext(resolved,readableContext=null,presentation={}
     const entry=classified.length?renderReadableContexts(classified,`claim-context:${index}`,presentation):renderContextData(context,`claim-context:${index}`);
     if(entry.children.length)section.append(entry);
   }
-  if(readableContext&&readableContext.state!=='complete'){const gap=el('p',ui('Часть контекста доступна в источнике.'),'sc-reader-gap');gap.dataset.contextPresentation=readableContext.state;section.append(gap);}
+  if(readableContext)section.dataset.contextPresentation=readableContext.state;
   return section;
 }
 export function renderEssentialContext(context,readableContext=null,presentation={}){
@@ -97,7 +97,7 @@ export function renderEssentialContext(context,readableContext=null,presentation
       (presentation.presentedPointers??=new Set()).add(item.pointer);
     }
   }
-  if(readableContext&&readableContext.state!=='complete'){const gap=el('p',ui('Часть контекста доступна в источнике.'),'sc-reader-gap');gap.dataset.contextPresentation=readableContext.state;section.append(gap);}
+  if(readableContext)section.dataset.contextPresentation=readableContext.state;
   if(['unavailable','incomplete'].includes(context.state))section.append(el('p',ui('Часть сведений недоступна.'),'sc-reader-gap'));
   return section;
 }

@@ -39,6 +39,28 @@ test('raw relation selection remains a relation and its exact target can become 
   const {controller:c,first}=harness();await c.open(first.query.origin);
   c.selectEdge(c.state().model.edges[0].id);assert.equal(c.selectedTarget().kind,'relation');assert.equal(c.selectedTarget().id,first.relations[0].id);
 });
+test('service objects reappear on exact selection and presentation toggles preserve retained positions',async()=>{
+  const {controller:c,session,first,events}=harness();
+  first.nodes[1].type_id='service';
+  session.discover=async()=>({catalog:{semantic_registries:{entity_types:{entries:[{type_id:'service',object_role:'projection'}]}}}});
+  await c.start();await c.open(first.query.origin);
+  assert.equal(c.state().model.visibility.hiddenObjects,1);
+  const packet=c.state().view;
+  c.mode('grouped');const vertex=c.state().model.vertices.find(v=>v.representativeId===first.nodes[1].id);
+  c.move(vertex.id,[21,34,55]);c.mode('compact');
+  assert.equal(c.state().model.verticesById.has(vertex.id),false);
+  c.selectRaw({kind:'node',id:first.nodes[1].id});
+  assert.equal(c.state().model.verticesById.has(vertex.id),true);
+  assert.deepEqual(events.filter(e=>e.type==='update').at(-1).state.nodes.find(n=>n.id===vertex.id).position,[21,34,55]);
+  assert.equal(c.state().view.nodes.length,packet.nodes.length);
+  c.selectRaw({kind:'node',id:first.nodes[0].id});
+  assert.equal(c.state().model.edges.length,0);
+  c.selectRaw({kind:'relation',id:first.relations[0].id});
+  assert.equal(c.state().selection.id,first.relations[0].id);
+  assert.equal(c.state().model.edges.length,1);
+  assert.equal(c.state().model.verticesById.has(vertex.id),true);
+  assert.equal(events.filter(e=>e.type==='frame').length,1);
+});
 test('failed new query keeps the last good scene and positions; explicit new field alone reframes',async()=>{
   const {controller:c,session,first,events}=harness();await c.open(first.query.origin);
   const old=c.state().view,open=session.open;session.open=async()=>{throw new Error('unavailable');};

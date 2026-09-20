@@ -182,7 +182,6 @@ export const UI_CATALOG={
   "Отождествление не заявлено":{"en":"No equivalence claimed","es":"Sin afirmación de equivalencia"},
   "Неопределённо":{"en":"Uncertain","es":"Incierto"},
   "Без названия":{"en":"Untitled","es":"Sin título"},
-  "Часть контекста доступна в источнике.":{"en":"Further context is available in the source.","es":"Hay más contexto en la fuente."},
   "Показать полностью":{"en":"Show in full","es":"Mostrar completo"},
   "Примечание источника":{"en":"Source note","es":"Nota de la fuente"},
   "Часть сведений недоступна.":{"en":"Some information is unavailable.","es":"Parte de la información no está disponible."},

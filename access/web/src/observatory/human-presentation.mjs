@@ -68,6 +68,36 @@ const local=(map,id,locale,fallback)=>map[id]?.[{ru:0,en:1,es:2}[locale]??0]||fa
 export const sourceLabel=(id,locale=uiLanguage())=>local(sources,id,locale,t('Другие источники'));
 export const profileLabel=(id,locale=uiLanguage())=>local(profiles,id,locale,t('Другие связи'));
 
+const catalogForm=(value,locale)=>{
+  if(!value||typeof value!=='object'||Array.isArray(value))return '';
+  const keys=[locale,'default','original','en',...Object.keys(value).filter(displayLanguageKey)];
+  const key=keys.find((candidate,index)=>keys.indexOf(candidate)===index&&present(value[candidate]));
+  return key?value[key]:'';
+};
+// Catalog labels are owner-declared vocabulary. Resolve the exact kind entry
+// or an exact source mapping; never humanize a kind/type ID or choose between
+// conflicting mappings without an explicit source kind.
+export function catalogNodeKindLabel(raw,catalog,locale=uiLanguage()){
+  if(!raw||typeof raw!=='object'||!catalog||typeof catalog!=='object')return '';
+  const kindId=typeof raw.kind_id==='string'&&raw.kind_id?raw.kind_id:null;
+  const typeId=typeof raw.type_id==='string'&&raw.type_id?raw.type_id:null;
+  const kinds=Array.isArray(catalog.node_kinds)?catalog.node_kinds.filter(item=>item&&typeof item==='object'):[];
+  const direct=kinds.filter(item=>kindId&&item.kind_id===kindId);
+  if(direct.length===1){
+    const label=catalogForm(direct[0].display,locale);
+    if(label&&label!==kindId)return label;
+  }
+  const entries=catalog.semantic_registries?.entity_types?.entries;
+  if(!Array.isArray(entries))return '';
+  const candidates=entries.filter(item=>item&&typeof item==='object'&&(!typeId||item.type_id===typeId));
+  if(candidates.length!==1)return '';
+  const entry=candidates[0],mappings=Array.isArray(entry.source_mappings)?entry.source_mappings.filter(item=>item&&typeof item==='object'):[];
+  const exact=mappings.filter(item=>(!raw.source_graph||item.source_graph===raw.source_graph)&&(!kindId||item.source_kind_id===kindId));
+  const labels=exact.length===1?exact[0].labels:!kindId&&mappings.length===0?entry.labels:null;
+  const label=catalogForm(labels,locale);
+  return label&&label!==kindId&&label!==typeId?label:'';
+}
+
 export function fileLabel(attributes={},locale=uiLanguage(),filename=''){
   const formats={'application/pdf':'PDF','application/vnd.djvu+xml':'DjVu XML','application/xml':'XML','text/xml':'XML',
     'application/gzip':'GZip','text/plain':locale==='ru'?'Текст':locale==='es'?'Texto':'Text',

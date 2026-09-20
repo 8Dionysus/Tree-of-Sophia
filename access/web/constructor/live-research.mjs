@@ -4,6 +4,7 @@ import {RequestSlots,validateLens,RevisionError} from '../src/observatory/knowle
 import {readExactSource} from '../src/observatory/exact-source-read.mjs';
 import {StableExplorationLayout} from './live-model.mjs';
 import {validateSkyPose} from './sky-pose.mjs';
+import {researchVisibility} from './research-visibility.mjs';
 
 // Search pages are exact, source-revision-bound packets.  Seeking through an
 // empty prefix is a convenience for the reader, never permission to drain the
@@ -57,9 +58,10 @@ export function createLiveResearch({session=new ExplorationSession(),sky,onChang
   let generation=0,inspection=0,sourceGeneration=0,disposed=false;
   const emit=patch=>{state={...state,...patch};if(!disposed)onChange(state);};
   function present(view,{reset=false,frame=false,areaKind=state.areaKind,selection=areaKind==='exploration'?view.selection:state.selection}={}){
-    const model=(areaKind==='exploration'?buildExplorationSceneModel:buildSceneModel)(view,{mode:state.mode});
+    const scene=(areaKind==='exploration'?buildExplorationSceneModel:buildSceneModel)(view,{mode:state.mode});
+    const model=researchVisibility(scene,{catalog:state.discovery?.catalog,selection,mode:state.mode});
     if(reset)layout.reset();
-    const projected=layout.project(view,model,{language:state.language,selection});
+    const projected=layout.project(view,model,{language:state.language,selection,catalog:state.discovery?.catalog});
     sky.update(projected,projected.labels);sky.select(projected.selectedNodeId);sky.selectEdge(projected.selectedEdgeId);
     if(frame)sky.frame();
     emit({view,model,areaKind,selection,historyDepth:history.length});
@@ -122,7 +124,7 @@ export function createLiveResearch({session=new ExplorationSession(),sky,onChang
   }
   return {
     state:()=>state,
-    start:()=>run(()=>session.discover(),discovery=>emit({discovery})),
+    start:()=>run(()=>session.discover(),discovery=>{emit({discovery});if(state.view)present(state.view);}),
     open(target,{replace=false,options={}}={}){
       const first=!state.view,replacing=replace||state.areaKind==='lens',saved=replacing?capture():null;
       return run(()=>session.open(target,{replace:replacing,options}),view=>{

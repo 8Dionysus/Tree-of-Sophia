@@ -27,6 +27,15 @@ test('opaque IDs are not reconstructed into human names and unknown styles remai
   assert.ok(sky.nodes.every(node=>node.kind==='knowledge'&&node.color==='#bdd5ed'));
   assert.equal(sky.edges[0].label,'Учебное отношение');
 });
+test('atlas type records use exact catalog vocabulary while authored names and unknown tokens are preserved',()=>{
+  const catalog={node_kinds:[{kind_id:'known_kind',display:{ru:'Известный тип',en:'Known type'}}]};
+  const raw={kind_id:'atlas-node-type',source_graph:'philosophy',display:{title:{default:'known_kind'}}};
+  assert.equal(liveLabel(raw,'ru',catalog).text,'Тип: Известный тип');
+  assert.equal(liveLabel(raw,'en',catalog).text,'Type: Known type');
+  assert.equal(liveLabel({...raw,kind_id:'concept'},'ru',catalog).text,'known_kind');
+  assert.equal(liveLabel({...raw,display:{title:{default:'future_kind'}}},'ru',catalog).text,'future_kind');
+  assert.equal(liveLabel({...raw,display:{title:{ru:'Авторское название'}}},'ru',catalog).text,'Авторское название');
+});
 
 test('layout moves admit only existing finite bounded coordinates',()=>{
   const layout=new StableExplorationLayout();assert.throws(()=>layout.move('absent',[0,0,0]),RangeError);

@@ -25,7 +25,7 @@ import {validateRouteTarget} from '../src/research-shelf/model.mjs';
 import {RevisionError} from '../src/observatory/knowledge-client.mjs';
 
 const copy={ru:{brand:'ДРЕВО СОФИИ',subtitle:'',search:'Поиск по Древу',close:'Закрыть',
-  view:'ПРЕДСТАВЛЕНИЕ',compact:'Смысловые связи',grouped:'Материалы и сведения',raw:'Все записи',conditions:'Настроить связи',
+  view:'ПРЕДСТАВЛЕНИЕ',compact:'Исследование',grouped:'Все объекты',raw:'Отдельные записи',conditions:'Настроить связи',
   compare:'Сопоставить',continue:'Показать ещё',overview:'Вместить в поле',motion:'Движение пространства',cinema:'Скрыть интерфейс',
   show:'Показать интерфейс',empty:'С чего начнём исследование?',emptyText:'Найдите слово, мысль, человека, произведение, событие или связь.',
   loading:'Загружаю…',readonly:'Об этой области',searchGo:'Найти',more:'Следующая страница',continueSearch:'Продолжить поиск',
@@ -44,7 +44,7 @@ const copy={ru:{brand:'ДРЕВО СОФИИ',subtitle:'',search:'Поиск п�
   sourceDossier:'Где найти',sourceChanges:'Изменение источника',sourceNoDossier:'',
   sourceDossierLoading:'Загружаю сведения…',sourceDossierUnavailable:'Досье источника сейчас недоступно.',sourceNoLinks:'Ссылок пока нет.',sourceIdentity:'Точная идентичность',sourceRights:'Права и границы',sourceLinks:'Открыть источник',sourceStructure:'Структура досье',sourceRefs:'Ссылки владельца',sourceDossierNote:'',sourceDossierVersionNote:'',sourceCommandUnconfirmedClose:'В этой операции есть неподтверждённая команда. Перед закрытием сохраните её; иначе повтор станет невозможен.',sourceCommandCopy:'Скопировать сохранённую команду',sourceCommandCopied:'Точная команда скопирована. Теперь можно закрыть окно.',sourceCommandClose:'Закрыть после сохранения',sourceCommandCopyUnavailable:'Не удалось скопировать команду; оставьте окно открытым и повторите попытку.'},
 en:{brand:'TREE OF SOPHIA',subtitle:'',search:'Search the Tree',close:'Close',
-  view:'PRESENTATION',compact:'Meaningful relations',grouped:'Objects and records',raw:'All records',conditions:'Choose relations',
+  view:'PRESENTATION',compact:'Research',grouped:'All objects',raw:'Individual records',conditions:'Choose relations',
   compare:'Compare',continue:'Continue expansion',overview:'Fit the field',motion:'Space motion',cinema:'Hide interface',
   show:'Show interface',empty:'Where shall we begin?',emptyText:'Find a word, thought, person, work, event or relation.',
   loading:'Loading…',readonly:'About this area',searchGo:'Search',more:'Next page',continueSearch:'Continue search',
@@ -72,7 +72,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   let language=url.searchParams.get('lang')==='en'?'en':'ru',controller,readingOpen=false,disposed=false;
   let research=null,moving=!matchMedia('(prefers-reduced-motion: reduce)').matches;
   let routedView=null;
-  let options={},searchPage=null,searchQuery='',searchSeek=null,searchGeneration=0,surfaceGeneration=0,renderedReading=null,renderedReadingError=null,renderedComparison=null;
+  let options={},searchPage=null,searchQuery='',searchSeek=null,searchGeneration=0,surfaceGeneration=0,renderedReading=null,renderedReadingError=null,renderedRelatedModel=null,renderedComparison=null;
   const t=key=>copy[language][key];setUiLanguage(language);
   const word=(ru,en)=>language==='ru'?ru:en;
   const viewStore=createLiveResumeStore();let resumeTimer=null,resumeWriting=Promise.resolve(),resumeEnabled=false,lastResumeKey='',unresolvedResume=null;
@@ -163,10 +163,11 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   const attempt=action=>{try{return action();}catch(error){report(error);return null;}};
   const sky=skyFactory(root,{onSelect:id=>{readingOpen=true;attempt(()=>controller.selectNode(id));},
     onEdgeSelect:id=>{readingOpen=true;attempt(()=>controller.selectEdge(id));},onMove:(id,position)=>attempt(()=>controller.move(id,position))});
+  const humanLabel=raw=>liveLabel(raw,language,controller.state().discovery?.catalog);
   function selectedLabel(state){
     if(!state.view)return t('empty');const target=state.selection;
     if(target.kind==='claim-path'){const edge=state.model.edges.find(item=>item.id===target.id);return edge?liveEdgeLabel(state.view,edge,language).text:t('selected');}
-    const raw=state.view[target.kind==='node'?'nodes':'relations'].find(item=>item.id===target.id);return liveLabel(raw,language).text;
+    const raw=state.view[target.kind==='node'?'nodes':'relations'].find(item=>item.id===target.id);return humanLabel(raw).text;
   }
   function reflect(state){
     root.querySelectorAll('[data-live-copy]').forEach(node=>node.textContent=t(node.dataset.liveCopy));
@@ -186,6 +187,9 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     const rail=root.querySelector('.lens-list');rail.replaceChildren();
     for(const mode of ['compact','grouped','raw']){const item=button(t(mode),()=>attempt(()=>controller.mode(mode)),'lens');
       item.dataset.liveProjection=mode;item.setAttribute('aria-pressed',String(state.mode===mode));rail.append(item);}
+    const hidden=state.model?.visibility?.hiddenObjects??0;
+    if(hidden){const show=button(word(`Показать служебные объекты (${hidden})`,`Show service objects (${hidden})`),()=>attempt(()=>controller.mode('grouped')),'source-link');
+      show.dataset.showServiceObjects='';rail.append(show);}
     root.dataset.visibleNodes=String(state.model?.vertices.length??0);root.dataset.visibleEdges=String(state.model?.edges.length??0);
     root.dataset.sourceRevision=state.view?.source_revision??'';root.dataset.snapshotRevision=state.view?.snapshot_revision??'';
     root.dataset.selection=state.selection?.id??'';root.dataset.loading=String(state.loading);root.dataset.history=String(state.historyDepth);
@@ -198,7 +202,9 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     }
     reading.hidden=!readingOpen;root.dataset.reading=String(readingOpen);
     if(readingOpen&&(renderedReading!==state.reading||renderedReadingError!==state.readingError)){
-      renderedReading=state.reading;renderedReadingError=state.readingError;renderReading(state);
+      renderedReading=state.reading;renderedReadingError=state.readingError;renderedRelatedModel=state.model;renderReading(state);
+    }else if(readingOpen&&renderedRelatedModel!==state.model){
+      renderedRelatedModel=state.model;renderRelated(state);
     }
     const pin=reading.querySelector('[data-compare-selection]');
     if(pin){
@@ -335,7 +341,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     }catch(error){report(error);}
   }
   function appendReading(container,snapshot){
-    const doc=readingDocument(snapshot,language),heading=el('h1',doc.title?.text??t('noTitle'));heading.dataset.readingAnchor='form:name:wording';container.append(heading);
+    const doc=readingDocument(snapshot,language),label=humanLabel(snapshot.raw),title=label.role==='catalog'?label.text:doc.title?.text,heading=el('h1',title??t('noTitle'));heading.dataset.readingAnchor='form:name:wording';container.append(heading);
     const state=controller.state(),presentation={...createContextPresentation(snapshot.raw),resolveValue:entry=>{
       if(state.view?.source_revision!==snapshot.sourceRevision||entry.display.type!=='string')return;
       if(entry.key==='predicate'){
@@ -347,7 +353,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
         return type?livePredicateLabel({predicate_id:id,display:type.labels},language):undefined;
       }
       if(!['subject_ref','object'].includes(entry.key))return;
-      const names=new Set(state.view.nodes.filter(row=>[row.id,row.native_id,row.entity_id].includes(entry.display.text)).map(row=>liveLabel(row,language).text));
+      const names=new Set(state.view.nodes.filter(row=>[row.id,row.native_id,row.entity_id].includes(entry.display.text)).map(row=>humanLabel(row).text));
       return names.size===1?[...names][0]:undefined;
     }};
     if(doc.humanForms)container.append(renderHumanForms(snapshot.raw,{exactForms:snapshot.exactForms,readableContext:snapshot.readableContext,presentation}));
@@ -367,7 +373,8 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
           else void open({kind:'node',id:endpoint.id,content_revision:endpoint.content_revision});
         },'material-row');
         action.dataset.relatedNodeId=endpoint.id;
-        action.append(el('small',participant.role),el('strong',participant.form?.text??liveLabel(endpoint,language).text));participants.append(action);
+        const endpointLabel=humanLabel(endpoint);
+        action.append(el('small',participant.role),el('strong',endpointLabel.role==='catalog'?endpointLabel.text:participant.form?.text??endpointLabel.text));participants.append(action);
       }
       container.append(participants);
     }
@@ -375,7 +382,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     const exactSource=button(t('sourceRecord'),()=>void openSourceRecord(snapshot),'source-link');
     exactSource.dataset.sourceRecordId=snapshot.raw.id;sources.append(exactSource);
     const original=sourceTitle(snapshot.raw);
-    if(original&&original!==doc.title?.text){const name=el('details');name.append(el('summary',word('Название в источнике','Source title')),el('p',original,'body'));sources.append(name);}
+    if(original&&original!==title){const name=el('details');name.append(el('summary',word('Название в источнике','Source title')),el('p',original,'body'));sources.append(name);}
     const linkHosts=new Map();
     for(const ref of doc.sourceRefs){
       if(!/^https?:\/\//i.test(ref))continue;
@@ -415,13 +422,19 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     for(const reason of reasons){
       const paragraph=el('p','','body');
       paragraph.textContent=inclusionSummary({...reason.reason,query:reason.query},{language,
-        nodeLabel:id=>{const raw=state.view.nodes.find(row=>row.id===id);return raw?liveLabel(raw,language).text:null;},
-        relationLabel:id=>{const raw=state.view.relations.find(row=>row.id===id);return raw?liveLabel(raw,language).text:null;},
+        nodeLabel:id=>{const raw=state.view.nodes.find(row=>row.id===id);return raw?humanLabel(raw).text:null;},
+        relationLabel:id=>{const raw=state.view.relations.find(row=>row.id===id);return raw?humanLabel(raw).text:null;},
         predicateLabel:id=>{const predicate=state.discovery?.catalog?.predicates?.find(row=>row.predicate_id===id);return predicate?livePredicateLabel(predicate,language):id;},
       }).join(' ');
       explanation.append(paragraph);
     }
     if(reasons.length)reading.append(explanation);
+    renderRelated(state);
+  }
+  function renderRelated(state){
+    reading.querySelector('.related-materials')?.remove();
+    if(!state.reading||!state.model||state.selection?.kind==='relation')return;
+    const target=state.selection,ids=target.kind==='claim-path'?[target.claimId]:[target.id];
     const links=el('section','','related-materials');links.append(el('h2',word('Связанные материалы','Related materials'),'minor-title'));
     const related=[];
     for(const edge of state.model.edges){if(![edge.fromId,edge.toId].includes(state.model.carrierToVertex.get(ids[0])))continue;
@@ -429,8 +442,8 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       const vertex=state.model.verticesById.get(other),raw=vertex?state.model.rawNodesById.get(vertex.representativeId):null;
       const relation=state.model.rawRelationsById.get(edge.rawId),typeId=edge.kind==='claim-path'?edge.path.relation_type_id:relation?.relation_type_id;
       const type=state.discovery?.catalog?.semantic_registries?.relation_types?.entries?.find(row=>row.relation_type_id===typeId);
-      const relationName=edge.kind==='claim-path'?localized(type?.labels,word('Связь','Relation'),language):relation?liveLabel(relation,language).text:word('Связь','Relation');
-      const direction=edge.fromId===current?'→':'←',title=raw?liveLabel(raw,language).text:word('Связь','Relation');
+      const relationName=edge.kind==='claim-path'?localized(type?.labels,word('Связь','Relation'),language):relation?humanLabel(relation).text:word('Связь','Relation');
+      const direction=edge.fromId===current?'→':'←',title=raw?humanLabel(raw).text:word('Связь','Relation');
       related.push({edge,other,vertex,raw,title,relationName,direction});
     }
     const distinctions=searchDisambiguators(related.filter(row=>row.raw).map(row=>({...row,kind:'node',detail:row.direction+' '+row.relationName})),language);
@@ -442,13 +455,13 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
     for(const items of groups.values()){
       const {other,vertex,raw,title,relationName,direction}=items[0];
       const distinction=raw?distinctions.get(`node:${raw.id}`):null;
-      const entry=button('',()=>controller.selectNode(other),'material-row');entry.dataset.relatedNodeId=vertex?.representativeId??'';
+      const entry=button('',()=>controller.selectRaw({kind:'node',id:vertex.representativeId}),'material-row');entry.dataset.relatedNodeId=vertex?.representativeId??'';
       entry.append(el('small',direction+' '+relationName),el('strong',title));
       if(distinction)entry.append(el('small',distinction));
       const row=el('div','','related-material-row');row.append(entry);
       items.forEach(({edge},index)=>{
         const ordinal=items.length>1?` ${index+1}`:'';
-        const inspect=button(word('О связи','About this relation')+ordinal,()=>controller.selectEdge(edge.id),'related-relation');
+        const inspect=button(word('О связи','About this relation')+ordinal,()=>controller.selectRaw({kind:edge.kind==='claim-path'?'claim-path':'relation',id:edge.kind==='claim-path'?edge.id:edge.rawId}),'related-relation');
         inspect.setAttribute('aria-label',word('О связи','About relation')+ordinal+': '+relationName+' · '+title+(distinction?' · '+distinction:''));row.append(inspect);
       });
       links.append(row);
@@ -538,9 +551,9 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   }
   function renderSearch(){
     const list=root.querySelector('.material-list');list.replaceChildren();const rows=searchPage?[...searchPage.nodes.map(raw=>({kind:'node',raw})),...searchPage.relations.map(raw=>({kind:'relation',raw}))]:[];
-    const distinctions=searchDisambiguators(rows.map(row=>({...row,title:liveLabel(row.raw,language).text,detail:liveSearchPreview(row.raw,language)?.text})),language);
+    const distinctions=searchDisambiguators(rows.map(row=>({...row,title:humanLabel(row.raw).text,detail:liveSearchPreview(row.raw,language)?.text})),language);
     for(const {kind,raw} of rows){const item=button('',()=>open({kind,id:raw.id,content_revision:raw.content_revision}),'material-row');
-      item.dataset.resultKind=kind;item.dataset.resultId=raw.id;item.append(el('small',t(kind)),el('strong',liveLabel(raw,language).text));
+      item.dataset.resultKind=kind;item.dataset.resultId=raw.id;item.append(el('small',t(kind)),el('strong',humanLabel(raw).text));
       const distinction=distinctions.get(`${kind}:${raw.id}`);if(distinction)item.append(el('span',distinction,'search-preview'));
       const preview=liveSearchPreview(raw,language);if(preview?.text){const text=el('span',preview.text,'search-preview');if(preview.lang)text.lang=preview.lang;item.append(text);}
       list.append(item);}
