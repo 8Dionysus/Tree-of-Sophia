@@ -308,6 +308,23 @@ def build_server(
         )
 
     @mcp.tool()
+    def tos_zarathustra_reading_search(
+        query: str,
+        language: str = "ru",
+        limit: int = 20,
+        include_semantic_neighbors: bool = False,
+        group_by: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Return occurrence-bound source candidates with candidate-only authority."""
+        return current_state().zarathustra_reading_search(
+            query=query,
+            language=language,
+            limit=limit,
+            include_semantic_neighbors=include_semantic_neighbors,
+            group_by=group_by,
+        )
+
+    @mcp.tool()
     def tos_philosophy_graph_status() -> dict[str, Any]:
         """Return ToS philosophy graph projection path, counts, graph views, and authority boundary."""
         return current_state().philosophy_status()

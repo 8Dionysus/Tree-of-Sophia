@@ -33,6 +33,15 @@ def _parser() -> argparse.ArgumentParser:
     web.add_argument("--host", default="127.0.0.1")
     web.add_argument("--port", type=int, default=8080)
     sub.add_parser("mcp", help="Run the native Tree of Sophia MCP server")
+    reading = sub.add_parser(
+        "reading-search",
+        help="Read Zarathustra source candidates with occurrence-bound speakers and formulas",
+    )
+    reading.add_argument("--query", required=True)
+    reading.add_argument("--language", choices=("de", "ru", "en"), default="ru")
+    reading.add_argument("--limit", type=int, default=20)
+    reading.add_argument("--group-by", default="speaker,formula")
+    reading.add_argument("--include-semantic-neighbors", action="store_true")
     source = sub.add_parser("source", help="Read exact owner-bound source records without changing the Tree")
     source_sub = source.add_subparsers(dest="source_command", required=True)
     source_sub.add_parser("capabilities")
@@ -125,6 +134,15 @@ def main(argv: list[str] | None = None) -> None:
         except (OSError, ValueError, KeyError, ImportError) as exc:
             raise SystemExit(f"cannot select source owner: {exc}") from exc
     core = ToSAccessCore.discover(tos_root=args.root, **options)
+    if args.command == "reading-search":
+        print(json.dumps(core.zarathustra_reading_search(
+            args.query,
+            args.language,
+            args.limit,
+            args.include_semantic_neighbors,
+            [item.strip() for item in args.group_by.split(",") if item.strip()],
+        ), ensure_ascii=False, indent=2))
+        return
     if args.command == "serve":
         from .http_server import serve
         serve(core, host=args.host, port=args.port)

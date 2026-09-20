@@ -312,6 +312,15 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                         _integer(query, "rank", 1, 1, 100),
                         _boolean(query, "include_semantic_neighbors"),
                     )); return
+                if path == "/api/zarathustra/reading":
+                    self._json(core.zarathustra_reading_search(
+                        _single(query, "query"),
+                        _single(query, "language", "ru"),
+                        _integer(query, "limit", 20, 0, 100),
+                        _boolean(query, "include_semantic_neighbors"),
+                        ([] if _single(query, "group_by") == "none" else _list(query, "group_by"))
+                        if "group_by" in query else None,
+                    )); return
                 if path == "/api/corpus/summary": self._json(core.summary()); return
                 if path == "/api/corpus/search": self._json(core.search(_single(query, "query"), _integer(query, "limit", 20, 1, 100))); return
                 if path.startswith("/api/source/navigation/"):

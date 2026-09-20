@@ -138,15 +138,26 @@ def require_private_file(path: Path) -> None:
         raise SearchError(f"private source-return artifact must be mode 0600: {path}")
 
 
-def request_paths(builder: Any, request_path: Path) -> tuple[Path, Path]:
-    builder.configure_request(request_path.relative_to(REPO) if request_path.is_relative_to(REPO) else request_path)
-    return REPO / builder.PRIVATE_REQUEST, REPO / builder.PRIVATE_DB
+def data_path(root: Path, ref: str | Path) -> Path:
+    relative = Path(ref)
+    if relative.is_absolute() or ".." in relative.parts:
+        raise SearchError("concept artifact ref must be data-root-relative")
+    candidate = root / relative
+    if candidate.is_symlink() or not candidate.resolve().is_relative_to(root):
+        raise SearchError("concept artifact escapes its selected data root")
+    return candidate
+
+
+def request_paths(builder: Any, request_path: Path, root: Path,
+                  request: dict[str, Any]) -> tuple[Path, Path]:
+    builder.configure_request(request_path.relative_to(root), request=request)
+    return data_path(root, builder.PRIVATE_REQUEST), data_path(root, builder.PRIVATE_DB)
 
 
 def source_rows(database_path: Path, occurrence_refs: list[str]) -> tuple[dict[str, dict[str, Any]],
                                                                           dict[str, dict[str, Any]],
                                                                           dict[str, dict[str, list[str]]]]:
-    uri = f"file:{database_path}?mode=ro&immutable=1"
+    uri = f"{database_path.as_uri()}?mode=ro&immutable=1"
     database = sqlite3.connect(uri, uri=True)
     database.row_factory = sqlite3.Row
     placeholders = ",".join("?" for _ in occurrence_refs)
@@ -174,15 +185,23 @@ def source_rows(database_path: Path, occurrence_refs: list[str]) -> tuple[dict[s
 
 
 def build_result(query: str, language: str, request_path: Path,
-                 include_semantic_neighbors: bool, limit: int) -> dict[str, Any]:
+                 include_semantic_neighbors: bool, limit: int, *,
+                 data_root: Path | None = None) -> dict[str, Any]:
     if limit < 0:
         raise SearchError("--limit must be zero or greater")
+    root = Path(data_root or REPO).absolute()
+    if root != root.resolve():
+        raise SearchError("concept data root may not contain symlinks")
+    request_path = Path(request_path).absolute()
+    if not request_path.is_relative_to(root):
+        raise SearchError("concept request must belong to the selected data root")
+    request_path = data_path(root, request_path.relative_to(root))
     builder = load_module(BUILDER_PATH, "tos_zarathustra_concept_workbench_query_builder")
     lexical = builder.import_builder(builder.LEXICAL_BUILDER, "tos_zarathustra_concept_search_lexical")
     morphology = builder.import_builder(builder.MORPH_BUILDER, "tos_zarathustra_concept_search_morphology")
     request = load_json(request_path)
     Draft202012Validator(load_json(REPO / builder.SCHEMA_REF)).validate(request)
-    private_request_path, database_path = request_paths(builder, request_path)
+    private_request_path, database_path = request_paths(builder, request_path, root, request)
     require_private_file(private_request_path)
     require_private_file(database_path)
 
@@ -190,24 +209,27 @@ def build_result(query: str, language: str, request_path: Path,
     query_analysis = resolve_query(query, language, aliases, lexical, morphology)
     include_semantic = include_semantic_neighbors or query_analysis["resolution_tier"] == "semantic_neighbor"
 
-    concept_path = REPO / builder.OUTPUTS["concept"]
-    occurrences_path = REPO / builder.OUTPUTS["occurrences"]
-    relations_path = REPO / builder.OUTPUTS["relations"]
-    tasks_path = REPO / builder.OUTPUTS["english_tasks"]
-    public_contexts_path = REPO / builder.OUTPUTS["contexts"]
-    manifest_path = REPO / builder.OUTPUTS["manifest"]
+    concept_path = data_path(root, builder.OUTPUTS["concept"])
+    occurrences_path = data_path(root, builder.OUTPUTS["occurrences"])
+    relations_path = data_path(root, builder.OUTPUTS["relations"])
+    tasks_path = data_path(root, builder.OUTPUTS["english_tasks"])
+    public_contexts_path = data_path(root, builder.OUTPUTS["contexts"])
+    manifest_path = data_path(root, builder.OUTPUTS["manifest"])
     required_tracked = (concept_path, occurrences_path, relations_path, tasks_path, public_contexts_path)
     for path in (*required_tracked, manifest_path):
         if not path.is_file():
             raise SearchError(f"workbench artifact is missing; build the request first: {path}")
 
     manifest = load_json(manifest_path)
-    if manifest.get("concept_search_query_sha256") != sha_file(Path(__file__).resolve()):
-        raise SearchError("concept-search adapter drift from workbench manifest")
+    if manifest.get("schema_version") != "tos_zarathustra_concept_workbench_manifest_v1":
+        raise SearchError("unsupported concept workbench manifest")
+    # Build-time query identity remains provenance. Compatible v1 readers may
+    # evolve independently of immutable corpus data; installed code is selected
+    # by the software release, never by an executable stored with this manifest.
     if manifest.get("concept_search_result_schema_sha256") != sha_file(RESULT_SCHEMA):
         raise SearchError("concept-search result schema drift from workbench manifest")
-    tracked_fixity = {REPO / row["ref"]: row["sha256"] for row in manifest["artifacts"]}
-    private_fixity = {REPO / row["ref"]: row["sha256"] for row in manifest["private_artifacts"]}
+    tracked_fixity = {data_path(root, row["ref"]): row["sha256"] for row in manifest["artifacts"]}
+    private_fixity = {data_path(root, row["ref"]): row["sha256"] for row in manifest["private_artifacts"]}
     for path in required_tracked:
         if tracked_fixity.get(path) != sha_file(path):
             raise SearchError(f"tracked workbench artifact fixity mismatch: {path}")
@@ -337,7 +359,7 @@ def build_result(query: str, language: str, request_path: Path,
             "identity_posture": "stable_navigation_identity_not_semantic_concept_identity",
             "labels": request["labels"],
             "aliases": aliases,
-            "current_request_ref": str(request_path.relative_to(REPO) if request_path.is_relative_to(REPO) else request_path),
+            "current_request_ref": str(request_path.relative_to(root)),
             "current_request_id": concept["request_id"],
             "accepted_concept_ref": concept["concept_id"],
         },
@@ -346,7 +368,7 @@ def build_result(query: str, language: str, request_path: Path,
         "content_posture": "local_runtime_exact_source_return_not_tracked",
         "authority_boundary": "navigation_to_candidate_evidence_only_no_semantic_translation_graph_or_canon_acceptance",
         "provenance": {
-            "source_manifest_ref": str(manifest_path.relative_to(REPO)),
+            "source_manifest_ref": str(manifest_path.relative_to(root)),
             "source_manifest_sha256": sha_file(manifest_path),
             "query_adapter_ref": str(Path(__file__).resolve().relative_to(REPO)),
             "query_adapter_sha256": sha_file(Path(__file__).resolve()),
@@ -371,15 +393,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--query", required=True)
     parser.add_argument("--language", choices=("de", "ru", "en"), required=True)
-    parser.add_argument("--request", type=Path, default=DEFAULT_REQUEST)
+    parser.add_argument("--request", type=Path)
+    parser.add_argument("--data-root", type=Path, default=REPO)
     parser.add_argument("--include-semantic-neighbors", action="store_true")
     parser.add_argument("--limit", type=int, default=20,
                         help="number of exact German result cards; zero returns coverage only")
     args = parser.parse_args()
-    request_path = args.request if args.request.is_absolute() else REPO / args.request
+    root = args.data_root.absolute()
+    requested = args.request or DEFAULT_REQUEST.relative_to(REPO)
+    request_path = requested if requested.is_absolute() else root / requested
     try:
         result = build_result(args.query, args.language, request_path,
-                              args.include_semantic_neighbors, args.limit)
+                              args.include_semantic_neighbors, args.limit, data_root=root)
     except (SearchError, OSError, KeyError, ValueError, sqlite3.Error,
             json.JSONDecodeError, ValidationError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
