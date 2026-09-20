@@ -26,7 +26,7 @@ internal lane membership and command order. This file explains selection;
 | owner-local statistics | `local_stats_port` |
 | cross-family documentation | `cross_corpus_documentation` |
 | standalone software | `release` through `scripts/release_check.py`; `software_browser` for browser behavior after the software build |
-| full historical integration snapshot | explicit `scripts/release_check.py --integration-audit` |
+| data or historical integration | select the affected owner operation in `docs/RELEASING.md`; no combined integration gate |
 
 Use the nearest district `VALIDATION.md` when it names a narrower external
 owner, mutation-bearing builder, or package-specific procedure.
