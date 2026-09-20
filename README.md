@@ -19,12 +19,29 @@ https://github.com/user-attachments/assets/9a75a3a2-7033-4d86-822c-805efb07ef7a
 
 ## Quick start
 
-With Python 3.11+, run
-`git clone https://github.com/8Dionysus/Tree-of-Sophia.git && cd Tree-of-Sophia`,
-`python3 -m venv .venv`, `.venv/bin/python -m pip install -e 'access[mcp]'`,
-`.venv/bin/tos verify --profile standalone`, and `.venv/bin/tos serve`.
-Open [http://127.0.0.1:8080](http://127.0.0.1:8080); standalone archives and
-native MCP are documented in [`access/README.md`](access/README.md).
+Install the validated standalone software archive with Python 3.11+ and select
+a compatible data snapshot separately. The software archive includes built
+browser assets; neither it nor a Git clone includes the production corpus.
+After extracting the archive, replace the example paths below with its location
+and the selected snapshot's `data` directory:
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install '/path/to/extracted/access[mcp]'
+export TOS_DATA_ROOT=/path/to/snapshot/data
+.venv/bin/tos serve
+```
+
+Open [http://127.0.0.1:8080](http://127.0.0.1:8080), or use `.venv/bin/tos mcp`
+for native MCP. The first opening verifies the selected snapshot; the server
+then reuses its reader. Installation and data selection are documented in
+[`access/README.md`](access/README.md#software-only-archive).
+
+For source development, use the [release and validation route](docs/RELEASING.md).
+CI selects checks for the changed surface: human documentation does not rebuild
+the corpus or the software package. Shared changes and explicit full releases
+still run the full software suite. A documentation check does not publish data
+or prove that a new installable package was built.
 
 ## How ToS works
 
