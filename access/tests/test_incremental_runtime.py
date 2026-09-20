@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import json
 import hashlib
 import sqlite3
@@ -9,7 +10,7 @@ import unittest
 import os
 import shutil
 from pathlib import Path
-from contextlib import closing
+from contextlib import ExitStack, closing, nullcontext, redirect_stderr, redirect_stdout
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -30,6 +31,197 @@ from incremental_runtime import (
 
 
 class IncrementalRuntimeTests(unittest.TestCase):
+    def test_edge_query_store_progress_is_forwarded_to_stderr(self):
+        import build_runtime as builder
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "runtime" / "knowledge.sqlite3"
+            phases = []
+
+            def fake_compile(source_root, target, *, allow_legacy, progress):
+                phases.append((source_root, target, allow_legacy, progress))
+                progress("load-inputs")
+                progress("verify")
+                target.write_bytes(b"fixture-store")
+                return {"output": str(target)}
+
+            core = SimpleNamespace(tos_root=root)
+            stderr = io.StringIO()
+            with patch("tos_access.knowledge_compile.compile_knowledge_store", side_effect=fake_compile), \
+                    redirect_stderr(stderr):
+                result = builder.compile_query_store_for_build(core, output)
+
+            self.assertEqual(result, output.resolve())
+            self.assertEqual(len(phases), 1)
+            self.assertIs(phases[0][0], root)
+            self.assertEqual(phases[0][1], output.resolve())
+            self.assertTrue(phases[0][2])
+            lines = stderr.getvalue().splitlines()
+            self.assertEqual(
+                [(line.split()[1], line.split()[2]) for line in lines],
+                [
+                    ("stage=query-store", "event=start"),
+                    ("stage=query-store:load-inputs", "event=checkpoint"),
+                    ("stage=query-store:verify", "event=checkpoint"),
+                    ("stage=query-store", "event=done"),
+                ],
+            )
+            self.assertTrue(all("elapsed_s=" in line for line in lines))
+
+    def test_edge_query_store_failure_is_reported_to_stderr(self):
+        import build_runtime as builder
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "runtime" / "knowledge.sqlite3"
+
+            def fake_compile(_source_root, _target, *, allow_legacy, progress):
+                self.assertTrue(allow_legacy)
+                progress("load-inputs")
+                raise RuntimeError("fixture compiler failure")
+
+            stderr = io.StringIO()
+            with patch("tos_access.knowledge_compile.compile_knowledge_store", side_effect=fake_compile), \
+                    redirect_stderr(stderr), self.assertRaisesRegex(RuntimeError, "fixture compiler failure"):
+                builder.compile_query_store_for_build(SimpleNamespace(tos_root=root), output)
+
+            lines = stderr.getvalue().splitlines()
+            self.assertEqual(
+                [(line.split()[1], line.split()[2]) for line in lines],
+                [
+                    ("stage=query-store", "event=start"),
+                    ("stage=query-store:load-inputs", "event=checkpoint"),
+                    ("stage=query-store", "event=failed"),
+                ],
+            )
+            self.assertFalse(output.exists())
+
+    def test_edge_stage_progress_order_and_main_stdout_json_contract(self):
+        import build_runtime as builder
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            runtime, output = root / "runtime", root / "dist"
+            names = (
+                "index_path", "philosophy_graph_projection_path", "bibliographic_graph_path",
+                "entity_type_registry_path", "relation_type_registry_path", "evidence_projection_path",
+                "philosophy_post_planting_audit_path",
+            )
+            paths = {name: root / (name + ".json") for name in names}
+            for path in paths.values():
+                path.write_text("{}")
+            core = SimpleNamespace(tos_root=root, knowledge_graph=lambda: {}, **paths)
+            web = root / "access/web/dist"
+            web.mkdir(parents=True)
+            (web / "index.html").write_text("web")
+
+            def sql(_core, target, revision):
+                for name in ("read-model.sql", "read-model.rows.json", "read-model.delta.sql"):
+                    (target.parent / name).write_text(revision)
+                return {"sql_statements": 1}
+
+            def static(_core, target):
+                target.mkdir(exist_ok=True)
+                (target / "index.html").write_text("web")
+                return {"corpus": {"graph_views": ["one"]}, "philosophy": {"views": ["two"]}}
+
+            stderr = io.StringIO()
+            with patch.object(builder, "REPO_ROOT", root), \
+                    patch.object(builder, "build_read_model_sql", side_effect=sql), \
+                    patch.object(builder, "build_static_assets", side_effect=static), \
+                    patch.object(builder, "data_revision", return_value="a" * 64), \
+                    redirect_stderr(stderr):
+                manifest = builder.build(core, output, runtime)
+
+            self.assertEqual(
+                [(line.split()[1], line.split()[2]) for line in stderr.getvalue().splitlines()],
+                [
+                    ("stage=read-model", "event=start"),
+                    ("stage=read-model", "event=done"),
+                    ("stage=static-responses", "event=start"),
+                    ("stage=static-responses", "event=done"),
+                    ("stage=verify", "event=start"),
+                    ("stage=verify", "event=done"),
+                ],
+            )
+            self.assertEqual(manifest["build_stages"], {"read-model": "computed", "static-responses": "computed"})
+
+            args = SimpleNamespace(
+                output=root / "main-dist",
+                runtime=root / "main-runtime",
+                cache_max_mib=1,
+                cache_max_entries=1,
+                cache_keep_runs=1,
+            )
+            stdout = io.StringIO()
+            with patch.object(builder, "parse_args", return_value=args), \
+                    patch.object(builder, "validate_output_paths"), \
+                    patch.object(builder.ToSAccessCore, "discover", return_value=core), \
+                    patch.object(builder, "build_lock", return_value=nullcontext()), \
+                    patch.object(builder, "build", return_value={"schema": "fixture"}), \
+                    redirect_stdout(stdout), redirect_stderr(io.StringIO()):
+                self.assertEqual(builder.main(), 0)
+            self.assertEqual(json.loads(stdout.getvalue()), {"schema": "fixture"})
+
+    def test_edge_stage_failures_are_reported_to_stderr(self):
+        import build_runtime as builder
+
+        for failed_stage in ("read-model", "static-responses", "verify"):
+            with self.subTest(stage=failed_stage), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                runtime, output = root / "runtime", root / "dist"
+                names = (
+                    "index_path", "philosophy_graph_projection_path", "bibliographic_graph_path",
+                    "entity_type_registry_path", "relation_type_registry_path", "evidence_projection_path",
+                    "philosophy_post_planting_audit_path",
+                )
+                paths = {name: root / (name + ".json") for name in names}
+                for path in paths.values():
+                    path.write_text("{}")
+                core = SimpleNamespace(tos_root=root, knowledge_graph=lambda: {}, **paths)
+                web = root / "access/web/dist"
+                web.mkdir(parents=True)
+                (web / "index.html").write_text("web")
+
+                def sql(_core, target, revision):
+                    for name in ("read-model.sql", "read-model.rows.json", "read-model.delta.sql"):
+                        (target.parent / name).write_text(revision)
+                    return {"sql_statements": 1}
+
+                def static(_core, target):
+                    target.mkdir(exist_ok=True)
+                    (target / "index.html").write_text("web")
+                    return {"corpus": {"graph_views": ["one"]}, "philosophy": {"views": ["two"]}}
+
+                stderr = io.StringIO()
+                patches = [
+                    patch.object(builder, "REPO_ROOT", root),
+                    patch.object(builder, "data_revision", return_value="a" * 64),
+                ]
+                if failed_stage == "read-model":
+                    patches.append(patch.object(builder, "build_read_model_sql",
+                                                side_effect=RuntimeError("read-model fixture failure")))
+                else:
+                    patches.append(patch.object(builder, "build_read_model_sql", side_effect=sql))
+                if failed_stage == "static-responses":
+                    patches.append(patch.object(builder, "build_static_assets",
+                                                side_effect=RuntimeError("static fixture failure")))
+                else:
+                    patches.append(patch.object(builder, "build_static_assets", side_effect=static))
+                if failed_stage == "verify":
+                    patches.append(patch.object(builder.BuildStages, "verify",
+                                                side_effect=RuntimeError("verify fixture failure")))
+                with ExitStack() as stack:
+                    for current in patches:
+                        stack.enter_context(current)
+                    with redirect_stderr(stderr), self.assertRaisesRegex(RuntimeError, "fixture failure"):
+                        builder.build(core, output, runtime)
+
+                events = [(line.split()[1], line.split()[2]) for line in stderr.getvalue().splitlines()]
+                self.assertEqual(events[-1], (f"stage={failed_stage}", "event=failed"))
+                self.assertNotIn((f"stage={failed_stage}", "event=done"), events)
+
     def test_partial_output_close_is_not_publication_and_does_not_remove_reused_scratch(self):
         from build_runtime import SqlStatementWriter
         with tempfile.TemporaryDirectory() as directory:
