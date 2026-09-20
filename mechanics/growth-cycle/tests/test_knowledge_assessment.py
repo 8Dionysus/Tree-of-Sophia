@@ -1016,6 +1016,30 @@ class AssessmentPolicyTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     _source_records(root, [binding])
 
+    def test_source_selector_uses_only_json_whitespace_for_oversized_lines(self):
+        from assessment_journal import _source_records
+        from knowledge_assessment import MAX_RECORD_BYTES, _canonical
+
+        for suffix, accepted in ((b' ' * (MAX_RECORD_BYTES + 1), True),
+                                 (b'\v' * (MAX_RECORD_BYTES + 1), False),
+                                 (b'\f' * (MAX_RECORD_BYTES + 1), False)):
+            with self.subTest(suffix=suffix[:1]), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                relative = 'ToS/source-witnesses/fixture/records.jsonl'
+                target = root / relative
+                target.parent.mkdir(parents=True)
+                selected = {'schema_version': 'tos_corpus_record_v1',
+                            'record_id': 'tos.fixture.selected', 'record_version': 1}
+                target.write_bytes(_canonical(selected) + suffix)
+                binding = {'path': relative, 'record_id': selected['record_id'], 'origin_id': None}
+
+                if accepted:
+                    records, _ = _source_records(root, [binding])
+                    self.assertEqual([item['id'] for item in records], [selected['record_id']])
+                else:
+                    with self.assertRaises(ValueError):
+                        _source_records(root, [binding])
+
     def declared_source_fixture(self):
         from assessment_journal import _source_records
         bindings = self.declared_source_bindings()

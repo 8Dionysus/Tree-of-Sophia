@@ -631,6 +631,7 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
                 # A large carrier may contain more rows than this bounded
                 # assessment snapshot selects. Stream and hash the full source,
                 # while retaining only explicitly requested identities.
+                json_whitespace = b' \t\r\n'
                 digest = hashlib.sha256()
                 seen_ids = set()  # Bounded by the shared carrier byte budget.
                 descriptor = _owned_path(root / path)
@@ -650,7 +651,7 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
                             # trailing whitespace, which may fill the final
                             # line in an exact-boundary fixture. The JSON
                             # object itself remains per-record bounded.
-                            candidate = line.rstrip()
+                            candidate = line.rstrip(json_whitespace)
                             if candidate:
                                 if len(candidate) > MAX_RECORD_BYTES:
                                     raise ValueError('source record exceeds bounded record size')
@@ -658,8 +659,6 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
                                     row = _json_object(candidate)
                                 except ValueError:
                                     raise ValueError('source record exceeds bounded record size') from None
-                            elif line.strip():
-                                raise ValueError('source record exceeds bounded record size')
                             while not line.endswith(b'\n'):
                                 tail = stream.readline(MAX_RECORD_BYTES + 1)
                                 if not tail:
@@ -668,11 +667,11 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
                                 if total > 8 * MAX_RECORD_BYTES:
                                     raise ValueError('source files exceed the shared 8 MiB read budget')
                                 digest.update(tail)
-                                if tail.strip():
+                                if any(byte not in json_whitespace for byte in tail):
                                     raise ValueError('source record exceeds bounded record size')
                                 line = tail
                         if row is None:
-                            if not line.strip():
+                            if not line or all(byte in json_whitespace for byte in line):
                                 continue
                             row = _json_object(line)
                         family = families.get(row.get('schema_version'))
