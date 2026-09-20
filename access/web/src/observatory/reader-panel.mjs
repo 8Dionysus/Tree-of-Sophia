@@ -1,3 +1,4 @@
+import {createContextPresentation} from './readable-context-view.mjs';
 import {ui,uiAttribute,uiChildren,uiHTML,uiNode,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
 import {createReadingShelf,readingDocument,readingLanguages,readingKey,readingPositionKey,readingStatus,formLabel,formLanguageNote} from './reader-model.mjs';
@@ -196,8 +197,8 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
       if(originLabels[block.state])uiChildren(section, "append", el('p',originLabels[block.state],'sc-reader-origin'));
       uiChildren(view.body, "append", section);
     }
-    if(doc.humanForms)uiChildren(view.body,'append',renderHumanForms(snapshot.raw,{exactForms:snapshot.exactForms,readableContext:snapshot.readableContext}));
-    const contextPresentation={};
+    const contextPresentation=createContextPresentation(snapshot.raw);
+    if(doc.humanForms)uiChildren(view.body,'append',renderHumanForms(snapshot.raw,{exactForms:snapshot.exactForms,readableContext:snapshot.readableContext,presentation:contextPresentation}));
     uiChildren(view.body,'append',renderEssentialContext(doc.essentialContext,snapshot.readableContext,contextPresentation));
     if(snapshot.claimReading)uiChildren(view.body,'append',renderClaimContext(snapshot.claimReading,snapshot.readableContext,contextPresentation));
     if(doc.participants.length){

@@ -80,3 +80,11 @@ test('seeded role availability keeps statements qualified and machine details ou
     expect(raw).toEqual(before);
   }
 });
+
+
+test.each([['missing','Текст пока не предоставлен.'],['unavailable','Текст недоступен.'],['ambiguous','Вариант текста не определён.']])('an empty primary selection exposes its state: %s',(state,message)=>{
+  dom();const raw=formNode();
+  for(const role of Object.keys(raw.human_form_selection.roles))raw.human_form_selection.roles[role]={state:'missing',reason:'no-ready-form',form:null,packet:null};
+  raw.human_form_selection.roles.statement={state,reason:'no-ready-form',form:null,packet:null};
+  expect(renderHumanForms(raw).textContent).toContain(message);
+});

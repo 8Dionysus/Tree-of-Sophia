@@ -6,9 +6,9 @@ import {renderReadableContexts} from './readable-context-view.mjs';
 const el=(tag,value='',className='')=>{const node=document.createElement(tag);node.className=className;uiText(node,value);return node;};
 const disclosure=(title,group)=>{const node=el('details','','sc-form-disclosure');node.dataset.formGroup=group;node.append(el('summary',title));return node;};
 const usable=role=>role&&(role.state==='ready'||role.state==='over-budget'&&role.reason==='inspect-exact-form');
-function packetContext(packet,anchor,readableContext){
+function packetContext(packet,anchor,readableContext,presentation={}){
   const contexts=formContexts(readableContext,packet.form);
-  if(readableContext?.state==='complete'&&contexts.length)return renderReadableContexts(contexts,anchor);
+  if(readableContext?.state==='complete'&&contexts.length)return renderReadableContexts(contexts,anchor,presentation);
   const context=el('section','','sc-form-context');
   if(readableContext&&readableContext.state!=='complete'){const gap=el('p',ui('Часть контекста доступна в источнике.'),'sc-reader-gap');gap.dataset.contextPresentation=readableContext.state;context.append(gap);}
   for(const [index,entry]of packet.context.entries()){
@@ -22,29 +22,29 @@ function packetContext(packet,anchor,readableContext){
   }
   return context;
 }
-function appendPacket(section,packet,role,readableContext){
+function appendPacket(section,packet,role,readableContext,presentation){
   const anchor=`form:${role}`;section.dataset.formId=packet.form.id;section.dataset.formDigest=packet.form.digest;
   const wording=el('div',packet.display_text,'sc-form-wording');wording.dir='auto';if(packet.language)wording.lang=packet.language;
   wording.dataset.readingAnchor=anchor+':wording';section.append(wording);
-  const context=packetContext(packet,anchor+':context',readableContext);if(context.children.length)section.append(context);
+  const context=packetContext(packet,anchor+':context',readableContext,presentation);if(context.children.length)section.append(context);
 }
-function renderRole(selected,inspected,readableContext){
+function renderRole(selected,inspected,readableContext,presentation){
   const section=el('section','','sc-form-role');section.dataset.formRole=selected.role;section.dataset.formState=selected.state;
-  if(selected.state==='ready')appendPacket(section,selected.packet,selected.role,readableContext);
+  if(selected.state==='ready')appendPacket(section,selected.packet,selected.role,readableContext,presentation);
   else if(inspected?.[selected.role]){
     const action=el('button',ui('Показать полностью'),'sc-form-inspect');action.type='button';
-    action.addEventListener('click',()=>{action.remove();section.dataset.exactFormInspected='true';appendPacket(section,inspected[selected.role].packet,selected.role,readableContext);});section.append(action);
+    action.addEventListener('click',()=>{action.remove();section.dataset.exactFormInspected='true';appendPacket(section,inspected[selected.role].packet,selected.role,readableContext,presentation);});section.append(action);
   }
   return section;
 }
-export function renderHumanForms(raw,{exactForms=null,readableContext=null}={}){
+export function renderHumanForms(raw,{exactForms=null,readableContext=null,presentation={}}={}){
   const view=formView(raw),container=el('div','','sc-human-forms');if(!view)return container;
   container.dataset.formState=view.selection.state;
   const inspected=exactForms||inspectExactHumanForms(raw),roles=new Map(view.roles.map(role=>[role.role,role]));
   const primary=['statement','caption'].map(role=>roles.get(role)).find(usable),shown=new Set();
   const add=(selected,parent)=>{
     const packet=selected.packet??inspected?.[selected.role]?.packet;if(!packet)return;const identity=JSON.stringify([packet.display_text,packet.context]);if(shown.has(identity))return;
-    shown.add(identity);const section=renderRole(selected,inspected,readableContext);if(section.children.length)parent.append(section);
+    shown.add(identity);const section=renderRole(selected,inspected,readableContext,presentation);if(section.children.length)parent.append(section);
   };
   if(primary)add(primary,container);
   const hover=roles.get('hover');
@@ -62,7 +62,12 @@ export function renderHumanForms(raw,{exactForms=null,readableContext=null}={}){
   // the source note. Do not repeat names or empty roles as reading sections.
   if(!primary){
     const name=roles.get('name');const packet=name?.packet??hover?.packet;
-    if(packet){const context=packetContext(packet,'form:name:context',readableContext);if(context.children.length)container.append(context);}
+    if(packet){const context=packetContext(packet,'form:name:context',readableContext,presentation);if(context.children.length)container.append(context);}
+  }
+  if(!container.children.length){
+    const states=['statement','caption','hover'].map(role=>roles.get(role)?.state);
+    const message=states.includes('ambiguous')?ui('Вариант текста не определён.'):states.includes('unavailable')?ui('Текст недоступен.'):ui('Текст пока не предоставлен.');
+    container.append(el('p',message,'sc-reader-gap'));
   }
   return container;
 }

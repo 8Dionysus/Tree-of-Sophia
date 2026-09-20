@@ -27,7 +27,7 @@ function appendSourceValue(parent,entry,anchor){
   row.append(body);parent.append(row);return true;
 }
 
-export function renderReadableContexts(contexts,anchor,{resolveValue}={}){
+export function renderReadableContexts(contexts,anchor,{resolveValue,contextIdentity,presentedEntries}={}){
   const section=el('section','','sc-readable-context'),record=el('dl','','sc-form-values'),additional=el('dl','','sc-form-values');
   section.dataset.contextPresentation='selected';const seen=new Set();let hasAdditional=false;
   for(const [index,context]of contexts.entries()){
@@ -37,7 +37,10 @@ export function renderReadableContexts(contexts,anchor,{resolveValue}={}){
       // those fields; their absence does not alter the source fact's value.
       if(entry.category==='technical'||entry.key==='same_as_posture'&&entry.display.text==='no_equivalence_claim'
         ||entry.binding?.source_pointer?.startsWith('/field_languages/'))continue;
-      const stamp=JSON.stringify([entry.key,entry.binding?.source_pointer,entry.display,entry.value_label]);if(seen.has(stamp))continue;seen.add(stamp);
+      const identity=contextIdentity?.(entry);
+      const stamp=JSON.stringify([entry.key,identity??entry.binding?.source_pointer,entry.display,entry.value_label]);
+      if(seen.has(stamp)||identity&&presentedEntries?.has(stamp))continue;seen.add(stamp);
+      if(identity)presentedEntries?.add(stamp);
       if(entry.display.type==='null'||entry.display.text==='')continue;
       const nameStatus=entry.key==='status'&&/^\/variant_labels\/\d+\/status$/.test(entry.binding?.source_pointer??'');
       if(nameStatus&&entry.display.text==='verified'){
@@ -74,4 +77,17 @@ export function renderReadableContexts(contexts,anchor,{resolveValue}={}){
   if(record.children.length){const details=el('details');details.append(el('summary',ui('Сведения о записи')),record);section.append(details);}
   if(hasAdditional){const details=el('details');details.append(el('summary',ui('Дополнительные сведения')),additional,rawDataDownload(contexts,ui('Скачать данные'),'sophia-context.json'));section.append(details);}
   return section;
+}
+
+// A presentation session belongs to one validated material. Match the same
+// claim field carried by its source record and assertion projection only.
+export function createContextPresentation(raw){
+  const claim=raw?.semantics?.claim;
+  const digests=new Set((raw?.semantics?.assertion_contexts??[]).filter(context=>context.fields?.claim_id?.value===claim?.claim_id&&context.fields?.claim_version?.value===claim?.claim_version).map(context=>context.source_record_digest));
+  return {presentedEntries:new Set(),contextIdentity:entry=>{
+    if(!claim?.claim_id||!Number.isSafeInteger(claim.claim_version))return;
+    const binding=entry.binding,pointer=binding?.source_pointer;
+    if(binding?.kind==='record'&&binding.record?.id===claim.claim_id&&binding.record?.version===claim.claim_version)return JSON.stringify([claim.claim_id,claim.claim_version,pointer]);
+    if(binding?.kind==='assertion-context'&&digests.has(binding.source_record_digest)&&pointer?.startsWith('/properties/source_claim/'))return JSON.stringify([claim.claim_id,claim.claim_version,pointer.slice('/properties/source_claim'.length)]);
+  }};
 }

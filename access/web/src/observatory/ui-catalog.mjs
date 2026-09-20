@@ -1,5 +1,9 @@
 // Authored interface text only. Content-language variants remain server-owned.
 export const UI_CATALOG={
+  "Вариант текста не определён.":{"en":"The text variant is unresolved.","es":"La variante del texto no está determinada."},
+  "Текст недоступен.":{"en":"Text unavailable.","es":"Texto no disponible."},
+  "Текст пока не предоставлен.":{"en":"Text has not been supplied yet.","es":"El texto aún no se ha proporcionado."},
+
   "Скачать ссылку: {0}":{"en": "Download reference: {0}", "es": "Descargar referencia: {0}"},
   "Статус источника: {0}":{"en": "Source status: {0}", "es": "Estado de la fuente: {0}"},
   "Общественное достояние":{"en": "Public domain", "es": "Dominio público"},

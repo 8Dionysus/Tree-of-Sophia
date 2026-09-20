@@ -1,6 +1,6 @@
 import {afterEach,expect,test,vi} from 'vitest';
 import {renderEssentialContext,renderClaimContext} from './human-forms-view.mjs';
-import {renderReadableContexts} from './readable-context-view.mjs';
+import {renderReadableContexts,createContextPresentation} from './readable-context-view.mjs';
 import {setUiLanguage} from './ui-i18n.mjs';
 
 // Minimal DOM model for the disclosure contract, not browser layout proof.
@@ -115,4 +115,27 @@ test('title verification is localized with its scope while unclassified source w
   expect(node.textContent).toContain('Проверка названия');expect(node.textContent).toContain('Проверено');expect(node.textContent).not.toContain('verified');
   const literal=renderReadableContexts([{entries:[{...entry,binding:{source_pointer:'/author_note/status'}}]}],'literal');
   expect(literal.textContent).toContain('verified');
+});
+
+test('shared presentation deduplicates exact bound fields across forms while retaining differing values and scopes',()=>{
+  dom();const contextIdentity=entry=>entry.binding?.source_pointer;
+  const presentation={contextIdentity,presentedEntries:new Set()};
+  const entry={key:'time_scope_note',category:'governing',label:{ru:'Временные рамки'},binding:{source_pointer:'/qualifiers/time_scope_note'},display:{type:'string',text:'2 мая 1879 года'}};
+  const first=renderReadableContexts([{entries:[entry]}],'form',presentation);
+  const second=renderReadableContexts([{entries:[entry,{...entry,display:{type:'string',text:'Дата неизвестна'}},{...entry,binding:{source_pointer:'/other/time_scope_note'}}]}],'record',presentation);
+  expect(first.textContent).toContain('2 мая 1879 года');
+  expect(second.textContent.match(/2 мая 1879 года/g)).toHaveLength(1);expect(second.textContent).toContain('Дата неизвестна');
+});
+
+
+test('claim context session joins only matching record versions and retains conflicting wording',()=>{
+  dom();const session=createContextPresentation({semantics:{claim:{claim_id:'tos.claim.example',claim_version:2},assertion_contexts:[{source_record_digest:'digest',fields:{claim_id:{value:'tos.claim.example'},claim_version:{value:2}}}]}});
+  const entry={key:'statement',category:'governing',label:{ru:'Утверждение'},display:{type:'string',text:'Слова источника'},binding:{kind:'record',record:{id:'tos.claim.example',version:2},source_pointer:'/qualifiers/statement'}};
+  const assertion={...entry,binding:{kind:'assertion-context',source_record_digest:'digest',source_pointer:'/properties/source_claim/qualifiers/statement'}};
+  expect(session.contextIdentity(entry)).toBe(session.contextIdentity(assertion));
+  expect(session.contextIdentity({...assertion,binding:{...assertion.binding,source_record_digest:'other-record'}})).toBeUndefined();
+  expect(session.contextIdentity({...entry,binding:{...entry.binding,record:{id:'tos.claim.example',version:1}}})).toBeUndefined();
+  renderReadableContexts([{entries:[entry]}],'form',session);
+  const remaining=renderReadableContexts([{entries:[assertion,{...assertion,display:{type:'string',text:'Иная формулировка'}}]}],'record',session);
+  expect(remaining.textContent).not.toContain('Слова источника');expect(remaining.textContent).toContain('Иная формулировка');
 });

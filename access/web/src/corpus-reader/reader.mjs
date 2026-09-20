@@ -12,6 +12,7 @@ import {
   searchUnits,
   unitReference,
 } from './view-model.mjs';
+import {createNotebookMetadataResolver,notebookFallbackLabel,notebookReferenceWorkId} from './notebook-labels.mjs';
 import {languageName,sourceLinkLabel} from '../observatory/human-presentation.mjs';
 
 const WORDING = {
@@ -29,7 +30,7 @@ const WORDING = {
     empty: 'В этой области пока нет текста.', loading: 'Загрузка…', error: 'Не удалось загрузить фрагмент',
     previousChunk: 'Назад', nextChunk: 'Дальше', edition: 'Издание', provenance: 'Происхождение текста', language: 'Язык', original: 'Оригинал', translation: 'Перевод',
     unknown: 'не указано', continuation: 'Есть продолжение', metadataOnly: 'Только метаданные', restricted: 'Доступ ограничен', unavailableVersion: 'Текст недоступен', availabilityUnknown: 'Доступность уточняется',
-    untitled: 'Без названия', units: 'Единиц', passage: 'Фрагмент',
+    untitled: 'Без названия', units: 'Единиц', passage: 'Фрагмент', characters: 'символов',
     font: 'Размер', leading: 'Интервал', width: 'Ширина', theme: 'Тема', paper: 'Бумага', night: 'Ночь',
     select: 'Выбрать фрагмент в тексте', noCatalog: 'Произведения не найдены', works: 'Произведений',
   },
@@ -48,7 +49,7 @@ const WORDING = {
     unknown: 'unknown', continuation: 'More pages available', metadataOnly: 'Metadata only', restricted: 'Restricted', unavailableVersion: 'Text unavailable',
     font: 'Type size', leading: 'Line spacing', width: 'Line width', theme: 'Theme', paper: 'Paper', night: 'Night',
     select: 'Select a passage in the text', noCatalog: 'No works found', works: 'Works', availabilityUnknown: 'Availability is being checked',
-    untitled: 'Untitled', units: 'Units', passage: 'Passage',
+    untitled: 'Untitled', units: 'Units', passage: 'Passage', characters: 'characters',
   },
 };
 
@@ -175,6 +176,7 @@ export function mountCorpusReader({
   let inspectorOpen = false;
   let destroyWork = null;
   let renderSnapshot = null;
+  let notebookListGeneration = 0;
   const draftJournal = createNoteDraftJournal({notebook});
   const recovery = Promise.resolve().then(()=>draftJournal.recover()).then(recovered=>{
     if(recovered)announce(uiLocale()==='en'?'An unfinished note was recovered as a separate note.':'Несохранённый черновик восстановлен отдельной заметкой.');
@@ -197,6 +199,7 @@ export function mountCorpusReader({
       render(state);
     },
   });
+  const notebookMetadataResolver = createNotebookMetadataResolver({readDocument: documentId => model.readDocumentMetadata(documentId)});
 
   const t = key => WORDING[uiLocale()][key] || key;
   const modelState = () => renderSnapshot ?? model.snapshot();
@@ -822,21 +825,37 @@ export function mountCorpusReader({
   }
 
   function renderNotebookList(body) {
+    const generation = ++notebookListGeneration;
     const data=notebookItems(),page=model.notebookState();
     const details=element('details','cr-notebook-list');details.open=true;
     details.append(element('summary','',`${t('notes')} (${data.notes.length+data.bookmarks.length})`));
-    for(const item of [...data.notes,...data.bookmarks].reverse()){
+    for(const [index,item] of [...data.notes,...data.bookmarks].reverse().entries()){
       const ref=item.reference;
-      const catalogDocument=modelState().catalog.items.find(document=>document.id===ref?.target?.workId);
+      const documentId=notebookReferenceWorkId(ref);
+      const catalogDocument=documentId ? modelState().catalog.items.find(document=>document.id===documentId) : null;
       const catalogVersion=catalogDocument?.versions?.find(version=>version.id===ref?.versionId);
-      const contextLabel=[catalogDocument?documentTitle(catalogDocument):'',catalogVersion?versionLanguage(catalogVersion):''].filter(Boolean).join(' · ');
+      const selector=ref?.selector;
+      const locator=Number.isSafeInteger(selector?.start)&&Number.isSafeInteger(selector?.end)&&selector.end>selector.start
+        ? `${selector.start}–${selector.end} ${t('characters')}` : '';
+      const contextLabel=catalogDocument ? [documentTitle(catalogDocument),catalogVersion?versionLanguage(catalogVersion):'',locator].filter(Boolean).join(' · ') : '';
+      const prefix=item.kind==='bookmark'?'◆ ':'';
+      const fallbackLabel=notebookFallbackLabel(item,{index,locale:uiLocale(),passage:t('passage'),rangeLabel:t('characters')});
+      const label=element('strong','',`${prefix}${contextLabel||fallbackLabel}`);
       const entry=button('',async()=>{
         if(!(await flushNote()))return;capturePanePositions();
-        if(ref.schemaVersion==='tos.corpus.reader.native-reference.v1'){await close();await onNativeReference?.(ref,item);return;}
-        try{await model.open({documentId:ref.target.workId,versionId:ref.versionId,reference:ref});await ensureVisiblePanes();
+        if(ref?.schemaVersion==='tos.corpus.reader.native-reference.v1'){await close();await onNativeReference?.(ref,item);return;}
+        try{if(!documentId)throw new Error('invalid-reference');await model.open({documentId,versionId:ref.versionId,reference:ref});await ensureVisiblePanes();
           selected={reference:exactReference(ref),unit:currentWindow(ref.versionId)?.units?.find(unit=>unit.id===ref.unitId)||null,versionId:ref.versionId,quote:item.quote||''};render();}
         catch(error){announce(t('error'));}
-      },'cr-note-entry');entry.append(element('strong','',`${item.kind==='bookmark'?'◆ ':''}${contextLabel||t('passage')}`),element('span','',item.text||item.quote||t('bookmark')));details.append(entry);
+      },'cr-note-entry');entry.append(label,element('span','',item.text||item.quote||t('bookmark')));details.append(entry);
+      if(documentId && (!catalogDocument || !catalogDocument.versions?.length)){
+        void notebookMetadataResolver.resolve(documentId).then(document=>{
+          if(!document || disposed || !opened || generation!==notebookListGeneration || !entry.isConnected)return;
+          const version=document.versions?.find(itemVersion=>itemVersion.id===ref?.versionId);
+          const resolved=[documentTitle(document),version?versionLanguage(version):'',locator].filter(Boolean).join(' · ');
+          if(resolved)label.textContent=`${prefix}${resolved}`;
+        }).catch(()=>{});
+      }
     }
     if(model.notebookPage){
       if(page.nextCursor)details.append(button(t('loadMore'),async()=>{if(!(await flushNote()))return;try{await model.notebookPage({cursor:page.nextCursor});renderInspector();}catch{announce(t('error'));}},'cr-more'));
@@ -1058,7 +1077,7 @@ export function mountCorpusReader({
       // retain the DOM and notebook until both note and position writes settle.
       const positionSaving=opened?capturePanePositions():Promise.resolve();
       const saving=Promise.allSettled([flushNote(),positionSaving]);
-      disposed=true;opened=false;catalogCancel?.();searchCancel?.();
+      disposed=true;opened=false;notebookListGeneration+=1;notebookMetadataResolver.dispose();catalogCancel?.();searchCancel?.();
       document.removeEventListener('selectionchange',onSelectionChange);document.removeEventListener('visibilitychange',visibilityChanged);
       window.removeEventListener('beforeunload',beforeUnload);
       destroyWork=saving.finally(()=>{root?.remove();root=null;model.destroy();});return destroyWork;

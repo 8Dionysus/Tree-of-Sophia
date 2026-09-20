@@ -318,4 +318,24 @@ describe('corpus reader view model', () => {
     expect(model.notebookState().nextCursor).toBeNull();
     await notebook.close();
   });
+
+  it('reads off-page document metadata without navigating or evicting the catalog', async () => {
+    const offPage = {
+      id: 'work-off-page',
+      title: {ru: 'Работа вне страницы'},
+      versions: [{id: 'ru-off-page', language: 'ru', status: 'available'}],
+    };
+    const provider = {
+      catalog: vi.fn(async () => ({items: [{id: 'work-on-page', title: 'На странице', versions: []}]})),
+      document: vi.fn(async ({documentId}) => documentId === offPage.id ? offPage : null),
+    };
+    const model = createCorpusReaderModel({provider});
+    await model.catalog();
+
+    const result = await model.readDocumentMetadata(offPage.id);
+
+    expect(result).toMatchObject({id: offPage.id, title: offPage.title, versions: [{id: 'ru-off-page'}]});
+    expect(provider.document).toHaveBeenCalledWith(expect.objectContaining({documentId: offPage.id, signal: expect.any(AbortSignal)}));
+    expect(model.snapshot()).toMatchObject({document: null, activeVersionId: null, catalog: {items: [{id: 'work-on-page'}]}});
+  });
 });

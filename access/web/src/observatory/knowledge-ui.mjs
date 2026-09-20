@@ -1,4 +1,6 @@
-import {ui,uiAttribute,uiChildren,uiText} from './ui-i18n.mjs';
+import {createContextPresentation} from './readable-context-view.mjs';
+import {searchDisambiguators} from './search-disambiguation.mjs';
+import {ui,uiAttribute,uiChildren,uiText,uiLanguage} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
 import {RequestSlots,RevisionError,ContractError,localized,displayTitle,displayTitleForm,materialDisplayForm,sourceOriginalTitle,missingReadableTitle,compileRouteCenter,DEFAULT_FOCUS} from './knowledge-client.mjs';
 import {decodeDraft,constructorCatalog,previewDraft} from './lens-model.mjs';
@@ -10,8 +12,8 @@ import {formLabel,formLanguageNote} from './reader-model.mjs';
 import {sourceLinkLabel,sourceTitle,sourceLabel,rawDataDownload} from './human-presentation.mjs';
 
 export function renderInspectorForms(raw){
-  const readableContext=readableContextFor(raw);
-  return [renderHumanForms(raw,{readableContext}),renderEssentialContext(essentialContext(raw),readableContext)];
+  const readableContext=readableContextFor(raw),presentation=createContextPresentation(raw);
+  return [renderHumanForms(raw,{readableContext,presentation}),renderEssentialContext(essentialContext(raw),readableContext,presentation)];
 }
 
 export async function readInspectorMaterial({client,scene,kind,raw,language,signal}){
@@ -94,11 +96,11 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
       root.dataset.dataState='ready';notice('');
     }catch(error){root.dataset.dataState='error';notifyFailure(error,()=>chooseRelation(raw,null));}
   }
-  function searchRow(raw,kind,revision){
+  function searchRow(raw,kind,revision,disambiguator){
     const title=displayTitle(raw,raw.id);
     const row=button('',()=>kind==='node'?chooseNode(raw.id,revision):chooseRelation(raw,revision),'sc-result');
     const label=text('span','sc-result-label',title);
-    const carrier=sourceLabel(raw.source_graph);
+    const carrier=disambiguator||sourceLabel(raw.source_graph);
     let ariaLabel=title;
     if(kind==='relation'){
       const statement=localized(raw.display.statement,'');
@@ -115,7 +117,9 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     const query=value.trim().slice(0,256),results=q('.sc-search-results');uiChildren(results, "replaceChildren");
     if(!query){
       uiChildren(results, "append", text('div','sc-section-label',ui("В ТЕКУЩЕЙ ОБЛАСТИ")));
-      for(const raw of (port.packet?.nodes||[]).filter(n=>n.id===port.packet?.focus?.node_id||n.kind_id==='agent').slice(0,6))uiChildren(results, "append", searchRow(raw,'node',port.packet.source_revision));
+      const nearby=(port.packet?.nodes||[]).filter(n=>n.id===port.packet?.focus?.node_id||n.kind_id==='agent').slice(0,6);
+      const distinctions=searchDisambiguators(nearby.map(raw=>({raw,kind:'node',title:displayTitle(raw,raw.id)})),uiLanguage());
+      for(const raw of nearby)uiChildren(results, "append", searchRow(raw,'node',port.packet.source_revision,distinctions.get(`node:${raw.id}`)));
       uiChildren(results, "append", text('div','sc-empty',ui("Введите имя, название или понятие для поиска во всём древе.")));
       port.cardChanged();return;
     }
@@ -125,10 +129,11 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
         const found=await slots.run('search',signal=>client.search(query,signal,continuation));
         if(!found.current||q('.sc-search').hidden)return;
         const packet=found.value;uiChildren(results, "replaceChildren");root.dataset.searchQuery=query;root.dataset.searchRevision=packet.source_revision;
+        const distinctions=searchDisambiguators(['node','relation'].flatMap(kind=>packet[kind==='node'?'nodes':'relations'].map(raw=>({raw,kind,title:displayTitle(raw,raw.id),detail:kind==='relation'?localized(raw.display.statement,''):''}))),uiLanguage());
         for(const kind of ['node','relation']){
           const items=packet[kind==='node'?'nodes':'relations'];if(!items.length)continue;
           uiChildren(results, "append", text('div','sc-section-label',kind==='node'?ui("УЗЛЫ"):ui("ОТНОШЕНИЯ")));
-          for(const raw of items)uiChildren(results, "append", searchRow(raw,kind,packet.source_revision));
+          for(const raw of items)uiChildren(results, "append", searchRow(raw,kind,packet.source_revision,distinctions.get(`${kind}:${raw.id}`)));
         }
         if(!packet.nodes.length&&!packet.relations.length)uiChildren(results, "append", text('div','sc-empty',ui("По этому запросу ничего не найдено.")));
         const pager=document.createElement('div');pager.className='sc-search-pager';

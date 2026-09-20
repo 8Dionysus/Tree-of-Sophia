@@ -475,16 +475,22 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
     }
   }
 
-  async function readDocument(documentId, {refresh = false} = {}) {
+  async function readDocument(documentId, {refresh = false, cache = true} = {}) {
     const existing = state.catalog.items.find(item => item.id === documentId);
     if (existing && existing.versions.length && !refresh) return existing;
-    const value = await run(`document:${documentId}`, signal => callProvider(provider, 'document', {documentId, signal}));
+    const value = await run(`${cache ? 'document' : 'document-metadata'}:${documentId}`, signal => callProvider(provider, 'document', {documentId, signal}));
     if (!value) return null;
     const document = normalizeDocument(value);
-    const index = state.catalog.items.findIndex(item => item.id === document.id);
-    if (index < 0) state.catalog.items = [...state.catalog.items, document].slice(-CATALOG_CACHE_LIMIT);
-    else state.catalog.items = state.catalog.items.map((item, itemIndex) => itemIndex === index ? document : item);
+    if (cache) {
+      const index = state.catalog.items.findIndex(item => item.id === document.id);
+      if (index < 0) state.catalog.items = [...state.catalog.items, document].slice(-CATALOG_CACHE_LIMIT);
+      else state.catalog.items = state.catalog.items.map((item, itemIndex) => itemIndex === index ? document : item);
+    }
     return document;
+  }
+
+  async function readDocumentMetadata(documentId, options = {}) {
+    return readDocument(documentId, {...options, cache: false});
   }
 
   async function open({documentId, versionId, reference = null, unitId = null, revision = null} = {}) {
@@ -919,6 +925,10 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
     snapshot,
     limits: READER_LIMITS,
     catalog,
+    // Metadata-only consumers such as notebook labels can hydrate one work
+    // without changing the active document, version, or text window.
+    readDocument,
+    readDocumentMetadata,
     open,
     loadWindow,
     search,

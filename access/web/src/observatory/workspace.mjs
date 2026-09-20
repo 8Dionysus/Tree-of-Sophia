@@ -136,7 +136,7 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
         const read=response.value;output.dataset.sourceReadStatus=read.status;
         uiChildren(output,"replaceChildren");
         if(read.status!=='available'){
-          uiChildren(output,"append",el('p',ui("Запись источника сейчас недоступна. Попробуйте открыть её позже."),'sc-muted'));scene.invalidate();return;
+          uiChildren(output,"append",el('p',humanSourceStatus(read.status),'sc-muted'));scene.invalidate();return;
         }
         {
           if(typeof read.record.preferred_label==='string')uiChildren(exact,"append",el('h4',read.record.preferred_label));

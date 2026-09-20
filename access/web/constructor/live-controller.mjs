@@ -1,3 +1,5 @@
+import {createContextPresentation} from '../src/observatory/readable-context-view.mjs';
+import {searchDisambiguators} from '../src/observatory/search-disambiguation.mjs';
 import './live.css';
 import '../src/observatory/human-forms.css';
 import {mountConstructorSky} from './sky.mjs';
@@ -334,7 +336,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   }
   function appendReading(container,snapshot){
     const doc=readingDocument(snapshot,language),heading=el('h1',doc.title?.text??t('noTitle'));heading.dataset.readingAnchor='form:name:wording';container.append(heading);
-    const state=controller.state(),presentation={resolveValue:entry=>{
+    const state=controller.state(),presentation={...createContextPresentation(snapshot.raw),resolveValue:entry=>{
       if(state.view?.source_revision!==snapshot.sourceRevision||entry.display.type!=='string')return;
       if(entry.key==='predicate'){
         const catalog=state.discovery?.catalog,id=entry.display.text;
@@ -348,7 +350,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       const names=new Set(state.view.nodes.filter(row=>[row.id,row.native_id,row.entity_id].includes(entry.display.text)).map(row=>liveLabel(row,language).text));
       return names.size===1?[...names][0]:undefined;
     }};
-    if(doc.humanForms)container.append(renderHumanForms(snapshot.raw,{exactForms:snapshot.exactForms,readableContext:snapshot.readableContext}));
+    if(doc.humanForms)container.append(renderHumanForms(snapshot.raw,{exactForms:snapshot.exactForms,readableContext:snapshot.readableContext,presentation}));
     else for(const block of doc.blocks){if(!block.form?.text)continue;const text=el('p',block.form.text,'body');
       if(block.form.lang)text.lang=block.form.lang;container.append(text);}
     container.append(renderEssentialContext(doc.essentialContext,snapshot.readableContext,presentation));
@@ -517,8 +519,10 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   }
   function renderSearch(){
     const list=root.querySelector('.material-list');list.replaceChildren();const rows=searchPage?[...searchPage.nodes.map(raw=>({kind:'node',raw})),...searchPage.relations.map(raw=>({kind:'relation',raw}))]:[];
+    const distinctions=searchDisambiguators(rows.map(row=>({...row,title:liveLabel(row.raw,language).text,detail:liveSearchPreview(row.raw,language)?.text})),language);
     for(const {kind,raw} of rows){const item=button('',()=>open({kind,id:raw.id,content_revision:raw.content_revision}),'material-row');
       item.dataset.resultKind=kind;item.dataset.resultId=raw.id;item.append(el('small',t(kind)),el('strong',liveLabel(raw,language).text));
+      const distinction=distinctions.get(`${kind}:${raw.id}`);if(distinction)item.append(el('span',distinction,'search-preview'));
       const preview=liveSearchPreview(raw,language);if(preview?.text){const text=el('span',preview.text,'search-preview');if(preview.lang)text.lang=preview.lang;item.append(text);}
       list.append(item);}
     root.querySelector('.live-search-status').textContent=rows.length?'':searchSeek?.paused

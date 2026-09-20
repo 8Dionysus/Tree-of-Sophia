@@ -30,3 +30,13 @@ test('rights and request states stay distinct across interface languages',()=>{
     expect(String(humanSourceStatus(null))).not.toContain('Unavailable');
   }
 });
+
+test('exact-read failures retain distinct actionable status labels',()=>{
+  vi.stubGlobal('document',{documentElement:{},dispatchEvent:()=>{}});vi.stubGlobal('CustomEvent',class{});
+  for(const language of ['ru','en','es']){
+    setUiLanguage(language);
+    const labels=['access-restricted','corrupt','over-budget','unsupported','missing'].map(value=>String(humanSourceStatus(value)));
+    expect(new Set(labels).size).toBe(5);
+    expect(labels.join(' ')).not.toMatch(/позже|try later/i);
+  }
+});
