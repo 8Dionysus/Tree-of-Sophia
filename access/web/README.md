@@ -65,6 +65,15 @@ without server cursors. Each Exploration area is bounded by 200 nodes, 600
 relations and 4 MiB; a LensResult remains bounded by 40 nodes and 80 relations.
 Color distinguishes declared types; placement does not assert source meaning.
 
+The **Исследование** view sets aside objects whose carrier types all have the
+catalog role `projection`. Unknown types, mixed groups and the current exact
+selection stay visible. **Все объекты** restores these service objects;
+**Отдельные записи** also separates individual carriers. These are local views
+over the retained packet. Mode changes preserve coordinates and refresh the
+related-material list without replacing the open source disclosure. Technical
+atlas type names use exact catalog vocabulary; authored names retain their
+supplied wording.
+
 The full-book provider is an injected browser seam. The catalog, version
 structure, bounded reading-window and scoped-search operations still need an
 owner backend implementation, as specified in the reader's
