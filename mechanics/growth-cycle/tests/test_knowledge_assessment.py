@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import replace
+import hashlib
 import itertools
 import json
 import os
@@ -957,6 +958,87 @@ class AssessmentPolicyTests(unittest.TestCase):
         self.assertIn('ToS/contracts/document-record.schema.json', dependencies)
         self.assertIn('ToS/contracts/source-relation-claim.schema.json', dependencies)
         self.assertEqual(originals, {path: (ROOT / path).read_bytes() for path in originals})
+
+    def test_source_selector_streams_large_jsonl_and_hashes_full_carrier(self):
+        from assessment_journal import _source_records
+        from knowledge_assessment import MAX_ASSESSMENTS, _canonical
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            relative = 'ToS/source-witnesses/fixture/records.jsonl'
+            target = root / relative
+            target.parent.mkdir(parents=True)
+            rows = [{'schema_version': 'tos_corpus_record_v1',
+                     'record_id': f'tos.fixture.record-{index}', 'record_version': 1,
+                     'opaque': {'index': index}}
+                    for index in range(MAX_ASSESSMENTS + 1)]
+            raw = b''.join(_canonical(row) + b'\n' for row in rows)
+            target.write_bytes(raw)
+            binding = {'path': relative, 'record_id': rows[-1]['record_id'], 'origin_id': None}
+
+            records, fixity = _source_records(root, [binding])
+
+            self.assertEqual([item['id'] for item in records], [binding['record_id']])
+            self.assertEqual(records[0]['payload'], rows[-1])
+            self.assertEqual(fixity, [{'path': relative,
+                                       'digest': 'sha256:' + hashlib.sha256(raw).hexdigest()}])
+
+            rows[0]['opaque']['changed'] = True
+            changed = b''.join(_canonical(row) + b'\n' for row in rows)
+            target.write_bytes(changed)
+            selected, changed_fixity = _source_records(root, [binding])
+            self.assertEqual(selected[0]['payload'], rows[-1])
+            self.assertEqual(changed_fixity, [{'path': relative,
+                                              'digest': 'sha256:' + hashlib.sha256(changed).hexdigest()}])
+            self.assertNotEqual(fixity, changed_fixity)
+
+    def test_source_selector_rejects_malformed_or_duplicate_unselected_known_rows(self):
+        from assessment_journal import _source_records
+        from knowledge_assessment import _canonical
+
+        for mutation in ('malformed', 'duplicate'):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                relative = 'ToS/source-witnesses/fixture/records.jsonl'
+                target = root / relative
+                target.parent.mkdir(parents=True)
+                selected = {'schema_version': 'tos_corpus_record_v1',
+                            'record_id': 'tos.fixture.selected', 'record_version': 1}
+                neighbor = {'schema_version': 'tos_corpus_record_v1',
+                            'record_id': 'tos.fixture.neighbor', 'record_version': 1}
+                if mutation == 'malformed':
+                    raw = _canonical(selected) + b'\n{"schema_version":'
+                else:
+                    raw = b''.join(_canonical(row) + b'\n' for row in (selected, neighbor, neighbor))
+                target.write_bytes(raw)
+                binding = {'path': relative, 'record_id': selected['record_id'], 'origin_id': None}
+
+                with self.assertRaises(ValueError):
+                    _source_records(root, [binding])
+
+    def test_source_selector_uses_only_json_whitespace_for_oversized_lines(self):
+        from assessment_journal import _source_records
+        from knowledge_assessment import MAX_RECORD_BYTES, _canonical
+
+        for suffix, accepted in ((b' ' * (MAX_RECORD_BYTES + 1), True),
+                                 (b'\v' * (MAX_RECORD_BYTES + 1), False),
+                                 (b'\f' * (MAX_RECORD_BYTES + 1), False)):
+            with self.subTest(suffix=suffix[:1]), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                relative = 'ToS/source-witnesses/fixture/records.jsonl'
+                target = root / relative
+                target.parent.mkdir(parents=True)
+                selected = {'schema_version': 'tos_corpus_record_v1',
+                            'record_id': 'tos.fixture.selected', 'record_version': 1}
+                target.write_bytes(_canonical(selected) + suffix)
+                binding = {'path': relative, 'record_id': selected['record_id'], 'origin_id': None}
+
+                if accepted:
+                    records, _ = _source_records(root, [binding])
+                    self.assertEqual([item['id'] for item in records], [selected['record_id']])
+                else:
+                    with self.assertRaises(ValueError):
+                        _source_records(root, [binding])
 
     def declared_source_fixture(self):
         from assessment_journal import _source_records
