@@ -67,6 +67,15 @@ source cards in work order. The local query adapter is
 `scripts/query_zarathustra_concept_workbench_v1.py`; use the query `судьбы`,
 language `ru`, and the required result limit.
 
+Use `--data-root` to select a separate local dataset. Query code, morphology
+helpers and schemas stay with this software checkout; the dataset supplies
+requests, manifests, candidate records and mode-0600 source-return artifacts.
+The reader checks the supported v1 manifest, schema binding and every consumed
+data artifact digest. A recorded build-time query digest remains historical
+provenance; compatible software updates do not require rewriting corpus data.
+The response identifies the current query implementation separately.
+
+
 Each card contains the exact German surface and context, part, reading and
 text-unit anchors, speaker status, aligned Antonovsky context where available,
 the candidate realization relation, and the prepared source-first English

@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/schemas/zarathustra-reading-search-result-v1.json",
+  "title": "Source-bound Zarathustra reading search result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "search_result_id", "reading_search_result_id", "query_analysis", "concept_search_route", "concept_candidate_ref", "work_ref", "content_posture", "authority_boundary", "provenance", "coverage", "groups", "results", "additional_source_candidates", "limitations"],
+  "properties": {
+    "schema_version": {"const": "tos_zarathustra_reading_search_result_v1"},
+    "search_result_id": {"type": "string", "minLength": 1},
+    "reading_search_result_id": {"type": "string", "pattern": "^tos\\.navigation\\.reading-search-result\\.sid-[a-f0-9]{32}$"},
+    "query_analysis": {"type": "object"},
+    "concept_search_route": {"type": "object"},
+    "concept_candidate_ref": {"type": "string"},
+    "work_ref": {"const": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"},
+    "content_posture": {"const": "local_runtime_exact_source_return_not_tracked"},
+    "authority_boundary": {"const": "navigation_to_candidate_evidence_only_no_semantic_translation_graph_or_canon_acceptance"},
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["concept_predecessor", "reading_layer", "adapter_ref", "adapter_sha256", "result_schema_ref", "result_schema_sha256", "method_version"],
+      "properties": {
+        "concept_predecessor": {"type": "object"}, "reading_layer": {"type": "object"},
+        "adapter_ref": {"const": "scripts/query_zarathustra_reading_workbench_v1.py"},
+        "adapter_sha256": {"$ref": "#/$defs/hash"},
+        "result_schema_ref": {"const": "ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json"},
+        "result_schema_sha256": {"$ref": "#/$defs/hash"},
+        "method_version": {"type": ["string", "null"]}
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": ["total_source_results", "returned_source_results", "limit", "grouping_scope", "speaker_status_counts", "occurrence_anchor_status_counts", "whole_book_semantic_recall_asserted"],
+      "properties": {
+        "total_source_results": {"type": "integer", "minimum": 0},
+        "returned_source_results": {"type": "integer", "minimum": 0},
+        "limit": {"type": "integer", "minimum": 0, "maximum": 100},
+        "grouping_scope": {"const": "all_matching_source_occurrences_before_limit"},
+        "speaker_status_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+        "occurrence_anchor_status_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+        "whole_book_semantic_recall_asserted": {"const": false}
+      }
+    },
+    "groups": {
+      "type": "object", "additionalProperties": false,
+      "required": ["scope"],
+      "properties": {
+        "scope": {"const": "all_matching_source_occurrences_before_limit"},
+        "by_speaker": {"type": "array", "items": {"type": "object", "required": ["role", "status", "matching_count", "returned_occurrence_refs"]}},
+        "by_formula": {"type": "array", "items": {"type": "object", "required": ["formula_id", "matching_count", "whole_book_occurrence_count", "returned_occurrence_refs"]}},
+        "no_formula_membership_count": {"type": "integer", "minimum": 0},
+        "formula_group_posture": {"const": "overlapping_exact_normalized_formulas_not_semantic_equivalence"}
+      }
+    },
+    "results": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/card"}},
+    "additional_source_candidates": {
+      "type": "array", "maxItems": 100,
+      "items": {
+        "type": "object",
+        "required": ["candidate_id", "source_existing_occurrence_ref", "legacy_occurrence_id_asserted", "source_occurrence_spans", "normalization_operations", "speaker", "accepted", "semantic_fact_asserted", "translation_truth_asserted", "graph_effect", "canon_effect"],
+        "properties": {
+          "candidate_id": {"type": "string", "pattern": "^tos\\.annotation\\.normalization-search-candidate\\.sid-[a-f0-9]{32}$"},
+          "source_existing_occurrence_ref": {"const": null},
+          "legacy_occurrence_id_asserted": {"const": false},
+          "evidence_tier": {"const": "normalization_candidate"},
+          "source_occurrence_spans": {"type": "array", "minItems": 1, "maxItems": 1, "items": {"$ref": "#/$defs/anchor"}},
+          "normalization_operations": {"type": "array", "minItems": 1, "items": {"type": "object", "properties": {"operation": {"const": "remove_explicit_linebreak_hyphen_mark"}}}},
+          "accepted": {"const": false}, "semantic_fact_asserted": {"const": false}, "translation_truth_asserted": {"const": false}, "graph_effect": {"const": false}, "canon_effect": {"const": false}
+        }
+      }
+    },
+    "limitations": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "anchor": {
+      "type": "object",
+      "required": ["context_unit_ref", "start_offset", "end_offset", "offset_unit", "offset_scope", "exact_text", "exact_sha256"],
+      "properties": {
+        "context_unit_ref": {"type": "string", "minLength": 1},
+        "start_offset": {"type": "integer", "minimum": 0},
+        "end_offset": {"type": "integer", "minimum": 1},
+        "offset_unit": {"const": "unicode_codepoint"},
+        "offset_scope": {"const": "context_local_half_open"},
+        "exact_text": {"type": "string", "minLength": 1},
+        "exact_sha256": {"$ref": "#/$defs/hash"}
+      }
+    },
+    "card": {
+      "type": "object",
+      "required": ["rank", "source_language", "source_context", "source_surface", "source_existing_occurrence_ref", "source_occurrence_candidate_ref", "source_context_unit_ref", "source_occurrence_spans", "source_occurrence_anchor_status", "speaker", "speaker_predecessor", "discourse_segments", "source_sentences", "source_clauses", "fine_alignment_candidates", "formula_memberships", "context_formula_memberships", "english_analysis_context", "accepted", "semantic_fact_asserted", "translation_truth_asserted", "graph_effect", "canon_effect"],
+      "properties": {
+        "rank": {"type": "integer", "minimum": 1},
+        "source_language": {"const": "de"},
+        "source_context": {"type": "string", "minLength": 1},
+        "source_surface": {"type": "string", "minLength": 1},
+        "source_existing_occurrence_ref": {"type": "string", "minLength": 1},
+        "source_occurrence_candidate_ref": {"type": "string", "minLength": 1},
+        "source_context_unit_ref": {"type": "string", "minLength": 1},
+        "source_occurrence_spans": {"type": "array", "items": {"$ref": "#/$defs/anchor"}},
+        "source_occurrence_anchor_status": {"enum": ["exact", "ambiguous", "deferred"]},
+        "speaker": {"type": "object", "required": ["role", "status", "scope", "segment_id", "candidates", "evidence_refs", "utterer_role", "attribution_basis"]},
+        "speaker_predecessor": {"type": "object", "required": ["role", "status", "scope", "layer"]},
+        "discourse_segments": {"type": "array"},
+        "source_sentences": {"type": "array"},
+        "source_clauses": {"type": "array"},
+        "fine_alignment_candidates": {"type": "array"},
+        "formula_memberships": {"type": "array"},
+        "context_formula_memberships": {"type": "array"},
+        "english_analysis_context": {
+          "type": "object", "required": ["task_ref", "execution_status", "source_language", "historical_etymology_requires_cited_evidence", "english_is_generated_candidate_not_witness"],
+          "properties": {"execution_status": {"const": "not_executed"}, "source_language": {"const": "de"}, "historical_etymology_requires_cited_evidence": {"const": true}, "english_is_generated_candidate_not_witness": {"const": true}}
+        },
+        "accepted": {"const": false}, "semantic_fact_asserted": {"const": false},
+        "translation_truth_asserted": {"const": false}, "graph_effect": {"const": false}, "canon_effect": {"const": false}
+      }
+    }
+  }
+}

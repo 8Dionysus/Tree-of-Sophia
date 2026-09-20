@@ -4610,6 +4610,103 @@
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_zarathustra_concept_workbench_v1.py",
       "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_zarathustra_reading_workbench_v1.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/candidate-intake/zarathustra/reading-workbench-v1/README.md",
+      "source_truth": [
+        "ToS/candidate-intake/zarathustra/reading-workbench-v1/README.md",
+        "explicit selected data root: fixity-bound source spine and unaccepted 81-chapter voice policy"
+      ],
+      "reads": [
+        "fixity-bound source spine, predecessor analysis, concept occurrences and explicit witness-local policies"
+      ],
+      "writes": [
+        "new separate private output dataset: mode-0600 reading SQLite and candidate manifests/companions; no writes into software or source inputs"
+      ],
+      "side_effects": "materializes source-bound private discourse and formula SQLite plus text-free receipts; no acceptance; no source mutation, public export, semantic, translation or canon promotion",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_reading_workbench_v1.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/zarathustra_discourse.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/candidate-intake/zarathustra/reading-workbench-v1/README.md",
+      "source_truth": [
+        "ToS/candidate-intake/zarathustra/reading-workbench-v1/README.md",
+        "explicit selected data root: fixity-bound source spine and unaccepted 81-chapter voice policy"
+      ],
+      "reads": [
+        "fixity-bound source spine, predecessor analysis, concept occurrences and explicit witness-local policies"
+      ],
+      "writes": [],
+      "side_effects": "pure candidate quotation, source-preserving segments and contextual voice functions; no source mutation, public export, semantic, translation or canon promotion",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_discourse.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/zarathustra_voice_policy.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/candidate-intake/zarathustra/reading-workbench-v1/README.md",
+      "source_truth": [
+        "ToS/candidate-intake/zarathustra/reading-workbench-v1/README.md",
+        "explicit selected data root: fixity-bound source spine and unaccepted 81-chapter voice policy"
+      ],
+      "reads": [
+        "fixity-bound source spine, predecessor analysis, concept occurrences and explicit witness-local policies"
+      ],
+      "writes": [],
+      "side_effects": "pure offset-preserving reporting cue extraction; no source mutation, public export, semantic, translation or canon promotion",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_reading_challenger.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/zarathustra_recurring_formulas.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/candidate-intake/zarathustra/reading-workbench-v1/README.md",
+      "source_truth": [
+        "ToS/candidate-intake/zarathustra/reading-workbench-v1/README.md",
+        "explicit selected data root: fixity-bound source spine and unaccepted 81-chapter voice policy"
+      ],
+      "reads": [
+        "fixity-bound source spine, predecessor analysis, concept occurrences and explicit witness-local policies"
+      ],
+      "writes": [],
+      "side_effects": "pure whole-book exact/normalized formula candidate extraction; no source mutation, public export, semantic, translation or canon promotion",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_recurring_formulas.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/query_zarathustra_reading_workbench_v1.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/candidate-intake/zarathustra/reading-workbench-v1/README.md",
+      "source_truth": [
+        "ToS/candidate-intake/zarathustra/reading-workbench-v1/README.md",
+        "explicit selected data root: fixity-bound source spine and unaccepted 81-chapter voice policy"
+      ],
+      "reads": [
+        "fixity-bound source spine, predecessor analysis, concept occurrences and explicit witness-local policies"
+      ],
+      "writes": [],
+      "side_effects": "read-only local source-first concept query enriched with discourse, formulas and candidate alignments; no source mutation, public export, semantic, translation or canon promotion",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_reading_query_v1.py",
+      "disposition": "keep"
     }
   ]
 }

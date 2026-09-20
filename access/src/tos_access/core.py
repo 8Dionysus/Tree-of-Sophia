@@ -67,6 +67,7 @@ RELATION_TYPE_REGISTRY_RELATIVE_PATH = Path(
 PHILOSOPHY_AUDIT_RELATIVE_PATH = Path("ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json")
 EVIDENCE_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/epistemic_evidence_projection.min.json")
 WORD_ANALYSIS_PROVIDER_RELATIVE_PATH = Path("scripts/prepare_zarathustra_word_analysis_v1.py")
+READING_PROVIDER_RELATIVE_PATH = Path("scripts/query_zarathustra_reading_workbench_v1.py")
 SOURCE_GAP_LEDGER_RELATIVE_PATH = Path("ToS/source-witnesses/access-requests/public-ledger")
 SOURCE_READ_CONTRACT_RELATIVE_PATH = Path("access/contracts/source-read.v1.schema.json")
 KNOWLEDGE_CONTRACT_RELATIVE_PATHS = {
@@ -150,6 +151,26 @@ def _unavailable_word_analysis_capability(reason: str) -> dict[str, Any]:
         "reason": reason,
         "provider_ref": WORD_ANALYSIS_PROVIDER_RELATIVE_PATH.as_posix(),
         "publication_posture": "excluded_from_public_bundle",
+        "task": None,
+        "authority": {
+            "source_owner": "Tree-of-Sophia",
+            "access_plane_is_source": False,
+            "is_semantic_truth": False,
+            "writes_to_tree": False,
+            "reviewed": False,
+            "canon": False,
+        },
+    }
+
+
+def _reading_capability(result: dict[str, Any] | None, reason: str | None = None) -> dict[str, Any]:
+    return {
+        "schema": "tos_zarathustra_reading_capability_v1",
+        "available": result is not None,
+        "reason": reason,
+        "provider_ref": READING_PROVIDER_RELATIVE_PATH.as_posix(),
+        "publication_posture": "local_full_tree_only" if result is not None else "excluded_from_public_bundle",
+        "result": result,
         "task": None,
         "authority": {
             "source_owner": "Tree-of-Sophia",
@@ -2047,6 +2068,120 @@ class ToSAccessCore:
         """Describe the public bundle posture without loading the local provider."""
         return _unavailable_word_analysis_capability(
             "local source-bound word-analysis provider is excluded from the public bundle"
+        )
+
+    def zarathustra_reading_search(
+        self,
+        query: str,
+        language: str = "ru",
+        limit: int = 20,
+        include_semantic_neighbors: bool = False,
+        group_by: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Read occurrence-bound source candidates through the installed provider."""
+        normalized_query = str(query).strip()
+        if not normalized_query or len(normalized_query) > 256:
+            raise ValueError("reading query must have 1..256 characters")
+        normalized_language = str(language).strip().lower()
+        if normalized_language not in {"de", "ru", "en"}:
+            raise ValueError("reading language must be de, ru, or en")
+        bounded_limit = _bounded_int(limit, 20, 0, 100)
+        groups = ["speaker", "formula"] if group_by is None else group_by
+        if not isinstance(groups, list) or any(item not in {"speaker", "formula"} for item in groups):
+            raise ValueError("reading group_by supports speaker and formula only")
+
+        # Executable code is selected from the installed software bundle. The
+        # selected ToS root supplies data only, and is passed to both provider
+        # roots because this bounded recovery surface uses one dataset.
+        provider_candidate = program_path(READING_PROVIDER_RELATIVE_PATH)
+        if provider_candidate.is_symlink() or not provider_candidate.is_file():
+            return _reading_capability(None, "local source-bound reading provider is not installed")
+        provider_path = provider_candidate.resolve()
+        stat = provider_path.stat()
+        module_name = f"tos_local_reading_{stat.st_mtime_ns}_{stat.st_size}"
+        spec = importlib.util.spec_from_file_location(module_name, provider_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"cannot load local reading provider: {provider_path}")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        try:
+            # Compile the observed software bytes, avoiding same-second and
+            # same-size bytecode reuse across a provider replacement.
+            exec(compile(provider_path.read_bytes(), str(provider_path), "exec"), module.__dict__)
+            build_result = getattr(module, "build_result", None)
+            if not callable(build_result):
+                raise RuntimeError("local reading provider has no callable build_result")
+            try:
+                result = build_result(
+                    normalized_query,
+                    normalized_language,
+                    limit=bounded_limit,
+                    include_semantic_neighbors=bool(include_semantic_neighbors),
+                    group_by=tuple(dict.fromkeys(groups)),
+                    source_root=self.tos_root,
+                    analysis_root=self.tos_root,
+                )
+            except RuntimeError as exc:
+                unavailable = getattr(module, "ReadingUnavailable", None)
+                if not isinstance(unavailable, type) or not isinstance(exc, unavailable):
+                    raise
+                return _reading_capability(None, str(exc))
+        finally:
+            sys.modules.pop(module_name, None)
+
+        if (
+            not isinstance(result, dict)
+            or result.get("schema_version") != "tos_zarathustra_reading_search_result_v1"
+        ):
+            raise RuntimeError("local reading provider returned an unsupported result contract")
+        cards, coverage = result.get("results"), result.get("coverage")
+        if (
+            not isinstance(cards, list)
+            or not isinstance(coverage, dict)
+            or coverage.get("returned_source_results") != len(cards)
+        ):
+            raise RuntimeError("local reading provider returned invalid coverage")
+        if coverage.get("whole_book_semantic_recall_asserted") is not False or any(
+            not isinstance(card, dict)
+            or card.get("source_language") != "de"
+            or any(
+                card.get(key) is not False
+                for key in (
+                    "accepted",
+                    "semantic_fact_asserted",
+                    "translation_truth_asserted",
+                    "graph_effect",
+                    "canon_effect",
+                )
+            )
+            for card in cards
+        ):
+            raise RuntimeError("local reading provider crossed its candidate authority boundary")
+        additions = result.get("additional_source_candidates", [])
+        if not isinstance(additions, list) or any(
+            not isinstance(card, dict)
+            or card.get("source_existing_occurrence_ref") is not None
+            or card.get("legacy_occurrence_id_asserted") is not False
+            or any(
+                card.get(key) is not False
+                for key in (
+                    "accepted",
+                    "semantic_fact_asserted",
+                    "translation_truth_asserted",
+                    "graph_effect",
+                    "canon_effect",
+                )
+            )
+            for card in additions
+        ):
+            raise RuntimeError("additional reading candidates cannot invent legacy occurrence identity or acceptance")
+        return _reading_capability(result)
+
+    def zarathustra_reading_public_capability(self) -> dict[str, Any]:
+        """Describe the public posture without loading the source-bound provider."""
+        return _reading_capability(
+            None,
+            "local source-bound reading provider is excluded from the public bundle",
         )
 
     def summary(self) -> dict[str, Any]:

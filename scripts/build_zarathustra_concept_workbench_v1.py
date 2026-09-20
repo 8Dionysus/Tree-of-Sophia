@@ -67,11 +67,11 @@ OUTPUTS = {
 }
 
 
-def configure_request(request_ref: Path) -> None:
+def configure_request(request_ref: Path, *, request: dict[str, Any] | None = None) -> None:
     """Select one request without changing the workbench implementation."""
     global REQUEST_REF, PRIVATE_REQUEST, ISSUANCE_REF, OUTPUTS
     REQUEST_REF = request_ref
-    request = load_json(request_ref)
+    request = load_json(request_ref) if request is None else request
     key = request["request_key"]
     if key == "fate" and request_ref == ROUTE / "requests/fate.concept-request.v2.json":
         PRIVATE_REQUEST = PRIVATE_ROOT / "requests/fate.request-analysis.v1.json"
