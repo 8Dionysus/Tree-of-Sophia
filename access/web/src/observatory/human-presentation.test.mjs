@@ -15,6 +15,8 @@ test('file cards retain the format and size needed to choose a source',()=>{
 test('known predicate names are localized while source wording and future identities stay intact',()=>{
   expect(relationLabel({predicate_id:'transmits_to',display:{default:'transmits_to'}},'ru')).toBe('передаёт');
   expect(relationLabel({predicate_id:'contested_by',display:{label:{default:'contested_by'}}},'ru')).toBe('оспаривается');
+  expect(relationLabel({predicate_id:'has_node_type_pressure',display:{label:{default:'has node type pressure'}}},'ru')).toBe('требует уточнения типа');
+  expect(relationLabel({predicate_id:'has_node_type_pressure',display:{label:{ru:'Особое условие источника',default:'has node type pressure'}}},'ru')).toBe('Особое условие источника');
   const navigation={has_expression:['Текст или перевод','Text or translation','Texto o traducción'],
     translated_by:['Переводчик','Translator','Traductor'],
     has_normalized_agent:['Участник','Participant','Participante'],

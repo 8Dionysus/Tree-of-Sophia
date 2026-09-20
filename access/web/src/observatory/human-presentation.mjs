@@ -135,6 +135,6 @@ export function relationLabel(raw,locale=uiLanguage()){
   const id=raw?.predicate_id??'',display=raw?.display?.label??raw?.display;
   if(Object.hasOwn(navigationPredicates,id))return local(navigationPredicates,id,locale,'');
   const value=display?.[locale]||display?.default||display?.original||display?.en;
-  if(value&&value!==id&&value!==raw?.relation_type_id)return value;
+  if(value&&value!==id&&!(Object.hasOwn(predicates,id)&&value===id.replaceAll('_',' '))&&value!==raw?.relation_type_id)return value;
   return local(predicates,id,locale,locale==='ru'?'Связь':locale==='es'?'Relación':'Relation');
 }
