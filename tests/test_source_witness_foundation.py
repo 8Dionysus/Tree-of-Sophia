@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -12611,6 +12612,321 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             foundation.validate_foundation(REPO_ROOT, require_local_payloads=False),
         )
 
+    def _local_composite_payload_fixture(self, repo_root: Path) -> tuple[Path, dict]:
+        """Create a synthetic Git custody fixture, not source or rights acceptance."""
+        directory = (
+            repo_root
+            / "ToS/source-witnesses/scholarly-composites/critical/"
+            "synthetic/example/representations/local-copy"
+        )
+        directory.mkdir(parents=True)
+        raw = b"synthetic source file\n"
+        digest = hashlib.sha256(raw).hexdigest()
+        representation = {
+            "file_id": f"tos.file.sha256.{digest}",
+            "payload": {
+                "relative_path": "payload/source.html",
+                "byte_size": len(raw),
+                "sha256": digest,
+                "materialization_status": "materialized",
+                "storage_posture": "local_gitignored_payload",
+                "git_tracked": False,
+            },
+            "rights_ref": (directory / "rights.json").relative_to(repo_root).as_posix(),
+            "discovery_ref": "ToS/source-witnesses/discovery/runs/synthetic.json",
+        }
+        representation_path = directory / "representation.json"
+        representation_path.write_text(json.dumps(representation), encoding="utf-8")
+        metadata_paths = [representation_path, repo_root / ".gitignore"]
+        (repo_root / ".gitignore").write_bytes((REPO_ROOT / ".gitignore").read_bytes())
+        for ref in (
+            representation["rights_ref"],
+            representation["discovery_ref"],
+            "ToS/source-witnesses/discovery/provenance.jsonl",
+        ):
+            path = repo_root / ref
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("{}\n", encoding="utf-8")
+            metadata_paths.append(path)
+        subprocess.run(
+            ["git", "init", "--quiet", str(repo_root)],
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "add",
+                "--",
+                *(path.relative_to(repo_root).as_posix() for path in metadata_paths),
+            ],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+        )
+        (directory / "payload").mkdir()
+        (directory / representation["payload"]["relative_path"]).write_bytes(raw)
+        return representation_path, representation
+
+    def test_composite_schema_accepts_local_gitignored_custody_only(self) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.SCHOLARLY_COMPOSITE_FILE_REPRESENTATION_SCHEMA,
+            REPO_ROOT,
+        )
+        path = next(
+            (REPO_ROOT / "ToS/source-witnesses/scholarly-composites").glob(
+                "**/representations/*/representation.json"
+            )
+        )
+        absent = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual([], list(validator.iter_errors(absent)))
+
+        local = copy.deepcopy(absent)
+        local["payload"].update(
+            materialization_status="materialized",
+            storage_posture="local_gitignored_payload",
+            git_tracked=False,
+        )
+        self.assertEqual([], list(validator.iter_errors(local)))
+
+        tracked = copy.deepcopy(local)
+        tracked["payload"].update(
+            storage_posture="tracked_repository_payload",
+            git_tracked=True,
+        )
+        self.assertTrue(list(validator.iter_errors(tracked)))
+
+    def test_composite_payload_allows_local_gitignored_bytes_and_optional_absence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo_root = Path(temporary)
+            path, representation = self._local_composite_payload_fixture(repo_root)
+            payload_path = path.parent / representation["payload"]["relative_path"]
+            wrapper_issues: list[tuple[str, str]] = []
+            self.assertEqual(
+                payload_path,
+                foundation._validate_composite_representation_payload(
+                    repo_root,
+                    path,
+                    representation,
+                    require_local_payloads=True,
+                    issues=wrapper_issues,
+                ),
+            )
+            self.assertEqual([], wrapper_issues)
+            self.assertEqual(
+                [],
+                foundation.validate_composite_payload_file(
+                    repo_root, path, representation, require_local_payloads=True
+                ),
+            )
+
+            payload_path.unlink()
+            representation["payload"].update(
+                materialization_status="not_materialized",
+                storage_posture="unmaterialized_payload",
+            )
+            wrapper_issues = []
+            self.assertEqual(
+                payload_path,
+                foundation._validate_composite_representation_payload(
+                    repo_root,
+                    path,
+                    representation,
+                    require_local_payloads=False,
+                    issues=wrapper_issues,
+                ),
+            )
+            self.assertEqual([], wrapper_issues)
+            self.assertEqual(
+                [],
+                foundation.validate_composite_payload_file(
+                    repo_root, path, representation, require_local_payloads=False
+                ),
+            )
+            wrapper_issues = []
+            self.assertEqual(
+                payload_path,
+                foundation._validate_composite_representation_payload(
+                    repo_root,
+                    path,
+                    representation,
+                    require_local_payloads=True,
+                    issues=wrapper_issues,
+                ),
+            )
+            self.assertIn(
+                (
+                    path.relative_to(repo_root).as_posix(),
+                    "scholarly-composite representation payload is missing",
+                ),
+                wrapper_issues,
+            )
+            self.assertIn(
+                (
+                    path.relative_to(repo_root).as_posix(),
+                    "scholarly-composite representation payload is missing",
+                ),
+                foundation.validate_composite_payload_file(
+                    repo_root, path, representation, require_local_payloads=True
+                ),
+            )
+
+    def test_composite_payload_rejects_git_tracking_and_untracked_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo_root = Path(temporary)
+            path, representation = self._local_composite_payload_fixture(repo_root)
+            payload_path = path.parent / representation["payload"]["relative_path"]
+            subprocess.run(
+                [
+                    "git",
+                    "add",
+                    "--force",
+                    "--",
+                    payload_path.relative_to(repo_root).as_posix(),
+                ],
+                cwd=repo_root,
+                check=True,
+                capture_output=True,
+            )
+            self.assertIn(
+                (
+                    path.relative_to(repo_root).as_posix(),
+                    "local scholarly-composite payload must not be Git-tracked",
+                ),
+                foundation.validate_composite_payload_file(
+                    repo_root, path, representation, require_local_payloads=True
+                ),
+            )
+
+            metadata_path = repo_root / representation["rights_ref"]
+            subprocess.run(
+                [
+                    "git",
+                    "rm",
+                    "--cached",
+                    "--quiet",
+                    "--",
+                    metadata_path.relative_to(repo_root).as_posix(),
+                ],
+                cwd=repo_root,
+                check=True,
+                capture_output=True,
+            )
+            self.assertIn(
+                (
+                    metadata_path.relative_to(repo_root).as_posix(),
+                    "scholarly-composite source metadata must be Git-tracked",
+                ),
+                foundation.validate_composite_payload_file(
+                    repo_root, path, representation, require_local_payloads=True
+                ),
+            )
+
+    def test_composite_payload_rejects_escape_and_symlink_before_reading(self) -> None:
+        relative_paths = (
+            "../rights.json",
+            "payload/../rights.json",
+            "payload/nested/source.html",
+        )
+        for relative_path in relative_paths:
+            with self.subTest(
+                relative_path=relative_path
+            ), tempfile.TemporaryDirectory() as temporary:
+                repo_root = Path(temporary)
+                path, representation = self._local_composite_payload_fixture(repo_root)
+                representation["payload"]["relative_path"] = relative_path
+                with patch.object(
+                    foundation, "_sha256", side_effect=AssertionError("outside read")
+                ):
+                    issues: list[tuple[str, str]] = []
+                    self.assertIsNone(
+                        foundation._validate_composite_representation_payload(
+                            repo_root,
+                            path,
+                            representation,
+                            require_local_payloads=True,
+                            issues=issues,
+                        )
+                    )
+                self.assertTrue(any("direct local file" in message for _, message in issues))
+
+        with tempfile.TemporaryDirectory() as temporary:
+            repo_root = Path(temporary)
+            path, representation = self._local_composite_payload_fixture(repo_root)
+            payload_path = path.parent / representation["payload"]["relative_path"]
+            payload_path.unlink()
+            outside = repo_root / "outside.html"
+            outside.write_bytes(b"outside source")
+            payload_path.symlink_to(outside)
+            with patch.object(
+                foundation, "_sha256", side_effect=AssertionError("symlink read")
+            ):
+                issues = []
+                self.assertIsNone(
+                    foundation._validate_composite_representation_payload(
+                        repo_root,
+                        path,
+                        representation,
+                        require_local_payloads=True,
+                        issues=issues,
+                    )
+                )
+            self.assertTrue(any("without symlinks" in message for _, message in issues))
+
+            payload_path.unlink()
+            payload_path.mkdir()
+            issues = []
+            self.assertIsNone(
+                foundation._validate_composite_representation_payload(
+                    repo_root,
+                    path,
+                    representation,
+                    require_local_payloads=True,
+                    issues=issues,
+                )
+            )
+            self.assertTrue(any("direct local file" in message for _, message in issues))
+
+            payload_path.rmdir()
+            os.mkfifo(payload_path)
+            issues = []
+            self.assertIsNone(
+                foundation._validate_composite_representation_payload(
+                    repo_root,
+                    path,
+                    representation,
+                    require_local_payloads=True,
+                    issues=issues,
+                )
+            )
+            self.assertTrue(any("direct local file" in message for _, message in issues))
+
+    def test_composite_payload_preserves_size_digest_and_file_identity_checks(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo_root = Path(temporary)
+            path, representation = self._local_composite_payload_fixture(repo_root)
+            payload_path = path.parent / representation["payload"]["relative_path"]
+            payload_path.write_bytes(b"tampered")
+            representation["file_id"] = "tos.file.sha256." + "0" * 64
+            messages = [
+                message
+                for _, message in foundation.validate_composite_payload_file(
+                    repo_root, path, representation, require_local_payloads=True
+                )
+            ]
+            self.assertIn(
+                "scholarly-composite representation byte_size differs from payload",
+                messages,
+            )
+            self.assertIn(
+                "scholarly-composite representation sha256 differs from payload",
+                messages,
+            )
+            self.assertIn(
+                "scholarly-composite representation file_id is not content-addressed",
+                messages,
+            )
+
     def test_current_foundation_validates_with_local_payloads_when_available(self) -> None:
         issues = foundation.validate_foundation(REPO_ROOT, require_local_payloads=True)
         missing_local_content = [
@@ -12682,12 +12998,14 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             foundation._relative(representation_path, REPO_ROOT),
             issues,
         )
-        foundation._validate_composite_representation_payload(
-            REPO_ROOT,
-            representation_path,
-            representation,
-            require_local_payloads=False,
-            issues=issues,
+        self.assertIsNone(
+            foundation._validate_composite_representation_payload(
+                REPO_ROOT,
+                representation_path,
+                representation,
+                require_local_payloads=False,
+                issues=issues,
+            )
         )
 
         location = foundation._relative(representation_path, REPO_ROOT)
