@@ -1117,6 +1117,12 @@ The previous combined packager has been removed. Set `TOS_DATA_ROOT` for explici
 dataset reading or `TOS_RELEASE_ROOT` for a managed pair with rollback and
 withdrawal checks. Dataset selection does not install or deploy software.
 
+Selecting a released snapshot performs a full integrity check once when the
+reader opens it. `tos serve` and `tos mcp` retain that reader for the process
+lifetime; subsequent requests check withdrawal and the selected files without
+repeating the full snapshot check. Start a new server to select another
+snapshot. A standalone CLI invocation opens and verifies its snapshot anew.
+
 The full local Tree may additionally expose a source-bound Zarathustra word
 analysis capability. It resolves a German, Russian, or English query to one
 exact German occurrence and prepares morphology, syntax, historical sense,

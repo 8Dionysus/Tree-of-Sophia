@@ -131,7 +131,12 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.command == "mcp":
         from .mcp_server import _run_server, build_server
-        _run_server(build_server(core=core) if prepared else build_server(tos_root=core.tos_root))
+        # A released snapshot is already verified by this core. Keep its guard
+        # for the server lifetime, as HTTP does: reopening it on every MCP call
+        # repeats the full artifact hash and SQLite integrity scan. The guard
+        # still checks revocation and each selected member on every request.
+        _run_server(build_server(core=core) if prepared or core._data_guard is not None
+                    else build_server(tos_root=core.tos_root))
         return
     if args.command == "source":
         if args.source_command == "capabilities":

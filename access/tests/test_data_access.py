@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+import asyncio
 import gc
 import hashlib
 import json
@@ -130,6 +131,52 @@ def _promote(
 
 
 class DataAccessIntegrationTests(unittest.TestCase):
+    def test_mcp_reuses_verified_snapshot_and_keeps_mutation_guard(self) -> None:
+        from tos_access.cli import main
+        from tos_access.data_snapshot import verify_data_snapshot
+        from mcp.server.fastmcp.exceptions import ToolError
+
+        with _snapshot_fixture() as (_, _, _, snapshot, _):
+            def run(server):
+                first = asyncio.run(server.call_tool("tos_corpus_status", {}))
+                second = asyncio.run(server.call_tool("tos_corpus_status", {}))
+                self.assertEqual(first, second)
+                self.assertEqual(verify.call_count, 1)
+                member = snapshot / "data/ToS/derived-exports/tos_corpus_index.min.json"
+                member.write_bytes(member.read_bytes() + b"\nchanged")
+                with self.assertRaises(ToolError):
+                    asyncio.run(server.call_tool("tos_corpus_status", {}))
+                self.assertEqual(verify.call_count, 1)
+
+            with patch("tos_access.data_access.verify_data_snapshot", wraps=verify_data_snapshot) as verify:
+                with patch("tos_access.mcp_server._run_server", side_effect=run):
+                    main(["--root", str(snapshot / "data"), "mcp"])
+
+    def test_mcp_reused_snapshot_observes_revocation(self) -> None:
+        from tos_access.cli import main
+        from tos_access.data_snapshot import verify_data_snapshot
+        from mcp.server.fastmcp.exceptions import ToolError
+
+        with _snapshot_fixture() as (workspace, _, _, snapshot, manifest):
+            store = ReleaseStore(workspace / "mcp-release")
+            pair = _pair(manifest, snapshot, software_seed="a")
+            _promote(store, pair, _bindings(workspace, snapshot, software_seed="a"), None)
+
+            def run(server):
+                asyncio.run(server.call_tool("tos_corpus_status", {}))
+                asyncio.run(server.call_tool("tos_corpus_status", {}))
+                self.assertEqual(verify.call_count, 1)
+                store.revoke("data", pair["data_revision"], reason="MCP withdrawal",
+                             owner_ref="test_data_access")
+                with self.assertRaises(ToolError):
+                    asyncio.run(server.call_tool("tos_corpus_status", {}))
+                self.assertEqual(verify.call_count, 1)
+
+            with _managed_environment(store.root):
+                with patch("tos_access.data_access.verify_data_snapshot", wraps=verify_data_snapshot) as verify:
+                    with patch("tos_access.mcp_server._run_server", side_effect=run):
+                        main(["mcp"])
+
     def test_discover_reads_verified_artifact_and_serves_query(self) -> None:
         with _snapshot_fixture() as (workspace, software, data, snapshot, manifest):
             del workspace, software, data, manifest
