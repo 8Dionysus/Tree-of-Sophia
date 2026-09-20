@@ -10,6 +10,7 @@ import os
 import shutil
 import sqlite3
 import sys
+import time
 from collections.abc import Mapping
 from contextlib import ExitStack
 from pathlib import Path
@@ -129,6 +130,27 @@ def partitioned_inputs(core: ToSAccessCore) -> bool:
                for path in (core.index_path, core.bibliographic_graph_path))
 
 
+def _emit_edge_phase(stage: str, event: str, started: float) -> None:
+    """Keep long edge builds observable without contaminating the JSON stdout contract."""
+    elapsed = time.monotonic() - started
+    print(
+        f"EDGE_BUILD stage={stage} event={event} elapsed_s={elapsed:.3f}",
+        file=sys.stderr,
+        flush=True,
+    )
+
+
+def _edge_phase_reporter(stage: str):
+    """Return a compiler-compatible progress callback for one bounded build phase."""
+    started = time.monotonic()
+    _emit_edge_phase(stage, "start", started)
+
+    def checkpoint(name: str) -> None:
+        _emit_edge_phase(f"{stage}:{name}", "checkpoint", started)
+
+    return started, checkpoint
+
+
 def compile_query_store_for_build(core: ToSAccessCore, output: Path) -> Path:
     """Build one explicit offline query snapshot before importing D1 rows."""
     try:
@@ -142,14 +164,26 @@ def compile_query_store_for_build(core: ToSAccessCore, output: Path) -> Path:
     # The compiler is deliberately the only owner of graph assembly at this
     # boundary.  ``allow_legacy`` applies to the existing bounded philosophy
     # projection; corpus and bibliography still require partitioned inputs.
-    result = compile_knowledge_store(core.tos_root, output, allow_legacy=True)
+    started, progress = _edge_phase_reporter("query-store")
+    try:
+        result = compile_knowledge_store(
+            core.tos_root,
+            output,
+            allow_legacy=True,
+            progress=progress,
+        )
+    except BaseException:
+        _emit_edge_phase("query-store", "failed", started)
+        raise
     candidate = output
     if isinstance(result, dict) and isinstance(result.get("output"), str):
         candidate = Path(result["output"])
     elif isinstance(result, (str, Path)):
         candidate = Path(result)
     if not candidate.is_file():
+        _emit_edge_phase("query-store", "failed", started)
         raise RuntimeError(f"offline query-store compiler did not publish {output}")
+    _emit_edge_phase("query-store", "done", started)
     return candidate.resolve()
 
 
@@ -1926,13 +1960,33 @@ def _build(core: ToSAccessCore, output: Path, runtime: Path, *, cache_options=No
     # A partial/failed build cannot be deployed using a previous success manifest.
     for marker in (runtime / 'manifest.json', output / '__edge/build-manifest.json'):
         marker.unlink(missing_ok=True)
-    sql = stages.run('read-model', sql_inputs,
-                     lambda: {name: runtime / name for name in
-                              ('read-model.sql', 'read-model.delta.sql', 'read-model.rows.json')}, sql_stage)
-    static_summary = stages.run('static-responses', static_inputs,
-                                lambda: {**tree_paths(output, 'static', exclude=('__edge/build-manifest.json',)),
-                                         'static/index.html': output / 'index.html'}, static_stage)
-    stages.verify()
+    sql_started, _ = _edge_phase_reporter('read-model')
+    try:
+        sql = stages.run('read-model', sql_inputs,
+                         lambda: {name: runtime / name for name in
+                                  ('read-model.sql', 'read-model.delta.sql', 'read-model.rows.json')}, sql_stage)
+    except BaseException:
+        _emit_edge_phase('read-model', 'failed', sql_started)
+        raise
+    _emit_edge_phase('read-model', 'done', sql_started)
+
+    static_started, _ = _edge_phase_reporter('static-responses')
+    try:
+        static_summary = stages.run('static-responses', static_inputs,
+                                    lambda: {**tree_paths(output, 'static', exclude=('__edge/build-manifest.json',)),
+                                             'static/index.html': output / 'index.html'}, static_stage)
+    except BaseException:
+        _emit_edge_phase('static-responses', 'failed', static_started)
+        raise
+    _emit_edge_phase('static-responses', 'done', static_started)
+
+    verify_started, _ = _edge_phase_reporter('verify')
+    try:
+        stages.verify()
+    except BaseException:
+        _emit_edge_phase('verify', 'failed', verify_started)
+        raise
+    _emit_edge_phase('verify', 'done', verify_started)
     revision, counts = sql['data_revision'], sql['counts']
     manifest = {
         "schema": "tos_cloudflare_edge_build_v1",
