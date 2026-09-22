@@ -49,6 +49,10 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         *,
         base_revision: str,
         manifest_payload_matches: bool = True,
+        extra_manifest: bool = False,
+        provenance_output_ref: str = "destination",
+        provenance_output_sha256: str | None = None,
+        provenance_rights_ref: str | None = None,
     ) -> tuple[dict[str, bytes], str, str, list[dict[str, str]]]:
         item_ref = "tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8"
         item_root = (
@@ -100,12 +104,28 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                 old_sha = old_payload["sha256"]
                 old_file_ref = old_payload["file_id"]
                 old_destination = f"{item_root}/{old_payload['relative_path']}"
+                old_rights_ref = f"{item_root}/rights.json"
+                output_ref = {
+                    "destination": f"{item_root}/payload/adapter.txt",
+                    "file": payload_ref,
+                }.get(provenance_output_ref, provenance_output_ref)
+                output_sha256 = (
+                    payload_sha
+                    if provenance_output_sha256 is None
+                    else provenance_output_sha256
+                )
                 body = (owner_item_root / filename).read_bytes()
                 body = (
-                    body.replace(old_sha.encode(), payload_sha.encode())
+                    body.replace(old_sha.encode(), output_sha256.encode())
                     .replace(old_file_ref.encode(), payload_ref.encode())
-                    .replace(old_destination.encode(), f"{item_root}/payload/adapter.txt".encode())
+                    .replace(old_destination.encode(), output_ref.encode())
                 )
+                if provenance_rights_ref is not None:
+                    if provenance_rights_ref == "wrong":
+                        provenance_rights_ref = f"{item_root}/other-rights.json"
+                    body = body.replace(
+                        old_rights_ref.encode(), provenance_rights_ref.encode()
+                    )
             else:
                 body = (owner_item_root / filename).read_bytes()
             path = self.metadata / ref
@@ -113,6 +133,19 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             path.write_bytes(body)
             records.append(
                 {"ref": ref, "kind": kind, "sha256": hashlib.sha256(body).hexdigest()}
+            )
+        if extra_manifest:
+            extra_ref = f"{item_root}/batch-scope.json"
+            extra_body = b'{"scope":"fixture-batch"}\n'
+            extra_path = self.metadata / extra_ref
+            extra_path.parent.mkdir(parents=True, exist_ok=True)
+            extra_path.write_bytes(extra_body)
+            records.append(
+                {
+                    "ref": extra_ref,
+                    "kind": "manifest",
+                    "sha256": hashlib.sha256(extra_body).hexdigest(),
+                }
             )
         manifest = {
             "$schema": "https://tree-of-sophia.local/ToS/contracts/acquisition-batch.schema.json",
@@ -359,6 +392,96 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         self.assertEqual(4, len(verified.selected_source_rows))
         self.assertEqual(1, len(verified.payloads))
         self.assertEqual(self.validator_sha256, context["validator_sha256"])
+
+    def test_shared_verifier_accepts_file_id_provenance_and_extra_manifest(self) -> None:
+        fetches, manifest_sha, _item_root, records = self._write_manifest(
+            base_revision="a" * 64,
+            extra_manifest=True,
+            provenance_output_ref="file",
+        )
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        verified = adapter.verify_handoff_for_intake(
+            acquisition_root=self.acquisition_root,
+            handoff_ref=result["handoff_ref"],
+            expected_base_revision="a" * 64,
+            repo_root=ROOT,
+        )
+        self.assertEqual(len(records), len(verified.selected_source_rows))
+        self.assertEqual(1, len(verified.payloads))
+
+    def test_shared_verifier_rejects_wrong_file_id_digest_and_rights(self) -> None:
+        controls = (
+            {
+                "name": "file-id",
+                "kwargs": {"provenance_output_ref": "tos.file.sha256." + "0" * 64},
+            },
+            {
+                "name": "digest",
+                "kwargs": {"provenance_output_sha256": "0" * 64},
+            },
+            {
+                "name": "rights",
+                "kwargs": {"provenance_rights_ref": "wrong"},
+            },
+        )
+        for control in controls:
+            with self.subTest(control=control["name"]):
+                fetches, manifest_sha, _item_root, _records = self._write_manifest(
+                    base_revision="a" * 64,
+                    **control["kwargs"],
+                )
+                result = acquisition.acquire_batch(
+                    manifest_path=self.manifest_path,
+                    metadata_root=self.metadata,
+                    output_root=self.acquisition_root,
+                    expected_manifest_sha256=manifest_sha,
+                    fetcher=lambda payload: fetches[payload["file_ref"]],
+                )
+                with self.assertRaisesRegex(
+                    adapter.HandoffAdapterError,
+                    "Item provenance does not bind acquired payload",
+                ):
+                    adapter.verify_handoff_for_intake(
+                        acquisition_root=self.acquisition_root,
+                        handoff_ref=result["handoff_ref"],
+                        expected_base_revision="a" * 64,
+                        repo_root=ROOT,
+                    )
+                shutil.rmtree(self.acquisition_root)
+
+    def test_shared_verifier_rejects_non_item_manifest_target(self) -> None:
+        fetches, manifest_sha, item_root, _records = self._write_manifest(
+            base_revision="a" * 64,
+            extra_manifest=True,
+        )
+        acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        context = acquisition.load_manifest(
+            self.manifest_path,
+            repo_root=ROOT,
+            expected_sha256=manifest_sha,
+        )
+        context.manifest["selection"][0]["records"] = [
+            record
+            for record in context.manifest["selection"][0]["records"]
+            if record["ref"] != f"{item_root}/item.manifest.json"
+        ]
+        with self.assertRaisesRegex(
+            adapter.HandoffAdapterError,
+            "selection has no selected Item manifest record",
+        ):
+            adapter._verify_item_payload_bindings(context, self.acquisition_root)
 
     def test_item_provenance_binding_uses_manifest_ref_after_record_reordering(self) -> None:
         fetches, _unused_manifest_sha, item_root, records = self._write_manifest(base_revision="0" * 64)

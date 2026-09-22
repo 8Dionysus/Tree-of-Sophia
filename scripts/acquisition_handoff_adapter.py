@@ -367,12 +367,16 @@ def _verify_item_payload_bindings(context: acquisition.BatchContext, acquisition
 
     for selection in context.manifest["selection"]:
         records = {record["ref"]: record for record in selection["records"]}
-        manifest_records = [record for record in records.values() if record["kind"] == "manifest"]
-        if len(manifest_records) != 1:
+        # A selection may carry more than one manifest.  The batch-level
+        # manifest (and discovery manifests) are part of the reviewed record
+        # closure, but only the deterministic Item manifest owns the
+        # payload/provenance binding checked below.
+        item_manifest_ref = f"{selection['item_root_ref']}/item.manifest.json"
+        item_manifest_record = records.get(item_manifest_ref)
+        if not isinstance(item_manifest_record, dict) or item_manifest_record.get("kind") != "manifest":
             raise HandoffAdapterError(
-                f"selection has no unique Item manifest record: {selection['item_ref']}"
+                f"selection has no selected Item manifest record: {selection['item_ref']}"
             )
-        item_manifest_record = manifest_records[0]
         manifest_path = _path_under(
             acquisition_root,
             f"source/{item_manifest_record['ref']}",
@@ -447,11 +451,13 @@ def _verify_item_payload_bindings(context: acquisition.BatchContext, acquisition
             if not any(
                 isinstance(event, dict)
                 and event.get("rights_basis_ref") == selection["rights"]["ref"]
+                and isinstance(event.get("outputs"), list)
                 and any(
                     isinstance(output, dict)
-                    and output.get("ref") == destination_ref
+                    and isinstance(output.get("ref"), str)
+                    and output.get("ref") in {file_ref, destination_ref}
                     and output.get("sha256") == payload["sha256"]
-                    for output in event.get("outputs", [])
+                    for output in event["outputs"]
                 )
                 for event in provenance_rows
             ):
