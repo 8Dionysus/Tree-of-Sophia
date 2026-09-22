@@ -15,7 +15,15 @@ import shutil
 import sys
 import tempfile
 
-from corpus_store import CorpusStore, CorpusStoreError, canonical, digest_file
+from corpus_store import (
+    CorpusStore,
+    CorpusStoreError,
+    _copy_stream_digest,
+    canonical,
+    digest_file,
+    regular,
+    stage_timing,
+)
 from corpus_source_validation import is_source_member
 
 SOFTWARE_ROOT = Path(__file__).resolve().parents[1]
@@ -46,15 +54,12 @@ def _write_projection(root: Path, relative: str, payload):
     write_partitioned_payload(path, payload, prune=False)
 
 
-def compile_revision(store_root: Path, revision: str, output: Path) -> dict:
-    store = CorpusStore(store_root)
-    manifest = store.load(revision, verify_objects=True)
-    output = Path(output).absolute()
-    if output.exists() or output.is_symlink():
-        raise CorpusStoreError('data output must be new')
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix='tos-corpus-build-', dir=output.parent) as raw:
-        view = Path(raw) / 'source'
+def _copy_source_view(store: CorpusStore, manifest: dict, view: Path) -> None:
+    with stage_timing(
+        'build.source_materialize',
+        members=len(manifest['files']),
+        bytes=sum(entry['size_bytes'] for entry in manifest['files']),
+    ):
         view.mkdir()
         for entry in manifest['files']:
             relative = entry['path']
@@ -62,16 +67,32 @@ def compile_revision(store_root: Path, revision: str, output: Path) -> dict:
                 raise CorpusStoreError('accepted source includes a generated producer output')
             path = view / relative
             path.parent.mkdir(parents=True, exist_ok=True)
-            # Producer isolation must protect the accepted objects even if a
-            # buggy helper writes or chmods what it thought was an output.
-            shutil.copyfile(store._object(entry['sha256']), path)
+            source = store._object(entry['sha256'])
+            before = regular(source)
+            with source.open('rb') as stream, path.open('xb') as target:
+                copied_size, copied_sha256 = _copy_stream_digest(stream, target)
+            after = regular(source)
+            if ((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) !=
+                    (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+                    or copied_size != entry['size_bytes']
+                    or copied_sha256 != entry['sha256']
+                    or path.stat().st_size != entry['size_bytes']):
+                raise CorpusStoreError('source object changed during build view materialization')
             path.chmod(entry['mode'])
-        # API schemas are software-owned; the data packager will not copy them.
+
+
+def _compile_view(store: CorpusStore, manifest: dict, revision: str, view: Path, output: Path) -> dict:
+    # API schemas are software-owned; the data packager will not copy them.
+    with stage_timing('build.copy_software_contracts'):
         shutil.copytree(SOFTWARE_ROOT / 'access/contracts', view / 'access/contracts')
-        from build_source_witness_catalog import render_outputs, write_outputs
-        write_outputs(view, render_outputs(view))
-        _bind('philosophy_multilingual_common', view)
-        for name, relative in OUTPUTS:
+    from build_source_witness_catalog import render_outputs, write_outputs
+    with stage_timing('build.catalog_render', members=len(manifest['files'])):
+        catalog_outputs = render_outputs(view)
+    with stage_timing('build.catalog_write', outputs=len(catalog_outputs)):
+        write_outputs(view, catalog_outputs)
+    _bind('philosophy_multilingual_common', view)
+    for name, relative in OUTPUTS:
+        with stage_timing(f'build.projection.{name}'):
             module = _bind(name, view)
             path = view / relative
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -80,28 +101,52 @@ def compile_revision(store_root: Path, revision: str, output: Path) -> dict:
                 _write_projection(view, relative, payload)
             else:
                 path.write_text(module.render_payload(payload), encoding='utf-8')
-        from partitioned_projection_common import build_storage
-        from source_witness_bibliographic_graph_common import build_payload as build_bibliographic
+    from partitioned_projection_common import build_storage
+    from source_witness_bibliographic_graph_common import build_payload as build_bibliographic
+    with stage_timing('build.bibliographic_graph'):
         with build_storage() as storage:
             payload = build_bibliographic(view, storage=storage)
             _write_projection(view, 'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json', payload)
-        corpus = _bind('tos_corpus_index_common', view)
+    corpus = _bind('tos_corpus_index_common', view)
+    with stage_timing('build.corpus_index', members=len(manifest['files'])):
         with build_storage() as storage:
             payload = corpus.build_payload(storage=storage,
                 source_paths=[entry['path'] for entry in manifest['files']])
             _write_projection(view, 'ToS/derived-exports/tos_corpus_index.min.json', payload)
-        evidence = _bind('epistemic_evidence_projection_common', view)
+    evidence = _bind('epistemic_evidence_projection_common', view)
+    with stage_timing('build.epistemic_evidence'):
         (view / 'ToS/derived-exports/epistemic_evidence_projection.min.json').write_text(
             evidence.render_payload(evidence.build_payload()), encoding='utf-8')
-        # Producer bugs cannot silently turn a modified source view into a new
-        # accepted corpus. Verify the exact original bytes after all producers.
+    # Producer bugs cannot silently turn a modified source view into a new
+    # accepted corpus. Verify the exact original bytes after all producers.
+    with stage_timing('build.source_audit', members=len(manifest['files'])):
         for entry in manifest['files']:
             if digest_file(view / entry['path']) != entry['sha256']:
                 raise CorpusStoreError('producer changed accepted source bytes')
-        sys.path.insert(0, str(SOFTWARE_ROOT / 'access/packaging'))
-        from build_data_snapshot import build_data_snapshot
-        result = build_data_snapshot(SOFTWARE_ROOT, view, output, corpus_revision=revision)
-        return result
+    sys.path.insert(0, str(SOFTWARE_ROOT / 'access/packaging'))
+    from build_data_snapshot import build_data_snapshot
+    with stage_timing('build.data_snapshot'):
+        return build_data_snapshot(SOFTWARE_ROOT, view, output, corpus_revision=revision)
+
+
+def compile_revision(store_root: Path, revision: str, output: Path) -> dict:
+    """Compile one revision in a private streamed-copy source view."""
+    store = CorpusStore(store_root)
+    output = Path(output).absolute()
+    if output.exists() or output.is_symlink():
+        raise CorpusStoreError('data output must be new')
+    output.parent.mkdir(parents=True, exist_ok=True)
+    # The streamed copy hashes each immutable object as it is read and checks
+    # the private destination before producers run. This removes the
+    # redundant pre-copy full-object pass while retaining source fixity.
+    with stage_timing('build.load_manifest'):
+        manifest = store.load(revision, verify_objects=False)
+
+    with tempfile.TemporaryDirectory(prefix='tos-corpus-build-', dir=output.parent) as raw:
+        root = Path(raw)
+        view = root / 'source'
+        _copy_source_view(store, manifest, view)
+        return _compile_view(store, manifest, revision, view, output)
 
 
 def main(argv=None):

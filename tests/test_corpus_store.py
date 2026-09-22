@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from contextlib import redirect_stderr
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -91,6 +93,26 @@ class RecordValidator:
 
 
 class CorpusStoreTests(unittest.TestCase):
+    def test_stage_timing_is_opt_in_and_emits_bounded_stderr_events(self) -> None:
+        captured = io.StringIO()
+        with patch.dict(os.environ, {"TOS_CORPUS_TIMINGS": "1"}):
+            with redirect_stderr(captured):
+                with corpus_store.stage_timing("fixture", members=2):
+                    pass
+        events = [json.loads(line) for line in captured.getvalue().splitlines()]
+        self.assertEqual([event["event"] for event in events], ["start", "end"])
+        self.assertEqual([event["stage"] for event in events], ["fixture", "fixture"])
+        self.assertEqual(events[1]["status"], "ok")
+        self.assertEqual(events[1]["members"], 2)
+        self.assertGreaterEqual(events[1]["finished_at"], events[0]["started_at"])
+
+        captured = io.StringIO()
+        with patch.dict(os.environ, {"TOS_CORPUS_TIMINGS": "0"}):
+            with redirect_stderr(captured):
+                with corpus_store.stage_timing("fixture"):
+                    pass
+        self.assertEqual(captured.getvalue(), "")
+
     def test_object_namespace_sync_failure_cannot_publish_and_retry_reuses_objects(self):
         baseline = self._admit(base_revision=None, updates={
             'base.json': self._update('base.json', {'id': 'base', 'links': []})})
@@ -314,6 +336,24 @@ class CorpusStoreTests(unittest.TestCase):
         with self.assertRaises(corpus_store.CorpusStoreError):
             with patch.object(corpus_store.shutil, "copyfileobj", side_effect=mutate_after_copy):
                 self._admit(base_revision=base_revision, updates={"records/c.json": source_change})
+        self.assertEqual(self.store.current(), base_revision)
+
+        destination_corruption = self._update("records/c.json", {"id": "c", "links": ["b"]})
+
+        def corrupt_destination(source_stream: Any, destination_stream: Any, length: int) -> None:
+            original_copyfileobj(source_stream, destination_stream, length)
+            destination_stream.seek(0)
+            destination_stream.write(b"!")
+            destination_stream.seek(0, 2)
+
+        # Hashing the source while streaming is not enough: a write fault in
+        # the staged destination must still be caught before CAS publication.
+        with self.assertRaisesRegex(corpus_store.CorpusStoreError, "digest differs"):
+            with patch.object(corpus_store.shutil, "copyfileobj", side_effect=corrupt_destination):
+                self._admit(
+                    base_revision=base_revision,
+                    updates={"records/c.json": destination_corruption},
+                )
         self.assertEqual(self.store.current(), base_revision)
 
         new_update = self._update("records/c.json", {"id": "c", "links": ["b"]})

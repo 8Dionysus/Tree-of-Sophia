@@ -16,7 +16,14 @@ import re
 import shutil
 import sys
 
-from corpus_store import CorpusCandidate, CorpusStoreError, ValidationIndex, canonical, digest_file
+from corpus_store import (
+    CorpusCandidate,
+    CorpusStoreError,
+    ValidationIndex,
+    canonical,
+    digest_file,
+    stage_timing,
+)
 
 SOFTWARE_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = 'ToS/source-witnesses/'
@@ -113,7 +120,33 @@ def _structured_rows(path: Path):
             return
 
 
-def source_index(root: Path, paths: set[str], *, base: dict | None = None) -> ValidationIndex:
+def _catalog_rows(catalog_outputs: dict, relative: str):
+    """Read rows from one freshly rendered, disposable catalog output."""
+    expected = Path(relative)
+    text = catalog_outputs.get(expected)
+    if text is None:
+        raise CorpusStoreError(f'fresh source catalog is missing {relative}')
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except (ValueError, UnicodeError) as error:
+            raise CorpusStoreError(
+                f'fresh source catalog has invalid JSON at {relative}:{line_number}'
+            ) from error
+        if not isinstance(row, dict):
+            raise CorpusStoreError(f'fresh source catalog row is not an object: {relative}:{line_number}')
+        yield row
+
+
+def source_index(
+    root: Path,
+    paths: set[str],
+    *,
+    base: dict | None = None,
+    catalog_outputs: dict | None = None,
+) -> ValidationIndex:
     """Index IDs from owner catalogs, with incoming evidence/reference paths.
 
     The native adapter permits several versions of one native semantic ID.
@@ -130,10 +163,26 @@ def source_index(root: Path, paths: set[str], *, base: dict | None = None) -> Va
         if identity in identities and identities[identity] != path:
             raise CorpusStoreError('duplicate source identity')
         identities[identity] = path
-    for entries in collect_records(root, profiles=profiles).values():
+    if catalog_outputs is None:
+        record_groups = collect_records(root, profiles=profiles).values()
+        claim_rows = collect_claims(root)
+    else:
+        from build_source_witness_catalog import MANIFEST_PATH
+        try:
+            manifest_raw = catalog_outputs[MANIFEST_PATH]
+            manifest = json.loads(manifest_raw)
+            record_files = manifest['record_files'].values()
+            record_groups = [
+                _catalog_rows(catalog_outputs, relative)
+                for relative in record_files
+            ]
+            claim_rows = _catalog_rows(catalog_outputs, manifest['claim_file'])
+        except (KeyError, TypeError, ValueError, UnicodeError) as error:
+            raise CorpusStoreError('fresh source catalog manifest is invalid') from error
+    for entries in record_groups:
         for row in entries:
             bind(row['record_id'], row['source_record_ref'])
-    for row in collect_claims(root):
+    for row in claim_rows:
         bind(row['claim_id'], row['source_claim_file_ref'])
     native = profiles.native_semantic_identities()
     for identity, refs in native.items():
@@ -243,8 +292,16 @@ class SourceValidator:
         if base is not None and base['validator_sha256'] == self.sha256:
             transition = membership_transition(candidate, base, retirement_ids)
             if transition is not None:
-                grammar = candidate.materialize(path for path in candidate.paths if path.startswith(
-                    ('ToS/contracts/', 'ToS/doctrine/semantic-interchange/')))
+                with stage_timing(
+                    'source_materialize',
+                    members=sum(
+                        path.startswith(('ToS/contracts/', 'ToS/doctrine/semantic-interchange/'))
+                        for path in candidate.paths
+                    ),
+                    mode='retirement_fastpath',
+                ):
+                    grammar = candidate.materialize(path for path in candidate.paths if path.startswith(
+                        ('ToS/contracts/', 'ToS/doctrine/semantic-interchange/')))
                 if (validator_identity(grammar) != self.grammar_sha256
                         or validator_identity(self.grammar_root) != self.grammar_sha256):
                     raise CorpusStoreError('source grammar or validator changed during admission')
@@ -252,7 +309,12 @@ class SourceValidator:
         # General record/claim transitions still need the scoped owner-rule
         # adapter. They cannot borrow a retirement-only result or skip checks.
         del affected
-        root = candidate.materialize(candidate.paths)
+        with stage_timing(
+            'source_materialize',
+            members=len(candidate.paths),
+            mode='full_audit',
+        ):
+            root = candidate.materialize(candidate.paths)
         from build_source_witness_catalog import render_outputs, write_outputs
         from validate_source_witness_foundation import validate_foundation, source_snapshot_membership
         before_identity = validator_identity(root)
@@ -267,14 +329,23 @@ class SourceValidator:
         # Catalogs are disposable validator inputs in this isolated view. They
         # are not copied back into source objects or the software checkout.
         self._supply_evidence(root)
-        write_outputs(root, render_outputs(root))
+        with stage_timing('catalog_render', members=len(paths)):
+            catalog_outputs = render_outputs(root)
+        with stage_timing('catalog_write', outputs=len(catalog_outputs)):
+            write_outputs(root, catalog_outputs)
         members = frozenset(path.relative_to(root).as_posix() for path in root.rglob('*') if path.is_file())
-        with source_snapshot_membership(root, members):
-            issues = validate_foundation(root, payload_source_root=self.payload_source_root)
+        with stage_timing('foundation_validate', members=len(members)):
+            with source_snapshot_membership(root, members):
+                issues = validate_foundation(root, payload_source_root=self.payload_source_root)
         if issues:
             first = '; '.join(f'{path}: {message}' for path, message in issues[:8])
             raise CorpusStoreError(f'source admission rejected ({len(issues)} issues): {first}')
-        index = source_index(root, paths, base=base)
+        # The output was rendered from this immutable candidate immediately
+        # above and foundation validation checked its parity. Reuse those
+        # in-memory rows for the transport index; never read an accepted or
+        # stale generated catalog as authority.
+        with stage_timing('source_index', members=len(paths)):
+            index = source_index(root, paths, base=base, catalog_outputs=catalog_outputs)
         for identity, path in retirement_ids.items():
             if identity in index.identities and index.identities[identity] != path:
                 raise CorpusStoreError('retirement event ID has another source owner')
