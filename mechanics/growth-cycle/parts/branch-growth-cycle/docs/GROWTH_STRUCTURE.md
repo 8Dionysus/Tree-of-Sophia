@@ -1,9 +1,7 @@
 # Growth Structure
 
-This document records the current fifth-phase ToS doctrine for `Growth by Explicit Structure`.
-
-ToS should not grow as residue.
-It should grow through explicit choices about nodes, branches, depth, and relation.
+This route applies ToS growth doctrine through explicit choices about nodes,
+branches, depth and relations, grounded in the source material being developed.
 
 ## Core rule
 

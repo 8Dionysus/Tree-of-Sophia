@@ -2651,6 +2651,19 @@ class KnowledgeContractTests(unittest.TestCase):
         entities["types"][1]["supersedes_type_id"] = entities["types"][1]["type_id"]
         self.assertFalse(validate_semantic_registries(entities, self.relation_type_registry)["valid"])
 
+    def test_deep_registry_hierarchy_and_supersession_keep_validation_semantics(self):
+        from tos_access.knowledge import _acyclic_hierarchy
+
+        for field in ('parent_type_ids', 'parent_relation_type_ids', 'previous'):
+            entries = {f't{index:04d}': {field: [f't{index + 1:04d}'] if index < 1499 else []}
+                       for index in range(1500)}
+            with self.subTest(field=field):
+                self.assertEqual(_acyclic_hierarchy(entries, field, 'synthetic'), [])
+                entries['t1499'][field] = ['t0000']
+                self.assertIn('contains a cycle', _acyclic_hierarchy(entries, field, 'synthetic')[0])
+                entries['t1499'][field] = ['missing']
+                self.assertIn('missing parent', _acyclic_hierarchy(entries, field, 'synthetic')[0])
+
     def test_abstract_nodes_and_unbound_reviewed_identity_are_rejected(self):
         corpus, philosophy = self.fixture()
         graph = build_knowledge_graph(corpus, philosophy, {}, self.entity_type_registry, self.relation_type_registry)

@@ -82,6 +82,14 @@ specific evidence for material judgments.
 - Do gold examples expose rejected and unresolved alternatives, counter-readings,
   reviewer rationale and version lineage?
 - Are abstractions scoped to their supporting material and open to correction?
+- Does each general rule name its subject, scope, grounds and observable
+  consequence, with pilot identities, counts and examples explicitly scoped?
+- Can an additional corpus, language or compatible profile use the declared
+  extension route while retaining old identities, unknown fields and source
+  return? Are new operation semantics versioned and explicitly supported?
+- Does each resource limit name what it bounds and preserve complete evidence
+  on refusal? Does hierarchy traversal account for depth and shared ancestors
+  without repeatedly expanding the same dependency paths?
 
 ## Stop conditions
 

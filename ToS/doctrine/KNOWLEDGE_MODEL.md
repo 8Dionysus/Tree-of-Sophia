@@ -433,7 +433,7 @@ A node may carry several layers at once, including:
 - temporal context
 - spatial or civilizational context
 - lineage links
-- human-reviewed interpretation
+- interpretation with source-visible assessment and reviewer provenance
 - provenance metadata
 - translation-tension notes when witness drift matters
 
@@ -470,7 +470,7 @@ The minimum authority chain should remain visible:
 
 - source material
 - extracted or distilled layer
-- human-reviewed synthesis
+- synthesis assessed within declared authority and competence
 - downstream derived structures
 
 Every stronger layer should be able to point back toward its sources.

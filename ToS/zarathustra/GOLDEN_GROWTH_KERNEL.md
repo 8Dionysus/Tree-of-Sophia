@@ -86,7 +86,7 @@ A gold example preserves the evidence and reasoning of its judgment:
 - accepted, rejected, and deliberately unresolved alternatives;
 - reviewer rationale and meaningful counter-readings;
 - confidence, uncertainty, and version lineage;
-- the boundary between human judgment and agent proposal;
+- the maker, reviewer, authority and competence behind each act;
 - the route from the authored object back to the source.
 
 Agents should learn the path of judgment, including refusal, uncertainty and
@@ -133,10 +133,12 @@ account.
 
 ## Preparation boundary
 
-This architecture note prepares the repository for the kernel. Whole-book gold
-annotation and the corpus-soil contract remain future work within this plan.
+The corpus evidence law lives in
+[Corpus Foundation](../doctrine/CORPUS_FOUNDATION.md); current implementation
+coverage lives in [Foundation v1](../doctrine/FOUNDATION_V1.md). Whole-book gold
+annotation follows its own source and review work.
 
-Before wider planting, the next owner work should define:
+Each wider planting should establish its applicable:
 
 - the corpus-soil contract for work, witness, edition, language, time, place,
   address, and evidence status;

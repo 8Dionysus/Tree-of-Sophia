@@ -372,6 +372,51 @@ class NativeExpressionTests(unittest.TestCase):
             commands.run_local_command(self.owner, request)
         self.assertIsNotNone(compound.transactions.read_pending_transaction(self.root))
 
+    def test_compound_growth_requires_the_descriptive_parent_history(self):
+        config = {key: self.config[key] for key in ('uid', 'principal_id', 'source_root', 'authority_ref', 'expires_at')}
+        config.update(schema_version=commands.CORPUS_SELECTED_REVISION_CONFIG,
+            record_type='work', record_id=self.work['record_id'], source_path=self.work_ref,
+            allowed_fields=['notes'], allowed_operations=['record.revise'],
+            allowed_form_ids=self.config['allowed_work_form_ids'])
+        owner = self.root / 'parent-correction-owner.json'
+        owner.write_bytes(revisions._encode(config))
+        proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+            'fields': {'notes': 'Corrected synthetic parent description.'},
+            'forms': self.proposal()['forms'], 'reason': 'Synthetic source history.'}
+        prepared = commands.run_local_command(owner, proposal)
+        correction = {**proposal, 'operation': 'record.revise', 'command_id': 'test:parent-correction',
+            'expected_source': prepared['source'], 'expected_revision': prepared['revision'],
+            'expected_configuration': prepared['owner_configuration'],
+            'expected_dependencies': prepared['expected_dependencies'],
+            'expected_publication': prepared['publication_snapshot']}
+        commands.run_local_command(owner, correction)
+        self.rebuild()
+        request = self.request()
+        inspected = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+            'operation': 'inspect-version', 'source': correction['expected_source']})
+        blob = self.root / inspected['files']['work.json']['archive_path']
+        original = blob.read_bytes()
+        before = revisions._selected_package(self.work_path)
+        blob.write_bytes(b'damaged descriptive predecessor')
+        with self.assertRaises(commands.JournalCorruption):
+            commands.run_local_command(self.owner, request)
+        self.assertEqual(revisions._selected_package(self.work_path), before)
+        self.assertFalse((self.root / self.config['expression_source_path']).parent.exists())
+        self.assertIsNone(compound.transactions.read_pending_transaction(self.root))
+        blob.write_bytes(original)
+        replace = compound.transactions._replace_file
+        def damage_during_publication(*args):
+            replace(*args)
+            blob.write_bytes(b'damaged predecessor after pending')
+        with patch.object(compound.transactions, '_replace_file', side_effect=damage_during_publication):
+            with self.assertRaises(commands.JournalCorruption):
+                commands.run_local_command(self.owner, request)
+        self.assertIsNotNone(compound.transactions.read_pending_transaction(self.root))
+        blob.write_bytes(original)
+        result = commands.run_local_command(self.owner, request)
+        self.assertEqual(result['source']['version'], 6)
+        self.assertEqual(self.untouched.read_bytes(), b'Unrelated synthetic descendant\n')
+
     def correct_expression(self):
         config = {key: self.config[key] for key in ('uid', 'principal_id', 'source_root',
                   'authority_ref', 'expires_at')}

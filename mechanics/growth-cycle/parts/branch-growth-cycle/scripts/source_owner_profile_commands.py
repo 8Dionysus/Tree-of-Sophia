@@ -192,6 +192,9 @@ def _read_archive(context, config, receipt):
 
 
 def _archive(context, config, files, subject, revision, *, reader=None):
+    if reader is None:
+        revisions._verify_record_history(files, subject.payload, config['source_path'],
+            lambda receipt: _read_archive(context, config, receipt))
     reader = reader if reader is not None else _read_archive
     relative = _archive_ref(context, config, revision)
     receipt = {'archive_path': relative.as_posix(), 'previous_source': subject.ref, 'previous_revision': revision}
@@ -686,6 +689,9 @@ def _update(owner, config, configuration_digest, context, path, request):
         _current(owner, configuration_digest, path, config, context, record, dependencies, exclude=path.parent)
         if _package(context, path.parent) != files or _package(context, staging) != output:
             raise source.JournalConflict('owner-local package changed before exchange')
+        if operation == 'record.revise':
+            revisions._verify_record_history(files, record, config['source_path'],
+                lambda previous: _read_archive(context, config, previous))
         revisions._exchange(staging, path.parent)
     finally:
         if staging.exists():

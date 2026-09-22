@@ -127,6 +127,42 @@ class MetadataVersionReaderTests(unittest.TestCase):
         finally:
             fixture.doCleanups()
 
+    def test_scope_revision_round_trips_exact_versions_without_current_write_authority(self):
+        with self.family('lexeme') as fixture:
+            before = fixture.path.read_bytes()
+            proposal = {'fields': {'semantic_scope': {**fixture.record['semantic_scope'],
+                'scope_note': 'The synthetic lexical referent within its specified source.'}},
+                'forms': fixture.selections, 'reason': 'Clarify the same retained referent.'}
+            fixture.config['allowed_fields'] = ['semantic_scope']
+            fixture.owner.write_bytes(revisions._encode(fixture.config))
+            with self.assertRaises(ValueError):
+                fixture.run_command('prepare-revise', **proposal)
+            fixture.config['schema_version'] = source.PROFILE_SCOPE_REVISION_CONFIG
+            fixture.owner.write_bytes(revisions._encode(fixture.config))
+            preview = fixture.run_command('prepare-revise', **proposal)
+            result = fixture.run_command('record.revise', command_id='test:scope-reader-roundtrip',
+                expected_configuration=preview['owner_configuration'], expected_source=preview['source'],
+                expected_revision=preview['revision'], expected_dependencies=preview['expected_dependencies'], **proposal)
+            after = fixture.path.read_bytes()
+            self.sync_catalog(fixture)
+            fixture.owner.unlink()
+            instance = reader.MetadataVersionReader(fixture.root)
+            self.assertEqual(instance.exact_refs(fixture.record['record_id'])['refs'],
+                             [preview['source'], result['source']])
+            for reference, raw, version_status in ((preview['source'], before, 'historical'),
+                                                   (result['source'], after, 'current')):
+                with self.subTest(version_status=version_status):
+                    resolved = instance.resolve_typed(reference)
+                    self.assertEqual(resolved['status'], 'available', resolved)
+                    self.assertEqual(resolved['record'], json.loads(raw))
+                    self.assertEqual(resolved['version_status'], version_status)
+                    self.assertFalse(resolved['grants_current_use'])
+                    self.assertFalse(resolved['writes_to_source'])
+                    exact_bytes = instance.resolve_source_bytes(fixture.relative, source._digest(raw)[7:])
+                    self.assertEqual(exact_bytes['status'], 'available', exact_bytes)
+                    self.assertEqual(exact_bytes['exact_ref'], reference)
+            instance.verify_current()
+
     def test_typed_descriptor_uses_exact_registry_mapping_not_an_identity_prefix(self):
         with self.family('sense') as fixture:
             result = reader.MetadataVersionReader(fixture.root).resolve_typed(reader._record_ref(fixture.record))

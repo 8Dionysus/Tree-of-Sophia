@@ -86,6 +86,13 @@ hierarchy and crosswalk, and bumping `registry_version` when a released
 registry changes. Incompatible meaning receives a successor ID and an
 explicit `supersedes_*` link rather than reusing an old ID.
 
+Hierarchy checks follow the declared parent edges, including multiple
+inheritance and shared ancestors. Each endpoint ancestry lookup expands a
+reachable type once; registry cycle checks use an explicit
+traversal stack. Depth follows the selected registry and its input budget.
+Missing parents and cycles remain errors. Compatible extension preserves
+these checks across source reading, navigation and semantic validation.
+
 ## Candidate-only dossier relations
 
 Relation registry 44 adds three distinct, directed `philosophy` / `edge`
@@ -296,17 +303,19 @@ authorizes publication of source contents.
 The blocking `semantic_registry_transition` lane compares current working-tree
 registries with an explicitly selected pre-change commit. Set
 `TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT=FULL_COMMIT_OID` before
-`python scripts/validation_lanes.py --run semantic_registry_transition` or the
-release gate; the direct validator also accepts `--baseline-commit`.
+`python scripts/validation_lanes.py --run semantic_registry_transition`;
+the direct validator also accepts `--baseline-commit`. This source-contract
+operation has its own result under
+[the independent release boundaries](../../../docs/RELEASING.md#registry-source-contract-changes).
 Only a nonzero full commit OID backed by local Git objects is valid; evolution
 also requires both registry/contract snapshots. There is no missing-baseline
 skip, moving ref, implicit predecessor,
-replacement object or automatic fetch. Repo Validation supplies the event's
-exact PR base SHA or push-before SHA; local and other callers choose their
-baseline explicitly. A first introduction with both registries and both
+replacement object or automatic fetch. The source-change owner selects and
+records the exact pre-change commit. Software CI reports its selected software
+checks separately. A first introduction with both registries and both
 contracts absent requires the separate `--allow-initial-introduction` option
-or `TOS_SEMANTIC_REGISTRY_ALLOW_INITIAL_INTRODUCTION=1`; Repo Validation
-explicitly permits this case. Complete baseline ancestry must also contain no
+or `TOS_SEMANTIC_REGISTRY_ALLOW_INITIAL_INTRODUCTION=1`, selected by that owner.
+Complete baseline ancestry must also contain no
 earlier registry/contract or `scripts/source_record_profiles.py`; shallow
 history and local Git grafts are refused. A partial snapshot, deleted prior
 reader or missing Git history is not an introduction.

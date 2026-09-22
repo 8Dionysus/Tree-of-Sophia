@@ -77,6 +77,23 @@ It contains program code, API contracts, static schemas and browser assets;
 and authorization. Standalone ToS software follows this repository's release
 route independently of AbyssOS helpers.
 
+## Registry source-contract changes
+
+An authored semantic-registry change uses the independent
+`semantic_registry_transition` source lane. Select the full pre-change commit
+and run `python scripts/validate_semantic_registry_transition.py
+--baseline-commit FULL_COMMIT_OID --json`, or supply
+`TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT` to the named validation lane. Retain
+that baseline and the comparison result with the source review. The owning
+[registry contract](../ToS/doctrine/semantic-interchange/README.md) specifies
+version advances, retained schema routes and semantic review.
+
+A first introduction additionally requires explicit
+`--allow-initial-introduction` and complete baseline ancestry establishing
+the absence of earlier registries, contracts and the declared-profile reader.
+The validator verifies those conditions. Software CI and this source-contract
+check retain separate results and scopes.
+
 ## Data and corpus operations
 
 Select data explicitly through `TOS_DATA_ROOT` or `--root`; the reader does not

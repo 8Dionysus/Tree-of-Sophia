@@ -82,6 +82,7 @@ OWNER_CLAIM_CONFIG = 'tos_local_owner_claim_command_v1'
 OWNER_CLAIM_REFERENCE_CONFIG = 'tos_local_owner_claim_command_v2'
 REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions',
                    'semantic_content'}
+PROFILE_SCOPE_REVISION_FIELDS = REVISION_FIELDS | {'semantic_scope'}
 CORPUS_REVISION_FIELDS = {'preferred_label', 'notes', 'field_languages', 'source_refs'}
 MAX_COMMAND_BYTES = 1_048_576
 DISCOVERY_REQUEST = 'tos_source_command_discovery_request_v1'
@@ -167,7 +168,7 @@ def _builtin_configuration(config, path, *, _creation_recorded_at=None):
     if revision:
         values = config['allowed_fields']
         allowed_fields = (CORPUS_REVISION_FIELDS if corpus_revision else
-                          REVISION_FIELDS | {'semantic_scope'}
+                          PROFILE_SCOPE_REVISION_FIELDS
                           if config['schema_version'] == PROFILE_SCOPE_REVISION_CONFIG else REVISION_FIELDS)
         if (not isinstance(values, list) or any(not isinstance(value, str) or value not in allowed_fields for value in values)
                 or len(set(values)) != len(values)

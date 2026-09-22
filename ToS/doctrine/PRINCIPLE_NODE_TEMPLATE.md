@@ -22,9 +22,9 @@ The scaffold uses the shared [node contract](NODE_CONTRACT.md):
 
 ## Source and intake
 
-The source node anchors the passage. `ToS/candidate-intake/principles.csv`
-holds proposed extractions. The principle node records the claim admitted by
-review, with the source and review path visible.
+The source node anchors the passage. The owning route under
+`ToS/candidate-intake/` holds proposed extractions. The principle node records
+the claim admitted by review, with its exact source and review path visible.
 
 ## Worked scaffold
 

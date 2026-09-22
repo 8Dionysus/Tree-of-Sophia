@@ -19,6 +19,18 @@ Each node preserves at least:
 Together these layers let a reader recover the basis of a thesis and follow
 its relations to other thought.
 
+Each canonical `node_id` has one authored home. Its family agrees with
+`node_type`; paths remain navigation under the identifier discipline. A
+compatibility mirror names that authored home. When both `relations` and its
+legacy alias `lineage_relations` occur, they carry the same ordered relation
+values so either reader recovers the same account.
+
+Native node JSON uses UTF-8, unique object fields and finite numbers. Numeric
+qualifications preserve their decimal value through the current JSON record
+representation; the reader rejects overflow, underflow and precision loss.
+Values requiring a wider numeric range or precision need an explicitly
+understood carrier. Original source bytes remain available with their binding.
+
 ## Authored description
 
 Describe the subject through its content, purpose, properties, relations and
@@ -86,8 +98,17 @@ Edition identity, text quality, language competence and permitted uses belong
 to the exact source or translation evidence and its scoped assessment.
 
 Each witness block keeps the same `segment_id` values across languages within
-one node. Identify the translator, edition or maintainer responsible for each
-witness.
+one node, in the same order, with each ID occurring once per witness. A
+translation-tension note resolves to that shared segment spine. Identify the
+translator, edition or maintainer responsible for each witness.
+
+The current compact node carrier selects at most one witness per language and
+one per role. Full witness inventories and competing translations retain
+their separately identified source records. A larger or differently aligned
+entry requires an explicit carrier evolution with witness identity and
+consumer support. Preserve its actual alignment through the source-layer
+contracts. The compact selection's size describes this carrier's scope;
+corpus growth follows the source model and its separately evidenced witnesses.
 
 `translation_tensions` is an optional array of `{ segment_id, note }`.
 Use it only when drift is philosophically load-bearing.

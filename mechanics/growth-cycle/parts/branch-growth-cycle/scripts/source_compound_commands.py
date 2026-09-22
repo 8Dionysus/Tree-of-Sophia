@@ -191,6 +191,10 @@ def _guard(adapter, owner, config, configuration_digest, scope, request, before,
             raise PermissionError('current recovery scope names a different compound destination')
         adapter._scope(current, request, recovery=recovery, original=scope)
         adapter._check_dependencies(root, authority['dependency_bindings'])
+        archive_config = adapter._archive_config(root, scope)
+        record = source._json_object(before[Path(archive_config['source_path']).name])
+        revisions._verify_record_history(before, record, archive_config['source_path'],
+            lambda previous: revisions._read_archive(root, archive_config, previous))
         return True
     return guard
 

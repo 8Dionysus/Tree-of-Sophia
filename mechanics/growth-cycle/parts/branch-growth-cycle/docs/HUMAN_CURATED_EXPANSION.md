@@ -2,9 +2,9 @@
 
 This existing route now follows
 [KNOWLEDGE_ASSESSMENT](../../../../../ToS/doctrine/KNOWLEDGE_ASSESSMENT.md).
-It supersedes the fifth-phase universal human-only review requirement, not
-historical human review records or the source-first boundary. It introduces no
-separate execution platform.
+Current assessment uses the authority and competence scopes of that contract
+through the existing growth mechanism. Historical human review records retain
+their original reviewer, decision and source evidence.
 
 ## Core rule
 

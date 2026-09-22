@@ -807,6 +807,10 @@ class AssessmentPolicyTests(unittest.TestCase):
         path, config, form_path, source = self.assessed_form_fixture()
         form_bytes = form_path.read_bytes()
         with SourceWitnessBibliographicGraphTest().historical_fixture() as (root, _, _, _, rebuild):
+            # Carry the form's exact source into the graph fixture. Its static
+            # source snapshot can differ from the one used above to bind the form.
+            source_ref = config['source_records'][0]['path']
+            (root / source_ref).write_bytes((Path(config['source_root']) / source_ref).read_bytes())
             target = root / config['source_records'][1]['path']
             target.write_bytes(form_bytes)
             config['source_root'] = str(root)

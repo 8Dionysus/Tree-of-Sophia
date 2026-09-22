@@ -29,7 +29,7 @@ candidate pack without collapsing:
 - authored source-node law in `ToS/canon/`
 - public compatibility mirrors in `ToS/public-compatibility/`
 
-The current route therefore keeps two different canonical surfaces:
+The current route keeps two source-owned surfaces with distinct admission states:
 
 - `ToS/canon/source/.../node.json` as the authored source-node canon
 - `ToS/candidate-intake/.../mode-b/*.csv` as the candidate tabular base pack

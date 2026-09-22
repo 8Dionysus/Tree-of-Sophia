@@ -281,10 +281,14 @@ Corpus identifiers use the local family:
 tos.<class>.<stable-local-name>
 ```
 
-where `<class>` is one of `agent`, `work`, `expression`, `edition`,
-`collection`, `item`, `artifact`, `composite`, `file`, `text-layer`, `passage`, `region`, `anchor`, `occurrence`,
-`lexeme`, `annotation`, `sign`, `concept`, `claim`, `relation`, `rights`,
-`review`, or `event`.
+The owning source contract declares `<class>` and its identity conditions.
+For declared source profiles, the
+[semantic registry](semantic-interchange/README.md#identity-and-vocabulary)
+binds the family, prefix and schema to an understood reader. Native source
+contracts retain their own identity grammar. Families such as `work`,
+`artifact`, `document`, `text-layer`, `occurrence` and `claim` illustrate this
+shared pattern. A new family enters through an explicit contract and mapping;
+readers preserve unsupported vocabulary with its original identity and status.
 
 The historical-situation profile adds `historical-event`, `historical-process`
 and `historical-state`. These identities are separate from provenance
@@ -516,6 +520,12 @@ retained source bytes; current execution and current-record checks use active
 scripts and contracts.
 The rationale and rejected alternatives are in
 [TOS-D-0052](../../docs/decisions/TOS-D-0052-historical-contract-input-bytes.md).
+
+Before extending a source-record lineage, verify every predecessor package
+declared by its retained history. Each archived ledger must retain the exact
+earlier receipt prefix. Missing or damaged predecessor evidence stops new
+publication; exact restoration enables the authorized transition to continue.
+The existing retained baseline and each archive's original scope stay explicit.
 
 ## Sign ladder
 

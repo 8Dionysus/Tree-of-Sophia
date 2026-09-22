@@ -24,6 +24,7 @@ if str(MECHANIC) not in sys.path:
     sys.path.insert(0, str(MECHANIC))
 from human_forms import FormScope, SourceBinding, materialize_form
 from knowledge_assessment import Record
+from validate_tree_node_contracts import node_consistency_issues, parse_node_json
 
 MAX_SET_BYTES = 2_097_152
 MAX_SET_OUTPUT_BYTES = 262_144
@@ -311,6 +312,8 @@ def _validate_canonical_node(source: dict, *, schema: dict | None = None) -> dic
         raise ValueError('canonical node type is outside its source contract')
     if not source['node_id'].startswith(f"tos.{source['node_type']}."):
         raise ValueError('canonical node_id prefix does not match native node_type')
+    if node_consistency_issues(source, location='canonical source'):
+        raise ValueError('canonical node has inconsistent identity, relations or witness segments')
     return source
 
 
@@ -366,12 +369,17 @@ def _read_canonical_source(root: Path, source_ref: str, source: dict | None = No
     schema_path = root / CANONICAL_NODE_SCHEMA_REF
     _reject_symlink_components(root, Path(CANONICAL_NODE_SCHEMA_REF))
     schema_raw = schema_path.read_bytes()
-    schema = json.loads(schema_raw)
-    actual = json.loads(source_raw)
+    schema = parse_node_json(schema_raw)
+    if not isinstance(schema, dict):
+        raise ValueError('canonical source schema must be a JSON object')
+    actual = parse_node_json(source_raw)
+    _validate_canonical_node(actual, schema=schema)
     if actual.get('schema_version') != schema.get('properties', {}).get('schema_version', {}).get('const'):
         raise ValueError('canonical source schema contract does not declare its native schema')
-    _validate_canonical_node(actual, schema=schema)
-    if source is not None and actual != source:
+    # Use the immutable subject's typed JSON digest: Python equality merges
+    # false/zero and integer/float values that have distinct source bindings.
+    subject = metadata_subject(actual)
+    if source is not None and subject.ref != metadata_subject(source).ref:
         raise ValueError('canonical source file content differs from the supplied source payload')
     # The command path may have been checked before reading when a caller
     # supplied a payload. Rebind it to the actual source bytes as well so a
@@ -379,8 +387,6 @@ def _read_canonical_source(root: Path, source_ref: str, source: dict | None = No
     bound_relative = _canonical_relative_path(root, source_ref, actual)
     if bound_relative != relative:
         raise PermissionError('canonical source path and native node disagree')
-    # Resolve through the same immutable subject binding used by materializers.
-    metadata_subject(actual)
     return source_path, source_raw, actual, {CANONICAL_NODE_SCHEMA_REF: 'sha256:' + hashlib.sha256(schema_raw).hexdigest()}
 
 

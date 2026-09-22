@@ -22,10 +22,11 @@ The scaffold uses the shared [node contract](NODE_CONTRACT.md):
 
 ## Source and family scope
 
-The support family currently holds reviewed non-literal `n.*` subjects. Use
-source, concept, principle, event and state nodes according to their defined
-roles. Literal helpers remain in `ToS/candidate-intake/` for their dedicated
-review pass. Each promotion records its own source and assessment.
+Use source, concept, principle, event and state nodes according to their
+defined roles. The current Zarathustra pilot holds reviewed non-literal
+`n.*` subjects in its support family; its literal helpers remain in the
+route's intake for further review. Each new subject receives the family
+justified by its meaning and records its own source and assessment.
 
 ## Worked scaffold
 

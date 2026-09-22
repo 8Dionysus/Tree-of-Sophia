@@ -156,25 +156,27 @@ def _acyclic_hierarchy(
     violations: list[str] = []
     states: dict[str, int] = {}
 
-    def visit(identifier: str, trail: tuple[str, ...]) -> None:
-        state = states.get(identifier, 0)
-        if state == 2:
-            return
-        if state == 1:
-            cycle = " -> ".join((*trail, identifier))
-            violations.append(f"{label} hierarchy contains a cycle: {cycle}")
-            return
-        states[identifier] = 1
-        entry = entries[identifier]
-        for parent in _strings(entry.get(parent_field)):
-            if parent not in entries:
-                violations.append(f"{label} {identifier} references missing parent {parent}")
-                continue
-            visit(parent, (*trail, identifier))
-        states[identifier] = 2
-
     for identifier in sorted(entries):
-        visit(identifier, ())
+        if states.get(identifier) == 2:
+            continue
+        states[identifier] = 1
+        stack = [(identifier, iter(_strings(entries[identifier].get(parent_field))))]
+        while stack:
+            current, parents = stack[-1]
+            parent = next(parents, None)
+            if parent is None:
+                states[current] = 2
+                stack.pop()
+                continue
+            if parent not in entries:
+                violations.append(f"{label} {current} references missing parent {parent}")
+                continue
+            if states.get(parent) == 1:
+                cycle = " -> ".join([*(item[0] for item in stack), parent])
+                violations.append(f"{label} hierarchy contains a cycle: {cycle}")
+            elif states.get(parent) != 2:
+                states[parent] = 1
+                stack.append((parent, iter(_strings(entries[parent].get(parent_field)))))
     return violations
 
 

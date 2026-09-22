@@ -136,18 +136,24 @@ class OwnerLocalProfileCommandTests(unittest.TestCase):
                 'expected_source': subject.ref, 'expected_revision': revision,
                 'expected_configuration': 'sha256:' + '1' * 64, 'expected_dependencies': 'sha256:' + '2' * 64,
                 'expected_inputs': {}, 'reason': 'Synthetic correction.',
-                'fields': {'qualifiers': {'statement': 'Synthetic successor.'}}, 'forms': []}
+                'fields': {'qualifiers': {'statement': 'Synthetic successor.'}},
+                'forms': [{'form_id': 'tos.form.synthetic.archive.statement', 'field_id': 'claim.statement'}]}
+            changes = [source.prepare_claim_change(revised, None, 'test:archive', **selection)
+                       for selection in request['forms']]
+            forms = source._apply(None, claims._subject(revised), changes)
             receipt = {**prior, 'command_id': request['command_id'],
                 'request_digest': source._digest(source._canonical(request)),
                 'principal_id': 'test:archive', 'authority_ref': 'test:archive-authority',
                 'owner_configuration': request['expected_configuration'], 'recorded_at': '2026-01-01T00:00:00Z',
                 'reason': request['reason'], 'source': claims._subject(revised).ref,
                 'dependencies': request['expected_dependencies'], 'source_bindings': {},
-                'changed_fields': ['qualifiers'], 'forms': [], 'grants_admission': False, 'request': request}
+                'changed_fields': ['qualifiers'], 'forms': [source._form_ref(change['form']) for change in changes],
+                'grants_admission': False, 'request': request}
             history = {'schema_version': 'tos_claim_revision_history_v1',
                        'source_path': config['source_path'], 'receipts': [receipt]}
             current = {**files, 'source-claims.jsonl': claims._replace(files['source-claims.jsonl'], revised),
-                       claims.HISTORY: encode(history)}
+                       claims.HISTORY: encode(history),
+                       source.claim_forms_path(Path(config['source_path']), claim['claim_id']).name: encode(forms)}
             self.assertEqual(claims._history(current, config, archive_reader=typed), history)
             self.assertEqual(claims.creation_source_files(current, config, archive_reader=typed), files)
             altered = {**current, 'source-claims.jsonl': current['source-claims.jsonl'] + b'\n'}
@@ -337,6 +343,25 @@ class OwnerLocalProfileCommandTests(unittest.TestCase):
             self.run_command(self.revision)
         with self.assertRaises(source.JournalCorruption):
             self.run_command(self.creation)
+
+    def test_new_private_revision_requires_retained_private_predecessors(self):
+        created = self.create()
+        self.revise()
+        inspected = self.run_command({'operation': 'inspect-version', 'source': created['source']})
+        self.revise(apply=False)
+        request = {**self.revision, 'command_id': 'synthetic-second-private-revision'}
+        blob = self.store / inspected['files']['occurrence.json']['archive_path']
+        original = blob.read_bytes()
+        before = self.files()
+        blob.write_bytes(b'damaged private predecessor')
+        # Verification must stay with the protected owner's reader.
+        with patch.object(private.revisions, '_read_archive', side_effect=AssertionError('public archive IO')):
+            with self.assertRaises(source.JournalCorruption):
+                self.run_command(request)
+            self.assertEqual(self.files(), before)
+            blob.write_bytes(original)
+            result = self.run_command(request)
+        self.assertEqual(result['source']['version'], 3)
 
     def test_record_replay_rejects_modified_output_form_even_with_coherent_form_history(self):
         self.create()
