@@ -1412,6 +1412,22 @@ def _source_candidates(
     return candidates
 
 
+def _normalize_handoff_source_ref(value: object) -> str | None:
+    """Map a handoff-local ``source/ToS/...`` ref to source-root form.
+
+    The acquisition handoff deliberately prefixes selected metadata refs with
+    ``source/``.  The closure scanner receives the handoff's ``source`` root,
+    so its candidate keys are relative ``ToS/...`` paths.  Keep this mapping
+    explicit: operational evidence such as the provenance delta is excluded
+    from source selection and cannot become a metadata update by discovery.
+    """
+
+    if not isinstance(value, str) or not value.startswith("source/"):
+        return None
+    relative = value.removeprefix("source/")
+    return relative if relative.startswith(SOURCE_PREFIX) else None
+
+
 def _acquisition_directory_ref(
     acquisition_root: Path | None,
     relative: str,
@@ -1558,10 +1574,16 @@ def convert(
         str(item.handoff.get("batch_id")): item.payload_root for item in direct_handoffs
     }
     excluded_handoff_paths = {
-        item.handoff.get("provenance_delta", {}).get("ref")
+        normalized
         for item in direct_handoffs
-        if isinstance(item.handoff.get("provenance_delta"), dict)
-        and isinstance(item.handoff.get("provenance_delta", {}).get("ref"), str)
+        for normalized in (
+            _normalize_handoff_source_ref(
+                item.handoff.get("provenance_delta", {}).get("ref")
+                if isinstance(item.handoff.get("provenance_delta"), dict)
+                else None
+            ),
+        )
+        if normalized is not None
     }
     candidates = _source_candidates(
         acquisition_root,
@@ -1595,8 +1617,9 @@ def convert(
         # already checked source/rights/fixity/custody; this pass only binds
         # those rows to the one accepted index and additive topology closure.
         direct_claim_sources = _index_handoff_topology_claims(handoff_source_roots)
-        seen_payload_files: set[str] = set()
+        seen_payload_destinations: set[str] = set()
         seen_payload_rows: dict[str, dict[str, Any]] = {}
+        unique_payload_file_ids: set[str] = set()
         for handoff in direct_handoffs:
             batch_id = str(handoff.handoff.get("batch_id"))
             batch_paths: set[str] = set()
@@ -1655,10 +1678,12 @@ def convert(
 
             for payload in handoff.payloads:
                 file_ref = payload["file_ref"]
-                previous_payload = seen_payload_rows.get(file_ref)
+                destination_ref = f"{payload['item_root_ref']}/{payload['relative_path']}"
+                previous_payload = seen_payload_rows.get(destination_ref)
                 if previous_payload is not None and _canonical(previous_payload) != _canonical(payload):
-                    raise ConversionError(f"handoff payload differs across inputs: {file_ref}")
-                seen_payload_rows.setdefault(file_ref, payload)
+                    raise ConversionError(f"handoff payload destination differs across inputs: {destination_ref}")
+                seen_payload_rows.setdefault(destination_ref, payload)
+                unique_payload_file_ids.add(file_ref)
                 source = _handoff_payload_path(
                     handoff.payload_root,
                     payload["item_root_ref"],
@@ -1673,8 +1698,8 @@ def convert(
                         raise ConversionError(f"handoff payload differs across inputs: {file_ref}")
                 else:
                     _hardlink(source, destination, label="handoff payload")
-                if file_ref not in seen_payload_files:
-                    seen_payload_files.add(file_ref)
+                if destination_ref not in seen_payload_destinations:
+                    seen_payload_destinations.add(destination_ref)
                     payload_count += 1
                     payload_bytes += payload["byte_size"]
 
@@ -1686,6 +1711,7 @@ def convert(
                     "package_sha256": handoff.handoff_sha256,
                     "row_count": len(handoff.source_records),
                     "payload_count": len(handoff.payloads),
+                    "payload_unique_file_count": len({payload["file_ref"] for payload in handoff.payloads}),
                     "payload_bytes": sum(payload["byte_size"] for payload in handoff.payloads),
                     "selected_metadata_paths": len(batch_paths),
                     "existing_work_rows": 0,
@@ -2091,6 +2117,9 @@ def convert(
         "row_count": sum(item["row_count"] for item in per_batch),
         "metadata_update_count": len(updates),
         "payload_count": payload_count,
+        "payload_unique_file_count": (
+            len(unique_payload_file_ids) if direct_handoffs else payload_count
+        ),
         "payload_bytes": payload_bytes,
         "claim_rows_added": {path: len(rows) for path, rows in sorted(claim_rows.items())},
         "topology_dependency_closure": topology_dependency_closure,

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from pathlib import PurePosixPath
 import sys
 import tempfile
 from types import SimpleNamespace
@@ -277,6 +278,266 @@ class DirectHandoffBoundaryTests(unittest.TestCase):
             with self.assertRaisesRegex(converter.ConversionError, "differs across handoffs"):
                 converter._index_handoff_topology_claims(
                     [("a", root), ("b", other)]
+                )
+
+    def test_direct_candidates_exclude_source_prefixed_operational_delta(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="tos-handoff-delta-") as raw:
+            root = Path(raw)
+            source = root / "source"
+            (source / "ToS/source-witnesses/discovery/test").mkdir(parents=True)
+            kept = source / "ToS/source-witnesses/works/new/work.json"
+            kept.parent.mkdir(parents=True)
+            kept.write_bytes(b"{}\n")
+            delta = source / "ToS/source-witnesses/discovery/test/provenance-delta.json"
+            delta.write_bytes(b"{}\n")
+            candidates = converter._source_candidates(
+                None,
+                set(),
+                [],
+                handoff_source_roots=[("fixture", source)],
+                excluded_paths={"ToS/source-witnesses/discovery/test/provenance-delta.json"},
+            )
+            self.assertIn(kept.relative_to(source).as_posix(), candidates)
+            self.assertNotIn(delta.relative_to(source).as_posix(), candidates)
+
+    def test_convert_preserves_same_file_id_at_distinct_item_destinations(self) -> None:
+        """The direct closure pass counts bindings, not only content IDs."""
+
+        with tempfile.TemporaryDirectory(prefix="tos-handoff-convert-") as raw:
+            root = Path(raw)
+            store = root / "store"
+            base = "a" * 64
+            revision = store / "revisions" / base
+            objects = store / "objects"
+            revision.mkdir(parents=True)
+            objects.mkdir()
+
+            claim_paths = sorted(converter.CLAIM_SUFFIXES)
+            accepted_files: list[dict[str, object]] = []
+            for suffix in claim_paths:
+                relative = (
+                    "ToS/source-witnesses/relations/"
+                    f"{converter.CLAIM_SUFFIXES[suffix]}/{suffix}"
+                )
+                body = b""
+                digest = hashlib.sha256(body).hexdigest()
+                (objects / digest).write_bytes(body)
+                accepted_files.append(
+                    {
+                        "path": relative,
+                        "sha256": digest,
+                        "size_bytes": 0,
+                        "mode": 0o644,
+                    }
+                )
+
+            event_relative = converter.TOPOLOGY_EVENT_PATH
+            event = {
+                "event_id": "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31",
+                "event_version": 1,
+                "inputs": [],
+                "outputs": [],
+                "method": {"configuration": {}},
+            }
+            event_body = _canonical(event)
+            event_digest = hashlib.sha256(event_body).hexdigest()
+            (objects / event_digest).write_bytes(event_body)
+            accepted_files.append(
+                {
+                    "path": event_relative,
+                    "sha256": event_digest,
+                    "size_bytes": len(event_body),
+                    "mode": 0o644,
+                }
+            )
+            snapshot = {
+                "schema_version": "tos_corpus_snapshot_v1",
+                "base_revision": None,
+                "validator_sha256": "b" * 64,
+                "files": sorted(accepted_files, key=lambda row: row["path"]),
+                "identities": {},
+                "dependencies": {},
+                "retirements": [],
+                "revision": base,
+            }
+            (revision / "snapshot.json").write_bytes(_canonical(snapshot))
+            (store / "current.json").write_bytes(
+                _canonical(
+                    {
+                        "schema_version": "tos_corpus_pointer_v1",
+                        "current": base,
+                        "previous": None,
+                    }
+                )
+            )
+
+            handoffs: dict[str, converter.DirectHandoff] = {}
+            selector_rows: list[dict[str, str]] = []
+            shared_body = b"shared content-addressed file\n"
+            shared_digest = hashlib.sha256(shared_body).hexdigest()
+
+            for index in range(2):
+                batch_root = root / f"handoff-{index}"
+                source_root = batch_root / "source"
+                payload_root = batch_root / "payload"
+                source_root.mkdir(parents=True)
+                payload_root.mkdir()
+                batch_id = f"tos.acquisition-batch.fixture-{index}"
+                item_root = f"ToS/source-witnesses/works/fixture/item-{index}"
+                item_ref = f"tos.item.fixture.item-{index}"
+                rights_ref = f"{item_root}/rights.json"
+                provenance_ref = f"{item_root}/provenance.jsonl"
+                manifest_ref = f"{item_root}/item.manifest.json"
+                payload = {
+                    "item_ref": item_ref,
+                    "file_ref": f"tos.file.sha256.{shared_digest}",
+                    "item_root_ref": item_root,
+                    "relative_path": "payload/shared.txt",
+                    "byte_size": len(shared_body),
+                    "sha256": shared_digest,
+                }
+                item_manifest = {
+                    "schema_version": "tos_source_item_manifest_v1",
+                    "item_id": item_ref,
+                    "rights_ref": rights_ref,
+                    "provenance_ref": provenance_ref,
+                    "payload_files": [payload],
+                }
+                source_values = {
+                    f"{item_root}/item.json": _canonical({"item_id": item_ref}),
+                    manifest_ref: _canonical(item_manifest),
+                    rights_ref: _canonical({"rights_id": f"tos.rights.fixture.item-{index}"}),
+                    provenance_ref: _canonical(
+                        {
+                            "rights_basis_ref": rights_ref,
+                            "outputs": [
+                                {
+                                    "ref": f"{item_root}/payload/shared.txt",
+                                    "sha256": shared_digest,
+                                }
+                            ],
+                        }
+                    ),
+                }
+                records: list[dict[str, str]] = []
+                for relative, body in source_values.items():
+                    path = source_root / relative
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(body)
+                    records.append(
+                        {
+                            "ref": relative,
+                            "sha256": hashlib.sha256(body).hexdigest(),
+                        }
+                    )
+                delta_relative = "ToS/source-witnesses/discovery/provenance-delta.json"
+                (source_root / delta_relative).parent.mkdir(parents=True, exist_ok=True)
+                (source_root / delta_relative).write_bytes(b"operational\n")
+                payload_path = payload_root / PurePosixPath(item_root).relative_to(
+                    "ToS/source-witnesses"
+                ) / "payload/shared.txt"
+                payload_path.parent.mkdir(parents=True, exist_ok=True)
+                payload_path.write_bytes(shared_body)
+                handoff_path = batch_root / "receipts/handoff.json"
+                handoff_path.parent.mkdir(parents=True)
+                handoff_path.write_bytes(b"handoff\n")
+                manifest_path = batch_root / "manifest.json"
+                manifest_path.write_bytes(b"{}\n")
+                handoff = {
+                    "batch_id": batch_id,
+                    "provenance_delta": {"ref": f"source/{delta_relative}"},
+                }
+                handoffs[batch_id] = converter.DirectHandoff(
+                    root=batch_root,
+                    handoff_ref="receipts/handoff.json",
+                    handoff_sha256=hashlib.sha256(handoff_path.read_bytes()).hexdigest(),
+                    handoff_path=handoff_path,
+                    handoff=handoff,
+                    manifest_path=manifest_path,
+                    manifest={"batch_id": batch_id},
+                    source_root=source_root,
+                    payload_root=payload_root,
+                    source_records=records,
+                    payloads=[payload],
+                    context=None,
+                )
+                selector_rows.append(
+                    {
+                        "root": str(batch_root),
+                        "handoff_ref": "receipts/handoff.json",
+                        "sha256": handoffs[batch_id].handoff_sha256,
+                    }
+                )
+
+            selection = root / "selection.json"
+            selection.write_bytes(
+                _canonical(
+                    {
+                        "schema_version": converter.HANDOFF_SELECTION_SCHEMA,
+                        "selection_id": "same-file-two-items",
+                        "handoffs": selector_rows,
+                    }
+                )
+            )
+            grammar = root / "grammar"
+            (grammar / "ToS/contracts").mkdir(parents=True)
+            (grammar / "ToS/contracts/tiny.json").write_bytes(_canonical({"type": "object"}))
+
+            class Validator:
+                sha256 = "b" * 64
+
+                def __init__(self, _grammar: Path, **_kwargs: object) -> None:
+                    pass
+
+            fake_module = SimpleNamespace(
+                SourceValidator=Validator,
+                verify_validation_context=lambda value, **_kwargs: value,
+            )
+            fake_adapter = SimpleNamespace(
+                verify_validation_context=lambda value, **_kwargs: value,
+            )
+
+            def load_handoff(*, root: Path, handoff_ref: str, expected_sha256: str, base_revision: str):
+                del handoff_ref, expected_sha256, base_revision
+                batch_id = root.name
+                return handoffs[f"tos.acquisition-batch.fixture-{batch_id.removeprefix('handoff-')}"]
+
+            output = root / "candidate"
+            with patch.dict(
+                sys.modules,
+                {
+                    "corpus_source_validation": fake_module,
+                    "acquisition_handoff_adapter": fake_adapter,
+                },
+            ), patch.object(converter, "_load_direct_handoff", side_effect=load_handoff):
+                receipt = converter.convert(
+                    acquisition_root=None,
+                    handoff_selection=selection,
+                    output_root=output,
+                    store_root=store,
+                    base_revision=base,
+                    grammar_root=grammar,
+                )
+
+            self.assertEqual(2, receipt["batch_count"])
+            self.assertEqual(2, receipt["payload_count"])
+            self.assertEqual(1, receipt["payload_unique_file_count"])
+            update_paths = {
+                row["path"]
+                for row in json.loads(
+                    (output / receipt["candidate_batch_ref"]).read_text()
+                )["updates"]
+            }
+            self.assertNotIn("ToS/source-witnesses/discovery/provenance-delta.json", update_paths)
+            for index in range(2):
+                self.assertEqual(
+                    shared_body,
+                    (
+                        output
+                        / "payload"
+                        / "works"
+                        / f"fixture/item-{index}/payload/shared.txt"
+                    ).read_bytes(),
                 )
 
 
