@@ -643,6 +643,11 @@ def adapt_handoff(
         if accepted_validator_sha256 == validator_sha256
         else "explicit-grammar-update-required"
     )
+    admission_preflight = (
+        "not-run-transport-only"
+        if validator_transition == "aligned"
+        else validator_transition
+    )
     handoff_path, handoff = _load_handoff(root, handoff_ref)
     input_selection = handoff.get("input_selection")
     if not isinstance(input_selection, dict) or input_selection.get("ref") != "manifest.json":
@@ -784,16 +789,20 @@ def adapt_handoff(
         validation_context_sha256 = _sha256(validation_context_bytes)
         adapter_receipt = {
             "schema_version": "tos_acquisition_handoff_adapter_receipt_v1",
-            "handoff_ref": handoff_relative,
+            "handoff_ref": evidence_refs["handoff.json"]["ref"],
+            "handoff_source_ref": handoff_relative,
             "handoff_sha256": _sha256_file(handoff_path),
             "manifest_ref": evidence_refs["manifest.json"]["ref"],
             "manifest_source_ref": "manifest.json",
             "manifest_sha256": context.manifest_sha256,
-            "provenance_delta_ref": handoff["provenance_delta"]["ref"],
+            "provenance_delta_ref": evidence_refs["provenance-delta.json"]["ref"],
+            "provenance_delta_source_ref": handoff["provenance_delta"]["ref"],
             "provenance_delta_sha256": handoff["provenance_delta"]["sha256"],
-            "fixity_ref": handoff["independent_fixity"]["ref"],
+            "fixity_ref": evidence_refs["fixity.jsonl"]["ref"],
+            "fixity_source_ref": handoff["independent_fixity"]["ref"],
             "fixity_jsonl_sha256": handoff["independent_fixity"]["jsonl_sha256"],
-            "fixity_summary_ref": handoff["independent_fixity"]["summary_ref"],
+            "fixity_summary_ref": evidence_refs["fixity-summary.json"]["ref"],
+            "fixity_summary_source_ref": handoff["independent_fixity"]["summary_ref"],
             "fixity_summary_sha256": handoff["independent_fixity"]["summary_sha256"],
             "base_revision": base_revision,
             "accepted_manifest_ref": f"revisions/{base_revision}/snapshot.json",
@@ -811,7 +820,7 @@ def adapt_handoff(
             "input_root": "source",
             "payload_source_root": "payload",
             "admission_status": "not-admitted",
-            "admission_preflight": validator_transition,
+            "admission_preflight": admission_preflight,
             "publication_status": "not-published",
             "topology_preimages": 0,
             "authority_boundary": "validated private batch input only; corpus admission remains with corpus_admit and its selected store",
@@ -830,7 +839,7 @@ def adapt_handoff(
         "candidate_batch_ref": batch_ref,
         "candidate_batch_sha256": adapter_receipt["candidate_batch_sha256"],
         "admission_status": "not-admitted",
-        "admission_preflight": validator_transition,
+        "admission_preflight": admission_preflight,
     }
 
 

@@ -77,6 +77,8 @@ acceptance. It also copies the exact selection manifest, handoff, provenance
 delta, and independent fixity files under
 `receipts/acquisition-evidence/`. The delta remains operational evidence and
 is not added to `tos_corpus_batch_v1.updates`; its source ref and SHA remain
-bound in the adapter receipt.
+bound in the adapter receipt. Top-level receipt refs point to these candidate
+copies, while explicit `*_source_ref` fields retain the original acquisition
+paths.
 The queued-corpus-intake owner can use this adapter's selector and receipt
 shape while its seven-batch converter remains a separate owner surface.
