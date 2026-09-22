@@ -363,107 +363,12 @@ def _expected_payloads(context: acquisition.BatchContext) -> dict[str, acquisiti
 
 
 def _verify_item_payload_bindings(context: acquisition.BatchContext, acquisition_root: Path) -> None:
-    """Close each acquired File to its selected Item manifest and provenance."""
+    """Expose the producer's Item/File closure under adapter error semantics."""
 
-    for selection in context.manifest["selection"]:
-        records = {record["ref"]: record for record in selection["records"]}
-        # A selection may carry more than one manifest.  The batch-level
-        # manifest (and discovery manifests) are part of the reviewed record
-        # closure, but only the deterministic Item manifest owns the
-        # payload/provenance binding checked below.
-        item_manifest_ref = f"{selection['item_root_ref']}/item.manifest.json"
-        item_manifest_record = records.get(item_manifest_ref)
-        if not isinstance(item_manifest_record, dict) or item_manifest_record.get("kind") != "manifest":
-            raise HandoffAdapterError(
-                f"selection has no selected Item manifest record: {selection['item_ref']}"
-            )
-        manifest_path = _path_under(
-            acquisition_root,
-            f"source/{item_manifest_record['ref']}",
-            label="selected Item manifest",
-        )
-        _regular(manifest_path, label="selected Item manifest")
-        if _sha256_file(manifest_path) != item_manifest_record["sha256"]:
-            raise HandoffAdapterError("selected Item manifest bytes differ")
-        try:
-            item_manifest = acquisition._load_json_bytes(
-                manifest_path.read_bytes(), label="selected Item manifest"
-            )
-        except acquisition.AcquisitionBatchError as exc:
-            raise HandoffAdapterError(str(exc)) from exc
-        provenance_ref = item_manifest.get("provenance_ref")
-        provenance_record = records.get(provenance_ref) if isinstance(provenance_ref, str) else None
-        if (
-            item_manifest.get("schema_version") != "tos_source_item_manifest_v1"
-            or item_manifest.get("item_id") != selection["item_ref"]
-            or item_manifest.get("rights_ref") != selection["rights"]["ref"]
-            or not isinstance(provenance_record, dict)
-            or provenance_record.get("kind") != "provenance"
-            or not isinstance(item_manifest.get("payload_files"), list)
-        ):
-            raise HandoffAdapterError(
-                f"Item manifest identity or rights/provenance binding differs: {selection['item_ref']}"
-            )
-        manifest_payloads = item_manifest["payload_files"]
-        manifest_by_file = {}
-        for payload in manifest_payloads:
-            if not isinstance(payload, dict) or payload.get("file_id") in manifest_by_file:
-                raise HandoffAdapterError("Item manifest payload file IDs are not unique")
-            manifest_by_file[payload.get("file_id")] = payload
-        selected_payloads = {
-            payload["file_ref"]: payload for payload in selection["payload_files"]
-        }
-        if set(manifest_by_file) != set(selected_payloads):
-            raise HandoffAdapterError(
-                f"Item manifest payload closure differs: {selection['item_ref']}"
-            )
-        provenance_ref = item_manifest["provenance_ref"]
-        provenance_path = _path_under(
-            acquisition_root,
-            f"source/{provenance_ref}",
-            label="selected Item provenance",
-        )
-        _regular(provenance_path, label="selected Item provenance")
-        try:
-            provenance_rows = [
-                json.loads(line)
-                for line in provenance_path.read_text(encoding="utf-8").splitlines()
-                if line.strip()
-            ]
-        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-            raise HandoffAdapterError("selected Item provenance is not valid JSONL") from exc
-        if not provenance_rows:
-            raise HandoffAdapterError("selected Item provenance is empty")
-        for file_ref, payload in selected_payloads.items():
-            manifest_payload = manifest_by_file[file_ref]
-            for key, expected in {
-                "file_id": file_ref,
-                "relative_path": payload["relative_path"],
-                "byte_size": payload["byte_size"],
-                "sha256": payload["sha256"],
-                "media_type": payload["media_type"],
-            }.items():
-                if manifest_payload.get(key) != expected:
-                    raise HandoffAdapterError(
-                        f"Item manifest payload binding differs: {file_ref}"
-                    )
-            destination_ref = f"{selection['item_root_ref']}/{payload['relative_path']}"
-            if not any(
-                isinstance(event, dict)
-                and event.get("rights_basis_ref") == selection["rights"]["ref"]
-                and isinstance(event.get("outputs"), list)
-                and any(
-                    isinstance(output, dict)
-                    and isinstance(output.get("ref"), str)
-                    and output.get("ref") in {file_ref, destination_ref}
-                    and output.get("sha256") == payload["sha256"]
-                    for output in event["outputs"]
-                )
-                for event in provenance_rows
-            ):
-                raise HandoffAdapterError(
-                    f"Item provenance does not bind acquired payload: {file_ref}"
-                )
+    try:
+        acquisition._verify_prepared_item_bindings(context, acquisition_root)
+    except (acquisition.AcquisitionBatchError, acquisition.SourceIntegrityError) as exc:
+        raise HandoffAdapterError(str(exc)) from exc
 
 
 def _verify_handoff(
@@ -490,6 +395,13 @@ def _verify_handoff(
         raise HandoffAdapterError("handoff crosses the acquisition authority boundary")
     if handoff.get("topology_preimages") != 0:
         raise HandoffAdapterError("handoff contains a topology preimage claim")
+    run_id = handoff.get("run_id")
+    if not isinstance(run_id, str) or not re.fullmatch(
+        r"[0-9]{8}T[0-9]{6}Z(?:-[0-9]+)?", run_id
+    ):
+        raise HandoffAdapterError("handoff run identity is invalid")
+    if handoff_path.name != f"handoff-{run_id}.json":
+        raise HandoffAdapterError("handoff path is not bound to its run identity")
     input_selection = handoff.get("input_selection")
     if not isinstance(input_selection, dict) or input_selection.get("ref") != "manifest.json":
         raise HandoffAdapterError("handoff does not select manifest.json")
@@ -542,6 +454,10 @@ def _verify_handoff(
             else:
                 if accepted_entry["sha256"] != record["sha256"]:
                     raise HandoffAdapterError(f"handoff would replace accepted source bytes: {ref}")
+                if accepted_entry.get("mode") != 0o644:
+                    raise HandoffAdapterError(
+                        f"accepted source mode is unsupported for candidate update: {ref}"
+                    )
                 if not accepted.exists() or accepted.is_symlink():
                     raise HandoffAdapterError(
                         f"accepted source view is missing selected base member: {ref}"
@@ -561,6 +477,10 @@ def _verify_handoff(
         raise HandoffAdapterError("handoff provenance delta digest differs")
     if provenance.get("event_ref") != context.manifest["provenance_delta"]["event_ref"]:
         raise HandoffAdapterError("handoff provenance event differs")
+    if provenance.get("base_revision") != context.manifest["base_revision"]:
+        raise HandoffAdapterError("handoff provenance delta base differs from batch")
+    if provenance.get("base_revision") != expected_base_revision:
+        raise HandoffAdapterError("handoff provenance delta base differs from selected accepted base")
 
     fixity = handoff.get("independent_fixity")
     if not isinstance(fixity, dict):
@@ -569,6 +489,10 @@ def _verify_handoff(
     summary_ref = fixity.get("summary_ref")
     if not isinstance(fixity_ref, str) or not isinstance(summary_ref, str):
         raise HandoffAdapterError("handoff fixity references are missing")
+    expected_fixity_ref = f"receipts/fixity-{run_id}.jsonl"
+    expected_summary_ref = f"receipts/fixity-{run_id}.json"
+    if fixity_ref != expected_fixity_ref or summary_ref != expected_summary_ref:
+        raise HandoffAdapterError("handoff fixity references are not bound to its run")
     fixity_path = _path_under(acquisition_root, fixity_ref, label="fixity JSONL reference")
     summary_path = _path_under(acquisition_root, summary_ref, label="fixity summary reference")
     _regular(fixity_path, label="fixity JSONL")
@@ -586,6 +510,7 @@ def _verify_handoff(
     expected_payloads = _expected_payloads(context)
     if (
         summary.get("batch_id") != context.manifest["batch_id"]
+        or summary.get("run_id") != run_id
         or summary.get("manifest_sha256") != context.manifest_sha256
         or summary.get("fixity_jsonl_ref") != fixity_ref
         or summary.get("fixity_jsonl_sha256") != jsonl_sha
@@ -619,9 +544,11 @@ def _verify_handoff(
             acquisition_root / "payload", expected["item_root_ref"], expected["relative_path"]
         )
         try:
-            acquisition._verify_destination(destination, expected)
+            digest = acquisition._verify_destination(destination, expected)
         except (acquisition.SourceIntegrityError, custody.CustodyError, OSError) as exc:
             raise HandoffAdapterError(f"payload custody differs: {payload.file_ref}") from exc
+        if row.get("git_blob_sha1") != digest.git_blob_sha1:
+            raise HandoffAdapterError(f"fixity Git blob digest differs: {payload.file_ref}")
 
     custody_rows = handoff.get("payload_custody")
     if (
@@ -631,10 +558,28 @@ def _verify_handoff(
     ):
         raise HandoffAdapterError("handoff payload custody closure differs from manifest")
     for row in custody_rows:
+        if not isinstance(row, dict):
+            raise HandoffAdapterError("handoff payload custody row is not an object")
         if row.get("status") not in {"acquired", "already_present"}:
             raise HandoffAdapterError("handoff payload row is not acquired custody")
-        payload = expected_payloads[row["file_ref"]].payload
-        if row.get("expected_byte_size") != payload["byte_size"] or row.get("expected_sha256") != payload["sha256"]:
+        file_ref = row.get("file_ref")
+        if file_ref not in expected_payloads:
+            raise HandoffAdapterError("handoff payload custody contains an unselected file")
+        payload = expected_payloads[file_ref].payload
+        expected_custody = {
+            "run_id": run_id,
+            "batch_id": context.manifest["batch_id"],
+            "manifest_sha256": context.manifest_sha256,
+            "item_ref": payload["item_ref"],
+            "file_ref": payload["file_ref"],
+            "destination_ref": f"{payload['item_root_ref']}/{payload['relative_path']}",
+            "provider_url": payload["provider_url"],
+            "provider_revision": payload["provider_revision"],
+            "provider_source_id": payload["provider_source_id"],
+            "expected_byte_size": payload["byte_size"],
+            "expected_sha256": payload["sha256"],
+        }
+        if any(row.get(key) != value for key, value in expected_custody.items()):
             raise HandoffAdapterError(f"handoff payload digest binding differs: {row['file_ref']}")
     return selected_source_rows, [expected_payloads[file_ref].payload for file_ref in sorted(expected_payloads)]
 
@@ -909,6 +854,7 @@ def adapt_handoff(
             "payload_source_root": "payload",
             "admission_status": "not-admitted",
             "admission_preflight": admission_preflight,
+            "validation_context_posture": "transport-bound; downstream-source-validator-required",
             "publication_status": "not-published",
             "topology_preimages": 0,
             "authority_boundary": "validated private batch input only; corpus admission remains with corpus_admit and its selected store",

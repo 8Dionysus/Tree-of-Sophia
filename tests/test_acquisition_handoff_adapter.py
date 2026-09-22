@@ -53,6 +53,8 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         provenance_output_ref: str = "destination",
         provenance_output_sha256: str | None = None,
         provenance_rights_ref: str | None = None,
+        rights_scope_complete: bool = True,
+        provenance_event_type: str = "acquisition",
     ) -> tuple[dict[str, bytes], str, str, list[dict[str, str]]]:
         item_ref = "tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8"
         item_root = (
@@ -98,7 +100,9 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                 body = canonical(manifest_value)
             elif filename == "rights.json":
                 rights_value = json.loads((owner_item_root / filename).read_text())
-                rights_value["scope_refs"] = [item_ref, payload_ref]
+                rights_value["scope_refs"] = (
+                    [item_ref, payload_ref] if rights_scope_complete else [item_ref]
+                )
                 body = canonical(rights_value)
             elif filename == "provenance.jsonl":
                 old_sha = old_payload["sha256"]
@@ -125,6 +129,17 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                         provenance_rights_ref = f"{item_root}/other-rights.json"
                     body = body.replace(
                         old_rights_ref.encode(), provenance_rights_ref.encode()
+                    )
+                if provenance_event_type != "acquisition":
+                    event_rows = [
+                        json.loads(line)
+                        for line in body.decode().splitlines()
+                        if line.strip()
+                    ]
+                    event_rows[0]["event_type"] = provenance_event_type
+                    body = b"".join(
+                        (json.dumps(row, sort_keys=True) + "\n").encode()
+                        for row in event_rows
                     )
             else:
                 body = (owner_item_root / filename).read_bytes()
@@ -295,6 +310,10 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         adapter_receipt = json.loads(
             (self.candidate / "receipts/acquisition-handoff-adapter.json").read_text()
         )
+        self.assertEqual(
+            "transport-bound; downstream-source-validator-required",
+            adapter_receipt["validation_context_posture"],
+        )
         handoff = json.loads(
             (self.acquisition_root / result["handoff_ref"]).read_text()
         )
@@ -436,24 +455,172 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                     base_revision="a" * 64,
                     **control["kwargs"],
                 )
-                result = acquisition.acquire_batch(
-                    manifest_path=self.manifest_path,
-                    metadata_root=self.metadata,
-                    output_root=self.acquisition_root,
-                    expected_manifest_sha256=manifest_sha,
-                    fetcher=lambda payload: fetches[payload["file_ref"]],
-                )
                 with self.assertRaisesRegex(
-                    adapter.HandoffAdapterError,
-                    "Item provenance does not bind acquired payload",
+                    acquisition.AcquisitionBatchError,
+                    "Item provenance does not bind acquired payload|Item provenance does not name the selected acquisition event",
                 ):
-                    adapter.verify_handoff_for_intake(
-                        acquisition_root=self.acquisition_root,
-                        handoff_ref=result["handoff_ref"],
-                        expected_base_revision="a" * 64,
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=self.acquisition_root,
+                        expected_manifest_sha256=manifest_sha,
+                        fetcher=lambda payload: fetches[payload["file_ref"]],
                         repo_root=ROOT,
                     )
+                self.assertEqual([], list(self.acquisition_root.glob("receipts/handoff-*.json")))
                 shutil.rmtree(self.acquisition_root)
+
+    def test_shared_verifier_rejects_provider_custody_mutation(self) -> None:
+        fetches, manifest_sha, _item_root, _records = self._write_manifest(
+            base_revision="a" * 64,
+        )
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        handoff_path = self.acquisition_root / result["handoff_ref"]
+        handoff = json.loads(handoff_path.read_text())
+        handoff["payload_custody"][0]["provider_revision"] = "unreviewed-provider"
+        handoff_path.write_bytes(canonical(handoff))
+        with self.assertRaisesRegex(
+            adapter.HandoffAdapterError,
+            "handoff payload digest binding differs",
+        ):
+            adapter.verify_handoff_for_intake(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                expected_base_revision="a" * 64,
+                repo_root=ROOT,
+            )
+
+    def test_shared_verifier_rejects_provenance_delta_base_mutation(self) -> None:
+        fetches, manifest_sha, _item_root, _records = self._write_manifest(
+            base_revision="a" * 64,
+        )
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        handoff_path = self.acquisition_root / result["handoff_ref"]
+        handoff = json.loads(handoff_path.read_text())
+        handoff["provenance_delta"]["base_revision"] = "b" * 64
+        handoff_path.write_bytes(canonical(handoff))
+        with self.assertRaisesRegex(
+            adapter.HandoffAdapterError,
+            "provenance delta base differs",
+        ):
+            adapter.verify_handoff_for_intake(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                expected_base_revision="a" * 64,
+                repo_root=ROOT,
+            )
+
+    def test_shared_verifier_rejects_fixity_run_mixing(self) -> None:
+        fetches, manifest_sha, _item_root, _records = self._write_manifest(
+            base_revision="a" * 64,
+        )
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        handoff_path = self.acquisition_root / result["handoff_ref"]
+        handoff = json.loads(handoff_path.read_text())
+        summary_path = self.acquisition_root / handoff["independent_fixity"]["summary_ref"]
+        summary = json.loads(summary_path.read_text())
+        summary["run_id"] = "20260922T000000Z"
+        summary_path.write_bytes(canonical(summary))
+        handoff["independent_fixity"]["summary_sha256"] = hashlib.sha256(
+            summary_path.read_bytes()
+        ).hexdigest()
+        handoff_path.write_bytes(canonical(handoff))
+        with self.assertRaisesRegex(
+            adapter.HandoffAdapterError,
+            "fixity summary does not bind complete handoff",
+        ):
+            adapter.verify_handoff_for_intake(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                expected_base_revision="a" * 64,
+                repo_root=ROOT,
+            )
+
+    def test_shared_verifier_rejects_rights_scope_and_event_identity(self) -> None:
+        controls = ("rights", "event")
+        for control in controls:
+            with self.subTest(control=control):
+                fetches, manifest_sha, _item_root, _records = self._write_manifest(
+                    base_revision="a" * 64,
+                    rights_scope_complete=control != "rights",
+                    provenance_event_type="acquisition"
+                    if control != "event"
+                    else "forensic_inspection",
+                )
+                if control == "rights":
+                    expected = "Item rights scope does not cover"
+                else:
+                    expected = "selected acquisition event"
+                fetch_calls: list[str] = []
+                with self.assertRaisesRegex(acquisition.AcquisitionBatchError, expected):
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=self.acquisition_root,
+                        expected_manifest_sha256=manifest_sha,
+                        fetcher=lambda payload: fetch_calls.append(payload["file_ref"]) or fetches[payload["file_ref"]],
+                    )
+                self.assertEqual([], fetch_calls)
+                self.assertEqual([], list(self.acquisition_root.glob("receipts/handoff-*.json")))
+                shutil.rmtree(self.acquisition_root)
+
+    def test_shared_verifier_rejects_fixity_git_blob_digest(self) -> None:
+        fetches, manifest_sha, _item_root, _records = self._write_manifest(
+            base_revision="a" * 64,
+        )
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        handoff_path = self.acquisition_root / result["handoff_ref"]
+        handoff = json.loads(handoff_path.read_text())
+        fixity_path = self.acquisition_root / handoff["independent_fixity"]["ref"]
+        row = json.loads(fixity_path.read_text().splitlines()[0])
+        row["git_blob_sha1"] = "0" * 40
+        fixity_path.write_text(json.dumps(row, sort_keys=True) + "\n")
+        fixity_sha = hashlib.sha256(fixity_path.read_bytes()).hexdigest()
+        summary_path = self.acquisition_root / handoff["independent_fixity"]["summary_ref"]
+        summary = json.loads(summary_path.read_text())
+        summary["fixity_jsonl_sha256"] = fixity_sha
+        summary_path.write_bytes(canonical(summary))
+        summary_sha = hashlib.sha256(summary_path.read_bytes()).hexdigest()
+        handoff["independent_fixity"].update(
+            sha256=fixity_sha,
+            jsonl_sha256=fixity_sha,
+            summary_sha256=summary_sha,
+        )
+        handoff_path.write_bytes(canonical(handoff))
+        with self.assertRaisesRegex(
+            adapter.HandoffAdapterError,
+            "fixity Git blob digest differs",
+        ):
+            adapter.verify_handoff_for_intake(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                expected_base_revision="a" * 64,
+                repo_root=ROOT,
+            )
 
     def test_shared_verifier_rejects_non_item_manifest_target(self) -> None:
         fetches, manifest_sha, item_root, _records = self._write_manifest(
@@ -557,6 +724,64 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             )
         self.assertFalse(self.candidate.exists())
 
+    def test_adapter_rejects_accepted_mode_change(self) -> None:
+        fetches, _unused_manifest_sha, _item_root, records = self._write_manifest(
+            base_revision="0" * 64
+        )
+        original_revision = self._write_accepted_base(records)
+        original_snapshot = json.loads(
+            (
+                self.accepted_store
+                / "revisions"
+                / original_revision
+                / "snapshot.json"
+            ).read_text()
+        )
+        snapshot_body = {
+            key: value for key, value in original_snapshot.items() if key != "revision"
+        }
+        snapshot_body["files"][0]["mode"] = 0o755
+        new_revision = hashlib.sha256(canonical(snapshot_body)).hexdigest()
+        new_snapshot = {**snapshot_body, "revision": new_revision}
+        new_snapshot_path = self.accepted_store / "revisions" / new_revision / "snapshot.json"
+        new_snapshot_path.parent.mkdir(parents=True)
+        new_snapshot_path.write_bytes(canonical(new_snapshot))
+        (self.accepted_store / "current.json").write_bytes(
+            canonical(
+                {
+                    "schema_version": "tos_corpus_pointer_v1",
+                    "current": new_revision,
+                    "previous": None,
+                }
+            )
+        )
+        fetches, manifest_sha, _item_root, _records = self._write_manifest(
+            base_revision=new_revision
+        )
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        with self.assertRaisesRegex(
+            adapter.HandoffAdapterError,
+            "accepted source mode is unsupported",
+        ):
+            adapter.adapt_handoff(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                output_root=self.candidate,
+                accepted_store_root=self.accepted_store,
+                accepted_source_root=self.accepted_source,
+                base_revision=new_revision,
+                validator_sha256=self.validator_sha256,
+                validation_context=self._validation_context(),
+                repo_root=ROOT,
+            )
+        self.assertFalse(self.candidate.exists())
+
     def test_adapter_rejects_unbound_empty_accepted_source_view(self) -> None:
         fetches, _unused_manifest_sha, _item_root, records = self._write_manifest(base_revision="0" * 64)
         base_revision = self._write_accepted_base(records)
@@ -622,25 +847,20 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             base_revision=base_revision,
             manifest_payload_matches=False,
         )
-        result = acquisition.acquire_batch(
-            manifest_path=self.manifest_path,
-            metadata_root=self.metadata,
-            output_root=self.acquisition_root,
-            expected_manifest_sha256=manifest_sha,
-            fetcher=lambda payload: fetches[payload["file_ref"]],
-        )
-        with self.assertRaisesRegex(adapter.HandoffAdapterError, "Item manifest payload closure differs"):
-            adapter.adapt_handoff(
-                acquisition_root=self.acquisition_root,
-                handoff_ref=result["handoff_ref"],
-                output_root=self.candidate,
-                accepted_store_root=self.accepted_store,
-                accepted_source_root=self.accepted_source,
-                base_revision=base_revision,
-                validator_sha256=self.validator_sha256,
-                validation_context=self._validation_context(),
-                repo_root=ROOT,
+        fetch_calls: list[str] = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "Item manifest payload closure differs",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=self.acquisition_root,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"]) or fetches[payload["file_ref"]],
             )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(self.acquisition_root.glob("receipts/handoff-*.json")))
         self.assertFalse(self.candidate.exists())
 
     def test_item_manifest_rejects_unselected_provenance_ref(self) -> None:
@@ -665,28 +885,20 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         manifest_record["sha256"] = hashlib.sha256(item_manifest_path.read_bytes()).hexdigest()
         self.manifest_path.write_bytes(canonical(manifest))
         manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
-        result = acquisition.acquire_batch(
-            manifest_path=self.manifest_path,
-            metadata_root=self.metadata,
-            output_root=self.acquisition_root,
-            expected_manifest_sha256=manifest_sha,
-            fetcher=lambda payload: fetches[payload["file_ref"]],
-        )
+        fetch_calls: list[str] = []
         with self.assertRaisesRegex(
-            adapter.HandoffAdapterError,
+            acquisition.AcquisitionBatchError,
             "Item manifest identity or rights/provenance binding differs",
         ):
-            adapter.adapt_handoff(
-                acquisition_root=self.acquisition_root,
-                handoff_ref=result["handoff_ref"],
-                output_root=self.candidate,
-                accepted_store_root=self.accepted_store,
-                accepted_source_root=self.accepted_source,
-                base_revision=base_revision,
-                validator_sha256=self.validator_sha256,
-                validation_context=self._validation_context(),
-                repo_root=ROOT,
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=self.acquisition_root,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"]) or fetches[payload["file_ref"]],
             )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(self.acquisition_root.glob("receipts/handoff-*.json")))
 
     def test_adapter_requires_explicit_validation_context(self) -> None:
         fetches, _unused_manifest_sha, _item_root, records = self._write_manifest(

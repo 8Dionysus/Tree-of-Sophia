@@ -44,24 +44,81 @@ class AcquisitionBatchTests(unittest.TestCase):
                 f"editions/pinned/items/{slug}"
             )
             item_record_ref = f"{item_root}/item.json"
+            item_manifest_ref = f"{item_root}/item.manifest.json"
             rights_ref = f"{item_root}/rights.json"
             provenance_ref = f"{item_root}/provenance.jsonl"
+            payload = f"payload/{slug}.txt"
+            payload_body = f"payload {index}\n".encode()
+            payload_ref = f"tos.file.sha256.{hashlib.sha256(payload_body).hexdigest()}"
+            event_ref = f"tos.event.acquisition.fixture-{index}"
+            rights_body = json.dumps(
+                {
+                    "rights": "local_only",
+                    "scope_refs": [item_ref, payload_ref],
+                },
+                sort_keys=True,
+            ).encode()
+            item_manifest_body = json.dumps(
+                {
+                    "schema_version": "tos_source_item_manifest_v1",
+                    "item_id": item_ref,
+                    "item_kind": "born_digital",
+                    "embodiment_ref": f"tos.edition.fixture.{index}",
+                    "storage_posture": "local_gitignored_payload",
+                    "payload_files": [
+                        {
+                            "file_id": payload_ref,
+                            "relative_path": payload,
+                            "original_basename": f"{slug}.txt",
+                            "media_type": "text/plain",
+                            "byte_size": len(payload_body),
+                            "sha256": hashlib.sha256(payload_body).hexdigest(),
+                            "fixity_verified_at": "2026-09-21T12:00:00Z",
+                        }
+                    ],
+                    "acquisition_event_ref": event_ref,
+                    "rights_ref": rights_ref,
+                    "provenance_ref": provenance_ref,
+                    "forensic_report_ref": f"{item_root}/forensic-report.md",
+                    "resource_inventory_ref": f"{item_root}/resource-inventory.json",
+                    "visibility": "local_only",
+                    "manifest_version": 1,
+                },
+                sort_keys=True,
+            ).encode() + b"\n"
+            provenance_body = (
+                json.dumps(
+                    {
+                        "schema_version": "tos_provenance_event_v1",
+                        "event_id": event_ref,
+                        "event_type": "acquisition",
+                        "event_version": 1,
+                        "rights_basis_ref": rights_ref,
+                        "outputs": [
+                            {
+                                "ref": f"{item_root}/{payload}",
+                                "sha256": hashlib.sha256(payload_body).hexdigest(),
+                            }
+                        ],
+                    },
+                    sort_keys=True,
+                )
+                + "\n"
+            ).encode()
             records = []
             for ref, kind, body in (
                 (item_record_ref, "item", json.dumps({"item_id": item_ref}).encode()),
-                (rights_ref, "rights", json.dumps({"rights": "local_only"}).encode()),
-                (provenance_ref, "provenance", b"batch source observation\n"),
+                (item_manifest_ref, "manifest", item_manifest_body),
+                (rights_ref, "rights", rights_body),
+                (provenance_ref, "provenance", provenance_body),
             ):
                 path = self.metadata / ref
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(body)
                 records.append({"ref": ref, "sha256": hashlib.sha256(body).hexdigest(), "kind": kind})
                 all_record_refs.append(ref)
-            payload = f"payload/{slug}.txt"
-            body = f"payload {index}\n".encode()
-            payload_ref = f"tos.file.sha256.{hashlib.sha256(body).hexdigest()}"
             url = f"https://provider.example/{slug}/r1/{slug}.txt"
-            fetches[payload_ref] = body
+            fetches[payload_ref] = payload_body
             all_payload_refs.append(payload_ref)
             selections.append(
                 {
@@ -76,7 +133,9 @@ class AcquisitionBatchTests(unittest.TestCase):
                     "records": records,
                     "rights": {
                         "ref": rights_ref,
-                        "sha256": records[1]["sha256"],
+                        "sha256": next(
+                            row["sha256"] for row in records if row["ref"] == rights_ref
+                        ),
                         "posture": "local_only",
                     },
                     "payload_files": [
@@ -85,8 +144,8 @@ class AcquisitionBatchTests(unittest.TestCase):
                             "file_ref": payload_ref,
                             "item_root_ref": item_root,
                             "relative_path": payload,
-                            "byte_size": len(body),
-                            "sha256": hashlib.sha256(body).hexdigest(),
+                            "byte_size": len(payload_body),
+                            "sha256": hashlib.sha256(payload_body).hexdigest(),
                             "provider_url": url,
                             "provider_revision": "r1",
                             "provider_source_id": "fixture-collection-v1",
@@ -130,7 +189,7 @@ class AcquisitionBatchTests(unittest.TestCase):
         measurement = acquisition.measure_storage(self.output)
         self.assertEqual(0, measurement["topology_preimage_count"])
         self.assertEqual(0, measurement["topology_preimage_bytes"])
-        self.assertEqual(8 * 3 + 1, measurement["metadata_file_count"])
+        self.assertEqual(8 * 4 + 1, measurement["metadata_file_count"])
         legacy = self.root / "legacy" / "topology-before"
         legacy.mkdir(parents=True)
         for index in range(8):
@@ -250,6 +309,104 @@ class AcquisitionBatchTests(unittest.TestCase):
         with self.assertRaisesRegex(acquisition.AcquisitionBatchError, "base revision"):
             acquisition.load_manifest(self.manifest_path)
 
+    def test_manifest_requires_item_manifest_and_provenance_records(self) -> None:
+        _fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        manifest["selection"][0]["records"] = [
+            record
+            for record in manifest["selection"][0]["records"]
+            if record["kind"] != "manifest"
+        ]
+        manifest["provenance_delta"]["record_refs"] = sorted(
+            record["ref"] for record in manifest["selection"][0]["records"]
+        )
+        self.manifest_path.write_bytes(
+            (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode()
+        )
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "schema validation failed",
+        ):
+            acquisition.load_manifest(self.manifest_path)
+
+    def test_manifest_requires_the_selected_item_manifest_and_provenance_paths(self) -> None:
+        fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        item_root = manifest["selection"][0]["item_root_ref"]
+        manifest["selection"][0]["records"] = [
+            {
+                **record,
+                "ref": (
+                    f"{item_root}/batch-scope.json"
+                    if record["kind"] == "manifest"
+                    else record["ref"]
+                ),
+            }
+            for record in manifest["selection"][0]["records"]
+        ]
+        self.manifest_path.write_bytes(
+            (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode()
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+        fetch_calls: list[str] = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "selection must contain one Item record",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=self.output,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"]) or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+        self.assertFalse(self.output.exists())
+
+    def test_manifest_rejects_non_source_record_reference(self) -> None:
+        _fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        record = manifest["selection"][0]["records"][0]
+        record["ref"] = "ToS/derived-exports/fixture.json"
+        manifest["provenance_delta"]["record_refs"] = sorted(
+            value["ref"] for value in manifest["selection"][0]["records"]
+        )
+        self.manifest_path.write_bytes(
+            (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode()
+        )
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "outside the corpus source admission boundary",
+        ):
+            acquisition.load_manifest(self.manifest_path)
+
+    def test_prepared_item_record_identity_is_bound_before_fetch(self) -> None:
+        _fetches, manifest_sha = self._write_manifest(count=1)
+        acquisition.prepare_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.output,
+            expected_manifest_sha256=manifest_sha,
+        )
+        item_record = self.output / (
+            "source/ToS/source-witnesses/works/fixture/expressions/en/"
+            "editions/pinned/items/fixture-0/item.json"
+        )
+        item_record.write_bytes(b'{"item_id":"tos.item.other"}\n')
+        fetch_calls: list[str] = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "Item record identity differs",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=self.output,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"]) or b"",
+            )
+        self.assertEqual([], fetch_calls)
+
     def test_selected_rights_mutation_rejects_resume_and_handoff(self) -> None:
         _fetches, manifest_sha = self._write_manifest(count=1)
         acquisition.prepare_batch(
@@ -269,7 +426,10 @@ class AcquisitionBatchTests(unittest.TestCase):
             fetch_calls.append(payload["file_ref"])
             return _fetches[payload["file_ref"]]
 
-        with self.assertRaisesRegex(acquisition.SourceIntegrityError, "selected record digest"):
+        with self.assertRaisesRegex(
+            acquisition.SourceIntegrityError,
+            "prepared rights bytes differ|selected record digest",
+        ):
             acquisition.acquire_batch(
                 manifest_path=self.manifest_path,
                 metadata_root=self.metadata,
@@ -278,7 +438,10 @@ class AcquisitionBatchTests(unittest.TestCase):
                 fetcher=should_not_fetch,
             )
         self.assertEqual([], fetch_calls)
-        with self.assertRaisesRegex(acquisition.SourceIntegrityError, "selected record digest"):
+        with self.assertRaisesRegex(
+            acquisition.SourceIntegrityError,
+            "prepared rights bytes differ|selected record digest",
+        ):
             acquisition.verify_local(output_root=self.output)
         self.assertEqual([], list((self.output / "receipts").glob("handoff-*.json")))
 
@@ -296,7 +459,10 @@ class AcquisitionBatchTests(unittest.TestCase):
             return result
 
         with patch.object(acquisition, "_fixity_receipt", side_effect=mutate_after_fixity):
-            with self.assertRaisesRegex(acquisition.SourceIntegrityError, "selected record digest"):
+            with self.assertRaisesRegex(
+                acquisition.SourceIntegrityError,
+                "prepared rights bytes differ|selected record digest",
+            ):
                 acquisition.acquire_batch(
                     manifest_path=self.manifest_path,
                     metadata_root=self.metadata,
@@ -309,10 +475,17 @@ class AcquisitionBatchTests(unittest.TestCase):
     def test_interrupted_prepare_is_rebuilt_before_acquisition(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=1)
         self.output.mkdir()
+        (self.output / "manifest.json").write_bytes(self.manifest_path.read_bytes())
         (self.output / "source").mkdir()
         (self.output / "payload").mkdir()
         (self.output / "receipts").mkdir()
-        (self.output / "source/partial.tmp").write_bytes(b"interrupted")
+        partial = (
+            self.output
+            / "source/ToS/source-witnesses/works/fixture/expressions/en/"
+            "editions/pinned/items/fixture-0/item.json"
+        )
+        partial.parent.mkdir(parents=True)
+        partial.write_bytes(b"interrupted")
         result = acquisition.acquire_batch(
             manifest_path=self.manifest_path,
             metadata_root=self.metadata,
@@ -322,7 +495,37 @@ class AcquisitionBatchTests(unittest.TestCase):
         )
         self.assertEqual("acquired-not-admitted", result["status"])
         self.assertTrue((self.output / "receipts/preparation.json").is_file())
-        self.assertFalse((self.output / "source/partial.tmp").exists())
+        self.assertNotEqual(b"interrupted", partial.read_bytes())
+
+    def test_recovery_refuses_unproven_payload_receipt_or_foreign_data(self) -> None:
+        _fetches, manifest_sha = self._write_manifest(count=1)
+        cases = {
+            "payload": "payload/foreign.bin",
+            "receipt": "receipts/old-handoff.json",
+            "foreign-source": "source/foreign.json",
+        }
+        for name, relative in cases.items():
+            with self.subTest(name=name):
+                output = self.root / f"partial-{name}"
+                output.mkdir()
+                (output / "manifest.json").write_bytes(self.manifest_path.read_bytes())
+                for directory in ("source", "payload", "receipts"):
+                    (output / directory).mkdir()
+                evidence = output / relative
+                evidence.parent.mkdir(parents=True, exist_ok=True)
+                evidence.write_bytes(b"unowned evidence")
+                with self.assertRaisesRegex(
+                    acquisition.AcquisitionBatchError,
+                    "not a recoverable interrupted preparation",
+                ):
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=output,
+                        expected_manifest_sha256=manifest_sha,
+                        fetcher=lambda payload: _fetches[payload["file_ref"]],
+                    )
+                self.assertTrue(evidence.exists())
 
     def test_concurrent_acquire_calls_are_serialized(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=1)

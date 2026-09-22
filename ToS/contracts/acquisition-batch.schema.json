@@ -158,8 +158,31 @@
         "provider": {"$ref": "#/$defs/provider"},
         "records": {
           "type": "array",
-          "minItems": 2,
-          "items": {"$ref": "#/$defs/record"}
+          "minItems": 3,
+          "items": {"$ref": "#/$defs/record"},
+          "allOf": [
+            {
+              "contains": {
+                "type": "object",
+                "required": ["kind"],
+                "properties": {"kind": {"const": "item"}}
+              }
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": ["kind"],
+                "properties": {"kind": {"const": "manifest"}}
+              }
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": ["kind"],
+                "properties": {"kind": {"const": "provenance"}}
+              }
+            }
+          ]
         },
         "rights": {"$ref": "#/$defs/rights"},
         "payload_files": {

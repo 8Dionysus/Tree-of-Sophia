@@ -39,10 +39,12 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 try:
     import source_payload_custody as custody
+    from corpus_source_validation import is_source_member
 except ModuleNotFoundError as exc:  # pragma: no cover - direct package import
-    if exc.name != "source_payload_custody":
+    if exc.name not in {"source_payload_custody", "corpus_source_validation"}:
         raise
     from scripts import source_payload_custody as custody
+    from scripts.corpus_source_validation import is_source_member
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -305,6 +307,16 @@ def _validate_semantics(manifest: dict[str, Any]) -> None:
         for record in selection["records"]:
             ref = record["ref"]
             _safe_ref(ref, label="record reference", prefix="ToS/")
+            try:
+                source_member = is_source_member(ref)
+            except Exception as exc:
+                raise AcquisitionBatchError(
+                    f"record reference is not a valid corpus source member: {ref}"
+                ) from exc
+            if not source_member:
+                raise AcquisitionBatchError(
+                    f"record is outside the corpus source admission boundary: {ref}"
+                )
             if "/payload/" in f"/{ref}/":
                 raise AcquisitionBatchError(f"payload cannot be selected as metadata: {ref}")
             if ref in record_by_ref:
@@ -322,7 +334,22 @@ def _validate_semantics(manifest: dict[str, Any]) -> None:
         item_records = [
             value for value in selection["records"] if value["kind"] == "item"
         ]
-        if len(item_records) != 1 or not item_records[0]["ref"].endswith("/item.json"):
+        item_manifest_records = [
+            value for value in selection["records"] if value["kind"] == "manifest"
+        ]
+        provenance_records = [
+            value for value in selection["records"] if value["kind"] == "provenance"
+        ]
+        expected_item_manifest_ref = f"{item_root}/item.manifest.json"
+        if (
+            len(item_records) != 1
+            or item_records[0]["ref"] != f"{item_root}/item.json"
+            or not any(
+                record["ref"] == expected_item_manifest_ref
+                for record in item_manifest_records
+            )
+            or not provenance_records
+        ):
             raise AcquisitionBatchError(f"selection must contain one Item record: {item_ref}")
         for payload in selection["payload_files"]:
             if payload["item_ref"] != item_ref or payload["item_root_ref"] != item_root:
@@ -544,6 +571,7 @@ def prepare_batch(
         context, record_rows, delta_ref, _sha256(delta_bytes)
     )
     _write_immutable(receipts_root / "preparation.json", _canonical(preparation))
+    _verify_prepared_output(context, output)
     return {
         "status": "prepared-not-acquired",
         "batch_id": context.manifest["batch_id"],
@@ -553,6 +581,170 @@ def prepare_batch(
         "selected_record_bytes": preparation["selected_record_bytes"],
         "provenance_delta": delta_ref,
     }
+
+
+def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
+    """Verify Item/manifest/rights/provenance/File closure before transfer.
+
+    This is shared by preparation and the direct handoff adapter.  It checks
+    custody identity and selected-record closure only; it does not run the
+    source foundation validator or make an admission decision.
+    """
+
+    source_root = output / "source"
+    for selection in context.manifest["selection"]:
+        item_ref = selection["item_ref"]
+        item_root = selection["item_root_ref"]
+        records = {record["ref"]: record for record in selection["records"]}
+        item_manifest_ref = f"{item_root}/item.manifest.json"
+        item_manifest_record = records.get(item_manifest_ref)
+        if (
+            not isinstance(item_manifest_record, dict)
+            or item_manifest_record.get("kind") != "manifest"
+        ):
+            raise AcquisitionBatchError(
+                f"selection has no selected Item manifest record: {item_ref}"
+            )
+        item_manifest_path = _path_under(
+            source_root, item_manifest_ref, label="prepared Item manifest"
+        )
+        _regular_file(item_manifest_path, label="prepared Item manifest")
+        if _sha256_file(item_manifest_path) != item_manifest_record["sha256"]:
+            raise SourceIntegrityError("prepared Item manifest bytes differ")
+
+        item_record_path = _path_under(
+            source_root, f"{item_root}/item.json", label="prepared Item record"
+        )
+        _regular_file(item_record_path, label="prepared Item record")
+        item_record = _load_json_bytes(
+            item_record_path.read_bytes(), label="prepared Item record"
+        )
+        identities = {
+            value
+            for value in (item_record.get("record_id"), item_record.get("item_id"))
+            if isinstance(value, str)
+        }
+        if identities != {item_ref}:
+            raise AcquisitionBatchError(
+                f"prepared Item record identity differs from selection: {item_ref}"
+            )
+        item_record_manifest_ref = item_record.get("item_manifest_ref")
+        if item_record_manifest_ref is not None and item_record_manifest_ref != item_manifest_ref:
+            raise AcquisitionBatchError(
+                f"prepared Item record manifest binding differs: {item_ref}"
+            )
+
+        item_manifest = _load_json_bytes(
+            item_manifest_path.read_bytes(), label="prepared Item manifest"
+        )
+        provenance_ref = item_manifest.get("provenance_ref")
+        provenance_record = (
+            records.get(provenance_ref) if isinstance(provenance_ref, str) else None
+        )
+        if (
+            item_manifest.get("schema_version") != "tos_source_item_manifest_v1"
+            or item_manifest.get("item_id") != item_ref
+            or item_manifest.get("rights_ref") != selection["rights"]["ref"]
+            or not isinstance(provenance_record, dict)
+            or provenance_record.get("kind") != "provenance"
+            or not isinstance(item_manifest.get("payload_files"), list)
+        ):
+            raise AcquisitionBatchError(
+                f"Item manifest identity or rights/provenance binding differs: {item_ref}"
+            )
+
+        manifest_by_file: dict[str, dict[str, Any]] = {}
+        for payload in item_manifest["payload_files"]:
+            if not isinstance(payload, dict) or payload.get("file_id") in manifest_by_file:
+                raise AcquisitionBatchError("Item manifest payload file IDs are not unique")
+            file_id = payload.get("file_id")
+            if not isinstance(file_id, str):
+                raise AcquisitionBatchError("Item manifest payload File ID is missing")
+            manifest_by_file[file_id] = payload
+        selected_payloads = {
+            payload["file_ref"]: payload for payload in selection["payload_files"]
+        }
+        if set(manifest_by_file) != set(selected_payloads):
+            raise AcquisitionBatchError(
+                f"Item manifest payload closure differs: {item_ref}"
+            )
+
+        rights_ref = selection["rights"]["ref"]
+        rights_record = records.get(rights_ref)
+        if not isinstance(rights_record, dict) or rights_record.get("kind") != "rights":
+            raise AcquisitionBatchError(f"selected rights record is missing: {item_ref}")
+        rights_path = _path_under(
+            source_root, rights_ref, label="prepared Item rights"
+        )
+        _regular_file(rights_path, label="prepared Item rights")
+        rights_sha256 = _sha256_file(rights_path)
+        if rights_sha256 != selection["rights"]["sha256"] or rights_sha256 != rights_record["sha256"]:
+            raise SourceIntegrityError(f"prepared rights bytes differ: {item_ref}")
+        rights_value = _load_json_bytes(
+            rights_path.read_bytes(), label="prepared Item rights"
+        )
+        scope_refs = rights_value.get("scope_refs")
+        required_scopes = {item_ref, *selected_payloads}
+        if not isinstance(scope_refs, list) or not required_scopes <= set(scope_refs):
+            raise AcquisitionBatchError(
+                f"Item rights scope does not cover selected Item and payloads: {item_ref}"
+            )
+
+        provenance_path = _path_under(
+            source_root, provenance_ref, label="prepared Item provenance"
+        )
+        _regular_file(provenance_path, label="prepared Item provenance")
+        try:
+            provenance_rows = [
+                json.loads(line)
+                for line in provenance_path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise AcquisitionBatchError("prepared Item provenance is not valid JSONL") from exc
+        if not provenance_rows:
+            raise AcquisitionBatchError("prepared Item provenance is empty")
+        acquisition_event_ref = item_manifest.get("acquisition_event_ref")
+        selected_events = [
+            event
+            for event in provenance_rows
+            if isinstance(event, dict) and event.get("event_id") == acquisition_event_ref
+        ]
+        if (
+            not isinstance(acquisition_event_ref, str)
+            or len(selected_events) != 1
+            or selected_events[0].get("event_type") != "acquisition"
+            or selected_events[0].get("rights_basis_ref") != rights_ref
+            or not isinstance(selected_events[0].get("outputs"), list)
+        ):
+            raise AcquisitionBatchError(
+                f"Item provenance does not name the selected acquisition event: {item_ref}"
+            )
+        acquisition_event = selected_events[0]
+        for file_ref, payload in selected_payloads.items():
+            manifest_payload = manifest_by_file[file_ref]
+            for key, expected in {
+                "file_id": file_ref,
+                "relative_path": payload["relative_path"],
+                "byte_size": payload["byte_size"],
+                "sha256": payload["sha256"],
+                "media_type": payload["media_type"],
+            }.items():
+                if manifest_payload.get(key) != expected:
+                    raise AcquisitionBatchError(
+                        f"Item manifest payload binding differs: {file_ref}"
+                    )
+            destination_ref = f"{item_root}/{payload['relative_path']}"
+            if not any(
+                isinstance(output_row, dict)
+                and isinstance(output_row.get("ref"), str)
+                and output_row.get("ref") in {file_ref, destination_ref}
+                and output_row.get("sha256") == payload["sha256"]
+                for output_row in acquisition_event["outputs"]
+            ):
+                raise AcquisitionBatchError(
+                    f"Item provenance does not bind acquired payload: {file_ref}"
+                )
 
 
 def _verify_prepared_output(context: BatchContext, output: Path) -> None:
@@ -627,6 +819,8 @@ def _verify_prepared_output(context: BatchContext, output: Path) -> None:
             + (f"; missing={missing[:3]}" if missing else "")
         )
 
+    _verify_prepared_item_bindings(context, output)
+
     expected_bytes = 0
     for selection, record in _records(context):
         source = _path_under(source_root, record["ref"], label="prepared selected metadata path")
@@ -671,8 +865,16 @@ def _verify_prepared_output(context: BatchContext, output: Path) -> None:
         raise AcquisitionBatchError(f"prepared provenance delta schema validation failed: {exc}") from exc
 
 
-def _incomplete_prepare_is_route_owned(output: Path) -> bool:
-    """Recognize only the narrow shape left by an interrupted preparation."""
+def _incomplete_prepare_is_route_owned(output: Path, context: BatchContext) -> bool:
+    """Recognize only a manifest-owned partial preparation.
+
+    A missing preparation receipt is not enough to prove ownership.  Recovery
+    may remove only a directory whose immutable manifest matches this exact
+    invocation, whose source tree contains only selected record names (or the
+    deterministic delta), and whose payload/receipt trees are still empty.
+    Existing payload or receipt evidence therefore fails closed instead of
+    being recursively deleted.
+    """
 
     if not output.is_dir() or output.is_symlink():
         return False
@@ -684,13 +886,44 @@ def _incomplete_prepare_is_route_owned(output: Path) -> bool:
             return False
         if child.is_dir() and child.name not in {"source", "payload", "receipts"}:
             return False
+    try:
+        manifest_path = _output_manifest_path(output)
+        _regular_file(manifest_path, label="partial preparation manifest")
+        if manifest_path.read_bytes() != context.raw_manifest:
+            return False
+        expected_source_refs = {
+            record["ref"] for _selection, record in _records(context)
+        }
+        expected_source_refs.add(
+            _provenance_delta_ref(context).removeprefix("source/")
+        )
+        source_root = output / "source"
+        payload_root = output / "payload"
+        receipts_root = output / "receipts"
+        for root in (source_root, payload_root, receipts_root):
+            if not root.is_dir() or root.is_symlink():
+                return False
+        source_refs: set[str] = set()
+        for candidate in source_root.rglob("*"):
+            if candidate.is_symlink():
+                return False
+            if candidate.is_file():
+                source_refs.add(candidate.relative_to(source_root).as_posix())
+            elif not candidate.is_dir():
+                return False
+        if not source_refs <= expected_source_refs:
+            return False
+        if any(payload_root.rglob("*")) or any(receipts_root.rglob("*")):
+            return False
+    except (AcquisitionBatchError, OSError):
+        return False
     return True
 
 
-def _recover_incomplete_prepare(output: Path) -> None:
+def _recover_incomplete_prepare(output: Path, context: BatchContext) -> None:
     """Remove one clearly route-owned partial preparation for exact rebuild."""
 
-    if not _incomplete_prepare_is_route_owned(output):
+    if not _incomplete_prepare_is_route_owned(output, context):
         raise AcquisitionBatchError(
             "output exists without preparation receipt and is not a recoverable interrupted preparation"
         )
@@ -958,7 +1191,7 @@ def _acquire_batch_unlocked(
         raise AcquisitionBatchError(f"output root may not be a symlink: {output}")
     preparation_path = output / "receipts/preparation.json"
     if output.exists() and not preparation_path.is_file():
-        _recover_incomplete_prepare(output)
+        _recover_incomplete_prepare(output, context)
     if not output.exists():
         prepare_batch(
             manifest_path=manifest_path,

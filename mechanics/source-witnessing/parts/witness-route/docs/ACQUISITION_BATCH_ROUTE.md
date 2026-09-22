@@ -24,6 +24,16 @@ receipt. It also checks the exact deterministic provenance-delta path and
 digest. A changed selected record fails closed before a provider fetch or
 handoff receipt can be produced.
 
+The producer preflight requires each selection to name its exact Item record,
+Item manifest, rights record, and Item provenance record, and every metadata
+reference must pass the existing corpus-source membership predicate. The
+prepared Item record identity is checked against the selected Item ID before
+payload transfer. If preparation is interrupted, recovery removes only a
+directory whose manifest bytes match the requested selection, whose source
+tree contains only selected record paths and the deterministic delta, and
+whose payload and receipt trees are empty. Existing payload, receipt, or
+foreign source evidence is retained and causes a fail-closed error.
+
 `acquire` uses the provider fields to fetch each payload independently, publishes it through
 `source_payload_custody.publish_bytes_no_clobber`, verifies destination
 readback, and appends a durable per-file journal row. A failed provider is
@@ -73,7 +83,13 @@ identity differs from the accepted snapshot. It never silently rewrites the
 batch identity or uses the accepted validator as a substitute. A downstream
 admission run must pass the receipt's exact context to `corpus_admit`; the
 adapter's read-batch check is transport evidence, not SourceValidator
-acceptance. It also copies the exact selection manifest, handoff, provenance
+acceptance. The receipt marks this as
+`validation_context_posture: transport-bound; downstream-source-validator-required`;
+the adapter does not recompute validator identity or claim the grammar/history
+preflight has run. It also binds every custody row to all selected provider
+fields and the handoff run, checks the selected Item rights scope and
+acquisition event, and compares both the payload Git-blob digest and accepted
+source mode before emitting a candidate. It also copies the exact selection manifest, handoff, provenance
 delta, and independent fixity files under
 `receipts/acquisition-evidence/`. The delta remains operational evidence and
 is not added to `tos_corpus_batch_v1.updates`; its source ref and SHA remain
