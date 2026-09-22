@@ -17,12 +17,16 @@ digest supplied to the command is the operator's immutable-selection check.
 
 `prepare` copies only the enumerated records into `source/`, emits one
 batch-level `provenance-delta.json`, and writes an immutable preparation
-receipt. It does not acquire bytes. On every resume and immediately before a
+receipt. It does not acquire bytes. The output root and its `source/`,
+`payload/`, and `receipts/` custody roots are created and rechecked with
+owner-only `0700` permissions. On every resume and immediately before a
 handoff, the route rereads every selected metadata record, including the
 rights record, and compares its bytes with the manifest and preparation
 receipt. It also checks the exact deterministic provenance-delta path and
-digest. A changed selected record fails closed before a provider fetch or
-handoff receipt can be produced.
+digest. A changed selected record or custody-root permission fails closed
+before a provider fetch or handoff receipt can be produced. The adapter keeps
+historical sealed handoff bytes readable without rewriting their legacy modes;
+all newly prepared roots use and retain the private mode.
 
 The producer preflight requires each selection to name its exact Item record,
 Item manifest, rights record, and Item provenance record, and every metadata
@@ -42,9 +46,9 @@ rechecks successful destinations and retries the failed or missing files.
 Preparation is rebuilt when an interrupted run left only the narrow
 route-owned `source/`, `payload/`, and `receipts/` shape without
 `receipts/preparation.json`; an output with unrelated files or an existing
-receipt is never removed. A sibling lock serializes concurrent `acquire`
-calls for the same output root, including first preparation and handoff run
-identity.
+receipt is never removed. A sibling lock serializes standalone `prepare` and
+`acquire` calls for the same output root, including first preparation and
+handoff run identity.
 
 After each run, a separate fixity pass rereads every destination and writes
 `receipts/fixity-*.jsonl` plus its summary. The immutable
@@ -91,7 +95,10 @@ fields and the handoff run, checks the selected Item rights scope and
 acquisition event, and compares both the payload Git-blob digest and accepted
 source mode before emitting a candidate. It also copies the exact selection manifest, handoff, provenance
 delta, and independent fixity files under
-`receipts/acquisition-evidence/`. The delta remains operational evidence and
+`receipts/acquisition-evidence/`. The selected Item provenance event must be
+an `acquisition` event with `status` `completed` or
+`completed_with_warnings`; a failed, stopped, or superseded event cannot be
+transferred. The delta remains operational evidence and
 is not added to `tos_corpus_batch_v1.updates`; its source ref and SHA remain
 bound in the adapter receipt. Top-level receipt refs point to these candidate
 copies, while explicit `*_source_ref` fields retain the original acquisition

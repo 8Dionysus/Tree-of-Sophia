@@ -612,7 +612,11 @@ def verify_handoff_for_intake(
         expected_sha256=input_selection.get("sha256"),
     )
     try:
-        acquisition._verify_prepared_output(context, root)
+        # Immutable legacy handoffs retain their historical directory modes;
+        # the producer enforces private roots for every new preparation.
+        acquisition._verify_prepared_output(
+            context, root, require_private_roots=False
+        )
     except (acquisition.AcquisitionBatchError, acquisition.SourceIntegrityError) as exc:
         raise HandoffAdapterError(str(exc)) from exc
     _verify_item_payload_bindings(context, root)
@@ -693,7 +697,11 @@ def adapt_handoff(
         expected_sha256=input_selection.get("sha256"),
     )
     try:
-        acquisition._verify_prepared_output(context, root)
+        # Immutable legacy handoffs retain their historical directory modes;
+        # the producer enforces private roots for every new preparation.
+        acquisition._verify_prepared_output(
+            context, root, require_private_roots=False
+        )
     except (acquisition.AcquisitionBatchError, acquisition.SourceIntegrityError) as exc:
         raise HandoffAdapterError(str(exc)) from exc
     _verify_item_payload_bindings(context, root)

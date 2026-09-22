@@ -55,6 +55,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         provenance_rights_ref: str | None = None,
         rights_scope_complete: bool = True,
         provenance_event_type: str = "acquisition",
+        provenance_event_status: str | None = None,
     ) -> tuple[dict[str, bytes], str, str, list[dict[str, str]]]:
         item_ref = "tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8"
         item_root = (
@@ -130,13 +131,16 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                     body = body.replace(
                         old_rights_ref.encode(), provenance_rights_ref.encode()
                     )
-                if provenance_event_type != "acquisition":
+                if provenance_event_type != "acquisition" or provenance_event_status is not None:
                     event_rows = [
                         json.loads(line)
                         for line in body.decode().splitlines()
                         if line.strip()
                     ]
-                    event_rows[0]["event_type"] = provenance_event_type
+                    if provenance_event_type != "acquisition":
+                        event_rows[0]["event_type"] = provenance_event_type
+                    if provenance_event_status is not None:
+                        event_rows[0]["status"] = provenance_event_status
                     body = b"".join(
                         (json.dumps(row, sort_keys=True) + "\n").encode()
                         for row in event_rows
@@ -555,7 +559,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             )
 
     def test_shared_verifier_rejects_rights_scope_and_event_identity(self) -> None:
-        controls = ("rights", "event")
+        controls = ("rights", "event", "status")
         for control in controls:
             with self.subTest(control=control):
                 fetches, manifest_sha, _item_root, _records = self._write_manifest(
@@ -564,6 +568,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                     provenance_event_type="acquisition"
                     if control != "event"
                     else "forensic_inspection",
+                    provenance_event_status="failed" if control == "status" else None,
                 )
                 if control == "rights":
                     expected = "Item rights scope does not cover"

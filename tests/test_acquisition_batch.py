@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import hashlib
-from http.client import IncompleteRead
+from http.client import IncompleteRead, LineTooLong
 import json
 from pathlib import Path
 import sys
+import stat
 import tempfile
 import threading
 import time
@@ -102,6 +103,7 @@ class AcquisitionBatchTests(unittest.TestCase):
                         "schema_version": "tos_provenance_event_v1",
                         "event_id": event_ref,
                         "event_type": "acquisition",
+                        "status": "completed",
                         "event_version": 1,
                         "rights_basis_ref": rights_ref,
                         "outputs": [
@@ -210,6 +212,8 @@ class AcquisitionBatchTests(unittest.TestCase):
         self.assertTrue(
             (self.output / "source/ToS/source-witnesses/discovery/acquisition-batches/fixture-20260921/provenance-delta.json").is_file()
         )
+        for directory in ("source", "payload", "receipts"):
+            self.assertEqual(0o700, stat.S_IMODE((self.output / directory).stat().st_mode))
         delta = json.loads(
             (self.output / "source/ToS/source-witnesses/discovery/acquisition-batches/fixture-20260921/provenance-delta.json").read_text(encoding="utf-8")
         )
@@ -217,6 +221,19 @@ class AcquisitionBatchTests(unittest.TestCase):
             (ROOT / "ToS/contracts/acquisition-provenance-delta.schema.json").read_text(encoding="utf-8")
         )
         Draft202012Validator(schema).validate(delta)
+
+    def test_prepared_custody_roots_must_remain_private(self) -> None:
+        _fetches, manifest_sha = self._write_manifest(count=1)
+        acquisition.prepare_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.output,
+            expected_manifest_sha256=manifest_sha,
+        )
+        self.output.chmod(0o755)
+        with self.assertRaisesRegex(acquisition.AcquisitionBatchError, "owner-only"):
+            acquisition.verify_local(output_root=self.output)
+        self.output.chmod(0o700)
 
     def test_failure_isolated_and_restart_retries_only_failed_file(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=2)
@@ -317,7 +334,10 @@ class AcquisitionBatchTests(unittest.TestCase):
             "byte_size": 10,
         }
 
-        class TruncatedResponse:
+        class ProtocolFailureResponse:
+            def __init__(self, error: BaseException) -> None:
+                self.error = error
+
             def __enter__(self):
                 return self
 
@@ -325,11 +345,19 @@ class AcquisitionBatchTests(unittest.TestCase):
                 return False
 
             def read(self, _limit: int) -> bytes:
-                raise IncompleteRead(b"partial", 3)
+                raise self.error
 
-        with patch.object(acquisition, "urlopen", return_value=TruncatedResponse()):
-            with self.assertRaisesRegex(acquisition.SourceFetchError, "provider fetch failed"):
-                acquisition._fetch_url(payload)
+        for error in (IncompleteRead(b"partial", 3), LineTooLong("chunk-size")):
+            with self.subTest(error=type(error).__name__):
+                with patch.object(
+                    acquisition,
+                    "urlopen",
+                    return_value=ProtocolFailureResponse(error),
+                ):
+                    with self.assertRaisesRegex(
+                        acquisition.SourceFetchError, "provider fetch failed"
+                    ):
+                        acquisition._fetch_url(payload)
 
     def test_public_payload_posture_cannot_widen_selected_rights(self) -> None:
         fetches, manifest_sha = self._write_manifest(
@@ -645,6 +673,60 @@ class AcquisitionBatchTests(unittest.TestCase):
         self.assertEqual(2, len(results))
         self.assertEqual(1, len(calls))
         self.assertEqual(2, len(list((self.output / "receipts").glob("handoff-*.json"))))
+
+    def test_standalone_prepare_and_acquire_share_batch_lock(self) -> None:
+        fetches, manifest_sha = self._write_manifest(count=1)
+        entered_copy = threading.Event()
+        original_copy = acquisition._copy_metadata_no_clobber
+        results: list[dict] = []
+        errors: list[BaseException] = []
+
+        def slow_copy(*args, **kwargs):
+            entered_copy.set()
+            time.sleep(0.1)
+            return original_copy(*args, **kwargs)
+
+        def prepare() -> None:
+            try:
+                results.append(
+                    acquisition.prepare_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=self.output,
+                        expected_manifest_sha256=manifest_sha,
+                    )
+                )
+            except BaseException as exc:  # pragma: no cover - assertion below reports it
+                errors.append(exc)
+
+        def acquire() -> None:
+            try:
+                results.append(
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=self.output,
+                        expected_manifest_sha256=manifest_sha,
+                        fetcher=lambda payload: fetches[payload["file_ref"]],
+                    )
+                )
+            except BaseException as exc:  # pragma: no cover - assertion below reports it
+                errors.append(exc)
+
+        with patch.object(acquisition, "_copy_metadata_no_clobber", side_effect=slow_copy):
+            prepare_thread = threading.Thread(target=prepare)
+            prepare_thread.start()
+            self.assertTrue(entered_copy.wait(5))
+            acquire_thread = threading.Thread(target=acquire)
+            acquire_thread.start()
+            prepare_thread.join()
+            acquire_thread.join()
+        self.assertEqual([], errors)
+        self.assertEqual(
+            {"prepared-not-acquired", "acquired-not-admitted"},
+            {result["status"] for result in results},
+        )
+        self.assertTrue((self.output / "receipts/preparation.json").is_file())
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import fcntl
 import hashlib
-from http.client import IncompleteRead
+from http.client import HTTPException
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -199,6 +199,24 @@ def _regular_file(path: Path, *, label: str) -> os.stat_result:
         raise AcquisitionBatchError(f"{label} is not readable: {path}") from exc
     if not stat.S_ISREG(info.st_mode):
         raise AcquisitionBatchError(f"{label} is not a regular file: {path}")
+    return info
+
+
+def _private_directory(path: Path, *, label: str) -> os.stat_result:
+    """Require an owner-only custody directory before placing evidence in it."""
+
+    try:
+        if path.is_symlink():
+            raise AcquisitionBatchError(f"{label} may not be a symlink: {path}")
+        info = path.stat()
+    except AcquisitionBatchError:
+        raise
+    except OSError as exc:
+        raise AcquisitionBatchError(f"{label} is not readable: {path}") from exc
+    if not stat.S_ISDIR(info.st_mode):
+        raise AcquisitionBatchError(f"{label} is not a directory: {path}")
+    if stat.S_IMODE(info.st_mode) != 0o700:
+        raise AcquisitionBatchError(f"{label} must be owner-only (0700): {path}")
     return info
 
 
@@ -547,6 +565,25 @@ def prepare_batch(
         repo_root=repo_root,
         expected_sha256=expected_manifest_sha256,
     )
+    output = Path(output_root).expanduser()
+    if not output.is_absolute():
+        raise AcquisitionBatchError("output root must be absolute")
+    with _batch_execution_lock(output):
+        return _prepare_batch_unlocked(
+            context=context,
+            metadata_root=metadata_root,
+            output_root=output,
+        )
+
+
+def _prepare_batch_unlocked(
+    *,
+    context: BatchContext,
+    metadata_root: Path | str,
+    output_root: Path | str,
+) -> dict[str, Any]:
+    """Prepare one selection while the caller owns the batch execution lock."""
+
     metadata = _checked_root(metadata_root)
     output = Path(output_root).expanduser()
     if not output.is_absolute():
@@ -555,13 +592,21 @@ def prepare_batch(
         raise AcquisitionBatchError(f"preparation output must be new: {output}")
     if not output.parent.is_dir() or output.parent.is_symlink():
         raise AcquisitionBatchError(f"preparation output parent must be a regular directory: {output.parent}")
-    output.mkdir(parents=True)
+    output.mkdir(mode=0o700, parents=True)
+    output.chmod(0o700)
+    _private_directory(output, label="preparation output")
     source_root = output / "source"
     payload_root = output / "payload"
     receipts_root = output / "receipts"
-    source_root.mkdir()
-    payload_root.mkdir()
-    receipts_root.mkdir()
+    source_root.mkdir(mode=0o700)
+    payload_root.mkdir(mode=0o700)
+    receipts_root.mkdir(mode=0o700)
+    source_root.chmod(0o700)
+    payload_root.chmod(0o700)
+    receipts_root.chmod(0o700)
+    _private_directory(source_root, label="prepared source root")
+    _private_directory(payload_root, label="prepared payload root")
+    _private_directory(receipts_root, label="prepared receipts root")
 
     _write_immutable(_output_manifest_path(output), context.raw_manifest)
     record_rows: list[dict[str, Any]] = []
@@ -603,7 +648,7 @@ def prepare_batch(
         context, record_rows, delta_ref, _sha256(delta_bytes)
     )
     _write_immutable(receipts_root / "preparation.json", _canonical(preparation))
-    _verify_prepared_output(context, output)
+    _verify_prepared_output(context, output, require_private_roots=True)
     return {
         "status": "prepared-not-acquired",
         "batch_id": context.manifest["batch_id"],
@@ -747,6 +792,8 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             not isinstance(acquisition_event_ref, str)
             or len(selected_events) != 1
             or selected_events[0].get("event_type") != "acquisition"
+            or selected_events[0].get("status")
+            not in {"completed", "completed_with_warnings"}
             or selected_events[0].get("rights_basis_ref") != rights_ref
             or not isinstance(selected_events[0].get("outputs"), list)
         ):
@@ -780,7 +827,12 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
                 )
 
 
-def _verify_prepared_output(context: BatchContext, output: Path) -> None:
+def _verify_prepared_output(
+    context: BatchContext,
+    output: Path,
+    *,
+    require_private_roots: bool = True,
+) -> None:
     """Recheck the complete sealed selection before resume or handoff.
 
     Preparation is a local custody boundary, so a receipt flag alone cannot
@@ -790,6 +842,14 @@ def _verify_prepared_output(context: BatchContext, output: Path) -> None:
     """
 
     output = _checked_root(output)
+    if require_private_roots:
+        _private_directory(output, label="prepared output root")
+        for directory, label in (
+            (output / "source", "prepared source root"),
+            (output / "payload", "prepared payload root"),
+            (output / "receipts", "prepared receipts root"),
+        ):
+            _private_directory(directory, label=label)
     manifest_path = _output_manifest_path(output)
     _regular_file(manifest_path, label="prepared batch manifest")
     if manifest_path.read_bytes() != context.raw_manifest:
@@ -1003,7 +1063,7 @@ def _fetch_url(payload: dict[str, Any]) -> bytes:
                 body.extend(block)
                 if len(body) > payload["byte_size"]:
                     break
-    except (OSError, IncompleteRead) as exc:
+    except (OSError, HTTPException) as exc:
         raise SourceFetchError(f"provider fetch failed for {payload['file_ref']}: {exc}") from exc
     return bytes(body)
 
@@ -1243,14 +1303,12 @@ def _acquire_batch_unlocked(
     if output.exists() and not preparation_path.is_file():
         _recover_incomplete_prepare(output, context)
     if not output.exists():
-        prepare_batch(
-            manifest_path=manifest_path,
+        _prepare_batch_unlocked(
+            context=context,
             metadata_root=metadata_root,
             output_root=output,
-            repo_root=repo_root,
-            expected_manifest_sha256=context.manifest_sha256,
         )
-    _verify_prepared_output(context, output)
+    _verify_prepared_output(context, output, require_private_roots=True)
     receipts_root = _checked_root(output / "receipts")
     journal_path = receipts_root / "acquisition.jsonl"
     existing = _journal_rows(journal_path)
@@ -1333,9 +1391,9 @@ def _acquire_batch_unlocked(
 
     # The source closure may be edited while a provider call is in flight.
     # Recheck it immediately before creating any intake-facing receipt.
-    _verify_prepared_output(context, output)
+    _verify_prepared_output(context, output, require_private_roots=True)
     fixity_rows, fixity_ref, fixity_summary_ref = _fixity_receipt(context, output, run_id)
-    _verify_prepared_output(context, output)
+    _verify_prepared_output(context, output, require_private_roots=True)
     handoff = _handoff_receipt(
         context,
         output,
@@ -1393,7 +1451,7 @@ def verify_local(*, output_root: Path | str, repo_root: Path | str = REPO_ROOT) 
     output = _checked_root(output_root)
     manifest_path = _output_manifest_path(output)
     context = load_manifest(manifest_path, repo_root=repo_root)
-    _verify_prepared_output(context, output)
+    _verify_prepared_output(context, output, require_private_roots=True)
     rows: list[dict[str, Any]] = []
     for item in _payloads(context):
         payload = item.payload
