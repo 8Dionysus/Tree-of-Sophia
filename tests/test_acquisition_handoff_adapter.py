@@ -247,6 +247,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             repo_root=ROOT,
         )
         self.assertEqual("candidate-not-admitted", adapted["status"])
+        self.assertEqual("not-run-transport-only", adapted["admission_preflight"])
         batch_path = self.candidate / adapted["candidate_batch_ref"]
         batch, updates, retirements = corpus_admit.read_batch(
             batch_path, self.candidate / "source"
@@ -265,6 +266,20 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             (self.acquisition_root / result["handoff_ref"]).read_text()
         )
         evidence = adapter_receipt["evidence"]
+        self.assertEqual(evidence["handoff.json"]["ref"], adapter_receipt["handoff_ref"])
+        self.assertEqual(evidence["handoff.json"]["source_ref"], adapter_receipt["handoff_source_ref"])
+        self.assertEqual(
+            evidence["provenance-delta.json"]["ref"],
+            adapter_receipt["provenance_delta_ref"],
+        )
+        self.assertEqual(
+            evidence["fixity.jsonl"]["ref"],
+            adapter_receipt["fixity_ref"],
+        )
+        self.assertEqual(
+            evidence["fixity-summary.json"]["ref"],
+            adapter_receipt["fixity_summary_ref"],
+        )
         for name, expected_source in {
             "manifest.json": self.acquisition_root / "manifest.json",
             "handoff.json": self.acquisition_root / result["handoff_ref"],
