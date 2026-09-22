@@ -25,6 +25,12 @@ compatibility mirror names that authored home. When both `relations` and its
 legacy alias `lineage_relations` occur, they carry the same ordered relation
 values so either reader recovers the same account.
 
+Native node JSON uses UTF-8, unique object fields and finite numbers. Numeric
+qualifications preserve their decimal value through the current JSON record
+representation; the reader rejects overflow, underflow and precision loss.
+Values requiring a wider numeric range or precision need an explicitly
+understood carrier. Original source bytes remain available with their binding.
+
 ## Authored description
 
 Describe the subject through its content, purpose, properties, relations and

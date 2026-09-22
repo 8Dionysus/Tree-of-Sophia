@@ -102,6 +102,8 @@ def _history(files, record):
             or history['record_id'] != subject.id
             or not isinstance(history['receipts'], list) or len(history['receipts']) > MAX_REVISIONS):
         raise source.JournalCorruption('invalid source revision history')
+    if HISTORY in files and not history['receipts']:
+        raise source.JournalCorruption('stored source revision history requires at least one receipt')
     previous, commands = None, set()
     for receipt in history['receipts']:
         selected = 'publication' in receipt

@@ -1985,7 +1985,9 @@ Protected source corrections use their own private archive reader. Selected
 correction and compound-growth guards apply the same check during publication
 and explicit recovery. Missing or damaged evidence leaves current source or
 pending transaction state intact; restoring exact bytes permits the authorized
-retry. Existing history-free baselines keep their declared version.
+retry. A stored revision ledger contains at least one receipt; an emptied
+ledger is corrupt. Baselines imported without a ledger keep their declared
+version, and the first correction archives that exact baseline.
 The independent exact-version reader accepts retained profile-scope corrections
 made through public v2 and returns both original and successor records. Historical
 inspection remains available after the writer grant expires; new scope writes

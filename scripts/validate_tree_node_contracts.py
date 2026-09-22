@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import math
 import sys
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
@@ -31,9 +32,16 @@ def parse_node_json(data: str | bytes) -> object:
         number = float(value)
         if not math.isfinite(number):
             finite_number(value)
+        try:
+            unchanged = Decimal(value) == Decimal(repr(number))
+        except InvalidOperation as exc:
+            raise ValueError('node decimal exceeds its exact numeric representation') from exc
+        if not unchanged:
+            raise ValueError('node decimal loses precision in its numeric representation')
         return number
 
-    return json.loads(data, object_pairs_hook=unique_fields,
+    text = data.decode('utf-8') if isinstance(data, bytes) else data
+    return json.loads(text, object_pairs_hook=unique_fields,
                       parse_constant=finite_number, parse_float=finite_float)
 
 

@@ -227,6 +227,34 @@ class SourceRevisionTests(unittest.TestCase):
             commands.run_local_command(self.owner, request)
         self.assertEqual(self.package(), before)
 
+    def test_empty_stored_history_cannot_be_extended_as_an_imported_baseline(self):
+        first = self.request()
+        commands.run_local_command(self.owner, first)
+        path = self.path.with_name(revisions.HISTORY)
+        history = json.loads(path.read_bytes())
+        archives = set((self.root / 'ToS/source-witnesses/.record-revisions').iterdir())
+        for schema in ('tos_source_revision_history_v1', 'tos_source_revision_history_v2'):
+            path.write_bytes(revisions._encode({**history, 'schema_version': schema, 'receipts': []}))
+            before = self.package()
+            with self.subTest(schema=schema):
+                with self.assertRaises(commands.JournalCorruption):
+                    self.request('synthetic:revision-after-empty-history')
+                with self.assertRaises(commands.JournalCorruption):
+                    commands.run_local_command(self.owner, first)
+                self.assertEqual(self.package(), before)
+                self.assertEqual(set((self.root / 'ToS/source-witnesses/.record-revisions').iterdir()), archives)
+
+    def test_imported_baseline_without_a_ledger_keeps_its_declared_version(self):
+        self.record['record_version'] = 7
+        self.path.write_bytes(revisions._encode(self.record))
+        self.formpath.unlink()
+        self.assertNotIn(revisions.HISTORY, self.package())
+        request = self.request()
+        result = commands.run_local_command(self.owner, request)
+        self.assertEqual(result['receipt']['previous_source']['version'], 7)
+        self.assertEqual(result['source']['version'], 8)
+        self.assertEqual(self.run_command('inspect-version', source=request['expected_source'])['record'], self.record)
+
     def test_archive_damage_during_staging_stops_before_directory_exchange(self):
         first = self.request()
         commands.run_local_command(self.owner, first)

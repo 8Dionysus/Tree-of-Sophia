@@ -147,6 +147,32 @@ class ValidateTreeNodeContractsTests(unittest.TestCase):
                 relative = self.write_canonical_source(root, raw)
                 with self.subTest(raw=raw[:40]), self.assertRaises(ValueError):
                     _read_canonical_source(root, relative)
+            for raw in (source.encode('utf-16'), b'\xef\xbb\xbf' + source.encode()):
+                (root / relative).write_bytes(raw)
+                with self.subTest(encoding=raw[:4]), self.assertRaises(ValueError):
+                    _read_canonical_source(root, relative)
+
+    def test_numeric_qualifications_preserve_decimal_value_through_source_binding(self):
+        from source_witness_human_forms import _read_canonical_source
+
+        source = self.synthetic_source()
+        source['field_languages'] = {'distilled_thesis': {
+            'language': None, 'script': None, 'qualification': {'measure': 'NUMERIC_TOKEN'}}}
+        encoded = json.dumps(source)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for token in ('1e-9999', '0.10000000000000001', '9007199254740993.0'):
+                raw = encoded.replace('"NUMERIC_TOKEN"', token)
+                relative = self.write_canonical_source(root, raw)
+                with self.subTest(token=token), self.assertRaises(ValueError):
+                    _read_canonical_source(root, relative, json.loads(raw))
+                self.assertTrue(self.validate_sources(raw))
+            for token in ('0.1', '-0.0', '1.2500e-20', '1.000', '5e-324'):
+                raw = encoded.replace('"NUMERIC_TOKEN"', token)
+                relative = self.write_canonical_source(root, raw)
+                with self.subTest(token=token):
+                    self.assertEqual(_read_canonical_source(root, relative)[1], raw.encode())
+                    self.assertEqual(self.validate_sources(raw), [])
 
     def test_malformed_witness_shape_reports_schema_issue(self):
         source = self.synthetic_source()
