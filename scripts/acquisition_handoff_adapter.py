@@ -531,6 +531,7 @@ def _verify_handoff(
         for key, value in {
             "item_ref": payload.item_ref,
             "destination_ref": payload.destination_ref,
+            "relative_path": expected["relative_path"],
             "provider_revision": expected["provider_revision"],
             "provider_source_id": expected["provider_source_id"],
             "expected_byte_size": expected["byte_size"],

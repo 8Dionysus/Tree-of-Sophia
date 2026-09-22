@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import fcntl
 import hashlib
+from http.client import IncompleteRead
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -199,6 +200,37 @@ def _regular_file(path: Path, *, label: str) -> os.stat_result:
     if not stat.S_ISREG(info.st_mode):
         raise AcquisitionBatchError(f"{label} is not a regular file: {path}")
     return info
+
+
+def _verify_declared_rights_posture(
+    selection: dict[str, Any], rights_value: dict[str, Any], *, item_ref: str
+) -> None:
+    """Prevent a transfer selection from widening its selected rights record.
+
+    Acquisition preserves the rights decision supplied by the selected Item;
+    it does not decide whether bytes may be published.  The one mechanical
+    boundary needed here is that a selection declaring ``public_payload`` has
+    an explicit public visibility and redistribution posture in that same
+    rights record.  Other postures remain owner-defined and are not narrowed
+    by this transport check.
+    """
+
+    declared = selection["rights"].get("posture")
+    if declared != "public_payload":
+        return
+    visibility = rights_value.get("visibility")
+    redistribution = rights_value.get("redistribution_posture")
+    if visibility not in {"public", "public_payload"} or redistribution not in {
+        "authorized",
+        "authorized_with_conditions",
+        "allowed",
+        "open",
+        "public",
+    }:
+        raise AcquisitionBatchError(
+            "declared rights posture public_payload is not supported by selected rights record: "
+            f"{item_ref}"
+        )
 
 
 def _path_under(root: Path, ref: str, *, label: str) -> Path:
@@ -689,6 +721,7 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             raise AcquisitionBatchError(
                 f"Item rights scope does not cover selected Item and payloads: {item_ref}"
             )
+        _verify_declared_rights_posture(selection, rights_value, item_ref=item_ref)
 
         provenance_path = _path_under(
             source_root, provenance_ref, label="prepared Item provenance"
@@ -970,7 +1003,7 @@ def _fetch_url(payload: dict[str, Any]) -> bytes:
                 body.extend(block)
                 if len(body) > payload["byte_size"]:
                     break
-    except OSError as exc:
+    except (OSError, IncompleteRead) as exc:
         raise SourceFetchError(f"provider fetch failed for {payload['file_ref']}: {exc}") from exc
     return bytes(body)
 
@@ -995,21 +1028,36 @@ def _verify_destination(path: Path, payload: dict[str, Any]) -> custody.FileDige
 
 def _append_journal(path: Path, row: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a+", encoding="utf-8") as stream:
-        fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
-        stream.seek(0, os.SEEK_END)
-        stream.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
-        stream.flush()
-        os.fsync(stream.fileno())
-        fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND | getattr(os, "O_CLOEXEC", 0)
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, flags, 0o644)
+    except OSError as exc:
+        if path.is_symlink():
+            raise AcquisitionBatchError(f"acquisition journal may not be a symlink: {path}") from exc
+        raise AcquisitionBatchError(f"cannot open acquisition journal: {path}") from exc
+    try:
+        with os.fdopen(descriptor, "a", encoding="utf-8", closefd=True) as stream:
+            fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
+            stream.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+            fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+    except OSError as exc:
+        raise AcquisitionBatchError(f"cannot append acquisition journal: {path}") from exc
 
 
 def _journal_rows(path: Path) -> list[dict[str, Any]]:
+    if path.is_symlink():
+        raise AcquisitionBatchError(f"acquisition journal may not be a symlink: {path}")
     if not path.exists():
         return []
     rows: list[dict[str, Any]] = []
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0)
+    flags |= getattr(os, "O_NOFOLLOW", 0)
     try:
-        with path.open("r", encoding="utf-8") as stream:
+        descriptor = os.open(path, flags)
+        with os.fdopen(descriptor, "r", encoding="utf-8", closefd=True) as stream:
             for line_number, line in enumerate(stream, 1):
                 if not line.strip():
                     continue
@@ -1021,6 +1069,8 @@ def _journal_rows(path: Path) -> list[dict[str, Any]]:
                     raise AcquisitionBatchError("acquisition journal rows must be objects")
                 rows.append(value)
     except OSError as exc:
+        if path.is_symlink():
+            raise AcquisitionBatchError(f"acquisition journal may not be a symlink: {path}") from exc
         raise AcquisitionBatchError(f"cannot read acquisition journal: {path}") from exc
     return rows
 

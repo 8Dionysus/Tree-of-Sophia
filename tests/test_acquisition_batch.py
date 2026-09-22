@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from http.client import IncompleteRead
 import json
 from pathlib import Path
 import sys
@@ -31,7 +32,14 @@ class AcquisitionBatchTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def _write_manifest(self, *, count: int = 2) -> tuple[dict[str, bytes], str]:
+    def _write_manifest(
+        self,
+        *,
+        count: int = 2,
+        rights_posture: str = "local_only",
+        rights_visibility: str | None = None,
+        rights_redistribution: str | None = None,
+    ) -> tuple[dict[str, bytes], str]:
         fetches: dict[str, bytes] = {}
         selections: list[dict] = []
         all_record_refs: list[str] = []
@@ -51,13 +59,15 @@ class AcquisitionBatchTests(unittest.TestCase):
             payload_body = f"payload {index}\n".encode()
             payload_ref = f"tos.file.sha256.{hashlib.sha256(payload_body).hexdigest()}"
             event_ref = f"tos.event.acquisition.fixture-{index}"
-            rights_body = json.dumps(
-                {
-                    "rights": "local_only",
-                    "scope_refs": [item_ref, payload_ref],
-                },
-                sort_keys=True,
-            ).encode()
+            rights_value = {
+                "rights": "local_only",
+                "scope_refs": [item_ref, payload_ref],
+            }
+            if rights_visibility is not None:
+                rights_value["visibility"] = rights_visibility
+            if rights_redistribution is not None:
+                rights_value["redistribution_posture"] = rights_redistribution
+            rights_body = json.dumps(rights_value, sort_keys=True).encode()
             item_manifest_body = json.dumps(
                 {
                     "schema_version": "tos_source_item_manifest_v1",
@@ -136,7 +146,7 @@ class AcquisitionBatchTests(unittest.TestCase):
                         "sha256": next(
                             row["sha256"] for row in records if row["ref"] == rights_ref
                         ),
-                        "posture": "local_only",
+                        "posture": rights_posture,
                     },
                     "payload_files": [
                         {
@@ -298,6 +308,51 @@ class AcquisitionBatchTests(unittest.TestCase):
         self.assertEqual("incomplete", acquisition.verify_local(output_root=self.output)["status"])
         destination = self.output / "payload/ToS/source-witnesses/works/fixture/expressions/en/editions/pinned/items/fixture-0/payload/fixture-0.txt"
         self.assertFalse(destination.exists())
+
+    def test_truncated_http_response_is_a_retryable_source_failure(self) -> None:
+        _fetches, _manifest_sha = self._write_manifest(count=1)
+        payload = {
+            "provider_url": "https://provider.example/truncated",
+            "file_ref": "tos.file.sha256." + "0" * 64,
+            "byte_size": 10,
+        }
+
+        class TruncatedResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, _type, _value, _traceback):
+                return False
+
+            def read(self, _limit: int) -> bytes:
+                raise IncompleteRead(b"partial", 3)
+
+        with patch.object(acquisition, "urlopen", return_value=TruncatedResponse()):
+            with self.assertRaisesRegex(acquisition.SourceFetchError, "provider fetch failed"):
+                acquisition._fetch_url(payload)
+
+    def test_public_payload_posture_cannot_widen_selected_rights(self) -> None:
+        fetches, manifest_sha = self._write_manifest(
+            count=1,
+            rights_posture="public_payload",
+            rights_visibility="local_only",
+            rights_redistribution="not_authorized",
+        )
+        fetch_calls: list[str] = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "declared rights posture public_payload",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=self.output,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(self.output.glob("receipts/handoff-*.json")))
 
     def test_manifest_digest_and_revision_binding_fail_closed(self) -> None:
         _fetches, manifest_sha = self._write_manifest(count=1)
@@ -471,6 +526,30 @@ class AcquisitionBatchTests(unittest.TestCase):
                     fetcher=lambda payload: fetches[payload["file_ref"]],
                 )
         self.assertEqual([], list((self.output / "receipts").glob("handoff-*.json")))
+
+    def test_symlinked_acquisition_journal_is_rejected_for_read_and_append(self) -> None:
+        _fetches, manifest_sha = self._write_manifest(count=1)
+        acquisition.prepare_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.output,
+            expected_manifest_sha256=manifest_sha,
+        )
+        journal = self.output / "receipts/acquisition.jsonl"
+        outside = self.root / "outside-journal.jsonl"
+        outside.write_text('{"status":"acquired"}\n', encoding="utf-8")
+        journal.symlink_to(outside)
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "acquisition journal may not be a symlink",
+        ):
+            acquisition._journal_rows(journal)
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "acquisition journal may not be a symlink",
+        ):
+            acquisition._append_journal(journal, {"status": "failed"})
+        self.assertEqual('{"status":"acquired"}\n', outside.read_text(encoding="utf-8"))
 
     def test_interrupted_prepare_is_rebuilt_before_acquisition(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=1)

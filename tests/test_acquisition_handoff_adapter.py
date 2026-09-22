@@ -622,6 +622,46 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                 repo_root=ROOT,
             )
 
+    def test_shared_verifier_rejects_fixity_relative_path_mutation(self) -> None:
+        fetches, manifest_sha, _item_root, _records = self._write_manifest(
+            base_revision="a" * 64,
+        )
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        handoff_path = self.acquisition_root / result["handoff_ref"]
+        handoff = json.loads(handoff_path.read_text())
+        fixity_path = self.acquisition_root / handoff["independent_fixity"]["ref"]
+        row = json.loads(fixity_path.read_text().splitlines()[0])
+        row["relative_path"] = "payload/unbound.txt"
+        fixity_path.write_text(json.dumps(row, sort_keys=True) + "\n")
+        fixity_sha = hashlib.sha256(fixity_path.read_bytes()).hexdigest()
+        summary_path = self.acquisition_root / handoff["independent_fixity"]["summary_ref"]
+        summary = json.loads(summary_path.read_text())
+        summary["fixity_jsonl_sha256"] = fixity_sha
+        summary_path.write_bytes(canonical(summary))
+        summary_sha = hashlib.sha256(summary_path.read_bytes()).hexdigest()
+        handoff["independent_fixity"].update(
+            sha256=fixity_sha,
+            jsonl_sha256=fixity_sha,
+            summary_sha256=summary_sha,
+        )
+        handoff_path.write_bytes(canonical(handoff))
+        with self.assertRaisesRegex(
+            adapter.HandoffAdapterError,
+            "fixity row binding differs",
+        ):
+            adapter.verify_handoff_for_intake(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                expected_base_revision="a" * 64,
+                repo_root=ROOT,
+            )
+
     def test_shared_verifier_rejects_non_item_manifest_target(self) -> None:
         fetches, manifest_sha, item_root, _records = self._write_manifest(
             base_revision="a" * 64,
