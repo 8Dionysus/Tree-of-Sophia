@@ -344,6 +344,16 @@ def _validation_context_binding(
     return binding
 
 
+def verify_validation_context(
+    value: dict[str, Any] | None,
+    *,
+    validator_sha256: str,
+) -> dict[str, Any]:
+    """Verify the caller-selected grammar and historical admission context."""
+
+    return _validation_context_binding(value, validator_sha256=validator_sha256)
+
+
 def _expected_records(context: acquisition.BatchContext) -> dict[str, tuple[dict[str, Any], dict[str, Any]]]:
     return {record["ref"]: (selection, record) for selection, record in acquisition._records(context)}
 
@@ -695,7 +705,7 @@ def adapt_handoff(
 
     if not HEX64.fullmatch(base_revision) or not HEX64.fullmatch(validator_sha256):
         raise HandoffAdapterError("base_revision and validator_sha256 must be lowercase SHA-256 values")
-    validation_binding = _validation_context_binding(
+    validation_binding = verify_validation_context(
         validation_context,
         validator_sha256=validator_sha256,
     )

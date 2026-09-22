@@ -351,9 +351,14 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             expected_base_revision="a" * 64,
             repo_root=ROOT,
         )
+        context = adapter.verify_validation_context(
+            self._validation_context(),
+            validator_sha256=self.validator_sha256,
+        )
         self.assertEqual("acquired-not-admitted", verified.handoff["acquisition_status"])
         self.assertEqual(4, len(verified.selected_source_rows))
         self.assertEqual(1, len(verified.payloads))
+        self.assertEqual(self.validator_sha256, context["validator_sha256"])
 
     def test_item_provenance_binding_uses_manifest_ref_after_record_reordering(self) -> None:
         fetches, _unused_manifest_sha, item_root, records = self._write_manifest(base_revision="0" * 64)
