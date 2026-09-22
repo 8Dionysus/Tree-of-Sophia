@@ -93,6 +93,29 @@ class RecordValidator:
 
 
 class CorpusStoreTests(unittest.TestCase):
+    def test_streamed_canonical_bytes_match_legacy_encoding(self) -> None:
+        values = [
+            {
+                "ascii": "plain",
+                "escaped": "quote \" slash \\ newline\n unicode é",
+                "float": -12.5,
+                "integer": 9007199254740993,
+                "nested": [True, None, {"z": 0, "a": 1}],
+            },
+            ["z", {"b": 2, "a": 1}, 0.0],
+        ]
+        for value in values:
+            with self.subTest(value=value):
+                streamed = b"".join(corpus_store._canonical_blocks(value, block_size=7))
+                self.assertEqual(streamed, corpus_store.canonical(value))
+                self.assertEqual(
+                    corpus_store._canonical_digest(value),
+                    hashlib.sha256(corpus_store.canonical(value)).hexdigest(),
+                )
+
+        with self.assertRaises(ValueError):
+            list(corpus_store._canonical_blocks({"not_finite": float("nan")}))
+
     def test_stage_timing_is_opt_in_and_emits_bounded_stderr_events(self) -> None:
         captured = io.StringIO()
         with patch.dict(os.environ, {"TOS_CORPUS_TIMINGS": "1"}):
@@ -764,6 +787,11 @@ class CorpusStoreTests(unittest.TestCase):
         )
         second_revision = second_manifest["revision"]
         snapshot = second_store.root / "revisions" / second_revision / "snapshot.json"
+        canonical_snapshot = snapshot.read_bytes()
+        snapshot.write_bytes(canonical_snapshot[:1] + b" " + canonical_snapshot[1:])
+        with self.assertRaises(corpus_store.CorpusStoreError):
+            second_store.load(second_revision)
+        snapshot.write_bytes(canonical_snapshot)
         snapshot.write_bytes(b"{malformed manifest\n")
         with self.assertRaises((corpus_store.CorpusStoreError, json.JSONDecodeError)):
             second_store.load(second_revision)
@@ -882,6 +910,46 @@ class CorpusStoreTests(unittest.TestCase):
             retained.entry("records/a.json")
         with self.assertRaisesRegex(corpus_store.CorpusStoreError, "closed"):
             retained.read_bytes("records/a.json")
+
+    def test_validator_base_is_mutable_but_isolated_from_accepted_manifest(self) -> None:
+        base = self._admit(base_revision=None, updates=self._base_records())
+        base_revision = base["revision"]
+
+        def mutating_validator(
+            candidate: corpus_store.CorpusCandidate,
+            validator_base: dict[str, Any] | None,
+            affected: frozenset[str],
+        ) -> corpus_store.ValidationIndex:
+            del candidate, affected
+            self.assertIsNotNone(validator_base)
+            assert validator_base is not None
+            identities = dict(validator_base["identities"])
+            dependencies = {
+                path: list(targets)
+                for path, targets in validator_base["dependencies"].items()
+            }
+            # The validator API intentionally supplies ordinary mutable JSON.
+            # Admission must still protect its accepted base from such writes.
+            validator_base["files"][0]["path"] = "validator-mutated.json"
+            validator_base["identities"].clear()
+            validator_base["dependencies"].clear()
+            return corpus_store.ValidationIndex(identities, dependencies)
+
+        updated = self._admit(
+            base_revision=base_revision,
+            updates={
+                "records/a.json": self._update(
+                    "records/a.json", {"id": "a", "links": []}
+                )
+            },
+            validate=mutating_validator,
+        )
+        self.assertNotEqual(updated["revision"], base_revision)
+        self.assertEqual(self.store.load(base_revision), base)
+        self.assertEqual(
+            [entry["path"] for entry in updated["files"]],
+            ["records/a.json", "records/b.json"],
+        )
 
     def test_restore_refuses_existing_regular_file_and_broken_symlink(self) -> None:
         base = self._admit(
