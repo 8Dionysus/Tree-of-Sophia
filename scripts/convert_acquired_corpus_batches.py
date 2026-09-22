@@ -1543,8 +1543,12 @@ def convert(
         if batch_selection is not None and acquisition_root is None:
             raise ConversionError("batch selection requires an acquisition root")
         specs, selection = _load_batch_selection(batch_selection)
-    accepted_index = _accepted_index(snapshot, include_entries=True)
-    accepted_paths, claim_entries, record_entries, topology_event_entry, accepted_entries = accepted_index
+    accepted_index = _accepted_index(snapshot, include_entries=bool(direct_handoffs))
+    if direct_handoffs:
+        accepted_paths, claim_entries, record_entries, topology_event_entry, accepted_entries = accepted_index
+    else:
+        accepted_paths, claim_entries, record_entries, topology_event_entry = accepted_index
+        accepted_entries = {}
     accepted_claim_rows = _accepted_claim_rows(store_root, claim_entries)
     accepted_claim_ids = set(accepted_claim_rows)
     handoff_source_roots = [
