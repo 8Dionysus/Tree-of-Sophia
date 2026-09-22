@@ -190,6 +190,36 @@ class SelectedSourceRevisionTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.request('test:new-correction-not-granted')
 
+    def test_lost_earlier_archive_blocks_new_revision_and_pending_recovery(self):
+        first = self.request()
+        self.run_request(first)
+        second = self.request('test:second-selected-correction')
+        prior = self.fixture.run_command('inspect-version', source=first['expected_source'])
+        blob = self.root / prior['files'][self.path.name]['archive_path']
+        original = blob.read_bytes()
+        before = revisions._selected_package(self.path)
+        snapshot = PublicationSnapshot(self.root)
+        blob.unlink()
+        with self.assertRaises(source.JournalCorruption):
+            self.run_request(second)
+        self.assertEqual(revisions._selected_package(self.path), before)
+        snapshot.verify_current()
+        blob.write_bytes(original)
+        self.interrupt(second)
+        pending = transactions.read_pending_transaction(self.root)
+        intermediate = revisions._selected_package(self.path)
+        blob.unlink()
+        for decision in ('resume', 'rollback'):
+            with self.subTest(decision=decision):
+                with self.assertRaises(source.JournalCorruption):
+                    self.recover(second, decision)
+                self.assertEqual(transactions.read_pending_transaction(self.root), pending)
+                self.assertEqual(revisions._selected_package(self.path), intermediate)
+        blob.write_bytes(original)
+        result = self.recover(second, 'resume')
+        self.assertEqual(result['source']['version'], 3)
+        self.assertEqual((self.nested / 'private.bin').read_bytes(), b'opaque synthetic descendant')
+
     def test_rollback_restores_exact_selected_bytes_and_invalidates_preexisting_snapshot(self):
         snapshot = PublicationSnapshot(self.root)
         request = self.request()

@@ -517,6 +517,12 @@ scripts and contracts.
 The rationale and rejected alternatives are in
 [TOS-D-0052](../../docs/decisions/TOS-D-0052-historical-contract-input-bytes.md).
 
+Before extending a source-record lineage, verify every predecessor package
+declared by its retained history. Each archived ledger must retain the exact
+earlier receipt prefix. Missing or damaged predecessor evidence stops new
+publication; exact restoration enables the authorized transition to continue.
+The existing retained baseline and each archive's original scope stay explicit.
+
 ## Sign ladder
 
 Languages, linguistic varieties, scripts and transliteration conventions may

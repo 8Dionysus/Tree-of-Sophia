@@ -190,6 +190,61 @@ class SourceRevisionTests(unittest.TestCase):
         self.assertEqual(len(records[self.record['record_type']]), 1)
         self.assertEqual(records[self.record['record_type']][0]['record_id'], self.record['record_id'])
 
+    def test_new_revision_requires_every_predecessor_archive_before_writing(self):
+        first = self.request()
+        commands.run_local_command(self.owner, first)
+        second = self.request('synthetic:revision-after-archive-damage')
+        second['fields']['notes'] = 'A new correction requires the retained source history.'
+        prior = self.run_command('inspect-version', source=first['expected_source'])
+        # A full-package archive also preserves companions outside the record.
+        for name, damage in ((self.path.name, 'missing'), ('unrecognized.json', 'corrupt')):
+            with self.subTest(name=name, damage=damage):
+                blob = self.root / prior['files'][name]['archive_path']
+                original = blob.read_bytes()
+                blob.unlink() if damage == 'missing' else blob.write_bytes(b'damaged archive')
+                before = self.package()
+                archives = set((self.root / 'ToS/source-witnesses/.record-revisions').iterdir())
+                try:
+                    with self.assertRaises(commands.JournalCorruption):
+                        commands.run_local_command(self.owner, second)
+                    self.assertEqual(self.package(), before)
+                    self.assertEqual(set((self.root / 'ToS/source-witnesses/.record-revisions').iterdir()), archives)
+                finally:
+                    blob.write_bytes(original)
+        result = commands.run_local_command(self.owner, second)
+        self.assertEqual(result['source']['version'], 3)
+
+    def test_shortened_history_cannot_be_extended_as_a_later_baseline(self):
+        commands.run_local_command(self.owner, self.request())
+        commands.run_local_command(self.owner, self.request('synthetic:revision-2'))
+        path = self.path.with_name(revisions.HISTORY)
+        history = json.loads(path.read_bytes())
+        history['receipts'] = history['receipts'][1:]
+        path.write_bytes(revisions._encode(history))
+        request = self.request('synthetic:revision-after-ledger-truncation')
+        before = self.package()
+        with self.assertRaisesRegex(commands.JournalCorruption, 'archived predecessor prefix'):
+            commands.run_local_command(self.owner, request)
+        self.assertEqual(self.package(), before)
+
+    def test_archive_damage_during_staging_stops_before_directory_exchange(self):
+        first = self.request()
+        commands.run_local_command(self.owner, first)
+        request = self.request('synthetic:revision-stage-drift')
+        prior = self.run_command('inspect-version', source=first['expected_source'])
+        blob = self.root / prior['files'][self.path.name]['archive_path']
+        before = self.package()
+        stage = revisions._stage
+        def damage_after_staging(root, files, prefix):
+            result = stage(root, files, prefix)
+            if prefix == '.source-revision-':
+                blob.write_bytes(b'changed retained source')
+            return result
+        with patch.object(revisions, '_stage', side_effect=damage_after_staging):
+            with self.assertRaises(commands.JournalCorruption):
+                commands.run_local_command(self.owner, request)
+        self.assertEqual(self.package(), before)
+
     def test_changed_companion_symlink_nested_package_and_budget_are_not_silently_discarded(self):
         request = self.request()
         companion = self.path.parent / 'unrecognized.json'

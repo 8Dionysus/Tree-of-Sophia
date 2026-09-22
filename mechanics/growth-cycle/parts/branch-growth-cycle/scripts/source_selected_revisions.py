@@ -119,7 +119,10 @@ def _guard(owner, config, configuration, path, authorization, before, receipt, *
         revisions._scope(current, request, operation='record.recover' if recovery else 'record.revise')
         if revisions._dependencies(current, before) != request['expected_dependencies']:
             raise source.JournalConflict('selected correction dependencies changed')
-        revisions._read_archive(Path(current['source_root']), current, receipt)
+        root = Path(current['source_root'])
+        archived, _ = revisions._read_archive(root, current, receipt)
+        revisions._verify_record_history(archived, before, current['source_path'],
+            lambda previous: revisions._read_archive(root, current, previous))
         return True
     return check
 

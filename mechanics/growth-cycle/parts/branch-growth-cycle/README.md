@@ -1976,6 +1976,21 @@ successor from its retained request; a missing/corrupt archive fails closed.
 Initial creation receipts and provenance remain unchanged historical records,
 whose exact original output bytes can now be returned through this archive.
 
+Every new record correction verifies the complete retained predecessor chain
+before archiving its current package and again at the publication edge. Each
+archived ledger must contain the exact earlier receipt prefix, so truncating a
+current ledger cannot silently redefine its baseline. This check follows only
+the bounded declared archives, preserving each original flat or selected scope.
+Protected source corrections use their own private archive reader. Selected
+correction and compound-growth guards apply the same check during publication
+and explicit recovery. Missing or damaged evidence leaves current source or
+pending transaction state intact; restoring exact bytes permits the authorized
+retry. Existing history-free baselines keep their declared version.
+The independent exact-version reader accepts retained profile-scope corrections
+made through public v2 and returns both original and successor records. Historical
+inspection remains available after the writer grant expires; new scope writes
+still require the separately selected v2 delegation.
+
 `source-revision-history.json` in the current package records the complete
 canonical request, its digest, issuer/delegation, reason, exact predecessor
 and successor, dependency digest, form results and archive locator. The receipt records the correction transaction and its issuer. Admission and

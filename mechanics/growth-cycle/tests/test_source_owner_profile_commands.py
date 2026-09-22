@@ -338,6 +338,25 @@ class OwnerLocalProfileCommandTests(unittest.TestCase):
         with self.assertRaises(source.JournalCorruption):
             self.run_command(self.creation)
 
+    def test_new_private_revision_requires_retained_private_predecessors(self):
+        created = self.create()
+        self.revise()
+        inspected = self.run_command({'operation': 'inspect-version', 'source': created['source']})
+        self.revise(apply=False)
+        request = {**self.revision, 'command_id': 'synthetic-second-private-revision'}
+        blob = self.store / inspected['files']['occurrence.json']['archive_path']
+        original = blob.read_bytes()
+        before = self.files()
+        blob.write_bytes(b'damaged private predecessor')
+        # Verification must stay with the protected owner's reader.
+        with patch.object(private.revisions, '_read_archive', side_effect=AssertionError('public archive IO')):
+            with self.assertRaises(source.JournalCorruption):
+                self.run_command(request)
+            self.assertEqual(self.files(), before)
+            blob.write_bytes(original)
+            result = self.run_command(request)
+        self.assertEqual(result['source']['version'], 3)
+
     def test_record_replay_rejects_modified_output_form_even_with_coherent_form_history(self):
         self.create()
         self.revise()

@@ -461,6 +461,10 @@ class MetadataVersionReader:
         history = revisions._history(files, record)
         versions = {}
         allowed_fields = source.CORPUS_REVISION_FIELDS if route['adapter'] == 'native-corpus' else source.REVISION_FIELDS
+        if route['adapter'] == 'declared-profile':
+            # Read retained operations supported by the profile writer. Current
+            # write authority is checked separately by its selected grant.
+            allowed_fields = source.PROFILE_SCOPE_REVISION_FIELDS
         if route['adapter'] in {'native-witness', 'native-link'}:
             from source_native_metadata_commands import REVISION_FIELDS
             allowed_fields = REVISION_FIELDS[route['record_type']]

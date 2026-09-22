@@ -306,6 +306,25 @@ def _read_archive(root, config, receipt):
     return restored, locations
 
 
+def _verify_record_history(files, record, source_path, read_archive):
+    """Verify the retained predecessor closure before extending a record chain.
+
+    The caller supplies its own public or protected archive reader. Each read
+    verifies the complete package bytes and reconstructs the successor. Compare
+    the archived receipt prefix too: a shortened current ledger must not turn
+    an already revised record into a fresh historical baseline.
+    """
+    history = _history(files, record)
+    basename = Path(source_path).name
+    for index, receipt in enumerate(history['receipts']):
+        archived, _ = read_archive(receipt)
+        previous = source._json_object(archived[basename])
+        previous_history = _history(archived, previous)
+        if previous_history['receipts'] != history['receipts'][:index]:
+            raise source.JournalCorruption('retained record history differs from its archived predecessor prefix')
+    return history
+
+
 def _stage(root, files, prefix):
     staging = Path(tempfile.mkdtemp(prefix=prefix, suffix='.pending', dir=root / 'ToS'))
     try:
@@ -327,6 +346,9 @@ def _discard_staging(staging, files):
 
 
 def _archive(root, config, files, subject, revision, *, reader=None):
+    if reader is None:
+        _verify_record_history(files, subject.payload, config['source_path'],
+                               lambda receipt: _read_archive(root, config, receipt))
     reader = reader or _read_archive
     relative = _archive_path(config, revision)
     receipt = {'archive_path': relative.as_posix(), 'previous_source': subject.ref, 'previous_revision': revision}
@@ -465,6 +487,8 @@ def run_revision(owner, config, configuration, path, request):
             if (_package(path.parent) != files or source._configuration(owner)[1] != configuration
                     or _dependencies(config, record) != dependencies):
                 raise source.JournalConflict('source revision inputs changed before publication')
+            _verify_record_history(files, record, config['source_path'],
+                                   lambda previous: _read_archive(root, config, previous))
             _exchange(staging, path.parent)
         finally:
             # If exchange completed even when its response/fsync failed, this
