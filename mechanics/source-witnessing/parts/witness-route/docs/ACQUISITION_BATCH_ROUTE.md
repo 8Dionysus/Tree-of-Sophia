@@ -58,7 +58,21 @@ list. The route-owned `scripts/acquisition_handoff_adapter.py` is the small
 consumer fixture for one selected handoff: it verifies those bindings and
 emits a private `tos_corpus_batch_v1` input root with explicit `source/` and
 `payload/` roots. It checks the selected revision against an explicit accepted
-store pointer and checks an accepted-source root for conflicting bytes, calls
-the existing `corpus_admit.read_batch` contract, and does not call admission.
+store pointer and loads that pointer's cryptographically bound immutable
+`revisions/<base_revision>/snapshot.json`. For every selected source path, the
+accepted-source view must contain the exact snapshot member and bytes; a path
+absent from the snapshot must also be absent from the view. An arbitrary empty
+or mismatched view therefore fails closed before candidate output. The adapter
+then calls the existing `corpus_admit.read_batch` contract and does not call
+admission. The caller must provide the exact validation context that produced
+the selected `validator_sha256`: grammar root plus every paired historical
+capture/restored root. The adapter verifies retained capture and restore
+receipts, writes that context and its admission flags into the candidate
+receipt, and reports `explicit-grammar-update-required` when the selected
+identity differs from the accepted snapshot. It never silently rewrites the
+batch identity or uses the accepted validator as a substitute. A downstream
+admission run must pass the receipt's exact context to `corpus_admit`; the
+adapter's read-batch check is transport evidence, not SourceValidator
+acceptance.
 The queued-corpus-intake owner can use this adapter's selector and receipt
 shape while its seven-batch converter remains a separate owner surface.
