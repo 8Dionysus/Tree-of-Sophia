@@ -64,7 +64,12 @@ ToS Item/File identity, expected bytes, SHA-256, optional Git blob digest, and
 rights record binding. The acquisition journal isolates source failures and
 allows restart; `receipts/handoff-*.json` reports `admission_status` as
 `not-admitted` even when all bytes have been verified. The independent fixity
-receipt is a separate handoff input for the corpus-intake owner.
+receipt is a separate handoff input for the corpus-intake owner. The
+route-owned `scripts/acquisition_handoff_adapter.py` verifies one selected
+handoff against the accepted-store pointer and accepted source bytes, then
+emits the existing `tos_corpus_batch_v1` input shape for `corpus_admit` without
+performing admission; it remains separate from the legacy seven-package
+converter.
 The separate frozen-plan import route in
 `ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md` binds those bytes
 to the exact Item, File and rights revision before private R2 transfer. Adding

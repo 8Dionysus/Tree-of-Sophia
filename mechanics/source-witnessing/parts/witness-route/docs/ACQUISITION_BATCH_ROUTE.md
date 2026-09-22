@@ -17,17 +17,30 @@ digest supplied to the command is the operator's immutable-selection check.
 
 `prepare` copies only the enumerated records into `source/`, emits one
 batch-level `provenance-delta.json`, and writes an immutable preparation
-receipt. It does not acquire bytes. `acquire` uses the provider fields to
-fetch each payload independently, publishes it through
+receipt. It does not acquire bytes. On every resume and immediately before a
+handoff, the route rereads every selected metadata record, including the
+rights record, and compares its bytes with the manifest and preparation
+receipt. It also checks the exact deterministic provenance-delta path and
+digest. A changed selected record fails closed before a provider fetch or
+handoff receipt can be produced.
+
+`acquire` uses the provider fields to fetch each payload independently, publishes it through
 `source_payload_custody.publish_bytes_no_clobber`, verifies destination
 readback, and appends a durable per-file journal row. A failed provider is
 recorded and does not prevent other files from completing. A later invocation
 rechecks successful destinations and retries the failed or missing files.
+Preparation is rebuilt when an interrupted run left only the narrow
+route-owned `source/`, `payload/`, and `receipts/` shape without
+`receipts/preparation.json`; an output with unrelated files or an existing
+receipt is never removed. A sibling lock serializes concurrent `acquire`
+calls for the same output root, including first preparation and handoff run
+identity.
 
 After each run, a separate fixity pass rereads every destination and writes
 `receipts/fixity-*.jsonl` plus its summary. The immutable
 `receipts/handoff-*.json` carries selected record refs/digests, provider and
-payload custody rows, the fixity refs, the provenance delta, and these
+payload custody rows, the fixity refs and JSONL/summary SHA-256 values, the
+provenance-delta ref and SHA-256, and these
 boundaries:
 
 ```text
@@ -41,4 +54,11 @@ accepted revision, R2 transfer, publication decision, semantic review, canon
 change, or deployment receipt. Intake should select one or more explicit
 handoff paths and bind each selected handoff's manifest and fixity digests;
 the acquisition route intentionally provides no hardcoded historical batch
-list.
+list. The route-owned `scripts/acquisition_handoff_adapter.py` is the small
+consumer fixture for one selected handoff: it verifies those bindings and
+emits a private `tos_corpus_batch_v1` input root with explicit `source/` and
+`payload/` roots. It checks the selected revision against an explicit accepted
+store pointer and checks an accepted-source root for conflicting bytes, calls
+the existing `corpus_admit.read_batch` contract, and does not call admission.
+The queued-corpus-intake owner can use this adapter's selector and receipt
+shape while its seven-batch converter remains a separate owner surface.
