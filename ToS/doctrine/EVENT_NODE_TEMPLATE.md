@@ -24,8 +24,8 @@ The scaffold uses the shared [node contract](NODE_CONTRACT.md):
 
 An event node describes movement. A state node describes a sustained
 condition. A principle node holds a distilled claim. The source node anchors
-the passage, and `ToS/candidate-intake/event_state_nodes.csv` preserves the
-fuller candidate material and its review path.
+the passage. The owning route under `ToS/candidate-intake/` retains the
+candidate material and its review path; each event returns to that evidence.
 
 ## Worked scaffold
 

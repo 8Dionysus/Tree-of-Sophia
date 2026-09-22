@@ -73,21 +73,12 @@ def _navigation_endpoint_types(
     entity_registry: dict[str, Any], *, object_kind: str | None = None,
 ) -> bool:
     """Exact source-kind mapping and parent closure; IDs never imply types."""
+    from source_record_profiles import _type_ancestry, SourceProfileError
+
     entries = entity_registry.get('types', [])
     entities = {entry['type_id']: entry for entry in entries}
     if len(entities) != len(entries):
         return False
-
-    def ancestry(type_id: str, visiting: frozenset[str] = frozenset()) -> set[str] | None:
-        if type_id not in entities or type_id in visiting:
-            return None
-        result = {type_id}
-        for parent in entities[type_id]['parent_type_ids']:
-            inherited = ancestry(parent, visiting | {type_id})
-            if inherited is None:
-                return None
-            result.update(inherited)
-        return result
 
     for node, allowed, override in ((subject_node, relation['domain_type_ids'], None),
                                     (object_node, relation['range_type_ids'], object_kind)):
@@ -101,8 +92,11 @@ def _navigation_endpoint_types(
         if (len(mappings) != 1 or mappings[0].get('abstract') is not False
                 or any(type_id not in entities for type_id in allowed)):
             return False
-        closure = ancestry(mappings[0]['type_id'])
-        if closure is None or not closure.intersection(allowed):
+        try:
+            closure = _type_ancestry(entities, mappings[0]['type_id'])
+        except SourceProfileError:
+            return False
+        if not closure.intersection(allowed):
             return False
     return True
 

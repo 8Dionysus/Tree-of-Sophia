@@ -127,7 +127,8 @@ a readable philosophical corpus.
 
 ## Review Handoff
 
-The first human review pass reads:
+The source-visible review pass follows
+[Knowledge Assessment](../../doctrine/KNOWLEDGE_ASSESSMENT.md) and reads:
 
 | Review Need | Surface |
 | --- | --- |

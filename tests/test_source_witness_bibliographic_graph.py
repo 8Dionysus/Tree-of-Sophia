@@ -41,6 +41,56 @@ from source_witness_bibliographic_graph_common import (  # noqa: E402
 from source_witness_human_forms import load_metadata_forms, materialize_metadata_forms
 
 
+class SourceTypeHierarchyTests(unittest.TestCase):
+    def test_shared_ancestors_are_expanded_once_per_lookup(self):
+        from source_record_profiles import _type_ancestry
+
+        class CountedEntries(dict):
+            reads = 0
+
+            def __getitem__(self, key):
+                self.reads += 1
+                if self.reads > len(self):
+                    raise AssertionError('shared ancestors are being expanded repeatedly')
+                return super().__getitem__(key)
+
+        entries = CountedEntries({'root': {'parent_type_ids': []}})
+        previous = ['root']
+        for level in range(24):
+            current = [f'level-{level}-left', f'level-{level}-right']
+            for identifier in current:
+                entries[identifier] = {'parent_type_ids': previous}
+            previous = current
+        entries['leaf'] = {'parent_type_ids': previous}
+        self.assertEqual(_type_ancestry(entries, 'leaf'), set(entries))
+        self.assertEqual(entries.reads, len(entries))
+
+    def test_deep_hierarchy_keeps_missing_parent_and_cycle_detection(self):
+        from source_record_profiles import _type_ancestry, SourceProfileError
+
+        entries = {str(index): {'parent_type_ids': [str(index + 1)] if index < 1499 else []}
+                   for index in range(1500)}
+        self.assertEqual(_type_ancestry(entries, '0'), set(entries))
+        for parent in ('0', 'missing'):
+            entries['1499']['parent_type_ids'] = [parent]
+            with self.subTest(parent=parent), self.assertRaises(SourceProfileError):
+                _type_ancestry(entries, '0')
+
+    def test_claim_navigation_uses_the_same_deep_endpoint_contract(self):
+        from claim_navigation import _navigation_endpoint_types
+
+        entries = [{'type_id': str(index), 'parent_type_ids': [str(index + 1)] if index < 1499 else [],
+                    'abstract': False, 'source_mappings': []} for index in range(1500)]
+        entries[0]['source_mappings'] = [{'source_graph': 'source-claims', 'source_kind_id': 'synthetic'}]
+        node = {'properties': {'identity_kind': 'synthetic'}}
+        relation = {'domain_type_ids': ['1499'], 'range_type_ids': ['1499']}
+        self.assertTrue(_navigation_endpoint_types(node, node, relation, {'types': entries}))
+        for parent in ('0', 'missing'):
+            entries[-1]['parent_type_ids'] = [parent]
+            with self.subTest(parent=parent):
+                self.assertFalse(_navigation_endpoint_types(node, node, relation, {'types': entries}))
+
+
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def evidence_title_context(self, ref, *, real=False):
         if real:

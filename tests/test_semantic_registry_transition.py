@@ -224,20 +224,20 @@ class SemanticRegistryTransitionTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate JSON key"):
             transition.validate_transition(self.root, self.baseline)
 
-    def test_explicit_environment_baseline_drives_registered_release_gate(self):
+    def test_explicit_environment_baseline_drives_registered_source_gate(self):
         with mock.patch.dict(os.environ, {transition.BASELINE_ENV: self.baseline}), contextlib.redirect_stdout(io.StringIO()) as output:
             self.assertEqual(transition.main(["--repo-root", str(self.root), "--json"]), 0)
         self.assertEqual(json.loads(output.getvalue())["baseline_commit"], self.baseline)
         manifest = json.loads((REPO_ROOT / "docs/validation/validation_lanes.json").read_text())
         gate = manifest["command_sequences"]["semantic_registry_transition"]
         self.assertEqual(len(gate), 1)
-        self.assertIn(gate[0], manifest["command_sequences"]["release_check"])
-        self.assertIn("semantic_registry_transition", manifest["lanes"]["release"]["covers_lanes"])
-        workflow = (REPO_ROOT / ".github/workflows/repo-validation.yml").read_text()
-        self.assertIn(transition.BASELINE_ENV + ":", workflow)
-        self.assertIn(transition.INTRODUCTION_ENV + ': "1"', workflow)
-        self.assertIn("github.event.pull_request.base.sha || github.event.before", workflow)
-        self.assertIn("fetch-depth: 0", workflow)
+        lane = manifest["lanes"]["semantic_registry_transition"]
+        self.assertEqual(lane['layer'], 'source-contract')
+        self.assertEqual(lane['mode'], 'blocking')
+        self.assertIn(transition.BASELINE_ENV, lane['required_environment'])
+        self.assertEqual(gate[0]['command'], ['python', 'scripts/validate_semantic_registry_transition.py'])
+        self.assertNotIn(gate[0], manifest["command_sequences"]["release_check"])
+        self.assertNotIn("semantic_registry_transition", manifest["lanes"]["release"]["covers_lanes"])
 
 
 if __name__ == "__main__":

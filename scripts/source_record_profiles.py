@@ -125,9 +125,25 @@ def _schema_route(root, route, digests, cache, shared_refs=(), *, read_json=None
 def _type_ancestry(entities, type_id, visiting=frozenset()):
     if type_id not in entities or type_id in visiting:
         raise SourceProfileError('unknown or cyclic source type hierarchy')
-    result = {type_id}
-    for parent in entities[type_id]['parent_type_ids']:
-        result.update(_type_ancestry(entities, parent, visiting | {type_id}))
+    # A shared ancestor is traversed once per lookup, regardless of how many
+    # inheritance paths reach it. Explicit frames also support deep profiles
+    # without turning the interpreter's call-stack limit into a type limit.
+    result, active = {type_id}, set(visiting) | {type_id}
+    stack = [(type_id, iter(entities[type_id]['parent_type_ids']))]
+    while stack:
+        current, parents = stack[-1]
+        parent = next(parents, None)
+        if parent is None:
+            active.remove(current)
+            stack.pop()
+            continue
+        if parent not in entities or parent in active:
+            raise SourceProfileError('unknown or cyclic source type hierarchy')
+        if parent in result:
+            continue
+        result.add(parent)
+        active.add(parent)
+        stack.append((parent, iter(entities[parent]['parent_type_ids'])))
     return result
 
 
