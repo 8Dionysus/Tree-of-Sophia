@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -175,6 +176,109 @@ class HistoricalContextBoundaryTests(unittest.TestCase):
                 historical_captures=[Path("capture")],
                 historical_roots=None,
             )
+
+
+class DirectHandoffBoundaryTests(unittest.TestCase):
+    BASE = "e6b296b17d9e91bc444caf020b976f6a0e5e6f026f1992474bfa2977420407ea"
+
+    def test_handoff_selector_binds_multiple_immutable_inputs(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="tos-handoff-selection-") as raw:
+            root = Path(raw)
+            handoffs = []
+            for index in range(2):
+                handoff_root = root / f"handoff-{index}"
+                (handoff_root / "receipts").mkdir(parents=True)
+                handoff_path = handoff_root / "receipts" / "handoff.json"
+                handoff_path.write_bytes(f"handoff-{index}\n".encode())
+                handoffs.append(
+                    {
+                        "root": str(handoff_root),
+                        "handoff_ref": "receipts/handoff.json",
+                        "sha256": hashlib.sha256(handoff_path.read_bytes()).hexdigest(),
+                    }
+                )
+            selection_path = root / "selection.json"
+            selection_path.write_bytes(
+                _canonical(
+                    {
+                        "schema_version": converter.HANDOFF_SELECTION_SCHEMA,
+                        "selection_id": "two-producers",
+                        "handoffs": handoffs,
+                    }
+                )
+            )
+            rows, selection = converter._load_handoff_selection(selection_path)
+            self.assertEqual("two-producers", selection["selection_id"])
+            self.assertEqual(2, len(rows))
+            self.assertEqual({"receipts/handoff.json"}, {row["handoff_ref"] for row in rows})
+
+    def test_direct_loader_calls_shared_verifier_and_checks_selector_digest(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="tos-handoff-verifier-") as raw:
+            root = Path(raw)
+            (root / "receipts").mkdir(parents=True)
+            (root / "source").mkdir()
+            (root / "payload").mkdir()
+            handoff_path = root / "receipts" / "handoff.json"
+            handoff_path.write_bytes(b"immutable handoff\n")
+            digest = hashlib.sha256(handoff_path.read_bytes()).hexdigest()
+            calls: list[dict[str, object]] = []
+            fake = SimpleNamespace(
+                verify_handoff_for_intake=lambda **kwargs: (
+                    calls.append(kwargs)
+                    or SimpleNamespace(
+                        handoff={
+                            "batch_id": "tos.acquisition-batch.fixture",
+                            "batch_revision": 1,
+                        },
+                        context=SimpleNamespace(
+                            manifest={
+                                "batch_id": "tos.acquisition-batch.fixture",
+                                "batch_revision": 1,
+                            }
+                        ),
+                        selected_source_rows=[],
+                        payloads=[],
+                    )
+                )
+            )
+            with patch.dict(sys.modules, {"acquisition_handoff_adapter": fake}):
+                normalized = converter._load_direct_handoff(
+                    root=root,
+                    handoff_ref="receipts/handoff.json",
+                    expected_sha256=digest,
+                    base_revision=self.BASE,
+                )
+            self.assertEqual(1, len(calls))
+            self.assertEqual(self.BASE, calls[0]["expected_base_revision"])
+            self.assertEqual("tos.acquisition-batch.fixture", normalized.manifest["batch_id"])
+            with patch.dict(sys.modules, {"acquisition_handoff_adapter": fake}):
+                with self.assertRaisesRegex(converter.ConversionError, "digest changed"):
+                    converter._load_direct_handoff(
+                        root=root,
+                        handoff_ref="receipts/handoff.json",
+                        expected_sha256="0" * 64,
+                        base_revision=self.BASE,
+                    )
+
+    def test_handoff_claim_index_rejects_divergent_duplicate_ids(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="tos-handoff-claims-") as raw:
+            root = Path(raw)
+            relation = root / "ToS/source-witnesses/relations/work-expression"
+            relation.mkdir(parents=True)
+            path = relation / "work-expression-claims.jsonl"
+            first = {"claim_id": "claim.same", "evidence_refs": ["ToS/source-witnesses/works/a/work.json"]}
+            path.write_bytes(_canonical(first))
+            other = root / "other"
+            other_relation = other / "ToS/source-witnesses/relations/work-expression"
+            other_relation.mkdir(parents=True)
+            (other_relation / path.name).write_bytes(
+                _canonical({**first, "predicate": "has_expression"})
+            )
+            with self.assertRaisesRegex(converter.ConversionError, "differs across handoffs"):
+                converter._index_handoff_topology_claims(
+                    [("a", root), ("b", other)]
+                )
+
 
 
 if __name__ == "__main__":

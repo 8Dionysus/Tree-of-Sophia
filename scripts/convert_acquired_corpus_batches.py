@@ -8,9 +8,10 @@ referenced discovery closure, and creates a hard-link payload view with the
 ``source_payload_custody`` layout.  It never changes rights, publication,
 semantic review, canon, or the accepted corpus pointer.
 
-The output is an input package for ``corpus_admit.py``.  Seven packages are
-combined into one atomic ``tos_corpus_batch_v1`` transaction so a dependency
-across batches cannot be admitted ahead of the source it names.
+The output is an input package for ``corpus_admit.py``.  The historical seven
+packages and the newer acquired-not-admitted handoff selector both feed one
+atomic ``tos_corpus_batch_v1`` transaction so a dependency across inputs
+cannot be admitted ahead of the source it names.
 """
 
 from __future__ import annotations
@@ -69,6 +70,8 @@ DEFAULT_BATCH_SELECTION = (
 )
 
 BATCH_SCHEMA = "tos_corpus_batch_v1"
+HANDOFF_SELECTION_SCHEMA = "tos_acquired_handoff_selection_v1"
+HANDOFF_SCHEMA = "tos_acquisition_handoff_v1"
 CLAIM_SUFFIXES = {
     "work-expression-claims.jsonl": "work-expression",
     "expression-edition-claims.jsonl": "expression-edition",
@@ -118,6 +121,29 @@ class SourceFile:
     relative: str
     path: Path
     batch_id: str
+
+
+@dataclass(frozen=True)
+class DirectHandoff:
+    """One immutable acquisition handoff normalized for the closure pass.
+
+    The acquisition route owns the handoff and its custody evidence.  This
+    record deliberately keeps that evidence separate from the corpus batch
+    which this module assembles after topology closure.
+    """
+
+    root: Path
+    handoff_ref: str
+    handoff_sha256: str
+    handoff_path: Path
+    handoff: dict[str, Any]
+    manifest_path: Path
+    manifest: dict[str, Any]
+    source_root: Path
+    payload_root: Path
+    source_records: list[dict[str, Any]]
+    payloads: list[dict[str, Any]]
+    context: dict[str, Any] | None
 
 
 def _canonical(value: Any) -> bytes:
@@ -231,6 +257,170 @@ def _load_batch_selection(path: Path | None) -> tuple[list[BatchSpec], dict[str,
     return specs, {"schema_version": raw["schema_version"], "selection_id": selection_id, "source": source, "batches": specs}
 
 
+def _safe_handoff_ref(value: object, *, label: str) -> str:
+    if not isinstance(value, str) or not value or "\\" in value or "\x00" in value:
+        raise ConversionError(f"invalid {label}")
+    parsed = PurePosixPath(value)
+    if parsed.is_absolute() or str(parsed) != value or any(
+        part in {"", ".", ".."} for part in parsed.parts
+    ):
+        raise ConversionError(f"unsafe {label}: {value}")
+    return value
+
+
+def _load_handoff_selection(path: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Load explicit handoff roots for one aggregated closure transaction.
+
+    This is an invocation selector, not a durable acquisition registry.  Each
+    row binds the immutable handoff bytes so a stale or silently replaced
+    producer output is rejected before any candidate directory is created.
+    """
+
+    path = path.absolute()
+    _regular(path, label="handoff selection")
+    raw = _read_json(path, label="handoff selection")
+    if raw.get("schema_version") != HANDOFF_SELECTION_SCHEMA:
+        raise ConversionError("handoff selection has an unexpected schema_version")
+    selection_id = raw.get("selection_id")
+    rows = raw.get("handoffs")
+    if not isinstance(selection_id, str) or not re.fullmatch(r"[A-Za-z0-9._-]+", selection_id):
+        raise ConversionError("handoff selection has an invalid selection_id")
+    if not isinstance(rows, list) or not rows:
+        raise ConversionError("handoff selection must contain at least one handoff")
+    normalized: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ConversionError("handoff selection rows must be objects")
+        root_value = row.get("root")
+        handoff_ref = row.get("handoff_ref")
+        handoff_sha256 = row.get("sha256")
+        if (
+            not isinstance(root_value, str)
+            or not Path(root_value).is_absolute()
+            or Path(root_value).is_symlink()
+            or not Path(root_value).is_dir()
+            or not isinstance(handoff_ref, str)
+            or not isinstance(handoff_sha256, str)
+            or _HEX64.fullmatch(handoff_sha256) is None
+        ):
+            raise ConversionError("handoff selection row has an invalid root/ref/digest binding")
+        _safe_handoff_ref(handoff_ref, label="handoff reference")
+        root = Path(root_value).resolve()
+        key = (str(root), handoff_ref)
+        if key in seen:
+            raise ConversionError("handoff selection repeats a root/reference")
+        seen.add(key)
+        normalized.append({"root": root, "handoff_ref": handoff_ref, "sha256": handoff_sha256})
+    return normalized, {
+        "schema_version": HANDOFF_SELECTION_SCHEMA,
+        "selection_id": selection_id,
+        "source": str(path),
+        "handoffs": normalized,
+    }
+
+
+def _load_direct_handoff(
+    *,
+    root: Path,
+    handoff_ref: str,
+    expected_sha256: str,
+    base_revision: str,
+) -> DirectHandoff:
+    """Normalize one raw handoff using acquisition's shared verifier.
+
+    The verifier is deliberately the acquisition owner's public seam.  It
+    checks the handoff manifest, source/rights records, Item/File bindings,
+    independent fixity, and local custody without loading the accepted store
+    or producing a corpus batch.  This module then performs one aggregated
+    accepted-index/topology closure pass for all returned handoffs.
+    """
+
+    _safe_handoff_ref(handoff_ref, label="handoff reference")
+    root = root.absolute()
+    if not root.is_dir() or root.is_symlink():
+        raise ConversionError(f"handoff root is not a regular directory: {root}")
+    handoff_path = root / PurePosixPath(handoff_ref)
+    if handoff_path.is_symlink() or not handoff_path.is_file():
+        raise ConversionError(f"handoff reference is not a regular file: {handoff_ref}")
+    if _sha256(handoff_path) != expected_sha256:
+        raise ConversionError(
+            f"handoff digest changed; re-acquire immutable input: {handoff_ref}"
+        )
+    try:
+        import acquisition_handoff_adapter as acquisition_adapter
+    except ModuleNotFoundError as exc:
+        raise ConversionError(
+            "direct handoff intake requires acquisition_handoff_adapter.verify_handoff_for_intake "
+            "from the acquisition route"
+        ) from exc
+    try:
+        verifier_repo_root = getattr(acquisition_adapter, "REPO_ROOT", None)
+        if verifier_repo_root is None:
+            verifier_repo_root = getattr(
+                getattr(acquisition_adapter, "acquisition", None),
+                "REPO_ROOT",
+                SOFTWARE_ROOT,
+            )
+        verified = acquisition_adapter.verify_handoff_for_intake(
+            acquisition_root=root,
+            handoff_ref=handoff_ref,
+            expected_base_revision=base_revision,
+            repo_root=verifier_repo_root,
+        )
+    except Exception as exc:
+        raise ConversionError(f"acquisition handoff rejected: {exc}") from exc
+    handoff = verified.handoff
+    context = verified.context
+    manifest = context.manifest
+    batch_id = manifest.get("batch_id")
+    batch_revision = manifest.get("batch_revision")
+    if not isinstance(batch_id, str) or not re.fullmatch(
+        r"tos\.acquisition-batch\.[A-Za-z0-9._-]+", batch_id
+    ):
+        raise ConversionError("direct handoff manifest has an invalid batch_id")
+    if type(batch_revision) is not int or batch_revision < 1:
+        raise ConversionError("direct handoff manifest has an invalid batch_revision")
+    if handoff.get("batch_id") != batch_id or handoff.get("batch_revision") != batch_revision:
+        raise ConversionError("direct handoff identity differs from its manifest")
+    source_root = root / "source"
+    payload_root = root / "payload"
+    if (
+        source_root.is_symlink()
+        or not source_root.is_dir()
+        or payload_root.is_symlink()
+        or not payload_root.is_dir()
+    ):
+        raise ConversionError("direct handoff source/payload roots are missing")
+    optional_context: dict[str, Any] | None = None
+    context_ref = handoff.get("validation_context_ref")
+    if context_ref is not None:
+        _safe_handoff_ref(context_ref, label="handoff validation context")
+        context_path = root / PurePosixPath(context_ref)
+        if context_path.is_symlink() or not context_path.is_file():
+            raise ConversionError("direct handoff validation context is not readable")
+        optional_context = _read_json(context_path, label="handoff validation context")
+        if optional_context.get("schema_version") != "tos_corpus_validation_context_v1":
+            raise ConversionError("direct handoff validation context has an unexpected schema")
+        context_sha256 = handoff.get("validation_context_sha256")
+        if context_sha256 is not None and context_sha256 != _sha256(context_path):
+            raise ConversionError("direct handoff validation context digest differs")
+    return DirectHandoff(
+        root=root,
+        handoff_ref=handoff_ref,
+        handoff_sha256=expected_sha256,
+        handoff_path=handoff_path,
+        handoff=handoff,
+        manifest_path=root / "manifest.json",
+        manifest=manifest,
+        source_root=source_root,
+        payload_root=payload_root,
+        source_records=sorted(verified.selected_source_rows, key=lambda row: row["ref"]),
+        payloads=list(verified.payloads),
+        context=optional_context,
+    )
+
+
 def _regular(path: Path, *, label: str) -> os.stat_result:
     try:
         absolute = path.absolute()
@@ -255,6 +445,30 @@ def _sha256(path: Path) -> str:
     except OSError as exc:
         raise ConversionError(f"cannot digest source file: {path}") from exc
     return digest.hexdigest()
+
+
+def _handoff_payload_path(payload_root: Path, item_root_ref: str, relative_path: str) -> Path:
+    item = PurePosixPath(item_root_ref)
+    relative = PurePosixPath(relative_path)
+    if (
+        tuple(item.parts[:2]) != ("ToS", "source-witnesses")
+        or not relative.parts
+        or relative.parts[0] != "payload"
+        or any(part in {"", ".", ".."} for part in (*item.parts, *relative.parts))
+    ):
+        raise ConversionError(f"invalid handoff payload path: {item_root_ref}/{relative_path}")
+    candidates = (
+        payload_root.joinpath(*item.parts[2:], *relative.parts),
+        payload_root.joinpath(*item.parts, *relative.parts),
+    )
+    existing = [path for path in candidates if path.exists() or path.is_symlink()]
+    if not existing:
+        raise ConversionError(f"handoff payload is missing: {item_root_ref}/{relative_path}")
+    if any(path.is_symlink() or not path.is_file() for path in existing):
+        raise ConversionError(f"handoff payload is not a regular file: {item_root_ref}/{relative_path}")
+    if len(existing) == 2 and _sha256(existing[0]) != _sha256(existing[1]):
+        raise ConversionError(f"handoff payload layouts differ: {item_root_ref}/{relative_path}")
+    return existing[0]
 
 
 def _safe_source_ref(value: object) -> str | None:
@@ -371,6 +585,8 @@ def _iter_snapshot_file_entries(snapshot: Path) -> Iterator[dict[str, Any]]:
 
 def _accepted_index(
     snapshot: Path,
+    *,
+    include_entries: bool = False,
 ) -> tuple[
     set[str],
     dict[str, dict[str, Any]],
@@ -380,6 +596,7 @@ def _accepted_index(
     paths: set[str] = set()
     selected: dict[str, dict[str, Any]] = {}
     record_entries: dict[str, dict[str, Any]] = {}
+    accepted_entries: dict[str, dict[str, Any]] = {}
     topology_event_entry: dict[str, Any] | None = None
     claim_paths = {
         "ToS/source-witnesses/relations/work-expression/work-expression-claims.jsonl",
@@ -391,6 +608,12 @@ def _accepted_index(
         if not isinstance(path, str):
             raise ConversionError("accepted snapshot file entry has no path")
         paths.add(path)
+        if include_entries:
+            accepted_entries[path] = {
+                key: entry.get(key)
+                for key in ("path", "sha256", "size_bytes", "mode")
+                if key in entry
+            }
         if path in claim_paths:
             selected[path] = entry
         if path.endswith(("/work.json", "/expression.json", "/edition.json")):
@@ -401,6 +624,11 @@ def _accepted_index(
         raise ConversionError("accepted snapshot is missing a relation claim object")
     if topology_event_entry is None:
         raise ConversionError("accepted snapshot is missing the topology provenance event")
+    if include_entries:
+        # Keep the historical four-value API for callers which only need the
+        # topology indexes.  The direct handoff route opts into this compact
+        # path-to-digest map while streaming the same snapshot exactly once.
+        return paths, selected, record_entries, topology_event_entry, accepted_entries  # type: ignore[return-value]
     return paths, selected, record_entries, topology_event_entry
 
 
@@ -662,7 +890,15 @@ def _accepted_claim_ids(
 ) -> set[str]:
     """Read only the three compact accepted relation objects for their IDs."""
 
-    ids: set[str] = set()
+    return set(_accepted_claim_rows(store_root, claim_entries))
+
+
+def _accepted_claim_rows(
+    store_root: Path, claim_entries: dict[str, dict[str, Any]]
+) -> dict[str, tuple[str, dict[str, Any]]]:
+    """Read accepted relation rows once, retaining exact canonical carriers."""
+
+    rows_by_id: dict[str, tuple[str, dict[str, Any]]] = {}
     for relative, entry in sorted(claim_entries.items()):
         digest = entry.get("sha256")
         if not isinstance(digest, str) or _HEX64.fullmatch(digest) is None:
@@ -673,10 +909,10 @@ def _accepted_claim_ids(
             raise ConversionError(f"accepted relation object digest mismatch: {relative}")
         for row in _read_jsonl(path, label="accepted relation claims"):
             claim_id = row.get("claim_id")
-            if not isinstance(claim_id, str) or claim_id in ids:
+            if not isinstance(claim_id, str) or claim_id in rows_by_id:
                 raise ConversionError(f"accepted relation claim identity is invalid or duplicated: {relative}")
-            ids.add(claim_id)
-    return ids
+            rows_by_id[claim_id] = (relative, row)
+    return rows_by_id
 
 
 def _index_acquisition_topology_claims(
@@ -703,9 +939,35 @@ def _index_acquisition_topology_claims(
     return indexed
 
 
+def _index_handoff_topology_claims(
+    source_roots: Iterable[tuple[str, Path]],
+) -> dict[str, tuple[str, dict[str, Any], Path]]:
+    """Index claim rows from explicit handoff source roots only."""
+
+    indexed: dict[str, tuple[str, dict[str, Any], Path]] = {}
+    for batch_id, source_root in source_roots:
+        relation_root = source_root / "ToS/source-witnesses/relations"
+        if not relation_root.is_dir() or relation_root.is_symlink():
+            continue
+        for path in sorted(relation_root.glob("*/*.jsonl")):
+            if path.name not in TOPOLOGY_RELATION_ROUTES:
+                continue
+            relative = path.relative_to(source_root).as_posix()
+            for row in _read_jsonl(path, label="handoff topology claims"):
+                claim_id = row.get("claim_id")
+                if not isinstance(claim_id, str):
+                    raise ConversionError(f"handoff topology claim has no claim_id: {relative}")
+                previous = indexed.get(claim_id)
+                if previous is not None:
+                    if previous[0] != relative or _canonical(previous[1]) != _canonical(row):
+                        raise ConversionError(f"handoff topology claim differs across handoffs: {claim_id}")
+                indexed.setdefault(claim_id, (relative, row, path))
+    return indexed
+
+
 def _collect_topology_dependencies(
     *,
-    acquisition_root: Path,
+    acquisition_root: Path | None,
     specs: list[BatchSpec],
     accepted_paths: set[str],
     candidates: dict[str, list[SourceFile]],
@@ -713,6 +975,9 @@ def _collect_topology_dependencies(
     claim_rows: dict[str, list[dict[str, Any]]],
     accepted_claim_ids: set[str],
     payload_root: Path,
+    claim_sources: dict[str, tuple[str, dict[str, Any], Path]] | None = None,
+    source_roots: dict[str, Path] | None = None,
+    payload_roots: dict[str, Path] | None = None,
 ) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]], dict[str, Any], int, int]:
     """Resolve staged dependency claim refs before the source closure scan.
 
@@ -725,7 +990,10 @@ def _collect_topology_dependencies(
     dangling identity field.
     """
 
-    claim_sources = _index_acquisition_topology_claims(acquisition_root, specs)
+    if claim_sources is None:
+        if acquisition_root is None:
+            raise ConversionError("topology claim source roots are missing")
+        claim_sources = _index_acquisition_topology_claims(acquisition_root, specs)
     known = set(accepted_claim_ids)
     for rows in claim_rows.values():
         known.update(row.get("claim_id") for row in rows if isinstance(row.get("claim_id"), str))
@@ -740,6 +1008,13 @@ def _collect_topology_dependencies(
     dependency_payload_unavailable: list[dict[str, Any]] = []
     dependency_payload_count = 0
     dependency_payload_bytes = 0
+
+    def payload_source_for(batch_id: str) -> Path | None:
+        if payload_roots is not None and batch_id in payload_roots:
+            return payload_roots[batch_id]
+        if acquisition_root is not None:
+            return acquisition_root / batch_id / "payload"
+        return None
 
     def enqueue_record(relative: str, field: str, claim_id: str) -> None:
         pending.append((relative, field, claim_id))
@@ -806,12 +1081,13 @@ def _collect_topology_dependencies(
                         option
                         for option in options
                         if (
-                            acquisition_root
-                            / option.batch_id
-                            / "payload"
-                            / PurePosixPath(item_ref).relative_to("ToS/source-witnesses")
-                            / "payload"
-                        ).is_dir()
+                            payload_source_for(option.batch_id) is not None
+                            and (
+                                payload_source_for(option.batch_id)
+                                / PurePosixPath(item_ref).relative_to("ToS/source-witnesses")
+                                / "payload"
+                            ).is_dir()
+                        )
                     ]
                     if payload_candidates:
                         selected = payload_candidates[0]
@@ -822,9 +1098,18 @@ def _collect_topology_dependencies(
                     if item_ref in dependency_items:
                         continue
                     dependency_items.add(item_ref)
-                    batch_root = acquisition_root / selected.batch_id
-                    for item_file in _all_item_files(batch_root / "metadata", item_ref):
-                        item_relative = item_file.relative_to(batch_root / "metadata").as_posix()
+                    metadata_base = (
+                        source_roots[selected.batch_id]
+                        if source_roots is not None and selected.batch_id in source_roots
+                        else acquisition_root / selected.batch_id / "metadata"
+                        if acquisition_root is not None
+                        else None
+                    )
+                    payload_base = payload_source_for(selected.batch_id)
+                    if metadata_base is None or payload_base is None:
+                        raise ConversionError(f"dependency roots are unavailable: {item_ref}")
+                    for item_file in _all_item_files(metadata_base, item_ref):
+                        item_relative = item_file.relative_to(metadata_base).as_posix()
                         if item_relative not in selected_paths:
                             dependency_metadata_refs.add(item_relative)
                         _select_source(
@@ -833,18 +1118,22 @@ def _collect_topology_dependencies(
                             SourceFile(item_relative, item_file, selected.batch_id),
                         )
                     manifest = _read_json(
-                        batch_root / "metadata" / f"{item_ref}/item.manifest.json",
+                        metadata_base / f"{item_ref}/item.manifest.json",
                         label="dependency Item manifest",
                     )
                     payload_item_root = (
-                        batch_root
-                        / "payload"
+                        payload_base
                         / PurePosixPath(item_ref).relative_to("ToS/source-witnesses")
                         / "payload"
                     )
                     if payload_item_root.is_dir() and not payload_item_root.is_symlink():
                         linked, bytes_count = _verify_fixity_and_link_payload(
-                            batch_root, item_ref, payload_root, manifest
+                            payload_base,
+                            item_ref,
+                            payload_root,
+                            manifest,
+                            metadata_root=metadata_base,
+                            source_payload_root=payload_base,
                         )
                         dependency_payload_count += linked
                         dependency_payload_bytes += bytes_count
@@ -1006,19 +1295,23 @@ def _verify_fixity_and_link_payload(
     item_ref: str,
     output_payload_root: Path,
     manifest: dict[str, Any],
+    *,
+    metadata_root: Path | None = None,
+    source_payload_root: Path | None = None,
 ) -> tuple[int, int]:
     payload_files = manifest.get("payload_files")
     if not isinstance(payload_files, list) or not payload_files:
         raise ConversionError(f"acquired Item manifest has no payload_files: {item_ref}")
+    metadata_root = batch_root / "metadata" if metadata_root is None else metadata_root
+    source_payload_root = batch_root / "payload" if source_payload_root is None else source_payload_root
     source_payload_item = (
-        batch_root
-        / "payload"
+        source_payload_root
         / PurePosixPath(item_ref).relative_to("ToS/source-witnesses")
         / "payload"
     )
     if not source_payload_item.is_dir() or source_payload_item.is_symlink():
         raise ConversionError(f"acquired payload directory is missing: {source_payload_item}")
-    fixity_path = batch_root / "metadata" / item_ref / "fixity.sha256"
+    fixity_path = metadata_root / item_ref / "fixity.sha256"
     fixity: dict[str, str] = {}
     if fixity_path.is_file():
         for line in fixity_path.read_text(encoding="utf-8").splitlines():
@@ -1081,40 +1374,60 @@ def _all_item_files(metadata_root: Path, item_ref: str) -> list[Path]:
 
 
 def _source_candidates(
-    acquisition_root: Path,
+    acquisition_root: Path | None,
     accepted_paths: set[str],
     specs: Iterable[BatchSpec],
+    *,
+    handoff_source_roots: Iterable[tuple[str, Path]] = (),
+    excluded_paths: set[str] | None = None,
 ) -> dict[str, list[SourceFile]]:
     candidates: dict[str, list[SourceFile]] = defaultdict(list)
-    for spec in specs:
-        metadata_root = acquisition_root / spec.batch_id / "metadata"
+    excluded_paths = excluded_paths or set()
+
+    def scan(metadata_root: Path, batch_id: str, *, legacy: bool) -> None:
+        if not metadata_root.is_dir() or metadata_root.is_symlink():
+            raise ConversionError(f"source metadata root is missing: {metadata_root}")
         to_s = metadata_root / "ToS"
         if not to_s.is_dir() or to_s.is_symlink():
-            raise ConversionError(f"batch metadata root is missing: {to_s}")
+            raise ConversionError(f"source metadata root is missing: {to_s}")
         for path in to_s.rglob("*"):
             if not path.is_file() or path.is_symlink():
                 continue
             relative = path.relative_to(metadata_root).as_posix()
-            if "/topology-before/" in relative or "/work-before/" in relative:
+            if relative in excluded_paths:
                 continue
-            # Accepted metadata is resolved from the immutable base revision.
-            # Acquisition packages often carry a stale or package-specific
-            # copy of the same Work record; treating that copy as a candidate
-            # would make unrelated translations compete with the accepted
-            # source.  Only paths absent from the base may be sourced here.
+            if legacy and ("/topology-before/" in relative or "/work-before/" in relative):
+                continue
             if relative in accepted_paths:
                 continue
-            candidates[relative].append(SourceFile(relative, path, spec.batch_id))
+            candidates[relative].append(SourceFile(relative, path, batch_id))
+
+    for spec in specs:
+        if acquisition_root is None:
+            raise ConversionError("legacy acquisition root is missing")
+        metadata_root = acquisition_root / spec.batch_id / "metadata"
+        scan(metadata_root, spec.batch_id, legacy=True)
+    for batch_id, source_root in handoff_source_roots:
+        scan(source_root, batch_id, legacy=False)
     return candidates
 
 
 def _acquisition_directory_ref(
-    acquisition_root: Path, relative: str, specs: Iterable[BatchSpec]
+    acquisition_root: Path | None,
+    relative: str,
+    specs: Iterable[BatchSpec],
+    *,
+    handoff_source_roots: Iterable[Path] = (),
 ) -> bool:
     """Return whether a source reference names a carried metadata directory."""
 
-    for spec in specs:
-        candidate = acquisition_root / spec.batch_id / "metadata" / relative
+    if acquisition_root is not None:
+        for spec in specs:
+            candidate = acquisition_root / spec.batch_id / "metadata" / relative
+            if candidate.is_dir() and not candidate.is_symlink():
+                return True
+    for source_root in handoff_source_roots:
+        candidate = source_root / relative
         if candidate.is_dir() and not candidate.is_symlink():
             return True
     return False
@@ -1150,16 +1463,24 @@ def _write_canonical(path: Path, value: Any) -> None:
 
 def convert(
     *,
-    acquisition_root: Path,
+    acquisition_root: Path | None,
     output_root: Path,
     store_root: Path,
     base_revision: str,
     grammar_root: Path,
     batch_selection: Path | None = None,
+    handoff_selection: Path | None = None,
     historical_capture: list[Path] | None = None,
     historical_root: list[Path] | None = None,
 ) -> dict[str, Any]:
-    acquisition_root = acquisition_root.absolute()
+    if (acquisition_root is None) == (handoff_selection is None):
+        raise ConversionError(
+            "choose exactly one input route: acquisition_root or handoff_selection"
+        )
+    if acquisition_root is not None:
+        acquisition_root = acquisition_root.absolute()
+    if handoff_selection is not None:
+        handoff_selection = handoff_selection.absolute()
     output_root = output_root.absolute()
     store_root = store_root.absolute()
     grammar_root = grammar_root.absolute()
@@ -1197,10 +1518,54 @@ def convert(
             f"accepted corpus pointer changed: expected {base_revision}, "
             f"found {pointer.get('current')}"
         )
-    specs, selection = _load_batch_selection(batch_selection)
-    accepted_paths, claim_entries, record_entries, topology_event_entry = _accepted_index(snapshot)
-    accepted_claim_ids = _accepted_claim_ids(store_root, claim_entries)
-    candidates = _source_candidates(acquisition_root, accepted_paths, specs)
+    direct_handoffs: list[DirectHandoff] = []
+    direct_selection: dict[str, Any] | None = None
+    if handoff_selection is not None:
+        if batch_selection is not None:
+            raise ConversionError("handoff selection cannot be combined with batch selection")
+        handoff_rows, direct_selection = _load_handoff_selection(handoff_selection)
+        seen_direct_batch_ids: set[str] = set()
+        for row in handoff_rows:
+            handoff = _load_direct_handoff(
+                root=row["root"],
+                handoff_ref=row["handoff_ref"],
+                expected_sha256=row["sha256"],
+                base_revision=base_revision,
+            )
+            batch_id = handoff.handoff.get("batch_id")
+            if not isinstance(batch_id, str) or batch_id in seen_direct_batch_ids:
+                raise ConversionError("handoff selection repeats an acquisition batch")
+            seen_direct_batch_ids.add(batch_id)
+            direct_handoffs.append(handoff)
+        specs: list[BatchSpec] = []
+        selection: dict[str, Any] = direct_selection
+    else:
+        if batch_selection is not None and acquisition_root is None:
+            raise ConversionError("batch selection requires an acquisition root")
+        specs, selection = _load_batch_selection(batch_selection)
+    accepted_index = _accepted_index(snapshot, include_entries=True)
+    accepted_paths, claim_entries, record_entries, topology_event_entry, accepted_entries = accepted_index
+    accepted_claim_rows = _accepted_claim_rows(store_root, claim_entries)
+    accepted_claim_ids = set(accepted_claim_rows)
+    handoff_source_roots = [
+        (str(item.handoff.get("batch_id")), item.source_root) for item in direct_handoffs
+    ]
+    handoff_payload_roots = {
+        str(item.handoff.get("batch_id")): item.payload_root for item in direct_handoffs
+    }
+    excluded_handoff_paths = {
+        item.handoff.get("provenance_delta", {}).get("ref")
+        for item in direct_handoffs
+        if isinstance(item.handoff.get("provenance_delta"), dict)
+        and isinstance(item.handoff.get("provenance_delta", {}).get("ref"), str)
+    }
+    candidates = _source_candidates(
+        acquisition_root,
+        accepted_paths,
+        specs,
+        handoff_source_roots=handoff_source_roots,
+        excluded_paths={value for value in excluded_handoff_paths if isinstance(value, str)},
+    )
     metadata_root = output_root / "source"
     payload_root = output_root / "payload"
     metadata_root.mkdir(parents=True)
@@ -1219,6 +1584,122 @@ def convert(
     payload_bytes = 0
     record_extensions: list[dict[str, Any]] = []
     topology_event_update: dict[str, Any] | None = None
+
+    if direct_handoffs:
+        # Direct handoffs are normalized into the same selected-path and claim
+        # maps used by the legacy package route.  The acquisition verifier has
+        # already checked source/rights/fixity/custody; this pass only binds
+        # those rows to the one accepted index and additive topology closure.
+        direct_claim_sources = _index_handoff_topology_claims(handoff_source_roots)
+        seen_payload_files: set[str] = set()
+        seen_payload_rows: dict[str, dict[str, Any]] = {}
+        for handoff in direct_handoffs:
+            batch_id = str(handoff.handoff.get("batch_id"))
+            batch_paths: set[str] = set()
+            for row in handoff.source_records:
+                relative = row["ref"]
+                source = handoff.source_root / relative
+                if relative.endswith(tuple(CLAIM_SUFFIXES)):
+                    for claim in _read_jsonl(source, label="handoff relation claims"):
+                        claim_id = claim.get("claim_id")
+                        if not isinstance(claim_id, str):
+                            raise ConversionError(f"handoff relation claim has no claim_id: {relative}")
+                        accepted = accepted_claim_rows.get(claim_id)
+                        if accepted is not None:
+                            if _canonical(accepted[1]) != _canonical(claim):
+                                raise ConversionError(
+                                    f"handoff relation claim would overwrite accepted bytes: {claim_id}"
+                                )
+                            continue
+                        key = _claim_key(relative)
+                        prior_rows = claim_rows[relative]
+                        prior = next(
+                            (candidate for candidate in prior_rows if candidate.get("claim_id") == claim_id),
+                            None,
+                        )
+                        if prior is not None:
+                            if _canonical(prior) != _canonical(claim):
+                                raise ConversionError(
+                                    f"handoff relation claim differs across handoffs: {claim_id}"
+                                )
+                            continue
+                        if claim_id in claim_ids[key]:
+                            raise ConversionError(f"duplicate acquired claim identity: {claim_id}")
+                        claim_ids[key].add(claim_id)
+                        claim_rows[relative].append(claim)
+                    continue
+                if relative in accepted_paths:
+                    accepted_entry = accepted_entries.get(relative)
+                    if accepted_entry is None or accepted_entry.get("sha256") != row.get("sha256"):
+                        raise ConversionError(
+                            f"handoff source would overwrite accepted bytes: {relative}"
+                        )
+                    digest = accepted_entry.get("sha256")
+                    if not isinstance(digest, str):
+                        raise ConversionError(f"accepted source entry lacks digest: {relative}")
+                    accepted_object = store_root / "objects" / digest
+                    _regular(accepted_object, label="accepted handoff source object")
+                    if _sha256(accepted_object) != digest:
+                        raise ConversionError(f"accepted handoff source object digest differs: {relative}")
+                    continue
+                _select_source(
+                    selected_paths,
+                    relative,
+                    SourceFile(relative, source, batch_id),
+                )
+                batch_paths.add(relative)
+
+            for payload in handoff.payloads:
+                file_ref = payload["file_ref"]
+                previous_payload = seen_payload_rows.get(file_ref)
+                if previous_payload is not None and _canonical(previous_payload) != _canonical(payload):
+                    raise ConversionError(f"handoff payload differs across inputs: {file_ref}")
+                seen_payload_rows.setdefault(file_ref, payload)
+                source = _handoff_payload_path(
+                    handoff.payload_root,
+                    payload["item_root_ref"],
+                    payload["relative_path"],
+                )
+                destination = payload_root / PurePosixPath(
+                    payload["item_root_ref"]
+                ).relative_to("ToS/source-witnesses") / payload["relative_path"]
+                if destination.exists() or destination.is_symlink():
+                    info = _regular(destination, label="candidate payload")
+                    if info.st_size != payload["byte_size"] or _sha256(destination) != payload["sha256"]:
+                        raise ConversionError(f"handoff payload differs across inputs: {file_ref}")
+                else:
+                    _hardlink(source, destination, label="handoff payload")
+                if file_ref not in seen_payload_files:
+                    seen_payload_files.add(file_ref)
+                    payload_count += 1
+                    payload_bytes += payload["byte_size"]
+
+            per_batch.append(
+                {
+                    "batch_id": batch_id,
+                    "registry": "acquired-handoff",
+                    "package_ref": handoff.handoff_ref,
+                    "package_sha256": handoff.handoff_sha256,
+                    "row_count": len(handoff.source_records),
+                    "payload_count": len(handoff.payloads),
+                    "payload_bytes": sum(payload["byte_size"] for payload in handoff.payloads),
+                    "selected_metadata_paths": len(batch_paths),
+                    "existing_work_rows": 0,
+                    "existing_work_preimages": 0,
+                    "existing_work_record_refs_absent_from_base": 0,
+                    "source_receipts": {
+                        "handoff": {
+                            "path": str(handoff.handoff_path),
+                            "sha256": handoff.handoff_sha256,
+                        },
+                        "manifest": {
+                            "path": str(handoff.manifest_path),
+                            "sha256": _sha256(handoff.manifest_path),
+                        },
+                    },
+                    "rights_posture": "preserved_from_acquired_item_metadata; no publication or server-processing expansion",
+                }
+            )
 
     for spec in specs:
         batch_root = acquisition_root / spec.batch_id
@@ -1386,6 +1867,11 @@ def convert(
         claim_rows=claim_rows,
         accepted_claim_ids=accepted_claim_ids,
         payload_root=payload_root,
+        claim_sources=direct_claim_sources if direct_handoffs else None,
+        source_roots={batch_id: root for batch_id, root in handoff_source_roots}
+        if direct_handoffs
+        else None,
+        payload_roots=handoff_payload_roots if direct_handoffs else None,
     )
     payload_count += dependency_payload_count
     payload_bytes += dependency_payload_bytes
@@ -1455,7 +1941,12 @@ def convert(
                     # updates and is resolved by source_payload_custody.
                     closure_ignored_refs["payload_path"].append(ref)
                     continue
-                if _acquisition_directory_ref(acquisition_root, ref, specs):
+                if _acquisition_directory_ref(
+                    acquisition_root,
+                    ref,
+                    specs,
+                    handoff_source_roots=[root for _batch_id, root in handoff_source_roots],
+                ):
                     # Item directory refs are valid existence anchors, not
                     # metadata files.  Selected Item companions recreate the
                     # directory in the candidate.
@@ -1513,6 +2004,44 @@ def convert(
             historical_root=historical_roots,
         )
     validator = SourceValidator(grammar_root, **validator_options)
+    if direct_handoffs:
+        try:
+            import acquisition_handoff_adapter as acquisition_adapter
+        except ModuleNotFoundError as exc:
+            raise ConversionError(
+                "direct handoff intake requires acquisition_handoff_adapter validation-context verifier"
+            ) from exc
+        expected_history = [
+            {
+                "capture_ref": str(capture),
+                "restored_root_ref": str(restored),
+            }
+            for capture, restored in zip(historical_captures or [], historical_roots or [])
+        ]
+        for handoff in direct_handoffs:
+            context = handoff.context
+            if context is None:
+                continue
+            try:
+                bound_context = acquisition_adapter.verify_validation_context(
+                    context,
+                    validator_sha256=validator.sha256,
+                )
+            except Exception as exc:
+                raise ConversionError(f"direct handoff validation context rejected: {exc}") from exc
+            grammar_ref = bound_context.get("grammar_root_ref")
+            if not isinstance(grammar_ref, str) or str(Path(grammar_ref).absolute()) != str(grammar_root):
+                raise ConversionError("direct handoff grammar root differs from selected validator context")
+            actual_history = [
+                {
+                    "capture_ref": row.get("capture_ref"),
+                    "restored_root_ref": row.get("restored_root_ref"),
+                }
+                for row in bound_context.get("historical_evidence", [])
+                if isinstance(row, dict)
+            ]
+            if actual_history != expected_history:
+                raise ConversionError("direct handoff historical context differs from selected evidence")
     batch = {
         "schema_version": BATCH_SCHEMA,
         "base_revision": base_revision,
@@ -1520,24 +2049,26 @@ def convert(
         "updates": updates,
         "retirements": [],
     }
-    selection_record = {
-        "schema_version": "tos_acquired_batch_selection_v1",
-        "selection_id": selection["selection_id"],
-        "base_revision": base_revision,
-        "batches": [
-            {
-                "batch_id": spec.batch_id,
-                "registry": spec.registry,
-                "package_ref": spec.package_ref,
-                "package_sha256": package_sha256[spec.batch_id],
-            }
-            for spec in specs
-        ],
-    }
-    selection_path = output_root / "receipts" / "batch-selection.json"
-    _write_canonical(selection_path, selection_record)
     batch_ref = f"manifests/tos-corpus-batch-{selection['selection_id']}.json"
     _write_canonical(output_root / batch_ref, batch)
+    selection_path: Path | None = None
+    if not direct_handoffs:
+        selection_record = {
+            "schema_version": "tos_acquired_batch_selection_v1",
+            "selection_id": selection["selection_id"],
+            "base_revision": base_revision,
+            "batches": [
+                {
+                    "batch_id": spec.batch_id,
+                    "registry": spec.registry,
+                    "package_ref": spec.package_ref,
+                    "package_sha256": package_sha256[spec.batch_id],
+                }
+                for spec in specs
+            ],
+        }
+        selection_path = output_root / "receipts" / "batch-selection.json"
+        _write_canonical(selection_path, selection_record)
 
     receipt = {
         "schema_version": "tos_acquired_corpus_conversion_receipt_v1",
@@ -1547,16 +2078,39 @@ def convert(
         "validator_sha256": validator.sha256,
         "source_input_root": "source",
         "payload_source_root": "payload",
-        "batch_ids": [spec.batch_id for spec in specs],
-        "batch_count": len(specs),
+        "batch_ids": (
+            [str(item.handoff.get("batch_id")) for item in direct_handoffs]
+            if direct_handoffs
+            else [spec.batch_id for spec in specs]
+        ),
+        "batch_count": len(direct_handoffs) if direct_handoffs else len(specs),
         "row_count": sum(item["row_count"] for item in per_batch),
         "metadata_update_count": len(updates),
         "payload_count": payload_count,
         "payload_bytes": payload_bytes,
         "claim_rows_added": {path: len(rows) for path, rows in sorted(claim_rows.items())},
         "topology_dependency_closure": topology_dependency_closure,
-        "batch_selection_ref": str(selection_path.relative_to(output_root)),
-        "batch_selection_sha256": _sha256(selection_path),
+        "input_kind": "acquired-not-admitted-handoff" if direct_handoffs else "prepared-not-acquired-selection",
+        "batch_selection_ref": (
+            str(selection_path.relative_to(output_root)) if selection_path is not None else None
+        ),
+        "batch_selection_sha256": _sha256(selection_path) if selection_path is not None else None,
+        "handoff_selection_ref": (
+            str(handoff_selection) if direct_handoffs and handoff_selection is not None else None
+        ),
+        "handoff_selection_sha256": (
+            _sha256(handoff_selection) if direct_handoffs and handoff_selection is not None else None
+        ),
+        "handoffs": [
+            {
+                "root": str(item.root),
+                "handoff_ref": item.handoff_ref,
+                "handoff_sha256": item.handoff_sha256,
+                "batch_id": item.handoff.get("batch_id"),
+                "manifest_sha256": _sha256(item.manifest_path),
+            }
+            for item in direct_handoffs
+        ],
         "record_extension_count": len(record_extensions),
         "record_extensions": record_extensions,
         "topology_event_update": topology_event_update,
@@ -1591,12 +2145,17 @@ def convert(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--acquisition-root", type=Path, required=True)
+    parser.add_argument("--acquisition-root", type=Path)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--store", type=Path, required=True)
     parser.add_argument("--base-revision", required=True)
     parser.add_argument("--grammar-root", type=Path, required=True)
     parser.add_argument("--batch-selection", type=Path)
+    parser.add_argument(
+        "--handoff-selection",
+        type=Path,
+        help="explicit JSON selector for one or more acquired-not-admitted handoffs",
+    )
     parser.add_argument("--historical-capture", type=Path, action="append")
     parser.add_argument("--historical-root", type=Path, action="append")
     args = parser.parse_args(argv)
@@ -1608,6 +2167,7 @@ def main(argv: list[str] | None = None) -> int:
             base_revision=args.base_revision,
             grammar_root=args.grammar_root,
             batch_selection=args.batch_selection,
+            handoff_selection=args.handoff_selection,
             historical_capture=args.historical_capture,
             historical_root=args.historical_root,
         )
