@@ -359,15 +359,14 @@ def _verify_item_payload_bindings(context: acquisition.BatchContext, acquisition
             )
         except acquisition.AcquisitionBatchError as exc:
             raise HandoffAdapterError(str(exc)) from exc
+        provenance_ref = item_manifest.get("provenance_ref")
+        provenance_record = records.get(provenance_ref) if isinstance(provenance_ref, str) else None
         if (
             item_manifest.get("schema_version") != "tos_source_item_manifest_v1"
             or item_manifest.get("item_id") != selection["item_ref"]
             or item_manifest.get("rights_ref") != selection["rights"]["ref"]
-            or item_manifest.get("provenance_ref")
-            != next(
-                (record["ref"] for record in records.values() if record["kind"] == "provenance"),
-                None,
-            )
+            or not isinstance(provenance_record, dict)
+            or provenance_record.get("kind") != "provenance"
             or not isinstance(item_manifest.get("payload_files"), list)
         ):
             raise HandoffAdapterError(

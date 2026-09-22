@@ -336,6 +336,52 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         )
         self.assertEqual(receipt, replay)
 
+    def test_item_provenance_binding_uses_manifest_ref_after_record_reordering(self) -> None:
+        fetches, _unused_manifest_sha, item_root, records = self._write_manifest(base_revision="0" * 64)
+        base_revision = self._write_accepted_base(records)
+        fetches, _manifest_sha, item_root, _records = self._write_manifest(base_revision=base_revision)
+
+        secondary_ref = f"{item_root}/provenance-secondary.jsonl"
+        secondary_body = b'{"kind":"unrelated-evidence"}\n'
+        secondary_path = self.metadata / secondary_ref
+        secondary_path.write_bytes(secondary_body)
+        secondary_record = {
+            "ref": secondary_ref,
+            "kind": "provenance",
+            "sha256": hashlib.sha256(secondary_body).hexdigest(),
+        }
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        selection = manifest["selection"][0]
+        selection["records"].insert(0, secondary_record)
+        manifest["provenance_delta"]["record_refs"] = sorted(
+            record["ref"] for record in selection["records"]
+        )
+        self.manifest_path.write_bytes(canonical(manifest))
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        adapted = adapter.adapt_handoff(
+            acquisition_root=self.acquisition_root,
+            handoff_ref=result["handoff_ref"],
+            output_root=self.candidate,
+            accepted_store_root=self.accepted_store,
+            accepted_source_root=self.accepted_source,
+            base_revision=base_revision,
+            validator_sha256=self.validator_sha256,
+            validation_context=self._validation_context(),
+            repo_root=ROOT,
+        )
+        self.assertEqual("candidate-not-admitted", adapted["status"])
+        self.assertTrue(
+            (self.candidate / "source" / secondary_ref).is_file()
+        )
+
     def test_adapter_rejects_different_accepted_base_bytes(self) -> None:
         fetches, _unused_manifest_sha, item_root, records = self._write_manifest(base_revision="0" * 64)
         base_revision = self._write_accepted_base(records)
@@ -449,6 +495,51 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                 repo_root=ROOT,
             )
         self.assertFalse(self.candidate.exists())
+
+    def test_item_manifest_rejects_unselected_provenance_ref(self) -> None:
+        fetches, _unused_manifest_sha, item_root, records = self._write_manifest(
+            base_revision="0" * 64,
+        )
+        base_revision = self._write_accepted_base(records)
+        fetches, _manifest_sha, item_root, _records = self._write_manifest(
+            base_revision=base_revision,
+        )
+        item_manifest_ref = f"{item_root}/item.manifest.json"
+        item_manifest_path = self.metadata / item_manifest_ref
+        item_manifest = json.loads(item_manifest_path.read_text(encoding="utf-8"))
+        item_manifest["provenance_ref"] = f"{item_root}/not-selected.jsonl"
+        item_manifest_path.write_bytes(canonical(item_manifest))
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        manifest_record = next(
+            record
+            for record in manifest["selection"][0]["records"]
+            if record["ref"] == item_manifest_ref
+        )
+        manifest_record["sha256"] = hashlib.sha256(item_manifest_path.read_bytes()).hexdigest()
+        self.manifest_path.write_bytes(canonical(manifest))
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        with self.assertRaisesRegex(
+            adapter.HandoffAdapterError,
+            "Item manifest identity or rights/provenance binding differs",
+        ):
+            adapter.adapt_handoff(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                output_root=self.candidate,
+                accepted_store_root=self.accepted_store,
+                accepted_source_root=self.accepted_source,
+                base_revision=base_revision,
+                validator_sha256=self.validator_sha256,
+                validation_context=self._validation_context(),
+                repo_root=ROOT,
+            )
 
     def test_adapter_requires_explicit_validation_context(self) -> None:
         fetches, _unused_manifest_sha, _item_root, records = self._write_manifest(
