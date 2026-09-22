@@ -336,6 +336,25 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         )
         self.assertEqual(receipt, replay)
 
+    def test_shared_intake_verifier_accepts_original_handoff_without_store_load(self) -> None:
+        fetches, manifest_sha, _item_root, _records = self._write_manifest(base_revision="a" * 64)
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        verified = adapter.verify_handoff_for_intake(
+            acquisition_root=self.acquisition_root,
+            handoff_ref=result["handoff_ref"],
+            expected_base_revision="a" * 64,
+            repo_root=ROOT,
+        )
+        self.assertEqual("acquired-not-admitted", verified.handoff["acquisition_status"])
+        self.assertEqual(4, len(verified.selected_source_rows))
+        self.assertEqual(1, len(verified.payloads))
+
     def test_item_provenance_binding_uses_manifest_ref_after_record_reordering(self) -> None:
         fetches, _unused_manifest_sha, item_root, records = self._write_manifest(base_revision="0" * 64)
         base_revision = self._write_accepted_base(records)
