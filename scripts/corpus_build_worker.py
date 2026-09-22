@@ -141,6 +141,11 @@ def compile_revision(store_root: Path, revision: str, output: Path) -> dict:
     # redundant pre-copy full-object pass while retaining source fixity.
     with stage_timing('build.load_manifest'):
         manifest = store.load(revision, verify_objects=False)
+    # Current members are verified as they stream into the private view. A
+    # retirement is not copied into that view, so its historical source and
+    # event objects need their own fixity pass before a snapshot is published.
+    with stage_timing('build.verify_retirements', events=len(manifest['retirements'])):
+        store.verify_retirement_objects(manifest)
 
     with tempfile.TemporaryDirectory(prefix='tos-corpus-build-', dir=output.parent) as raw:
         root = Path(raw)

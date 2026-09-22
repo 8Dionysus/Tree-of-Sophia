@@ -28,7 +28,8 @@ For one explicitly reserved admission or build measurement, set
 `tos_corpus_stage_timing_v1` start/end JSON lines on stderr for source
 materialization, catalog work, foundation/index validation and build phases.
 The normal stdout JSON and admission/build authority are unchanged; unset the
-variable for ordinary runs.
+variable for ordinary runs. Builds also report the separate fixity check for
+historical retirement objects that are not copied into the private source view.
 
 ## Corpus and integration
 

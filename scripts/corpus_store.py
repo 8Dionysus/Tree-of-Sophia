@@ -425,14 +425,19 @@ class CorpusStore:
                 raise CorpusStoreError('retirement event cannot retire itself')
             if type(event['event_size_bytes']) is not int or event['event_size_bytes'] < 0:
                 raise CorpusStoreError('invalid retirement event size')
-            if verify_objects:
-                self._verify_digest_object(source_sha256, label=retired_path)
-                self._verify_object({
-                    'path': event_ref,
-                    'sha256': event_sha256,
-                    'size_bytes': event['event_size_bytes'],
-                })
+        if verify_objects:
+            self.verify_retirement_objects(manifest)
         return manifest
+
+    def verify_retirement_objects(self, manifest: dict) -> None:
+        """Verify CAS objects retained only for historical retirements."""
+        for event in manifest['retirements']:
+            self._verify_digest_object(event['sha256'], label=event['path'])
+            self._verify_object({
+                'path': event['event_ref'],
+                'sha256': event['event_sha256'],
+                'size_bytes': event['event_size_bytes'],
+            })
 
     def _object(self, digest: str) -> Path:
         return self.root / 'objects' / hex_digest(digest)
