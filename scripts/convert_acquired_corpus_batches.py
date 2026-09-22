@@ -1167,12 +1167,24 @@ def convert(
         raise ConversionError(
             "historical evidence requires one capture and restored root for every pack"
         )
-    if not historical_capture or not historical_root or len(historical_capture) != len(historical_root):
-        raise ConversionError(
-            "historical evidence selection is required and must contain paired capture/root paths"
-        )
-    historical_capture = [path.absolute() for path in historical_capture]
-    historical_root = [path.absolute() for path in historical_root]
+    if historical_capture is None:
+        # SourceValidator deliberately supports a corpus with no historical
+        # evidence.  Keep the empty context explicit at the converter boundary
+        # without passing [] into the validator, where [] means a malformed
+        # attempted historical selection rather than no selection.
+        historical_captures = None
+        historical_roots = None
+    else:
+        if len(historical_capture) != len(historical_root):
+            raise ConversionError(
+                "historical evidence selection must contain paired capture/root paths"
+            )
+        if not historical_capture:
+            historical_captures = None
+            historical_roots = None
+        else:
+            historical_captures = [path.absolute() for path in historical_capture]
+            historical_roots = [path.absolute() for path in historical_root]
     if output_root.exists() or output_root.is_symlink():
         raise ConversionError(f"intake output must be a new path: {output_root}")
     if _HEX64.fullmatch(base_revision) is None:
@@ -1494,12 +1506,13 @@ def convert(
     # human-readable conversion evidence lives in the sibling receipt below.
     from corpus_source_validation import SourceValidator
 
-    validator = SourceValidator(
-        grammar_root,
-        payload_source_root=payload_root,
-        historical_capture=historical_capture,
-        historical_root=historical_root,
-    )
+    validator_options = {"payload_source_root": payload_root}
+    if historical_captures is not None:
+        validator_options.update(
+            historical_capture=historical_captures,
+            historical_root=historical_roots,
+        )
+    validator = SourceValidator(grammar_root, **validator_options)
     batch = {
         "schema_version": BATCH_SCHEMA,
         "base_revision": base_revision,
@@ -1559,8 +1572,9 @@ def convert(
             "publication": "not performed",
         },
         "historical_evidence": {
-            "captures": [str(path) for path in historical_capture],
-            "restored_roots": [str(path) for path in historical_root],
+            "captures": [str(path) for path in historical_captures or []],
+            "restored_roots": [str(path) for path in historical_roots or []],
+            "selection_explicit": historical_captures is not None,
             "validator_sha256": validator.sha256,
             "topology_before_copied": False,
             "work_before_copied_only_when_bound_by_existing_work": True,
@@ -1583,8 +1597,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base-revision", required=True)
     parser.add_argument("--grammar-root", type=Path, required=True)
     parser.add_argument("--batch-selection", type=Path)
-    parser.add_argument("--historical-capture", type=Path, action="append", required=True)
-    parser.add_argument("--historical-root", type=Path, action="append", required=True)
+    parser.add_argument("--historical-capture", type=Path, action="append")
+    parser.add_argument("--historical-root", type=Path, action="append")
     args = parser.parse_args(argv)
     try:
         receipt = convert(
