@@ -359,6 +359,14 @@ class AcquisitionBatchTests(unittest.TestCase):
                     ):
                         acquisition._fetch_url(payload)
 
+        malformed = {**payload, "provider_url": "http://[::1/x"}
+        with patch.object(acquisition, "urlopen") as urlopen:
+            with self.assertRaisesRegex(
+                acquisition.SourceFetchError, "provider fetch failed"
+            ):
+                acquisition._fetch_url(malformed)
+            urlopen.assert_not_called()
+
     def test_public_payload_posture_cannot_widen_selected_rights(self) -> None:
         fetches, manifest_sha = self._write_manifest(
             count=1,
@@ -460,6 +468,21 @@ class AcquisitionBatchTests(unittest.TestCase):
         with self.assertRaisesRegex(
             acquisition.AcquisitionBatchError,
             "outside the corpus source admission boundary",
+        ):
+            acquisition.load_manifest(self.manifest_path)
+
+    def test_manifest_rejects_conflicting_shared_record_kind(self) -> None:
+        _fetches, _manifest_sha = self._write_manifest(count=2)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        shared = dict(manifest["selection"][0]["records"][1])
+        shared["kind"] = "provenance"
+        manifest["selection"][1]["records"].append(shared)
+        self.manifest_path.write_bytes(
+            (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode()
+        )
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "conflicting kind or digest",
         ):
             acquisition.load_manifest(self.manifest_path)
 

@@ -31,6 +31,9 @@ all newly prepared roots use and retain the private mode.
 The producer preflight requires each selection to name its exact Item record,
 Item manifest, rights record, and Item provenance record, and every metadata
 reference must pass the existing corpus-source membership predicate. The
+manifest also rejects a metadata reference reused with a conflicting kind or
+digest. Provider URL parsing and HTTP protocol errors are recorded as isolated
+per-file source failures rather than aborting the batch.
 prepared Item record identity is checked against the selected Item ID before
 payload transfer. If preparation is interrupted, recovery removes only a
 directory whose manifest bytes match the requested selection, whose source

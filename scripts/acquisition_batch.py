@@ -344,6 +344,7 @@ def _validate_semantics(manifest: dict[str, Any]) -> None:
     seen_files: set[str] = set()
     seen_destinations: set[str] = set()
     record_refs: set[str] = set()
+    record_classifications: dict[str, tuple[str, str]] = {}
     payload_refs: set[str] = set()
     for selection in selections:
         item_ref = selection["item_ref"]
@@ -372,6 +373,13 @@ def _validate_semantics(manifest: dict[str, Any]) -> None:
             if ref in record_by_ref:
                 raise AcquisitionBatchError(f"duplicate record reference: {ref}")
             record_by_ref[ref] = record
+            classification = (record["kind"], record["sha256"])
+            prior_classification = record_classifications.get(ref)
+            if prior_classification is not None and prior_classification != classification:
+                raise AcquisitionBatchError(
+                    f"record reference has conflicting kind or digest: {ref}"
+                )
+            record_classifications[ref] = classification
             record_refs.add(ref)
         rights = selection["rights"]
         if rights["ref"] not in record_by_ref or rights["ref"] not in {
@@ -1049,11 +1057,11 @@ def _batch_execution_lock(output: Path):
 
 
 def _fetch_url(payload: dict[str, Any]) -> bytes:
-    request = Request(
-        payload["provider_url"],
-        headers={"User-Agent": "Tree-of-Sophia-bounded-acquisition/1"},
-    )
     try:
+        request = Request(
+            payload["provider_url"],
+            headers={"User-Agent": "Tree-of-Sophia-bounded-acquisition/1"},
+        )
         with urlopen(request, timeout=45) as response:
             body = bytearray()
             while True:
@@ -1063,7 +1071,7 @@ def _fetch_url(payload: dict[str, Any]) -> bytes:
                 body.extend(block)
                 if len(body) > payload["byte_size"]:
                     break
-    except (OSError, HTTPException) as exc:
+    except (OSError, HTTPException, ValueError) as exc:
         raise SourceFetchError(f"provider fetch failed for {payload['file_ref']}: {exc}") from exc
     return bytes(body)
 
