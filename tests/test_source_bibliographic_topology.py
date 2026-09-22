@@ -21,7 +21,11 @@ from source_bibliographic_topology import (
     BibliographicTopologyError, validate_current_topology, validate_work_expression_delta, validate_expression_edition_delta,
 )
 from source_record_profiles import SourceClaimProfiles, SourceProfileError, SourceRecordProfiles, ground_collection_order
-from validate_source_witness_foundation import _legacy_topology_configuration, _topology_evidence_matches
+from validate_source_witness_foundation import (
+    _legacy_topology_configuration,
+    _topology_evidence_matches,
+    _topology_input_index,
+)
 
 
 WORK_PATH = 'ToS/source-witnesses/works/example/work.json'
@@ -546,3 +550,19 @@ class BibliographicLegacyInputTests(unittest.TestCase):
             with self.subTest(ref=ref), patch('validate_source_witness_foundation._recorded_provenance_input_path', return_value=None):
                 self.assertFalse(_topology_evidence_matches(ROOT, ref, [{'ref': ref, 'sha256': 'a' * 64}], reader))
         reader.resolve_source_bytes.assert_not_called()
+
+    def test_input_index_preserves_exact_match_and_duplicate_controls(self):
+        digest, result = self.result()
+        reader = Mock(resolve_source_bytes=Mock(return_value=result))
+        inputs = [{'ref': WORK_PATH, 'sha256': digest},
+                  {'ref': 'ignored', 'sha256': 'a' * 64},
+                  {'malformed': True}]
+        index = _topology_input_index(inputs)
+        with patch('validate_source_witness_foundation._recorded_provenance_input_path', return_value=None):
+            self.assertTrue(_topology_evidence_matches(
+                ROOT, WORK_PATH, inputs, reader, input_index=index))
+        duplicate_inputs = [*inputs, {'ref': WORK_PATH, 'sha256': digest}]
+        duplicate_index = _topology_input_index(duplicate_inputs)
+        with patch('validate_source_witness_foundation._recorded_provenance_input_path', return_value=None):
+            self.assertFalse(_topology_evidence_matches(
+                ROOT, WORK_PATH, duplicate_inputs, reader, input_index=duplicate_index))

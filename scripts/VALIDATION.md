@@ -23,6 +23,17 @@ For a focused change, run the relevant test directly. The old
 `release_check.py --feedback --changed-path ...` interface is removed; there
 is no automatic fallback from an unknown path into a whole-corpus audit.
 
+For one explicitly reserved admission or build measurement, set
+`TOS_CORPUS_TIMINGS=1`. The source validator and build worker then emit
+`tos_corpus_stage_timing_v1` start/end JSON lines on stderr for source grammar
+preflight, source materialization, catalog work, foundation/index validation
+and build phases. The grammar preflight checks the base-plus-batch schema
+overlay before unrelated source members are copied; the complete source
+identity and semantic audit still follows.
+The normal stdout JSON and admission/build authority are unchanged; unset the
+variable for ordinary runs. Builds also report the separate fixity check for
+historical retirement objects that are not copied into the private source view.
+
 ## Corpus and integration
 
 Select the exact corpus operation, source snapshot and owner validators.

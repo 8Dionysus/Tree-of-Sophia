@@ -20,7 +20,9 @@ from types import MappingProxyType
 import re
 import shutil
 import stat
+import sys
 import tempfile
+import time
 from typing import Callable
 
 
@@ -39,6 +41,90 @@ def digest_file(path: Path) -> str:
         for block in iter(lambda: stream.read(1024 * 1024), b''):
             digest.update(block)
     return digest.hexdigest()
+
+
+def _stage_timing_enabled() -> bool:
+    return os.environ.get('TOS_CORPUS_TIMINGS', '').lower() in {'1', 'true', 'yes'}
+
+
+def _emit_stage_timing(event: dict) -> None:
+    """Emit opt-in stage evidence without changing command stdout/contracts."""
+    try:
+        print(json.dumps(event, sort_keys=True, separators=(',', ':')), file=sys.stderr, flush=True)
+    except (OSError, TypeError, ValueError):
+        # Timing is diagnostic evidence, never a reason to fail an otherwise
+        # valid admission or build because stderr became unavailable.
+        return
+
+
+@contextmanager
+def stage_timing(stage: str, **fields):
+    """Report one bounded stage's start/end when explicitly requested."""
+    if not _stage_timing_enabled():
+        yield
+        return
+    started_at = time.time()
+    started_monotonic = time.monotonic()
+    _emit_stage_timing({
+        'schema': 'tos_corpus_stage_timing_v1',
+        'event': 'start',
+        'stage': stage,
+        'started_at': started_at,
+        **fields,
+    })
+    try:
+        yield
+    except BaseException as error:
+        _emit_stage_timing({
+            'schema': 'tos_corpus_stage_timing_v1',
+            'event': 'end',
+            'stage': stage,
+            'started_at': started_at,
+            'finished_at': time.time(),
+            'duration_seconds': time.monotonic() - started_monotonic,
+            'status': 'error',
+            'error': type(error).__name__,
+            **fields,
+        })
+        raise
+    else:
+        _emit_stage_timing({
+            'schema': 'tos_corpus_stage_timing_v1',
+            'event': 'end',
+            'stage': stage,
+            'started_at': started_at,
+            'finished_at': time.time(),
+            'duration_seconds': time.monotonic() - started_monotonic,
+            'status': 'ok',
+            **fields,
+        })
+
+
+class _DigestingReader:
+    """Add an exact byte count and digest to the existing streamed copier."""
+
+    def __init__(self, source):
+        self.source = source
+        self.digest = hashlib.sha256()
+        self.size = 0
+
+    def read(self, size=-1):
+        block = self.source.read(size)
+        self.digest.update(block)
+        self.size += len(block)
+        return block
+
+
+def _copy_stream_digest(source, destination) -> tuple[int, str]:
+    """Copy one stream while hashing the bytes that were read from it.
+
+    The caller still owns source stat checks and any post-copy destination
+    verification. Keeping the established ``copyfileobj`` seam also preserves
+    the source-mutation negative control used by the admission tests.
+    """
+    reader = _DigestingReader(source)
+    shutil.copyfileobj(reader, destination, 1024 * 1024)
+    return reader.size, reader.digest.hexdigest()
 
 
 def hex_digest(value: str) -> str:
@@ -214,13 +300,20 @@ class CorpusCandidate:
             if directory.resolve() != directory.absolute() or not directory.is_dir():
                 raise CorpusStoreError('source materialization contains a linked directory')
             source = self._store._object(entry['sha256'])
-            self._store._verify_object(entry)
+            before = regular(source)
             # A private streamed copy keeps large source documents out of RAM
             # and cannot turn a producer write into an object-store mutation.
             with source.open('rb') as stream, target.open('xb') as output:
-                shutil.copyfileobj(stream, output, 1024 * 1024)
+                copied_size, copied_sha256 = _copy_stream_digest(stream, output)
+            after = regular(source)
             os.chmod(target, entry['mode'])
-            if target.stat().st_size != entry['size_bytes'] or digest_file(target) != entry['sha256']:
+            target_sha256 = digest_file(target)
+            if ((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) !=
+                    (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+                    or copied_size != entry['size_bytes']
+                    or copied_sha256 != entry['sha256']
+                    or target.stat().st_size != entry['size_bytes']
+                    or target_sha256 != entry['sha256']):
                 raise CorpusStoreError('source object changed during materialization')
             self._read_paths.add(relative)
             self._materialized.add(relative)
@@ -332,14 +425,19 @@ class CorpusStore:
                 raise CorpusStoreError('retirement event cannot retire itself')
             if type(event['event_size_bytes']) is not int or event['event_size_bytes'] < 0:
                 raise CorpusStoreError('invalid retirement event size')
-            if verify_objects:
-                self._verify_digest_object(source_sha256, label=retired_path)
-                self._verify_object({
-                    'path': event_ref,
-                    'sha256': event_sha256,
-                    'size_bytes': event['event_size_bytes'],
-                })
+        if verify_objects:
+            self.verify_retirement_objects(manifest)
         return manifest
+
+    def verify_retirement_objects(self, manifest: dict) -> None:
+        """Verify CAS objects retained only for historical retirements."""
+        for event in manifest['retirements']:
+            self._verify_digest_object(event['sha256'], label=event['path'])
+            self._verify_object({
+                'path': event['event_ref'],
+                'sha256': event['event_sha256'],
+                'size_bytes': event['event_size_bytes'],
+            })
 
     def _object(self, digest: str) -> Path:
         return self.root / 'objects' / hex_digest(digest)
@@ -404,12 +502,14 @@ class CorpusStore:
             temporary = Path(target.name)
             try:
                 with source.open('rb') as stream:
-                    shutil.copyfileobj(stream, target, 1024 * 1024)
+                    copied_size, copied_sha256 = _copy_stream_digest(stream, target)
                 target.flush()
                 os.fsync(target.fileno())
                 after = regular(source)
                 if ((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) !=
                         (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+                        or copied_size != expected_size
+                        or copied_sha256 != expected_sha256
                         or temporary.stat().st_size != expected_size
                         or digest_file(temporary) != expected_sha256):
                     raise CorpusStoreError('source changed or digest differs during admission')

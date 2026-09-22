@@ -90,6 +90,77 @@ class CorpusBuildWorkerTests(unittest.TestCase):
             self.assertFalse(output.exists())
             self.assertEqual(store.load(revision, verify_objects=True), snapshot)
 
+    def test_retired_objects_are_verified_before_build_view_materialization(self) -> None:
+        event_relative = "ToS/source-witnesses/fixture-retirement.json"
+        retired_relative = "ToS/source-witnesses/fixture.json"
+        event_bytes = b'{"fixture":"retirement-event","version":1}\n'
+        retired_bytes = b'{"fixture":"retired-source","version":1}\n'
+        validator_sha256 = "a" * 64
+
+        with tempfile.TemporaryDirectory(prefix="corpus-build-retirement-") as raw:
+            root = Path(raw)
+            event_source = root / "input" / event_relative
+            retired_source = root / "input" / retired_relative
+            event_source.parent.mkdir(parents=True)
+            event_source.write_bytes(event_bytes)
+            retired_source.write_bytes(retired_bytes)
+
+            store = corpus_store.CorpusStore(root / "store")
+
+            def validate(
+                candidate: corpus_store.CorpusCandidate,
+                base: dict | None,
+                affected: frozenset[str],
+            ) -> corpus_store.ValidationIndex:
+                del base, affected
+                candidate.materialize(candidate.paths)
+                identities = {"synthetic:event": event_relative}
+                if retired_relative in candidate.paths:
+                    identities["synthetic:fixture"] = retired_relative
+                return corpus_store.ValidationIndex(
+                    identities,
+                    {},
+                )
+
+            def update(source: Path, payload: bytes, mode: int = 0o644) -> dict[str, object]:
+                digest = hashlib.sha256(payload).hexdigest()
+                return {"source": source, "sha256": digest,
+                        "size_bytes": len(payload), "mode": mode}
+
+            base = store.admit(
+                base_revision=None,
+                updates={
+                    retired_relative: update(retired_source, retired_bytes),
+                    event_relative: update(event_source, event_bytes),
+                },
+                retirements={}, validator_sha256=validator_sha256, validate=validate,
+            )
+            successor = store.admit(
+                base_revision=base["revision"], updates={},
+                retirements={retired_relative: {
+                    "event_ref": event_relative,
+                    "event_sha256": hashlib.sha256(event_bytes).hexdigest(),
+                }}, validator_sha256=validator_sha256, validate=validate,
+            )
+            retired_entry = next(
+                entry for entry in base["files"] if entry["path"] == retired_relative
+            )
+            retired_object = store.root / "objects" / retired_entry["sha256"]
+            retired_object.chmod(0o644)
+            retired_object.write_bytes(b"corrupted-retired-object\n")
+            output = root / "built" / "snapshot"
+
+            with self.assertRaisesRegex(
+                corpus_store.CorpusStoreError,
+                "corrupt corpus object for ToS/source-witnesses/fixture.json",
+            ):
+                corpus_build_worker.compile_revision(
+                    store.root, successor["revision"], output,
+                )
+
+            self.assertFalse(output.exists())
+            self.assertEqual(store.current(), successor["revision"])
+
 
 if __name__ == "__main__":
     unittest.main()

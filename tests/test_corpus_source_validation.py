@@ -18,9 +18,11 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import corpus_source_validation as source_validation  # noqa: E402
+import build_source_witness_catalog  # noqa: E402
 from corpus_archive import capture_git, restore_capture  # noqa: E402
 from corpus_store import CorpusStoreError  # noqa: E402
 import validate_source_witness_foundation as foundation  # noqa: E402
+import source_record_profiles  # noqa: E402
 
 
 def _git(root: Path, *args: str) -> str:
@@ -148,6 +150,107 @@ class ValidatorIdentityTests(unittest.TestCase):
                 initial = source_validation.validator_identity(grammar)
                 mechanic.write_bytes(b'LIMIT = 32\n')
                 self.assertNotEqual(initial, source_validation.validator_identity(grammar))
+
+
+class _RecordingCandidate:
+    def __init__(self, root: Path, files: dict[str, bytes]) -> None:
+        self.root = root
+        self.files = files
+        self.paths = frozenset(files)
+        self.retirements = ()
+        self.materialized: list[tuple[str, ...]] = []
+
+    def materialize(self, paths) -> Path:
+        selected = tuple(sorted(set(paths)))
+        self.materialized.append(selected)
+        for relative in selected:
+            destination = self.root / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(self.files[relative])
+        return self.root
+
+
+class SourceGrammarPreflightTests(unittest.TestCase):
+    def test_grammar_drift_rejects_before_unrelated_source_materialization(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="tos-source-grammar-preflight-") as raw:
+            root = Path(raw)
+            grammar = _grammar_root(root)
+            unrelated = "ToS/source-witnesses/large-unrelated.md"
+            candidate_root = root / "candidate"
+            candidate = _RecordingCandidate(
+                candidate_root,
+                {
+                    "ToS/contracts/tiny.schema.json": _canonical({"type": "array"}),
+                    unrelated: b"x" * (1024 * 1024),
+                },
+            )
+            validator = source_validation.SourceValidator(grammar)
+
+            with self.assertRaisesRegex(
+                CorpusStoreError,
+                "before full materialization",
+            ):
+                validator(candidate, None, frozenset(candidate.paths))
+
+            self.assertEqual(
+                candidate.materialized,
+                [("ToS/contracts/tiny.schema.json",)],
+            )
+            self.assertFalse((candidate_root / unrelated).exists())
+
+
+class SourceIndexCatalogReuseTests(unittest.TestCase):
+    def test_fresh_catalog_rows_replace_the_second_source_scan(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="tos-source-index-") as raw:
+            root = Path(raw)
+            record_ref = "ToS/source-witnesses/work.json"
+            claim_ref = "ToS/source-witnesses/membership-claims.jsonl"
+            _write(root, record_ref, _canonical({"record_id": "tos.work.example"}))
+            _write(root, claim_ref, _canonical({"claim_id": "tos.claim.example", "evidence_refs": []}))
+            paths = {record_ref, claim_ref}
+            manifest_ref = Path("ToS/source-witnesses/catalog/catalog.manifest.json")
+            records_ref = Path("ToS/source-witnesses/catalog/works.jsonl")
+            claims_ref = Path("ToS/source-witnesses/catalog/claims.jsonl")
+            catalog_outputs = {
+                manifest_ref: _canonical({
+                    "record_files": {"work": records_ref.as_posix()},
+                    "claim_file": claims_ref.as_posix(),
+                }).decode(),
+                records_ref: _canonical({
+                    "record_id": "tos.work.example",
+                    "source_record_ref": record_ref,
+                }).decode(),
+                claims_ref: _canonical({
+                    "claim_id": "tos.claim.example",
+                    "source_claim_file_ref": claim_ref,
+                }).decode(),
+            }
+
+            class Profiles:
+                def __init__(self, selected_root):
+                    self.root = selected_root
+
+                def native_semantic_identities(self):
+                    return {}
+
+            with patch.object(source_record_profiles, "SourceRecordProfiles", Profiles), \
+                    patch.object(build_source_witness_catalog, "collect_records",
+                                 side_effect=AssertionError("catalog reuse must not rescan records")), \
+                    patch.object(build_source_witness_catalog, "collect_claims",
+                                 side_effect=AssertionError("catalog reuse must not rescan claims")):
+                index = source_validation.source_index(
+                    root,
+                    paths,
+                    catalog_outputs=catalog_outputs,
+                )
+
+            self.assertEqual(
+                index.identities,
+                {
+                    "tos.claim.example": claim_ref,
+                    "tos.work.example": record_ref,
+                },
+            )
 
 
 @contextmanager

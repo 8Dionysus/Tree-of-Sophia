@@ -493,7 +493,23 @@ def _recorded_provenance_input_path(repo_root: Path, ref: object, digest: object
         return None
 
 
-def _topology_evidence_matches(repo_root, evidence_ref, event_inputs, metadata_reader):
+def _topology_input_index(event_inputs):
+    """Index string refs while retaining every matching row for duplicate checks."""
+    if not isinstance(event_inputs, list):
+        return None
+    indexed = {}
+    for entry in event_inputs:
+        if not isinstance(entry, dict):
+            continue
+        ref = entry.get('ref')
+        if isinstance(ref, str):
+            indexed.setdefault(ref, []).append(entry)
+    return indexed
+
+
+def _topology_evidence_matches(
+    repo_root, evidence_ref, event_inputs, metadata_reader, *, input_index=None,
+):
     """Bind a legacy batch input to current or committed retained exact bytes.
 
     Only supported Work/Expression metadata may use its retained lineage. No
@@ -502,8 +518,11 @@ def _topology_evidence_matches(repo_root, evidence_ref, event_inputs, metadata_r
     """
     if not isinstance(evidence_ref, str) or not isinstance(event_inputs, list):
         return False
-    matches = [entry for entry in event_inputs if isinstance(entry, dict)
-               and entry.get('ref') == evidence_ref]
+    if input_index is None:
+        matches = [entry for entry in event_inputs if isinstance(entry, dict)
+                   and entry.get('ref') == evidence_ref]
+    else:
+        matches = input_index.get(evidence_ref, [])
     if len(matches) != 1:
         return False
     digest = matches[0].get('sha256')
@@ -14097,6 +14116,8 @@ def _validate_foundation(
     from metadata_version_reader import MetadataVersionReader
     topology_metadata_reader = MetadataVersionReader(repo_root)
     legacy_topology_claims = []
+    topology_inputs = topology_event.get('inputs', []) if topology_event is not None else []
+    topology_input_index = _topology_input_index(topology_inputs)
 
     for (
         claim_relative,
@@ -14212,8 +14233,8 @@ def _validate_foundation(
             if topology_event is not None:
                 for evidence_ref in expected_evidence:
                     if not _topology_evidence_matches(
-                        repo_root, evidence_ref, topology_event.get('inputs', []),
-                        topology_metadata_reader,
+                        repo_root, evidence_ref, topology_inputs,
+                        topology_metadata_reader, input_index=topology_input_index,
                     ):
                         issues.append(
                             (
