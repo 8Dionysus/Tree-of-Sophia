@@ -309,6 +309,22 @@ class SourceValidator:
         # General record/claim transitions still need the scoped owner-rule
         # adapter. They cannot borrow a retirement-only result or skip checks.
         del affected
+        grammar_paths = tuple(sorted(
+            path for path in candidate.paths
+            if path.endswith('.json')
+            and path.startswith(('ToS/contracts/', 'ToS/doctrine/semantic-interchange/'))
+        ))
+        # Check the small source grammar overlay before copying the full
+        # candidate. This rejects a base/batch grammar drift without spending
+        # the admission cost of materializing unrelated source members. The
+        # complete candidate identity checks below remain authoritative.
+        with stage_timing('source_grammar_preflight', members=len(grammar_paths)):
+            grammar = candidate.materialize(grammar_paths)
+            if (validator_identity(grammar) != self.grammar_sha256
+                    or validator_identity(self.grammar_root) != self.grammar_sha256):
+                raise CorpusStoreError(
+                    'source grammar or validator identity changed before full materialization'
+                )
         with stage_timing(
             'source_materialize',
             members=len(candidate.paths),

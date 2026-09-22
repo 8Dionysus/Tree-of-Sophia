@@ -152,6 +152,53 @@ class ValidatorIdentityTests(unittest.TestCase):
                 self.assertNotEqual(initial, source_validation.validator_identity(grammar))
 
 
+class _RecordingCandidate:
+    def __init__(self, root: Path, files: dict[str, bytes]) -> None:
+        self.root = root
+        self.files = files
+        self.paths = frozenset(files)
+        self.retirements = ()
+        self.materialized: list[tuple[str, ...]] = []
+
+    def materialize(self, paths) -> Path:
+        selected = tuple(sorted(set(paths)))
+        self.materialized.append(selected)
+        for relative in selected:
+            destination = self.root / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(self.files[relative])
+        return self.root
+
+
+class SourceGrammarPreflightTests(unittest.TestCase):
+    def test_grammar_drift_rejects_before_unrelated_source_materialization(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="tos-source-grammar-preflight-") as raw:
+            root = Path(raw)
+            grammar = _grammar_root(root)
+            unrelated = "ToS/source-witnesses/large-unrelated.md"
+            candidate_root = root / "candidate"
+            candidate = _RecordingCandidate(
+                candidate_root,
+                {
+                    "ToS/contracts/tiny.schema.json": _canonical({"type": "array"}),
+                    unrelated: b"x" * (1024 * 1024),
+                },
+            )
+            validator = source_validation.SourceValidator(grammar)
+
+            with self.assertRaisesRegex(
+                CorpusStoreError,
+                "before full materialization",
+            ):
+                validator(candidate, None, frozenset(candidate.paths))
+
+            self.assertEqual(
+                candidate.materialized,
+                [("ToS/contracts/tiny.schema.json",)],
+            )
+            self.assertFalse((candidate_root / unrelated).exists())
+
+
 class SourceIndexCatalogReuseTests(unittest.TestCase):
     def test_fresh_catalog_rows_replace_the_second_source_scan(self) -> None:
         with tempfile.TemporaryDirectory(prefix="tos-source-index-") as raw:
